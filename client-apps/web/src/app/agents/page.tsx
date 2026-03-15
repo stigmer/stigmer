@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { Play } from "lucide-react";
-import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { TopBar } from "@/components/layout/TopBar";
-import { ResourceList } from "@/components/catalog";
+import {
+  ResourceList,
+  AgentSearchCard,
+} from "@/components/resource-list";
 import { useAgentList } from "@/hooks/agents/useAgentList";
 
 export default function AgentsPage() {
-  const catalog = useAgentList();
+  const data = useAgentList();
 
   return (
     <>
@@ -25,7 +27,12 @@ export default function AgentsPage() {
           </Link>
         }
       />
-      <ResourceList kind={ApiResourceKind.agent} catalog={catalog} />
+      <ResourceList
+        kindLabel="agents"
+        data={data}
+        layout="grid"
+        renderItem={(result) => <AgentSearchCard result={result} />}
+      />
     </>
   );
 }

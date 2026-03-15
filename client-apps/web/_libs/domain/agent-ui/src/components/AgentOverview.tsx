@@ -1,97 +1,90 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
-import { Badge } from "@/components/ui/badge";
+import {
+  Bot,
+  Globe,
+  Users,
+  Server,
+  FileCode2,
+  Wrench,
+  ChevronDown,
+} from "lucide-react";
+
+import { cn } from "@stigmer/theme";
+
+import { Badge } from "../internal/badge";
 import {
   Collapsible,
   CollapsibleTrigger,
   CollapsibleContent,
-} from "@/components/ui/collapsible";
-import {
-  Bot,
-  Play,
-  Server,
-  FileCode2,
-  ChevronDown,
-  Globe,
-  Users,
-  Wrench,
-} from "lucide-react";
+} from "../internal/collapsible";
+import { Section } from "../internal/section";
 
 const INSTRUCTIONS_COLLAPSE_THRESHOLD = 300;
 
-interface AgentDetailViewProps {
+interface AgentOverviewProps {
   agent: Agent;
+  className?: string;
 }
 
-export function AgentDetailView({ agent }: AgentDetailViewProps) {
+function AgentOverview({ agent, className }: AgentOverviewProps) {
   const meta = agent.metadata;
   const spec = agent.spec;
-  const visibility = meta?.visibility;
-  const isPublic = visibility === ApiResourceVisibility.visibility_public;
+  const isPublic =
+    meta?.visibility === ApiResourceVisibility.visibility_public;
   const qualifiedSlug = meta?.org ? `${meta.org}/${meta.slug}` : meta?.slug;
   const hasLongInstructions =
     (spec?.instructions?.length ?? 0) > INSTRUCTIONS_COLLAPSE_THRESHOLD;
 
   return (
-    <div className="space-y-8">
+    <div className={cn("space-y-8", className)}>
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            {spec?.iconUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={spec.iconUrl}
-                alt=""
-                className="size-10 rounded-lg object-cover"
-              />
-            ) : (
-              <div className="bg-muted flex size-10 items-center justify-center rounded-lg">
-                <Bot className="text-muted-foreground size-5" />
-              </div>
-            )}
-            <div>
-              <h2 className="text-xl font-semibold">{meta?.name}</h2>
-              <p className="text-muted-foreground font-mono text-xs">
-                {qualifiedSlug}
-              </p>
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          {spec?.iconUrl ? (
+            <img
+              src={spec.iconUrl}
+              alt=""
+              className="size-10 rounded-lg object-cover"
+            />
+          ) : (
+            <div className="bg-muted flex size-10 items-center justify-center rounded-lg">
+              <Bot className="text-muted-foreground size-5" />
             </div>
-          </div>
-          {spec?.description && (
-            <p className="text-muted-foreground max-w-prose text-sm">
-              {spec.description}
-            </p>
           )}
-          <div className="flex items-center gap-2">
-            {isPublic ? (
-              <Badge variant="outline" className="gap-1">
-                <Globe className="size-3" />
-                Public
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="gap-1">
-                <Users className="size-3" />
-                Private
-              </Badge>
-            )}
-            {meta?.tags?.map((tag: string) => (
-              <Badge key={tag} variant="secondary">
-                {tag}
-              </Badge>
-            ))}
+          <div>
+            <h2 className="text-xl font-semibold">{meta?.name}</h2>
+            <p className="text-muted-foreground font-mono text-xs">
+              {qualifiedSlug}
+            </p>
           </div>
         </div>
-        <Link
-          href={`/run?agentId=${meta?.id ?? ""}`}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
-        >
-          <Play className="size-3.5" />
-          Run Agent
-        </Link>
+        {spec?.description && (
+          <p className="text-muted-foreground max-w-prose text-sm">
+            {spec.description}
+          </p>
+        )}
+        <div className="flex items-center gap-2">
+          {isPublic ? (
+            <Badge variant="outline" className="gap-1">
+              <Globe className="size-3" />
+              Public
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="gap-1">
+              <Users className="size-3" />
+              Private
+            </Badge>
+          )}
+          {meta?.tags?.map((tag: string) => (
+            <Badge key={tag} variant="secondary">
+              {tag}
+            </Badge>
+          ))}
+        </div>
       </div>
 
       {/* Instructions */}
@@ -200,23 +193,6 @@ export function AgentDetailView({ agent }: AgentDetailViewProps) {
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wider uppercase">
-        {title}
-      </h3>
-      {children}
-    </section>
-  );
-}
-
 function CollapsibleInstructions({ instructions }: { instructions: string }) {
   const [open, setOpen] = useState(false);
 
@@ -227,15 +203,19 @@ function CollapsibleInstructions({ instructions }: { instructions: string }) {
           ? instructions
           : instructions.slice(0, INSTRUCTIONS_COLLAPSE_THRESHOLD) + "..."}
       </pre>
-      <CollapsibleContent>
-        {/* CollapsibleContent wraps nothing extra; full text is shown in pre above when open */}
-      </CollapsibleContent>
+      <CollapsibleContent />
       <CollapsibleTrigger className="text-muted-foreground hover:text-foreground mt-2 flex items-center gap-1 text-xs">
         <ChevronDown
-          className={`size-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+          className={cn(
+            "size-3.5 transition-transform",
+            open && "rotate-180",
+          )}
         />
         {open ? "Show less" : "Show full instructions"}
       </CollapsibleTrigger>
     </Collapsible>
   );
 }
+
+export { AgentOverview };
+export type { AgentOverviewProps };
