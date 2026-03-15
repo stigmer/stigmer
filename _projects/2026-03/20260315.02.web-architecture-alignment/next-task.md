@@ -22,13 +22,40 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: IN PROGRESS
-- **Last Session**: 2026-03-15 — Phase 1 completed (T01 + T02)
-- **Active Task**: None — T03 complete, ready for T04
-- **Next Task**: T04 (Visual Identity & Theme System)
+- **Last Session**: 2026-03-15 — T04 (Visual Identity & Theme System) completed
+- **Active Task**: None — T04 complete, ready for T05
+- **Next Task**: T05 (Navigation IA Design Decision)
 
-## Session Progress (2026-03-15)
+## Session Progress (2026-03-15, Session 2)
 
-### Phase 1: Dead Code Removal & Tooling — COMPLETED
+### T04: Visual Identity & Theme System — COMPLETED
+
+**Brand Color System**
+- Replaced monochrome `oklch(0 0 0)` primary with teal brand accent (OKLCH hue 190)
+- Light: `oklch(0.55 0.12 190)`, Dark: `oklch(0.72 0.12 190)`
+- Unified `--ring`, `--sidebar-primary`, `--sidebar-ring` with brand hue
+
+**Semantic Status Tokens**
+- Added `--success` (green, hue 150), `--warning` (amber, hue 80), `--info` (blue, hue 250)
+- All tokens include light/dark variants and foreground pairs
+- Mapped into Tailwind `@theme inline` in `globals.css`
+
+**Dark Mode Activation**
+- Installed `next-themes` for class-based dark mode with SSR flash prevention
+- `ThemeProvider` wraps the provider tree as outermost provider in `Providers.tsx`
+- Created `ThemeToggle.tsx` — three-way switcher (Light / System / Dark) using `resolvedTheme` for hydration safety
+- Placed toggle in sidebar footer
+- Added `suppressHydrationWarning` to `<html>` in `layout.tsx`
+
+**Typography Audit**
+- Verified heading hierarchy consistency across all pages
+- Fixed 3 missing `font-mono` instances on qualified slugs (`AgentPicker.tsx`, `DraftPage.tsx`)
+
+**Architecture Decision**: `next-themes` stays Console-specific — `@stigmer/theme` remains framework-agnostic CSS tokens only, preserving the platform-for-platforms mandate.
+
+**Verification**: `npm run build`, `npm run lint`, `npm run format:check` all pass clean. Visually verified Dashboard, Catalog, and Run Agent pages in both light and dark modes.
+
+### Session 1 (Earlier): Phase 1 — COMPLETED
 
 **T01: Dead Code Removal**
 - Deleted `src/components/ui/tooltip.tsx` (zero imports)
@@ -46,35 +73,31 @@ Drop this file into your conversation to quickly resume work on this project.
 - Added `**/dist/**` to ESLint ignores (build artifacts were triggering violations)
 - Applied Prettier formatting across entire codebase (80 files touched)
 
-**Verification**: `npm run build`, `npm run lint`, and `npm run format:check` all pass cleanly.
-
 ### Key Decisions Made
 1. **Kept OidcConfig and getIamApiAudience()** — they are future stubs for Auth0 integration
 2. **Kept chart CSS variables** (--color-chart-1 through 5) — reserved for future chart/visualization features
 3. **Kept Auth barrel re-exports and shadcn component variants** — part of public API surface / standard component primitives
 4. **searchAgents was NOT dead code** — initial analysis flagged it incorrectly; `useAgentSearch.ts` depends on it. Caught by build verification.
+5. **Teal as brand color** — differentiation from DevTools competitors, semantic fit with network/execution domain, strong OKLCH characteristics
+6. **`next-themes` Console-only** — `@stigmer/theme` stays framework-agnostic, `ThemeProvider` lives in Console's provider tree
 
-### Surprise Encountered
+### Surprises Encountered
 - `searchAgents` was initially removed alongside the genuinely dead `searchSkills` and `searchMcpServers`. Build failure revealed `useAgentSearch.ts` imports it. The function was immediately restored. Lesson: always verify each removal individually, not in batches.
+- ESLint `react-hooks/set-state-in-effect` rule caught a `useState`/`useEffect` mount pattern in the initial `ThemeToggle` implementation. Refactored to use `resolvedTheme` directly from `next-themes` instead.
 
 ## Next Steps
 1. ~~**T03: Package Rename** (`@stigmer/react-ui` → `@stigmer/agent-execution-ui`)~~ — **DONE**
-   - Renamed directory `_libs/domain/react-ui/` → `_libs/domain/agent-execution-ui/`
-   - Updated `package.json` name field
-   - Updated all imports across the console
-   - Updated workspace references and build scripts
-   - Added `**/dist/` to `.prettierignore` (pre-existing oversight)
-2. **T04: Visual Identity & Theme System**
-   - Replace monochrome `oklch(0 0 0)` palette with brand-informed color system
-   - Dark mode activation with theme toggle
-   - Typography audit for Geist Sans/Mono hierarchy
+2. ~~**T04: Visual Identity & Theme System**~~ — **DONE**
+3. **T05: Navigation IA Design Decision** (no code — design phase)
+   - Analyze sidebar taxonomy and information architecture
+   - Decide on navigation hierarchy for expanded product surface
+   - Design document before implementation
 
 ## Context for Resume
-- Phase 1 is fully committed and verified
+- Phase 1 (T01+T02) and Phase 2 (T03+T04) are fully committed and verified
 - No work-in-progress or half-finished changes
-- The codebase now has Prettier + hardened ESLint as a baseline for all future work
-- T03 is complete — package renamed to `@stigmer/agent-execution-ui`
-- T04 involves design decisions (brand color choice) — collaboration needed
+- The codebase now has Prettier + hardened ESLint, teal brand color, dark mode, and semantic status tokens
+- T05 is a design decision phase — no code, pure IA analysis and collaboration
 
 ## Gap Analysis Summary
 
@@ -106,8 +129,8 @@ The project addresses gaps from two analyses:
 | Phase | Days | Focus | Type | Status |
 |-------|------|-------|------|--------|
 | Phase 1 | 1–2 | Dead code removal + Prettier + lint hardening | Architecture | **DONE** |
-| Phase 2 | 3–4 | Package rename + Visual identity foundation | Architecture + UX | Next |
-| Phase 3 | 5 | Navigation IA design decision (no code) | UX | Pending |
+| Phase 2 | 3–4 | Package rename + Visual identity foundation | Architecture + UX | **DONE** |
+| Phase 3 | 5 | Navigation IA design decision (no code) | UX | Next |
 | Phase 4 | 6–9 | Query/Command hook pattern + service reorganization | Architecture | Pending |
 | Phase 5 | 10–11 | Error handling & Bridge framework | Architecture | Pending |
 | Phase 6 | 12–16 | Layout overhaul + View completeness (sidebar, header, sessions, dashboard) | UX | Pending |
@@ -180,12 +203,12 @@ The project addresses gaps from two analyses:
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-1.md`
-2. [ ] Check current task status — Phase 1 complete, Phase 2 next
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-2.md`
+2. [ ] Check current task status — Phase 2 complete, Phase 3 (T05) next
 3. [ ] Review any new design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T03 (Package Rename) or T04 (Visual Identity)
+6. [ ] Continue with T05 (Navigation IA Design Decision)
 
 ## Quick Resume
 
@@ -196,8 +219,8 @@ To continue this project, drag this file into chat:
 
 **Created**: 2026-03-15
 **Updated**: 2026-03-15
-**Current Task**: Phase 2 — T04 (Visual Identity & Theme System)
-**Status**: READY — T03 complete, T04 next
+**Current Task**: Phase 3 — T05 (Navigation IA Design Decision)
+**Status**: READY — T04 complete, T05 next
 
 ---
 

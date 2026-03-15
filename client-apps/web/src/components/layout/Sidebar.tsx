@@ -13,6 +13,7 @@ import {
   type NavGroup,
 } from "@/config/navigation";
 import { OrgSwitcher } from "./OrgSwitcher";
+import { ThemeToggle } from "./ThemeToggle";
 
 const SIDEBAR_WIDTH = 240;
 
@@ -118,6 +119,10 @@ export function Sidebar() {
           )}
         </nav>
       </ScrollArea>
+
+      <div className="border-sidebar-border border-t px-3 py-3">
+        <ThemeToggle />
+      </div>
     </aside>
   );
 }
