@@ -27,12 +27,14 @@
     "directory": "client-apps/web/_libs/domain/session"
   },
   "dependencies": {
-    "@stigmer/rpc-client": "*"
+    "@stigmer/rpc-client": "*",
+    "@stigmer/theme": "*"
   },
   "peerDependencies": {
     "react": "^19.0.0",
     "@stigmer/protos": "*",
     "@connectrpc/connect": "^2.0.0",
-    "@bufbuild/protobuf": "^2.0.0"
+    "@bufbuild/protobuf": "^2.0.0",
+    "lucide-react": ">=0.400.0"
   }
 }

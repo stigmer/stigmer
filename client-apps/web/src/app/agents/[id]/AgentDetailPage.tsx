@@ -1,20 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback } from "react";
 import { Loader2, Play } from "lucide-react";
 import { AgentOverview } from "@stigmer/agent";
+import { AgentSessionHistory } from "@stigmer/session";
 import { Separator } from "@/components/ui/separator";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { TopBar } from "@/components/layout/TopBar";
 import { useAgent } from "@/hooks/agents/useAgent";
-import { AgentSessionHistory } from "@/components/agent/AgentSessionHistory";
 
 export default function AgentDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { data: agent, isLoading, error, refetch } = useAgent(id);
 
   const name = agent?.metadata?.name ?? "Agent";
+  const handleSessionSelect = useCallback(
+    (sessionId: string) => router.push(`/sessions/${sessionId}`),
+    [router],
+  );
 
   return (
     <div className="space-y-6">
@@ -47,7 +53,7 @@ export default function AgentDetailPage() {
       {agent && (
         <>
           <Separator />
-          <AgentSessionHistory agentId={id} />
+          <AgentSessionHistory agentId={id} onSessionSelect={handleSessionSelect} />
         </>
       )}
     </div>
