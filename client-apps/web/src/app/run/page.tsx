@@ -4,10 +4,7 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Play, ExternalLink } from "lucide-react";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import {
-  AgentPicker,
-  type SelectedAgent,
-} from "@/components/agent/AgentPicker";
+import { AgentPicker, type SelectedAgent } from "@stigmer/agent";
 import {
   ExecutionStream,
   MessageInput,
@@ -132,6 +129,7 @@ export default function RunAgentPage() {
         {showPicker && (
           <div className="mx-auto w-full max-w-2xl space-y-6 p-6">
             <AgentPicker
+              org={org}
               selected={selectedAgent}
               onSelect={setSelectedAgent}
               onClear={handleClearAgent}

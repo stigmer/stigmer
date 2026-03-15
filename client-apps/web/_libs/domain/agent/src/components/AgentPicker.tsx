@@ -8,9 +8,8 @@ import {
   type KeyboardEvent,
 } from "react";
 import { Bot, Search, X, Loader2 } from "lucide-react";
-import { useAgentSearch } from "@/hooks/agents/useAgentSearch";
 import { cn } from "@stigmer/theme";
-import { Button } from "@/components/ui/button";
+import { useAgentSearch, type AgentSearchResult } from "../hooks/useAgentSearch";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -25,6 +24,8 @@ export interface SelectedAgent {
 }
 
 export interface AgentPickerProps {
+  /** Organization slug used to scope the agent search. */
+  org: string;
   onSelect: (agent: SelectedAgent) => void;
   onClear: () => void;
   selected: SelectedAgent | null;
@@ -36,7 +37,8 @@ export interface AgentPickerProps {
 // Component
 // ---------------------------------------------------------------------------
 
-export function AgentPicker({
+function AgentPicker({
+  org,
   onSelect,
   onClear,
   selected,
@@ -47,7 +49,7 @@ export function AgentPicker({
   const listboxId = `${instanceId}-listbox`;
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { query, setQuery, results, isLoading, error } = useAgentSearch();
+  const { query, setQuery, results, isLoading, error } = useAgentSearch({ org });
   const [activeIndex, setActiveIndex] = useState(-1);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -75,7 +77,6 @@ export function AgentPicker({
     setQuery("");
     setActiveIndex(-1);
     setIsOpen(true);
-    // Re-focus the input after clearing so the user can immediately search.
     requestAnimationFrame(() => inputRef.current?.focus());
   }, [onClear, setQuery]);
 
@@ -115,7 +116,7 @@ export function AgentPicker({
   // ── Selected state ──
   if (selected) {
     return (
-      <div className={cn("space-y-1", className)}>
+      <div className={cn("stgm-agent-picker space-y-1", className)}>
         <label className="text-muted-foreground text-sm font-medium">
           Agent
         </label>
@@ -129,17 +130,20 @@ export function AgentPicker({
               {selected.qualifiedSlug}
             </p>
           </div>
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="icon"
             onClick={handleClear}
             disabled={disabled}
             aria-label="Change agent"
-            className="size-7 shrink-0"
+            className={cn(
+              "inline-flex size-7 shrink-0 items-center justify-center rounded-md",
+              "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              "transition-colors focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
+              "disabled:pointer-events-none disabled:opacity-50",
+            )}
           >
             <X className="size-3.5" />
-          </Button>
+          </button>
         </div>
       </div>
     );
@@ -150,7 +154,7 @@ export function AgentPicker({
     activeIndex >= 0 ? `${instanceId}-option-${activeIndex}` : undefined;
 
   return (
-    <div className={cn("space-y-1", className)}>
+    <div className={cn("stgm-agent-picker space-y-1", className)}>
       <label
         htmlFor={`${instanceId}-input`}
         className="text-muted-foreground text-sm font-medium"
@@ -159,7 +163,6 @@ export function AgentPicker({
       </label>
 
       <div className="relative">
-        {/* Search input */}
         <div className="relative">
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <input
@@ -188,7 +191,6 @@ export function AgentPicker({
             }}
             onFocus={() => setIsOpen(true)}
             onBlur={() => {
-              // Delay closing to allow click events on results to fire.
               setTimeout(() => setIsOpen(false), 150);
             }}
             onKeyDown={handleKeyDown}
@@ -198,7 +200,6 @@ export function AgentPicker({
           )}
         </div>
 
-        {/* Results dropdown */}
         {showResults && (
           <ul
             id={listboxId}
@@ -236,7 +237,6 @@ export function AgentPicker({
                     : "hover:bg-accent/50",
                 )}
                 onMouseDown={(e) => {
-                  // Prevent input blur from firing before selection completes.
                   e.preventDefault();
                 }}
                 onClick={() => handleSelect(index)}
@@ -264,3 +264,6 @@ export function AgentPicker({
     </div>
   );
 }
+
+export { AgentPicker };
+export type { AgentSearchResult };
