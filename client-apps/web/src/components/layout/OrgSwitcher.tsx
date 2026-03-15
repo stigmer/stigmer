@@ -2,7 +2,7 @@
 
 import { Building2, AlertCircle, RefreshCw, ChevronsUpDown } from "lucide-react";
 import { useOrg } from "@/contexts/org-context";
-import { cn } from "@/lib/utils";
+import { cn } from "@stigmer/theme";
 
 export function OrgSwitcher() {
   const { orgs, activeOrg, setActiveOrg, isLoading, error, retry } = useOrg();

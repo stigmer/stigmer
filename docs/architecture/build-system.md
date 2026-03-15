@@ -12,12 +12,13 @@ All production builds use the Go toolchain orchestrated through Make:
 
 | Command | Purpose |
 |---------|---------|
-| `make build` | Build the Stigmer CLI |
-| `make build-backend` | Build backend services |
+| `make local` | Build + install CLI with embedded web console (daily driver) |
+| `make build` | Bare compile check (no embeds, used by `make check`) |
+| `make build-release` | Portable binary with everything embedded (CI-equivalent) |
+| `make web-console-build` | Build web console static assets for embedding |
 | `make test` | Run unit tests |
 | `make lint` | Run linters |
 | `make protos` | Generate protocol buffer stubs |
-| `make local` | Build and install CLI locally |
 
 ### Auxiliary: Bazel
 
@@ -44,16 +45,20 @@ Bazel configuration exists but is **not used for production releases**:
 
 ### Release Workflow
 
-The release process is defined in `.github/workflows/release-embedded.yml`:
+The release process is defined in `.github/workflows/release.cli.yaml`:
 
 ```
 Tag Push (v*) → Build Matrix → GitHub Release → Homebrew Tap Update
                     │
+                    ├── build-web-console (Node.js, artifact upload)
+                    ├── lint-and-typecheck-agent-runner (Python)
+                    │
                     ├── darwin-arm64 (macOS Apple Silicon)
-                    ├── darwin-amd64 (macOS Intel)
-                    ├── linux-amd64 (Linux)
-                    └── Docker Image (agent-runner)
+                    ├── darwin-amd64 (macOS Intel, cross-compiled)
+                    └── linux-amd64 (Linux)
 ```
+
+Platform builds depend on `build-web-console` and `lint-and-typecheck-agent-runner`. Each platform job downloads the web console artifact, syncs agent-runner source, and compiles with `embed_agentrunner embed_webconsole` build tags.
 
 ### Build Matrix
 
@@ -63,12 +68,16 @@ Tag Push (v*) → Build Matrix → GitHub Release → Homebrew Tap Update
 | darwin-amd64 | macos-latest (cross-compile) | `stigmer-{version}-darwin-amd64.tar.gz` |
 | linux-amd64 | ubuntu-latest | `stigmer-{version}-linux-amd64.tar.gz` |
 
-### Docker Images
+### Embedded Components
 
-Published to GitHub Container Registry (ghcr.io):
+The CLI binary embeds two components via Go build tags:
 
-- `ghcr.io/stigmer/agent-runner:{version}` - Agent runner service
-- `ghcr.io/stigmer/agent-sandbox-basic:{version}` - Sandbox environment
+| Component | Build Tag | Embed Strategy |
+|-----------|-----------|---------------|
+| Agent-runner | `embed_agentrunner` | Python source synced via `sync.sh`, extracted at runtime |
+| Web console | `embed_webconsole` | Next.js static export via `//go:embed` |
+
+`make local` embeds the web console and uses `DEV_LDFLAGS` to point to the agent-runner source tree. `make build-release` embeds both.
 
 ## Go Version Policy
 
@@ -115,34 +124,28 @@ See [go-module-structure.md](go-module-structure.md) for details.
 ### Quick Start
 
 ```bash
-# Build CLI
-make build
+# One-time setup
+make setup     # Go/Python deps
+npm install    # Node.js deps (web console + proto stubs)
 
-# Build and install locally
+# Build and install CLI (daily driver)
 make local
 
-# Run in development mode
-make dev
-```
-
-### Full Development Environment
-
-```bash
-# Build everything (CLI + Docker images)
-make dev-full
+# Start server (web console on :8234, API on :7234, Temporal UI on :8233)
+stigmer server
 ```
 
 ### Running Tests
 
 ```bash
-# Unit tests only
+# Unit tests
 make test
 
-# E2E tests (requires infrastructure)
+# E2E tests (requires running stigmer server + ollama)
 make test-e2e
 
-# All tests
-make test-all
+# Full CI gate (tidy + lint + build + test)
+make check
 ```
 
 ## Adding New Services

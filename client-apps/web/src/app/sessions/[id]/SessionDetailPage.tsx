@@ -7,14 +7,18 @@ import { ArrowLeft, AlertCircle, MessageSquare, Loader2 } from "lucide-react";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import {
+  ExecutionStream,
+  MessageEntry,
+  HumanMessageBubble,
+  MessageInput,
+  useAgentExecution,
+  useApproval,
+  buildSubAgentIndex,
+  isTerminalPhase,
+} from "@stigmer/react-ui/execution";
 import { useSessionDetail } from "@/hooks/useSessionDetail";
-import { useAgentExecution } from "@/hooks/useAgentExecution";
-import { useApproval } from "@/hooks/useApproval";
-import { ExecutionStream } from "@/components/execution/ExecutionStream";
-import { MessageEntry, HumanMessageBubble } from "@/components/execution/MessageEntry";
-import { MessageInput } from "@/components/execution/MessageInput";
 import { Separator } from "@/components/ui/separator";
-import { buildSubAgentIndex, isTerminalPhase } from "@/lib/execution";
 import { formatRelativeTime } from "@/lib/time";
 
 // ---------------------------------------------------------------------------

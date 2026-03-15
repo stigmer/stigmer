@@ -6,15 +6,17 @@ import { ExternalLink, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import { ExecutionStream } from "@/components/execution";
-import { MessageInput } from "@/components/execution/MessageInput";
-import { useAgentExecution } from "@/hooks/useAgentExecution";
-import { useApproval } from "@/hooks/useApproval";
+import {
+  ExecutionStream,
+  MessageInput,
+  useAgentExecution,
+  useApproval,
+  isTerminalPhase,
+} from "@stigmer/react-ui/execution";
+import { cn } from "@stigmer/theme";
 import { useDraftAgent } from "@/hooks/useDraftAgent";
 import { useActiveOrgSlug } from "@/contexts/org-context";
-import { isTerminalPhase } from "@/lib/execution";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import type { DraftConfig } from "@/config/draft";
 
 // ---------------------------------------------------------------------------

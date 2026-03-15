@@ -11,62 +11,49 @@ This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.
 ### Development Setup
 
 **Prerequisites**:
-- Go 1.21 or later
+- Go 1.25 or later
 - Python 3.11 or later
-- Docker (for agent-runner)
-- Protocol Buffers compiler (`protoc`)
+- Node.js 22 or later (for web console)
 - `buf` CLI tool
-
-**Install Docker**:
-```bash
-# macOS
-brew install --cask docker
-
-# Linux
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-
-# Windows
-# Download Docker Desktop from https://www.docker.com/products/docker-desktop
-```
 
 **Clone and build**:
 
 ```bash
 git clone https://github.com/stigmer/stigmer.git
 cd stigmer
-make setup              # Install dependencies
-make local-full # Build CLI + Docker image (first time)
-make test               # Run tests
+make setup     # Install Go/Python dependencies
+npm install    # Install Node.js dependencies (web console + proto stubs)
+make local     # Build CLI with embedded web console
+make test      # Run tests
 ```
 
 **Development workflow**:
 
 ```bash
-# Fast CLI iteration (after Go code changes)
+# Rebuild CLI after code changes (includes web console)
 make local
 
-# Rebuild Docker image (after agent-runner changes)
-make build-agent-runner-image
-
-# Complete rebuild (CLI + Docker image)
-make local-full
+# Start the server
+stigmer server
 ```
 
 ### Project Structure
 
 ```
 stigmer/
-├── cmd/stigmer/          # CLI entry point
-├── internal/             # Internal packages
-│   ├── backend/         # Backend implementations
-│   ├── workflow/        # Workflow engine
-│   └── agent/           # Agent execution
-├── sdk/                 # SDKs for Go and Python
-├── runners/             # Workflow and agent runners
-├── apis/                # Protobuf definitions
-├── docs/                # Documentation
-└── examples/            # Example agents and workflows
+├── apis/                          # Protobuf definitions and generated stubs
+├── backend/
+│   ├── libs/                      # Shared libraries (Go, Python)
+│   └── services/
+│       ├── stigmer-server/        # Main gRPC server
+│       ├── workflow-runner/       # Temporal workflow runner
+│       └── agent-runner/          # Python agent execution engine
+├── client-apps/
+│   ├── cli/                       # Go CLI (stigmer command)
+│   └── web/                       # Next.js web console
+├── sdk/go/                        # Go SDK
+├── mcp-server/                    # MCP server
+└── docs/                          # Documentation
 ```
 
 ### Running Tests
