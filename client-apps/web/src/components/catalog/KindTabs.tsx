@@ -14,7 +14,12 @@ interface KindTab {
 
 const TABS: KindTab[] = [
   { kind: null, label: "All", icon: LayoutGrid, countKey: null },
-  { kind: ApiResourceKind.agent, label: "Agents", icon: Bot, countKey: "agent" },
+  {
+    kind: ApiResourceKind.agent,
+    label: "Agents",
+    icon: Bot,
+    countKey: "agent",
+  },
   {
     kind: ApiResourceKind.skill,
     label: "Skills",
@@ -58,7 +63,7 @@ export function KindTabs({
             onClick={() => onKindChange(tab.kind)}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
               isActive
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -69,7 +74,7 @@ export function KindTabs({
             {count > 0 && (
               <span
                 className={cn(
-                  "ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+                  "ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-semibold",
                   isActive
                     ? "bg-primary-foreground/20 text-primary-foreground"
                     : "bg-muted-foreground/10 text-muted-foreground",

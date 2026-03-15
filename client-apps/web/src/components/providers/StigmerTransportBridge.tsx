@@ -17,10 +17,7 @@ import { getApiBaseUrl } from "@/config/env";
 export function StigmerTransportBridge({ children }: { children: ReactNode }) {
   const { accessToken } = useAuth();
 
-  const getAccessToken = useCallback(
-    () => accessToken,
-    [accessToken],
-  );
+  const getAccessToken = useCallback(() => accessToken, [accessToken]);
 
   return (
     <StigmerTransportProvider

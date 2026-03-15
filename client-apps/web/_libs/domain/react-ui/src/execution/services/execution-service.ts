@@ -1,12 +1,8 @@
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Transport } from "@connectrpc/connect";
 
-import {
-  AgentExecutionCommandController,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
-import {
-  AgentExecutionQueryController,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
+import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
+import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
 import {
   AgentExecutionIdSchema,
   SubmitApprovalInputSchema,
@@ -18,13 +14,9 @@ import {
   AgentExecutionSchema,
   type AgentExecution,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import {
-  AgentExecutionSpecSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import {
-  ApiResourceMetadataSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
+import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -44,10 +36,24 @@ export interface ListExecutionsBySessionOptions {
 
 export interface ExecutionService {
   createExecution(input: CreateExecutionInput): Promise<AgentExecution>;
-  subscribeToExecution(executionId: string, signal?: AbortSignal): AsyncIterable<AgentExecution>;
-  submitApproval(executionId: string, toolCallId: string, action: ApprovalAction, comment?: string): Promise<AgentExecution>;
-  cancelExecution(executionId: string, reason?: string): Promise<AgentExecution>;
-  listExecutionsBySession(sessionId: string, options?: ListExecutionsBySessionOptions): Promise<AgentExecutionList>;
+  subscribeToExecution(
+    executionId: string,
+    signal?: AbortSignal,
+  ): AsyncIterable<AgentExecution>;
+  submitApproval(
+    executionId: string,
+    toolCallId: string,
+    action: ApprovalAction,
+    comment?: string,
+  ): Promise<AgentExecution>;
+  cancelExecution(
+    executionId: string,
+    reason?: string,
+  ): Promise<AgentExecution>;
+  listExecutionsBySession(
+    sessionId: string,
+    options?: ListExecutionsBySessionOptions,
+  ): Promise<AgentExecutionList>;
 }
 
 // ---------------------------------------------------------------------------
@@ -61,12 +67,20 @@ export interface ExecutionService {
 
 export function createExecutionService(transport: Transport): ExecutionService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const commandClient: any = createClient(AgentExecutionCommandController, transport);
+  const commandClient: any = createClient(
+    AgentExecutionCommandController,
+    transport,
+  );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const queryClient: any = createClient(AgentExecutionQueryController, transport);
+  const queryClient: any = createClient(
+    AgentExecutionQueryController,
+    transport,
+  );
 
   return {
-    async createExecution(input: CreateExecutionInput): Promise<AgentExecution> {
+    async createExecution(
+      input: CreateExecutionInput,
+    ): Promise<AgentExecution> {
       const execution = create(AgentExecutionSchema, {
         apiVersion: "agentic.stigmer.ai/v1",
         kind: "AgentExecution",
@@ -82,9 +96,14 @@ export function createExecutionService(transport: Transport): ExecutionService {
       return commandClient.create(execution) as Promise<AgentExecution>;
     },
 
-    subscribeToExecution(executionId: string, signal?: AbortSignal): AsyncIterable<AgentExecution> {
+    subscribeToExecution(
+      executionId: string,
+      signal?: AbortSignal,
+    ): AsyncIterable<AgentExecution> {
       const request = create(AgentExecutionIdSchema, { value: executionId });
-      return queryClient.subscribe(request, { signal }) as AsyncIterable<AgentExecution>;
+      return queryClient.subscribe(request, {
+        signal,
+      }) as AsyncIterable<AgentExecution>;
     },
 
     async submitApproval(
@@ -102,7 +121,10 @@ export function createExecutionService(transport: Transport): ExecutionService {
       return commandClient.submitApproval(input) as Promise<AgentExecution>;
     },
 
-    async cancelExecution(executionId: string, reason?: string): Promise<AgentExecution> {
+    async cancelExecution(
+      executionId: string,
+      reason?: string,
+    ): Promise<AgentExecution> {
       const input = create(CancelAgentExecutionInputSchema, {
         id: executionId,
         reason: reason ?? "",

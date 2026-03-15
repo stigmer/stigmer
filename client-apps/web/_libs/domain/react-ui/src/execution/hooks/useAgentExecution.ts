@@ -42,40 +42,48 @@ export function useAgentExecution(
   );
   const abortRef = useRef<AbortController | null>(null);
 
-  const subscribe = useCallback((executionId: string) => {
-    abortRef.current?.abort();
+  const subscribe = useCallback(
+    (executionId: string) => {
+      abortRef.current?.abort();
 
-    const controller = new AbortController();
-    abortRef.current = controller;
-    activeExecutionIdRef.current = executionId;
-    setIsConnected(true);
-    setError(null);
+      const controller = new AbortController();
+      abortRef.current = controller;
+      activeExecutionIdRef.current = executionId;
+      setIsConnected(true);
+      setError(null);
 
-    (async () => {
-      try {
-        const stream = service.subscribeToExecution(executionId, controller.signal);
-        for await (const update of stream) {
-          if (controller.signal.aborted) break;
-          setExecution(update);
+      (async () => {
+        try {
+          const stream = service.subscribeToExecution(
+            executionId,
+            controller.signal,
+          );
+          for await (const update of stream) {
+            if (controller.signal.aborted) break;
+            setExecution(update);
 
-          const phase = update.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-          if (isTerminalPhase(phase)) {
+            const phase =
+              update.status?.phase ??
+              ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+            if (isTerminalPhase(phase)) {
+              setIsConnected(false);
+              break;
+            }
+          }
+        } catch (err: unknown) {
+          if (controller.signal.aborted) return;
+          const message =
+            err instanceof Error ? err.message : "Stream disconnected";
+          setError(message);
+        } finally {
+          if (!controller.signal.aborted) {
             setIsConnected(false);
-            break;
           }
         }
-      } catch (err: unknown) {
-        if (controller.signal.aborted) return;
-        const message =
-          err instanceof Error ? err.message : "Stream disconnected";
-        setError(message);
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsConnected(false);
-        }
-      }
-    })();
-  }, [service]);
+      })();
+    },
+    [service],
+  );
 
   useEffect(() => {
     if (options?.executionId) {
@@ -107,17 +115,20 @@ export function useAgentExecution(
     [service, subscribe],
   );
 
-  const cancel = useCallback(async (reason?: string) => {
-    const id = activeExecutionIdRef.current;
-    if (!id) return;
-    try {
-      await service.cancelExecution(id, reason);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to cancel execution";
-      setError(message);
-    }
-  }, [service]);
+  const cancel = useCallback(
+    async (reason?: string) => {
+      const id = activeExecutionIdRef.current;
+      if (!id) return;
+      try {
+        await service.cancelExecution(id, reason);
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to cancel execution";
+        setError(message);
+      }
+    },
+    [service],
+  );
 
   const phase =
     execution?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;

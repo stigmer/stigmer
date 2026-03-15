@@ -2,9 +2,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
 import { transport } from "./transport";
 
-import {
-  SessionQueryController,
-} from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
+import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import {
   SessionIdSchema,
   ListSessionsRequestSchema,

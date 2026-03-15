@@ -4,11 +4,7 @@ import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import { OutputBlock } from "./OutputBlock";
 import { ToolCallCard } from "./ToolCallCard";
 import { SubAgentCard } from "./SubAgentCard";
-import {
-  isHumanMessage,
-  isAiMessage,
-  isSystemMessage,
-} from "../helpers";
+import { isHumanMessage, isAiMessage, isSystemMessage } from "../helpers";
 import { User, BotMessageSquare, Info } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -67,10 +63,10 @@ export function MessageEntry({
 export function HumanMessageBubble({ content }: { content: string }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted">
-        <User className="size-3.5 text-muted-foreground" />
+      <div className="bg-muted flex size-7 shrink-0 items-center justify-center rounded-full">
+        <User className="text-muted-foreground size-3.5" />
       </div>
-      <div className="min-w-0 flex-1 rounded-lg bg-muted px-3 py-2 text-sm">
+      <div className="bg-muted min-w-0 flex-1 rounded-lg px-3 py-2 text-sm">
         <p className="whitespace-pre-wrap">{content}</p>
       </div>
     </div>
@@ -94,8 +90,8 @@ function AiMessageBlock({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
-        <BotMessageSquare className="size-3.5 text-primary" />
+      <div className="bg-primary/10 flex size-7 shrink-0 items-center justify-center rounded-full">
+        <BotMessageSquare className="text-primary size-3.5" />
       </div>
       <div className="min-w-0 flex-1 space-y-2">
         {message.content && (
@@ -135,7 +131,7 @@ function AiMessageBlock({
 export function SystemMessageBlock({ content }: { content: string }) {
   if (!content) return null;
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+    <div className="text-muted-foreground flex items-center gap-2 text-xs">
       <Info className="size-3 shrink-0" />
       <p>{content}</p>
     </div>

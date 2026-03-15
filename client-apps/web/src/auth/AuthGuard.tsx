@@ -28,8 +28,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (isLoading || !isAuthenticated) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <Loader2 className="text-muted-foreground size-8 animate-spin" />
+        <p className="text-muted-foreground text-sm">Loading...</p>
       </div>
     );
   }

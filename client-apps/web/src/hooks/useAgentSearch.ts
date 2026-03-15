@@ -47,36 +47,39 @@ export function useAgentSearch(): UseAgentSearchReturn {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
 
-  const executeSearch = useCallback(async (searchQuery: string) => {
-    const requestId = ++requestIdRef.current;
-    setIsLoading(true);
-    setError(null);
+  const executeSearch = useCallback(
+    async (searchQuery: string) => {
+      const requestId = ++requestIdRef.current;
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const response = await searchAgents({
-        query: searchQuery,
-        org,
-        page: { num: 1, size: DEFAULT_PAGE_SIZE },
-      });
+      try {
+        const response = await searchAgents({
+          query: searchQuery,
+          org,
+          page: { num: 1, size: DEFAULT_PAGE_SIZE },
+        });
 
-      if (requestId !== requestIdRef.current) return;
+        if (requestId !== requestIdRef.current) return;
 
-      setResults(response.entries);
-      setTotalCount(response.totalCount);
-    } catch (err: unknown) {
-      if (requestId !== requestIdRef.current) return;
+        setResults(response.entries);
+        setTotalCount(response.totalCount);
+      } catch (err: unknown) {
+        if (requestId !== requestIdRef.current) return;
 
-      const message =
-        err instanceof Error ? err.message : "Failed to search agents";
-      setError(message);
-      setResults([]);
-      setTotalCount(0);
-    } finally {
-      if (requestId === requestIdRef.current) {
-        setIsLoading(false);
+        const message =
+          err instanceof Error ? err.message : "Failed to search agents";
+        setError(message);
+        setResults([]);
+        setTotalCount(0);
+      } finally {
+        if (requestId === requestIdRef.current) {
+          setIsLoading(false);
+        }
       }
-    }
-  }, [org]);
+    },
+    [org],
+  );
 
   const setQuery = useCallback(
     (q: string) => {

@@ -29,15 +29,16 @@ export function useApproval(options: UseApprovalOptions): UseApprovalReturn {
   const [error, setError] = useState<string | null>(null);
 
   const submit = useCallback(
-    async (
-      toolCallId: string,
-      action: ApprovalAction,
-      comment?: string,
-    ) => {
+    async (toolCallId: string, action: ApprovalAction, comment?: string) => {
       setIsSubmitting(true);
       setError(null);
       try {
-        await service.submitApproval(options.executionId, toolCallId, action, comment);
+        await service.submitApproval(
+          options.executionId,
+          toolCallId,
+          action,
+          comment,
+        );
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : "Failed to submit approval";

@@ -18,13 +18,13 @@ export default function RootError({ error, reset }: ErrorPageProps) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6 text-center">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/10">
-          <AlertTriangle className="size-6 text-destructive" />
+        <div className="bg-destructive/10 mx-auto flex size-12 items-center justify-center rounded-full">
+          <AlertTriangle className="text-destructive size-6" />
         </div>
 
         <div className="space-y-2">
           <h1 className="text-lg font-semibold">Something went wrong</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             An unexpected error occurred. You can try again or return to the
             dashboard.
           </p>
@@ -37,7 +37,7 @@ export default function RootError({ error, reset }: ErrorPageProps) {
           </Button>
           <Link
             href="/"
-            className="inline-flex h-8 items-center justify-center rounded-lg px-2.5 text-sm font-medium transition-colors hover:bg-muted hover:text-foreground"
+            className="hover:bg-muted hover:text-foreground inline-flex h-8 items-center justify-center rounded-lg px-2.5 text-sm font-medium transition-colors"
           >
             Go to Dashboard
           </Link>

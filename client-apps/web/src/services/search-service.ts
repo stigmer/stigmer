@@ -2,20 +2,13 @@ import { create } from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
 import { transport } from "./transport";
 
-import {
-  SearchService,
-} from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
+import { SearchService } from "@stigmer/protos/ai/stigmer/search/v1/query_pb";
 import {
   SearchRequestSchema,
   type SearchResponse,
-  type SearchResult,
 } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
-import {
-  ApiResourceKind,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import {
-  PageInfoSchema,
-} from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 
 // ---------------------------------------------------------------------------
 // Client
@@ -29,9 +22,6 @@ const client: any = createClient(SearchService, transport);
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
-
-export { ApiResourceKind };
-export type { SearchResponse, SearchResult };
 
 export interface SearchResourcesOptions {
   query: string;
@@ -73,18 +63,6 @@ export async function searchAgents(
   options: SearchResourcesOptions,
 ): Promise<SearchResponse> {
   return searchResources(ApiResourceKind.agent, options);
-}
-
-export async function searchSkills(
-  options: SearchResourcesOptions,
-): Promise<SearchResponse> {
-  return searchResources(ApiResourceKind.skill, options);
-}
-
-export async function searchMcpServers(
-  options: SearchResourcesOptions,
-): Promise<SearchResponse> {
-  return searchResources(ApiResourceKind.mcp_server, options);
 }
 
 // ---------------------------------------------------------------------------

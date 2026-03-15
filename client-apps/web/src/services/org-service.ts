@@ -3,12 +3,8 @@ import { createClient } from "@connectrpc/connect";
 import { EmptySchema } from "@bufbuild/protobuf/wkt";
 import { transport } from "./transport";
 
-import {
-  OrganizationQueryController,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
-import type {
-  Organization,
-} from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 // ---------------------------------------------------------------------------
 // Client
@@ -32,6 +28,8 @@ export type { Organization };
  */
 export async function fetchMyOrganizations(): Promise<Organization[]> {
   const request = create(EmptySchema, {});
-  const response = await (client.findMyOrganizations(request) as Promise<{ entries: Organization[] }>);
+  const response = await (client.findMyOrganizations(request) as Promise<{
+    entries: Organization[];
+  }>);
   return response.entries;
 }

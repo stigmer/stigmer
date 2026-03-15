@@ -19,7 +19,7 @@ export function RecentSessions() {
         {sessions.length > 0 && (
           <Link
             href="/sessions"
-            className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs transition-colors"
           >
             View all
             <ArrowRight className="size-3" />
@@ -32,25 +32,25 @@ export function RecentSessions() {
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="h-14 animate-pulse rounded-xl bg-muted/50"
+              className="bg-muted/50 h-14 animate-pulse rounded-xl"
             />
           ))}
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+        <div className="border-destructive/30 bg-destructive/5 text-destructive rounded-lg border p-3 text-sm">
           {error}
         </div>
       )}
 
       {!isLoading && !error && sessions.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-border py-10">
-          <History className="size-8 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">No sessions yet</p>
+        <div className="border-border flex flex-col items-center gap-3 rounded-lg border border-dashed py-10">
+          <History className="text-muted-foreground/40 size-8" />
+          <p className="text-muted-foreground text-sm">No sessions yet</p>
           <Link
             href="/run"
-            className="inline-flex h-7 items-center gap-1 rounded-lg border border-border bg-background px-2.5 text-[0.8rem] font-medium transition-colors hover:bg-muted"
+            className="border-border bg-background hover:bg-muted inline-flex h-7 items-center gap-1 rounded-lg border px-2.5 text-[0.8rem] font-medium transition-colors"
           >
             <Play className="size-3.5" />
             Run Agent
@@ -66,7 +66,7 @@ export function RecentSessions() {
           {hasMore && (
             <Link
               href="/sessions"
-              className="block py-2 text-center text-xs text-muted-foreground transition-colors hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground block py-2 text-center text-xs transition-colors"
             >
               View all sessions
             </Link>

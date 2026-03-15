@@ -44,11 +44,11 @@ plumbing. They have no internal dependencies.
 
 ## Packages
 
-| Layer | Directory | Package | Purpose |
-|-------|-----------|---------|---------|
-| Infra | `infra/rpc-client/` | `@stigmer/rpc-client` | Connect-RPC transport, auth interceptor, service client factory |
-| UI | `ui/theme/` | `@stigmer/theme` | `cn()` utility, CSS design tokens, shared theme types |
-| Domain | `domain/react-ui/` | `@stigmer/react-ui` | Execution streaming components, hooks, top-level `ExecutionChat` |
+| Layer  | Directory           | Package               | Purpose                                                          |
+| ------ | ------------------- | --------------------- | ---------------------------------------------------------------- |
+| Infra  | `infra/rpc-client/` | `@stigmer/rpc-client` | Connect-RPC transport, auth interceptor, service client factory  |
+| UI     | `ui/theme/`         | `@stigmer/theme`      | `cn()` utility, CSS design tokens, shared theme types            |
+| Domain | `domain/react-ui/`  | `@stigmer/react-ui`   | Execution streaming components, hooks, top-level `ExecutionChat` |
 
 ## How it works
 

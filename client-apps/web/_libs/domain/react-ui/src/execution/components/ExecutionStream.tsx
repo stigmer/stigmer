@@ -8,10 +8,7 @@ import { ExecutionStatus } from "./ExecutionStatus";
 import { MessageEntry } from "./MessageEntry";
 import { HumanMessageBubble } from "./MessageEntry";
 import { MessageInput } from "./MessageInput";
-import {
-  buildSubAgentIndex,
-  isTerminalPhase,
-} from "../helpers";
+import { buildSubAgentIndex, isTerminalPhase } from "../helpers";
 import { cn } from "@stigmer/theme";
 import { Button } from "../../internal/ui/button";
 import { ArrowDown, AlertCircle } from "lucide-react";
@@ -91,7 +88,7 @@ export function ExecutionStream(props: ExecutionStreamProps) {
         {execution?.status?.startedAt && (
           <time
             dateTime={execution.status.startedAt}
-            className="text-xs text-muted-foreground"
+            className="text-muted-foreground text-xs"
           >
             {new Date(execution.status.startedAt).toLocaleTimeString()}
           </time>
@@ -122,7 +119,7 @@ export function ExecutionStream(props: ExecutionStreamProps) {
 
           {/* Error banner */}
           {error && (
-            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-3 text-sm">
               <AlertCircle className="mt-0.5 size-4 shrink-0" />
               <p>{error}</p>
             </div>
@@ -130,7 +127,7 @@ export function ExecutionStream(props: ExecutionStreamProps) {
 
           {/* Execution error from status */}
           {execution?.status?.error && isTerminal && (
-            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-3 text-sm">
               <AlertCircle className="mt-0.5 size-4 shrink-0" />
               <p>{execution.status.error}</p>
             </div>
@@ -145,7 +142,7 @@ export function ExecutionStream(props: ExecutionStreamProps) {
             size="icon"
             variant="secondary"
             onClick={scrollToBottom}
-            className="absolute bottom-4 right-4 z-10 rounded-full shadow-md"
+            className="absolute right-4 bottom-4 z-10 rounded-full shadow-md"
             aria-label="Scroll to bottom"
           >
             <ArrowDown className="size-4" />

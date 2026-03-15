@@ -12,7 +12,10 @@ npm install @stigmer/react-ui @stigmer/rpc-client @stigmer/protos @stigmer/theme
 
 ```tsx
 import { StigmerTransportProvider } from "@stigmer/rpc-client";
-import { ExecutionStream, useAgentExecution } from "@stigmer/react-ui/execution";
+import {
+  ExecutionStream,
+  useAgentExecution,
+} from "@stigmer/react-ui/execution";
 import "@stigmer/react-ui/styles.css";
 
 function AgentView({ executionId }: { executionId: string }) {
@@ -31,9 +34,9 @@ function App() {
 
 ## Subpath Exports
 
-| Import | Contents |
-| --- | --- |
-| `@stigmer/react-ui/execution` | All execution components, hooks, helpers |
+| Import                         | Contents                                                     |
+| ------------------------------ | ------------------------------------------------------------ |
+| `@stigmer/react-ui/execution`  | All execution components, hooks, helpers                     |
 | `@stigmer/react-ui/styles.css` | Pre-built Tailwind CSS (use without your own Tailwind setup) |
 
 ## Components

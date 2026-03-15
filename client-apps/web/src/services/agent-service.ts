@@ -2,19 +2,11 @@ import { create } from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
 import { transport } from "./transport";
 
-import {
-  AgentQueryController,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
-import {
-  AgentIdSchema,
-} from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
+import { AgentQueryController } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/query_pb";
+import { AgentIdSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
-import {
-  ApiResourceReferenceSchema,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
-import {
-  ApiResourceKind,
-} from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 
 // ---------------------------------------------------------------------------
 // Client

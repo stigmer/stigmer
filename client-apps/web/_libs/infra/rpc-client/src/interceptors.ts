@@ -29,14 +29,13 @@ export function createAuthInterceptor(
  * cleaner user-facing error text without losing the structured error code
  * (which remains on the `ConnectError.code` property).
  */
-export const errorStripInterceptor: Interceptor =
-  (next) => async (request) => {
-    try {
-      return await next(request);
-    } catch (error: unknown) {
-      if (error instanceof Error && error.message) {
-        error.message = error.message.replace(/^\[.*?]\s*/, "");
-      }
-      throw error;
+export const errorStripInterceptor: Interceptor = (next) => async (request) => {
+  try {
+    return await next(request);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message) {
+      error.message = error.message.replace(/^\[.*?]\s*/, "");
     }
-  };
+    throw error;
+  }
+};

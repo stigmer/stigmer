@@ -29,9 +29,7 @@ export interface UseSessionsReturn {
  * Page 0 is fetched on mount. Subsequent pages are appended via loadMore().
  * Stale responses are discarded via requestIdRef.
  */
-export function useSessions(
-  options?: UseSessionsOptions,
-): UseSessionsReturn {
+export function useSessions(options?: UseSessionsOptions): UseSessionsReturn {
   const pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
 
   const [sessions, setSessions] = useState<Session[]>([]);

@@ -16,7 +16,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Stigmer Console",
-  description: "Stigmer Web Console — run agents, draft resources, browse the catalog",
+  description:
+    "Stigmer Web Console — run agents, draft resources, browse the catalog",
 };
 
 export default function RootLayout({

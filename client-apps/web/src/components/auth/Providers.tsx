@@ -34,7 +34,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 function SuspenseFallback() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3">
-      <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      <Loader2 className="text-muted-foreground size-8 animate-spin" />
     </div>
   );
 }

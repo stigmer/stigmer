@@ -1,0 +1,6 @@
+.next/
+out/
+build/
+node_modules/
+*.d.ts
+next-env.d.ts

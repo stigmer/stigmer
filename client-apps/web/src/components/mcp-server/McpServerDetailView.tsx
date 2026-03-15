@@ -70,19 +70,19 @@ export function McpServerDetailView({ mcpServer }: McpServerDetailViewProps) {
               className="size-10 rounded-lg object-cover"
             />
           ) : (
-            <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
-              <Server className="size-5 text-muted-foreground" />
+            <div className="bg-muted flex size-10 items-center justify-center rounded-lg">
+              <Server className="text-muted-foreground size-5" />
             </div>
           )}
           <div>
             <h2 className="text-xl font-semibold">{meta?.name}</h2>
-            <p className="font-mono text-xs text-muted-foreground">
+            <p className="text-muted-foreground font-mono text-xs">
               {qualifiedSlug}
             </p>
           </div>
         </div>
         {spec?.description && (
-          <p className="max-w-prose text-sm text-muted-foreground">
+          <p className="text-muted-foreground max-w-prose text-sm">
             {spec.description}
           </p>
         )}
@@ -107,7 +107,7 @@ export function McpServerDetailView({ mcpServer }: McpServerDetailViewProps) {
         </div>
         {status?.validationState === ValidationState.invalid &&
           status.validationMessage && (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            <div className="border-destructive/30 bg-destructive/5 text-destructive rounded-lg border px-4 py-3 text-sm">
               {status.validationMessage}
             </div>
           )}
@@ -119,7 +119,7 @@ export function McpServerDetailView({ mcpServer }: McpServerDetailViewProps) {
           {spec.serverType.case === "stdio" && (
             <div className="rounded-lg border p-4 text-sm">
               <div className="mb-2 flex items-center gap-2">
-                <Terminal className="size-4 text-muted-foreground" />
+                <Terminal className="text-muted-foreground size-4" />
                 <span className="font-medium">stdio</span>
               </div>
               <div className="space-y-1 font-mono text-xs">
@@ -145,7 +145,7 @@ export function McpServerDetailView({ mcpServer }: McpServerDetailViewProps) {
           {spec.serverType.case === "http" && (
             <div className="rounded-lg border p-4 text-sm">
               <div className="mb-2 flex items-center gap-2">
-                <Globe2 className="size-4 text-muted-foreground" />
+                <Globe2 className="text-muted-foreground size-4" />
                 <span className="font-medium">HTTP</span>
               </div>
               <div className="space-y-1 font-mono text-xs">
@@ -192,9 +192,11 @@ export function McpServerDetailView({ mcpServer }: McpServerDetailViewProps) {
               >
                 <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-amber-500" />
                 <div>
-                  <span className="font-mono font-medium">{policy.toolName}</span>
+                  <span className="font-mono font-medium">
+                    {policy.toolName}
+                  </span>
                   {policy.message && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="text-muted-foreground mt-0.5 text-xs">
                       {policy.message}
                     </p>
                   )}
@@ -217,7 +219,7 @@ export function McpServerDetailView({ mcpServer }: McpServerDetailViewProps) {
                 className="rounded-lg border p-3 text-sm"
               >
                 <div className="flex items-center gap-2">
-                  <BookOpen className="size-3.5 shrink-0 text-muted-foreground" />
+                  <BookOpen className="text-muted-foreground size-3.5 shrink-0" />
                   <span className="font-mono text-xs font-medium">
                     {tmpl.uriTemplate}
                   </span>
@@ -226,12 +228,12 @@ export function McpServerDetailView({ mcpServer }: McpServerDetailViewProps) {
                   <p className="ml-5 text-xs font-medium">{tmpl.name}</p>
                 )}
                 {tmpl.description && (
-                  <p className="ml-5 text-xs text-muted-foreground">
+                  <p className="text-muted-foreground ml-5 text-xs">
                     {tmpl.description}
                   </p>
                 )}
                 {tmpl.mimeType && (
-                  <p className="ml-5 text-[10px] text-muted-foreground">
+                  <p className="text-muted-foreground ml-5 text-[10px]">
                     {tmpl.mimeType}
                   </p>
                 )}
@@ -253,7 +255,7 @@ function Section({
 }) {
   return (
     <section>
-      <h3 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+      <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wider uppercase">
         {title}
       </h3>
       {children}
@@ -275,11 +277,11 @@ function ToolRow({
   return (
     <div className="rounded-lg border p-3 text-sm">
       <div className="flex items-start gap-2">
-        <Wrench className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+        <Wrench className="text-muted-foreground mt-0.5 size-3.5 shrink-0" />
         <div className="min-w-0 flex-1">
           <span className="font-mono font-medium">{name}</span>
           {description && (
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="text-muted-foreground mt-0.5 text-xs">
               {description}
             </p>
           )}
@@ -287,14 +289,14 @@ function ToolRow({
       </div>
       {inputSchema && Object.keys(inputSchema).length > 0 && (
         <Collapsible open={open} onOpenChange={setOpen}>
-          <CollapsibleTrigger className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground">
+          <CollapsibleTrigger className="text-muted-foreground hover:text-foreground mt-2 flex items-center gap-1 text-[10px]">
             <ChevronDown
               className={`size-3 transition-transform ${open ? "rotate-180" : ""}`}
             />
             Input schema
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <pre className="mt-2 overflow-x-auto rounded bg-muted p-2 font-mono text-[10px] leading-relaxed">
+            <pre className="bg-muted mt-2 overflow-x-auto rounded p-2 font-mono text-[10px] leading-relaxed">
               {JSON.stringify(inputSchema, null, 2)}
             </pre>
           </CollapsibleContent>

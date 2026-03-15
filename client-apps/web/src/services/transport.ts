@@ -5,9 +5,6 @@ import { createGrpcWebTransport } from "@connectrpc/connect-web";
 import { getApiBaseUrl } from "@/config/env";
 import { getAuthToken } from "@/auth/token-store";
 
-export type { Client } from "@connectrpc/connect";
-export { createClient } from "@connectrpc/connect";
-
 function authInterceptor(): Interceptor {
   return (next) => async (request) => {
     const token = getAuthToken();
