@@ -4,7 +4,9 @@
  * Hierarchical keys enable precise cache invalidation:
  *   - `sessionKeys.all`                — invalidates everything session-related
  *   - `sessionKeys.lists()`            — invalidates all list queries
- *   - `sessionKeys.list(opts)`         — invalidates one specific list query
+ *   - `sessionKeys.list(opts)`         — invalidates one specific infinite list
+ *   - `sessionKeys.pages()`            — invalidates all page-based queries
+ *   - `sessionKeys.page(opts)`         — invalidates one specific page query
  *   - `sessionKeys.byAgent(agentId)`   — invalidates sessions for a specific agent
  *   - `sessionKeys.details()`          — invalidates all detail queries
  *   - `sessionKeys.detail(id)`         — invalidates one specific session
@@ -15,6 +17,9 @@ export const sessionKeys = {
   lists: () => [...sessionKeys.all, "list"] as const,
   list: (filters: Record<string, unknown>) =>
     [...sessionKeys.lists(), filters] as const,
+  pages: () => [...sessionKeys.all, "page"] as const,
+  page: (filters: Record<string, unknown>) =>
+    [...sessionKeys.pages(), filters] as const,
   byAgent: (agentId: string, filters: Record<string, unknown>) =>
     [...sessionKeys.all, "by-agent", agentId, filters] as const,
   details: () => [...sessionKeys.all, "detail"] as const,

@@ -22,9 +22,37 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: IN PROGRESS
-- **Last Session**: 2026-03-15 — T11 (Global Header, Sidebar Polish, Breadcrumbs) completed
-- **Active Task**: None — T11 complete, ready for T12
-- **Next Task**: T12 — Sessions Page (table layout, sorting, filtering, empty state)
+- **Last Session**: 2026-03-15 — T12 (Sessions Page) completed
+- **Active Task**: None — T12 complete, ready for T13
+- **Next Task**: T13 — Dashboard Improvements (status summary cards, enhanced RecentSessions)
+
+## Session Progress (2026-03-15, Session 8)
+
+### T12: Sessions Page — COMPLETED
+
+Sessions list page: data table, agent filter, pagination, and proper empty/loading/error states.
+
+**New Files** (3 files):
+- `components/ui/table.tsx` — Reusable table primitives (Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption). Styled atoms, no logic.
+- `hooks/sessions/useSessionPage.ts` — Page-based session query hook (`useQuery`, not `useInfiniteQuery`). Supports `agentId` filter to switch between `list()` and `listByAgent()`.
+- `app/sessions/page.tsx` (replaced empty `<div />`) — Full sessions page with TopBar, agent filter dropdown, data table, pagination, loading/error/empty states.
+
+**Modified Files** (1 file):
+- `hooks/sessions/keys.ts` — Added `pages()` and `page()` key factories for page-based queries.
+
+**Architecture Decisions**:
+- Table components are Console-only — `@stigmer/session-ui` keeps its current shape (Layer 1 service factory + Layer 2 hook). Embeddable session components (replay viewer) are a separate future task.
+- Scoped to current API surface — the `SessionQueryController` supports `list(pageSize, pageToken, tags[])` and `listByAgent(agentId, pageSize, pageToken)`. No server-side text search, sorting, date range, or status filter.
+- No status column — Session has no lifecycle status field (it's derived from the latest AgentExecution). Deferred until the server adds a denormalized status field.
+- `useSessionPage` uses `useQuery` (not `useInfiniteQuery`) for table-style page navigation. `useSessionList` (infinite) remains untouched for `RecentSessions` and `AgentSessionHistory`.
+
+**Server API Gaps Identified**:
+- `ListSessionsRequest` needs: `sort_by`, `sort_order`, `search_text`, `created_after`/`created_before`
+- Session response needs denormalized `agent_display_name` or `agent_slug` (avoid N+1 agent resolution)
+- Session needs a derived `lifecycle_status` field (from latest AgentExecution)
+- These gaps block: text search, column sorting, date range filtering, status filtering, agent name display in table
+
+**Verification**: `next build` clean, `eslint --max-warnings 0` clean, `prettier --check` clean.
 
 ## Session Progress (2026-03-15, Session 7)
 
@@ -259,6 +287,9 @@ The pre-existing `agent-execution-ui` package had unnecessary nesting that was i
 13. **Non-blocking toast for server errors** — rejected Planton's global error modal pattern as disruptive. Sonner toast used instead.
 14. **No event bus** — TanStack Query's cache-level handlers replace Planton's custom event bus pattern. Fewer moving parts, same coverage.
 15. **Smart retry** — only `server` and `unavailable` errors retry once. Auth, permission, not-found, validation fail immediately. Mutations never retry.
+16. **Session table Console-only** — `@stigmer/session-ui` keeps Layer 1 + Layer 2 only. The sessions list page table is Console-specific. Embeddable session components (replay viewer) are a separate future task with real usage guiding the API design.
+17. **Scoped to API surface** — T12 builds only what the Session query API supports (pagination, agent filter). Sorting, text search, date range, status filter deferred — API gaps documented for server work.
+18. **No session status column** — Session has no lifecycle status field; it's derived from the latest AgentExecution (N+1). Deferred until server adds denormalized `lifecycle_status`.
 
 ### Surprises Encountered
 - `searchAgents` was initially removed alongside the genuinely dead `searchSkills` and `searchMcpServers`. Build failure revealed `useAgentSearch.ts` imports it. The function was immediately restored. Lesson: always verify each removal individually, not in batches.
@@ -272,16 +303,16 @@ The pre-existing `agent-execution-ui` package had unnecessary nesting that was i
 5. ~~**T07+T08: Refactor Hooks + Service Reorganization**~~ — **DONE** (merged execution — 4 domain libraries, 14 hooks, 11 consumer updates)
 6. ~~**T09: Error Handling Framework**~~ — **DONE** (3-tier: transport interceptors + TanStack Query retry + component display)
 7. ~~**T11: Global Header, Sidebar Polish, Breadcrumbs**~~ — **DONE** (5 new components, 4 modified, 4 detail pages updated)
-8. **T12: Sessions Page** — table layout, sortable columns, filtering by agent/status/date, search, pagination, empty state
+8. ~~**T12: Sessions Page**~~ — **DONE** (table layout, agent filter, pagination, empty/loading/error states; sorting/search/status deferred — API gaps documented)
 9. **T13: Dashboard Improvements** — status summary cards, enhanced RecentSessions
 
 ## Context for Resume
-- Phases 1-5 (T01-T09) and T11 are fully committed and verified
-- T11 completed the layout shell: full-width AppHeader (logo, OrgSwitcher, ThemeToggle, UserMenu), collapsible Sidebar (60px/240px with localStorage persistence), reusable Breadcrumb component, TopBar breadcrumbs integration, ArrowLeft pattern eliminated from all 4 detail pages
-- The codebase now has: Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, sectioned sidebar with collapse, global header, breadcrumbs, Query/Command hook pattern with domain libraries, three-tier error handling framework
+- Phases 1-5 (T01-T09), T11, and T12 are fully committed and verified
+- T12 completed the sessions list page: data table with agent filter, pagination, all states. Reusable `table.tsx` primitives added to `components/ui/`. Server API gaps documented (sort, search, date filter, status, agent name denormalization).
+- The codebase now has: Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, sectioned sidebar with collapse, global header, breadcrumbs, Query/Command hook pattern with domain libraries, three-tier error handling framework, reusable table primitives, sessions list page
 - `transport.ts` and `org-service.ts` are deprecated with comments — last consumers of the singleton transport pattern
 - Cmd+K (global search) and notifications deferred to separate future tasks
-- T12 (Sessions Page) and T13 (Dashboard Improvements) remain in Phase 6
+- T13 (Dashboard Improvements) remains in Phase 6
 
 ## Gap Analysis Summary
 
@@ -317,7 +348,7 @@ The project addresses gaps from two analyses:
 | Phase 3 | 5 | Navigation IA design decision + catalog cleanup | UX | **DONE** |
 | Phase 4 | 6–9 | Query/Command hook pattern + service reorganization | Architecture | **DONE** |
 | Phase 5 | 10–11 | Error handling & Bridge framework | Architecture | **DONE** |
-| Phase 6 | 12–16 | Layout overhaul + View completeness (sidebar, header, sessions, dashboard) | UX | T11 DONE, T12/T13 Pending |
+| Phase 6 | 12–16 | Layout overhaul + View completeness (sidebar, header, sessions, dashboard) | UX | T11/T12 DONE, T13 Pending |
 | Phase 7 | 17–19 | Domain library extraction (`session-ui`, `catalog-ui`) | Architecture | Pending |
 | Phase 8 | 20–24 | Workflow & IAM views (deferrable) | UX | Pending |
 | Phase 9 | 25–26 | Final polish & verification | Both | Pending |
@@ -387,12 +418,12 @@ The project addresses gaps from two analyses:
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-7.md`
-2. [ ] Check current task status — T11 complete, T12 (Sessions Page) next
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-8.md`
+2. [ ] Check current task status — T12 complete, T13 (Dashboard Improvements) next
 3. [ ] Review design decisions in `design-decisions/` (especially `003-hook-pattern-contract.md`)
 4. [ ] Read coding guideline: `coding-guidelines/query-command-hooks.md` (includes error handling patterns)
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T12: Sessions Page (table layout, sorting, filtering, empty state)
+6. [ ] Continue with T13: Dashboard Improvements (status summary cards, enhanced RecentSessions)
 
 ## Quick Resume
 
@@ -403,8 +434,8 @@ To continue this project, drag this file into chat:
 
 **Created**: 2026-03-15
 **Updated**: 2026-03-15
-**Current Task**: T12 — Sessions Page
-**Status**: READY — T11 complete, T12 next
+**Current Task**: T13 — Dashboard Improvements
+**Status**: READY — T12 complete, T13 next
 
 ---
 
