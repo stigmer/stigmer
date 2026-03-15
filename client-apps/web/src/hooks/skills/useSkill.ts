@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useSkillQueryService } from "@stigmer/skill-ui";
+import { useSkillQueryService } from "@stigmer/skill";
 import { skillKeys } from "./keys";
 
 /**

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useAgentQueryService } from "@stigmer/agent-ui";
+import { useAgentQueryService } from "@stigmer/agent";
 import { agentKeys } from "./keys";
 
 /**
