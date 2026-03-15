@@ -3,10 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { getSession } from "@/services/session-service";
-import { listExecutionsBySession } from "@/services/execution-service";
-import { isTerminalPhase } from "@/lib/execution";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { useExecutionService, isTerminalPhase } from "@stigmer/react-ui/execution";
+import { getSession } from "@/services/session-service";
 
 export interface UseSessionDetailReturn {
   /** The session resource. Null until loaded. */
@@ -36,6 +35,7 @@ export interface UseSessionDetailReturn {
  * history and activeExecution for the live streaming view.
  */
 export function useSessionDetail(sessionId: string): UseSessionDetailReturn {
+  const executionService = useExecutionService();
   const [session, setSession] = useState<Session | null>(null);
   const [executions, setExecutions] = useState<AgentExecution[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,7 +53,7 @@ export function useSessionDetail(sessionId: string): UseSessionDetailReturn {
     try {
       const [sessionResult, executionsResult] = await Promise.all([
         getSession(sessionId),
-        listExecutionsBySession(sessionId, { pageSize: 100 }),
+        executionService.listExecutionsBySession(sessionId, { pageSize: 100 }),
       ]);
 
       if (requestId !== requestIdRef.current) return;
@@ -71,7 +71,7 @@ export function useSessionDetail(sessionId: string): UseSessionDetailReturn {
         setIsLoading(false);
       }
     }
-  }, [sessionId]);
+  }, [sessionId, executionService]);
 
   useEffect(() => {
     fetchData();
