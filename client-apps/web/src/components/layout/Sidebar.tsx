@@ -2,23 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   navigation,
-  isNavGroup,
+  isNavSection,
   type NavItem,
-  type NavGroup,
+  type NavSection,
 } from "@/config/navigation";
 import { OrgSwitcher } from "./OrgSwitcher";
 import { ThemeToggle } from "./ThemeToggle";
 
 const SIDEBAR_WIDTH = 240;
 
+function isActive(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(href + "/");
+}
+
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
-  const active = pathname === item.href || pathname.startsWith(item.href + "/");
+  const active = isActive(pathname, item.href);
   const Icon = item.icon;
 
   return (
@@ -37,46 +40,23 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   );
 }
 
-function NavGroupSection({
-  group,
+function SidebarSection({
+  section,
   pathname,
 }: {
-  group: NavGroup;
+  section: NavSection;
   pathname: string;
 }) {
-  const hasActiveChild = group.items.some(
-    (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
-  );
-  const [open, setOpen] = useState(hasActiveChild);
-  const Icon = group.icon;
-
   return (
-    <div>
-      <button
-        onClick={() => setOpen(!open)}
-        className={cn(
-          "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-          hasActiveChild
-            ? "text-foreground font-medium"
-            : "text-muted-foreground hover:text-foreground",
-        )}
-      >
-        <Icon className="size-4 shrink-0" />
-        <span className="flex-1 truncate text-left">{group.label}</span>
-        <ChevronDown
-          className={cn(
-            "size-4 shrink-0 transition-transform",
-            open && "rotate-180",
-          )}
-        />
-      </button>
-      {open && (
-        <div className="border-border mt-0.5 ml-4 flex flex-col gap-0.5 border-l pl-2">
-          {group.items.map((item) => (
-            <NavLink key={item.href} item={item} pathname={pathname} />
-          ))}
-        </div>
-      )}
+    <div className="pt-4 first:pt-0">
+      <p className="text-muted-foreground/70 mb-1 px-3 text-[11px] font-semibold tracking-wider uppercase">
+        {section.label}
+      </p>
+      <div className="flex flex-col gap-0.5">
+        {section.items.map((item) => (
+          <NavLink key={item.href} item={item} pathname={pathname} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -95,9 +75,7 @@ export function Sidebar() {
         <div className="bg-primary text-primary-foreground flex size-7 items-center justify-center rounded-md text-xs font-bold">
           S
         </div>
-        <span className="text-sm font-semibold tracking-tight">
-          Stigmer Console
-        </span>
+        <span className="text-sm font-semibold tracking-tight">Stigmer</span>
       </div>
 
       <div className="border-sidebar-border border-b">
@@ -107,10 +85,10 @@ export function Sidebar() {
       <ScrollArea className="flex-1 px-3 py-3">
         <nav className="flex flex-col gap-1">
           {navigation.map((entry) =>
-            isNavGroup(entry) ? (
-              <NavGroupSection
+            isNavSection(entry) ? (
+              <SidebarSection
                 key={entry.label}
-                group={entry}
+                section={entry}
                 pathname={pathname}
               />
             ) : (

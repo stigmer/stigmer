@@ -17,9 +17,9 @@ const QUICK_ACTIONS = [
     icon: Play,
   },
   {
-    title: "Browse Catalog",
-    description: "Explore agents, skills, and MCP servers",
-    href: "/catalog",
+    title: "Browse Agents",
+    description: "Explore and manage your agents",
+    href: "/agents",
     icon: Bot,
   },
   {
@@ -35,7 +35,7 @@ export default function DashboardPage() {
     <>
       <TopBar
         title="Dashboard"
-        description="Quick actions — run agents, browse the catalog, draft resources"
+        description="Quick actions — run agents, browse resources, draft new ones"
       />
 
       <div className="space-y-8">

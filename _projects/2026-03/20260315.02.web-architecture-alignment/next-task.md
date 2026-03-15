@@ -22,11 +22,37 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: IN PROGRESS
-- **Last Session**: 2026-03-15 — T04 (Visual Identity & Theme System) completed
-- **Active Task**: None — T04 complete, ready for T05
-- **Next Task**: T05 (Navigation IA Design Decision)
+- **Last Session**: 2026-03-15 — T05 (Navigation IA Design Decision) completed
+- **Active Task**: None — T05 complete, ready for Phase 4
+- **Next Task**: T06 (Define the Hook Pattern Contract) — Phase 4
 
-## Session Progress (2026-03-15, Session 2)
+## Session Progress (2026-03-15, Session 3)
+
+### T05: Navigation IA Design Decision — COMPLETED
+
+**Design Document**: `design-decisions/002-navigation-ia.md`
+
+**Sidebar Taxonomy** (7 items, 3 sections):
+- Dashboard (top-level)
+- Operations: Run Agent, Sessions
+- Resources: Agents, Skills, MCP Servers
+- Platform: Settings (hidden until Phase 8)
+
+**Key Decisions**:
+- Draft removed from sidebar — draft buttons on each resource list page
+- Catalog deleted entirely — route, page, and orphaned code removed
+- Brand name "Stigmer" (not "Stigmer Console"), use `site/public/logo-square.svg`
+- Global header: logo + org switcher + theme toggle + user profile
+- Breadcrumbs on all detail pages
+- Workflows and Settings hidden until Phase 8
+
+**Code Changes**:
+- Deleted: `catalog/page.tsx`, `useUnifiedCatalog.ts`, `KindTabs.tsx`, `searchCatalog()` in search-service
+- Updated: `navigation.ts` (sectioned structure), `Sidebar.tsx` (section headers, brand name), `page.tsx` (dashboard quick actions), `catalog/index.ts` (trimmed barrel)
+
+**Verification**: `npm run build`, `npm run lint`, `npm run format:check` all pass clean.
+
+### Session 2 (Earlier)
 
 ### T04: Visual Identity & Theme System — COMPLETED
 
@@ -80,6 +106,8 @@ Drop this file into your conversation to quickly resume work on this project.
 4. **searchAgents was NOT dead code** — initial analysis flagged it incorrectly; `useAgentSearch.ts` depends on it. Caught by build verification.
 5. **Teal as brand color** — differentiation from DevTools competitors, semantic fit with network/execution domain, strong OKLCH characteristics
 6. **`next-themes` Console-only** — `@stigmer/theme` stays framework-agnostic, `ThemeProvider` lives in Console's provider tree
+7. **Catalog removed** — unified catalog view is redundant with individual resource pages in sidebar. Cross-resource search deferred to Cmd+K.
+8. **Draft contextual, not in sidebar** — draft buttons on resource pages, following Jakob's Law (GitHub, AWS, Kubernetes Dashboard convention)
 
 ### Surprises Encountered
 - `searchAgents` was initially removed alongside the genuinely dead `searchSkills` and `searchMcpServers`. Build failure revealed `useAgentSearch.ts` imports it. The function was immediately restored. Lesson: always verify each removal individually, not in batches.
@@ -88,16 +116,17 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Next Steps
 1. ~~**T03: Package Rename** (`@stigmer/react-ui` → `@stigmer/agent-execution-ui`)~~ — **DONE**
 2. ~~**T04: Visual Identity & Theme System**~~ — **DONE**
-3. **T05: Navigation IA Design Decision** (no code — design phase)
-   - Analyze sidebar taxonomy and information architecture
-   - Decide on navigation hierarchy for expanded product surface
-   - Design document before implementation
+3. ~~**T05: Navigation IA Design Decision**~~ — **DONE** (design doc + catalog deletion + sidebar restructure)
+4. **T06: Define the Hook Pattern Contract** (Phase 4 — architecture, design decision)
+   - Document Query/Command hook pattern contract in `coding-guidelines/`
+   - Define standard return shapes, error handling, loading states
+   - Decide hook-to-bridge integration
 
 ## Context for Resume
-- Phase 1 (T01+T02) and Phase 2 (T03+T04) are fully committed and verified
+- Phases 1-3 (T01-T05) are fully committed and verified
 - No work-in-progress or half-finished changes
-- The codebase now has Prettier + hardened ESLint, teal brand color, dark mode, and semantic status tokens
-- T05 is a design decision phase — no code, pure IA analysis and collaboration
+- The codebase now has Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, and a sectioned sidebar with the finalized navigation IA
+- T06 is a design decision phase — defining the Query/Command hook pattern contract before migration
 
 ## Gap Analysis Summary
 
@@ -130,7 +159,7 @@ The project addresses gaps from two analyses:
 |-------|------|-------|------|--------|
 | Phase 1 | 1–2 | Dead code removal + Prettier + lint hardening | Architecture | **DONE** |
 | Phase 2 | 3–4 | Package rename + Visual identity foundation | Architecture + UX | **DONE** |
-| Phase 3 | 5 | Navigation IA design decision (no code) | UX | Next |
+| Phase 3 | 5 | Navigation IA design decision + catalog cleanup | UX | **DONE** |
 | Phase 4 | 6–9 | Query/Command hook pattern + service reorganization | Architecture | Pending |
 | Phase 5 | 10–11 | Error handling & Bridge framework | Architecture | Pending |
 | Phase 6 | 12–16 | Layout overhaul + View completeness (sidebar, header, sessions, dashboard) | UX | Pending |
@@ -203,12 +232,12 @@ The project addresses gaps from two analyses:
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-2.md`
-2. [ ] Check current task status — Phase 2 complete, Phase 3 (T05) next
-3. [ ] Review any new design decisions in `design-decisions/`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-3.md`
+2. [ ] Check current task status — Phase 3 complete, Phase 4 (T06) next
+3. [ ] Review design decisions in `design-decisions/` (especially `002-navigation-ia.md`)
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T05 (Navigation IA Design Decision)
+6. [ ] Continue with T06 (Define the Hook Pattern Contract)
 
 ## Quick Resume
 
@@ -219,8 +248,8 @@ To continue this project, drag this file into chat:
 
 **Created**: 2026-03-15
 **Updated**: 2026-03-15
-**Current Task**: Phase 3 — T05 (Navigation IA Design Decision)
-**Status**: READY — T04 complete, T05 next
+**Current Task**: Phase 4 — T06 (Define the Hook Pattern Contract)
+**Status**: READY — T05 complete, T06 next
 
 ---
 
