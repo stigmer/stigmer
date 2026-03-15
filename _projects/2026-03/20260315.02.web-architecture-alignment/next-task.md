@@ -22,9 +22,39 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: IN PROGRESS
-- **Last Session**: 2026-03-15 — T09 (Error Handling Framework) completed
-- **Active Task**: None — T09 complete, ready for Phase 6
-- **Next Task**: Phase 6 — Layout overhaul + view completeness
+- **Last Session**: 2026-03-15 — T11 (Global Header, Sidebar Polish, Breadcrumbs) completed
+- **Active Task**: None — T11 complete, ready for T12
+- **Next Task**: T12 — Sessions Page (table layout, sorting, filtering, empty state)
+
+## Session Progress (2026-03-15, Session 7)
+
+### T11: Global Header, Sidebar Polish, Breadcrumbs — COMPLETED
+
+Phase 6 layout overhaul: full-width global header, collapsible sidebar, and reusable breadcrumb system.
+
+**New Components** (5 files):
+- `AppHeader.tsx` — Full-width fixed header bar (z-40). Logo + OrgSwitcher + spacer + ThemeToggle + UserMenu
+- `UserMenu.tsx` — Disabled auth: static User icon; OIDC: avatar dropdown with email and sign-out
+- `Breadcrumb.tsx` — Hierarchical nav trail with ChevronRight separators and `aria-current="page"`
+- `useSidebarCollapse.ts` — `useSyncExternalStore`-based hook for localStorage-persisted collapse state (SSR-safe)
+- `dropdown-menu.tsx` — shadcn dropdown-menu via `@base-ui/react/menu`
+
+**Modified Components** (4 files):
+- `AppShell.tsx` — Header + sidebar + main with dynamic offsets and collapse transition
+- `Sidebar.tsx` — Logo/OrgSwitcher/ThemeToggle removed (moved to header), collapse toggle added
+- `TopBar.tsx` — Optional `breadcrumbs` prop renders `Breadcrumb` above title
+- `OrgSwitcher.tsx` — Styling adapted for header context
+
+**Detail Pages Updated** (4 files):
+- `AgentDetailPage`, `SkillDetailPage`, `McpServerDetailPage` — ArrowLeft replaced with TopBar breadcrumbs
+- `SessionDetailPage` — ArrowLeft replaced with inline Breadcrumb (custom chat-specific layout)
+
+**Key Decisions**:
+- Header-above-sidebar layout (Planton/Linear pattern)
+- Deferred Cmd+K and notifications to separate future tasks
+- `useSyncExternalStore` over `useState`+`useEffect` for localStorage (same ESLint rule as ThemeToggle in Session 2)
+
+**Verification**: `next build` clean, `eslint --max-warnings 0` clean, `prettier --check` clean.
 
 ## Session Progress (2026-03-15, Session 6)
 
@@ -241,16 +271,17 @@ The pre-existing `agent-execution-ui` package had unnecessary nesting that was i
 4. ~~**T06: Define the Hook Pattern Contract**~~ — **DONE** (design decision + coding guideline)
 5. ~~**T07+T08: Refactor Hooks + Service Reorganization**~~ — **DONE** (merged execution — 4 domain libraries, 14 hooks, 11 consumer updates)
 6. ~~**T09: Error Handling Framework**~~ — **DONE** (3-tier: transport interceptors + TanStack Query retry + component display)
-7. **Phase 6: Layout Overhaul + View Completeness**
-   - Sidebar finalization, global header, sessions page, dashboard status view
-   - See Phase 6 in plan table below
+7. ~~**T11: Global Header, Sidebar Polish, Breadcrumbs**~~ — **DONE** (5 new components, 4 modified, 4 detail pages updated)
+8. **T12: Sessions Page** — table layout, sortable columns, filtering by agent/status/date, search, pagination, empty state
+9. **T13: Dashboard Improvements** — status summary cards, enhanced RecentSessions
 
 ## Context for Resume
-- Phases 1-5 (T01-T09) are fully committed and verified
-- T09 added the complete error handling framework: error classification in `@stigmer/rpc-client`, transport interceptors (auth redirect, RPC metadata), sonner toast infrastructure, smart TanStack Query retry, `ErrorMessage` component, improved root error boundary
-- The codebase now has Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, sectioned sidebar, the full Query/Command hook pattern with domain libraries, and the three-tier error handling framework
+- Phases 1-5 (T01-T09) and T11 are fully committed and verified
+- T11 completed the layout shell: full-width AppHeader (logo, OrgSwitcher, ThemeToggle, UserMenu), collapsible Sidebar (60px/240px with localStorage persistence), reusable Breadcrumb component, TopBar breadcrumbs integration, ArrowLeft pattern eliminated from all 4 detail pages
+- The codebase now has: Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, sectioned sidebar with collapse, global header, breadcrumbs, Query/Command hook pattern with domain libraries, three-tier error handling framework
 - `transport.ts` and `org-service.ts` are deprecated with comments — last consumers of the singleton transport pattern
-- Phase 6 (layout overhaul + view completeness) is the next phase
+- Cmd+K (global search) and notifications deferred to separate future tasks
+- T12 (Sessions Page) and T13 (Dashboard Improvements) remain in Phase 6
 
 ## Gap Analysis Summary
 
@@ -286,7 +317,7 @@ The project addresses gaps from two analyses:
 | Phase 3 | 5 | Navigation IA design decision + catalog cleanup | UX | **DONE** |
 | Phase 4 | 6–9 | Query/Command hook pattern + service reorganization | Architecture | **DONE** |
 | Phase 5 | 10–11 | Error handling & Bridge framework | Architecture | **DONE** |
-| Phase 6 | 12–16 | Layout overhaul + View completeness (sidebar, header, sessions, dashboard) | UX | Pending |
+| Phase 6 | 12–16 | Layout overhaul + View completeness (sidebar, header, sessions, dashboard) | UX | T11 DONE, T12/T13 Pending |
 | Phase 7 | 17–19 | Domain library extraction (`session-ui`, `catalog-ui`) | Architecture | Pending |
 | Phase 8 | 20–24 | Workflow & IAM views (deferrable) | UX | Pending |
 | Phase 9 | 25–26 | Final polish & verification | Both | Pending |
@@ -356,12 +387,12 @@ The project addresses gaps from two analyses:
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-6.md`
-2. [ ] Check current task status — T09 complete, Phase 6 next
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-7.md`
+2. [ ] Check current task status — T11 complete, T12 (Sessions Page) next
 3. [ ] Review design decisions in `design-decisions/` (especially `003-hook-pattern-contract.md`)
 4. [ ] Read coding guideline: `coding-guidelines/query-command-hooks.md` (includes error handling patterns)
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 6 (Layout overhaul + view completeness)
+6. [ ] Continue with T12: Sessions Page (table layout, sorting, filtering, empty state)
 
 ## Quick Resume
 
@@ -372,8 +403,8 @@ To continue this project, drag this file into chat:
 
 **Created**: 2026-03-15
 **Updated**: 2026-03-15
-**Current Task**: Phase 6 — Layout overhaul + view completeness
-**Status**: READY — T09 complete, Phase 6 next
+**Current Task**: T12 — Sessions Page
+**Status**: READY — T11 complete, T12 next
 
 ---
 

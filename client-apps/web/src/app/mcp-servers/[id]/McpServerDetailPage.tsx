@@ -1,47 +1,36 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { ErrorMessage } from "@/components/ui/error-message";
+import { TopBar } from "@/components/layout/TopBar";
 import { useMcpServer } from "@/hooks/mcp-servers/useMcpServer";
 import { McpServerDetailView } from "@/components/mcp-server/McpServerDetailView";
 
 export default function McpServerDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: mcpServer, isLoading, error } = useMcpServer(id);
+  const { data: mcpServer, isLoading, error, refetch } = useMcpServer(id);
+
+  const name = mcpServer?.metadata?.name ?? "MCP Server";
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb header */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/mcp-servers"
-          aria-label="Back to MCP servers"
-          className="hover:bg-muted inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors"
-        >
-          <ArrowLeft className="size-4" />
-        </Link>
-        <h1 className="text-lg font-semibold">
-          {mcpServer?.metadata?.name ?? "MCP Server"}
-        </h1>
-      </div>
+      <TopBar
+        title={name}
+        breadcrumbs={[
+          { label: "MCP Servers", href: "/mcp-servers" },
+          { label: name },
+        ]}
+      />
 
-      {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="text-muted-foreground size-6 animate-spin" />
         </div>
       )}
 
-      {/* Error */}
-      {error && (
-        <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-4 text-sm">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <p>{error.message}</p>
-        </div>
-      )}
+      {error && <ErrorMessage error={error} retry={refetch} />}
 
-      {/* Content */}
       {mcpServer && <McpServerDetailView mcpServer={mcpServer} />}
     </div>
   );
