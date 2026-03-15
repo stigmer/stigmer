@@ -120,8 +120,9 @@ DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunne
 .PHONY: local build-release
 local: ## Build + install CLI for local development
 	@rm -f $(HOME)/bin/stigmer /usr/local/bin/stigmer bin/stigmer 2>/dev/null || true
+	@$(MAKE) web-console-build
 	@mkdir -p bin $(HOME)/bin
-	@cd client-apps/cli && go build -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
+	@cd client-apps/cli && go build -tags 'embed_webconsole' -ldflags '$(DEV_LDFLAGS)' -o ../../bin/stigmer .
 	@cp bin/stigmer $(HOME)/bin/stigmer && chmod +x $(HOME)/bin/stigmer
 	@echo "cli: installed $(HOME)/bin/stigmer"
 	@stigmer --version 2>/dev/null || echo "cli: development build"
@@ -136,6 +137,9 @@ local: ## Build + install CLI for local development
 	@echo ""
 
 web-console-build: ## Build web console static assets for embedding
+	@if [ ! -d node_modules ]; then \
+		echo "error: node_modules not found — run 'npm install' first"; exit 1; \
+	fi
 	npm run build -w client-apps/web
 	@rm -rf client-apps/cli/embedded/webconsole/out
 	@cp -r client-apps/web/out client-apps/cli/embedded/webconsole/out
