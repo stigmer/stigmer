@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { Loader2, Play } from "lucide-react";
 import { AgentOverview } from "@stigmer/agent";
@@ -10,9 +10,10 @@ import { Separator } from "@/components/ui/separator";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { TopBar } from "@/components/layout/TopBar";
 import { useAgent } from "@/hooks/agents/useAgent";
+import { useDynamicRouteId } from "@/hooks/useDynamicRouteId";
 
 export default function AgentDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const id = useDynamicRouteId();
   const router = useRouter();
   const { data: agent, isLoading, error, refetch } = useAgent(id);
 

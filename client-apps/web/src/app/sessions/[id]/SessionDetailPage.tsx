@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useParams } from "next/navigation";
 import { AlertCircle, MessageSquare, Loader2 } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { ErrorMessage } from "@/components/ui/error-message";
@@ -22,6 +21,7 @@ import { useSession } from "@/hooks/sessions/useSession";
 import { useSessionExecutions } from "@/hooks/sessions/useSessionExecutions";
 import { Separator } from "@/components/ui/separator";
 import { formatRelativeTime } from "@/lib/time";
+import { useDynamicRouteId } from "@/hooks/useDynamicRouteId";
 
 // ---------------------------------------------------------------------------
 // Page state
@@ -46,7 +46,7 @@ function derivePageState(
 // ---------------------------------------------------------------------------
 
 export default function SessionDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const id = useDynamicRouteId();
 
   const {
     data: session,
