@@ -18,23 +18,32 @@ The dev server connects to stigmer-server at `http://localhost:7234` by default 
 
 ## Build modes
 
+### Local development (embedded in CLI)
+
+Builds the web console and installs the CLI with web console embedded:
+
+```bash
+make local
+stigmer server
+```
+
+The web console is served on port 8234. Agent-runner runs from the source tree (dev mode).
+
 ### Web-only development (hot reload)
 
-For iterating on UI changes with instant feedback:
+For iterating on UI changes with instant feedback without rebuilding the CLI:
 
 ```bash
 npm run dev -w client-apps/web
 ```
 
-### Full release build (embedded in CLI)
+### Portable release build
 
-Builds the web console as a static export and embeds it in the CLI binary alongside the agent-runner:
+Builds a fully self-contained binary with both agent-runner and web console embedded (equivalent to what CI produces):
 
 ```bash
 make build-release
 ```
-
-The resulting `bin/stigmer` serves the web console on port 8234 when you run `stigmer server`.
 
 ### Docker build (cloud deployment)
 
