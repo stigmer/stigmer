@@ -1,14 +1,14 @@
 "use client";
 
-import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { TopBar } from "@/components/layout/TopBar";
 import { useSkill } from "@/hooks/skills/useSkill";
 import { SkillDetailView } from "@/components/skill/SkillDetailView";
+import { useDynamicRouteId } from "@/hooks/useDynamicRouteId";
 
 export default function SkillDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const id = useDynamicRouteId();
   const { data: skill, isLoading, error, refetch } = useSkill(id);
 
   const name = skill?.metadata?.name ?? "Skill";
