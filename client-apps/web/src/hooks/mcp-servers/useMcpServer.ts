@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useMcpServerQueryService } from "@stigmer/mcp-server-ui";
+import { useMcpServerQueryService } from "@stigmer/mcp-server";
 import { mcpServerKeys } from "./keys";
 
 /**

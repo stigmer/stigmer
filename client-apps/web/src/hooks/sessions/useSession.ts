@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useSessionQueryService } from "@stigmer/session-ui";
+import { useSessionQueryService } from "@stigmer/session";
 import { sessionKeys } from "./keys";
 
 /**
