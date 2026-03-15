@@ -1,23 +1,23 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "../../internal/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "../../internal/ui/collapsible";
 import { ApprovalControls } from "./ApprovalControls";
 import {
   toolCallStatusLabel,
   toolCallStatusVariant,
   qualifiedToolName,
   formatDuration,
-} from "@/lib/execution";
+} from "../helpers";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
-import { cn } from "@/lib/utils";
+import { cn } from "@stigmer/theme";
 import { ChevronRight, Wrench, Loader2 } from "lucide-react";
 
 interface ToolCallCardProps {

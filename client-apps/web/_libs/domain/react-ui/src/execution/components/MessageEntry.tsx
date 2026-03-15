@@ -8,7 +8,7 @@ import {
   isHumanMessage,
   isAiMessage,
   isSystemMessage,
-} from "@/lib/execution";
+} from "../helpers";
 import { User, BotMessageSquare, Info } from "lucide-react";
 
 // ---------------------------------------------------------------------------

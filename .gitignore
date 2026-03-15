@@ -109,5 +109,8 @@ client-apps/cli/embedded/webconsole/out/
 bazel-*
 /MODULE.bazel.lock
 
+# npm auth tokens (never commit)
+.npmrc
+
 # Cursor
 _cursor/

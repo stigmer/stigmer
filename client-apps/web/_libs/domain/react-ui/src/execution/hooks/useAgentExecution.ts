@@ -3,13 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import {
-  createExecution,
-  subscribeToExecution,
-  cancelExecution as cancelExecutionRpc,
-  type CreateExecutionInput,
-} from "@/services/execution-service";
-import { isTerminalPhase } from "@/lib/execution";
+import { useExecutionService } from "./useExecutionService";
+import { isTerminalPhase } from "../helpers";
+import type { CreateExecutionInput } from "../services/execution-service";
+
+export type { CreateExecutionInput };
 
 export interface UseAgentExecutionOptions {
   /** Subscribe to an existing execution on mount. */
@@ -34,6 +32,7 @@ export interface UseAgentExecutionReturn {
 export function useAgentExecution(
   options?: UseAgentExecutionOptions,
 ): UseAgentExecutionReturn {
+  const service = useExecutionService();
   const [execution, setExecution] = useState<AgentExecution | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +53,7 @@ export function useAgentExecution(
 
     (async () => {
       try {
-        const stream = subscribeToExecution(executionId, controller.signal);
+        const stream = service.subscribeToExecution(executionId, controller.signal);
         for await (const update of stream) {
           if (controller.signal.aborted) break;
           setExecution(update);
@@ -76,7 +75,7 @@ export function useAgentExecution(
         }
       }
     })();
-  }, []);
+  }, [service]);
 
   useEffect(() => {
     if (options?.executionId) {
@@ -92,7 +91,7 @@ export function useAgentExecution(
       setError(null);
       setExecution(null);
       try {
-        const created = await createExecution(input);
+        const created = await service.createExecution(input);
         const executionId = created.metadata?.id;
         if (!executionId) {
           throw new Error("Created execution missing metadata.id");
@@ -105,20 +104,20 @@ export function useAgentExecution(
         setError(message);
       }
     },
-    [subscribe],
+    [service, subscribe],
   );
 
   const cancel = useCallback(async (reason?: string) => {
     const id = activeExecutionIdRef.current;
     if (!id) return;
     try {
-      await cancelExecutionRpc(id, reason);
+      await service.cancelExecution(id, reason);
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Failed to cancel execution";
       setError(message);
     }
-  }, []);
+  }, [service]);
 
   const phase =
     execution?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;

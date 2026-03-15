@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "../../internal/ui/button";
+import { Textarea } from "../../internal/ui/textarea";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { cn } from "@/lib/utils";
+import { cn } from "@stigmer/theme";
 import { Check, X, SkipForward, Loader2 } from "lucide-react";
 
 interface ApprovalControlsProps {

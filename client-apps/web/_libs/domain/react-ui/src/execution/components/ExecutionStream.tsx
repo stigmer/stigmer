@@ -11,9 +11,9 @@ import { MessageInput } from "./MessageInput";
 import {
   buildSubAgentIndex,
   isTerminalPhase,
-} from "@/lib/execution";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+} from "../helpers";
+import { cn } from "@stigmer/theme";
+import { Button } from "../../internal/ui/button";
 import { ArrowDown, AlertCircle } from "lucide-react";
 
 // ---------------------------------------------------------------------------

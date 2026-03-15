@@ -67,10 +67,10 @@ const ExecuteGraphtonActivityName = "ExecuteGraphton"
 func NewExecuteGraphtonActivityStub(ctx workflow.Context, taskQueue string) ExecuteGraphtonActivity {
 	// Create activity options with explicit task queue routing to Python worker
 	options := workflow.ActivityOptions{
-		TaskQueue:              taskQueue,        // Route to Python worker (from memo)
-		StartToCloseTimeout:    24 * time.Hour, // No practical limit — HeartbeatTimeout is the real liveness check
-		ScheduleToStartTimeout: 1 * time.Minute,  // Max wait for worker to pick up task
-		HeartbeatTimeout:       2 * time.Minute,  // 2 minutes — generous margin for LangGraph checkpoint I/O and SDK-side heartbeat throttling (Rust core sends at 0.8× this interval)
+		TaskQueue:              taskQueue,       // Route to Python worker (from memo)
+		StartToCloseTimeout:    24 * time.Hour,  // No practical limit — HeartbeatTimeout is the real liveness check
+		ScheduleToStartTimeout: 1 * time.Minute, // Max wait for worker to pick up task
+		HeartbeatTimeout:       2 * time.Minute, // 2 minutes — generous margin for LangGraph checkpoint I/O and SDK-side heartbeat throttling (Rust core sends at 0.8× this interval)
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts:    1, // No retries for agent execution (not idempotent)
 			InitialInterval:    10 * time.Second,

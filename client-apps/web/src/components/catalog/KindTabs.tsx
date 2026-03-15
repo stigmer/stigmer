@@ -3,7 +3,7 @@
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { Bot, FileCode2, Server, LayoutGrid } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@stigmer/theme";
 
 interface KindTab {
   kind: ApiResourceKind | null;

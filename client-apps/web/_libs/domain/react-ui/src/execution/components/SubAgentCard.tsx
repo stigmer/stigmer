@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "../../internal/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "../../internal/ui/collapsible";
 import { OutputBlock } from "./OutputBlock";
 import { ToolCallCard } from "./ToolCallCard";
 import {
@@ -14,11 +14,11 @@ import {
   subAgentStatusVariant,
   formatDuration,
   isAiMessage,
-} from "@/lib/execution";
+} from "../helpers";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SubAgentStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { cn } from "@/lib/utils";
+import { cn } from "@stigmer/theme";
 import { ChevronRight, Bot, Loader2 } from "lucide-react";
 
 interface SubAgentCardProps {

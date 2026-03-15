@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { submitApproval } from "@/services/execution-service";
+import { useExecutionService } from "./useExecutionService";
 
 export interface UseApprovalOptions {
   executionId: string;
@@ -24,6 +24,7 @@ export interface UseApprovalReturn {
 }
 
 export function useApproval(options: UseApprovalOptions): UseApprovalReturn {
+  const service = useExecutionService();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +37,7 @@ export function useApproval(options: UseApprovalOptions): UseApprovalReturn {
       setIsSubmitting(true);
       setError(null);
       try {
-        await submitApproval(options.executionId, toolCallId, action, comment);
+        await service.submitApproval(options.executionId, toolCallId, action, comment);
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : "Failed to submit approval";
@@ -45,7 +46,7 @@ export function useApproval(options: UseApprovalOptions): UseApprovalReturn {
         setIsSubmitting(false);
       }
     },
-    [options.executionId],
+    [service, options.executionId],
   );
 
   const clearError = useCallback(() => setError(null), []);

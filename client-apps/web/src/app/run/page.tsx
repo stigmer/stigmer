@@ -5,13 +5,15 @@ import Link from "next/link";
 import { Play, ExternalLink } from "lucide-react";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { AgentPicker, type SelectedAgent } from "@/components/agent/AgentPicker";
-import { ExecutionStream } from "@/components/execution";
-import { MessageInput } from "@/components/execution/MessageInput";
-import { useAgentExecution } from "@/hooks/useAgentExecution";
-import { useApproval } from "@/hooks/useApproval";
+import {
+  ExecutionStream,
+  MessageInput,
+  useAgentExecution,
+  useApproval,
+  isTerminalPhase,
+} from "@stigmer/react-ui/execution";
+import { cn } from "@stigmer/theme";
 import { useActiveOrgSlug } from "@/contexts/org-context";
-import { isTerminalPhase } from "@/lib/execution";
-import { cn } from "@/lib/utils";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 // ---------------------------------------------------------------------------

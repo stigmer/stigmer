@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useRef, type KeyboardEvent } from "react";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Textarea } from "../../internal/ui/textarea";
+import { Button } from "../../internal/ui/button";
+import { cn } from "@stigmer/theme";
 import { SendHorizontal, Loader2 } from "lucide-react";
 
 interface MessageInputProps {

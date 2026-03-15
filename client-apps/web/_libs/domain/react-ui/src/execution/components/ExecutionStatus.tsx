@@ -1,7 +1,7 @@
-import { Badge } from "@/components/ui/badge";
-import { phaseLabel, phaseVariant, isTerminalPhase } from "@/lib/execution";
+import { Badge } from "../../internal/ui/badge";
+import { phaseLabel, phaseVariant, isTerminalPhase } from "../helpers";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { cn } from "@/lib/utils";
+import { cn } from "@stigmer/theme";
 import { Loader2 } from "lucide-react";
 
 interface ExecutionStatusProps {
