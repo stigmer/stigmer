@@ -18,12 +18,12 @@ func newTestHandler() *spaHandler {
 		"agents.html": &fstest.MapFile{Data: []byte("<html>agents list</html>")},
 
 		// Dynamic route: /agents/[id]
-		"agents/__placeholder__.html":                              &fstest.MapFile{Data: []byte("<html>agent detail</html>")},
-		"agents/__placeholder__.txt":                               &fstest.MapFile{Data: []byte("RSC:agent-detail")},
-		"agents/__placeholder__/__next._full.txt":                  &fstest.MapFile{Data: []byte("RSC:full")},
-		"agents/__placeholder__/__next.agents.$d$id.__PAGE__.txt":  &fstest.MapFile{Data: []byte("RSC:page")},
-		"agents/__next._full.txt":                                  &fstest.MapFile{Data: []byte("RSC:agents-layout")},
-		"agents/__next.agents.__PAGE__.txt":                        &fstest.MapFile{Data: []byte("RSC:agents-list-page")},
+		"agents/__placeholder__.html":                             &fstest.MapFile{Data: []byte("<html>agent detail</html>")},
+		"agents/__placeholder__.txt":                              &fstest.MapFile{Data: []byte("RSC:agent-detail")},
+		"agents/__placeholder__/__next._full.txt":                 &fstest.MapFile{Data: []byte("RSC:full")},
+		"agents/__placeholder__/__next.agents.$d$id.__PAGE__.txt": &fstest.MapFile{Data: []byte("RSC:page")},
+		"agents/__next._full.txt":                                 &fstest.MapFile{Data: []byte("RSC:agents-layout")},
+		"agents/__next.agents.__PAGE__.txt":                       &fstest.MapFile{Data: []byte("RSC:agents-list-page")},
 
 		// Dynamic route: /mcp-servers/[id] (hyphenated prefix)
 		"mcp-servers/__placeholder__.html": &fstest.MapFile{Data: []byte("<html>mcp detail</html>")},
