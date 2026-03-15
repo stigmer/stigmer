@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useSessionQueryService } from "@stigmer/session-ui";
+import { useSessionQueryService } from "@stigmer/session";
 import { sessionKeys } from "./keys";
 
 const DEFAULT_PAGE_SIZE = 5;
@@ -52,9 +52,10 @@ export function useAgentSessionList(
   return {
     sessions,
     isLoading: query.isLoading,
-    error: query.error ? (query.error as Error).message : null,
+    error: query.error ?? null,
     hasMore: query.hasNextPage ?? false,
     isLoadingMore: query.isFetchingNextPage,
     loadMore,
+    retry: query.refetch,
   };
 }

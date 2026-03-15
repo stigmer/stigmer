@@ -1,14 +1,9 @@
 "use client";
 
-import {
-  Search,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  AlertCircle,
-} from "lucide-react";
+import { Search, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
+import { ErrorMessage } from "@/components/ui/error-message";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ResourceEmptyState } from "./ResourceEmptyState";
 
@@ -17,11 +12,12 @@ export interface ResourceListData {
   query: string;
   setQuery: (q: string) => void;
   isLoading: boolean;
-  error: string | null;
+  error: Error | null;
   totalCount: number;
   totalPages: number;
   page: number;
   setPage: (page: number) => void;
+  retry?: () => void;
 }
 
 interface ResourceListProps {
@@ -47,6 +43,7 @@ export function ResourceList({
     totalPages,
     page,
     setPage,
+    retry,
   } = data;
 
   return (
@@ -79,15 +76,7 @@ export function ResourceList({
       </div>
 
       {/* Error banner */}
-      {error && (
-        <div
-          role="alert"
-          className="border-destructive/30 bg-destructive/5 text-destructive flex items-center gap-2 rounded-lg border px-4 py-3 text-sm"
-        >
-          <AlertCircle className="size-4 shrink-0" />
-          {error}
-        </div>
-      )}
+      <ErrorMessage error={error} retry={retry} />
 
       {/* Loading skeleton */}
       {isLoading && results.length === 0 && !error && (

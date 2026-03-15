@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useMcpServerQueryService } from "@stigmer/mcp-server-ui";
+import { useMcpServerQueryService } from "@stigmer/mcp-server";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { mcpServerKeys } from "./keys";
@@ -23,7 +23,7 @@ export function useMcpServerList() {
 
   const service = useMcpServerQueryService();
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: mcpServerKeys.list({ org, query: debouncedQuery, page }),
     queryFn: () =>
       service.search({
@@ -43,10 +43,11 @@ export function useMcpServerList() {
     query,
     setQuery: handleSetQuery,
     isLoading,
-    error: error ? (error as Error).message : null,
+    error: error ?? null,
     totalCount: data?.totalCount ?? 0,
     totalPages: data?.totalPages ?? 0,
     page,
     setPage,
+    retry: refetch,
   };
 }

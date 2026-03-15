@@ -1,10 +1,7 @@
 "use client";
 
 import { TopBar } from "@/components/layout/TopBar";
-import {
-  ResourceList,
-  McpServerSearchCard,
-} from "@/components/resource-list";
+import { ResourceList, McpServerSearchCard } from "@/components/resource-list";
 import { useMcpServerList } from "@/hooks/mcp-servers/useMcpServerList";
 
 export default function McpServersPage() {

@@ -27,10 +27,7 @@ export function AgentSearchCard({ result }: AgentSearchCardProps) {
                 {result.name}
               </span>
               {isPublic && (
-                <Badge
-                  variant="outline"
-                  className="shrink-0 gap-1 text-[10px]"
-                >
+                <Badge variant="outline" className="shrink-0 gap-1 text-[10px]">
                   <Globe className="size-2.5" />
                   Public
                 </Badge>

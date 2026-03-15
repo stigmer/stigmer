@@ -10,7 +10,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useAgentQueryService } from "@stigmer/agent-ui";
+import { useAgentQueryService } from "@stigmer/agent";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { TopBar } from "@/components/layout/TopBar";
 import { Button } from "@/components/ui/button";

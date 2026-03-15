@@ -18,7 +18,10 @@ interface ResourceEmptyStateProps {
   hasQuery: boolean;
 }
 
-export function ResourceEmptyState({ kind, hasQuery }: ResourceEmptyStateProps) {
+export function ResourceEmptyState({
+  kind,
+  hasQuery,
+}: ResourceEmptyStateProps) {
   if (hasQuery) {
     return (
       <div className="border-border flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
@@ -38,8 +41,8 @@ export function ResourceEmptyState({ kind, hasQuery }: ResourceEmptyStateProps) 
       <Icon className="text-muted-foreground/40 mb-3 size-10" />
       <p className="text-sm font-medium">No {kind} yet</p>
       <p className="text-muted-foreground mt-1 text-xs">
-        {kind.charAt(0).toUpperCase() + kind.slice(1)} you create or have
-        access to will appear here.
+        {kind.charAt(0).toUpperCase() + kind.slice(1)} you create or have access
+        to will appear here.
       </p>
     </div>
   );

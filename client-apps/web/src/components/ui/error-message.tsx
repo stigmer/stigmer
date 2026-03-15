@@ -105,7 +105,7 @@ export function ErrorMessage({
                 Technical details
               </button>
               {detailsOpen && (
-                <dl className="text-destructive/60 mt-1.5 space-y-0.5 text-xs font-mono">
+                <dl className="text-destructive/60 mt-1.5 space-y-0.5 font-mono text-xs">
                   <div className="flex gap-2">
                     <dt className="shrink-0">Method:</dt>
                     <dd className="truncate">{metadata.method}</dd>

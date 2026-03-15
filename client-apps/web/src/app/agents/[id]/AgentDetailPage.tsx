@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Loader2, Play } from "lucide-react";
-import { AgentOverview } from "@stigmer/agent-ui";
+import { AgentOverview } from "@stigmer/agent";
 import { Separator } from "@/components/ui/separator";
 import { ErrorMessage } from "@/components/ui/error-message";
 import { TopBar } from "@/components/layout/TopBar";

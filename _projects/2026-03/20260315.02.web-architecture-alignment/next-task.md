@@ -22,9 +22,56 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: IN PROGRESS
-- **Last Session**: 2026-03-15 — Phase 7 (Domain UI Components + List/Detail View Enhancement) completed
-- **Active Task**: None — Phase 7 complete
-- **Next Task**: Phase 8 — Workflow & IAM views (deferrable), or Phase 9 — Final polish & verification
+- **Last Session**: 2026-03-15 — Phase 9 (Final Polish & Verification) completed
+- **Active Task**: None — Phase 9 complete
+- **Next Task**: Phase 8 — Workflow & IAM views (deferred)
+
+## Session Progress (2026-03-15, Session 11)
+
+### Phase 9: Final Polish & Verification — COMPLETED
+
+Systematic verification and polish pass across the entire web codebase after 10 sessions of refactoring.
+
+**T14: Baseline Verification**
+- `tsc --noEmit`: clean
+- `next build`: clean (17 routes, all static/SSG)
+- `eslint --max-warnings 0`: 2 warnings — `<img>` in domain library components (intentional, `next/image` forbidden in embeddable packages)
+- `prettier --check`: 15 files had formatting drift — all fixed
+- Fix: Added `@next/next/no-img-element: "off"` override for `_libs/**` in ESLint config
+
+**T15: `any` Type Elimination (6 service factories)**
+- Investigated the `// eslint-disable-next-line @typescript-eslint/no-explicit-any` suppressions on Connect-RPC `createClient()` calls
+- Finding: The `any` casts were completely unnecessary. `createClient()` returns `Client<T>` which maps each method to correctly typed functions via `GenService` descriptors from protobuf-es codegenv1. The `as Promise<T>` return casts were also unnecessary — types flow through correctly.
+- Removed all `any` casts, `eslint-disable` comments, and `as Promise<T>` return casts from: `agent-query-service.ts`, `mcp-server-query-service.ts`, `skill-query-service.ts`, `session-query-service.ts`, `execution-service.ts`, `org-context.tsx`
+- Removed stale comment blocks about "generic inference loss" (the claim was incorrect)
+
+**T16: Error Handling Standardization (3 components)**
+- Migrated raw error `<div>` displays to `<ErrorMessage>` component (with error classification, expandable RPC metadata, conditional retry):
+  - `SessionDetailPage.tsx` — `combinedError` changed from `string | null` to `Error | null`, retry refetches both session and executions queries
+  - `ResourceList.tsx` — `ResourceListData.error` changed from `string | null` to `Error | null`, added `retry?: () => void` prop
+  - `AgentSessionHistory.tsx` — surfaces `refetch` from `useAgentSessionList` as retry callback
+- Updated 4 hooks to return `Error | null` instead of `string | null`: `useAgentList`, `useSkillList`, `useMcpServerList`, `useAgentSessionList`
+- Decision: `ResourceOverview.tsx` ("—" on dashboard stat failure) and `DraftPage.tsx` (setup error) left as-is — their error patterns are contextually appropriate
+
+**T17: Unused Parameters**
+- Confirmed ESLint reports zero unused-var warnings
+- Fixed `ExecutionStream.tsx`: `isConnected` prop declared in interface but not destructured — added `isConnected: _isConnected` destructuring
+
+**T18: Build Configuration Consistency**
+- Added 4 missing packages to `next.config.ts` `transpilePackages`: `@stigmer/agent-ui`, `@stigmer/mcp-server-ui`, `@stigmer/session-ui`, `@stigmer/skill-ui`
+- Removed vestigial `tsconfig.build.json` from 3 older packages (`agent-execution-ui`, `rpc-client`, `theme`) — all 7 packages are source-only via `transpilePackages`, entry points are `./src/index.ts`, no pre-built `dist/` needed
+- `dist/` directories already gitignored
+
+**T19: Final Verification**
+- `tsc --noEmit`: clean
+- `next build`: clean
+- `eslint --max-warnings 0`: clean (zero errors, zero warnings)
+- `prettier --check`: clean (all files formatted)
+
+**Key Decisions**:
+25. **Connect-RPC types work correctly** — protobuf-es codegenv1 `GenService` descriptors extend `DescService`, `Client<T>` maps methods to properly typed functions. No `any` casts or `as` assertions needed. The previous assumption of "generic inference loss" was wrong.
+26. **All `@stigmer/*` packages are source-only** — consumed via `transpilePackages`, entry points at `./src/index.ts`. `tsconfig.build.json` files in older packages were vestigial and removed.
+27. **Dashboard stat and draft page errors left as-is** — `ResourceOverview` "—" display and `DraftPage` custom error block are contextually appropriate. `ErrorMessage` is for RPC/transport errors, not dashboard metrics or configuration errors.
 
 ## Session Progress (2026-03-15, Session 10)
 
@@ -380,8 +427,8 @@ The pre-existing `agent-execution-ui` package had unnecessary nesting that was i
 9. ~~**T13: Dashboard Improvements**~~ — **DONE** (resource overview cards, trimmed quick actions, enhanced RecentSessions; execution status widgets deferred — server API gaps)
 
 ## Context for Resume
-- Phases 1-7 are fully committed and verified
-- Phase 7 complete: `@stigmer/agent-ui` enriched with `AgentCard` and `AgentOverview` components, Console list pages use domain-aware search cards, agents page uses card grid layout, all three detail views improved, deprecated code fully deleted
+- Phases 1-7 and 9 are fully committed and verified. Phase 8 deferred.
+- Phase 9 complete: zero `any` types, consistent `ErrorMessage` usage, all `@stigmer/*` packages in `transpilePackages`, vestigial build configs removed, ESLint/Prettier/tsc/build all clean
 - The codebase now has: Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, sectioned sidebar with collapse, global header, breadcrumbs, Query/Command hook pattern with domain libraries, three-tier error handling framework, reusable table primitives, sessions list page, dashboard with resource overview, embeddable agent components, domain-aware list rendering
 - `transport.ts` and `org-service.ts` are fully deleted — zero deprecated transport code remains
 - `OrgProvider` migrated to context-based transport (`useStigmerTransport()`)
@@ -424,8 +471,8 @@ The project addresses gaps from two analyses:
 | Phase 5 | 10–11 | Error handling & Bridge framework | Architecture | **DONE** |
 | Phase 6 | 12–16 | Layout overhaul + View completeness (sidebar, header, sessions, dashboard) | UX | **DONE** |
 | Phase 7 | 17–19 | Domain UI components + list/detail view enhancement | Architecture + UX | **DONE** |
-| Phase 8 | 20–24 | Workflow & IAM views (deferrable) | UX | Pending |
-| Phase 9 | 25–26 | Final polish & verification | Both | Pending |
+| Phase 8 | 20–24 | Workflow & IAM views (deferrable) | UX | Deferred |
+| Phase 9 | 25–26 | Final polish & verification | Both | **DONE** |
 
 ## Essential Files to Review
 
@@ -492,12 +539,12 @@ The project addresses gaps from two analyses:
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-10.md`
-2. [ ] Check current task status — Phase 7 complete, Phase 8 (Workflow & IAM views) next
+1. [ ] Read the latest checkpoint from `checkpoints/`
+2. [ ] Check current task status — Phase 9 complete, Phase 8 (Workflow & IAM views) deferred
 3. [ ] Review design decisions in `design-decisions/` (especially `003-hook-pattern-contract.md`)
 4. [ ] Read coding guideline: `coding-guidelines/query-command-hooks.md` (includes error handling patterns)
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 8: Workflow & IAM views (deferrable), or Phase 9: Final polish & verification
+6. [ ] Continue with Phase 8: Workflow & IAM views (when ready)
 
 ## Quick Resume
 
@@ -508,8 +555,8 @@ To continue this project, drag this file into chat:
 
 **Created**: 2026-03-15
 **Updated**: 2026-03-15
-**Current Task**: Phase 8 — Workflow & IAM Views (deferrable)
-**Status**: READY — Phase 7 complete, Phase 8 next
+**Current Task**: Phase 8 — Workflow & IAM Views (deferred)
+**Status**: READY — Phase 9 complete, Phase 8 deferred
 
 ---
 

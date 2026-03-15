@@ -208,9 +208,7 @@ export function annotateRpcError(
  * Returns `undefined` if the error was not annotated (e.g., non-RPC errors,
  * errors that bypassed the interceptor chain).
  */
-export function getRpcMetadata(
-  error: unknown,
-): RpcErrorMetadata | undefined {
+export function getRpcMetadata(error: unknown): RpcErrorMetadata | undefined {
   if (error !== null && typeof error === "object") {
     return rpcMetadataStore.get(error);
   }

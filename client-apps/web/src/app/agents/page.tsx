@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { Play } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
-import {
-  ResourceList,
-  AgentSearchCard,
-} from "@/components/resource-list";
+import { ResourceList, AgentSearchCard } from "@/components/resource-list";
 import { useAgentList } from "@/hooks/agents/useAgentList";
 
 export default function AgentsPage() {

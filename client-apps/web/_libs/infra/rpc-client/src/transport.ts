@@ -33,9 +33,7 @@ export function createStigmerTransport(config: StigmerRpcConfig): Transport {
   ];
 
   if (config.onUnauthenticated) {
-    interceptors.push(
-      createAuthRedirectInterceptor(config.onUnauthenticated),
-    );
+    interceptors.push(createAuthRedirectInterceptor(config.onUnauthenticated));
   }
 
   interceptors.push(...(config.interceptors ?? []));

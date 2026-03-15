@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { AlertCircle, MessageSquare, Loader2 } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
+import { ErrorMessage } from "@/components/ui/error-message";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
@@ -16,7 +17,7 @@ import {
   useApproval,
   buildSubAgentIndex,
   isTerminalPhase,
-} from "@stigmer/agent-execution-ui";
+} from "@stigmer/agent-execution";
 import { useSession } from "@/hooks/sessions/useSession";
 import { useSessionExecutions } from "@/hooks/sessions/useSessionExecutions";
 import { Separator } from "@/components/ui/separator";
@@ -30,7 +31,7 @@ type PageState = "loading" | "error" | "history" | "streaming";
 
 function derivePageState(
   isLoading: boolean,
-  error: string | null,
+  error: Error | null,
   livePhase: ExecutionPhase,
   hasLiveExecution: boolean,
 ): PageState {
@@ -51,12 +52,14 @@ export default function SessionDetailPage() {
     data: session,
     isLoading: isSessionLoading,
     error: sessionQueryError,
+    refetch: refetchSession,
   } = useSession(id);
 
   const {
     data: executionList,
     isLoading: isExecutionsLoading,
     error: executionsQueryError,
+    refetch: refetchExecutions,
   } = useSessionExecutions(id);
 
   const executions = executionList?.entries ?? [];
@@ -68,8 +71,7 @@ export default function SessionDetailPage() {
     lastExecution && !isTerminalPhase(lastPhase) ? lastExecution : null;
   const pastExecutions = activeExecution ? executions.slice(0, -1) : executions;
 
-  const sessionError =
-    sessionQueryError?.message ?? executionsQueryError?.message ?? null;
+  const queryError = sessionQueryError ?? executionsQueryError ?? null;
 
   const activeExecutionId = activeExecution?.metadata?.id;
 
@@ -95,13 +97,19 @@ export default function SessionDetailPage() {
     useApproval({ executionId });
 
   const isDataLoading = isSessionLoading || isExecutionsLoading;
-  const combinedError = sessionError || streamError;
+  const combinedError =
+    queryError ?? (streamError ? new Error(streamError) : null);
   const pageState = derivePageState(
     isDataLoading,
     combinedError,
     effectivePhase,
     hasLiveExecution && !isTerminalPhase(effectivePhase),
   );
+
+  const retryQueries = useCallback(() => {
+    refetchSession();
+    refetchExecutions();
+  }, [refetchSession, refetchExecutions]);
 
   const sessionId = session?.metadata?.id ?? id;
   const displayName =
@@ -154,10 +162,7 @@ export default function SessionDetailPage() {
 
         {pageState === "error" && (
           <div className="p-6">
-            <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-4 text-sm">
-              <AlertCircle className="mt-0.5 size-4 shrink-0" />
-              <p>{combinedError}</p>
-            </div>
+            <ErrorMessage error={combinedError} retry={retryQueries} />
           </div>
         )}
 
