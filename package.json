@@ -3,6 +3,9 @@
   "private": true,
   "workspaces": [
     "apis/stubs/ts",
-    "client-apps/web"
+    "client-apps/web",
+    "client-apps/web/_libs/infra/*",
+    "client-apps/web/_libs/ui/*",
+    "client-apps/web/_libs/domain/*"
   ]
 }
