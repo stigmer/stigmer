@@ -16,8 +16,9 @@ import {
   useApproval,
   buildSubAgentIndex,
   isTerminalPhase,
-} from "@stigmer/agent-execution-ui/execution";
-import { useSessionDetail } from "@/hooks/useSessionDetail";
+} from "@stigmer/agent-execution-ui";
+import { useSession } from "@/hooks/sessions/useSession";
+import { useSessionExecutions } from "@/hooks/sessions/useSessionExecutions";
 import { Separator } from "@/components/ui/separator";
 import { formatRelativeTime } from "@/lib/time";
 
@@ -47,12 +48,28 @@ export default function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
 
   const {
-    session,
-    pastExecutions,
-    activeExecution,
+    data: session,
     isLoading: isSessionLoading,
-    error: sessionError,
-  } = useSessionDetail(id);
+    error: sessionQueryError,
+  } = useSession(id);
+
+  const {
+    data: executionList,
+    isLoading: isExecutionsLoading,
+    error: executionsQueryError,
+  } = useSessionExecutions(id);
+
+  const executions = executionList?.entries ?? [];
+  const lastExecution =
+    executions.length > 0 ? executions[executions.length - 1] : null;
+  const lastPhase =
+    lastExecution?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+  const activeExecution =
+    lastExecution && !isTerminalPhase(lastPhase) ? lastExecution : null;
+  const pastExecutions = activeExecution ? executions.slice(0, -1) : executions;
+
+  const sessionError =
+    sessionQueryError?.message ?? executionsQueryError?.message ?? null;
 
   const activeExecutionId = activeExecution?.metadata?.id;
 
@@ -77,9 +94,10 @@ export default function SessionDetailPage() {
   const { submit: submitApproval, isSubmitting: isApprovalSubmitting } =
     useApproval({ executionId });
 
+  const isDataLoading = isSessionLoading || isExecutionsLoading;
   const combinedError = sessionError || streamError;
   const pageState = derivePageState(
-    isSessionLoading,
+    isDataLoading,
     combinedError,
     effectivePhase,
     hasLiveExecution && !isTerminalPhase(effectivePhase),

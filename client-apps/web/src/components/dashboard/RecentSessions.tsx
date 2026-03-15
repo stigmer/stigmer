@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { History, Play, ArrowRight } from "lucide-react";
 import { SessionCard } from "@/components/session/SessionCard";
-import { useSessions } from "@/hooks/useSessions";
+import { useSessionList } from "@/hooks/sessions/useSessionList";
 
 const DASHBOARD_SESSION_LIMIT = 5;
 
 export function RecentSessions() {
-  const { sessions, isLoading, error, hasMore } = useSessions({
+  const { sessions, isLoading, error, hasMore } = useSessionList({
     pageSize: DASHBOARD_SESSION_LIMIT,
   });
 

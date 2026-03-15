@@ -8,7 +8,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { Bot, Search, X, Loader2 } from "lucide-react";
-import { useAgentSearch } from "@/hooks/useAgentSearch";
+import { useAgentSearch } from "@/hooks/agents/useAgentSearch";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
 

@@ -3,12 +3,12 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
-import { useMcpServerDetail } from "@/hooks/useMcpServerDetail";
+import { useMcpServer } from "@/hooks/mcp-servers/useMcpServer";
 import { McpServerDetailView } from "@/components/mcp-server/McpServerDetailView";
 
 export default function McpServerDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { mcpServer, isLoading, error } = useMcpServerDetail(id);
+  const { data: mcpServer, isLoading, error } = useMcpServer(id);
 
   return (
     <div className="space-y-6">
@@ -37,7 +37,7 @@ export default function McpServerDetailPage() {
       {error && (
         <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-4 text-sm">
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <p>{error}</p>
+          <p>{error.message}</p>
         </div>
       )}
 

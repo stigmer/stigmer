@@ -10,13 +10,25 @@ import {
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
-import type { UseResourceCatalogReturn } from "@/hooks/useResourceCatalog";
+import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ResourceCard } from "./ResourceCard";
 import { CatalogEmptyState } from "./CatalogEmptyState";
 
+export interface ResourceCatalogData {
+  results: SearchResult[];
+  query: string;
+  setQuery: (q: string) => void;
+  isLoading: boolean;
+  error: string | null;
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  setPage: (page: number) => void;
+}
+
 interface ResourceListProps {
   kind: ApiResourceKind;
-  catalog: UseResourceCatalogReturn;
+  catalog: ResourceCatalogData;
 }
 
 export function ResourceList({ kind, catalog }: ResourceListProps) {

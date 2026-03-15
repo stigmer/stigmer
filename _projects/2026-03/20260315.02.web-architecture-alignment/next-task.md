@@ -22,9 +22,94 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: IN PROGRESS
-- **Last Session**: 2026-03-15 — T05 (Navigation IA Design Decision) completed
-- **Active Task**: None — T05 complete, ready for Phase 4
-- **Next Task**: T06 (Define the Hook Pattern Contract) — Phase 4
+- **Last Session**: 2026-03-15 — T07+T08 (Hook Refactor + Service Reorganization) completed
+- **Active Task**: None — T07+T08 complete, ready for T09
+- **Next Task**: T09 (Error Handling & Bridge Framework) — Phase 5
+
+## Session Progress (2026-03-15, Session 5)
+
+### T07+T08: Refactor Hooks to Query/Command Pattern + Service Reorganization — COMPLETED
+
+**Tasks merged**: T07 (hook refactor) and T08 (service reorganization) were implemented together because Layer 3 hooks depend on Layer 1 factories and Layer 2 service hooks — implementing them separately would have required throwaway intermediate code.
+
+**Foundation**:
+- Installed `@tanstack/react-query`, added `QueryClientProvider` to `Providers.tsx` (staleTime: 30s, retry: 1, refetchOnWindowFocus: true)
+- Created `useDebouncedValue` utility hook for search inputs
+
+**Domain Libraries Created** (Layer 1 + Layer 2):
+- `@stigmer/agent-ui` — `AgentQueryService` factory (get, getByReference, search), `useAgentQueryService` hook
+- `@stigmer/session-ui` — `SessionQueryService` factory (get, list, listByAgent), `useSessionQueryService` hook
+- `@stigmer/skill-ui` — `SkillQueryService` factory (get, search), `useSkillQueryService` hook
+- `@stigmer/mcp-server-ui` — `McpServerQueryService` factory (get, search), `useMcpServerQueryService` hook
+
+**Console Query Hooks Created** (Layer 3):
+- Agents: `useAgent`, `useAgentList`, `useAgentSearch`, `useDraftAgent` (with query key factory)
+- Sessions: `useSession`, `useSessionExecutions`, `useSessionList`, `useAgentSessionList` (with query key factory)
+- Skills: `useSkill`, `useSkillList` (with query key factory)
+- MCP Servers: `useMcpServer`, `useMcpServerList` (with query key factory)
+
+**Consumer Components Updated** (11 files):
+- `AgentDetailPage`, `agents/page`, `AgentPicker`, `DraftPage`
+- `SessionDetailPage`, `RecentSessions`, `AgentSessionHistory`
+- `SkillDetailPage`, `skills/page`
+- `McpServerDetailPage`, `mcp-servers/page`
+- `ResourceList` (decoupled from old `useResourceCatalog` type)
+
+**Old Code Deleted** (14 files):
+- Hooks: `useAgentDetail`, `useAgentSearch` (old), `useDraftAgent` (old), `useResourceCatalog`, `useSessionDetail`, `useSessions`, `useAgentSessions`, `useSkillDetail`, `useMcpServerDetail`
+- Services: `agent-service`, `search-service`, `session-service`, `skill-service`, `mcp-server-service`
+- Deprecated with comments: `transport.ts` (singleton), `org-service.ts` (legacy transport)
+
+**Surprise Encountered**:
+- `useResourceCatalog` was used by `/skills` and `/mcp-servers` pages in addition to `/agents`. Addressed by consistently applying the pattern: added `search` methods to `SkillQueryService` and `McpServerQueryService`, created `useSkillList` and `useMcpServerList` hooks.
+
+**Key Design Decisions**:
+- `useSessionDetail` split into `useSession` + `useSessionExecutions` (single responsibility)
+- `useInfiniteQuery` for cursor-based session pagination ("load more"), `useQuery` for page-based resource lists
+- `fetchNextPage`/`refetch` wrapped in `useCallback` to match `onClick` signatures
+- `OrgProvider` kept as-is — its local storage + active selection concerns don't align with TanStack Query
+
+**Verification**: `npm run build` clean, `eslint --max-warnings 0` clean, `tsc --noEmit` clean for all 4 domain libraries.
+
+### Flatten `@stigmer/agent-execution-ui` package structure — COMPLETED
+
+The pre-existing `agent-execution-ui` package had unnecessary nesting that was inconsistent with the 4 new domain packages:
+- `src/execution/` subdirectory removed — contents moved to `src/` (the package IS execution, the word appeared twice in imports)
+- `src/internal/ui/` flattened to `src/internal/` (only subdirectory, redundant level)
+- `./execution` subpath export removed from `package.json`
+- 4 consumer files updated: `@stigmer/agent-execution-ui/execution` → `@stigmer/agent-execution-ui`
+- README updated
+
+**Decision**: `-ui` suffix kept on all domain packages — UI components will be added to all domains (agent marketplace, skill catalog, MCP server browser).
+
+## Session Progress (2026-03-15, Session 4)
+
+### T06: Hook Pattern Contract — COMPLETED
+
+**Design Document**: `design-decisions/003-hook-pattern-contract.md`
+**Coding Guideline**: `coding-guidelines/query-command-hooks.md`
+
+**Three-Layer Service Architecture**:
+- Layer 1: Service factories (pure TS, no React) — `createXxxService(transport)`
+- Layer 2: Service hooks (minimal React) — `useXxxService()` binds transport from context
+- Layer 3: Query/Command hooks (console only) — TanStack Query (`useQuery`, `useMutation`, `useInfiniteQuery`)
+
+**Key Decisions**:
+- TanStack Query adopted at console level only — domain libraries stay lean and embeddable
+- Rejected Planton's `usePlantonService()` bundling — domain hooks must not couple to UI concerns (notifications, loading indicators)
+- Rejected Planton's "bag of functions" return shape — TanStack Query provides managed state instead
+- Service factories always throw errors — never catch/swallow
+- Notifications are the component's responsibility, not the hook's
+- Transport unified on context-based approach — module-level singleton deprecated
+- CQRS split by default, combined only when domain requires it (e.g., execution)
+
+**Resolved Questions**:
+- `useApproval` stays in domain library as custom hook (embeddable component, no TanStack Query dependency)
+- Org-scoped queries: explicit `org` parameter at service factory level, contextual `useOrg()` wrapper at console level
+
+**T09 Re-scoped**: `StigmerServiceBridge` as originally planned is unnecessary — loading, notifications, and org context are already handled by TanStack Query, components, and `OrgProvider`. T09 should focus on error interceptors only.
+
+**Migration Mapping**: 9 existing hooks mapped to new pattern (8 via TanStack Query, 1 stays custom for streaming)
 
 ## Session Progress (2026-03-15, Session 3)
 
@@ -108,6 +193,10 @@ Drop this file into your conversation to quickly resume work on this project.
 6. **`next-themes` Console-only** — `@stigmer/theme` stays framework-agnostic, `ThemeProvider` lives in Console's provider tree
 7. **Catalog removed** — unified catalog view is redundant with individual resource pages in sidebar. Cross-resource search deferred to Cmd+K.
 8. **Draft contextual, not in sidebar** — draft buttons on resource pages, following Jakob's Law (GitHub, AWS, Kubernetes Dashboard convention)
+9. **TanStack Query console-only** — domain libraries export service factories + hooks, no TanStack Query dependency. Keeps embeddable components lean.
+10. **Rejected Planton's `usePlantonService()` bundling** — domain hooks must not couple to UI concerns (notifications, loading, page indicators). Violates architect mandate on domain purity.
+11. **Three-layer service architecture** — service factory (pure TS) → service hook (transport binding) → query/command hook (TanStack Query). Already proven by `@stigmer/agent-execution-ui`.
+12. **T09 re-scoped** — `StigmerServiceBridge` unnecessary with TanStack Query. T09 should focus on error interceptors only.
 
 ### Surprises Encountered
 - `searchAgents` was initially removed alongside the genuinely dead `searchSkills` and `searchMcpServers`. Build failure revealed `useAgentSearch.ts` imports it. The function was immediately restored. Lesson: always verify each removal individually, not in batches.
@@ -117,16 +206,20 @@ Drop this file into your conversation to quickly resume work on this project.
 1. ~~**T03: Package Rename** (`@stigmer/react-ui` → `@stigmer/agent-execution-ui`)~~ — **DONE**
 2. ~~**T04: Visual Identity & Theme System**~~ — **DONE**
 3. ~~**T05: Navigation IA Design Decision**~~ — **DONE** (design doc + catalog deletion + sidebar restructure)
-4. **T06: Define the Hook Pattern Contract** (Phase 4 — architecture, design decision)
-   - Document Query/Command hook pattern contract in `coding-guidelines/`
-   - Define standard return shapes, error handling, loading states
-   - Decide hook-to-bridge integration
+4. ~~**T06: Define the Hook Pattern Contract**~~ — **DONE** (design decision + coding guideline)
+5. ~~**T07+T08: Refactor Hooks + Service Reorganization**~~ — **DONE** (merged execution — 4 domain libraries, 14 hooks, 11 consumer updates)
+6. **T09: Error Handling & Bridge Framework** (Phase 5 — error interceptors)
+   - Re-scoped: focus on error interceptors only (`StigmerServiceBridge` unnecessary)
+   - Transport-level error classification and display strategy
+   - Follow `design-decisions/003-hook-pattern-contract.md` guidance
 
 ## Context for Resume
-- Phases 1-3 (T01-T05) are fully committed and verified
-- No work-in-progress or half-finished changes
-- The codebase now has Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, and a sectioned sidebar with the finalized navigation IA
-- T06 is a design decision phase — defining the Query/Command hook pattern contract before migration
+- Phases 1-4 (T01-T08) are fully committed and verified
+- T06 (design decision + coding guideline) established the three-layer service architecture contract
+- T07+T08 implemented the contract: 4 domain libraries, 14 TanStack Query hooks, 11 consumer component updates, 14 old files deleted
+- The codebase now has Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, sectioned sidebar, and the full Query/Command hook pattern with domain libraries
+- `transport.ts` and `org-service.ts` are deprecated with comments — last consumers of the singleton transport pattern
+- T09 (error interceptors) is the next task — Phase 5
 
 ## Gap Analysis Summary
 
@@ -160,7 +253,7 @@ The project addresses gaps from two analyses:
 | Phase 1 | 1–2 | Dead code removal + Prettier + lint hardening | Architecture | **DONE** |
 | Phase 2 | 3–4 | Package rename + Visual identity foundation | Architecture + UX | **DONE** |
 | Phase 3 | 5 | Navigation IA design decision + catalog cleanup | UX | **DONE** |
-| Phase 4 | 6–9 | Query/Command hook pattern + service reorganization | Architecture | Pending |
+| Phase 4 | 6–9 | Query/Command hook pattern + service reorganization | Architecture | **DONE** |
 | Phase 5 | 10–11 | Error handling & Bridge framework | Architecture | Pending |
 | Phase 6 | 12–16 | Layout overhaul + View completeness (sidebar, header, sessions, dashboard) | UX | Pending |
 | Phase 7 | 17–19 | Domain library extraction (`session-ui`, `catalog-ui`) | Architecture | Pending |
@@ -232,12 +325,12 @@ The project addresses gaps from two analyses:
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-3.md`
-2. [ ] Check current task status — Phase 3 complete, Phase 4 (T06) next
-3. [ ] Review design decisions in `design-decisions/` (especially `002-navigation-ia.md`)
-4. [ ] Check coding guidelines in `coding-guidelines/`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-5.md` (if exists, else session-4)
+2. [ ] Check current task status — T07+T08 complete, T09 next
+3. [ ] Review design decisions in `design-decisions/` (especially `003-hook-pattern-contract.md`)
+4. [ ] Read coding guideline: `coding-guidelines/query-command-hooks.md`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T06 (Define the Hook Pattern Contract)
+6. [ ] Continue with T09 (Error Handling & Bridge Framework — re-scoped to error interceptors only)
 
 ## Quick Resume
 
@@ -248,8 +341,8 @@ To continue this project, drag this file into chat:
 
 **Created**: 2026-03-15
 **Updated**: 2026-03-15
-**Current Task**: Phase 4 — T06 (Define the Hook Pattern Contract)
-**Status**: READY — T05 complete, T06 next
+**Current Task**: Phase 5 — T09 (Error Handling & Bridge Framework)
+**Status**: READY — T07+T08 complete, T09 next
 
 ---
 
