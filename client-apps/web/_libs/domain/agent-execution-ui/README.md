@@ -1,11 +1,11 @@
-# @stigmer/react-ui
+# @stigmer/agent-execution-ui
 
 React components for Stigmer agent execution streaming, tool calls, and human-in-the-loop approvals.
 
 ## Install
 
 ```bash
-npm install @stigmer/react-ui @stigmer/rpc-client @stigmer/protos @stigmer/theme
+npm install @stigmer/agent-execution-ui @stigmer/rpc-client @stigmer/protos @stigmer/theme
 ```
 
 ## Quick Start
@@ -15,8 +15,8 @@ import { StigmerTransportProvider } from "@stigmer/rpc-client";
 import {
   ExecutionStream,
   useAgentExecution,
-} from "@stigmer/react-ui/execution";
-import "@stigmer/react-ui/styles.css";
+} from "@stigmer/agent-execution-ui/execution";
+import "@stigmer/agent-execution-ui/styles.css";
 
 function AgentView({ executionId }: { executionId: string }) {
   const { messages, phase } = useAgentExecution({ executionId });
@@ -34,10 +34,10 @@ function App() {
 
 ## Subpath Exports
 
-| Import                         | Contents                                                     |
-| ------------------------------ | ------------------------------------------------------------ |
-| `@stigmer/react-ui/execution`  | All execution components, hooks, helpers                     |
-| `@stigmer/react-ui/styles.css` | Pre-built Tailwind CSS (use without your own Tailwind setup) |
+| Import                                   | Contents                                                     |
+| ---------------------------------------- | ------------------------------------------------------------ |
+| `@stigmer/agent-execution-ui/execution`  | All execution components, hooks, helpers                     |
+| `@stigmer/agent-execution-ui/styles.css` | Pre-built Tailwind CSS (use without your own Tailwind setup) |
 
 ## Components
 
@@ -61,7 +61,7 @@ function App() {
 **Option A — Pre-built CSS** (no Tailwind required):
 
 ```typescript
-import "@stigmer/react-ui/styles.css";
+import "@stigmer/agent-execution-ui/styles.css";
 ```
 
 **Option B — Tailwind integration** (for full customization):

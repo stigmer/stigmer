@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const stigmerLibs = [
   "@stigmer/rpc-client",
   "@stigmer/theme",
-  "@stigmer/react-ui",
+  "@stigmer/agent-execution-ui",
 ];
 
 const nextConfig: NextConfig = {

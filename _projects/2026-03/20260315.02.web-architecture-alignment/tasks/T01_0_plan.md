@@ -92,16 +92,16 @@ Safe, non-breaking changes. No architectural decisions needed.
 
 Two independent workstreams that are both foundational for everything that follows. The package rename cleans up naming. The visual identity establishes the color system and dark mode that all subsequent UI work builds on.
 
-### T03: Package Rename (`@stigmer/react-ui` → `@stigmer/execution-ui`)
+### T03: Package Rename (`@stigmer/react-ui` → `@stigmer/agent-execution-ui`) — DONE
 
-- [ ] Rename directory `_libs/domain/react-ui/` → `_libs/domain/execution-ui/`
-- [ ] Update `package.json` name from `@stigmer/react-ui` to `@stigmer/execution-ui`
-- [ ] Update all imports in console `src/` from `@stigmer/react-ui` → `@stigmer/execution-ui`
-- [ ] Update root `package.json` workspace references
-- [ ] Update root `package.json` build scripts (`build:libs`, `clean:libs`)
-- [ ] Update any CI/CD references
-- [ ] Update `_libs/domain/react-ui/README.md`
-- [ ] Verify build succeeds
+- [x] Rename directory `_libs/domain/react-ui/` → `_libs/domain/agent-execution-ui/`
+- [x] Update `package.json` name from `@stigmer/react-ui` to `@stigmer/agent-execution-ui`
+- [x] Update all imports in console `src/` from `@stigmer/react-ui` → `@stigmer/agent-execution-ui`
+- [x] Update root `package.json` build scripts (`build:libs`, `clean:libs`)
+- [x] Update `next.config.ts` transpilePackages
+- [x] Update `_libs/README.md` and `_libs/domain/agent-execution-ui/README.md`
+- [x] Added `**/dist/` to `.prettierignore` (pre-existing oversight)
+- [x] Verify build, lint, format:check all pass
 
 ### T04: Visual Identity & Theme System
 

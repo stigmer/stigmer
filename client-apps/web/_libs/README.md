@@ -14,7 +14,7 @@ Three layers with a strict one-way dependency flow:
 ```
 Stigmer Web Console (thin shell — routes, layouts, pages)
     ↓ depends on
-Domain layer (_libs/domain/) — @stigmer/react-ui
+Domain layer (_libs/domain/) — @stigmer/agent-execution-ui
     ↓ depends on
 UI layer (_libs/ui/) — @stigmer/theme
     ↓ depends on
@@ -44,11 +44,11 @@ plumbing. They have no internal dependencies.
 
 ## Packages
 
-| Layer  | Directory           | Package               | Purpose                                                          |
-| ------ | ------------------- | --------------------- | ---------------------------------------------------------------- |
-| Infra  | `infra/rpc-client/` | `@stigmer/rpc-client` | Connect-RPC transport, auth interceptor, service client factory  |
-| UI     | `ui/theme/`         | `@stigmer/theme`      | `cn()` utility, CSS design tokens, shared theme types            |
-| Domain | `domain/react-ui/`  | `@stigmer/react-ui`   | Execution streaming components, hooks, top-level `ExecutionChat` |
+| Layer  | Directory                    | Package                       | Purpose                                                         |
+| ------ | ---------------------------- | ----------------------------- | --------------------------------------------------------------- |
+| Infra  | `infra/rpc-client/`          | `@stigmer/rpc-client`         | Connect-RPC transport, auth interceptor, service client factory |
+| UI     | `ui/theme/`                  | `@stigmer/theme`              | `cn()` utility, CSS design tokens, shared theme types           |
+| Domain | `domain/agent-execution-ui/` | `@stigmer/agent-execution-ui` | Agent execution streaming components, hooks, HITL approvals     |
 
 ## How it works
 

@@ -23,8 +23,8 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 - **Status**: IN PROGRESS
 - **Last Session**: 2026-03-15 — Phase 1 completed (T01 + T02)
-- **Active Task**: None — Phase 1 complete, ready for Phase 2
-- **Next Task**: T03 (Package Rename) and T04 (Visual Identity & Theme System)
+- **Active Task**: None — T03 complete, ready for T04
+- **Next Task**: T04 (Visual Identity & Theme System)
 
 ## Session Progress (2026-03-15)
 
@@ -58,11 +58,12 @@ Drop this file into your conversation to quickly resume work on this project.
 - `searchAgents` was initially removed alongside the genuinely dead `searchSkills` and `searchMcpServers`. Build failure revealed `useAgentSearch.ts` imports it. The function was immediately restored. Lesson: always verify each removal individually, not in batches.
 
 ## Next Steps
-1. **T03: Package Rename** (`@stigmer/react-ui` → `@stigmer/execution-ui`)
-   - Rename directory `_libs/domain/react-ui/` → `_libs/domain/execution-ui/`
-   - Update `package.json` name field
-   - Update all imports across the console
-   - Update workspace references and build scripts
+1. ~~**T03: Package Rename** (`@stigmer/react-ui` → `@stigmer/agent-execution-ui`)~~ — **DONE**
+   - Renamed directory `_libs/domain/react-ui/` → `_libs/domain/agent-execution-ui/`
+   - Updated `package.json` name field
+   - Updated all imports across the console
+   - Updated workspace references and build scripts
+   - Added `**/dist/` to `.prettierignore` (pre-existing oversight)
 2. **T04: Visual Identity & Theme System**
    - Replace monochrome `oklch(0 0 0)` palette with brand-informed color system
    - Dark mode activation with theme toggle
@@ -72,7 +73,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - Phase 1 is fully committed and verified
 - No work-in-progress or half-finished changes
 - The codebase now has Prettier + hardened ESLint as a baseline for all future work
-- T03 and T04 are independent of each other and can be done in either order
+- T03 is complete — package renamed to `@stigmer/agent-execution-ui`
 - T04 involves design decisions (brand color choice) — collaboration needed
 
 ## Gap Analysis Summary
@@ -84,7 +85,7 @@ The project addresses gaps from two analyses:
 ### Architecture Gaps
 1. ~~**Dead Code**: 45 unused exports, 3 dead files, 5 unused CSS vars, 1 routing bug~~ — **DONE** (Phase 1)
 2. ~~**Tooling**: No Prettier, no pre-commit hooks, ESLint rules too permissive~~ — **DONE** (Phase 1)
-3. **Naming**: `@stigmer/react-ui` contains only execution domain — should be `@stigmer/execution-ui`
+3. ~~**Naming**: `@stigmer/react-ui` contains only execution domain — renamed to `@stigmer/agent-execution-ui`~~ — **DONE**
 4. **Architecture**: No Query/Command hook pattern (CQRS on frontend), no Bridge IoC beyond transport, no error handling framework
 5. **Domain Libraries**: Only 1 domain package vs Planton's 10+ — everything else is in the console
 
@@ -195,8 +196,8 @@ To continue this project, drag this file into chat:
 
 **Created**: 2026-03-15
 **Updated**: 2026-03-15
-**Current Task**: Phase 2 — T03 (Package Rename) + T04 (Visual Identity)
-**Status**: READY — Phase 1 complete, no blockers
+**Current Task**: Phase 2 — T04 (Visual Identity & Theme System)
+**Status**: READY — T03 complete, T04 next
 
 ---
 

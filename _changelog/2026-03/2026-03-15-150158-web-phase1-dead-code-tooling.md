@@ -87,7 +87,7 @@ A two-task approach: first remove all dead code and fix bugs (T01), then establi
 
 - Part of the [Web Architecture & UX Alignment](../../../_projects/2026-03/20260315.02.web-architecture-alignment/) project
 - Preceded by [Web libs setup](../../../_projects/2026-03/20260315.01.web-libs-setup/) which created the `_libs/` package structure
-- Next: Phase 2 — Package Rename (`@stigmer/react-ui` → `@stigmer/execution-ui`) + Visual Identity & Theme System
+- Next: Phase 2 — Package Rename (`@stigmer/react-ui` → `@stigmer/agent-execution-ui`) + Visual Identity & Theme System
 
 ---
 
