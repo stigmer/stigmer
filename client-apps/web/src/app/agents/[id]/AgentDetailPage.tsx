@@ -2,15 +2,16 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { ErrorMessage } from "@/components/ui/error-message";
 import { useAgent } from "@/hooks/agents/useAgent";
 import { AgentDetailView } from "@/components/agent/AgentDetailView";
 import { AgentSessionHistory } from "@/components/agent/AgentSessionHistory";
 
 export default function AgentDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: agent, isLoading, error } = useAgent(id);
+  const { data: agent, isLoading, error, refetch } = useAgent(id);
 
   return (
     <div className="space-y-6">
@@ -28,25 +29,16 @@ export default function AgentDetailPage() {
         </h1>
       </div>
 
-      {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="text-muted-foreground size-6 animate-spin" />
         </div>
       )}
 
-      {/* Error */}
-      {error && (
-        <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-4 text-sm">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <p>{error.message}</p>
-        </div>
-      )}
+      {error && <ErrorMessage error={error} retry={refetch} />}
 
-      {/* Blueprint */}
       {agent && <AgentDetailView agent={agent} />}
 
-      {/* Runtime — sessions for this agent */}
       {agent && (
         <>
           <Separator />

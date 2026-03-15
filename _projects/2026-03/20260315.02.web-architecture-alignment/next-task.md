@@ -22,9 +22,38 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: IN PROGRESS
-- **Last Session**: 2026-03-15 — T07+T08 (Hook Refactor + Service Reorganization) completed
-- **Active Task**: None — T07+T08 complete, ready for T09
-- **Next Task**: T09 (Error Handling & Bridge Framework) — Phase 5
+- **Last Session**: 2026-03-15 — T09 (Error Handling Framework) completed
+- **Active Task**: None — T09 complete, ready for Phase 6
+- **Next Task**: Phase 6 — Layout overhaul + view completeness
+
+## Session Progress (2026-03-15, Session 6)
+
+### T09: Error Handling Framework — COMPLETED
+
+**Scope expanded** (user decision): T09 was originally scoped to "error interceptors only." Expanded to include display infrastructure (toast library, inline error components, TanStack Query retry config) — interceptors without display infrastructure are incomplete.
+
+**UX decision** (user decision): Non-blocking toast for server errors instead of global error modal (Planton pattern rejected).
+
+**Tier 1 — `@stigmer/rpc-client` (infrastructure library)**:
+- `errors.ts` (NEW): Error classification — `ErrorCategory` type (8 categories mapping all gRPC codes), `classifyError()`, `getUserMessage()` (sanitizes infrastructure noise), `isRetryableError()`, `isConnectError()` type guard, `annotateRpcError()`/`getRpcMetadata()` (WeakMap-backed RPC metadata)
+- `interceptors.ts`: Added `rpcMetadataInterceptor` (annotates errors with method name/path) and `createAuthRedirectInterceptor()` (calls `onUnauthenticated` once on code 16)
+- `types.ts`: Added `onUnauthenticated?: () => void` to `StigmerRpcConfig` (backward-compatible)
+- `transport.ts`: Updated interceptor chain: auth → metadata → strip → auth-redirect → custom
+
+**Tier 2 — Console infrastructure**:
+- Installed `sonner` (~3KB toast library)
+- `sonner.tsx` (NEW): Themed Toaster wrapping sonner with next-themes sync and shadcn design tokens
+- `Providers.tsx`: Smart retry via `isRetryableError` (only server/unavailable retry once), mutations never retry, `<Toaster />` added
+
+**Tier 3 — Display components**:
+- `error-message.tsx` (NEW): Inline error display with classified messages, expandable RPC metadata, conditional retry button
+- `error.tsx`: Root error boundary improved — category-specific titles, error digest display
+- `StigmerTransportBridge.tsx`: Wired `onUnauthenticated` via `logout()`
+- `AgentDetailPage.tsx` and `SkillDetailPage.tsx`: Updated to use `<ErrorMessage error={error} retry={refetch} />`
+
+**Coding guideline updated**: `query-command-hooks.md` — Error Handling section expanded with three-tier architecture, classification table, mutation toast pattern, smart retry docs, `ErrorMessage` usage
+
+**Verification**: `tsc --noEmit` (rpc-client), `next build`, `eslint --max-warnings 0` — all clean.
 
 ## Session Progress (2026-03-15, Session 5)
 
@@ -196,7 +225,10 @@ The pre-existing `agent-execution-ui` package had unnecessary nesting that was i
 9. **TanStack Query console-only** — domain libraries export service factories + hooks, no TanStack Query dependency. Keeps embeddable components lean.
 10. **Rejected Planton's `usePlantonService()` bundling** — domain hooks must not couple to UI concerns (notifications, loading, page indicators). Violates architect mandate on domain purity.
 11. **Three-layer service architecture** — service factory (pure TS) → service hook (transport binding) → query/command hook (TanStack Query). Already proven by `@stigmer/agent-execution-ui`.
-12. **T09 re-scoped** — `StigmerServiceBridge` unnecessary with TanStack Query. T09 should focus on error interceptors only.
+12. **T09 re-scoped** — `StigmerServiceBridge` unnecessary with TanStack Query. T09 expanded to include full error handling framework: interceptors + display infrastructure.
+13. **Non-blocking toast for server errors** — rejected Planton's global error modal pattern as disruptive. Sonner toast used instead.
+14. **No event bus** — TanStack Query's cache-level handlers replace Planton's custom event bus pattern. Fewer moving parts, same coverage.
+15. **Smart retry** — only `server` and `unavailable` errors retry once. Auth, permission, not-found, validation fail immediately. Mutations never retry.
 
 ### Surprises Encountered
 - `searchAgents` was initially removed alongside the genuinely dead `searchSkills` and `searchMcpServers`. Build failure revealed `useAgentSearch.ts` imports it. The function was immediately restored. Lesson: always verify each removal individually, not in batches.
@@ -208,18 +240,17 @@ The pre-existing `agent-execution-ui` package had unnecessary nesting that was i
 3. ~~**T05: Navigation IA Design Decision**~~ — **DONE** (design doc + catalog deletion + sidebar restructure)
 4. ~~**T06: Define the Hook Pattern Contract**~~ — **DONE** (design decision + coding guideline)
 5. ~~**T07+T08: Refactor Hooks + Service Reorganization**~~ — **DONE** (merged execution — 4 domain libraries, 14 hooks, 11 consumer updates)
-6. **T09: Error Handling & Bridge Framework** (Phase 5 — error interceptors)
-   - Re-scoped: focus on error interceptors only (`StigmerServiceBridge` unnecessary)
-   - Transport-level error classification and display strategy
-   - Follow `design-decisions/003-hook-pattern-contract.md` guidance
+6. ~~**T09: Error Handling Framework**~~ — **DONE** (3-tier: transport interceptors + TanStack Query retry + component display)
+7. **Phase 6: Layout Overhaul + View Completeness**
+   - Sidebar finalization, global header, sessions page, dashboard status view
+   - See Phase 6 in plan table below
 
 ## Context for Resume
-- Phases 1-4 (T01-T08) are fully committed and verified
-- T06 (design decision + coding guideline) established the three-layer service architecture contract
-- T07+T08 implemented the contract: 4 domain libraries, 14 TanStack Query hooks, 11 consumer component updates, 14 old files deleted
-- The codebase now has Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, sectioned sidebar, and the full Query/Command hook pattern with domain libraries
+- Phases 1-5 (T01-T09) are fully committed and verified
+- T09 added the complete error handling framework: error classification in `@stigmer/rpc-client`, transport interceptors (auth redirect, RPC metadata), sonner toast infrastructure, smart TanStack Query retry, `ErrorMessage` component, improved root error boundary
+- The codebase now has Prettier + hardened ESLint, teal brand color, dark mode, semantic status tokens, sectioned sidebar, the full Query/Command hook pattern with domain libraries, and the three-tier error handling framework
 - `transport.ts` and `org-service.ts` are deprecated with comments — last consumers of the singleton transport pattern
-- T09 (error interceptors) is the next task — Phase 5
+- Phase 6 (layout overhaul + view completeness) is the next phase
 
 ## Gap Analysis Summary
 
@@ -254,7 +285,7 @@ The project addresses gaps from two analyses:
 | Phase 2 | 3–4 | Package rename + Visual identity foundation | Architecture + UX | **DONE** |
 | Phase 3 | 5 | Navigation IA design decision + catalog cleanup | UX | **DONE** |
 | Phase 4 | 6–9 | Query/Command hook pattern + service reorganization | Architecture | **DONE** |
-| Phase 5 | 10–11 | Error handling & Bridge framework | Architecture | Pending |
+| Phase 5 | 10–11 | Error handling & Bridge framework | Architecture | **DONE** |
 | Phase 6 | 12–16 | Layout overhaul + View completeness (sidebar, header, sessions, dashboard) | UX | Pending |
 | Phase 7 | 17–19 | Domain library extraction (`session-ui`, `catalog-ui`) | Architecture | Pending |
 | Phase 8 | 20–24 | Workflow & IAM views (deferrable) | UX | Pending |
@@ -325,12 +356,12 @@ The project addresses gaps from two analyses:
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-5.md` (if exists, else session-4)
-2. [ ] Check current task status — T07+T08 complete, T09 next
+1. [ ] Read the latest checkpoint from `checkpoints/2026-03-15-session-6.md`
+2. [ ] Check current task status — T09 complete, Phase 6 next
 3. [ ] Review design decisions in `design-decisions/` (especially `003-hook-pattern-contract.md`)
-4. [ ] Read coding guideline: `coding-guidelines/query-command-hooks.md`
+4. [ ] Read coding guideline: `coding-guidelines/query-command-hooks.md` (includes error handling patterns)
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T09 (Error Handling & Bridge Framework — re-scoped to error interceptors only)
+6. [ ] Continue with Phase 6 (Layout overhaul + view completeness)
 
 ## Quick Resume
 
@@ -341,8 +372,8 @@ To continue this project, drag this file into chat:
 
 **Created**: 2026-03-15
 **Updated**: 2026-03-15
-**Current Task**: Phase 5 — T09 (Error Handling & Bridge Framework)
-**Status**: READY — T07+T08 complete, T09 next
+**Current Task**: Phase 6 — Layout overhaul + view completeness
+**Status**: READY — T09 complete, Phase 6 next
 
 ---
 

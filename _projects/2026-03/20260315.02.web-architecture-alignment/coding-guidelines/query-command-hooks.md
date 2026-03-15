@@ -397,7 +397,46 @@ export const agentKeys = {
 
 ## Error Handling
 
-### Service Factories: Throw
+Three tiers, each with a distinct responsibility.
+
+### Tier 1: Transport Interceptors (`@stigmer/rpc-client`)
+
+Interceptors handle cross-cutting concerns that apply to every request. They run before any application code sees the response. They must not swallow errors — they transform, annotate, or side-effect, then re-throw.
+
+Built-in interceptors (applied in order):
+
+1. **Auth token injection** — attaches `Authorization: Bearer <token>` header
+2. **RPC metadata annotation** — annotates errors with RPC method name and path (via `WeakMap`)
+3. **Error message cleanup** — strips gRPC status-code prefixes (`[internal]`) from error messages
+4. **Auth redirect** — calls `onUnauthenticated` callback on UNAUTHENTICATED (code 16), once per transport
+
+### Tier 2: Error Classification (`@stigmer/rpc-client`)
+
+Pure TypeScript utilities for classifying errors by gRPC status code:
+
+```typescript
+import {
+  classifyError,
+  getUserMessage,
+  isRetryableError,
+  getRpcMetadata,
+} from "@stigmer/rpc-client";
+```
+
+**Error category mapping:**
+
+| gRPC Code | Category | Retryable | UX Treatment |
+|-----------|----------|-----------|-------------|
+| UNAUTHENTICATED (16) | `auth` | No | Redirect to login (interceptor) |
+| PERMISSION_DENIED (7) | `permission` | No | Inline error |
+| NOT_FOUND (5) | `not-found` | No | Inline error |
+| INVALID_ARGUMENT (3), FAILED_PRECONDITION (9), OUT_OF_RANGE (11) | `validation` | No | Inline / form error |
+| INTERNAL (13), UNKNOWN (2), DATA_LOSS (15) | `server` | Yes | Inline error + retry |
+| UNAVAILABLE (14), DEADLINE_EXCEEDED (4), RESOURCE_EXHAUSTED (8) | `unavailable` | Yes | Inline error + retry |
+| CANCELLED (1) | `cancelled` | No | Silent |
+| Non-ConnectError | `unknown` | No | Inline error |
+
+### Tier 3: Service Factories — Throw
 
 ```typescript
 // Correct — let the error propagate
@@ -417,31 +456,67 @@ async get(id: string): Promise<Agent | null> {
 }
 ```
 
-### TanStack Query: Surfaces Errors
+### Query Errors: Inline Display
 
-TanStack Query catches thrown errors and exposes them via `{ error }`:
+TanStack Query catches thrown errors and exposes them via `{ error }`. Use the `<ErrorMessage>` component for inline display:
 
 ```typescript
+import { ErrorMessage } from "@/components/ui/error-message";
+
 function AgentDetailPage({ id }: { id: string }) {
-  const { data: agent, isLoading, error } = useAgent(id);
+  const { data: agent, isLoading, error, refetch } = useAgent(id);
 
   if (isLoading) return <Skeleton />;
-  if (error) return <ErrorMessage error={error} />;
+  if (error) return <ErrorMessage error={error} retry={refetch} />;
 
   return <AgentDetail agent={agent} />;
 }
 ```
 
-### Transport Interceptors: Cross-Cutting
+`ErrorMessage` classifies the error, shows a category-appropriate title and message, and offers a "Retry" button for retryable errors (server/unavailable).
 
-Interceptors in `@stigmer/rpc-client` handle concerns that apply to every request:
+### Mutation Errors: Toast Notifications
 
-- **Auth token injection** — adds `Authorization: Bearer` header (exists)
-- **Error message cleanup** — strips gRPC status prefixes (exists)
-- **Future: auth redirect** — UNAUTHENTICATED → redirect to login
-- **Future: server error modal** — INTERNAL/UNKNOWN → global error display
+Mutations use `sonner` toast for user feedback. The component controls the notification — not the hook:
 
-Interceptors must not swallow errors. They transform or side-effect, then re-throw.
+```typescript
+import { toast } from "sonner";
+import { getUserMessage } from "@stigmer/rpc-client";
+
+function handleCreate(input: CreateAgentInput) {
+  createAgent.mutate(input, {
+    onSuccess: (agent) => {
+      toast.success(`Agent "${agent.metadata?.name}" created`);
+      router.push(`/agents/${agent.metadata?.id}`);
+    },
+    onError: (err) => {
+      toast.error(getUserMessage(err, "Failed to create agent"));
+    },
+  });
+}
+```
+
+### Smart Retry Configuration
+
+The `QueryClient` uses `isRetryableError` to avoid retrying deterministic failures:
+
+```typescript
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        if (!isRetryableError(error)) return false;
+        return failureCount < 1;
+      },
+    },
+    mutations: {
+      retry: false,
+    },
+  },
+});
+```
+
+Only `server` and `unavailable` errors are retried once. Auth, permission, not-found, and validation errors fail immediately. Mutations are never retried (not idempotent by default).
 
 ---
 
@@ -519,26 +594,36 @@ src/hooks/
 The `QueryClientProvider` wraps the application inside the existing provider tree:
 
 ```typescript
-// src/components/auth/Providers.tsx (updated)
+// src/components/auth/Providers.tsx
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { isRetryableError } from "@stigmer/rpc-client";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,       // 30s — data considered fresh
-      retry: 1,                // one retry on failure
+      staleTime: 30_000,
+      retry: (failureCount, error) => {
+        if (!isRetryableError(error)) return false;
+        return failureCount < 1;
+      },
       refetchOnWindowFocus: true,
+    },
+    mutations: {
+      retry: false,
     },
   },
 });
 
 // Provider tree order:
 // ThemeProvider → AuthProvider → AuthGuard → QueryClientProvider
-//   → StigmerTransportBridge → OrgProvider → children
+//   → StigmerTransportBridge → OrgProvider → children → Toaster
 ```
 
-`staleTime` of 30 seconds prevents refetching on every component mount while still keeping data reasonably fresh for an operational dashboard. This default can be overridden per-query.
+- `staleTime` of 30 seconds prevents refetching on every mount while keeping data fresh
+- Smart retry: only transient errors (server/unavailable) retry once; auth/permission/validation fail immediately
+- Mutations never retry (not idempotent by default)
+- `<Toaster />` from sonner is placed last — receives theme from `ThemeProvider`, available to all components
 
 ---
 

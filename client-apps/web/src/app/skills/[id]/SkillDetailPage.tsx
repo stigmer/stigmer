@@ -2,13 +2,14 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { ErrorMessage } from "@/components/ui/error-message";
 import { useSkill } from "@/hooks/skills/useSkill";
 import { SkillDetailView } from "@/components/skill/SkillDetailView";
 
 export default function SkillDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: skill, isLoading, error } = useSkill(id);
+  const { data: skill, isLoading, error, refetch } = useSkill(id);
 
   return (
     <div className="space-y-6">
@@ -26,22 +27,14 @@ export default function SkillDetailPage() {
         </h1>
       </div>
 
-      {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="text-muted-foreground size-6 animate-spin" />
         </div>
       )}
 
-      {/* Error */}
-      {error && (
-        <div className="border-destructive/30 bg-destructive/5 text-destructive flex items-start gap-2 rounded-lg border p-4 text-sm">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <p>{error.message}</p>
-        </div>
-      )}
+      {error && <ErrorMessage error={error} retry={refetch} />}
 
-      {/* Content */}
       {skill && <SkillDetailView skill={skill} />}
     </div>
   );
