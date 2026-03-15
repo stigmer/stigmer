@@ -1,9 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useAgentQueryService } from "@stigmer/agent-ui";
-import { useSkillQueryService } from "@stigmer/skill-ui";
-import { useMcpServerQueryService } from "@stigmer/mcp-server-ui";
+import { useAgentQueryService } from "@stigmer/agent";
+import { useSkillQueryService } from "@stigmer/skill";
+import { useMcpServerQueryService } from "@stigmer/mcp-server";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { dashboardKeys } from "./keys";
 

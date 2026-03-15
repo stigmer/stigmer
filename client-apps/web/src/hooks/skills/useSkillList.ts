@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSkillQueryService } from "@stigmer/skill-ui";
+import { useSkillQueryService } from "@stigmer/skill";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { skillKeys } from "./keys";
@@ -23,7 +23,7 @@ export function useSkillList() {
 
   const service = useSkillQueryService();
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: skillKeys.list({ org, query: debouncedQuery, page }),
     queryFn: () =>
       service.search({
@@ -43,10 +43,11 @@ export function useSkillList() {
     query,
     setQuery: handleSetQuery,
     isLoading,
-    error: error ? (error as Error).message : null,
+    error: error ?? null,
     totalCount: data?.totalCount ?? 0,
     totalPages: data?.totalPages ?? 0,
     page,
     setPage,
+    retry: refetch,
   };
 }

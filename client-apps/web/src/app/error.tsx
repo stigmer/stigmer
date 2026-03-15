@@ -3,7 +3,11 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle, RotateCcw, ShieldX } from "lucide-react";
-import { classifyError, getUserMessage, type ErrorCategory } from "@stigmer/rpc-client";
+import {
+  classifyError,
+  getUserMessage,
+  type ErrorCategory,
+} from "@stigmer/rpc-client";
 import { Button } from "@/components/ui/button";
 
 interface ErrorPageProps {
@@ -23,7 +27,8 @@ export default function RootError({ error, reset }: ErrorPageProps) {
   const category = classifyError(error);
   const message = getUserMessage(error);
   const title = CATEGORY_TITLES[category] ?? "Something went wrong";
-  const Icon = category === "auth" || category === "permission" ? ShieldX : AlertTriangle;
+  const Icon =
+    category === "auth" || category === "permission" ? ShieldX : AlertTriangle;
 
   useEffect(() => {
     console.error("[RootErrorBoundary]", error);
@@ -55,7 +60,7 @@ export default function RootError({ error, reset }: ErrorPageProps) {
         </div>
 
         {error.digest && (
-          <p className="text-muted-foreground/60 text-xs font-mono">
+          <p className="text-muted-foreground/60 font-mono text-xs">
             Reference: {error.digest}
           </p>
         )}

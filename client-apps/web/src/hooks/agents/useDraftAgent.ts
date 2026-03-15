@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAgentQueryService } from "@stigmer/agent-ui";
+import { useAgentQueryService } from "@stigmer/agent";
 import { SYSTEM_AGENT_ORG } from "@/config/draft";
 import { agentKeys } from "./keys";
 
@@ -30,8 +30,7 @@ export function useDraftAgent(slug: string) {
     agent: data ?? null,
     isResolving: isLoading,
     error: error
-      ? (error as Error).message ||
-        `Failed to resolve system agent "${slug}"`
+      ? (error as Error).message || `Failed to resolve system agent "${slug}"`
       : null,
     retry,
   };

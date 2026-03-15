@@ -41,6 +41,7 @@ const eslintConfig = defineConfig([
           ],
         },
       ],
+      "@next/next/no-img-element": "off",
     },
   },
 ]);

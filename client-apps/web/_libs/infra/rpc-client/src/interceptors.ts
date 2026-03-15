@@ -42,23 +42,24 @@ export function createAuthInterceptor(
  * Must run before error-transforming interceptors (like `errorStripInterceptor`)
  * so that the raw request context is available when the error is caught.
  */
-export const rpcMetadataInterceptor: Interceptor = (next) => async (request) => {
-  try {
-    return await next(request);
-  } catch (error: unknown) {
-    if (error !== null && typeof error === "object") {
-      const url = request.url;
-      const segments = url.split("/");
-      const method = segments.at(-1) ?? "";
-      const service = segments.at(-2) ?? "";
-      annotateRpcError(error, {
-        method: method.charAt(0).toLowerCase() + method.slice(1),
-        path: `/${service}/${method}`,
-      });
+export const rpcMetadataInterceptor: Interceptor =
+  (next) => async (request) => {
+    try {
+      return await next(request);
+    } catch (error: unknown) {
+      if (error !== null && typeof error === "object") {
+        const url = request.url;
+        const segments = url.split("/");
+        const method = segments.at(-1) ?? "";
+        const service = segments.at(-2) ?? "";
+        annotateRpcError(error, {
+          method: method.charAt(0).toLowerCase() + method.slice(1),
+          path: `/${service}/${method}`,
+        });
+      }
+      throw error;
     }
-    throw error;
-  }
-};
+  };
 
 // ---------------------------------------------------------------------------
 // Error message cleanup

@@ -1,0 +1,38 @@
+{
+  "name": "@stigmer/session",
+  "version": "0.0.0-dev",
+  "description": "Session domain service factories and hooks for Stigmer Web",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "stigmer",
+    "react",
+    "sessions"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "client-apps/web/_libs/domain/session"
+  },
+  "dependencies": {
+    "@stigmer/rpc-client": "*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "@stigmer/protos": "*",
+    "@connectrpc/connect": "^2.0.0",
+    "@bufbuild/protobuf": "^2.0.0"
+  }
+}

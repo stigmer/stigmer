@@ -1,7 +1,8 @@
 "use client";
 
-import { History, Loader2, AlertCircle } from "lucide-react";
+import { History, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ErrorMessage } from "@/components/ui/error-message";
 import { SessionCard } from "@/components/session/SessionCard";
 import { useAgentSessionList } from "@/hooks/sessions/useAgentSessionList";
 
@@ -10,8 +11,15 @@ interface AgentSessionHistoryProps {
 }
 
 export function AgentSessionHistory({ agentId }: AgentSessionHistoryProps) {
-  const { sessions, isLoading, error, hasMore, isLoadingMore, loadMore } =
-    useAgentSessionList(agentId, { pageSize: 5 });
+  const {
+    sessions,
+    isLoading,
+    error,
+    hasMore,
+    isLoadingMore,
+    loadMore,
+    retry,
+  } = useAgentSessionList(agentId, { pageSize: 5 });
 
   return (
     <section>
@@ -20,15 +28,7 @@ export function AgentSessionHistory({ agentId }: AgentSessionHistoryProps) {
       </h3>
 
       {/* Error */}
-      {error && (
-        <div
-          role="alert"
-          className="border-destructive/30 bg-destructive/5 text-destructive flex items-center gap-2 rounded-lg border px-4 py-3 text-sm"
-        >
-          <AlertCircle className="size-4 shrink-0" />
-          {error}
-        </div>
-      )}
+      <ErrorMessage error={error} retry={retry} />
 
       {/* Loading skeleton */}
       {isLoading && sessions.length === 0 && !error && (

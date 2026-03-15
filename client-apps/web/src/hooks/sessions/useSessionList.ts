@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useSessionQueryService } from "@stigmer/session-ui";
+import { useSessionQueryService } from "@stigmer/session";
 import { sessionKeys } from "./keys";
 
 const DEFAULT_PAGE_SIZE = 20;

@@ -78,12 +78,9 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     setError(null);
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const client: any = createClient(OrganizationQueryController, transport);
+      const client = createClient(OrganizationQueryController, transport);
       const request = create(EmptySchema, {});
-      const response = (await client.findMyOrganizations(request)) as {
-        entries: Organization[];
-      };
+      const response = await client.findMyOrganizations(request);
       const entries = response.entries;
 
       if (fetchId !== fetchIdRef.current) return;
