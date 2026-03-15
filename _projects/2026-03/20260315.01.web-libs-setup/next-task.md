@@ -14,8 +14,9 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-03-15 10:31
-**Current Task**: T04 (Create @stigmer/react-ui with execution module)
+**Current Task**: T05 (Migrate Stigmer web console to consume @stigmer packages)
 **Status**: Ready to start
+**Last Session**: 2026-03-15 — Completed T04 (execution module extraction into @stigmer/react-ui)
 
 ## Session Progress (2026-03-15)
 
@@ -84,6 +85,26 @@ Key decisions:
 - **No `cva`/`VariantProps` re-export**: CVA is a component authoring tool, not a theme concern — components import it directly
 - CSS `@import` of workspace packages through Tailwind v4 PostCSS pipeline confirmed working (technical risk from plan resolved)
 
+### T04: Create @stigmer/react-ui with Execution Module — COMPLETED
+
+Accomplished:
+- Moved all 8 execution components (`ExecutionStream`, `ExecutionStatus`, `MessageEntry`, `MessageInput`, `OutputBlock`, `ToolCallCard`, `SubAgentCard`, `ApprovalControls`) to `_libs/domain/react-ui/src/execution/components/`
+- Created `createExecutionService(transport)` factory replacing module-level singleton transport
+- Created `useExecutionService()` hook bridging to `useStigmerTransport()` from `@stigmer/rpc-client`
+- Created library versions of `useAgentExecution` and `useApproval` hooks using the new service factory
+- Moved all execution helpers (phase/status/message/duration utilities) to `helpers.ts`
+- Vendored 4 shadcn components (`Badge`, `Button`, `Collapsible`, `Textarea`) as `internal/ui/`
+- Set up `./execution` subpath export and configured `package.json` with deps/peerDeps
+- Replaced console's `src/components/execution/index.ts` with proxy re-exports from `@stigmer/react-ui/execution`
+- Verified: `npm install`, `npm run build` (18 pages, zero errors), `npm run lint` (zero errors)
+
+Key decisions:
+- **Dropped StigmerExecutionContext**: Components already pass callbacks via props (2-3 levels deep). Context would be overengineering. Props are explicit and testable.
+- **Service factory pattern**: `createExecutionService(transport)` is a pure factory. `useExecutionService()` is a thin hook wrapper. The `any` casts for protobuf-es codegen stay encapsulated inside the factory.
+- **Vendored shadcn**: Self-contained library. `@base-ui/react` and `class-variance-authority` as peer deps.
+- **Session services stay in console**: Session browsing is a console feature. Only execution CRUD/subscription moved.
+- **Temporary duplication**: Console's old hooks/services use singleton transport. Library's new versions use IoC. T05 removes the console copies and wires up `StigmerTransportProvider`.
+
 ## Task Plan Status
 
 | Task | Title | Status |
@@ -91,33 +112,38 @@ Key decisions:
 | **T01** | Set up _libs directory structure and workspace config | **COMPLETED** |
 | **T02** | Create @stigmer/rpc-client (infra layer) | **COMPLETED** |
 | **T03** | Create @stigmer/theme (ui layer) | **COMPLETED** |
-| **T04** | Create @stigmer/react-ui with execution module (domain layer) | PENDING |
+| **T04** | Create @stigmer/react-ui with execution module (domain layer) | **COMPLETED** |
 | **T05** | Migrate Stigmer web console to consume @stigmer packages | PENDING |
 | **T06** | Set up npm publishing (build tooling, CI) | PENDING |
 
 ## Next Steps
 
-1. **T04**: Extract execution components into `@stigmer/react-ui`. Wire the IoC bridge using the `useServiceClient` hook from `@stigmer/rpc-client`. Components will import `cn` from `@stigmer/theme`.
-2. **T05**: Migrate Stigmer web console to consume `@stigmer/*` packages (replace `@/lib/utils` imports with `@stigmer/theme`, replace execution component imports with `@stigmer/react-ui`).
-3. T04 is a prerequisite for T05.
+1. **T05**: Migrate Stigmer web console to consume `@stigmer/*` packages
+   - Wire `StigmerTransportProvider` into console's provider tree (bridge `useAuth()` → transport config)
+   - Replace `@/components/execution` imports with `@stigmer/react-ui/execution`
+   - Replace `@/hooks/useAgentExecution` and `@/hooks/useApproval` with library versions
+   - Replace `@/services/execution-service` with library `createExecutionService`
+   - Replace `@/lib/utils` cn() imports with `@stigmer/theme` (in non-execution code)
+   - Delete old console files (execution components, hooks, services, lib/execution.ts)
+   - Update `components.json` shadcn alias to use `@stigmer/theme`
+2. **T06**: Set up npm publishing (build tooling, CI)
 
 ## Context for Resume
 
-- All three layers of `_libs` now have implemented packages: infra (`@stigmer/rpc-client`), ui (`@stigmer/theme`), domain (`@stigmer/react-ui` — skeleton only)
-- `@stigmer/theme` exports: `cn()`, `ClassValue` (TypeScript), `tokens.css` (CSS subpath export)
-- `globals.css` imports tokens from theme package — tokens are single-sourced
-- `src/lib/utils.ts` still exists with the same `cn()` (console components import from `@/lib/utils` until T05)
-- `components.json` shadcn alias still points to `@/lib/utils` (updated in T05)
-- The console bridge component (`StigmerClientBridge`) will be created in T05 to wire `useAuth()` → `StigmerTransportProvider`
-- Existing `src/services/*.ts` files still use the old singleton transport — they migrate in T05
-- The plan file is at `_projects/2026-03/20260315.01.web-libs-setup/tasks/T01_0_plan.md` — T04-T06 details are all there
-- For T04: study `src/components/execution/` directory to determine extraction scope and IoC bridge design
+- All three layers of `_libs` are fully implemented: infra (`@stigmer/rpc-client`), ui (`@stigmer/theme`), domain (`@stigmer/react-ui`)
+- `@stigmer/react-ui` exports 8 components, 3 hooks, 1 service factory, and helper functions via `./execution` subpath
+- Console components proxy-import from `@stigmer/react-ui/execution` (zero-change migration for pages)
+- Console's old hooks (`src/hooks/useAgentExecution.ts`, `src/hooks/useApproval.ts`) still use singleton transport — T05 removes them
+- Console's old service (`src/services/execution-service.ts`) still uses singleton transport — T05 replaces with library
+- `src/lib/utils.ts` and `src/lib/execution.ts` still exist — T05 removes them after imports migrate
+- `StigmerTransportProvider` needs to be wired in T05 via a bridge component that reads `useAuth()` and provides `serverUrl` + `getAccessToken`
+- The plan file is at `_projects/2026-03/20260315.01.web-libs-setup/tasks/T01_0_plan.md` — T05-T06 details are all there
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-03/20260315.01.web-libs-setup/checkpoints/2026-03-15-session-3.md
+_projects/2026-03/20260315.01.web-libs-setup/checkpoints/2026-03-15-session-4.md
 ```
 
 ### 2. Task Plan
