@@ -171,7 +171,10 @@ export function DraftPage({ config }: { config: DraftConfig }) {
               {state === "resolving" ? (
                 <>
                   <Loader2 className="size-3.5 animate-spin" />
-                  <span>Resolving {config.agentSlug}...</span>
+                  <span>
+                    Resolving{" "}
+                    <span className="font-mono">{config.agentSlug}</span>...
+                  </span>
                 </>
               ) : (
                 <>

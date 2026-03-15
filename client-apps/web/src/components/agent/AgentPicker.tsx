@@ -125,7 +125,7 @@ export function AgentPicker({
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{selected.name}</p>
-            <p className="text-muted-foreground truncate text-xs">
+            <p className="text-muted-foreground truncate font-mono text-xs">
               {selected.qualifiedSlug}
             </p>
           </div>
@@ -247,7 +247,7 @@ export function AgentPicker({
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{result.name}</p>
-                  <p className="text-muted-foreground truncate text-xs">
+                  <p className="text-muted-foreground truncate font-mono text-xs">
                     {result.qualifiedSlug}
                   </p>
                   {result.description && (
