@@ -12,7 +12,7 @@ import {
   Play,
 } from "lucide-react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { cn } from "@/lib/utils";
+import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/layout/TopBar";
 import { ResourceCard, CatalogEmptyState, KindTabs } from "@/components/catalog";

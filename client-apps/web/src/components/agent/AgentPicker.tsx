@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Bot, Search, X, Loader2 } from "lucide-react";
 import { useAgentSearch } from "@/hooks/useAgentSearch";
-import { cn } from "@/lib/utils";
+import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
 
 // ---------------------------------------------------------------------------
