@@ -9,10 +9,12 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  fetchMyOrganizations,
-  type Organization,
-} from "@/services/org-service";
+import { create } from "@bufbuild/protobuf";
+import { EmptySchema } from "@bufbuild/protobuf/wkt";
+import { createClient } from "@connectrpc/connect";
+import { useStigmerTransport } from "@stigmer/rpc-client";
+import { OrganizationQueryController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/query_pb";
+import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 
 // ---------------------------------------------------------------------------
 // Context shape
@@ -62,6 +64,7 @@ function persistSlug(slug: string): void {
 // ---------------------------------------------------------------------------
 
 export function OrgProvider({ children }: { children: React.ReactNode }) {
+  const transport = useStigmerTransport();
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [activeOrg, setActiveOrgState] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,7 +78,10 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     setError(null);
 
     try {
-      const entries = await fetchMyOrganizations();
+      const client = createClient(OrganizationQueryController, transport);
+      const request = create(EmptySchema, {});
+      const response = await client.findMyOrganizations(request);
+      const entries = response.entries;
 
       if (fetchId !== fetchIdRef.current) return;
 
@@ -109,7 +115,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       }
     }
-  }, []);
+  }, [transport]);
 
   useEffect(() => {
     load();

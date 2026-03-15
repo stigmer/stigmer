@@ -3,7 +3,11 @@ import type { NextConfig } from "next";
 const stigmerLibs = [
   "@stigmer/rpc-client",
   "@stigmer/theme",
-  "@stigmer/react-ui",
+  "@stigmer/agent-execution",
+  "@stigmer/agent",
+  "@stigmer/mcp-server",
+  "@stigmer/session",
+  "@stigmer/skill",
 ];
 
 const nextConfig: NextConfig = {

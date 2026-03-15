@@ -1,56 +1,60 @@
 "use client";
 
-import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCallback } from "react";
+import { Loader2, Play } from "lucide-react";
+import { AgentOverview } from "@stigmer/agent";
+import { AgentSessionHistory } from "@stigmer/session";
 import { Separator } from "@/components/ui/separator";
-import { useAgentDetail } from "@/hooks/useAgentDetail";
-import { AgentDetailView } from "@/components/agent/AgentDetailView";
-import { AgentSessionHistory } from "@/components/agent/AgentSessionHistory";
+import { ErrorMessage } from "@/components/ui/error-message";
+import { TopBar } from "@/components/layout/TopBar";
+import { useAgent } from "@/hooks/agents/useAgent";
+import { useDynamicRouteId } from "@/hooks/useDynamicRouteId";
 
 export default function AgentDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const { agent, isLoading, error } = useAgentDetail(id);
+  const id = useDynamicRouteId();
+  const router = useRouter();
+  const { data: agent, isLoading, error, refetch } = useAgent(id);
+
+  const name = agent?.metadata?.name ?? "Agent";
+  const handleSessionSelect = useCallback(
+    (sessionId: string) => router.push(`/sessions/${sessionId}`),
+    [router],
+  );
 
   return (
     <div className="space-y-6">
-      {/* Breadcrumb header */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/agents"
-          aria-label="Back to agents"
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-muted"
-        >
-          <ArrowLeft className="size-4" />
-        </Link>
-        <h1 className="text-lg font-semibold">
-          {agent?.metadata?.name ?? "Agent"}
-        </h1>
-      </div>
+      <TopBar
+        title={name}
+        breadcrumbs={[{ label: "Agents", href: "/agents" }, { label: name }]}
+        actions={
+          agent && (
+            <Link
+              href={`/run?agentId=${agent.metadata?.id ?? ""}`}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
+            >
+              <Play className="size-3.5" />
+              Run Agent
+            </Link>
+          )
+        }
+      />
 
-      {/* Loading */}
       {isLoading && (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          <Loader2 className="text-muted-foreground size-6 animate-spin" />
         </div>
       )}
 
-      {/* Error */}
-      {error && (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <p>{error}</p>
-        </div>
-      )}
+      {error && <ErrorMessage error={error} retry={refetch} />}
 
-      {/* Blueprint */}
-      {agent && <AgentDetailView agent={agent} />}
+      {agent && <AgentOverview agent={agent} />}
 
-      {/* Runtime — sessions for this agent */}
       {agent && (
         <>
           <Separator />
-          <AgentSessionHistory agentId={id} />
+          <AgentSessionHistory agentId={id} onSessionSelect={handleSessionSelect} />
         </>
       )}
     </div>

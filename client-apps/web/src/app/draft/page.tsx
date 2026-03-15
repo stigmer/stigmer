@@ -12,10 +12,10 @@ export default function DraftLandingPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 border-b px-6 py-4">
-        <PenLine className="size-5 text-primary" />
+        <PenLine className="text-primary size-5" />
         <div>
           <h1 className="text-lg font-semibold">Draft</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Create new resources using AI-powered drafting agents
           </p>
         </div>
@@ -27,17 +27,17 @@ export default function DraftLandingPage() {
             const Icon = draft.icon;
             return (
               <Link key={draft.type} href={draft.href}>
-                <Card className="transition-colors hover:bg-muted/50">
+                <Card className="hover:bg-muted/50 transition-colors">
                   <CardHeader>
                     <div className="flex items-center gap-3">
-                      <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-                        <Icon className="size-4.5 text-primary" />
+                      <div className="bg-primary/10 flex size-9 items-center justify-center rounded-lg">
+                        <Icon className="text-primary size-4.5" />
                       </div>
                       <div className="flex-1">
                         <CardTitle>{draft.title}</CardTitle>
                         <CardDescription>{draft.description}</CardDescription>
                       </div>
-                      <ArrowRight className="size-4 text-muted-foreground" />
+                      <ArrowRight className="text-muted-foreground size-4" />
                     </div>
                   </CardHeader>
                 </Card>

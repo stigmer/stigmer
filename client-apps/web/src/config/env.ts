@@ -3,7 +3,5 @@ export function getApiBaseUrl(): string {
 }
 
 export function getIamApiAudience(): string {
-  return (
-    process.env.NEXT_PUBLIC_IAM_API_AUDIENCE ?? "https://api.stigmer.com/"
-  );
+  return process.env.NEXT_PUBLIC_IAM_API_AUDIENCE ?? "https://api.stigmer.com/";
 }
