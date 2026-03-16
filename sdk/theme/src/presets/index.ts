@@ -8,7 +8,7 @@ export interface ThemePreset {
   readonly swatch: string;
 }
 
-export const THEME_PRESETS: readonly ThemePreset[] = [
+export const THEME_PRESETS = [
   {
     id: "default",
     name: "Default",
@@ -44,4 +44,27 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
     description: "Premium financial — sharp corners, indigo, crisp, dark sidebar",
     swatch: "oklch(0.50 0.22 280)",
   },
-] as const;
+] as const satisfies readonly ThemePreset[];
+
+/** Union of built-in preset identifiers. */
+export type ThemePresetId = (typeof THEME_PRESETS)[number]["id"];
+
+/**
+ * Resolve a preset ID to its CSS class name.
+ *
+ * Returns `""` for `"default"` (no additional class needed).
+ * Emits a dev-mode warning for unrecognised IDs (guards JS consumers).
+ */
+export function resolvePresetClass(id: ThemePresetId): string {
+  const preset = THEME_PRESETS.find((p) => p.id === id);
+  if (!preset) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[@stigmer/theme] Unknown preset "${String(id)}". ` +
+          `Available: ${THEME_PRESETS.map((p) => p.id).join(", ")}`,
+      );
+    }
+    return "";
+  }
+  return preset.className;
+}
