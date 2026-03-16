@@ -43,18 +43,38 @@ Add timestamps and notes to track your progress.
 
 ## Task 2: Create sdk_client_java.go codegen
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-16 12:10
+**Completed**: 2026-03-16 13:28
 
 ### Subtasks
-- [ ] Create `tools/codegen/generator/sdk_client_java.go` following Go/TS generator patterns
-- [ ] Generate per-resource client classes: `AgentClient.java`, `SkillClient.java`, etc.
-- [ ] Generate input types from spec schemas: `AgentInput.java` with `toProto()` conversion (builder pattern)
-- [ ] Generate shared types: `DeleteResourceInput.java`, `ResourceRef.java`, `Page.java`, `ListParams.java`, `ListResult.java`
-- [ ] Generate error types: `StigmerException.java`, `ErrorCode.java`, sentinel check methods
-- [ ] Generate aggregate client: `StigmerClient.java` with all sub-client fields
-- [ ] Handle Java-specific edge cases: `google.protobuf.Empty`, `Timestamp`, `Struct`, enums
-- [ ] Register `sdk-java` target in `tools/codegen/generator/main.go`
+- [x] Create `tools/codegen/generator/sdk_client_java.go` following Go/TS generator patterns (~1,560 lines)
+- [x] Generate per-resource client classes: `AgentClient.java`, `SkillClient.java`, etc. (17 clients)
+- [x] Generate input types from spec schemas: `AgentInput.java` with `toProto()` conversion (builder pattern, 17 input types)
+- [x] Generate shared types: `DeleteResourceInput.java`, `ResourceRef.java`, `Page.java`, `ListParams.java`, `ListResult.java`, `EnvVarInput.java`, `EnvSpecInput.java`, `StigmerStream.java`, `ProtoConvert.java`
+- [x] Generate error types: `StigmerException.java` (unchecked RuntimeException), `ErrorCode.java` with sentinel check methods
+- [x] Generate aggregate client: `GeneratedClient.java` with all 17 sub-client fields
+- [x] Handle Java-specific edge cases: `google.protobuf.Empty`, `Timestamp`, `Struct`, enums, map fields (`putAll`), array fields (`addAll`)
+- [x] Register `sdk-client-java` target in `tools/codegen/generator/main.go`
+- [x] Verify compilation: all 46 generated Java files compile cleanly against proto stubs (`mvn compile` → BUILD SUCCESS)
+
+### Deliverables
+- `tools/codegen/generator/sdk_client_java.go` — Java SDK code generator (1,560 lines)
+- `tools/codegen/generator/main.go` — Updated with `sdk-client-java` target
+- `sdk/java/pom.xml` — Maven project for SDK compilation
+- `sdk/java/src/main/java/ai/stigmer/sdk/internal/gen/` — 45 generated Java files (11 shared + 17 clients + 17 inputs)
+
+### Design Decisions
+1. **Stub variant**: `BlockingStub` (synchronous API, unchecked `StatusRuntimeException`)
+2. **Exception strategy**: Unchecked `StigmerException extends RuntimeException` (AWS SDK v2 pattern)
+3. **File organization**: One public class per `.java` file, nested input types as `public static inner class`
+4. **Builder pattern**: Stripe-style immutable inputs (`AgentInput.builder().name("x").build()`)
+5. **Streaming**: Generic `StigmerStream<T>` wrapping `Iterator<T>` with auto error wrapping
+6. **Import derivation**: Proto package = Java package directly (since `java_package` disabled in Task 1)
+
+### Bugs Fixed During Implementation
+1. `emitJavaNestedToProtoField` had unreachable enum-string case (case ordering bug)
+2. Missing `map` field handling in nested toProto — `putAll` was generated as `set`
 
 ### Notes
 - Reuses Stage 1 output (service schema JSON from `proto2schema`) — only Stage 2 is new
