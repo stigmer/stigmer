@@ -68,6 +68,16 @@
       "description": "Skill resources for this sub-agent's knowledge.\n Skills provide domain-specific knowledge and capabilities.",
       "required": false,
       "referenceKind": 43
+    },
+    {
+      "name": "ModelOverride",
+      "jsonName": "modelOverride",
+      "protoField": "model_override",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Model override for this sub-agent.\n When set, this sub-agent uses this model instead of the parent's model.\n Enables cost optimization by routing simple sub-agent tasks to cheaper models.\n\n Examples:\n   - Parent uses \"claude-sonnet-4\" ($3/$15 per MTok)\n   - File search sub-agent overrides to \"claude-haiku-4\" ($0.25/$1.25)\n   - Code review sub-agent keeps parent model (leave empty)\n\n When empty: inherits the parent agent's model (current behavior).",
+      "required": false
     }
   ]
 }

@@ -16,7 +16,7 @@ import {
   useApproval,
   buildSubAgentIndex,
   isTerminalPhase,
-} from "@stigmer/agent-execution";
+} from "@stigmer/react/agent-execution";
 import { useSession } from "@/hooks/sessions/useSession";
 import { useSessionExecutions } from "@/hooks/sessions/useSessionExecutions";
 import { Separator } from "@/components/ui/separator";

@@ -1,0 +1,84 @@
+{
+  "name": "@stigmer/react",
+  "version": "0.0.0-dev",
+  "description": "React hooks and embeddable components for the Stigmer platform",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./agent": "./src/agent/index.ts",
+    "./session": "./src/session/index.ts",
+    "./agent-execution": "./src/agent-execution/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json && tailwindcss -i src/styles.css -o dist/styles.css --minify",
+    "clean": "rm -rf dist tsconfig.build.tsbuildinfo"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "stigmer",
+    "react",
+    "sdk",
+    "ai-agents",
+    "embeddable",
+    "execution-streaming",
+    "hitl"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      },
+      "./agent": {
+        "types": "./dist/agent/index.d.ts",
+        "import": "./dist/agent/index.js"
+      },
+      "./session": {
+        "types": "./dist/session/index.d.ts",
+        "import": "./dist/session/index.js"
+      },
+      "./agent-execution": {
+        "types": "./dist/agent-execution/index.d.ts",
+        "import": "./dist/agent-execution/index.js"
+      },
+      "./styles.css": "./dist/styles.css"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stigmer/stigmer.git",
+    "directory": "sdk/react"
+  },
+  "dependencies": {
+    "@stigmer/theme": "*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@stigmer/sdk": "*",
+    "@stigmer/protos": "*",
+    "@bufbuild/protobuf": "^2.0.0",
+    "@base-ui/react": "^1.0.0",
+    "class-variance-authority": "^0.7.0",
+    "lucide-react": ">=0.400.0",
+    "react-markdown": "^10.0.0",
+    "remark-gfm": "^4.0.0"
+  }
+}

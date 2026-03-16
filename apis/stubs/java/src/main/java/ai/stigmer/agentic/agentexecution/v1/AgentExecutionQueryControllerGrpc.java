@@ -1,0 +1,1193 @@
+package ai.stigmer.agentic.agentexecution.v1;
+
+import static io.grpc.MethodDescriptor.generateFullMethodName;
+
+/**
+ * <pre>
+ * AgentExecutionQueryController handles read operations for agent executions.
+ * </pre>
+ */
+@io.grpc.stub.annotations.GrpcGenerated
+public final class AgentExecutionQueryControllerGrpc {
+
+  private AgentExecutionQueryControllerGrpc() {}
+
+  public static final java.lang.String SERVICE_NAME = "ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController";
+
+  // Static method descriptors that strictly reflect the proto.
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.AgentExecutionId,
+      ai.stigmer.agentic.agentexecution.v1.AgentExecution> getGetMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "get",
+      requestType = ai.stigmer.agentic.agentexecution.v1.AgentExecutionId.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.AgentExecution.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.AgentExecutionId,
+      ai.stigmer.agentic.agentexecution.v1.AgentExecution> getGetMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.AgentExecutionId, ai.stigmer.agentic.agentexecution.v1.AgentExecution> getGetMethod;
+    if ((getGetMethod = AgentExecutionQueryControllerGrpc.getGetMethod) == null) {
+      synchronized (AgentExecutionQueryControllerGrpc.class) {
+        if ((getGetMethod = AgentExecutionQueryControllerGrpc.getGetMethod) == null) {
+          AgentExecutionQueryControllerGrpc.getGetMethod = getGetMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.AgentExecutionId, ai.stigmer.agentic.agentexecution.v1.AgentExecution>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "get"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.AgentExecutionId.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.AgentExecution.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentExecutionQueryControllerMethodDescriptorSupplier("get"))
+              .build();
+        }
+      }
+    }
+    return getGetMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest,
+      ai.stigmer.agentic.agentexecution.v1.AgentExecutionList> getListMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "list",
+      requestType = ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest,
+      ai.stigmer.agentic.agentexecution.v1.AgentExecutionList> getListMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest, ai.stigmer.agentic.agentexecution.v1.AgentExecutionList> getListMethod;
+    if ((getListMethod = AgentExecutionQueryControllerGrpc.getListMethod) == null) {
+      synchronized (AgentExecutionQueryControllerGrpc.class) {
+        if ((getListMethod = AgentExecutionQueryControllerGrpc.getListMethod) == null) {
+          AgentExecutionQueryControllerGrpc.getListMethod = getListMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest, ai.stigmer.agentic.agentexecution.v1.AgentExecutionList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "list"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentExecutionQueryControllerMethodDescriptorSupplier("list"))
+              .build();
+        }
+      }
+    }
+    return getListMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest,
+      ai.stigmer.agentic.agentexecution.v1.AgentExecutionList> getListBySessionMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "listBySession",
+      requestType = ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest,
+      ai.stigmer.agentic.agentexecution.v1.AgentExecutionList> getListBySessionMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest, ai.stigmer.agentic.agentexecution.v1.AgentExecutionList> getListBySessionMethod;
+    if ((getListBySessionMethod = AgentExecutionQueryControllerGrpc.getListBySessionMethod) == null) {
+      synchronized (AgentExecutionQueryControllerGrpc.class) {
+        if ((getListBySessionMethod = AgentExecutionQueryControllerGrpc.getListBySessionMethod) == null) {
+          AgentExecutionQueryControllerGrpc.getListBySessionMethod = getListBySessionMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest, ai.stigmer.agentic.agentexecution.v1.AgentExecutionList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "listBySession"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.AgentExecutionList.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentExecutionQueryControllerMethodDescriptorSupplier("listBySession"))
+              .build();
+        }
+      }
+    }
+    return getListBySessionMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.AgentExecutionId,
+      ai.stigmer.agentic.agentexecution.v1.AgentExecution> getSubscribeMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "subscribe",
+      requestType = ai.stigmer.agentic.agentexecution.v1.AgentExecutionId.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.AgentExecution.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.AgentExecutionId,
+      ai.stigmer.agentic.agentexecution.v1.AgentExecution> getSubscribeMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.AgentExecutionId, ai.stigmer.agentic.agentexecution.v1.AgentExecution> getSubscribeMethod;
+    if ((getSubscribeMethod = AgentExecutionQueryControllerGrpc.getSubscribeMethod) == null) {
+      synchronized (AgentExecutionQueryControllerGrpc.class) {
+        if ((getSubscribeMethod = AgentExecutionQueryControllerGrpc.getSubscribeMethod) == null) {
+          AgentExecutionQueryControllerGrpc.getSubscribeMethod = getSubscribeMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.AgentExecutionId, ai.stigmer.agentic.agentexecution.v1.AgentExecution>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.SERVER_STREAMING)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "subscribe"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.AgentExecutionId.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.AgentExecution.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentExecutionQueryControllerMethodDescriptorSupplier("subscribe"))
+              .build();
+        }
+      }
+    }
+    return getSubscribeMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest,
+      ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse> getGetArtifactDownloadUrlMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getArtifactDownloadUrl",
+      requestType = ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest,
+      ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse> getGetArtifactDownloadUrlMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest, ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse> getGetArtifactDownloadUrlMethod;
+    if ((getGetArtifactDownloadUrlMethod = AgentExecutionQueryControllerGrpc.getGetArtifactDownloadUrlMethod) == null) {
+      synchronized (AgentExecutionQueryControllerGrpc.class) {
+        if ((getGetArtifactDownloadUrlMethod = AgentExecutionQueryControllerGrpc.getGetArtifactDownloadUrlMethod) == null) {
+          AgentExecutionQueryControllerGrpc.getGetArtifactDownloadUrlMethod = getGetArtifactDownloadUrlMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest, ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getArtifactDownloadUrl"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentExecutionQueryControllerMethodDescriptorSupplier("getArtifactDownloadUrl"))
+              .build();
+        }
+      }
+    }
+    return getGetArtifactDownloadUrlMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput,
+      ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput> getGetSessionUsageReportMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getSessionUsageReport",
+      requestType = ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput,
+      ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput> getGetSessionUsageReportMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput, ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput> getGetSessionUsageReportMethod;
+    if ((getGetSessionUsageReportMethod = AgentExecutionQueryControllerGrpc.getGetSessionUsageReportMethod) == null) {
+      synchronized (AgentExecutionQueryControllerGrpc.class) {
+        if ((getGetSessionUsageReportMethod = AgentExecutionQueryControllerGrpc.getGetSessionUsageReportMethod) == null) {
+          AgentExecutionQueryControllerGrpc.getGetSessionUsageReportMethod = getGetSessionUsageReportMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput, ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getSessionUsageReport"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentExecutionQueryControllerMethodDescriptorSupplier("getSessionUsageReport"))
+              .build();
+        }
+      }
+    }
+    return getGetSessionUsageReportMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput,
+      ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput> getGetAgentUsageReportMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getAgentUsageReport",
+      requestType = ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput,
+      ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput> getGetAgentUsageReportMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput, ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput> getGetAgentUsageReportMethod;
+    if ((getGetAgentUsageReportMethod = AgentExecutionQueryControllerGrpc.getGetAgentUsageReportMethod) == null) {
+      synchronized (AgentExecutionQueryControllerGrpc.class) {
+        if ((getGetAgentUsageReportMethod = AgentExecutionQueryControllerGrpc.getGetAgentUsageReportMethod) == null) {
+          AgentExecutionQueryControllerGrpc.getGetAgentUsageReportMethod = getGetAgentUsageReportMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput, ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getAgentUsageReport"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentExecutionQueryControllerMethodDescriptorSupplier("getAgentUsageReport"))
+              .build();
+        }
+      }
+    }
+    return getGetAgentUsageReportMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput,
+      ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput> getGetOrgUsageReportMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getOrgUsageReport",
+      requestType = ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput,
+      ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput> getGetOrgUsageReportMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput, ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput> getGetOrgUsageReportMethod;
+    if ((getGetOrgUsageReportMethod = AgentExecutionQueryControllerGrpc.getGetOrgUsageReportMethod) == null) {
+      synchronized (AgentExecutionQueryControllerGrpc.class) {
+        if ((getGetOrgUsageReportMethod = AgentExecutionQueryControllerGrpc.getGetOrgUsageReportMethod) == null) {
+          AgentExecutionQueryControllerGrpc.getGetOrgUsageReportMethod = getGetOrgUsageReportMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput, ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getOrgUsageReport"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentExecutionQueryControllerMethodDescriptorSupplier("getOrgUsageReport"))
+              .build();
+        }
+      }
+    }
+    return getGetOrgUsageReportMethod;
+  }
+
+  /**
+   * Creates a new async stub that supports all call types for the service
+   */
+  public static AgentExecutionQueryControllerStub newStub(io.grpc.Channel channel) {
+    io.grpc.stub.AbstractStub.StubFactory<AgentExecutionQueryControllerStub> factory =
+      new io.grpc.stub.AbstractStub.StubFactory<AgentExecutionQueryControllerStub>() {
+        @java.lang.Override
+        public AgentExecutionQueryControllerStub newStub(io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+          return new AgentExecutionQueryControllerStub(channel, callOptions);
+        }
+      };
+    return AgentExecutionQueryControllerStub.newStub(factory, channel);
+  }
+
+  /**
+   * Creates a new blocking-style stub that supports all types of calls on the service
+   */
+  public static AgentExecutionQueryControllerBlockingV2Stub newBlockingV2Stub(
+      io.grpc.Channel channel) {
+    io.grpc.stub.AbstractStub.StubFactory<AgentExecutionQueryControllerBlockingV2Stub> factory =
+      new io.grpc.stub.AbstractStub.StubFactory<AgentExecutionQueryControllerBlockingV2Stub>() {
+        @java.lang.Override
+        public AgentExecutionQueryControllerBlockingV2Stub newStub(io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+          return new AgentExecutionQueryControllerBlockingV2Stub(channel, callOptions);
+        }
+      };
+    return AgentExecutionQueryControllerBlockingV2Stub.newStub(factory, channel);
+  }
+
+  /**
+   * Creates a new blocking-style stub that supports unary and streaming output calls on the service
+   */
+  public static AgentExecutionQueryControllerBlockingStub newBlockingStub(
+      io.grpc.Channel channel) {
+    io.grpc.stub.AbstractStub.StubFactory<AgentExecutionQueryControllerBlockingStub> factory =
+      new io.grpc.stub.AbstractStub.StubFactory<AgentExecutionQueryControllerBlockingStub>() {
+        @java.lang.Override
+        public AgentExecutionQueryControllerBlockingStub newStub(io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+          return new AgentExecutionQueryControllerBlockingStub(channel, callOptions);
+        }
+      };
+    return AgentExecutionQueryControllerBlockingStub.newStub(factory, channel);
+  }
+
+  /**
+   * Creates a new ListenableFuture-style stub that supports unary calls on the service
+   */
+  public static AgentExecutionQueryControllerFutureStub newFutureStub(
+      io.grpc.Channel channel) {
+    io.grpc.stub.AbstractStub.StubFactory<AgentExecutionQueryControllerFutureStub> factory =
+      new io.grpc.stub.AbstractStub.StubFactory<AgentExecutionQueryControllerFutureStub>() {
+        @java.lang.Override
+        public AgentExecutionQueryControllerFutureStub newStub(io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+          return new AgentExecutionQueryControllerFutureStub(channel, callOptions);
+        }
+      };
+    return AgentExecutionQueryControllerFutureStub.newStub(factory, channel);
+  }
+
+  /**
+   * <pre>
+   * AgentExecutionQueryController handles read operations for agent executions.
+   * </pre>
+   */
+  public interface AsyncService {
+
+    /**
+     * <pre>
+     * Get a single agent execution by ID.
+     * </pre>
+     */
+    default void get(ai.stigmer.agentic.agentexecution.v1.AgentExecutionId request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List all agent executions with pagination and optional filtering.
+     * </pre>
+     */
+    default void list(ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecutionList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List all executions in a specific session.
+     * Authorization is handled in handler via FGA query for authorized agent_execution_ids,
+     * then filtered by session_id. This ensures consistent authorization pattern across all list operations.
+     * </pre>
+     */
+    default void listBySession(ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecutionList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListBySessionMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Subscribe to real-time execution updates (streaming).
+     * Authorization is handled by the FJ model via proto configuration.
+     * </pre>
+     */
+    default void subscribe(ai.stigmer.agentic.agentexecution.v1.AgentExecutionId request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getSubscribeMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get a presigned download URL for an execution artifact.
+     * Returns a time-limited URL for downloading an artifact published by
+     * an agent during execution. The URL can be used with a simple HTTP GET
+     * request without authentication.
+     * ## Authorization
+     * Requires can_view permission on the execution. This ensures users can
+     * only download artifacts from executions they have access to.
+     * ## Security
+     * The storage_key is validated to ensure it belongs to the specified
+     * execution. Keys must start with "artifacts/{execution_id}/" to prevent
+     * path traversal attacks.
+     * ## URL Expiration
+     * Download URLs expire after 7 days (configurable). After expiration,
+     * call this endpoint again to get a fresh URL.
+     * ## Use Cases
+     * - CLI downloading agent-created files
+     * - Web UI providing download links for artifacts
+     * - Refreshing expired download URLs
+     * ## Example Flow
+     * 1. Get execution via AgentExecutionQueryController.get
+     * 2. Find artifact in status.artifacts[]
+     * 3. Call getArtifactDownloadUrl with execution_id and storage_key
+     * 4. Use returned download_url for HTTP GET
+     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
+     * </pre>
+     */
+    default void getArtifactDownloadUrl(ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetArtifactDownloadUrlMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for a session (all executions in a session).
+     * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * Authorization is handled in handler — caller must have can_view on
+     * all executions in the session (same pattern as listBySession).
+     * </pre>
+     */
+    default void getSessionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetSessionUsageReportMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for an agent (all sessions for an agent in a time range).
+     * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * Authorization is handled in handler — caller must have can_view on the agent.
+     * </pre>
+     */
+    default void getAgentUsageReport(ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetAgentUsageReportMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for an organization (all agents in a time range).
+     * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * Authorization is handled in handler — caller must be org member.
+     * </pre>
+     */
+    default void getOrgUsageReport(ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetOrgUsageReportMethod(), responseObserver);
+    }
+  }
+
+  /**
+   * Base class for the server implementation of the service AgentExecutionQueryController.
+   * <pre>
+   * AgentExecutionQueryController handles read operations for agent executions.
+   * </pre>
+   */
+  public static abstract class AgentExecutionQueryControllerImplBase
+      implements io.grpc.BindableService, AsyncService {
+
+    @java.lang.Override public final io.grpc.ServerServiceDefinition bindService() {
+      return AgentExecutionQueryControllerGrpc.bindService(this);
+    }
+  }
+
+  /**
+   * A stub to allow clients to do asynchronous rpc calls to service AgentExecutionQueryController.
+   * <pre>
+   * AgentExecutionQueryController handles read operations for agent executions.
+   * </pre>
+   */
+  public static final class AgentExecutionQueryControllerStub
+      extends io.grpc.stub.AbstractAsyncStub<AgentExecutionQueryControllerStub> {
+    private AgentExecutionQueryControllerStub(
+        io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+      super(channel, callOptions);
+    }
+
+    @java.lang.Override
+    protected AgentExecutionQueryControllerStub build(
+        io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+      return new AgentExecutionQueryControllerStub(channel, callOptions);
+    }
+
+    /**
+     * <pre>
+     * Get a single agent execution by ID.
+     * </pre>
+     */
+    public void get(ai.stigmer.agentic.agentexecution.v1.AgentExecutionId request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List all agent executions with pagination and optional filtering.
+     * </pre>
+     */
+    public void list(ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecutionList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List all executions in a specific session.
+     * Authorization is handled in handler via FGA query for authorized agent_execution_ids,
+     * then filtered by session_id. This ensures consistent authorization pattern across all list operations.
+     * </pre>
+     */
+    public void listBySession(ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecutionList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListBySessionMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Subscribe to real-time execution updates (streaming).
+     * Authorization is handled by the FJ model via proto configuration.
+     * </pre>
+     */
+    public void subscribe(ai.stigmer.agentic.agentexecution.v1.AgentExecutionId request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncServerStreamingCall(
+          getChannel().newCall(getSubscribeMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get a presigned download URL for an execution artifact.
+     * Returns a time-limited URL for downloading an artifact published by
+     * an agent during execution. The URL can be used with a simple HTTP GET
+     * request without authentication.
+     * ## Authorization
+     * Requires can_view permission on the execution. This ensures users can
+     * only download artifacts from executions they have access to.
+     * ## Security
+     * The storage_key is validated to ensure it belongs to the specified
+     * execution. Keys must start with "artifacts/{execution_id}/" to prevent
+     * path traversal attacks.
+     * ## URL Expiration
+     * Download URLs expire after 7 days (configurable). After expiration,
+     * call this endpoint again to get a fresh URL.
+     * ## Use Cases
+     * - CLI downloading agent-created files
+     * - Web UI providing download links for artifacts
+     * - Refreshing expired download URLs
+     * ## Example Flow
+     * 1. Get execution via AgentExecutionQueryController.get
+     * 2. Find artifact in status.artifacts[]
+     * 3. Call getArtifactDownloadUrl with execution_id and storage_key
+     * 4. Use returned download_url for HTTP GET
+     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
+     * </pre>
+     */
+    public void getArtifactDownloadUrl(ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetArtifactDownloadUrlMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for a session (all executions in a session).
+     * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * Authorization is handled in handler — caller must have can_view on
+     * all executions in the session (same pattern as listBySession).
+     * </pre>
+     */
+    public void getSessionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetSessionUsageReportMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for an agent (all sessions for an agent in a time range).
+     * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * Authorization is handled in handler — caller must have can_view on the agent.
+     * </pre>
+     */
+    public void getAgentUsageReport(ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetAgentUsageReportMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for an organization (all agents in a time range).
+     * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * Authorization is handled in handler — caller must be org member.
+     * </pre>
+     */
+    public void getOrgUsageReport(ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetOrgUsageReportMethod(), getCallOptions()), request, responseObserver);
+    }
+  }
+
+  /**
+   * A stub to allow clients to do synchronous rpc calls to service AgentExecutionQueryController.
+   * <pre>
+   * AgentExecutionQueryController handles read operations for agent executions.
+   * </pre>
+   */
+  public static final class AgentExecutionQueryControllerBlockingV2Stub
+      extends io.grpc.stub.AbstractBlockingStub<AgentExecutionQueryControllerBlockingV2Stub> {
+    private AgentExecutionQueryControllerBlockingV2Stub(
+        io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+      super(channel, callOptions);
+    }
+
+    @java.lang.Override
+    protected AgentExecutionQueryControllerBlockingV2Stub build(
+        io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+      return new AgentExecutionQueryControllerBlockingV2Stub(channel, callOptions);
+    }
+
+    /**
+     * <pre>
+     * Get a single agent execution by ID.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.AgentExecution get(ai.stigmer.agentic.agentexecution.v1.AgentExecutionId request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List all agent executions with pagination and optional filtering.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.AgentExecutionList list(ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List all executions in a specific session.
+     * Authorization is handled in handler via FGA query for authorized agent_execution_ids,
+     * then filtered by session_id. This ensures consistent authorization pattern across all list operations.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.AgentExecutionList listBySession(ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListBySessionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Subscribe to real-time execution updates (streaming).
+     * Authorization is handled by the FJ model via proto configuration.
+     * </pre>
+     */
+    @io.grpc.ExperimentalApi("https://github.com/grpc/grpc-java/issues/10918")
+    public io.grpc.stub.BlockingClientCall<?, ai.stigmer.agentic.agentexecution.v1.AgentExecution>
+        subscribe(ai.stigmer.agentic.agentexecution.v1.AgentExecutionId request) {
+      return io.grpc.stub.ClientCalls.blockingV2ServerStreamingCall(
+          getChannel(), getSubscribeMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get a presigned download URL for an execution artifact.
+     * Returns a time-limited URL for downloading an artifact published by
+     * an agent during execution. The URL can be used with a simple HTTP GET
+     * request without authentication.
+     * ## Authorization
+     * Requires can_view permission on the execution. This ensures users can
+     * only download artifacts from executions they have access to.
+     * ## Security
+     * The storage_key is validated to ensure it belongs to the specified
+     * execution. Keys must start with "artifacts/{execution_id}/" to prevent
+     * path traversal attacks.
+     * ## URL Expiration
+     * Download URLs expire after 7 days (configurable). After expiration,
+     * call this endpoint again to get a fresh URL.
+     * ## Use Cases
+     * - CLI downloading agent-created files
+     * - Web UI providing download links for artifacts
+     * - Refreshing expired download URLs
+     * ## Example Flow
+     * 1. Get execution via AgentExecutionQueryController.get
+     * 2. Find artifact in status.artifacts[]
+     * 3. Call getArtifactDownloadUrl with execution_id and storage_key
+     * 4. Use returned download_url for HTTP GET
+     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse getArtifactDownloadUrl(ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetArtifactDownloadUrlMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for a session (all executions in a session).
+     * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * Authorization is handled in handler — caller must have can_view on
+     * all executions in the session (same pattern as listBySession).
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput getSessionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetSessionUsageReportMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for an agent (all sessions for an agent in a time range).
+     * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * Authorization is handled in handler — caller must have can_view on the agent.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput getAgentUsageReport(ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetAgentUsageReportMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for an organization (all agents in a time range).
+     * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * Authorization is handled in handler — caller must be org member.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput getOrgUsageReport(ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetOrgUsageReportMethod(), getCallOptions(), request);
+    }
+  }
+
+  /**
+   * A stub to allow clients to do limited synchronous rpc calls to service AgentExecutionQueryController.
+   * <pre>
+   * AgentExecutionQueryController handles read operations for agent executions.
+   * </pre>
+   */
+  public static final class AgentExecutionQueryControllerBlockingStub
+      extends io.grpc.stub.AbstractBlockingStub<AgentExecutionQueryControllerBlockingStub> {
+    private AgentExecutionQueryControllerBlockingStub(
+        io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+      super(channel, callOptions);
+    }
+
+    @java.lang.Override
+    protected AgentExecutionQueryControllerBlockingStub build(
+        io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+      return new AgentExecutionQueryControllerBlockingStub(channel, callOptions);
+    }
+
+    /**
+     * <pre>
+     * Get a single agent execution by ID.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.AgentExecution get(ai.stigmer.agentic.agentexecution.v1.AgentExecutionId request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List all agent executions with pagination and optional filtering.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.AgentExecutionList list(ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List all executions in a specific session.
+     * Authorization is handled in handler via FGA query for authorized agent_execution_ids,
+     * then filtered by session_id. This ensures consistent authorization pattern across all list operations.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.AgentExecutionList listBySession(ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListBySessionMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Subscribe to real-time execution updates (streaming).
+     * Authorization is handled by the FJ model via proto configuration.
+     * </pre>
+     */
+    public java.util.Iterator<ai.stigmer.agentic.agentexecution.v1.AgentExecution> subscribe(
+        ai.stigmer.agentic.agentexecution.v1.AgentExecutionId request) {
+      return io.grpc.stub.ClientCalls.blockingServerStreamingCall(
+          getChannel(), getSubscribeMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get a presigned download URL for an execution artifact.
+     * Returns a time-limited URL for downloading an artifact published by
+     * an agent during execution. The URL can be used with a simple HTTP GET
+     * request without authentication.
+     * ## Authorization
+     * Requires can_view permission on the execution. This ensures users can
+     * only download artifacts from executions they have access to.
+     * ## Security
+     * The storage_key is validated to ensure it belongs to the specified
+     * execution. Keys must start with "artifacts/{execution_id}/" to prevent
+     * path traversal attacks.
+     * ## URL Expiration
+     * Download URLs expire after 7 days (configurable). After expiration,
+     * call this endpoint again to get a fresh URL.
+     * ## Use Cases
+     * - CLI downloading agent-created files
+     * - Web UI providing download links for artifacts
+     * - Refreshing expired download URLs
+     * ## Example Flow
+     * 1. Get execution via AgentExecutionQueryController.get
+     * 2. Find artifact in status.artifacts[]
+     * 3. Call getArtifactDownloadUrl with execution_id and storage_key
+     * 4. Use returned download_url for HTTP GET
+     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse getArtifactDownloadUrl(ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetArtifactDownloadUrlMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for a session (all executions in a session).
+     * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * Authorization is handled in handler — caller must have can_view on
+     * all executions in the session (same pattern as listBySession).
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput getSessionUsageReport(ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetSessionUsageReportMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for an agent (all sessions for an agent in a time range).
+     * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * Authorization is handled in handler — caller must have can_view on the agent.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput getAgentUsageReport(ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetAgentUsageReportMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for an organization (all agents in a time range).
+     * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * Authorization is handled in handler — caller must be org member.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput getOrgUsageReport(ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetOrgUsageReportMethod(), getCallOptions(), request);
+    }
+  }
+
+  /**
+   * A stub to allow clients to do ListenableFuture-style rpc calls to service AgentExecutionQueryController.
+   * <pre>
+   * AgentExecutionQueryController handles read operations for agent executions.
+   * </pre>
+   */
+  public static final class AgentExecutionQueryControllerFutureStub
+      extends io.grpc.stub.AbstractFutureStub<AgentExecutionQueryControllerFutureStub> {
+    private AgentExecutionQueryControllerFutureStub(
+        io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+      super(channel, callOptions);
+    }
+
+    @java.lang.Override
+    protected AgentExecutionQueryControllerFutureStub build(
+        io.grpc.Channel channel, io.grpc.CallOptions callOptions) {
+      return new AgentExecutionQueryControllerFutureStub(channel, callOptions);
+    }
+
+    /**
+     * <pre>
+     * Get a single agent execution by ID.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.AgentExecution> get(
+        ai.stigmer.agentic.agentexecution.v1.AgentExecutionId request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * List all agent executions with pagination and optional filtering.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.AgentExecutionList> list(
+        ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * List all executions in a specific session.
+     * Authorization is handled in handler via FGA query for authorized agent_execution_ids,
+     * then filtered by session_id. This ensures consistent authorization pattern across all list operations.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.AgentExecutionList> listBySession(
+        ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListBySessionMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Get a presigned download URL for an execution artifact.
+     * Returns a time-limited URL for downloading an artifact published by
+     * an agent during execution. The URL can be used with a simple HTTP GET
+     * request without authentication.
+     * ## Authorization
+     * Requires can_view permission on the execution. This ensures users can
+     * only download artifacts from executions they have access to.
+     * ## Security
+     * The storage_key is validated to ensure it belongs to the specified
+     * execution. Keys must start with "artifacts/{execution_id}/" to prevent
+     * path traversal attacks.
+     * ## URL Expiration
+     * Download URLs expire after 7 days (configurable). After expiration,
+     * call this endpoint again to get a fresh URL.
+     * ## Use Cases
+     * - CLI downloading agent-created files
+     * - Web UI providing download links for artifacts
+     * - Refreshing expired download URLs
+     * ## Example Flow
+     * 1. Get execution via AgentExecutionQueryController.get
+     * 2. Find artifact in status.artifacts[]
+     * 3. Call getArtifactDownloadUrl with execution_id and storage_key
+     * 4. Use returned download_url for HTTP GET
+     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse> getArtifactDownloadUrl(
+        ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetArtifactDownloadUrlMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for a session (all executions in a session).
+     * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * Authorization is handled in handler — caller must have can_view on
+     * all executions in the session (same pattern as listBySession).
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput> getSessionUsageReport(
+        ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetSessionUsageReportMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for an agent (all sessions for an agent in a time range).
+     * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * Authorization is handled in handler — caller must have can_view on the agent.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput> getAgentUsageReport(
+        ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetAgentUsageReportMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Get usage report for an organization (all agents in a time range).
+     * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * Authorization is handled in handler — caller must be org member.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput> getOrgUsageReport(
+        ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetOrgUsageReportMethod(), getCallOptions()), request);
+    }
+  }
+
+  private static final int METHODID_GET = 0;
+  private static final int METHODID_LIST = 1;
+  private static final int METHODID_LIST_BY_SESSION = 2;
+  private static final int METHODID_SUBSCRIBE = 3;
+  private static final int METHODID_GET_ARTIFACT_DOWNLOAD_URL = 4;
+  private static final int METHODID_GET_SESSION_USAGE_REPORT = 5;
+  private static final int METHODID_GET_AGENT_USAGE_REPORT = 6;
+  private static final int METHODID_GET_ORG_USAGE_REPORT = 7;
+
+  private static final class MethodHandlers<Req, Resp> implements
+      io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
+      io.grpc.stub.ServerCalls.ServerStreamingMethod<Req, Resp>,
+      io.grpc.stub.ServerCalls.ClientStreamingMethod<Req, Resp>,
+      io.grpc.stub.ServerCalls.BidiStreamingMethod<Req, Resp> {
+    private final AsyncService serviceImpl;
+    private final int methodId;
+
+    MethodHandlers(AsyncService serviceImpl, int methodId) {
+      this.serviceImpl = serviceImpl;
+      this.methodId = methodId;
+    }
+
+    @java.lang.Override
+    @java.lang.SuppressWarnings("unchecked")
+    public void invoke(Req request, io.grpc.stub.StreamObserver<Resp> responseObserver) {
+      switch (methodId) {
+        case METHODID_GET:
+          serviceImpl.get((ai.stigmer.agentic.agentexecution.v1.AgentExecutionId) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution>) responseObserver);
+          break;
+        case METHODID_LIST:
+          serviceImpl.list((ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecutionList>) responseObserver);
+          break;
+        case METHODID_LIST_BY_SESSION:
+          serviceImpl.listBySession((ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecutionList>) responseObserver);
+          break;
+        case METHODID_SUBSCRIBE:
+          serviceImpl.subscribe((ai.stigmer.agentic.agentexecution.v1.AgentExecutionId) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.AgentExecution>) responseObserver);
+          break;
+        case METHODID_GET_ARTIFACT_DOWNLOAD_URL:
+          serviceImpl.getArtifactDownloadUrl((ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse>) responseObserver);
+          break;
+        case METHODID_GET_SESSION_USAGE_REPORT:
+          serviceImpl.getSessionUsageReport((ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput>) responseObserver);
+          break;
+        case METHODID_GET_AGENT_USAGE_REPORT:
+          serviceImpl.getAgentUsageReport((ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput>) responseObserver);
+          break;
+        case METHODID_GET_ORG_USAGE_REPORT:
+          serviceImpl.getOrgUsageReport((ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput>) responseObserver);
+          break;
+        default:
+          throw new AssertionError();
+      }
+    }
+
+    @java.lang.Override
+    @java.lang.SuppressWarnings("unchecked")
+    public io.grpc.stub.StreamObserver<Req> invoke(
+        io.grpc.stub.StreamObserver<Resp> responseObserver) {
+      switch (methodId) {
+        default:
+          throw new AssertionError();
+      }
+    }
+  }
+
+  public static final io.grpc.ServerServiceDefinition bindService(AsyncService service) {
+    return io.grpc.ServerServiceDefinition.builder(getServiceDescriptor())
+        .addMethod(
+          getGetMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentexecution.v1.AgentExecutionId,
+              ai.stigmer.agentic.agentexecution.v1.AgentExecution>(
+                service, METHODID_GET)))
+        .addMethod(
+          getListMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsRequest,
+              ai.stigmer.agentic.agentexecution.v1.AgentExecutionList>(
+                service, METHODID_LIST)))
+        .addMethod(
+          getListBySessionMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentexecution.v1.ListAgentExecutionsBySessionRequest,
+              ai.stigmer.agentic.agentexecution.v1.AgentExecutionList>(
+                service, METHODID_LIST_BY_SESSION)))
+        .addMethod(
+          getSubscribeMethod(),
+          io.grpc.stub.ServerCalls.asyncServerStreamingCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentexecution.v1.AgentExecutionId,
+              ai.stigmer.agentic.agentexecution.v1.AgentExecution>(
+                service, METHODID_SUBSCRIBE)))
+        .addMethod(
+          getGetArtifactDownloadUrlMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest,
+              ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse>(
+                service, METHODID_GET_ARTIFACT_DOWNLOAD_URL)))
+        .addMethod(
+          getGetSessionUsageReportMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput,
+              ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput>(
+                service, METHODID_GET_SESSION_USAGE_REPORT)))
+        .addMethod(
+          getGetAgentUsageReportMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportInput,
+              ai.stigmer.agentic.agentexecution.v1.GetAgentUsageReportOutput>(
+                service, METHODID_GET_AGENT_USAGE_REPORT)))
+        .addMethod(
+          getGetOrgUsageReportMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportInput,
+              ai.stigmer.agentic.agentexecution.v1.GetOrgUsageReportOutput>(
+                service, METHODID_GET_ORG_USAGE_REPORT)))
+        .build();
+  }
+
+  private static abstract class AgentExecutionQueryControllerBaseDescriptorSupplier
+      implements io.grpc.protobuf.ProtoFileDescriptorSupplier, io.grpc.protobuf.ProtoServiceDescriptorSupplier {
+    AgentExecutionQueryControllerBaseDescriptorSupplier() {}
+
+    @java.lang.Override
+    public com.google.protobuf.Descriptors.FileDescriptor getFileDescriptor() {
+      return ai.stigmer.agentic.agentexecution.v1.QueryProto.getDescriptor();
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Descriptors.ServiceDescriptor getServiceDescriptor() {
+      return getFileDescriptor().findServiceByName("AgentExecutionQueryController");
+    }
+  }
+
+  private static final class AgentExecutionQueryControllerFileDescriptorSupplier
+      extends AgentExecutionQueryControllerBaseDescriptorSupplier {
+    AgentExecutionQueryControllerFileDescriptorSupplier() {}
+  }
+
+  private static final class AgentExecutionQueryControllerMethodDescriptorSupplier
+      extends AgentExecutionQueryControllerBaseDescriptorSupplier
+      implements io.grpc.protobuf.ProtoMethodDescriptorSupplier {
+    private final java.lang.String methodName;
+
+    AgentExecutionQueryControllerMethodDescriptorSupplier(java.lang.String methodName) {
+      this.methodName = methodName;
+    }
+
+    @java.lang.Override
+    public com.google.protobuf.Descriptors.MethodDescriptor getMethodDescriptor() {
+      return getServiceDescriptor().findMethodByName(methodName);
+    }
+  }
+
+  private static volatile io.grpc.ServiceDescriptor serviceDescriptor;
+
+  public static io.grpc.ServiceDescriptor getServiceDescriptor() {
+    io.grpc.ServiceDescriptor result = serviceDescriptor;
+    if (result == null) {
+      synchronized (AgentExecutionQueryControllerGrpc.class) {
+        result = serviceDescriptor;
+        if (result == null) {
+          serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
+              .setSchemaDescriptor(new AgentExecutionQueryControllerFileDescriptorSupplier())
+              .addMethod(getGetMethod())
+              .addMethod(getListMethod())
+              .addMethod(getListBySessionMethod())
+              .addMethod(getSubscribeMethod())
+              .addMethod(getGetArtifactDownloadUrlMethod())
+              .addMethod(getGetSessionUsageReportMethod())
+              .addMethod(getGetAgentUsageReportMethod())
+              .addMethod(getGetOrgUsageReportMethod())
+              .build();
+        }
+      }
+    }
+    return result;
+  }
+}

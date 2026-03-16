@@ -1,0 +1,91 @@
+{
+  "resource": "identityaccount",
+  "package": "ai.stigmer.iam.identityaccount.v1",
+  "goImportPath": "identityaccountv1",
+  "services": [
+    {
+      "name": "IdentityAccountCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Create",
+          "inputType": "IdentityAccount",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "outputType": "IdentityAccount",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "description": "create a new identity-account.\n system-level RPC used by federated JIT provisioning and Auth0 webhook flow.\n no FGA authorization — called via inProcessChannelAsSystem (machine account).\n the handler's createAuthorizationTuples step writes the self-ownership tuple after creation."
+        },
+        {
+          "name": "Update",
+          "inputType": "IdentityAccount",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "outputType": "IdentityAccount",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "description": "update an existing identity-account"
+        },
+        {
+          "name": "Delete",
+          "inputType": "IdentityAccountId",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountId",
+          "outputType": "IdentityAccount",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "description": "delete an existing identity-account"
+        },
+        {
+          "name": "SimulateSignupWebhook",
+          "inputType": "IdentityAccountEmail",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail",
+          "outputType": "Empty",
+          "outputFullType": "google.protobuf.Empty",
+          "description": "simulate signup webhook to add a user who created account on auth0 but is not created on stigmer.\nthis rpc will take the email, look it up on auth0,\n if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format."
+        }
+      ]
+    },
+    {
+      "name": "IdentityAccountQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "IdentityAccountId",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountId",
+          "outputType": "IdentityAccount",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "description": "lookup identity-account."
+        },
+        {
+          "name": "WhoAmI",
+          "inputType": "Empty",
+          "inputFullType": "google.protobuf.Empty",
+          "outputType": "IdentityAccount",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "description": "look up identity-account by authentication token."
+        },
+        {
+          "name": "GetByEmail",
+          "inputType": "IdentityAccountEmail",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail",
+          "outputType": "IdentityAccount",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "description": "lookup user-account by identity account email."
+        },
+        {
+          "name": "GetByIdpId",
+          "inputType": "IdpId",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdpId",
+          "outputType": "IdentityAccount",
+          "outputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccount",
+          "description": "lookup user-account by idp id."
+        },
+        {
+          "name": "GetActorInfo",
+          "inputType": "IdentityAccountId",
+          "inputFullType": "ai.stigmer.iam.identityaccount.v1.IdentityAccountId",
+          "outputType": "ApiResourceAuditActor",
+          "outputFullType": "ai.stigmer.commons.apiresource.ApiResourceAuditActor",
+          "description": "lookup identity-account actor-info (lightweight actor data for audit trail caching)\n\n This RPC is specifically designed to break circular dependency loops in audit actor resolution.\n When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)\n needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion\n including audit actors, which can create infinite recursion if audit actors reference IdentityAccounts.\n\n This dedicated endpoint:\n - Returns ONLY the lightweight ApiResourceAuditActor (id + avatar)\n - Does NOT include full audit trail in the response\n - Accesses entity data directly without recursive proto conversion\n - Is used by ApiResourceAuditActorCacheProxy to safely populate Redis cache\n - Prevents StackOverflowError when Redis cache is empty or cleared\n\n Restricted to platform operators only as this is an internal cache-population mechanism."
+        }
+      ]
+    }
+  ]
+}

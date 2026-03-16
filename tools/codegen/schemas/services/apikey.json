@@ -1,0 +1,67 @@
+{
+  "resource": "apikey",
+  "package": "ai.stigmer.iam.apikey.v1",
+  "goImportPath": "apikeyv1",
+  "services": [
+    {
+      "name": "ApiKeyCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Create",
+          "inputType": "ApiKey",
+          "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "outputType": "ApiKey",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "description": "create an api-key"
+        },
+        {
+          "name": "Update",
+          "inputType": "ApiKey",
+          "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "outputType": "ApiKey",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "description": "update an existing api-key"
+        },
+        {
+          "name": "Delete",
+          "inputType": "ApiKeyId",
+          "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKeyId",
+          "outputType": "ApiKey",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "description": "delete an existing api-key"
+        }
+      ]
+    },
+    {
+      "name": "ApiKeyQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "ApiKeyId",
+          "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKeyId",
+          "outputType": "ApiKey",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "description": "lookup api-key."
+        },
+        {
+          "name": "GetByKeyHash",
+          "inputType": "ApiKeyHash",
+          "inputFullType": "ai.stigmer.iam.apikey.v1.ApiKeyHash",
+          "outputType": "ApiKey",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKey",
+          "description": "lookup api-key by hashed key"
+        },
+        {
+          "name": "FindAll",
+          "inputType": "Empty",
+          "inputFullType": "google.protobuf.Empty",
+          "outputType": "ApiKeys",
+          "outputFullType": "ai.stigmer.iam.apikey.v1.ApiKeys",
+          "description": "lookup all api-keys for the identity-account in the auth header."
+        }
+      ]
+    }
+  ]
+}

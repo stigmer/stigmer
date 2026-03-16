@@ -1,0 +1,76 @@
+{
+  "resource": "mcpserver",
+  "package": "ai.stigmer.agentic.mcpserver.v1",
+  "goImportPath": "mcpserverv1",
+  "services": [
+    {
+      "name": "McpServerCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "McpServer",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+          "outputType": "McpServer",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+          "description": "Create or update an MCP server resource (Kubernetes-style apply).\n\n This is the primary interface for MCP server management.\n Behavior:\n - If the resource doesn't exist: Creates a new MCP server\n - If the resource exists: Updates the existing MCP server\n\n The resource is identified by (scope, org, slug) combination.\n\n Input: Full McpServer resource with metadata and spec.\n Returns: The created/updated McpServer with system-populated fields.\n\n Authorization: Custom authorization in handler.\n The handler determines whether this is a create or update operation\n and performs appropriate scope-aware authorization:\n - Create: Requires permission to create in the target scope\n - Update: Requires can_edit on the existing resource"
+        },
+        {
+          "name": "Create",
+          "inputType": "McpServer",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+          "outputType": "McpServer",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+          "description": "Create a new MCP server resource.\n\n Use this when you explicitly want to create a new resource\n and want an error if it already exists.\n\n Input: McpServer with metadata (scope, org, name/slug) and spec.\n Returns: The created McpServer with system-generated ID and status.\n\n Authorization: Custom authorization in handler.\n Requires permission to create MCP servers in the specified scope:\n - Platform: Requires platform operator role\n - Organization: Requires org admin role or can_create_mcp_server permission\n - Identity Account: Automatically allowed for the authenticated user"
+        },
+        {
+          "name": "Update",
+          "inputType": "McpServer",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+          "outputType": "McpServer",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+          "description": "Update an existing MCP server resource.\n\n Input: McpServer with metadata.id populated and updated spec.\n Returns: The updated McpServer.\n\n Authorization: Requires can_edit permission on the mcp_server resource.\n Only the owner (based on scope) can update:\n - Platform: Platform operators\n - Organization: Org admins or resource owner\n - Identity Account: The owner"
+        },
+        {
+          "name": "Delete",
+          "inputType": "ApiResourceDeleteInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
+          "outputType": "McpServer",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+          "description": "Delete an MCP server resource.\n\n Permanently removes the MCP server definition.\n Agents referencing this MCP server will need to be updated.\n\n Input: ApiResourceDeleteInput with resource_id and optional version_message.\n Returns: The deleted McpServer (for confirmation/audit).\n\n Authorization: Requires can_delete permission on the mcp_server resource.\n Only the owner can delete:\n - Platform: Platform operators\n - Organization: Org admins or resource owner\n - Identity Account: The owner"
+        },
+        {
+          "name": "UpdateDiscoveredCapabilities",
+          "inputType": "UpdateDiscoveredCapabilitiesInput",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput",
+          "outputType": "McpServer",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+          "description": "Update the discovered capabilities (tools and resource templates) for an MCP server.\n\n This is a targeted status update — it only modifies status.discovered_capabilities,\n leaving spec, validation state, and other status fields untouched.\n\n Typical flow:\n 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID\n 2. CLI connects to the MCP server locally and queries tools/resources\n 3. CLI calls this RPC with the ID and discovered capabilities\n\n Input: UpdateDiscoveredCapabilitiesInput with mcp_server_id and discovered_capabilities.\n Returns: The updated McpServer with the new discovered capabilities.\n\n Authorization: Requires can_edit permission on the mcp_server resource."
+        }
+      ]
+    },
+    {
+      "name": "McpServerQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "ApiResourceId",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
+          "outputType": "McpServer",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+          "description": "Get an MCP server by its unique identifier.\n\n Input: ApiResourceId containing the MCP server's system-generated ID.\n Returns: The full McpServer resource including metadata, spec, and status.\n\n Authorization: Requires can_view permission on the mcp_server resource.\n The caller must have access based on the resource's scope:\n - Platform: All authenticated users\n - Organization: Organization members\n - Identity Account: Only the owner"
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "McpServer",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+          "description": "Get an MCP server by reference (scope + org + slug).\n\n Input: ApiResourceReference with scope, org (if applicable), kind, and slug.\n Returns: The full McpServer resource.\n\n This is the preferred method for looking up MCP servers by name/slug\n rather than system-generated ID. Useful for:\n - Resolving references from Agent.mcp_server_usages\n - CLI lookups by name\n - Cross-scope resolution (platform vs org vs personal)\n\n Authorization: Custom authorization in handler.\n The handler performs scope-aware authorization based on the reference."
+        }
+      ]
+    }
+  ],
+  "listVia": "SearchService"
+}

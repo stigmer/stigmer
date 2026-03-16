@@ -1,0 +1,35 @@
+{
+  "name": "WorkspaceEntry",
+  "description": "WorkspaceEntry pairs a WorkspaceSource with a human-readable name,\n forming an addressable unit within a session's workspace.\n\n In a multi-root workspace (VS Code model), each entry is a separate\n directory or repository that the agent can operate on. The name serves as\n the entry's identity: it appears in the system prompt, and in cloud mode\n it becomes the subdirectory name under the workspace root.\n\n Names are auto-derived by the CLI from the repository name (last URL path\n segment sans \".git\") or the directory basename. They must be unique within\n a session's workspace_entries list.",
+  "protoType": "ai.stigmer.agentic.session.v1.WorkspaceEntry",
+  "protoFile": "apis/ai/stigmer/agentic/session/v1/workspace.proto",
+  "fields": [
+    {
+      "name": "Name",
+      "jsonName": "name",
+      "protoField": "name",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Short identifier for this workspace entry (required).\n Used in system prompt headings and as the clone subdirectory in cloud mode.\n Example: \"my-app\", \"frontend\", \"shared-lib\"",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    },
+    {
+      "name": "Source",
+      "jsonName": "source",
+      "protoField": "source",
+      "type": {
+        "kind": "message",
+        "messageType": "WorkspaceSource"
+      },
+      "description": "The source that provides this entry's content (required).",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    }
+  ]
+}

@@ -56,8 +56,8 @@ redis = "^5.0.0"
 # Environment variable loading (local development)
 python-dotenv = "^1.0.0"
 
-# Local API stubs
-stigmer-stubs = { path = "../../../apis/stubs/python/stigmer", develop = true }
+# Local API protos
+stigmer-protos = { path = "../../../apis/stubs/python/stigmer", develop = true }
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.6.0"

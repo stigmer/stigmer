@@ -17,6 +17,7 @@ Complete documentation index for the Stigmer open-source project.
 - [Server Logs](cli/server-logs.md) - Viewing and managing server logs
 
 ### SDK
+- [React Style Isolation](architecture/react-style-isolation.md) - **NEW**: How `@stigmer/react` prevents CSS side effects in host applications (CSS Layers, namespaced tokens, scoped preflight)
 - [Agent and Skill Struct-Based Args API](sdk/guides/agent-skill-struct-args-api.md) - Complete guide to creating agents and skills using Pulumi-style struct args pattern
 - [Workflow Fluent API Guide](sdk/guides/workflow-fluent-api.md) - Comprehensive guide to building workflows with fluent API, including structured Duration support for WAIT tasks
 - [Go SDK Proto Integration](sdk/go-sdk-proto-integration.md) - Convert SDK resources to platform protos (Skill ready, Agent in progress)
@@ -63,6 +64,7 @@ Complete documentation index for the Stigmer open-source project.
 - [McpServer Resource](architecture/mcp-server-resource.md) - First-class MCP server resource with tri-scope support, FGA authorization, and marketplace patterns
 - [Open Core Model](architecture/open-core-model.md) - Open source vs enterprise architecture
 - [Packaging Flow](architecture/packaging-flow.md) - How Stigmer is packaged and distributed (with diagrams)
+- [React Style Isolation](architecture/react-style-isolation.md) - CSS Cascade Layer isolation for embeddable React components
 - [Request Pipeline Context Design](architecture/request-pipeline-context-design.md) - Multi-context vs single-context architectural analysis
 - [SDK Code Generation](architecture/sdk-code-generation.md) - Schema-driven code generation for workflow tasks (adds new task in 5 minutes vs 30-60)
 - [SDK-CLI Contract](architecture/sdk-cli-contract.md) - Direct proto pattern: SDKs write platform protos with SDK metadata in annotations (eliminates manifest wrapper layer)

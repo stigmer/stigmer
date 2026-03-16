@@ -42,7 +42,7 @@ func bootstrapAgentRunnerRuntime() (pythonBin string, appDir string, err error) 
 		filepath.Join(mgr.AppDir(), "requirements.txt"),
 		[][]string{
 			{"pip", "install", "--no-deps", filepath.Join(mgr.AppDir(), "libs", "graphton")},
-			{"pip", "install", "--no-deps", filepath.Join(mgr.AppDir(), "libs", "stigmer-stubs")},
+			{"pip", "install", "--no-deps", filepath.Join(mgr.AppDir(), "libs", "stigmer-protos")},
 		},
 	)
 
@@ -61,7 +61,7 @@ func bootstrapAgentRunnerRuntime() (pythonBin string, appDir string, err error) 
 }
 
 // buildPreInstallFn returns a hook that copies monorepo path dependencies
-// (graphton, stigmer-stubs) into the app directory before pip runs.
+// (graphton, stigmer-protos) into the app directory before pip runs.
 //
 // In embed (production) builds, sync.sh already places these under libs/
 // inside the embedded source, so the hook is a no-op. In dev builds, the
@@ -83,7 +83,7 @@ func buildPreInstallFn() func(appDir string) error {
 			},
 			{
 				src:    filepath.Join(repoRoot, "apis", "stubs", "python", "stigmer"),
-				target: filepath.Join(appDir, "libs", "stigmer-stubs"),
+				target: filepath.Join(appDir, "libs", "stigmer-protos"),
 			},
 		}
 		for _, dep := range pathDeps {

@@ -1,0 +1,21 @@
+{
+  "resource": "search",
+  "package": "ai.stigmer.search.v1",
+  "goImportPath": "searchv1",
+  "services": [
+    {
+      "name": "SearchService",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Search",
+          "inputType": "SearchRequest",
+          "inputFullType": "ai.stigmer.search.v1.SearchRequest",
+          "outputType": "SearchResponse",
+          "outputFullType": "ai.stigmer.search.v1.SearchResponse",
+          "description": "Search resources across one or more kinds.\n\n This is the unified entry point for list, search, and discover operations.\n The behavior is determined by the combination of request parameters:\n\n | Operation | kinds     | query | org     | Behavior                              |\n |-----------|-----------|-------|---------|---------------------------------------|\n | List      | [X]       | \"\"    | \"acme\"  | All X in org, sorted by created_at    |\n | List All  | [X]       | \"\"    | \"\"      | All accessible X, sorted by created_at|\n | Search    | [X]       | \"...\"  | \"\"      | Search X by query, sorted by relevance|\n | Search Org| [X]       | \"...\"  | \"acme\"  | Search X in org, sorted by relevance  |\n | Discover  | []        | \"...\"  | \"\"      | Search all kinds, sorted by relevance |\n\n Sort Order:\n - With query: Results sorted by relevance score (descending)\n - Without query: Results sorted by created_at (descending, newer first)\n\n Authorization:\n Returns only resources the caller has can_view permission on.\n The handler queries FGA per kind to get authorized IDs, then applies filters.\n\n Pagination:\n Use page.num (1-indexed) and page.size to paginate results.\n Response includes total_count and total_pages for UI pagination controls."
+        }
+      ]
+    }
+  ]
+}

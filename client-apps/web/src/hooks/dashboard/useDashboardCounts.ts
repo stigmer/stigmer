@@ -1,9 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useAgentQueryService } from "@stigmer/agent";
-import { useSkillQueryService } from "@stigmer/skill";
-import { useMcpServerQueryService } from "@stigmer/mcp-server";
+import { useStigmer } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { dashboardKeys } from "./keys";
 
@@ -31,14 +29,12 @@ const COUNT_QUERY_PAGE = { num: 1, size: 1 };
  */
 export function useDashboardCounts(): DashboardCounts {
   const org = useActiveOrgSlug();
-  const agentService = useAgentQueryService();
-  const skillService = useSkillQueryService();
-  const mcpServerService = useMcpServerQueryService();
+  const stigmer = useStigmer();
 
   const agents = useQuery({
     queryKey: [...dashboardKeys.counts(org), "agents"],
     queryFn: () =>
-      agentService.search({ query: "", org, page: COUNT_QUERY_PAGE }),
+      stigmer.agent.list({ org, query: "", page: COUNT_QUERY_PAGE }),
     enabled: !!org,
     select: (data) => data.totalCount,
   });
@@ -46,7 +42,7 @@ export function useDashboardCounts(): DashboardCounts {
   const skills = useQuery({
     queryKey: [...dashboardKeys.counts(org), "skills"],
     queryFn: () =>
-      skillService.search({ query: "", org, page: COUNT_QUERY_PAGE }),
+      stigmer.skill.list({ org, query: "", page: COUNT_QUERY_PAGE }),
     enabled: !!org,
     select: (data) => data.totalCount,
   });
@@ -54,7 +50,7 @@ export function useDashboardCounts(): DashboardCounts {
   const mcpServers = useQuery({
     queryKey: [...dashboardKeys.counts(org), "mcp-servers"],
     queryFn: () =>
-      mcpServerService.search({ query: "", org, page: COUNT_QUERY_PAGE }),
+      stigmer.mcpServer.list({ org, query: "", page: COUNT_QUERY_PAGE }),
     enabled: !!org,
     select: (data) => data.totalCount,
   });

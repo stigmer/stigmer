@@ -1,0 +1,83 @@
+{
+  "resource": "organization",
+  "package": "ai.stigmer.tenancy.organization.v1",
+  "goImportPath": "organizationv1",
+  "services": [
+    {
+      "name": "OrganizationCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "Organization",
+          "inputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
+          "outputType": "Organization",
+          "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
+          "description": "Create or update an organization.\n The authorization and state-operation are determined depending on whether the organization\n is going to be created or updated which is determined as part of the request execution."
+        },
+        {
+          "name": "Create",
+          "inputType": "Organization",
+          "inputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
+          "outputType": "Organization",
+          "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
+          "description": "Create a new organization\n No authorization required - any authenticated user can create an organization\n The creator automatically becomes the owner of the organization"
+        },
+        {
+          "name": "Update",
+          "inputType": "Organization",
+          "inputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
+          "outputType": "Organization",
+          "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
+          "description": "Update an existing organization\n Requires: Organization admin permission (can_edit)"
+        },
+        {
+          "name": "Delete",
+          "inputType": "OrganizationId",
+          "inputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationId",
+          "outputType": "Organization",
+          "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
+          "description": "Delete an organization\n Requires: Organization owner permission (can_delete)\n Note: This will cascade delete all resources under the organization"
+        }
+      ]
+    },
+    {
+      "name": "OrganizationQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "OrganizationId",
+          "inputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationId",
+          "outputType": "Organization",
+          "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
+          "description": "Get an organization by ID\n Requires: User must be a member of the organization (can_view)"
+        },
+        {
+          "name": "Find",
+          "inputType": "FindApiResourcesRequest",
+          "inputFullType": "ai.stigmer.commons.apiresource.FindApiResourcesRequest",
+          "outputType": "OrganizationList",
+          "outputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationList",
+          "description": "Find organizations with pagination and filtering\n Requires: Platform admin permission\n This is for administrative purposes only"
+        },
+        {
+          "name": "FindMyOrganizations",
+          "inputType": "Empty",
+          "inputFullType": "google.protobuf.Empty",
+          "outputType": "Organizations",
+          "outputFullType": "ai.stigmer.tenancy.organization.v1.Organizations",
+          "description": "Find organizations the authenticated user is a member of\n Authorization handled in handler via IAM Policy listAuthorizedResourceIds\n Returns only organizations the caller has access to"
+        },
+        {
+          "name": "GetByExternalOrgId",
+          "inputType": "OrganizationExternalLookup",
+          "inputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup",
+          "outputType": "Organization",
+          "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
+          "description": "Look up a platform-managed organization by its external platform coordinates.\n Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.\n Authorization: custom — checks can_view on the referenced IdentityProvider."
+        }
+      ]
+    }
+  ]
+}
