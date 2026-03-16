@@ -14,6 +14,9 @@
     "./agent": "./src/agent/index.ts",
     "./session": "./src/session/index.ts",
     "./agent-execution": "./src/agent-execution/index.ts",
+    "./catalog": "./src/catalog/index.ts",
+    "./skill": "./src/skill/index.ts",
+    "./mcp-server": "./src/mcp-server/index.ts",
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
@@ -57,6 +60,18 @@
       "./agent-execution": {
         "types": "./dist/agent-execution/index.d.ts",
         "import": "./dist/agent-execution/index.js"
+      },
+      "./catalog": {
+        "types": "./dist/catalog/index.d.ts",
+        "import": "./dist/catalog/index.js"
+      },
+      "./skill": {
+        "types": "./dist/skill/index.d.ts",
+        "import": "./dist/skill/index.js"
+      },
+      "./mcp-server": {
+        "types": "./dist/mcp-server/index.d.ts",
+        "import": "./dist/mcp-server/index.js"
       },
       "./styles.css": "./dist/styles.css"
     }
