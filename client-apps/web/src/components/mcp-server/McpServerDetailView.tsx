@@ -13,7 +13,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@/components/ui/collapsible";
-import { formatRelativeTime } from "@/lib/time";
+import { formatRelativeTime } from "@/utils/time";
 import {
   Server,
   Globe,
