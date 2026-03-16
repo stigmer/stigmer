@@ -36,9 +36,9 @@ if [ -d "$GRAPHTON" ]; then
 fi
 
 if [ -d "$STUBS" ]; then
-    echo "Syncing stigmer-stubs..."
-    mkdir -p "$SOURCE_DIR/libs/stigmer-stubs"
-    cp -r "$STUBS"/* "$SOURCE_DIR/libs/stigmer-stubs/" 2>/dev/null || true
+    echo "Syncing stigmer-protos..."
+    mkdir -p "$SOURCE_DIR/libs/stigmer-protos"
+    cp -r "$STUBS"/* "$SOURCE_DIR/libs/stigmer-protos/" 2>/dev/null || true
 fi
 
 # Remove __pycache__ and .pyc files

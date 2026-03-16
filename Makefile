@@ -48,6 +48,7 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
 	$(MAKE) -C sdk/go codegen
 	$(MAKE) -C sdk/typescript codegen
+	$(MAKE) -C sdk/python codegen
 
 # ─── Test ─────────────────────────────────────
 
@@ -188,6 +189,7 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	@echo "  - CLI binaries + GitHub release  (release.cli.yaml)"
 	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
+	@echo "  - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)"
 
 protos-release: ## Publish protos to Buf, then tag release
 	$(MAKE) -C apis release

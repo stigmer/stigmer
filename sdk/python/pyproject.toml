@@ -6,6 +6,7 @@ build-backend = "hatchling.build"
 name = "stigmer"
 version = "0.0.0.dev0"
 description = "Stigmer Python SDK — typed API client for all Stigmer platform resources"
+readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 authors = [{ name = "Stigmer", email = "engineering@stigmer.ai" }]
@@ -23,7 +24,7 @@ classifiers = [
 dependencies = [
     "grpcio>=1.60.0",
     "protobuf>=6.32.0",
-    "stigmer-stubs>=0.1.0",
+    "stigmer-protos>=0.1.0",
 ]
 
 [project.urls]

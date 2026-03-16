@@ -118,7 +118,7 @@ func (m *Manager) EnsureReady(ctx context.Context) error {
 }
 
 // refreshDevSource re-extracts the application source and reinstalls path
-// dependencies (graphton, stigmer-stubs) into the existing venv. This is
+// dependencies (graphton, stigmer-protos) into the existing venv. This is
 // the dev-mode counterpart to a full bootstrap: it skips the expensive
 // Python download and pip-install-from-PyPI steps, touching only the
 // local source that developers actively change.
