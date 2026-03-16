@@ -3,7 +3,7 @@ module github.com/stigmer/stigmer/sdk/go
 go 1.25.6
 
 require (
-	github.com/stigmer/stigmer/apis/stubs/go v0.0.35
+	github.com/stigmer/stigmer/apis/stubs/go v0.0.36
 	google.golang.org/grpc v1.79.2
 	google.golang.org/protobuf v1.36.11
 )
