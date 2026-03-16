@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>ai.stigmer</groupId>
-    <artifactId>stigmer-java-sdk</artifactId>
+    <artifactId>stigmer-java</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>Stigmer Java SDK</name>
-    <description>Generated Java SDK client for the Stigmer API</description>
+    <description>Java SDK client for the Stigmer platform</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -18,19 +18,25 @@
 
         <protobuf-java.version>4.34.0</protobuf-java.version>
         <grpc-java.version>1.79.0</grpc-java.version>
+        <junit.version>5.11.4</junit.version>
     </properties>
 
     <dependencies>
+        <!-- Proto stubs for Stigmer API types and gRPC service definitions -->
         <dependency>
             <groupId>ai.stigmer</groupId>
             <artifactId>stigmer-java-stubs</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
+
+        <!-- Protobuf runtime -->
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
             <version>${protobuf-java.version}</version>
         </dependency>
+
+        <!-- gRPC client -->
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
@@ -46,5 +52,38 @@
             <artifactId>grpc-api</artifactId>
             <version>${grpc-java.version}</version>
         </dependency>
+
+        <!-- Netty transport with TLS (shaded to avoid version conflicts) -->
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-netty-shaded</artifactId>
+            <version>${grpc-java.version}</version>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>17</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+            </plugin>
+        </plugins>
+    </build>
 </project>
