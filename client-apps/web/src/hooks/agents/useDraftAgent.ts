@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAgentQueryService } from "@stigmer/agent";
+import { useStigmer } from "@stigmer/react";
 import { SYSTEM_AGENT_ORG } from "@/config/draft";
 import { agentKeys } from "./keys";
 
@@ -14,11 +14,11 @@ import { agentKeys } from "./keys";
  * it always resolves from {@link SYSTEM_AGENT_ORG}.
  */
 export function useDraftAgent(slug: string) {
-  const service = useAgentQueryService();
+  const stigmer = useStigmer();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: agentKeys.reference(SYSTEM_AGENT_ORG, slug),
-    queryFn: () => service.getByReference(SYSTEM_AGENT_ORG, slug),
+    queryFn: () => stigmer.agent.getByReference({ org: SYSTEM_AGENT_ORG, slug }),
     enabled: !!slug,
   });
 

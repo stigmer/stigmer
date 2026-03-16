@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useSkillQueryService } from "@stigmer/skill";
+import { useStigmer } from "@stigmer/react";
 import { skillKeys } from "./keys";
 
 /**
@@ -11,11 +11,11 @@ import { skillKeys } from "./keys";
  * description, tag), and status (version hash, state, git provenance).
  */
 export function useSkill(skillId: string) {
-  const service = useSkillQueryService();
+  const stigmer = useStigmer();
 
   return useQuery({
     queryKey: skillKeys.detail(skillId),
-    queryFn: () => service.get(skillId),
+    queryFn: () => stigmer.skill.get(skillId),
     enabled: !!skillId,
   });
 }

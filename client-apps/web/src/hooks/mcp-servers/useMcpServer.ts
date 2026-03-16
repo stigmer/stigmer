@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useMcpServerQueryService } from "@stigmer/mcp-server";
+import { useStigmer } from "@stigmer/react";
 import { mcpServerKeys } from "./keys";
 
 /**
@@ -11,11 +11,11 @@ import { mcpServerKeys } from "./keys";
  * tool approvals, env spec), and status (validation, discovered capabilities).
  */
 export function useMcpServer(mcpServerId: string) {
-  const service = useMcpServerQueryService();
+  const stigmer = useStigmer();
 
   return useQuery({
     queryKey: mcpServerKeys.detail(mcpServerId),
-    queryFn: () => service.get(mcpServerId),
+    queryFn: () => stigmer.mcpServer.get(mcpServerId),
     enabled: !!mcpServerId,
   });
 }

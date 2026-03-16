@@ -1,7 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useSessionQueryService } from "@stigmer/session";
+import { useStigmer } from "@stigmer/react";
+import { create } from "@bufbuild/protobuf";
+import {
+  ListSessionsRequestSchema,
+  ListSessionsByAgentRequestSchema,
+} from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { sessionKeys } from "./keys";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -25,7 +30,7 @@ export interface UseSessionPageOptions {
  */
 export function useSessionPage(options: UseSessionPageOptions) {
   const { page, pageSize = DEFAULT_PAGE_SIZE, agentId, tags } = options;
-  const service = useSessionQueryService();
+  const stigmer = useStigmer();
 
   const pageToken = page > 1 ? String(page - 1) : "";
 
@@ -33,9 +38,21 @@ export function useSessionPage(options: UseSessionPageOptions) {
     queryKey: sessionKeys.page({ page, pageSize, agentId, tags }),
     queryFn: () => {
       if (agentId) {
-        return service.listByAgent({ agentId, pageSize, pageToken });
+        return stigmer.session.listByAgent(
+          create(ListSessionsByAgentRequestSchema, {
+            agentId,
+            pageSize,
+            pageToken,
+          }),
+        );
       }
-      return service.list({ pageSize, pageToken, tags });
+      return stigmer.session.list(
+        create(ListSessionsRequestSchema, {
+          pageSize,
+          pageToken,
+          tags: tags ?? [],
+        }),
+      );
     },
   });
 

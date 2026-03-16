@@ -6,7 +6,7 @@ export { Stigmer } from "./stigmer.js";
 // Configuration
 export { type StigmerConfig, type TokenProvider } from "./config.js";
 
-// Error handling (from generated code)
+// Error handling
 export {
   StigmerError,
   type ErrorCode,
@@ -14,7 +14,15 @@ export {
   isUnauthenticated,
   isPermissionDenied,
   isRetryable,
-} from "./gen/errors.js";
+  type ErrorCategory,
+  isConnectError,
+  classifyError,
+  isRetryableError,
+  getUserMessage,
+  type RpcErrorMetadata,
+  annotateRpcError,
+  getRpcMetadata,
+} from "./errors.js";
 
 // Search client
 export {

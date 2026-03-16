@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { isRetryableError } from "@stigmer/rpc-client";
+import { isRetryableError } from "@stigmer/sdk";
 import { AuthProvider, AuthGuard } from "@/auth";
 import { StigmerTransportBridge } from "@/components/providers/StigmerTransportBridge";
 import { Toaster } from "@/components/ui/sonner";
