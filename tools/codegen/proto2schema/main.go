@@ -300,7 +300,7 @@ func runComprehensiveGeneration(includeDir, baseOutputDir string, useBufCache bo
 		skip     []string // Subdirectories to skip
 		flatScan bool     // If true, scan subdirectories (iam/apikey), if false, scan direct children (agentic/agent)
 	}{
-		{name: "agentic", skip: []string{"session"}, flatScan: false},
+		{name: "agentic", skip: nil, flatScan: false},
 		{name: "iam", skip: nil, flatScan: true},
 		{name: "tenancy", skip: nil, flatScan: true},
 	}
@@ -378,7 +378,7 @@ func runComprehensiveGeneration(includeDir, baseOutputDir string, useBufCache bo
 		fmt.Printf("   ✅ Generated workflow task schemas\n\n")
 	}
 
-	// Generate SDK service schemas for the 5 core resources + search
+	// Generate SDK service schemas for all resources with gRPC services
 	fmt.Printf("📦 Processing SDK service schemas\n")
 	if err := generateSDKServiceSchemas(includeDir, baseOutputDir, useBufCache); err != nil {
 		fmt.Printf("   ❌ Error: %v\n", err)
@@ -392,7 +392,8 @@ func runComprehensiveGeneration(includeDir, baseOutputDir string, useBufCache bo
 
 // generateNamespaceSchemas generates schemas for a specific namespace
 func generateNamespaceSchemas(protoDir, outputDir, includeDir string, useBufCache bool, messageSuffix string) error {
-	// Create output directory
+	// Wipe and recreate to remove stale schemas from previous runs.
+	os.RemoveAll(outputDir)
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
@@ -1109,17 +1110,13 @@ func writeSchemaFile(schema interface{}, outputPath string) error {
 	return os.WriteFile(outputPath, data, 0644)
 }
 
-// sdkResources defines the resources for which we generate SDK service schemas.
-// The key is the proto subdirectory name, the value is the SDK resource name.
-var sdkResources = map[string]struct {
-	name    string
-	listVia string // "SearchService" if the resource uses SearchService for listing
-}{
-	"agent":          {name: "agent", listVia: "SearchService"},
-	"skill":          {name: "skill", listVia: "SearchService"},
-	"mcpserver":      {name: "mcpserver", listVia: "SearchService"},
-	"session":        {name: "session"},
-	"agentexecution": {name: "execution"},
+// searchListResources are resources that use SearchService for listing.
+// This is a server-side indexing concern: only resources indexed in the
+// search system can use SearchService-backed listing.
+var searchListResources = map[string]bool{
+	"agent":    true,
+	"skill":    true,
+	"mcpserver": true,
 }
 
 // extractServiceSchemas parses proto files for a resource and extracts service definitions.
@@ -1202,46 +1199,67 @@ func extractServiceSchemas(protoDir, includeDir string, useBufCache bool) (*Serv
 	return &schema, nil
 }
 
-// generateSDKServiceSchemas generates service schemas for all SDK resources.
+// generateSDKServiceSchemas auto-discovers all resources with gRPC services
+// across all namespaces (agentic, iam, tenancy) and generates service schemas.
 func generateSDKServiceSchemas(includeDir, baseOutputDir string, useBufCache bool) error {
 	servicesDir := filepath.Join(baseOutputDir, "services")
+	// Wipe and recreate to remove stale schemas from previous runs.
+	os.RemoveAll(servicesDir)
 	if err := os.MkdirAll(servicesDir, 0755); err != nil {
 		return fmt.Errorf("failed to create services directory: %w", err)
 	}
 
-	stigmerDir := filepath.Join(includeDir, "ai", "stigmer", "agentic")
+	stigmerDir := filepath.Join(includeDir, "ai", "stigmer")
 
-	for protoSubdir, res := range sdkResources {
-		protoDir := filepath.Join(stigmerDir, protoSubdir, "v1")
-		if _, err := os.Stat(protoDir); os.IsNotExist(err) {
-			fmt.Printf("   ⚠️  No proto directory for %s, skipping\n", res.name)
+	namespaces := []string{"agentic", "iam", "tenancy"}
+	for _, ns := range namespaces {
+		nsDir := filepath.Join(stigmerDir, ns)
+		if _, err := os.Stat(nsDir); os.IsNotExist(err) {
 			continue
 		}
 
-		schema, err := extractServiceSchemas(protoDir, includeDir, useBufCache)
+		subDirs, err := os.ReadDir(nsDir)
 		if err != nil {
-			fmt.Printf("   ❌ Error extracting services for %s: %v\n", res.name, err)
-			continue
-		}
-		if schema == nil || len(schema.Services) == 0 {
-			fmt.Printf("   ⚠️  No services found for %s\n", res.name)
+			fmt.Printf("   ⚠️  Error reading %s: %v\n", ns, err)
 			continue
 		}
 
-		schema.Resource = res.name
-		schema.ListVia = res.listVia
+		for _, subDir := range subDirs {
+			if !subDir.IsDir() {
+				continue
+			}
+			resourceDir := subDir.Name()
+			protoDir := filepath.Join(nsDir, resourceDir, "v1")
+			if _, err := os.Stat(protoDir); os.IsNotExist(err) {
+				continue
+			}
 
-		outputPath := filepath.Join(servicesDir, res.name+".json")
-		if err := writeSchemaFile(schema, outputPath); err != nil {
-			fmt.Printf("   ❌ Error writing %s: %v\n", res.name, err)
-			continue
+			schema, err := extractServiceSchemas(protoDir, includeDir, useBufCache)
+			if err != nil {
+				fmt.Printf("   ❌ Error extracting services for %s/%s: %v\n", ns, resourceDir, err)
+				continue
+			}
+			if schema == nil || len(schema.Services) == 0 {
+				continue
+			}
+
+			schema.Resource = resourceDir
+			if searchListResources[resourceDir] {
+				schema.ListVia = "SearchService"
+			}
+
+			outputPath := filepath.Join(servicesDir, resourceDir+".json")
+			if err := writeSchemaFile(schema, outputPath); err != nil {
+				fmt.Printf("   ❌ Error writing %s: %v\n", resourceDir, err)
+				continue
+			}
+			fmt.Printf("   → services/%s.json (%d services, %d methods)\n",
+				resourceDir, len(schema.Services), countMethods(schema))
 		}
-		fmt.Printf("   → services/%s.json (%d services, %d methods)\n",
-			res.name, len(schema.Services), countMethods(schema))
 	}
 
 	// Also extract the SearchService (in search/v1/)
-	searchDir := filepath.Join(includeDir, "ai", "stigmer", "search", "v1")
+	searchDir := filepath.Join(stigmerDir, "search", "v1")
 	if _, err := os.Stat(searchDir); err == nil {
 		schema, err := extractServiceSchemas(searchDir, includeDir, useBufCache)
 		if err == nil && schema != nil && len(schema.Services) > 0 {

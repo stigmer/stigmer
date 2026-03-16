@@ -1,0 +1,52 @@
+{
+  "name": "GitRepoSource",
+  "description": "GitRepoSource provisions a workspace by cloning a git repository.\n\n Authentication: The provisioner resolves GITHUB_TOKEN from the merged\n environment (Agent defaults \u003c Environment \u003c ExecutionContext.runtime_env)\n and injects it into the clone URL. The token is consumed by provisioning\n and stripped before forwarding to the agent runtime (see AD-05).\n\n HTTPS only for MVP. SSH key authentication is a future enhancement.",
+  "protoType": "ai.stigmer.agentic.session.v1.GitRepoSource",
+  "protoFile": "apis/ai/stigmer/agentic/session/v1/workspace.proto",
+  "fields": [
+    {
+      "name": "Url",
+      "jsonName": "url",
+      "protoField": "url",
+      "type": {
+        "kind": "string"
+      },
+      "description": "HTTPS clone URL (required).\n Must use the https:// scheme. SSH URLs (git@...) are not supported.\n Example: \"https://github.com/acme/my-app.git\"",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Branch",
+      "jsonName": "branch",
+      "protoField": "branch",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Branch to clone (optional).\n When empty, the repository's default branch is used.\n Example: \"main\", \"develop\", \"feature/workspace-support\"",
+      "required": false
+    },
+    {
+      "name": "Commit",
+      "jsonName": "commit",
+      "protoField": "commit",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Commit SHA to checkout after cloning (optional).\n When set, the workspace is checked out at this exact commit (detached HEAD).\n When both branch and commit are set, the branch is cloned first, then\n the commit is checked out -- this allows shallow clones of a specific\n commit on a known branch.\n When only commit is set (no branch), a full clone is required to\n locate the commit.",
+      "required": false
+    },
+    {
+      "name": "Depth",
+      "jsonName": "depth",
+      "protoField": "depth",
+      "type": {
+        "kind": "int32"
+      },
+      "description": "Clone depth (optional).\n\n Presence semantics:\n   - Absent (not set): shallow clone with depth 1 (fast default).\n   - 0: full clone with complete history.\n   - N \u003e 0: shallow clone with depth N.\n\n Uses proto3 optional to distinguish \"not set\" from \"set to 0.\"",
+      "required": false,
+      "oneofGroup": "_depth"
+    }
+  ]
+}

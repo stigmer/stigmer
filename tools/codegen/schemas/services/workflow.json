@@ -1,0 +1,67 @@
+{
+  "resource": "workflow",
+  "package": "ai.stigmer.agentic.workflow.v1",
+  "goImportPath": "workflowv1",
+  "services": [
+    {
+      "name": "WorkflowCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "Workflow",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
+          "outputType": "Workflow",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
+          "description": "Create or update a workflow.\n The authorization and state-operation are determined depending on whether the workflow\n is going to be created or updated which is determined as part of the request execution."
+        },
+        {
+          "name": "Create",
+          "inputType": "Workflow",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
+          "outputType": "Workflow",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
+          "description": "Create a new workflow.\n\n Authorization:\n - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization\n - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)"
+        },
+        {
+          "name": "Update",
+          "inputType": "Workflow",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
+          "outputType": "Workflow",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
+          "description": "Update an existing workflow."
+        },
+        {
+          "name": "Delete",
+          "inputType": "WorkflowId",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.WorkflowId",
+          "outputType": "Workflow",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
+          "description": "Delete a workflow."
+        }
+      ]
+    },
+    {
+      "name": "WorkflowQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "WorkflowId",
+          "inputFullType": "ai.stigmer.agentic.workflow.v1.WorkflowId",
+          "outputType": "Workflow",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
+          "description": "Get a single workflow by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "Workflow",
+          "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
+          "description": "Custom authorization in handler"
+        }
+      ]
+    }
+  ]
+}

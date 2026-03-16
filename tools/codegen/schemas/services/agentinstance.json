@@ -1,0 +1,75 @@
+{
+  "resource": "agentinstance",
+  "package": "ai.stigmer.agentic.agentinstance.v1",
+  "goImportPath": "agentinstancev1",
+  "services": [
+    {
+      "name": "AgentInstanceCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "AgentInstance",
+          "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
+          "outputType": "AgentInstance",
+          "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
+          "description": "Create or update an agent instance.\n The authorization and state-operation are determined depending on whether the agent instance\n is going to be created or updated which is determined as part of the request execution."
+        },
+        {
+          "name": "Create",
+          "inputType": "AgentInstance",
+          "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
+          "outputType": "AgentInstance",
+          "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
+          "description": "Create a new agent instance with full state.\n Provide organization_id in metadata.org, and complete spec with configuration and secrets.\n\n Authorization: Uses FGA contextual tuples (handler-level)\n - Checks can_create_instance on parent agent (via spec.agent_id)\n - For org-scoped: Passes contextual tuple agent#organization@organization:target-org\n - FGA evaluates membership via contextual tuple (single authorization check)\n\n This pattern eliminates redundant checks by providing organization context to FGA"
+        },
+        {
+          "name": "Update",
+          "inputType": "AgentInstance",
+          "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
+          "outputType": "AgentInstance",
+          "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
+          "description": "Update an instance with full state.\n Used to update entire instance configuration including metadata, spec, and secrets.\n No individual field updates - always provide complete state.\n Authorization: Owner or org admin can update (can_edit permission)"
+        },
+        {
+          "name": "Delete",
+          "inputType": "AgentInstanceId",
+          "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceId",
+          "outputType": "AgentInstance",
+          "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
+          "description": "Delete an agent instance.\n Authorization: Only owner can delete (can_delete permission)"
+        }
+      ]
+    },
+    {
+      "name": "AgentInstanceQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "AgentInstanceId",
+          "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceId",
+          "outputType": "AgentInstance",
+          "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
+          "description": "Get a single agent instance by ID."
+        },
+        {
+          "name": "GetByAgent",
+          "inputType": "GetAgentInstancesByAgentRequest",
+          "inputFullType": "ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest",
+          "outputType": "AgentInstanceList",
+          "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceList",
+          "description": "Get all instances of a specific agent template.\n Authorization is handled in handler via FGA query for authorized agent_instance_ids,\n then filtered by agent_id. This ensures users only see instances they have access to,\n even if the parent agent is shared across organizations."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "AgentInstance",
+          "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
+          "description": "Custom authorization in handler"
+        }
+      ]
+    }
+  ]
+}

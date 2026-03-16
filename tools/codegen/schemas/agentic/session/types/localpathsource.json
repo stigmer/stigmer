@@ -1,0 +1,21 @@
+{
+  "name": "LocalPathSource",
+  "description": "LocalPathSource uses an existing directory on the host filesystem as the\n workspace. The agent operates directly on the user's files -- changes are\n immediate and persistent.\n\n Deployment constraint: only valid when the agent-runner is in local mode.\n Cloud runners reject this at provisioning time with a clear error, the same\n way GitRepoSource rejects SSH URLs at validation time. This is a normal\n deployment-specific constraint, not a schema limitation.\n\n No copy or clone is made. The path is used directly as the workspace root.",
+  "protoType": "ai.stigmer.agentic.session.v1.LocalPathSource",
+  "protoFile": "apis/ai/stigmer/agentic/session/v1/workspace.proto",
+  "fields": [
+    {
+      "name": "Path",
+      "jsonName": "path",
+      "protoField": "path",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Absolute path to an existing directory on the host filesystem (required).\n The runner validates that the path exists and is a directory at\n provisioning time.\n Example: \"/home/user/projects/my-app\", \"/Users/dev/src/acme-api\"",
+      "required": false,
+      "validation": {
+        "minLength": 1
+      }
+    }
+  ]
+}

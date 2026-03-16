@@ -11,13 +11,12 @@ import (
 // Client is the top-level Stigmer API client.
 // Create one with NewClient and use the resource-specific sub-clients
 // to interact with the Stigmer platform.
+//
+// All resource clients (Agent, Skill, Organization, etc.) are available
+// via the embedded gen.Client. The Search client is added separately.
 type Client struct {
-	Agent     *AgentClient
-	Skill     *SkillClient
-	McpServer *McpServerClient
-	Session   *SessionClient
-	AgentExecution *AgentExecutionClient
-	Search    *SearchClient
+	*gen.Client
+	Search *SearchClient
 
 	conn *grpc.ClientConn
 }
@@ -47,13 +46,9 @@ func NewClient(apiKey string, opts ...ClientOption) (*Client, error) {
 	}
 
 	return &Client{
-		Agent:     gen.NewAgentClient(conn),
-		Skill:     gen.NewSkillClient(conn),
-		McpServer: gen.NewMcpServerClient(conn),
-		Session:   gen.NewSessionClient(conn),
-		AgentExecution: gen.NewAgentExecutionClient(conn),
-		Search:    newSearchClient(conn),
-		conn:      conn,
+		Client: gen.NewClient(conn),
+		Search: newSearchClient(conn),
+		conn:   conn,
 	}, nil
 }
 
