@@ -47,6 +47,7 @@ build: ## Build the Stigmer CLI binary
 protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
 	$(MAKE) -C sdk/go codegen
+	$(MAKE) -C sdk/typescript codegen
 
 # ─── Test ─────────────────────────────────────
 
