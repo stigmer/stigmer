@@ -67,15 +67,27 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-03-16  
-**Current Focus**: Theme moved to SDK. Next up: Task 2 (preset prop for StigmerProvider)
+**Current Focus**: Tasks 1–3 complete. Next up: Task 4 (transition tokens)
+
+## Session Progress (2026-03-16, session 4)
+- Completed Task 3: Added shadow elevation tokens (`--stgm-shadow-sm/md/lg`) to theme system
+- Added 3 tokens to `tokens.css` `:root` (Tailwind defaults) and `.dark` (~2.5x opacity for dark surface visibility)
+- Added per-preset shadow overrides to all 4 preset files (corporate=prominent, startup=minimal, friendly=soft, fintech=precise)
+- Added `--shadow-sm/md/lg` Tailwind `@theme inline` mappings to both SDK `styles.css` and Console `globals.css`
+- Verified built CSS resolution chain: `.shadow-md` → `--tw-shadow: var(--stgm-shadow-md)` → token value
+- Build clean: `npm run build:libs` passes (TypeScript + Tailwind compilation)
+
+## Session Progress (2026-03-16, session 3)
+- Completed Task 2: Added `preset` prop to `StigmerProvider` and fixed dark mode CSS selectors
+- Added `ThemePresetId` union type and `resolvePresetClass()` to `@stigmer/theme`
+- Fixed dark mode CSS selectors in all 4 preset files — added `.dark .stgm-theme-X` descendant selector for embedded contexts
+- Switched `THEME_PRESETS` from explicit type annotation to `as const satisfies readonly ThemePreset[]` to preserve literal types
+- Committed: `7118c24f` on branch `feat/move-theme-to-sdk`
 
 ## Session Progress (2026-03-16, session 2)
 - Moved `@stigmer/theme` from `client-apps/web/_libs/ui/theme/` to `sdk/theme/` (git mv)
-- Updated root `package.json` workspaces: replaced `client-apps/web/_libs/ui/*` with `sdk/theme`
-- Made `sdk/theme/tsconfig.json` self-contained (removed extends to old `_libs/tsconfig.base.json`), aligned with other SDK packages
-- Updated `sdk/theme/package.json` repository.directory to `sdk/theme`
-- Removed orphaned `client-apps/web/_libs/` (only had README.md and tsconfig.base.json after move)
-- Fixed `scripts/publish-libs.mjs`: updated path from old location to `sdk/theme`, corrected publish order (theme before react)
+- Updated root `package.json` workspaces, tsconfig, package.json, publish script
+- Removed orphaned `client-apps/web/_libs/` directory
 - Verified: `npm install` + `npm run build:libs` + publish dry-run all pass
 
 ## Session Progress (2026-03-16, session 1)
@@ -84,20 +96,20 @@ That's it! No complex structure - just focused work.
 - Committed: `14f0c8ad` on branch `feat/move-theme-to-sdk`
 
 ## Next Steps
-1. Task 2: Add `preset` prop to StigmerProvider for programmatic preset application
-2. Task 3: Add shadow tokens to tokens.css and presets
-3. Task 4: Add transition tokens to tokens.css and presets
-4. Task 5: Add z-index base token for stacking context isolation
-5. Task 6: Write @stigmer/react README for platform builders
+1. Task 4: Add transition tokens (`--stgm-transition-duration`, `--stgm-transition-timing`) to tokens.css and presets
+2. Task 5: Add z-index base token (`--stgm-z-base`) for stacking context isolation
+3. Task 6: Write @stigmer/react README for platform builders
 
 ## Context for Resume
 - Branch: `feat/move-theme-to-sdk`
+- `StigmerProvider` now accepts optional `preset` prop — type-safe `ThemePresetId` union
+- `THEME_PRESETS` uses `as const satisfies readonly ThemePreset[]` to preserve literal types
+- Dark mode CSS selectors now support both compound (`.stgm-theme-X.dark`) and descendant (`.dark .stgm-theme-X`) patterns
+- Shadow tokens (`--stgm-shadow-sm/md/lg`) fully wired: tokens.css → @theme inline → Tailwind utilities. Each preset overrides both light and dark.
+- Console theming unchanged — `ThemePresetSelector` and `StigmerTransportBridge` remain as-is
 - `@stigmer/theme` now lives at `sdk/theme/` — all imports unchanged (resolve by package name)
-- `client-apps/web/_libs/` directory fully removed
-- `scripts/publish-libs.mjs` PACKAGES order: protos -> typescript -> theme -> react
-- The SDK `styles.css` now has all embeddable-component tokens; Console `globals.css` is the superset with sidebar tokens on top
-- No SDK components currently use the newly added tokens — they were added proactively
-- All 4 presets override chart tokens but none override success/warning/info (they inherit from base tokens.css)
+- Tasks 4–5 (remaining token categories) are independent of each other
+- Task 6 (docs) should be last since it documents everything
 
 ---
 

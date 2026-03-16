@@ -26,6 +26,9 @@
   --stgm-chart-3: oklch(0.50 0.15 300);
   --stgm-chart-4: oklch(0.72 0.16 150);
   --stgm-chart-5: oklch(0.68 0.18 60);
+  --stgm-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.12), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --stgm-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.12), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --stgm-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.12), 0 4px 6px -4px rgb(0 0 0 / 0.08);
   --stgm-sidebar: oklch(0.20 0.06 250);
   --stgm-sidebar-foreground: oklch(0.93 0 0);
   --stgm-sidebar-primary: oklch(0.75 0.14 250);
@@ -60,6 +63,9 @@
   --stgm-chart-3: oklch(0.58 0.18 300);
   --stgm-chart-4: oklch(0.70 0.17 150);
   --stgm-chart-5: oklch(0.68 0.20 60);
+  --stgm-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.28);
+  --stgm-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.35), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --stgm-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.35);
   --stgm-sidebar: oklch(0.13 0.05 250);
   --stgm-sidebar-foreground: oklch(0.93 0 0);
   --stgm-sidebar-primary: oklch(0.68 0.16 250);

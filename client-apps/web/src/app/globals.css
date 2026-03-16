@@ -54,6 +54,9 @@
   --color-sidebar-ring: var(--stgm-sidebar-ring);
   --font-sans: var(--stgm-font-sans);
   --font-mono: var(--stgm-font-mono);
+  --shadow-sm: var(--stgm-shadow-sm);
+  --shadow-md: var(--stgm-shadow-md);
+  --shadow-lg: var(--stgm-shadow-lg);
 }
 
 body {
