@@ -2,25 +2,59 @@
 
 ## Current State
 - **Status**: in-progress
-- **Last Session**: 2026-03-16 — Completed Task 2 (Scaffold sdk/python handwritten runtime layer)
-- **Active Task**: Task 3 (Wire codegen into build pipeline)
+- **Last Session**: 2026-03-16 — Completed Task 4 (PyPI publishing setup)
+- **Active Task**: None (all planned tasks complete)
 
-## Session Progress (2026-03-16, Session 2)
-- Created 7 handwritten runtime files for `sdk/python/src/stigmer/`
-- `_interceptors.py` — `AuthInterceptor` with `_ClientCallDetails` wrapper, handles unary + server-streaming RPCs
-- `_transport.py` — `create_channel()` factory with TLS/insecure support, applies interceptors via `grpc.intercept_channel()`
-- `_search.py` — `SearchClient`, `SearchParams`, `SearchResponse` dataclasses for cross-resource search
-- `_client.py` — `StigmerClient` wrapping `GeneratedClient` (17 sub-clients) + `SearchClient`, context manager support
-- `__init__.py` — Public API surface with 71 exports in `__all__`
-- `pyproject.toml` — Package metadata with hatchling build backend, dependencies on grpcio/protobuf/stigmer-stubs
-- `py.typed` — PEP 561 marker for inline type support
-- Validated: syntax check, editable install, all 71 exports resolve, all 18 sub-client type annotations correct, interceptor metadata injection tested, channel creation tested, context manager verified
+## Session Progress (2026-03-16, Session 4)
+- Renamed `stigmer-stubs` to `stigmer-protos` across 8 source files for naming consistency with npm `@stigmer/protos`:
+  - `apis/stubs/python/stigmer/pyproject.toml` — package name
+  - `sdk/python/pyproject.toml` — dependency name
+  - `backend/services/agent-runner/pyproject.toml` — Poetry dep key
+  - `backend/services/agent-runner/Dockerfile` — comment
+  - `client-apps/cli/embedded/agentrunner/sync.sh` — directory name + echo
+  - `client-apps/cli/internal/cli/daemon/agent_runner_native.go` — path strings + comments
+  - `client-apps/cli/internal/cli/pythonrt/manager.go` — comments
+  - `client-apps/cli/embedded/agentrunner/agentrunner.go` — comments
+- Created `.github/workflows/release.python-sdk.yaml` with 3 jobs:
+  - `determine-version` — extracts version from tag or workflow_dispatch input
+  - `publish-protos` — generates stubs via Buf, builds + publishes `stigmer-protos` to PyPI
+  - `publish-sdk` — runs codegen via Go, builds + publishes `stigmer` to PyPI
+  - Uses PyPI Trusted Publishers (OIDC) — no API tokens or secrets needed
+- Created `sdk/python/README.md` for PyPI package page (installation, quick start, resource clients, error handling, configuration, codegen)
+- Added `readme = "README.md"` to `sdk/python/pyproject.toml`
+- Updated root `Makefile` release target echo to include Python SDK CI line
+- Validated: Go code compiles after rename, no remaining `stigmer-stubs` references in source files
+
+## Session Progress (2026-03-16, Session 3)
+- Created `sdk/python/Makefile` with 5 targets:
+  - `codegen-clients` — wipes `src/stigmer/_gen/`, runs `go run ./tools/codegen/generator/ --target sdk-client-python`
+  - `codegen` — wraps `codegen-clients` with summary output
+  - `codegen-verify` — runs codegen then `ast.parse()` syntax check on all generated files (21 files verified)
+  - `clean` — removes dist/build/egg-info artifacts
+  - `help` — lists all targets
+- Updated root `Makefile` `protos` target to include `$(MAKE) -C sdk/python codegen` as the fourth step
+- Validated: `make -C sdk/python help` parses, `make -C sdk/python codegen` generates 21 files, `make -C sdk/python codegen-verify` passes syntax check on all 21 files
+- Pipeline order: `apis build` → `sdk/go codegen` → `sdk/typescript codegen` → `sdk/python codegen`
 
 ## Next Steps
-1. **Task 3**: Wire codegen into build pipeline — `sdk/python/Makefile`, root `make protos` integration, `codegen-verify` target
-2. **Task 4**: PyPI publishing setup — Trusted Publishers, GitHub Actions workflow, README
+1. **Follow-up**: Configure PyPI Trusted Publisher for `stigmer-protos` (manual step on pypi.org)
+2. **Follow-up**: Regenerate `backend/services/agent-runner/poetry.lock` after `stigmer-stubs` → `stigmer-protos` rename
+3. **Follow-up**: First test release via `workflow_dispatch` to verify the full publish pipeline
 
 ## Context for Resume
+
+### Key Decisions Made (Session 4)
+- **Package naming**: Renamed `stigmer-stubs` to `stigmer-protos` to align with npm's `@stigmer/protos` naming
+- **Workflow structure**: Two sequential publish jobs — protos first (SDK depends on it), SDK second. If protos fails, SDK publish is skipped.
+- **OIDC auth**: Uses `pypa/gh-action-pypi-publish` with Trusted Publishers — no API tokens stored in GitHub secrets
+- **Version injection**: Regex replacement in pyproject.toml from the tag-derived version, applied before `python -m build`
+- **Build tool**: `python -m build` (PEP 517 standard) works with both poetry-core (protos) and hatchling (SDK)
+- **Filesystem path unchanged**: `apis/stubs/python/stigmer/` directory name kept as-is — renaming would cascade into apis/Makefile, Buf config, etc.
+
+### Key Decisions Made (Session 3)
+- **Makefile pattern**: Follows TypeScript SDK Makefile structure (not Go's two-stage schema+clients pattern, since schemas are already generated by the Go SDK step)
+- **codegen-verify**: Uses `ast.parse()` for syntax verification rather than importing (avoids needing grpcio/protobuf installed in CI for verification)
+- **No separate codegen-schemas target**: Python SDK reuses schemas already generated by `sdk/go codegen-schemas` (same as TypeScript SDK)
 
 ### Key Decisions Made (Session 2)
 - **Transport**: `grpc.intercept_channel()` with custom interceptors (not `composite_channel_credentials`) — works with both secure and insecure channels, matches Go SDK pattern
@@ -30,28 +64,32 @@
 - **Build backend**: `hatchling` (PEP 517/621) instead of `poetry-core` — lighter, no lockfile requirement
 - **Sync-only**: No async (`grpc.aio`) in initial release — follow-up work
 
-### Handwritten File Structure
+### File Structure
 ```
 sdk/python/
-├── pyproject.toml                    (hatchling build, dependencies)
+├── Makefile                             (codegen + verify + clean)
+├── README.md                            (PyPI package page)
+├── pyproject.toml                       (hatchling build, dependencies)
 └── src/stigmer/
-    ├── __init__.py                   (71 public exports)
-    ├── py.typed                      (PEP 561 marker)
-    ├── _client.py                    (StigmerClient — entry point)
-    ├── _transport.py                 (gRPC channel factory)
-    ├── _interceptors.py              (auth metadata interceptor)
-    ├── _search.py                    (cross-resource search client)
-    └── _gen/                         (codegen output — 21 files from Task 1)
+    ├── __init__.py                      (71 public exports)
+    ├── py.typed                         (PEP 561 marker)
+    ├── _client.py                       (StigmerClient — entry point)
+    ├── _transport.py                    (gRPC channel factory)
+    ├── _interceptors.py                 (auth metadata interceptor)
+    ├── _search.py                       (cross-resource search client)
+    └── _gen/                            (codegen output — 21 files)
 ```
 
 ### Validation Results
 - All `.py` files pass `ast.parse()` syntax validation
-- `pip install -e` succeeds for both `stigmer-stubs` and `stigmer`
+- `pip install -e` succeeds for both `stigmer-protos` and `stigmer`
 - All 71 names in `__all__` resolve to real objects
 - All 18 `StigmerClient` attributes properly typed (IDE-discoverable)
 - `AuthInterceptor` correctly injects `authorization: Bearer <token>` for both unary and streaming, preserves pre-existing metadata
 - Empty API key rejected with `ValueError`
 - Context manager (`with StigmerClient(...):`) works correctly
+- `make -C sdk/python codegen-verify` passes (21 files)
+- Go code compiles after `stigmer-stubs` → `stigmer-protos` rename
 
 ## Quick Resume
 To continue this project, drag this file into chat:

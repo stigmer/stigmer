@@ -41,7 +41,7 @@ COPY backend/services/agent-runner/pyproject.toml backend/services/agent-runner/
 # 1. graphton (../../libs/python/graphton)
 COPY backend/libs/python/graphton /app/backend/libs/python/graphton
 
-# 2. stigmer-stubs (../../../apis/stubs/python/stigmer)
+# 2. stigmer-protos (../../../apis/stubs/python/stigmer)
 COPY apis/stubs/python /app/apis/stubs/python
 
 # Install dependencies into in-project virtualenv

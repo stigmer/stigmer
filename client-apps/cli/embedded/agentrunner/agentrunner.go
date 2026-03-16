@@ -31,7 +31,7 @@ func IsAvailable() bool {
 // DevRepoRoot returns the repository root when running in dev mode.
 // Returns empty string in embed mode or when the root cannot be determined.
 // Callers use this to locate monorepo path dependencies (graphton,
-// stigmer-stubs) that live outside the agent-runner source tree.
+// stigmer-protos) that live outside the agent-runner source tree.
 func DevRepoRoot() string {
 	return devRepoRoot()
 }
