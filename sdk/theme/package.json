@@ -58,7 +58,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/stigmer/stigmer.git",
-    "directory": "client-apps/web/_libs/ui/theme"
+    "directory": "sdk/theme"
   },
   "peerDependencies": {
     "clsx": "^2.0.0",

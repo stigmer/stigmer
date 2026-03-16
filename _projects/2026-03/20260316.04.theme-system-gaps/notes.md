@@ -18,13 +18,13 @@ Keep entries **timestamped** and **concise**. This isn't a novel - just enough c
 
 ## 2026-03-16 - Project kickoff & architectural analysis
 
-### `@stigmer/theme` should move to `sdk/theme/`
+### `@stigmer/theme` moved to `sdk/theme/` (done)
 
-- Currently at `client-apps/web/_libs/ui/theme/` but published as `@stigmer/theme` on npm (v0.0.34)
-- `@stigmer/react` depends on it — SDK depending on a client app internal lib is an inverted dependency
+- Was at `client-apps/web/_libs/ui/theme/` but published as `@stigmer/theme` on npm
+- `@stigmer/react` depends on it — SDK depending on a client app internal lib was an inverted dependency
 - Platform builders install it directly — it's a first-class SDK surface, not a web app internal
 - The `_libs` convention implies non-publishable internals; this package is neither
-- **Not in scope for this quick project** — fits in `20260316.01.sdk-package-restructure`
+- **Completed in session 2** — moved via `git mv`, updated workspace config, made tsconfig self-contained, fixed publish script path and order, removed orphaned `_libs/`
 
 ### Gap audit summary
 
@@ -37,6 +37,24 @@ Keep entries **timestamped** and **concise**. This isn't a novel - just enough c
 6. No `@stigmer/react` README for platform builders
 
 Deferred: spacing tokens, typography scale, RTL/locale/density, Storybook
+
+---
+
+## 2026-03-16 - Task 1: Token sync decision
+
+### Sidebar tokens excluded from SDK (deliberate)
+
+- Sidebar is a Console layout concern — embedded SDK components (chat widgets, execution viewers) don't have sidebars
+- Excluding sidebar from `@theme inline` in SDK means Tailwind won't generate `bg-sidebar`, `text-sidebar-foreground`, etc. in SDK components
+- This acts as a compile-time guard: if an SDK component author tries to use `bg-sidebar`, it simply won't exist — steering them toward generic surface tokens (background, card, muted)
+- The Console gets sidebar tokens through `globals.css`, which imports SDK styles and adds sidebar mappings on top — correct layering
+- Cost of being wrong is near zero: adding sidebar later is 7 lines of CSS; removing after adoption is a breaking change
+
+### Token grouping in styles.css
+
+- Status tokens (success, warning, info) grouped after destructive — all semantic status colors together
+- Chart tokens grouped after ring — matching the grouping in globals.css
+- 11 new mappings total, bringing SDK from 19 to 30 token mappings
 
 ---
 
