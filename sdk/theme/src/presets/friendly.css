@@ -36,6 +36,7 @@
   --stgm-sidebar-ring: oklch(0.62 0.15 40);
 }
 
+.dark .stgm-theme-friendly,
 .stgm-theme-friendly.dark {
   --stgm-background: oklch(0.18 0.03 50);
   --stgm-foreground: oklch(0.93 0.01 65);
