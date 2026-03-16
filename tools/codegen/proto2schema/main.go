@@ -2,6 +2,7 @@
 //
 // This tool parses .proto files and extracts:
 // - Message definitions (task configs, shared types)
+// - Service definitions (RPC methods for SDK client generation)
 // - Field names, types, and metadata
 // - Comments and documentation
 // - buf.validate validation rules
@@ -94,6 +95,35 @@ type Validation struct {
 	MinItems  int      `json:"minItems,omitempty"`
 	MaxItems  int      `json:"maxItems,omitempty"`
 	Enum      []string `json:"enum,omitempty"`
+}
+
+// ServiceSchemaFile represents all services for a single resource,
+// written to tools/codegen/schemas/services/<resource>.json.
+type ServiceSchemaFile struct {
+	Resource     string              `json:"resource"`
+	Package      string              `json:"package"`
+	GoImportPath string              `json:"goImportPath"`
+	Services     []ServiceDefinition `json:"services"`
+	ListVia      string              `json:"listVia,omitempty"`
+}
+
+// ServiceDefinition describes a single gRPC service (e.g., AgentQueryController).
+type ServiceDefinition struct {
+	Name    string         `json:"name"`
+	Role    string         `json:"role"` // "query" or "command"
+	Methods []MethodSchema `json:"methods"`
+}
+
+// MethodSchema describes a single RPC method.
+type MethodSchema struct {
+	Name            string `json:"name"`
+	InputType       string `json:"inputType"`
+	InputFullType   string `json:"inputFullType"`
+	OutputType      string `json:"outputType"`
+	OutputFullType  string `json:"outputFullType"`
+	ServerStreaming  bool   `json:"serverStreaming,omitempty"`
+	ClientStreaming  bool   `json:"clientStreaming,omitempty"`
+	Description     string `json:"description,omitempty"`
 }
 
 func main() {
@@ -346,6 +376,14 @@ func runComprehensiveGeneration(includeDir, baseOutputDir string, useBufCache bo
 		fmt.Printf("   ❌ Error: %v\n", err)
 	} else {
 		fmt.Printf("   ✅ Generated workflow task schemas\n\n")
+	}
+
+	// Generate SDK service schemas for the 5 core resources + search
+	fmt.Printf("📦 Processing SDK service schemas\n")
+	if err := generateSDKServiceSchemas(includeDir, baseOutputDir, useBufCache); err != nil {
+		fmt.Printf("   ❌ Error: %v\n", err)
+	} else {
+		fmt.Printf("   ✅ Generated SDK service schemas\n\n")
 	}
 
 	fmt.Println("🎉 Comprehensive schema generation complete!")
@@ -1069,4 +1107,198 @@ func writeSchemaFile(schema interface{}, outputPath string) error {
 	}
 
 	return os.WriteFile(outputPath, data, 0644)
+}
+
+// sdkResources defines the resources for which we generate SDK service schemas.
+// The key is the proto subdirectory name, the value is the SDK resource name.
+var sdkResources = map[string]struct {
+	name    string
+	listVia string // "SearchService" if the resource uses SearchService for listing
+}{
+	"agent":          {name: "agent", listVia: "SearchService"},
+	"skill":          {name: "skill", listVia: "SearchService"},
+	"mcpserver":      {name: "mcpserver", listVia: "SearchService"},
+	"session":        {name: "session"},
+	"agentexecution": {name: "execution"},
+}
+
+// extractServiceSchemas parses proto files for a resource and extracts service definitions.
+func extractServiceSchemas(protoDir, includeDir string, useBufCache bool) (*ServiceSchemaFile, error) {
+	protoFiles, err := findProtoFiles(protoDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find proto files: %w", err)
+	}
+	if len(protoFiles) == 0 {
+		return nil, nil
+	}
+
+	importPaths := []string{includeDir}
+	if useBufCache {
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			bufCachePath := filepath.Join(homeDir, ".cache", "buf", "v3", "modules", "b5", "buf.build", "bufbuild", "protovalidate")
+			if entries, err := os.ReadDir(bufCachePath); err == nil && len(entries) > 0 {
+				for _, entry := range entries {
+					if entry.IsDir() {
+						filesPath := filepath.Join(bufCachePath, entry.Name(), "files")
+						if _, err := os.Stat(filesPath); err == nil {
+							importPaths = append([]string{filesPath}, importPaths...)
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	parser := &protoparse.Parser{
+		ImportPaths:           importPaths,
+		IncludeSourceCodeInfo: true,
+	}
+
+	var relativeProtoFiles []string
+	for _, pf := range protoFiles {
+		relPath, err := filepath.Rel(includeDir, pf)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get relative path for %s: %w", pf, err)
+		}
+		relativeProtoFiles = append(relativeProtoFiles, relPath)
+	}
+
+	fileDescriptors, err := parser.ParseFiles(relativeProtoFiles...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse proto files: %w", err)
+	}
+
+	var schema ServiceSchemaFile
+	for _, fd := range fileDescriptors {
+		if schema.Package == "" {
+			schema.Package = fd.GetPackage()
+			schema.GoImportPath = deriveGoImportAlias(fd.GetPackage())
+		}
+		for _, svc := range fd.GetServices() {
+			svcDef := ServiceDefinition{
+				Name: svc.GetName(),
+				Role: inferServiceRole(svc.GetName()),
+			}
+			for _, method := range svc.GetMethods() {
+				ms := MethodSchema{
+					Name:           capitalize(method.GetName()),
+					InputType:      method.GetInputType().GetName(),
+					InputFullType:  method.GetInputType().GetFullyQualifiedName(),
+					OutputType:     method.GetOutputType().GetName(),
+					OutputFullType: method.GetOutputType().GetFullyQualifiedName(),
+					ServerStreaming: method.IsServerStreaming(),
+					ClientStreaming: method.IsClientStreaming(),
+					Description:    extractServiceMethodComments(method),
+				}
+				svcDef.Methods = append(svcDef.Methods, ms)
+			}
+			if len(svcDef.Methods) > 0 {
+				schema.Services = append(schema.Services, svcDef)
+			}
+		}
+	}
+	return &schema, nil
+}
+
+// generateSDKServiceSchemas generates service schemas for all SDK resources.
+func generateSDKServiceSchemas(includeDir, baseOutputDir string, useBufCache bool) error {
+	servicesDir := filepath.Join(baseOutputDir, "services")
+	if err := os.MkdirAll(servicesDir, 0755); err != nil {
+		return fmt.Errorf("failed to create services directory: %w", err)
+	}
+
+	stigmerDir := filepath.Join(includeDir, "ai", "stigmer", "agentic")
+
+	for protoSubdir, res := range sdkResources {
+		protoDir := filepath.Join(stigmerDir, protoSubdir, "v1")
+		if _, err := os.Stat(protoDir); os.IsNotExist(err) {
+			fmt.Printf("   ⚠️  No proto directory for %s, skipping\n", res.name)
+			continue
+		}
+
+		schema, err := extractServiceSchemas(protoDir, includeDir, useBufCache)
+		if err != nil {
+			fmt.Printf("   ❌ Error extracting services for %s: %v\n", res.name, err)
+			continue
+		}
+		if schema == nil || len(schema.Services) == 0 {
+			fmt.Printf("   ⚠️  No services found for %s\n", res.name)
+			continue
+		}
+
+		schema.Resource = res.name
+		schema.ListVia = res.listVia
+
+		outputPath := filepath.Join(servicesDir, res.name+".json")
+		if err := writeSchemaFile(schema, outputPath); err != nil {
+			fmt.Printf("   ❌ Error writing %s: %v\n", res.name, err)
+			continue
+		}
+		fmt.Printf("   → services/%s.json (%d services, %d methods)\n",
+			res.name, len(schema.Services), countMethods(schema))
+	}
+
+	// Also extract the SearchService (in search/v1/)
+	searchDir := filepath.Join(includeDir, "ai", "stigmer", "search", "v1")
+	if _, err := os.Stat(searchDir); err == nil {
+		schema, err := extractServiceSchemas(searchDir, includeDir, useBufCache)
+		if err == nil && schema != nil && len(schema.Services) > 0 {
+			schema.Resource = "search"
+			outputPath := filepath.Join(servicesDir, "search.json")
+			if err := writeSchemaFile(schema, outputPath); err == nil {
+				fmt.Printf("   → services/search.json (%d methods)\n", countMethods(schema))
+			}
+		}
+	}
+
+	return nil
+}
+
+func countMethods(s *ServiceSchemaFile) int {
+	n := 0
+	for _, svc := range s.Services {
+		n += len(svc.Methods)
+	}
+	return n
+}
+
+// deriveGoImportAlias turns a proto package like "ai.stigmer.agentic.agent.v1"
+// into the Go import alias convention "agentv1".
+func deriveGoImportAlias(pkg string) string {
+	parts := strings.Split(pkg, ".")
+	if len(parts) < 2 {
+		return strings.ReplaceAll(pkg, ".", "")
+	}
+	// Take the second-to-last (resource) and last (version) parts.
+	resource := parts[len(parts)-2]
+	version := parts[len(parts)-1]
+	return resource + version
+}
+
+func inferServiceRole(name string) string {
+	lower := strings.ToLower(name)
+	if strings.Contains(lower, "command") {
+		return "command"
+	}
+	if strings.Contains(lower, "query") {
+		return "query"
+	}
+	return "query"
+}
+
+func capitalize(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+func extractServiceMethodComments(method *desc.MethodDescriptor) string {
+	sourceInfo := method.GetSourceInfo()
+	if sourceInfo == nil {
+		return ""
+	}
+	return strings.TrimSpace(sourceInfo.GetLeadingComments())
 }

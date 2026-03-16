@@ -72,7 +72,7 @@
           "kind": "string"
         }
       },
-      "description": "Default tools to enable from this MCP server.\n Empty list means all tools are enabled by default.\n When specified, only these tools will be available unless overridden in McpServerUsage.\n Tool names must match exactly what the MCP server reports via tools/list.\n Examples: [\"create_pull_request\", \"search_code\", \"get_file_contents\"]",
+      "description": "Default tools to enable from this MCP server.\n Empty list means all tools are enabled by default.\n When specified, only these tools will be available unless overridden in McpServerUsage.\n Tool names must match exactly what the MCP server reports via tools/list.\n IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.\n Do NOT include names from `discovered_capabilities.resource_templates` —\n resource templates are read-only data endpoints, not callable tools.\n Examples: [\"create_pull_request\", \"search_code\", \"get_file_contents\"]",
       "required": false
     },
     {

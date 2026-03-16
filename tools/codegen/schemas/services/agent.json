@@ -1,0 +1,68 @@
+{
+  "resource": "agent",
+  "package": "ai.stigmer.agentic.agent.v1",
+  "goImportPath": "agentv1",
+  "services": [
+    {
+      "name": "AgentCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "Agent",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "outputType": "Agent",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "description": "Create or update an agent.\n The authorization and state-operation are determined depending on whether the agent\n is going to be created or updated which is determined as part of the request execution."
+        },
+        {
+          "name": "Create",
+          "inputType": "Agent",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "outputType": "Agent",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "description": "Create a new agent.\n\n Authorization:\n - Organization-scoped agents: Caller must have can_create_agent permission in the organization\n - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)"
+        },
+        {
+          "name": "Update",
+          "inputType": "Agent",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "outputType": "Agent",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "description": "Update an existing agent."
+        },
+        {
+          "name": "Delete",
+          "inputType": "AgentId",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.AgentId",
+          "outputType": "Agent",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "description": "Delete an agent."
+        }
+      ]
+    },
+    {
+      "name": "AgentQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "AgentId",
+          "inputFullType": "ai.stigmer.agentic.agent.v1.AgentId",
+          "outputType": "Agent",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "description": "Get a single agent by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "Agent",
+          "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
+          "description": "Custom authorization in handler"
+        }
+      ]
+    }
+  ],
+  "listVia": "SearchService"
+}
