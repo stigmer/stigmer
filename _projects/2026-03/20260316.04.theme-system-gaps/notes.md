@@ -105,3 +105,31 @@ Deferred: spacing tokens, typography scale, RTL/locale/density, Storybook
 
 ---
 
+## 2026-03-16 - Task 4: Transition token design decisions
+
+### Tailwind v4 transition theming via @theme inline
+
+- Tailwind v4 `transition-*` utilities use a two-level fallback: `var(--tw-duration, var(--default-transition-duration))`. The `--tw-duration` is set by explicit `duration-*` utilities; `--default-transition-duration` is the global fallback.
+- Overriding `--default-transition-duration` and `--default-transition-timing-function` in `@theme inline` replaces the fallback for ALL transition utilities at once. Zero component changes — every existing `transition-colors` automatically picks up the preset's timing.
+- At build time, Tailwind v4 inlines the reference: the compiled CSS shows `var(--tw-duration, var(--stgm-transition-duration))` with no intermediate `--default-transition-*` variable. Clean chain.
+
+### No dark mode overrides (deliberate)
+
+- Motion is mode-agnostic. A 200ms ease-in-out transition feels identical on light and dark backgrounds — there's no perceptual equivalent to shadow opacity needing 2.5x boost on dark surfaces.
+- Tokens set in `:root` and preset light selectors cascade into dark mode naturally via CSS inheritance.
+- This simplifies the implementation: 2 tokens in `:root`, 2 overrides per preset (light selector only), vs shadows which required 6 overrides per preset (3 tiers x 2 modes).
+
+### Per-preset motion character
+
+- **Corporate** (200ms, standard `cubic-bezier(0.4, 0, 0.2, 1)`): Enterprise UIs (Azure, Salesforce) feel more deliberate. Slightly longer transitions reinforce the "considered, structured" brand impression. Standard easing — enterprise values predictability.
+- **Startup** (100ms, `cubic-bezier(0, 0, 0.2, 1)` ease-out): Modern dev tools (Linear, Vercel, Raycast) feel instant. The ease-out curve means quick departure with gentle landing — interactions feel responsive without being jarring.
+- **Friendly** (200ms, standard `cubic-bezier(0.4, 0, 0.2, 1)`): Consumer SaaS (Notion, Slack) feels unhurried and approachable. Same duration as Corporate but paired with warmer colors and rounder corners, creating a distinct feel through context rather than timing alone.
+- **Fintech** (150ms, `cubic-bezier(0.25, 0.1, 0.25, 1)`): Financial tools (Stripe, Mercury) feel precise. Tighter cubic-bezier with less dramatic ease-in — more linear feel that matches the "crisp, controlled" aesthetic. Duration matches base default because financial UIs shouldn't feel fast or slow — they should feel exact.
+
+### Reduced-motion opportunity (deferred)
+
+- SDK and Console have no `prefers-reduced-motion` handling. A future `@media (prefers-reduced-motion: reduce) { :root { --stgm-transition-duration: 0ms; } }` in `tokens.css` could centrally disable all token-based transitions for users who need it.
+- Not adding now — separate concern, benefits from its own audit. Flagged for a11y pass.
+
+---
+

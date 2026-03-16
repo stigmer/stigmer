@@ -78,14 +78,30 @@ Add timestamps and notes to track your progress.
 
 ## Task 4: Add transition tokens (--stgm-transition-duration, --stgm-transition-timing) and override per preset
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-16 17:08
+**Completed**: 2026-03-16
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Verify Tailwind v4 compiled CSS to determine transition wiring path
+- [x] Add `--stgm-transition-duration` and `--stgm-transition-timing` to `tokens.css` `:root` (base defaults matching Tailwind v4)
+- [x] Add transition overrides to `corporate.css` — 200ms, standard curve (deliberate enterprise feel)
+- [x] Add transition overrides to `startup.css` — 100ms, ease-out only (snappy dev-tools feel)
+- [x] Add transition overrides to `friendly.css` — 200ms, standard curve (relaxed consumer SaaS feel)
+- [x] Add transition overrides to `fintech.css` — 150ms, tighter curve (precise financial feel)
+- [x] Add `--default-transition-duration` and `--default-transition-timing-function` Tailwind `@theme inline` mappings to `sdk/react/src/styles.css`
+- [x] Add same `@theme inline` mappings to `client-apps/web/src/app/globals.css`
+- [x] Verify `npm run build:libs` passes — TypeScript + Tailwind compilation clean
+- [x] Verify built CSS: `transition-colors` resolves through `var(--tw-duration, var(--stgm-transition-duration))` chain
+- [x] Verify old Tailwind hardcoded defaults (`--default-transition-duration: .15s`) replaced by token references
 
 ### Notes
-- [Add notes about this task here]
+- **Tailwind v4 wiring works via `--default-transition-duration` / `--default-transition-timing-function`.** These are theme variables that all `transition-*` utilities fall back to when no explicit `duration-*` or `ease-*` is applied. Overriding them via `@theme inline` makes every existing `transition-colors` / `transition-all` / `transition-transform` automatically pick up the preset's timing. Zero component changes needed.
+- **Tailwind v4 inlines the chain.** The compiled CSS shows `transition-duration: var(--tw-duration, var(--stgm-transition-duration))` — Tailwind collapsed `var(--default-transition-duration)` into `var(--stgm-transition-duration)` at build time. Clean, no intermediate variable in the output.
+- **No dark mode overrides.** Motion is perceptually identical across light/dark surfaces (unlike shadows where dark backgrounds require higher opacity). Tokens set in the light selector cascade into dark mode. This is a deliberate simplification — not an oversight.
+- **No tiers (fast/normal/slow).** Zero components differentiate transition speeds today — everything uses Tailwind's single default. Adding tiers later is non-breaking.
+- **Explicit `duration-*` utilities still win.** The fallback chain `var(--tw-duration, var(--stgm-transition-duration))` means if a component applies `duration-200`, `--tw-duration` is set and takes precedence over the token default. Clean override semantics.
+- **Preset motion character:** Corporate (200ms) = deliberate/enterprise, Startup (100ms + ease-out) = instant/snappy, Friendly (200ms) = relaxed/unhurried, Fintech (150ms + tighter curve) = precise/controlled. Timing functions vary to match each design language's motion personality, not just speed.
 
 ## Task 5: Add z-index base token (--stgm-z-base) for embedded component stacking context isolation
 

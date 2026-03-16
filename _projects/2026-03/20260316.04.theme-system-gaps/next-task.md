@@ -67,7 +67,16 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-03-16  
-**Current Focus**: Tasks 1–3 complete. Next up: Task 4 (transition tokens)
+**Current Focus**: Tasks 1–4 complete. Next up: Task 5 (z-index base token)
+
+## Session Progress (2026-03-16, session 5)
+- Completed Task 4: Added transition tokens (`--stgm-transition-duration`, `--stgm-transition-timing`) to theme system
+- Verified Tailwind v4 uses `--default-transition-duration` / `--default-transition-timing-function` as CSS variable fallbacks — overridable via `@theme inline`
+- Added 2 tokens to `tokens.css` `:root` only (no `.dark` — motion is mode-agnostic)
+- Added per-preset overrides in light selectors only: corporate=200ms deliberate, startup=100ms snappy, friendly=200ms relaxed, fintech=150ms precise
+- Wired `--default-transition-duration` and `--default-transition-timing-function` in `@theme inline` for both SDK and Console
+- Tailwind v4 inlines the chain: compiled CSS shows `transition-duration: var(--tw-duration, var(--stgm-transition-duration))`
+- Build clean: `npm run build:libs` passes (TypeScript + Tailwind compilation)
 
 ## Session Progress (2026-03-16, session 4)
 - Completed Task 3: Added shadow elevation tokens (`--stgm-shadow-sm/md/lg`) to theme system
@@ -96,9 +105,8 @@ That's it! No complex structure - just focused work.
 - Committed: `14f0c8ad` on branch `feat/move-theme-to-sdk`
 
 ## Next Steps
-1. Task 4: Add transition tokens (`--stgm-transition-duration`, `--stgm-transition-timing`) to tokens.css and presets
-2. Task 5: Add z-index base token (`--stgm-z-base`) for stacking context isolation
-3. Task 6: Write @stigmer/react README for platform builders
+1. Task 5: Add z-index base token (`--stgm-z-base`) for stacking context isolation
+2. Task 6: Write @stigmer/react README for platform builders
 
 ## Context for Resume
 - Branch: `feat/move-theme-to-sdk`
@@ -106,9 +114,10 @@ That's it! No complex structure - just focused work.
 - `THEME_PRESETS` uses `as const satisfies readonly ThemePreset[]` to preserve literal types
 - Dark mode CSS selectors now support both compound (`.stgm-theme-X.dark`) and descendant (`.dark .stgm-theme-X`) patterns
 - Shadow tokens (`--stgm-shadow-sm/md/lg`) fully wired: tokens.css → @theme inline → Tailwind utilities. Each preset overrides both light and dark.
+- Transition tokens (`--stgm-transition-duration`, `--stgm-transition-timing`) fully wired: tokens.css → @theme inline → Tailwind `--default-transition-*` fallback. Light selectors only (motion is mode-agnostic). Preset overrides: corporate=200ms, startup=100ms ease-out, friendly=200ms, fintech=150ms tight curve.
 - Console theming unchanged — `ThemePresetSelector` and `StigmerTransportBridge` remain as-is
 - `@stigmer/theme` now lives at `sdk/theme/` — all imports unchanged (resolve by package name)
-- Tasks 4–5 (remaining token categories) are independent of each other
+- Task 5 (z-index) is independent
 - Task 6 (docs) should be last since it documents everything
 
 ---
