@@ -30,6 +30,8 @@
   --color-border: var(--stgm-border);
   --color-input: var(--stgm-input);
   --color-ring: var(--stgm-ring);
+  --font-sans: var(--stgm-font-sans);
+  --font-mono: var(--stgm-font-mono);
 }
 
 @layer stgm {
