@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
-import { ResourceList, SkillSearchCard } from "@/components/resource-list";
+import { ResourceList } from "@/components/resource-list";
+import { ResourceSearchCard } from "@stigmer/react/catalog";
 import { useSkillList } from "@/hooks/skills/useSkillList";
 
 export default function SkillsPage() {
@@ -16,7 +18,12 @@ export default function SkillsPage() {
       <ResourceList
         kindLabel="skills"
         data={data}
-        renderItem={(result) => <SkillSearchCard result={result} />}
+        layout="grid"
+        renderItem={(result) => (
+          <Link href={`/skills/${result.id}`} className="block">
+            <ResourceSearchCard result={result} />
+          </Link>
+        )}
       />
     </>
   );

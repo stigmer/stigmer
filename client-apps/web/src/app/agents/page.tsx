@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Play } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
-import { ResourceList, AgentSearchCard } from "@/components/resource-list";
+import { ResourceList } from "@/components/resource-list";
+import { ResourceSearchCard } from "@stigmer/react/catalog";
 import { useAgentList } from "@/hooks/agents/useAgentList";
 
 export default function AgentsPage() {
@@ -28,7 +29,11 @@ export default function AgentsPage() {
         kindLabel="agents"
         data={data}
         layout="grid"
-        renderItem={(result) => <AgentSearchCard result={result} />}
+        renderItem={(result) => (
+          <Link href={`/agents/${result.id}`} className="block">
+            <ResourceSearchCard result={result} />
+          </Link>
+        )}
       />
     </>
   );
