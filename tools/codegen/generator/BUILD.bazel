@@ -5,6 +5,10 @@ go_library(
     srcs = [
         "main.go",
         "mcp.go",
+        "sdk_client.go",
+        "sdk_client_java.go",
+        "sdk_client_python.go",
+        "sdk_client_ts.go",
     ],
     importpath = "github.com/stigmer/stigmer/tools/codegen/generator",
     visibility = ["//visibility:private"],

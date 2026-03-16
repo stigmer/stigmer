@@ -119,6 +119,7 @@ go_library(
         "//client-apps/cli/internal/cli/auth",
         "//client-apps/cli/internal/cli/backend",
         "//client-apps/cli/internal/cli/bootstrap",
+        "//client-apps/cli/internal/cli/browser",
         "//client-apps/cli/internal/cli/clierr",
         "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/internal/cli/config",

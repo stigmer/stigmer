@@ -17,6 +17,7 @@ go_library(
         "//apis/stubs/go/ai/stigmer/tenancy/organization/v1:organization",
         "//client-apps/cli/embedded",
         "//client-apps/cli/embedded/agentrunner",
+        "//client-apps/cli/embedded/webconsole",
         "//client-apps/cli/internal/cli/cliprint",
         "//client-apps/cli/internal/cli/config",
         "//client-apps/cli/internal/cli/llm",
