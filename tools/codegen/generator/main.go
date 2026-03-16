@@ -2081,7 +2081,7 @@ func main() {
 	outputDir := flag.String("output-dir", "sdk/go/workflow/gen", "Output directory for generated Go code")
 	packageName := flag.String("package", "gen", "Go package name for generated code")
 	fileSuffix := flag.String("file-suffix", "", "Suffix for generated files (e.g., '_task', '_spec', or empty)")
-	target := flag.String("target", "sdk", "Generation target: sdk or mcp")
+	target := flag.String("target", "sdk", "Generation target: sdk, mcp, or sdk-client")
 	expandStruct := flag.String("expand-struct", "", "Expand a Struct field into typed config fields: struct_field:discriminator_field:config_schema_dir")
 	comprehensive := flag.Bool("comprehensive", false, "Auto-discover all domain/resource schemas and generate for each")
 	flag.Parse()
@@ -2097,8 +2097,13 @@ func main() {
 				fmt.Printf("Error in comprehensive MCP generation: %v\n", err)
 				os.Exit(1)
 			}
+		case "sdk-client":
+			if err := runSDKClientGeneration(*schemaDir, *outputDir); err != nil {
+				fmt.Printf("Error in SDK client generation: %v\n", err)
+				os.Exit(1)
+			}
 		default:
-			fmt.Printf("Comprehensive mode is only supported for --target=mcp (got %s)\n", *target)
+			fmt.Printf("Comprehensive mode is supported for --target=mcp or --target=sdk-client (got %s)\n", *target)
 			os.Exit(1)
 		}
 		fmt.Println("\n✅ Comprehensive code generation complete!")

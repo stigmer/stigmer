@@ -27,7 +27,7 @@
           "kind": "string"
         }
       },
-      "description": "Tools this SubAgent can use from this MCP server.\n Must be a subset of the parent's enabled_tools for this server.\n Empty list = all tools that parent has enabled (no additional restriction).",
+      "description": "Tools this SubAgent can use from this MCP server.\n Must be a subset of the parent's enabled_tools for this server.\n Empty list = all tools that parent has enabled (no additional restriction).\n Only MCP tool names are valid — never include resource template names.",
       "required": false
     }
   ]

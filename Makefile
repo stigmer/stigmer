@@ -44,8 +44,9 @@ build: ## Build the Stigmer CLI binary
 	cd client-apps/cli && go build -o ../../bin/stigmer .
 	@echo "built: bin/stigmer"
 
-protos: ## Generate protocol buffer stubs
+protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C apis build
+	$(MAKE) -C sdk/go codegen
 
 # ─── Test ─────────────────────────────────────
 

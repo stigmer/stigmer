@@ -1,0 +1,75 @@
+{
+  "resource": "session",
+  "package": "ai.stigmer.agentic.session.v1",
+  "goImportPath": "sessionv1",
+  "services": [
+    {
+      "name": "SessionCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "Session",
+          "inputFullType": "ai.stigmer.agentic.session.v1.Session",
+          "outputType": "Session",
+          "outputFullType": "ai.stigmer.agentic.session.v1.Session",
+          "description": "Create or update a session.\n The authorization and state-operation are determined depending on whether the session\n is going to be created or updated which is determined as part of the request execution."
+        },
+        {
+          "name": "Create",
+          "inputType": "Session",
+          "inputFullType": "ai.stigmer.agentic.session.v1.Session",
+          "outputType": "Session",
+          "outputFullType": "ai.stigmer.agentic.session.v1.Session",
+          "description": "Create a new session for an agent.\n Requires can_create_session permission in the organization."
+        },
+        {
+          "name": "Update",
+          "inputType": "Session",
+          "inputFullType": "ai.stigmer.agentic.session.v1.Session",
+          "outputType": "Session",
+          "outputFullType": "ai.stigmer.agentic.session.v1.Session",
+          "description": "Update an existing session (e.g., subject, thread_id, sandbox_id)."
+        },
+        {
+          "name": "Delete",
+          "inputType": "SessionId",
+          "inputFullType": "ai.stigmer.agentic.session.v1.SessionId",
+          "outputType": "Session",
+          "outputFullType": "ai.stigmer.agentic.session.v1.Session",
+          "description": "Delete a session (also cleans up thread and sandbox)."
+        }
+      ]
+    },
+    {
+      "name": "SessionQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "SessionId",
+          "inputFullType": "ai.stigmer.agentic.session.v1.SessionId",
+          "outputType": "Session",
+          "outputFullType": "ai.stigmer.agentic.session.v1.Session",
+          "description": "Get a single session by ID."
+        },
+        {
+          "name": "List",
+          "inputType": "ListSessionsRequest",
+          "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionsRequest",
+          "outputType": "SessionList",
+          "outputFullType": "ai.stigmer.agentic.session.v1.SessionList",
+          "description": "List all sessions with pagination and optional filtering."
+        },
+        {
+          "name": "ListByAgent",
+          "inputType": "ListSessionsByAgentRequest",
+          "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest",
+          "outputType": "SessionList",
+          "outputFullType": "ai.stigmer.agentic.session.v1.SessionList",
+          "description": "List all sessions for a specific agent."
+        }
+      ]
+    }
+  ]
+}

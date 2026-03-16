@@ -29,7 +29,7 @@
           "kind": "string"
         }
       },
-      "description": "Tools to enable from this MCP server for this Agent.\n This defines the maximum tool set - SubAgents can only restrict further.\n Empty list = use McpServer's default_enabled_tools (or all if not specified).\n Tool names must match exactly what the MCP server reports via tools/list.",
+      "description": "Tools to enable from this MCP server for this Agent.\n This defines the maximum tool set - SubAgents can only restrict further.\n Empty list = use McpServer's default_enabled_tools (or all if not specified).\n\n Tool names must match exactly what the MCP server reports via tools/list.\n IMPORTANT: Only names from `discovered_capabilities.tools` are valid here.\n Do NOT include names from `discovered_capabilities.resource_templates` —\n resource templates are read-only data endpoints, not callable tools.\n Including a resource template name here causes a fatal runtime error.",
       "required": false
     },
     {
