@@ -67,7 +67,18 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-03-16  
-**Current Focus**: Tasks 1–4 complete. Next up: Task 5 (z-index base token)
+**Current Focus**: Tasks 1–5 complete. Next up: Task 6 (SDK README)
+
+## Session Progress (2026-03-16, session 6)
+- Completed Task 5: Added z-index popover token (`--stgm-z-popover`) to theme system
+- Discovered Tailwind v4 has NO `--z-*` theme namespace — `@theme inline` cannot create z-index utilities (unlike shadows/transitions)
+- Used `@utility z-popover { z-index: var(--stgm-z-popover); }` directive instead — creates a first-class Tailwind utility
+- Chose semantic tier approach (`--stgm-z-popover: 50`) over base offset (`--stgm-z-base`) — self-documenting, independently controllable per layer
+- Added 1 token to `tokens.css` `:root` only (no `.dark`, no presets — z-index is mode-agnostic and not design-personality)
+- Console inherits utility via `@import "@stigmer/react/styles.css"` (resolves to SDK source, not dist)
+- Converted `AgentPicker.tsx` from `z-20` to `z-popover`; left `ExecutionStream.tsx` at `z-10` (local stacking, not overlay)
+- Build clean: `npm run build:libs` + Console build both pass
+- Verified compiled CSS: `.z-popover { z-index: var(--stgm-z-popover) }`
 
 ## Session Progress (2026-03-16, session 5)
 - Completed Task 4: Added transition tokens (`--stgm-transition-duration`, `--stgm-transition-timing`) to theme system
@@ -105,8 +116,7 @@ That's it! No complex structure - just focused work.
 - Committed: `14f0c8ad` on branch `feat/move-theme-to-sdk`
 
 ## Next Steps
-1. Task 5: Add z-index base token (`--stgm-z-base`) for stacking context isolation
-2. Task 6: Write @stigmer/react README for platform builders
+1. Task 6: Write @stigmer/react README for platform builders
 
 ## Context for Resume
 - Branch: `feat/move-theme-to-sdk`
@@ -115,9 +125,9 @@ That's it! No complex structure - just focused work.
 - Dark mode CSS selectors now support both compound (`.stgm-theme-X.dark`) and descendant (`.dark .stgm-theme-X`) patterns
 - Shadow tokens (`--stgm-shadow-sm/md/lg`) fully wired: tokens.css → @theme inline → Tailwind utilities. Each preset overrides both light and dark.
 - Transition tokens (`--stgm-transition-duration`, `--stgm-transition-timing`) fully wired: tokens.css → @theme inline → Tailwind `--default-transition-*` fallback. Light selectors only (motion is mode-agnostic). Preset overrides: corporate=200ms, startup=100ms ease-out, friendly=200ms, fintech=150ms tight curve.
+- Z-index token (`--stgm-z-popover: 50`) wired via `@utility` directive (NOT `@theme inline` — Tailwind v4 has no z-index theme namespace). Semantic tier approach — add more tiers when SDK gains overlay components.
 - Console theming unchanged — `ThemePresetSelector` and `StigmerTransportBridge` remain as-is
 - `@stigmer/theme` now lives at `sdk/theme/` — all imports unchanged (resolve by package name)
-- Task 5 (z-index) is independent
 - Task 6 (docs) should be last since it documents everything
 
 ---

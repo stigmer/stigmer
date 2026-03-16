@@ -195,7 +195,7 @@ export function AgentPicker({
             role="listbox"
             aria-label="Agent search results"
             className={cn(
-              "bg-popover absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border shadow-md",
+              "bg-popover absolute z-popover mt-1 max-h-64 w-full overflow-y-auto rounded-lg border shadow-md",
               results.length === 0 && !isLoading && "p-3",
             )}
           >

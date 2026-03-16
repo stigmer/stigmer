@@ -133,3 +133,39 @@ Deferred: spacing tokens, typography scale, RTL/locale/density, Storybook
 
 ---
 
+## 2026-03-16 - Task 5: Z-index token design decisions
+
+### Tailwind v4 has no z-index theme namespace
+
+- Shadows and transitions worked via `@theme inline` because Tailwind v4 exposes `--shadow-*` and `--default-transition-*` as CSS custom properties. Z-index has no equivalent — `z-10`/`z-50` generate hardcoded integers (`z-index: 10`), not variable references.
+- Defining `--z-popover: var(--stgm-z-popover)` in `@theme inline` does NOT create a `z-popover` utility. Verified empirically: Tailwind compiles the theme variable but no utility class is generated.
+- **Solution: `@utility` directive.** Tailwind v4's `@utility z-popover { z-index: var(--stgm-z-popover); }` creates a first-class utility that participates in the utility layer. Compiled CSS confirms: `.z-popover { z-index: var(--stgm-z-popover) }`.
+
+### Semantic tiers over base offset
+
+- Original task called for `--stgm-z-base` (a single offset that all components add to). Rejected because:
+  1. `calc(var(--stgm-z-base) + 50)` in `@theme inline` is untested and adds complexity
+  2. All SDK layers shift together — can't independently adjust popover vs modal
+  3. Harder to read in component code
+- Chose semantic tiers (`--stgm-z-popover`) instead. Self-documenting, platform builder controls each layer independently, follows Chakra/Radix/Bootstrap patterns.
+- Only added `--stgm-z-popover` (one tier). Additional tiers (`--stgm-z-overlay`, `--stgm-z-modal`, `--stgm-z-toast`) deferred until the SDK gains those component types. Adding later is non-breaking.
+
+### Portal content and CSS variable cascade
+
+- Base UI's `FloatingPortal` renders to `document.body` by default. Portal content is outside the `StigmerProvider` wrapper div, so CSS variables set on the wrapper don't cascade to portals.
+- `--stgm-z-popover` is defined on `:root` in `tokens.css`, which DOES cascade to portal content everywhere in the document. This is sufficient for the current architecture.
+- **Future improvement:** `StigmerProvider` could create a portal container div, pass it via React context, and have SDK overlay components render into it via Base UI's `container` prop. This would keep portal content within the theme scope for preset-specific overrides. Not needed yet — flagged for when SDK gets Dialog/Tooltip/Popover components.
+
+### No preset overrides, no dark mode overrides
+
+- Z-index is functional infrastructure, not design personality. A "corporate" app doesn't need different stacking order than a "startup" app.
+- Z-index is mode-agnostic — same reasoning as transition tokens. Dark mode doesn't affect stacking contexts.
+
+### Codebase z-index audit (11 usages)
+
+- **Console**: header (z-40), sidebar (z-30), dropdown (z-50) — page-level layout, not SDK concerns
+- **SDK**: AgentPicker (z-20 → z-popover), ExecutionStream (z-10) — z-10 is local stacking, left as-is
+- **Site**: header (z-50), mobile menu (z-40/z-50), skip-link (z-[100]), hero (z-10) — marketing site, separate concern
+
+---
+

@@ -37,6 +37,7 @@
   --stgm-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --stgm-transition-duration: 150ms;
   --stgm-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+  --stgm-z-popover: 50;
   --stgm-sidebar: oklch(0.985 0 0);
   --stgm-sidebar-foreground: oklch(0.145 0 0);
   --stgm-sidebar-primary: oklch(0.55 0.12 190);

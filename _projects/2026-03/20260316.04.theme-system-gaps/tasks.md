@@ -103,16 +103,34 @@ Add timestamps and notes to track your progress.
 - **Explicit `duration-*` utilities still win.** The fallback chain `var(--tw-duration, var(--stgm-transition-duration))` means if a component applies `duration-200`, `--tw-duration` is set and takes precedence over the token default. Clean override semantics.
 - **Preset motion character:** Corporate (200ms) = deliberate/enterprise, Startup (100ms + ease-out) = instant/snappy, Friendly (200ms) = relaxed/unhurried, Fintech (150ms + tighter curve) = precise/controlled. Timing functions vary to match each design language's motion personality, not just speed.
 
-## Task 5: Add z-index base token (--stgm-z-base) for embedded component stacking context isolation
+## Task 5: Add z-index popover token for embedded component stacking context isolation
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-16 17:08
+**Completed**: 2026-03-16
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Audit all z-index usage across codebase (11 occurrences in 8 files)
+- [x] Evaluate design approaches: single base offset vs. semantic tiers vs. defer
+- [x] Add `--stgm-z-popover: 50` to `tokens.css` `:root` (no `.dark`, no presets — z-index is mode-agnostic and not design-personality)
+- [x] Discover that Tailwind v4 has no `--z-*` theme namespace — `@theme inline` cannot create z-index utilities
+- [x] Use `@utility z-popover` directive instead to create a first-class Tailwind utility
+- [x] Add `@utility z-popover { z-index: var(--stgm-z-popover); }` to `sdk/react/src/styles.css`
+- [x] Verify Console inherits utility via `@import "@stigmer/react/styles.css"` (resolves to SDK source)
+- [x] Convert `AgentPicker.tsx` from `z-20` to `z-popover`
+- [x] Leave `ExecutionStream.tsx` at `z-10` (local stacking, not an overlay)
+- [x] Verify `npm run build:libs` passes — TypeScript + Tailwind compilation clean
+- [x] Verify built CSS: `.z-popover { z-index: var(--stgm-z-popover) }` resolution chain
+- [x] Verify Console build (`client-apps/web`) passes
 
 ### Notes
-- [Add notes about this task here]
+- **Tailwind v4 has no z-index theme mechanism.** Unlike shadows (`--shadow-sm`) and transitions (`--default-transition-duration`), the built-in `z-10`/`z-20`/`z-50` utilities generate hardcoded integers, not CSS variable references. There is no `--z-*` namespace in `@theme`. Defining `--z-popover` in `@theme inline` does NOT create a utility.
+- **Used `@utility` directive instead of `@theme inline`.** Tailwind v4's `@utility z-popover { z-index: var(--stgm-z-popover); }` creates a first-class utility that participates in Tailwind's utility layer. It supports responsive variants, hover states, and the standard Tailwind priority system.
+- **Semantic tiers, not a base offset.** Chose `--stgm-z-popover` (one semantic tier) over `--stgm-z-base` (global offset). A base offset forces all SDK layers to shift together and uses `calc()` in z-index which adds unnecessary complexity. Semantic tiers are self-documenting and give platform builders independent control over each stacking layer. Additional tiers (`--stgm-z-overlay`, `--stgm-z-modal`, `--stgm-z-toast`) will be added when the SDK gains those component types.
+- **No preset overrides.** Z-index is functional infrastructure, not design personality. Corporate and Startup don't need different z-index values — that's a stacking context concern, not a brand concern.
+- **No `.dark` overrides.** Z-index is mode-agnostic (same reasoning as transitions).
+- **Portal content and `:root` cascade.** Portal-based overlays (Base UI `FloatingPortal`) render to `document.body`, outside the `StigmerProvider` wrapper. CSS variables on the wrapper don't cascade to portals. However, `--stgm-z-popover` is defined on `:root` in `tokens.css`, which does cascade to portal content. Future improvement: `StigmerProvider` could create a portal container to keep portal content within the theme scope (Base UI Portal accepts a `container` prop).
+- **Console inherits the utility.** `globals.css` imports `@stigmer/react/styles.css` which resolves to the SDK source file (not compiled dist). The `@utility` directive is available to the Console's Tailwind compilation without duplication.
 
 ## Task 6: Write @stigmer/react README — integration guide, theming instructions, preset usage, custom token override examples
 
