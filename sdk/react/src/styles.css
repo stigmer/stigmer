@@ -46,6 +46,8 @@
   --shadow-sm: var(--stgm-shadow-sm);
   --shadow-md: var(--stgm-shadow-md);
   --shadow-lg: var(--stgm-shadow-lg);
+  --default-transition-duration: var(--stgm-transition-duration);
+  --default-transition-timing-function: var(--stgm-transition-timing);
 }
 
 @layer stgm {

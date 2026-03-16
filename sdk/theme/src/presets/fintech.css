@@ -30,6 +30,8 @@
   --stgm-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.08), 0 1px 1px 0 rgb(0 0 0 / 0.06);
   --stgm-shadow-md: 0 3px 4px -1px rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.08);
   --stgm-shadow-lg: 0 8px 10px -3px rgb(0 0 0 / 0.1), 0 3px 4px -3px rgb(0 0 0 / 0.08);
+  --stgm-transition-duration: 150ms;
+  --stgm-transition-timing: cubic-bezier(0.25, 0.1, 0.25, 1);
   --stgm-sidebar: oklch(0.12 0.06 280);
   --stgm-sidebar-foreground: oklch(0.90 0.01 280);
   --stgm-sidebar-primary: oklch(0.72 0.20 280);
