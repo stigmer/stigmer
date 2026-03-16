@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "@stigmer/theme/tokens.css";
+@import "@stigmer/theme/presets/rose.css";
+@import "@stigmer/theme/presets/amber.css";
+@import "@stigmer/theme/presets/violet.css";
+@import "@stigmer/theme/presets/emerald.css";
 @import "@stigmer/react/styles.css";
 
 @custom-variant dark (&:is(.dark *));

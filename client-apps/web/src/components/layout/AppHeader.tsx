@@ -1,6 +1,7 @@
 "use client";
 
 import { OrgSwitcher } from "./OrgSwitcher";
+import { ThemePresetSelector } from "./ThemePresetSelector";
 import { ThemeToggle } from "./ThemeToggle";
 import { UserMenu } from "./UserMenu";
 
@@ -26,6 +27,7 @@ export function AppHeader() {
       <div className="flex-1" />
 
       <div className="flex items-center gap-2">
+        <ThemePresetSelector />
         <ThemeToggle />
         <UserMenu />
       </div>
