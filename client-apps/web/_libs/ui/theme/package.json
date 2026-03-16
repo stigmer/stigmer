@@ -4,16 +4,21 @@
   "description": "Design tokens, CSS custom properties, and utility functions for Stigmer UI components",
   "license": "Apache-2.0",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": ["*.css"],
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./tokens.css": "./src/tokens.css"
+    "./tokens.css": "./src/tokens.css",
+    "./presets": "./src/presets/index.ts",
+    "./presets/rose.css": "./src/presets/rose.css",
+    "./presets/amber.css": "./src/presets/amber.css",
+    "./presets/violet.css": "./src/presets/violet.css",
+    "./presets/emerald.css": "./src/presets/emerald.css"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc -p tsconfig.build.json && cp src/tokens.css dist/tokens.css",
+    "build": "tsc -p tsconfig.build.json && cp src/tokens.css dist/tokens.css && mkdir -p dist/presets && cp src/presets/*.css dist/presets/",
     "clean": "rm -rf dist tsconfig.build.tsbuildinfo"
   },
   "files": [
@@ -39,7 +44,15 @@
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
       },
-      "./tokens.css": "./dist/tokens.css"
+      "./tokens.css": "./dist/tokens.css",
+      "./presets": {
+        "types": "./dist/presets/index.d.ts",
+        "import": "./dist/presets/index.js"
+      },
+      "./presets/rose.css": "./dist/presets/rose.css",
+      "./presets/amber.css": "./dist/presets/amber.css",
+      "./presets/violet.css": "./dist/presets/violet.css",
+      "./presets/emerald.css": "./dist/presets/emerald.css"
     }
   },
   "repository": {
