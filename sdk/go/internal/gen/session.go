@@ -6,6 +6,7 @@ import (
 	"context"
 
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 )
 
@@ -22,18 +23,18 @@ func NewSessionClient(conn grpc.ClientConnInterface) *SessionClient {
 	}
 }
 
-func (s *SessionClient) Apply(ctx context.Context, input *sessionv1.Session) (*sessionv1.Session, error) {
-	resp, err := s.command.Apply(ctx, input)
+func (s *SessionClient) Apply(ctx context.Context, input *SessionInput) (*sessionv1.Session, error) {
+	resp, err := s.command.Apply(ctx, input.toProto())
 	return resp, wrapErr(err)
 }
 
-func (s *SessionClient) Create(ctx context.Context, input *sessionv1.Session) (*sessionv1.Session, error) {
-	resp, err := s.command.Create(ctx, input)
+func (s *SessionClient) Create(ctx context.Context, input *SessionInput) (*sessionv1.Session, error) {
+	resp, err := s.command.Create(ctx, input.toProto())
 	return resp, wrapErr(err)
 }
 
-func (s *SessionClient) Update(ctx context.Context, input *sessionv1.Session) (*sessionv1.Session, error) {
-	resp, err := s.command.Update(ctx, input)
+func (s *SessionClient) Update(ctx context.Context, input *SessionInput) (*sessionv1.Session, error) {
+	resp, err := s.command.Update(ctx, input.toProto())
 	return resp, wrapErr(err)
 }
 
@@ -55,4 +56,72 @@ func (s *SessionClient) List(ctx context.Context, input *sessionv1.ListSessionsR
 func (s *SessionClient) ListByAgent(ctx context.Context, input *sessionv1.ListSessionsByAgentRequest) (*sessionv1.SessionList, error) {
 	resp, err := s.query.ListByAgent(ctx, input)
 	return resp, wrapErr(err)
+}
+
+// SessionInput holds the fields for creating/updating a Session.
+type SessionInput struct {
+	Name             string
+	Org              string
+	AgentInstanceId  string
+	Subject          string
+	ThreadId         string
+	SandboxId        string
+	Metadata         map[string]string
+	WorkspaceEntries []*WorkspaceEntryInput
+}
+
+// WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
+type WorkspaceEntryInput struct {
+	Name   string
+	Source *WorkspaceSourceInput
+}
+
+// WorkspaceSourceInput is the SDK input type for WorkspaceSource.
+type WorkspaceSourceInput struct {
+	GitRepo   *GitRepoSourceInput
+	LocalPath *LocalPathSourceInput
+}
+
+// GitRepoSourceInput is the SDK input type for GitRepoSource.
+type GitRepoSourceInput struct {
+	Url    string
+	Branch string
+	Commit string
+	Depth  int32
+}
+
+// LocalPathSourceInput is the SDK input type for LocalPathSource.
+type LocalPathSourceInput struct {
+	Path string
+}
+
+func (i *SessionInput) toProto() *sessionv1.Session {
+	resource := &sessionv1.Session{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "Session",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: i.Name,
+			Org:  i.Org,
+		},
+		Spec: &sessionv1.SessionSpec{},
+	}
+	resource.Spec.AgentInstanceId = i.AgentInstanceId
+	resource.Spec.Subject = i.Subject
+	resource.Spec.ThreadId = i.ThreadId
+	resource.Spec.SandboxId = i.SandboxId
+	resource.Spec.Metadata = i.Metadata
+	for _, item := range i.WorkspaceEntries {
+		resource.Spec.WorkspaceEntries = append(resource.Spec.WorkspaceEntries, item.toProto())
+	}
+	return resource
+}
+
+func (i *WorkspaceEntryInput) toProto() *sessionv1.WorkspaceEntry {
+	return &sessionv1.WorkspaceEntry{
+		Name: i.Name,
+	}
+}
+
+func (i *WorkspaceSourceInput) toProto() *sessionv1.WorkspaceSource {
+	return &sessionv1.WorkspaceSource{}
 }
