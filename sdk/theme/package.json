@@ -11,10 +11,10 @@
     ".": "./src/index.ts",
     "./tokens.css": "./src/tokens.css",
     "./presets": "./src/presets/index.ts",
-    "./presets/rose.css": "./src/presets/rose.css",
-    "./presets/amber.css": "./src/presets/amber.css",
-    "./presets/violet.css": "./src/presets/violet.css",
-    "./presets/emerald.css": "./src/presets/emerald.css"
+    "./presets/corporate.css": "./src/presets/corporate.css",
+    "./presets/startup.css": "./src/presets/startup.css",
+    "./presets/friendly.css": "./src/presets/friendly.css",
+    "./presets/fintech.css": "./src/presets/fintech.css"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -49,16 +49,16 @@
         "types": "./dist/presets/index.d.ts",
         "import": "./dist/presets/index.js"
       },
-      "./presets/rose.css": "./dist/presets/rose.css",
-      "./presets/amber.css": "./dist/presets/amber.css",
-      "./presets/violet.css": "./dist/presets/violet.css",
-      "./presets/emerald.css": "./dist/presets/emerald.css"
+      "./presets/corporate.css": "./dist/presets/corporate.css",
+      "./presets/startup.css": "./dist/presets/startup.css",
+      "./presets/friendly.css": "./dist/presets/friendly.css",
+      "./presets/fintech.css": "./dist/presets/fintech.css"
     }
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/stigmer/stigmer.git",
-    "directory": "client-apps/web/_libs/ui/theme"
+    "directory": "sdk/theme"
   },
   "peerDependencies": {
     "clsx": "^2.0.0",
