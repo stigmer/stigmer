@@ -83,11 +83,11 @@ func javaCamel(protoField string) string {
 	return strings.ToLower(cc[:1]) + cc[1:]
 }
 
-func javaSetterName(protoField string) string  { return "set" + javaCapCamel(protoField) }
-func javaAddAllName(protoField string) string  { return "addAll" + javaCapCamel(protoField) }
-func javaAddName(protoField string) string     { return "add" + javaCapCamel(protoField) }
-func javaPutName(protoField string) string     { return "put" + javaCapCamel(protoField) }
-func javaPutAllName(protoField string) string  { return "putAll" + javaCapCamel(protoField) }
+func javaSetterName(protoField string) string { return "set" + javaCapCamel(protoField) }
+func javaAddAllName(protoField string) string { return "addAll" + javaCapCamel(protoField) }
+func javaAddName(protoField string) string    { return "add" + javaCapCamel(protoField) }
+func javaPutName(protoField string) string    { return "put" + javaCapCamel(protoField) }
+func javaPutAllName(protoField string) string { return "putAll" + javaCapCamel(protoField) }
 func javaMethodLower(name string) string {
 	if len(name) == 0 {
 		return name
