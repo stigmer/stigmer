@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>ai.stigmer</groupId>
-    <artifactId>stigmer-java-stubs</artifactId>
+    <artifactId>stigmer-java-protos</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Stigmer Java Proto Stubs</name>
+    <name>Stigmer Java Protos</name>
     <description>Generated protobuf and gRPC-Java stubs for the Stigmer API</description>
     <url>https://github.com/stigmer/stigmer</url>
 

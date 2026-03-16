@@ -26,7 +26,7 @@ implementation "ai.stigmer:stigmer-java:0.1.0"
 implementation("ai.stigmer:stigmer-java:0.1.0")
 ```
 
-`stigmer-java-stubs` (generated protobuf stubs) is pulled in automatically as a transitive dependency.
+`stigmer-java-protos` (generated protobuf types) is pulled in automatically as a transitive dependency.
 
 ## Quick Start
 

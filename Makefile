@@ -100,7 +100,7 @@ check: tidy lint build test ## Run full CI gate locally
 .PHONY: update-agent-runner-deps
 update-agent-runner-deps: ## Regenerate agent-runner requirements.txt from poetry.lock
 	@cd $(AGENT_RUNNER_DIR) && poetry show --only main --no-ansi \
-		| awk '{ name=$$1; ver=$$2; if (name=="graphton" || name=="stigmer-stubs") next; printf "%s==%s\n", name, ver }' \
+		| awk '{ name=$$1; ver=$$2; if (name=="graphton" || name=="stigmer-protos") next; printf "%s==%s\n", name, ver }' \
 		| sort > /tmp/stigmer-ar-deps.txt
 	@cd $(AGENT_RUNNER_DIR) && poetry show pathspec --no-ansi >/dev/null 2>&1 \
 		&& echo "pathspec==$$(cd $(AGENT_RUNNER_DIR) && poetry show pathspec --no-ansi | awk '/version/{print $$3}')" >> /tmp/stigmer-ar-deps.txt \
@@ -110,7 +110,7 @@ update-agent-runner-deps: ## Regenerate agent-runner requirements.txt from poetr
 	   echo "#"; \
 	   echo "# This file lists all PyPI dependencies (direct + transitive) needed to run"; \
 	   echo "# agent-runner inside the hermetic pythonrt venv.  Path dependencies (graphton,"; \
-	   echo "# stigmer-stubs) are excluded; they are installed separately from the local"; \
+	   echo "# stigmer-protos) are excluded; they are installed separately from the local"; \
 	   echo "# source tree by the bootstrap pipeline."; \
 	   cat /tmp/stigmer-ar-deps.txt; \
 	} > $(AGENT_RUNNER_DIR)/requirements.txt

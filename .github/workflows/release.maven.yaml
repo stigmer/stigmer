@@ -32,7 +32,7 @@ jobs:
           echo "version=$VERSION_NO_V" >> $GITHUB_OUTPUT
           echo "Publishing Java packages at version: $VERSION_NO_V"
 
-  publish-stubs:
+  publish-protos:
     needs: determine-version
     runs-on: ubuntu-latest
     steps:
@@ -57,7 +57,7 @@ jobs:
         run: |
           VERSION="${{ needs.determine-version.outputs.version }}"
           mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
-          echo "Set stigmer-java-stubs version to $VERSION"
+          echo "Set stigmer-java-protos version to $VERSION"
 
       - name: Publish to Maven Central
         working-directory: apis/stubs/java
@@ -68,7 +68,7 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
   publish-sdk:
-    needs: [determine-version, publish-stubs]
+    needs: [determine-version, publish-protos]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -95,15 +95,15 @@ jobs:
       - name: Generate SDK client code
         run: make -C sdk/java codegen
 
-      - name: Set version and update stubs dependency
+      - name: Set version and update protos dependency
         working-directory: sdk/java
         run: |
           VERSION="${{ needs.determine-version.outputs.version }}"
           mvn --batch-mode versions:set -DnewVersion="$VERSION" -DgenerateBackupPoms=false
-          mvn --batch-mode versions:set-property -Dproperty=stigmer-stubs.version -DnewVersion="$VERSION" -DgenerateBackupPoms=false
-          echo "Set stigmer-java version to $VERSION (stubs dependency: $VERSION)"
+          mvn --batch-mode versions:set-property -Dproperty=stigmer-protos.version -DnewVersion="$VERSION" -DgenerateBackupPoms=false
+          echo "Set stigmer-java version to $VERSION (protos dependency: $VERSION)"
 
-      - name: Install stubs locally
+      - name: Install protos locally
         working-directory: apis/stubs/java
         run: |
           VERSION="${{ needs.determine-version.outputs.version }}"
