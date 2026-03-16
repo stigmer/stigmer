@@ -54,31 +54,45 @@ Important decisions, learnings, and gotchas captured during development.
 
 ## Current Status
 
-**Last Updated**: 2026-03-16 13:28 — Tasks 1 and 2 complete, ready for Task 3
-**Current Focus**: Task 3 (Scaffold sdk/java Maven project) is next
+**Last Updated**: 2026-03-16 14:10 — Tasks 1, 2, 3 complete + package rename done, ready for Task 4
+**Current Focus**: Task 4 (Wire codegen into build pipeline) is next
 
 ---
 
-## Session Progress (2026-03-16, Session 2)
+## Session Progress (2026-03-16, Session 4)
 
-- Completed Task 2: Created `tools/codegen/generator/sdk_client_java.go` (~1,560 lines)
-- Generated 45 Java files across 17 resources (11 shared types + 17 clients + 17 inputs)
-- All 46 source files compile cleanly against Java proto stubs (`mvn compile` -> BUILD SUCCESS)
-- Registered `sdk-client-java` target in generator dispatch
-- Created `sdk/java/pom.xml` for compilation verification
-- Fixed 2 bugs: case ordering in nested toProto field dispatch, missing map field handling
+- Performed architectural review of `internal.gen` package naming across all SDKs
+- Renamed Java generated package from `ai.stigmer.sdk.internal.gen` to `ai.stigmer.sdk.gen`
+- Changed `javaGenPackage` constant in `tools/codegen/generator/sdk_client_java.go`
+- Updated `SDK_GEN_DIR` in `sdk/java/Makefile`
+- Updated imports in `StigmerClient.java` (18 imports) and `SearchClient.java` (2 imports)
+- Deleted old `internal/gen/` directory, regenerated 46 files into `gen/`
+- Added `target/` to root `.gitignore` (Java/Maven build output was not ignored)
+- Clean compile (50 files) and all 7 tests pass
+- Committed: `e2cb987a`
+
+### Design Decisions Made (Session 4)
+
+- **Package `ai.stigmer.sdk.gen`** (not flat `ai.stigmer.sdk`) — keeps generated code in a dedicated directory that can be safely `rm -rf`'d during codegen without deleting hand-written sources
+- **`internal/transport/` unchanged** — `StigmerChannel` and `ApiKeyInterceptor` are genuinely internal (users should never instantiate these)
+- **Go, Python, TypeScript SDKs unchanged** — Go's `internal/` is compiler-enforced + has a public facade; Python re-exports via `__init__.py`; TypeScript re-exports via barrel `index.ts`
+
+## Session Progress (2026-03-16, Session 3)
+
+- Completed Task 3: Scaffolded handwritten public API layer for Java SDK
+- Created transport layer: `ApiKeyInterceptor.java`, `StigmerChannel.java`
+- Created `StigmerClient.java` with builder pattern, 17 sub-client accessors, `AutoCloseable`
+- Created `SearchClient.java` for cross-resource search
+- Created `sdk/java/Makefile` with codegen, build, test, codegen-verify targets
+- Created `StigmerClientTest.java` with 7 unit tests (all pass)
+- Committed: `92aa5047`
 
 ## Next Steps
 
-1. **Task 3**: Scaffold `sdk/java` Maven project — handwritten public API layer
-   - `StigmerClient.java` (builder, sub-client accessors, close)
-   - `StigmerChannel.java` (gRPC channel factory with TLS + API key interceptor)
-   - `ApiKeyInterceptor.java` (gRPC `ClientInterceptor`)
-   - `StigmerClientOptions.java` (configuration)
-   - `SearchClient.java` (cross-resource search)
-   - `sdk/java/Makefile` with codegen targets
-2. **Task 4**: Wire codegen into build pipeline (`make protos` chains Java SDK)
-3. **Task 5**: Maven Central publishing setup
+1. **Task 4**: Wire codegen into build pipeline (`make protos` chains Java SDK)
+   - Update root `Makefile` `protos` target to chain `make -C sdk/java codegen`
+   - Test full pipeline: `make protos` generates all stubs and SDKs
+2. **Task 5**: Maven Central publishing setup
 
 ## Context for Resume
 
@@ -90,12 +104,12 @@ The Java SDK reuses the same two-stage codegen pipeline as Go and TypeScript:
 2. **Stage 2 (per-language)**: Generator reads JSON schemas -> emits language-specific SDK code
    - Go: `tools/codegen/generator/sdk_client.go` -> `sdk/go/internal/gen/`
    - TS: `tools/codegen/generator/sdk_client_ts.go` -> `sdk/typescript/src/gen/`
-   - Java: `tools/codegen/generator/sdk_client_java.go` -> `sdk/java/src/main/java/.../internal/gen/`
+   - Java: `tools/codegen/generator/sdk_client_java.go` -> `sdk/java/src/main/java/.../gen/`
 
 ### Generated Code Structure
 
 ```
-sdk/java/src/main/java/ai/stigmer/sdk/internal/gen/
+sdk/java/src/main/java/ai/stigmer/sdk/gen/
   StigmerException.java          -- error type (extends RuntimeException)
   ErrorCode.java                 -- error code enum
   DeleteResourceInput.java       -- shared delete input
@@ -124,6 +138,7 @@ sdk/java/src/main/java/ai/stigmer/sdk/internal/gen/
 
 - `_changelog/2026-03/2026-03-16-112653-go-sdk-stripe-style-restructure.md`
 - `_changelog/2026-03/2026-03-16-115418-go-sdk-all-resource-codegen.md`
+- `_changelog/2026-03/2026-03-16-140949-java-sdk-remove-internal-from-generated-package.md`
 
 ---
 
@@ -131,7 +146,7 @@ sdk/java/src/main/java/ai/stigmer/sdk/internal/gen/
 
 After loading this file into chat, you can say:
 
-- **"Continue with Task 3"** — Start handwritten SDK layer (StigmerClient, transport, etc.)
+- **"Continue with Task 4"** — Wire codegen into `make protos` pipeline
 - **"Show current status"** — Get overview of all tasks and progress
 - **"What's next?"** — Move to next task
 
