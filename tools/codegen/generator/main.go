@@ -2107,8 +2107,13 @@ func main() {
 				fmt.Printf("Error in TypeScript SDK client generation: %v\n", err)
 				os.Exit(1)
 			}
+		case "sdk-client-python":
+			if err := runSDKClientPythonGeneration(*schemaDir, *outputDir); err != nil {
+				fmt.Printf("Error in Python SDK client generation: %v\n", err)
+				os.Exit(1)
+			}
 		default:
-			fmt.Printf("Comprehensive mode is supported for --target=mcp, --target=sdk-client, or --target=sdk-client-ts (got %s)\n", *target)
+			fmt.Printf("Comprehensive mode is supported for --target=mcp, --target=sdk-client, --target=sdk-client-ts, or --target=sdk-client-python (got %s)\n", *target)
 			os.Exit(1)
 		}
 		fmt.Println("\n✅ Comprehensive code generation complete!")
