@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { cn } from "@stigmer/theme";
@@ -11,10 +12,12 @@ const themes = [
 ] as const;
 
 export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
-  // resolvedTheme is undefined during SSR / before hydration
-  if (resolvedTheme === undefined) {
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) {
     return <ThemeToggleSkeleton />;
   }
 

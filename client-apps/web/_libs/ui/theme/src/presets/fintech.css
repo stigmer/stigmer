@@ -1,0 +1,69 @@
+/* Fintech — Premium financial design language (Stripe, Mercury, Brex)
+   Ultra-sharp corners, indigo primary, crisp surfaces, dark contrasting sidebar */
+
+.stgm-theme-fintech {
+  --stgm-radius: 0.25rem;
+  --stgm-background: oklch(0.995 0 0);
+  --stgm-foreground: oklch(0.15 0.02 280);
+  --stgm-card: oklch(1 0 0);
+  --stgm-card-foreground: oklch(0.15 0.02 280);
+  --stgm-popover: oklch(1 0 0);
+  --stgm-popover-foreground: oklch(0.15 0.02 280);
+  --stgm-primary: oklch(0.50 0.22 280);
+  --stgm-primary-foreground: oklch(0.985 0 0);
+  --stgm-secondary: oklch(0.97 0.005 280);
+  --stgm-secondary-foreground: oklch(0.25 0.02 280);
+  --stgm-muted: oklch(0.965 0.005 280);
+  --stgm-muted-foreground: oklch(0.52 0.02 280);
+  --stgm-accent: oklch(0.96 0.01 280);
+  --stgm-accent-foreground: oklch(0.25 0.02 280);
+  --stgm-border: oklch(0.94 0.003 280);
+  --stgm-input: oklch(0.93 0.005 280);
+  --stgm-ring: oklch(0.50 0.15 280);
+  --stgm-chart-1: oklch(0.55 0.22 280);
+  --stgm-chart-2: oklch(0.60 0.18 230);
+  --stgm-chart-3: oklch(0.50 0.15 340);
+  --stgm-chart-4: oklch(0.70 0.14 170);
+  --stgm-chart-5: oklch(0.75 0.16 60);
+  --stgm-sidebar: oklch(0.12 0.03 280);
+  --stgm-sidebar-foreground: oklch(0.90 0 0);
+  --stgm-sidebar-primary: oklch(0.72 0.18 280);
+  --stgm-sidebar-primary-foreground: oklch(0.12 0 0);
+  --stgm-sidebar-accent: oklch(0.20 0.04 280);
+  --stgm-sidebar-accent-foreground: oklch(0.90 0 0);
+  --stgm-sidebar-border: oklch(1 0 0 / 8%);
+  --stgm-sidebar-ring: oklch(0.50 0.15 280);
+}
+
+.stgm-theme-fintech.dark {
+  --stgm-background: oklch(0.11 0.02 280);
+  --stgm-foreground: oklch(0.94 0 0);
+  --stgm-card: oklch(0.17 0.025 280);
+  --stgm-card-foreground: oklch(0.94 0 0);
+  --stgm-popover: oklch(0.22 0.02 280);
+  --stgm-popover-foreground: oklch(0.94 0 0);
+  --stgm-primary: oklch(0.72 0.20 280);
+  --stgm-primary-foreground: oklch(0.12 0 0);
+  --stgm-secondary: oklch(0.22 0.02 280);
+  --stgm-secondary-foreground: oklch(0.94 0 0);
+  --stgm-muted: oklch(0.22 0.015 280);
+  --stgm-muted-foreground: oklch(0.62 0.02 280);
+  --stgm-accent: oklch(0.28 0.025 280);
+  --stgm-accent-foreground: oklch(0.94 0 0);
+  --stgm-border: oklch(1 0 0 / 10%);
+  --stgm-input: oklch(1 0 0 / 14%);
+  --stgm-ring: oklch(0.55 0.15 280);
+  --stgm-chart-1: oklch(0.62 0.22 280);
+  --stgm-chart-2: oklch(0.60 0.18 230);
+  --stgm-chart-3: oklch(0.58 0.18 340);
+  --stgm-chart-4: oklch(0.68 0.17 170);
+  --stgm-chart-5: oklch(0.72 0.18 60);
+  --stgm-sidebar: oklch(0.08 0.025 280);
+  --stgm-sidebar-foreground: oklch(0.90 0 0);
+  --stgm-sidebar-primary: oklch(0.72 0.20 280);
+  --stgm-sidebar-primary-foreground: oklch(0.12 0 0);
+  --stgm-sidebar-accent: oklch(0.15 0.03 280);
+  --stgm-sidebar-accent-foreground: oklch(0.90 0 0);
+  --stgm-sidebar-border: oklch(1 0 0 / 6%);
+  --stgm-sidebar-ring: oklch(0.50 0.12 280);
+}

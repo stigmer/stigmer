@@ -6,6 +6,7 @@ import { cn, THEME_PRESETS } from "@stigmer/theme";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -65,7 +66,9 @@ export function ThemePresetSelector() {
         <Palette className="size-3.5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={8}>
-        <DropdownMenuLabel>Color Preset</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Color Preset</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuRadioGroup value={presetId} onValueChange={handleChange}>
           {THEME_PRESETS.map((preset) => (
             <DropdownMenuRadioItem key={preset.id} value={preset.id}>
