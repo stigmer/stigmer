@@ -20,7 +20,7 @@ import {
 import { useSession } from "@/hooks/sessions/useSession";
 import { useSessionExecutions } from "@/hooks/sessions/useSessionExecutions";
 import { Separator } from "@/components/ui/separator";
-import { formatRelativeTime } from "@/lib/time";
+import { formatRelativeTime } from "@/utils/time";
 import { useDynamicRouteId } from "@/hooks/useDynamicRouteId";
 
 // ---------------------------------------------------------------------------

@@ -24,7 +24,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { useSessionPage } from "@/hooks/sessions/useSessionPage";
-import { formatRelativeTime, toDate } from "@/lib/time";
+import { formatRelativeTime, toDate } from "@/utils/time";
 
 const AGENT_FILTER_KEY = ["agents", "filter-options"] as const;
 const AGENT_FILTER_PAGE_SIZE = 100;
