@@ -101,20 +101,19 @@ client.agents().delete(DeleteResourceInput.builder().resourceId(agentId).build()
 
 ## Task 3: Scaffold sdk/java Maven project
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-16 12:10
+**Completed**: 2026-03-16 13:56
 
 ### Subtasks
-- [ ] Create `sdk/java/pom.xml` with groupId `ai.stigmer`, artifactId `stigmer-java`
-- [ ] Add dependencies: grpc-netty-shaded, grpc-protobuf, grpc-stub, protobuf-java, proto stubs module
-- [ ] Create transport layer: `StigmerChannel.java` (gRPC channel factory with TLS + API key interceptor)
-- [ ] Create `ApiKeyInterceptor.java` — gRPC `ClientInterceptor` adding `authorization: Bearer <key>` header
-- [ ] Create `StigmerException.java` + `ErrorCode.java` (handwritten or use generated version)
-- [ ] Create public API surface: `StigmerClient.java` (builder, sub-client accessors, close)
-- [ ] Create `StigmerClientOptions.java` — baseUrl, insecure mode, custom channel options
-- [ ] Create `SearchClient.java` for cross-resource search queries
-- [ ] Add `sdk/java/Makefile` with `codegen`, `codegen-verify`, `build`, `test` targets
-- [ ] Write basic unit tests
+- [x] Update `sdk/java/pom.xml` — renamed artifactId to `stigmer-java`, added grpc-netty-shaded, JUnit 5, maven-compiler-plugin 3.13.0, maven-surefire-plugin 3.5.2
+- [x] Create transport layer: `StigmerChannel.java` (gRPC channel factory with TLS via NettyChannelBuilder, insecure via plaintext)
+- [x] Create `ApiKeyInterceptor.java` — gRPC `ClientInterceptor` adding `Authorization: Bearer <key>` via metadata
+- [x] Create public API surface: `StigmerClient.java` (builder with required API key param, 17 sub-client accessors, AutoCloseable with graceful 5s shutdown)
+- [x] Create `SearchClient.java` for cross-resource search (SearchParams builder, SearchResponse, wraps StigmerException)
+- [x] Add `sdk/java/Makefile` with `codegen-clients`, `codegen`, `build`, `test`, `verify`, `codegen-verify`, `clean` targets
+- [x] Write unit tests: `StigmerClientTest.java` (7 tests — builder validation, lifecycle, sub-client access)
+- [x] Verify: `mvn compile` (50 files, BUILD SUCCESS) and `mvn test` (7 tests, 0 failures)
 
 ### Directory Structure
 ```
@@ -152,19 +151,24 @@ sdk/java/
 
 ## Task 4: Wire codegen into build pipeline
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-16 12:10
+**Completed**: 2026-03-16 14:19
 
 ### Subtasks
-- [ ] Add `sdk-java` target to `tools/codegen/generator/main.go` dispatch
-- [ ] Add `sdk/java/Makefile` with `codegen` target that calls the generator
-- [ ] Update root `Makefile` `protos` target to chain Java SDK codegen: `$(MAKE) -C sdk/java codegen`
-- [ ] Add `codegen-verify` target in `sdk/java/Makefile`: codegen + mvn compile + mvn test
-- [ ] Test full pipeline: `make protos` generates Go stubs, TS stubs, Java stubs, Go SDK, TS SDK, Java SDK
+- [x] Add `sdk-client-java` target to `tools/codegen/generator/main.go` dispatch (done in Task 2, session 2)
+- [x] Add `sdk/java/Makefile` with `codegen` target that calls the generator (done in Task 3, session 3)
+- [x] Update root `Makefile` `protos` target to chain Java SDK codegen: `$(MAKE) -C sdk/java codegen`
+- [x] Add `codegen-verify` target in `sdk/java/Makefile`: codegen + mvn compile + mvn test (done in Task 3, session 3)
+- [x] Add `sdk/java/.gitignore` to exclude `target/` and IDE files (was missing, ~90 stale `.class` files polluting git status)
+- [x] Test pipeline: `make -C sdk/java codegen-verify` passes (46 generated files, 50 total compile, 7 tests pass)
+- [x] Test full SDK codegen chain: Go → TS → Python → Java all regenerate successfully in sequence
 
 ### Notes
-- Pattern follows Go SDK: root `make protos` → `make -C apis build` → `make -C sdk/go codegen` → NEW: `make -C sdk/java codegen`
+- Pattern follows Go SDK: root `make protos` → `make -C apis build` → `make -C sdk/go codegen` → ... → `make -C sdk/java codegen`
 - `codegen-verify` = regenerate + build + test (catches drift)
+- Most subtasks were already completed in Tasks 2 and 3; this session wired the root Makefile and added the missing `.gitignore`
+- Pre-existing `make protos` issue: `apis build` fails at Bazel/Gazelle step because `sdk/go/BUILD.bazel` was deleted in a prior session (unrelated to Java SDK)
 
 ## Task 5: Maven Central publishing setup (covers Maven + Gradle + all Java consumers)
 

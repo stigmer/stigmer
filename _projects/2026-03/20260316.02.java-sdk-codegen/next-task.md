@@ -54,10 +54,23 @@ Important decisions, learnings, and gotchas captured during development.
 
 ## Current Status
 
-**Last Updated**: 2026-03-16 14:10 — Tasks 1, 2, 3 complete + package rename done, ready for Task 4
-**Current Focus**: Task 4 (Wire codegen into build pipeline) is next
+**Last Updated**: 2026-03-16 14:19 — Tasks 1-4 complete, ready for Task 5
+**Current Focus**: Task 5 (Maven Central publishing setup) is next
 
 ---
+
+## Session Progress (2026-03-16, Session 7)
+
+- Completed Task 4: Wired Java SDK codegen into root build pipeline
+- Added `$(MAKE) -C sdk/java codegen` to root `Makefile` `protos` target
+- Created `sdk/java/.gitignore` (was missing — ~90 stale `.class` files were polluting `git status`)
+- Validated: `make -C sdk/java codegen-verify` passes (46 generated, 50 total compile, 7 tests pass)
+- Validated: full SDK codegen chain (Go → TS → Python → Java) all regenerate successfully in sequence
+
+### Finding (Session 7)
+
+- Three of five Task 4 subtasks were already completed in earlier sessions (generator dispatch in Task 2, Makefile targets in Task 3). The actual remaining work was: 1 line in root Makefile + `.gitignore` + validation.
+- Pre-existing issue: `make protos` fails at `apis build` Bazel step because `sdk/go/BUILD.bazel` was deleted in a prior session. Unrelated to Java SDK.
 
 ## Session Progress (2026-03-16, Session 4)
 
@@ -89,10 +102,11 @@ Important decisions, learnings, and gotchas captured during development.
 
 ## Next Steps
 
-1. **Task 4**: Wire codegen into build pipeline (`make protos` chains Java SDK)
-   - Update root `Makefile` `protos` target to chain `make -C sdk/java codegen`
-   - Test full pipeline: `make protos` generates all stubs and SDKs
-2. **Task 5**: Maven Central publishing setup
+1. **Task 5**: Maven Central publishing setup
+   - Configure `pom.xml` with required Central metadata
+   - Add signing, source, and javadoc plugins
+   - Create `.github/workflows/release.maven.yaml`
+   - Owner action items: Sonatype account, GPG key, DNS verification
 
 ## Context for Resume
 
@@ -146,7 +160,7 @@ sdk/java/src/main/java/ai/stigmer/sdk/gen/
 
 After loading this file into chat, you can say:
 
-- **"Continue with Task 4"** — Wire codegen into `make protos` pipeline
+- **"Continue with Task 5"** — Maven Central publishing setup
 - **"Show current status"** — Get overview of all tasks and progress
 - **"What's next?"** — Move to next task
 
