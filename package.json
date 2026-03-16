@@ -9,8 +9,8 @@
     "client-apps/web/_libs/ui/*"
   ],
   "scripts": {
-    "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/theme",
-    "clean:libs": "npm run clean -w @stigmer/protos && npm run clean -w @stigmer/theme"
+    "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/sdk && npm run build -w @stigmer/theme && npm run build -w @stigmer/react",
+    "clean:libs": "npm run clean -w @stigmer/protos && npm run clean -w @stigmer/sdk && npm run clean -w @stigmer/theme && npm run clean -w @stigmer/react"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.1"

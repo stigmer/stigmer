@@ -70,8 +70,8 @@
   "peerDependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@stigmer/sdk": "0.0.0-dev",
-    "@stigmer/protos": "0.0.0-dev",
+    "@stigmer/sdk": "*",
+    "@stigmer/protos": "*",
     "@bufbuild/protobuf": "^2.0.0",
     "@base-ui/react": "^1.0.0",
     "class-variance-authority": "^0.7.0",

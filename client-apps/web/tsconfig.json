@@ -31,8 +31,6 @@
     "**/*.mts"
   ],
   "exclude": [
-    "node_modules",
-    "_libs/domain",
-    "_libs/infra"
+    "node_modules"
   ]
 }
