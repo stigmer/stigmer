@@ -4,7 +4,9 @@
   "description": "React hooks and embeddable components for the Stigmer platform",
   "license": "Apache-2.0",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "*.css"
+  ],
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
