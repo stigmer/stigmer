@@ -4,14 +4,14 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Play, ExternalLink } from "lucide-react";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { AgentPicker, type SelectedAgent } from "@stigmer/agent";
+import { AgentPicker, type SelectedAgent } from "@stigmer/react/agent";
 import {
   ExecutionStream,
   MessageInput,
   useAgentExecution,
   useApproval,
   isTerminalPhase,
-} from "@stigmer/agent-execution";
+} from "@stigmer/react/agent-execution";
 import { cn } from "@stigmer/theme";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";

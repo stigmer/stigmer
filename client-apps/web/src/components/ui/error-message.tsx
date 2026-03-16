@@ -8,7 +8,7 @@ import {
   getRpcMetadata,
   isRetryableError,
   type ErrorCategory,
-} from "@stigmer/rpc-client";
+} from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
 

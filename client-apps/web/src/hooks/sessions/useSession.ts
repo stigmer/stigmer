@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useSessionQueryService } from "@stigmer/session";
+import { useStigmer } from "@stigmer/react";
 import { sessionKeys } from "./keys";
 
 /**
@@ -11,11 +11,11 @@ import { sessionKeys } from "./keys";
  * fetching (e.g. before an ID is available from route params).
  */
 export function useSession(sessionId: string) {
-  const service = useSessionQueryService();
+  const stigmer = useStigmer();
 
   return useQuery({
     queryKey: sessionKeys.detail(sessionId),
-    queryFn: () => service.get(sessionId),
+    queryFn: () => stigmer.session.get(sessionId),
     enabled: !!sessionId,
   });
 }

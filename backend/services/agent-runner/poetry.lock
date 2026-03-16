@@ -5086,7 +5086,7 @@ typing-extensions = {version = ">=4.10.0", markers = "python_version < \"3.13\""
 full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.18)", "pyyaml"]
 
 [[package]]
-name = "stigmer-stubs"
+name = "stigmer-protos"
 version = "0.1.0"
 description = "Generated Python stubs for Stigmer APIs"
 optional = false
@@ -6303,4 +6303,4 @@ cffi = ["cffi (>=1.17,<2.0) ; platform_python_implementation != \"PyPy\" and pyt
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "f734089516bd5c4b5797ce4c0f51ec7aa583403ffd1d36f10018fa2a40dc8d12"
+content-hash = "01fe738c1be7750b08cff8e6c21f5eb9c7ef35fb1da1fa5bc7029213e7afe8fd"

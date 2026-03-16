@@ -15,6 +15,7 @@ help:
 	@echo ""
 	@echo "  Stub Generation:"
 	@echo "    make go-stubs     - Generate Go stubs only"
+	@echo "    make java-stubs   - Generate Java stubs only"
 	@echo "    make python-stubs - Generate Python stubs only"
 	@echo "    make ts-stubs     - Generate TypeScript stubs only"
 	@echo ""
@@ -31,7 +32,7 @@ help:
 #  Core build targets
 # --------------------------------------------------------------------------- #
 .PHONY: build
-build: lint fmt go-stubs python-stubs ts-stubs
+build: lint fmt go-stubs java-stubs python-stubs ts-stubs
 
 .PHONY: protos
 protos: build
@@ -65,12 +66,13 @@ release: lint fmt push
 #  Cleanup and initialization
 # --------------------------------------------------------------------------- #
 .PHONY: clean
-clean: go-stubs-clean python-stubs-clean ts-stubs-clean
+clean: go-stubs-clean java-stubs-clean python-stubs-clean ts-stubs-clean
 
 .PHONY: prep
 prep:
 	$(MAKE) clean
 	$(MAKE) go-stubs-init
+	$(MAKE) java-stubs-init
 	$(MAKE) python-stubs-init
 	$(MAKE) ts-stubs-init
 
@@ -138,6 +140,27 @@ go-stubs: go-stubs-clean go-stubs-init
 	@$(MAKE) go-stubs-ensure-gomod
 	@$(MAKE) go-stubs-generate-build-files
 	@echo "✓ Go stubs generated successfully"
+
+# --------------------------------------------------------------------------- #
+#  Java protobuf/gRPC stub generation
+# --------------------------------------------------------------------------- #
+JAVA_STUBS_DIR := stubs/java
+
+.PHONY: java-stubs-clean
+java-stubs-clean:
+	@echo "Cleaning Java stubs..."
+	@rm -rf $(JAVA_STUBS_DIR)/src/main/java/ai
+	@rm -rf $(JAVA_STUBS_DIR)/src/main/java/buf
+
+.PHONY: java-stubs-init
+java-stubs-init:
+	@mkdir -p $(JAVA_STUBS_DIR)/src/main/java
+
+.PHONY: java-stubs
+java-stubs: java-stubs-clean java-stubs-init
+	@echo "Generating Java stubs..."
+	@$(BUF) generate --template buf.gen.java.yaml
+	@echo "✓ Java stubs generated successfully"
 
 # --------------------------------------------------------------------------- #
 #  Python protobuf/gRPC stub generation

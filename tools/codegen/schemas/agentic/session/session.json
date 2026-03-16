@@ -1,0 +1,82 @@
+{
+  "name": "SessionSpec",
+  "kind": "SESSION_SPEC",
+  "description": "SessionSpec defines the configurable properties of an agent conversation session.\n This is the \"Execution\" layer - ephemeral runtime against an AgentInstance.",
+  "protoType": "ai.stigmer.agentic.session.v1.SessionSpec",
+  "protoFile": "apis/ai/stigmer/agentic/session/v1/spec.proto",
+  "fields": [
+    {
+      "name": "AgentInstanceId",
+      "jsonName": "agentInstanceId",
+      "protoField": "agent_instance_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "ID of the AgentInstance this session runs against (required).\n The instance contains all configuration and secrets needed for execution.",
+      "required": true,
+      "validation": {
+        "required": true
+      }
+    },
+    {
+      "name": "Subject",
+      "jsonName": "subject",
+      "protoField": "subject",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Conversation title/subject for UI display (optional).",
+      "required": false
+    },
+    {
+      "name": "ThreadId",
+      "jsonName": "threadId",
+      "protoField": "thread_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "thread ID (generated on first execution, persists across all executions).",
+      "required": false
+    },
+    {
+      "name": "SandboxId",
+      "jsonName": "sandboxId",
+      "protoField": "sandbox_id",
+      "type": {
+        "kind": "string"
+      },
+      "description": "Daytona sandbox ID (created on first execution, reused for file persistence).",
+      "required": false
+    },
+    {
+      "name": "Metadata",
+      "jsonName": "metadata",
+      "protoField": "metadata",
+      "type": {
+        "kind": "map",
+        "keyType": {
+          "kind": "string"
+        },
+        "valueType": {
+          "kind": "string"
+        }
+      },
+      "description": "Session metadata (e.g., client info, tags).",
+      "required": false
+    },
+    {
+      "name": "WorkspaceEntries",
+      "jsonName": "workspaceEntries",
+      "protoField": "workspace_entries",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "WorkspaceEntry"
+        }
+      },
+      "description": "Workspace entries for this session (optional, may be empty).\n\n Each entry pairs a name with a source (git repo or local path), forming\n a multi-root workspace (VS Code model). Entries are provisioned on the\n first execution; subsequent executions reuse the same workspace.\n\n When empty, the session uses an empty workspace directory\n (existing default behavior, no provisioning step).",
+      "required": false
+    }
+  ]
+}

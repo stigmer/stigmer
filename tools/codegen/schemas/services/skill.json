@@ -1,0 +1,60 @@
+{
+  "resource": "skill",
+  "package": "ai.stigmer.agentic.skill.v1",
+  "goImportPath": "skillv1",
+  "services": [
+    {
+      "name": "SkillCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Push",
+          "inputType": "PushSkillRequest",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.PushSkillRequest",
+          "outputType": "Skill",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
+          "description": "Push (upload) a skill artifact.\n This operation creates a new skill if it doesn't exist, or creates a new version\n of an existing skill. The skill artifact must contain SKILL.md.\n\n Authorization:\n - Organization-scoped skills: Caller must have can_create_skill permission in the organization\n - Platform-scoped skills: Caller must be a platform operator (handled automatically by common auth step)\n\n The backend will:\n 1. Normalize the name to a slug\n 2. Find or create the skill resource\n 3. Extract SKILL.md from the artifact\n 4. Calculate SHA256 hash (version identifier)\n 5. Store the artifact (deduplicated by hash)\n 6. Update skill spec and status\n 7. Archive the previous version (if updating)\n\n Returns: The created or updated Skill resource (consistent with other CRUD operations)"
+        },
+        {
+          "name": "Delete",
+          "inputType": "SkillId",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.SkillId",
+          "outputType": "Skill",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
+          "description": "Delete a skill and all its versions.\n This removes the skill from the main collection but preserves audit history."
+        }
+      ]
+    },
+    {
+      "name": "SkillQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "SkillId",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.SkillId",
+          "outputType": "Skill",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
+          "description": "Get a single skill by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "Skill",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
+          "description": "Get a skill by API resource reference with version support.\n\n Version resolution (via ApiResourceReference.version field):\n - Empty/\"latest\" → Returns current version from main collection\n - Tag name (e.g., \"stable\", \"v1.0\") → Resolves to version with this tag\n - SHA256 hash (64 hex chars) → Returns exact immutable version\n\n Authorization is handled in the handler after resolving the reference to a skill ID.\n (Input doesn't contain skill ID, so proto-level auth cannot work)"
+        },
+        {
+          "name": "GetArtifact",
+          "inputType": "GetArtifactRequest",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.GetArtifactRequest",
+          "outputType": "GetArtifactResponse",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.GetArtifactResponse",
+          "description": "Download skill artifact from storage by its storage key.\n Returns the ZIP file containing SKILL.md and implementation files.\n\n This endpoint is used by the agent-runner to download and extract\n skill artifacts into the sandbox at /bin/skills/{version_hash}/.\n\n Authorization is skipped as the storage key itself acts as a capability token."
+        }
+      ]
+    }
+  ],
+  "listVia": "SearchService"
+}

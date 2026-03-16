@@ -1,0 +1,67 @@
+{
+  "resource": "identityprovider",
+  "package": "ai.stigmer.iam.identityprovider.v1",
+  "goImportPath": "identityproviderv1",
+  "services": [
+    {
+      "name": "IdentityProviderCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "IdentityProvider",
+          "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
+          "outputType": "IdentityProvider",
+          "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
+          "description": "Create or update an identity provider (Kubernetes-style apply).\n If the resource doesn't exist: creates a new identity provider.\n If the resource exists: updates the existing identity provider."
+        },
+        {
+          "name": "Create",
+          "inputType": "IdentityProvider",
+          "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
+          "outputType": "IdentityProvider",
+          "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
+          "description": "Create a new identity provider.\n The creator's organization owns the identity provider."
+        },
+        {
+          "name": "Update",
+          "inputType": "IdentityProvider",
+          "inputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
+          "outputType": "IdentityProvider",
+          "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
+          "description": "Update an existing identity provider.\n Requires can_edit permission on the identity provider."
+        },
+        {
+          "name": "Delete",
+          "inputType": "ApiResourceDeleteInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
+          "outputType": "IdentityProvider",
+          "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
+          "description": "Delete an identity provider.\n Deletion is blocked if any platform-managed organizations reference this identity provider."
+        }
+      ]
+    },
+    {
+      "name": "IdentityProviderQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "ApiResourceId",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
+          "outputType": "IdentityProvider",
+          "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
+          "description": "Get an identity provider by its unique identifier."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "IdentityProvider",
+          "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
+          "description": "Get an identity provider by reference (org + slug)."
+        }
+      ]
+    }
+  ]
+}

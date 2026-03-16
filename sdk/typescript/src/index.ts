@@ -1,0 +1,124 @@
+// Public API for @stigmer/sdk
+
+// Top-level client
+export { Stigmer } from "./stigmer";
+
+// Configuration
+export { type StigmerConfig, type TokenProvider } from "./config";
+
+// Error handling
+export {
+  StigmerError,
+  type ErrorCode,
+  isNotFound,
+  isUnauthenticated,
+  isPermissionDenied,
+  isRetryable,
+  type ErrorCategory,
+  isConnectError,
+  classifyError,
+  isRetryableError,
+  getUserMessage,
+  type RpcErrorMetadata,
+  annotateRpcError,
+  getRpcMetadata,
+} from "./errors";
+
+// Search client
+export {
+  SearchClient,
+  type SearchParams,
+  type SearchResponse,
+  ApiResourceKind,
+} from "./search";
+
+// Shared types (from generated code)
+export {
+  type DeleteResourceInput,
+  type ResourceRef,
+  type Page,
+  type ListParams,
+  type ListResult,
+  type EnvSpecInput,
+  type EnvVarInput,
+} from "./gen/types";
+
+// Re-export all resource client classes and input types
+export {
+  AgentClient,
+  type AgentInput,
+  type McpServerUsageInput,
+  type ToolApprovalOverrideInput,
+  type SubAgentInput,
+  type McpAccessInput,
+} from "./gen/agent";
+export {
+  AgentExecutionClient,
+  type AgentExecutionInput,
+  type ExecutionConfigInput,
+  type ContextManagementConfigInput,
+  type AttachmentInput,
+} from "./gen/agentexecution";
+export {
+  AgentInstanceClient,
+  type AgentInstanceInput,
+} from "./gen/agentinstance";
+export { ApiKeyClient, type ApiKeyInput } from "./gen/apikey";
+export {
+  EnvironmentClient,
+  type EnvironmentInput,
+} from "./gen/environment";
+export {
+  ExecutionContextClient,
+  type ExecutionContextInput,
+} from "./gen/executioncontext";
+export {
+  IamPolicyClient,
+  type IamPolicyInput,
+  type ApiResourceRefInput,
+} from "./gen/iampolicy";
+export {
+  IdentityAccountClient,
+  type IdentityAccountInput,
+} from "./gen/identityaccount";
+export {
+  IdentityProviderClient,
+  type IdentityProviderInput,
+} from "./gen/identityprovider";
+export {
+  McpServerClient,
+  type McpServerInput,
+  type StdioServerConfigInput,
+  type HttpServerConfigInput,
+  type ToolApprovalPolicyInput,
+} from "./gen/mcpserver";
+export {
+  OrganizationClient,
+  type OrganizationInput,
+} from "./gen/organization";
+export { ProjectClient, type ProjectInput } from "./gen/project";
+export {
+  SessionClient,
+  type SessionInput,
+  type WorkspaceEntryInput,
+  type WorkspaceSourceInput,
+  type GitRepoSourceInput,
+  type LocalPathSourceInput,
+} from "./gen/session";
+export { SkillClient, type SkillInput } from "./gen/skill";
+export {
+  WorkflowClient,
+  type WorkflowInput,
+  type WorkflowDocumentInput,
+  type WorkflowTaskInput,
+  type ExportInput,
+  type FlowControlInput,
+} from "./gen/workflow";
+export {
+  WorkflowExecutionClient,
+  type WorkflowExecutionInput,
+} from "./gen/workflowexecution";
+export {
+  WorkflowInstanceClient,
+  type WorkflowInstanceInput,
+} from "./gen/workflowinstance";

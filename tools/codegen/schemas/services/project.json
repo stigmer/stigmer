@@ -1,0 +1,67 @@
+{
+  "resource": "project",
+  "package": "ai.stigmer.tenancy.project.v1",
+  "goImportPath": "projectv1",
+  "services": [
+    {
+      "name": "ProjectCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "Project",
+          "inputFullType": "ai.stigmer.tenancy.project.v1.Project",
+          "outputType": "Project",
+          "outputFullType": "ai.stigmer.tenancy.project.v1.Project",
+          "description": "Create or update a project.\n The authorization and state-operation are determined depending on whether the project\n is going to be created or updated which is determined as part of the request execution."
+        },
+        {
+          "name": "Create",
+          "inputType": "Project",
+          "inputFullType": "ai.stigmer.tenancy.project.v1.Project",
+          "outputType": "Project",
+          "outputFullType": "ai.stigmer.tenancy.project.v1.Project",
+          "description": "Create a new project.\n\n Authorization:\n - Organization-scoped projects: Caller must have can_create_project permission in the organization\n - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step)"
+        },
+        {
+          "name": "Update",
+          "inputType": "Project",
+          "inputFullType": "ai.stigmer.tenancy.project.v1.Project",
+          "outputType": "Project",
+          "outputFullType": "ai.stigmer.tenancy.project.v1.Project",
+          "description": "Update an existing project."
+        },
+        {
+          "name": "Delete",
+          "inputType": "ProjectId",
+          "inputFullType": "ai.stigmer.tenancy.project.v1.ProjectId",
+          "outputType": "Project",
+          "outputFullType": "ai.stigmer.tenancy.project.v1.Project",
+          "description": "Delete a project."
+        }
+      ]
+    },
+    {
+      "name": "ProjectQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "ProjectId",
+          "inputFullType": "ai.stigmer.tenancy.project.v1.ProjectId",
+          "outputType": "Project",
+          "outputFullType": "ai.stigmer.tenancy.project.v1.Project",
+          "description": "Get a single project by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "Project",
+          "outputFullType": "ai.stigmer.tenancy.project.v1.Project",
+          "description": "Get a project by reference (org/name).\n Custom authorization is handled in the controller implementation."
+        }
+      ]
+    }
+  ]
+}

@@ -3,14 +3,14 @@
   "private": true,
   "workspaces": [
     "apis/stubs/ts",
+    "sdk/typescript",
+    "sdk/react",
     "client-apps/web",
-    "client-apps/web/_libs/infra/*",
-    "client-apps/web/_libs/ui/*",
-    "client-apps/web/_libs/domain/*"
+    "client-apps/web/_libs/ui/*"
   ],
   "scripts": {
-    "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/rpc-client && npm run build -w @stigmer/theme && npm run build -w @stigmer/agent-execution-ui",
-    "clean:libs": "npm run clean -w @stigmer/protos && npm run clean -w @stigmer/rpc-client && npm run clean -w @stigmer/theme && npm run clean -w @stigmer/agent-execution-ui"
+    "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/sdk && npm run build -w @stigmer/theme && npm run build -w @stigmer/react",
+    "clean:libs": "npm run clean -w @stigmer/protos && npm run clean -w @stigmer/sdk && npm run clean -w @stigmer/theme && npm run clean -w @stigmer/react"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.2.1"

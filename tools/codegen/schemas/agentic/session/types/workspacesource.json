@@ -1,0 +1,32 @@
+{
+  "name": "WorkspaceSource",
+  "description": "WorkspaceSource defines where the agent's workspace content comes from.\n\n This is a pure source-definition type: it describes the origin of workspace\n content (a git repo or a local directory) without any identity or naming.\n Use WorkspaceEntry to pair a source with a name for session-level usage.",
+  "protoType": "ai.stigmer.agentic.session.v1.WorkspaceSource",
+  "protoFile": "apis/ai/stigmer/agentic/session/v1/workspace.proto",
+  "fields": [
+    {
+      "name": "GitRepo",
+      "jsonName": "gitRepo",
+      "protoField": "git_repo",
+      "type": {
+        "kind": "message",
+        "messageType": "GitRepoSource"
+      },
+      "description": "",
+      "required": false,
+      "oneofGroup": "source"
+    },
+    {
+      "name": "LocalPath",
+      "jsonName": "localPath",
+      "protoField": "local_path",
+      "type": {
+        "kind": "message",
+        "messageType": "LocalPathSource"
+      },
+      "description": "",
+      "required": false,
+      "oneofGroup": "source"
+    }
+  ]
+}

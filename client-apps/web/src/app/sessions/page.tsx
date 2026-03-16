@@ -10,7 +10,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useAgentQueryService } from "@stigmer/agent";
+import { useStigmer } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { TopBar } from "@/components/layout/TopBar";
 import { Button } from "@/components/ui/button";
@@ -39,14 +39,14 @@ export default function SessionsPage() {
   });
 
   const org = useActiveOrgSlug();
-  const agentService = useAgentQueryService();
+  const stigmer = useStigmer();
 
   const { data: agentData } = useQuery({
     queryKey: [...AGENT_FILTER_KEY, org],
     queryFn: () =>
-      agentService.search({
-        query: "",
+      stigmer.agent.list({
         org,
+        query: "",
         page: { num: 1, size: AGENT_FILTER_PAGE_SIZE },
       }),
     enabled: !!org,

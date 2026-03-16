@@ -1,0 +1,67 @@
+{
+  "resource": "environment",
+  "package": "ai.stigmer.agentic.environment.v1",
+  "goImportPath": "environmentv1",
+  "services": [
+    {
+      "name": "EnvironmentCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "Environment",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Create or update an Environment resource.\n The authorization and state-operation are determined depending on whether the environment\n is going to be created or updated which is determined as part of the request execution."
+        },
+        {
+          "name": "Create",
+          "inputType": "Environment",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Create a new Environment resource."
+        },
+        {
+          "name": "Update",
+          "inputType": "Environment",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Update an existing Environment resource."
+        },
+        {
+          "name": "Delete",
+          "inputType": "ApiResourceDeleteInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Delete an Environment resource."
+        }
+      ]
+    },
+    {
+      "name": "EnvironmentQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "ApiResourceId",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceId",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Get an Environment by ID."
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Custom authorization in handler"
+        }
+      ]
+    }
+  ]
+}

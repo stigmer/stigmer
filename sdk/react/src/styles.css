@@ -1,0 +1,50 @@
+@layer stgm;
+
+@import "tailwindcss/theme.css" layer(stgm);
+@import "tailwindcss/utilities.css" layer(stgm);
+@import "@stigmer/theme/tokens.css" layer(stgm);
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--stgm-radius) - 4px);
+  --radius-md: calc(var(--stgm-radius) - 2px);
+  --radius-lg: var(--stgm-radius);
+  --radius-xl: calc(var(--stgm-radius) + 4px);
+  --color-background: var(--stgm-background);
+  --color-foreground: var(--stgm-foreground);
+  --color-card: var(--stgm-card);
+  --color-card-foreground: var(--stgm-card-foreground);
+  --color-popover: var(--stgm-popover);
+  --color-popover-foreground: var(--stgm-popover-foreground);
+  --color-primary: var(--stgm-primary);
+  --color-primary-foreground: var(--stgm-primary-foreground);
+  --color-secondary: var(--stgm-secondary);
+  --color-secondary-foreground: var(--stgm-secondary-foreground);
+  --color-muted: var(--stgm-muted);
+  --color-muted-foreground: var(--stgm-muted-foreground);
+  --color-accent: var(--stgm-accent);
+  --color-accent-foreground: var(--stgm-accent-foreground);
+  --color-destructive: var(--stgm-destructive);
+  --color-destructive-foreground: var(--stgm-destructive-foreground);
+  --color-border: var(--stgm-border);
+  --color-input: var(--stgm-input);
+  --color-ring: var(--stgm-ring);
+}
+
+@layer stgm {
+  .stgm {
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .stgm *,
+  .stgm *::before,
+  .stgm *::after {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: var(--stgm-border, currentColor);
+  }
+}

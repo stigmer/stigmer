@@ -7,7 +7,7 @@ import {
   classifyError,
   getUserMessage,
   type ErrorCategory,
-} from "@stigmer/rpc-client";
+} from "@stigmer/sdk";
 import { Button } from "@/components/ui/button";
 
 interface ErrorPageProps {

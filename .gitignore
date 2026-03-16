@@ -61,6 +61,9 @@ ENV/
 *~
 .DS_Store
 
+# Java / Maven
+target/
+
 # Node.js
 node_modules/
 
@@ -87,6 +90,10 @@ tmp/
 *.a
 *.out
 .agent-runner-image-built
+
+# Codegen tool binaries (go build drops these in the module/repo root)
+/generator
+tools/codegen/generator/generator
 
 # Go service binaries (prevent accidental commits of built binaries in service dirs)
 backend/services/*/stigmer-server

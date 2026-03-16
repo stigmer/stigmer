@@ -1,0 +1,75 @@
+{
+  "resource": "workflowinstance",
+  "package": "ai.stigmer.agentic.workflowinstance.v1",
+  "goImportPath": "workflowinstancev1",
+  "services": [
+    {
+      "name": "WorkflowInstanceCommandController",
+      "role": "command",
+      "methods": [
+        {
+          "name": "Apply",
+          "inputType": "WorkflowInstance",
+          "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
+          "outputType": "WorkflowInstance",
+          "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
+          "description": "Create or update a workflow instance.\n The authorization and state-operation are determined depending on whether the workflow instance\n is going to be created or updated which is determined as part of the request execution."
+        },
+        {
+          "name": "Create",
+          "inputType": "WorkflowInstance",
+          "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
+          "outputType": "WorkflowInstance",
+          "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
+          "description": "Create a new workflow instance.\n\n Creates a configured deployment of a Workflow template with environment bindings.\n\n Input validation:\n - metadata.org must be specified\n - spec.workflow_id must be a valid Workflow resource ID\n - spec.env_refs must reference valid Environment resources\n\n Authorization:\n Uses custom authorization logic to verify:\n 1. User has permission to access the referenced Workflow template\n 2. User has permission to access all referenced Environment resources\n 3. Owner scope is valid for the user's organization/identity\n\n Returns:\n The created WorkflowInstance with:\n - Assigned resource ID (metadata.id)\n - Created timestamp (status.audit.created_at)\n - Initial version (status.audit.version = 1)\n\n Example:\n Input: WorkflowInstance with workflow_id=\"wfl-123\", env_refs=[\"env-prod\"]\n Output: WorkflowInstance with id=\"wfi-abc456\", created_at=\"2025-01-11T10:00:00Z\""
+        },
+        {
+          "name": "Update",
+          "inputType": "WorkflowInstance",
+          "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
+          "outputType": "WorkflowInstance",
+          "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
+          "description": "Update an existing workflow instance.\n\n Modifies the configuration of an existing WorkflowInstance.\n You can update:\n - spec.description (change descriptive text)\n - spec.env_refs (add/remove/reorder environment bindings)\n - metadata.labels, metadata.tags, metadata.annotations\n\n You cannot update:\n - spec.workflow_id (must delete and recreate to change template)\n - metadata.id (immutable resource identifier)\n - metadata.org (immutable after creation)\n\n Authorization:\n Requires \"update\" permission on the specific WorkflowInstance resource.\n Field path \"metadata.id\" identifies which resource to authorize.\n\n Versioning:\n Each update increments status.audit.version and updates status.audit.updated_at.\n\n Returns:\n The updated WorkflowInstance with:\n - Incremented version number\n - Updated timestamp\n - Modified spec fields\n\n Error: PERMISSION_DENIED if user lacks update permission"
+        },
+        {
+          "name": "Delete",
+          "inputType": "WorkflowInstanceId",
+          "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId",
+          "outputType": "WorkflowInstance",
+          "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
+          "description": "Delete a workflow instance.\n\n Permanently removes a WorkflowInstance resource.\n\n Important:\n - Deletion is permanent and cannot be undone\n - Does NOT delete the referenced Workflow template (templates are reusable)\n - Does NOT delete the referenced Environment resources (environments are reusable)\n - DOES cascade delete any dependent WorkflowExecution resources (executions belong to instance)\n\n Authorization:\n Requires \"delete\" permission on the specific WorkflowInstance resource.\n Field path \"value\" extracts the resource ID from WorkflowInstanceId wrapper.\n\n Use Cases:\n - Remove deprecated instances\n - Clean up test/dev instances\n - Decommission old deployment configurations\n\n Returns:\n The deleted WorkflowInstance (final state before deletion).\n Useful for audit logs and confirming what was deleted.\n\n Error: PERMISSION_DENIED if user lacks delete permission\n Error: NOT_FOUND if instance ID doesn't exist"
+        }
+      ]
+    },
+    {
+      "name": "WorkflowInstanceQueryController",
+      "role": "query",
+      "methods": [
+        {
+          "name": "Get",
+          "inputType": "WorkflowInstanceId",
+          "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId",
+          "outputType": "WorkflowInstance",
+          "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
+          "description": "Get a single workflow instance by ID.\n\n Retrieves a specific WorkflowInstance using its unique resource identifier.\n\n Input:\n WorkflowInstanceId with the instance ID (e.g., \"wfi-abc123\")\n\n Returns:\n Complete WorkflowInstance resource with:\n - api_version, kind, metadata\n - spec (workflow_id, description, env_refs)\n - status (audit information: created_at, updated_at, version)\n\n Authorization:\n Requires \"get\" permission on the specific WorkflowInstance.\n Field path \"value\" extracts the resource ID from WorkflowInstanceId wrapper.\n Verifies user has access based on:\n - Instance owner scope (organization or identity_account)\n - User's IAM policies\n\n Use Cases:\n - Retrieve instance configuration before executing\n - View instance details in UI\n - Fetch instance for editing/updating\n\n Error: PERMISSION_DENIED if user lacks get permission\n Error: NOT_FOUND if instance ID doesn't exist"
+        },
+        {
+          "name": "GetByWorkflow",
+          "inputType": "GetWorkflowInstancesByWorkflowRequest",
+          "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest",
+          "outputType": "WorkflowInstanceList",
+          "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList",
+          "description": "Get all instances of a specific workflow template.\n\n Retrieves all WorkflowInstance resources that reference a specific Workflow template.\n Useful for discovering all configured deployments of a workflow.\n\n Example Use Case:\n Workflow \"deploy-to-cloud\" (wfl-123) has instances:\n - \"prod-deploy\" (wfi-abc) - Production deployment with aws-prod-env\n - \"staging-deploy\" (wfi-def) - Staging deployment with aws-staging-env\n - \"dev-deploy\" (wfi-ghi) - Development deployment with aws-dev-env\n\n Input:\n GetWorkflowInstancesByWorkflowRequest with:\n - workflow_id: Workflow template ID to filter by\n - page_info: Pagination settings (page_size, page_token)\n\n Returns:\n WorkflowInstanceList with:\n - total_pages: Total number of pages available\n - entries: Array of WorkflowInstance resources in current page\n\n Authorization:\n Authorization is handled in handler via FGA query for authorized workflow_instance_ids,\n then filtered by workflow_id. This ensures users only see instances they have access to,\n even if the parent workflow is shared across organizations.\n\n Filtering:\n Results are filtered by:\n - User's organization/identity visibility\n - IAM policies\n - Owner scope rules\n\n Error: PERMISSION_DENIED if user lacks access to the workflow\n Error: NOT_FOUND if workflow_id doesn't exist"
+        },
+        {
+          "name": "GetByReference",
+          "inputType": "ApiResourceReference",
+          "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+          "outputType": "WorkflowInstance",
+          "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
+          "description": "Get a workflow instance by flexible reference (ID or slug).\n\n Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods:\n - By ID: {id: \"wfi-abc123\"}\n - By slug: {slug: \"prod-deploy\"}\n - By name: {name: \"Production Deploy\"}\n\n Input:\n ApiResourceReference with one of: id, slug, or name\n\n Returns:\n Complete WorkflowInstance resource matching the reference.\n\n Authorization:\n Uses custom authorization logic in the handler.\n Allows for flexible authorization based on reference type and context.\n Typical checks:\n - User has get permission on the resolved instance\n - Instance owner scope matches user's organization/identity\n\n Use Cases:\n - User-friendly lookups by slug instead of opaque IDs\n - CLI commands using human-readable names\n - API integrations using stable slugs\n\n Example:\n Input: ApiResourceReference{slug: \"prod-deploy\"}\n Output: WorkflowInstance with metadata.slug = \"prod-deploy\"\n\n Error: PERMISSION_DENIED if user lacks access\n Error: NOT_FOUND if reference doesn't resolve to an instance"
+        }
+      ]
+    }
+  ]
+}
