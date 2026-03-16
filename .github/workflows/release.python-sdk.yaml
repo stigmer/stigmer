@@ -106,7 +106,7 @@ jobs:
       - name: Generate SDK client code
         run: make -C sdk/python codegen
 
-      - name: Set version
+      - name: Set version and pin protos dependency
         working-directory: sdk/python
         run: |
           VERSION="${{ needs.determine-version.outputs.version }}"
@@ -115,9 +115,10 @@ jobs:
           p = pathlib.Path('pyproject.toml')
           text = p.read_text()
           text = re.sub(r'version\s*=\s*\"[^\"]*\"', 'version = \"$VERSION\"', text, count=1)
+          text = re.sub(r'\"stigmer-protos[^\"]*\"', '\"stigmer-protos==$VERSION\"', text)
           p.write_text(text)
           "
-          echo "Set stigmer version to $VERSION"
+          echo "Set stigmer version to $VERSION (protos dependency: $VERSION)"
 
       - name: Build package
         working-directory: sdk/python

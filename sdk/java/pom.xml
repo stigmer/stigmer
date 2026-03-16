@@ -46,18 +46,18 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
 
-        <stigmer-stubs.version>0.0.1-SNAPSHOT</stigmer-stubs.version>
+        <stigmer-protos.version>0.0.1-SNAPSHOT</stigmer-protos.version>
         <protobuf-java.version>4.34.0</protobuf-java.version>
         <grpc-java.version>1.79.0</grpc-java.version>
         <junit.version>5.11.4</junit.version>
     </properties>
 
     <dependencies>
-        <!-- Proto stubs for Stigmer API types and gRPC service definitions -->
+        <!-- Generated protobuf and gRPC types for the Stigmer API -->
         <dependency>
             <groupId>ai.stigmer</groupId>
-            <artifactId>stigmer-java-stubs</artifactId>
-            <version>${stigmer-stubs.version}</version>
+            <artifactId>stigmer-java-protos</artifactId>
+            <version>${stigmer-protos.version}</version>
         </dependency>
 
         <!-- Protobuf runtime -->

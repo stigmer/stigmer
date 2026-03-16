@@ -3,7 +3,7 @@
 #
 # This file lists all PyPI dependencies (direct + transitive) needed to run
 # agent-runner inside the hermetic pythonrt venv.  Path dependencies (graphton,
-# stigmer-stubs) are excluded; they are installed separately from the local
+# stigmer-protos) are excluded; they are installed separately from the local
 # source tree by the bootstrap pipeline.
 aiofiles==24.1.0
 aiohappyeyeballs==2.6.1
