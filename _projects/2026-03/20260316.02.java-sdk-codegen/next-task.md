@@ -54,10 +54,26 @@ Important decisions, learnings, and gotchas captured during development.
 
 ## Current Status
 
-**Last Updated**: 2026-03-16 14:19 — Tasks 1-4 complete, ready for Task 5
-**Current Focus**: Task 5 (Maven Central publishing setup) is next
+**Last Updated**: 2026-03-16 15:04 — All 5 tasks complete. Project finished.
+**Current Focus**: Project complete. Ready for first release (`v*` tag push triggers Maven Central publish).
 
 ---
+
+## Session Progress (2026-03-16, Session 8)
+
+- Completed Task 5: Maven Central publishing setup
+- Added Central metadata (url, licenses, developers, scm) to both `apis/stubs/java/pom.xml` and `sdk/java/pom.xml`
+- Added `release` profile with central-publishing-maven-plugin 0.9.0, maven-gpg-plugin 3.2.8, maven-source-plugin 3.3.1, maven-javadoc-plugin 3.11.2
+- Created `.github/workflows/release.maven.yaml` (three-job workflow: determine-version → publish-stubs → publish-sdk)
+- Created `sdk/java/README.md` with Maven/Gradle install, Quick Start, resource clients table, error handling, configuration
+- Extracted stubs dependency version into `stigmer-stubs.version` property for CI version stamping
+- Owner setup completed: DNS migrated GoDaddy → Cloudflare, `ai.stigmer` namespace verified, GPG key generated (RSA 4096, `29D50099`), all four GitHub secrets configured
+- Validated: `mvn compile` and `mvn test` pass for both stubs and SDK
+- Committed: `951c3613`
+
+### Surprise Found (Session 8)
+
+- The stubs artifact (`stigmer-java-stubs`) also needed Maven Central metadata and publishing — Task 5 originally only mentioned the SDK. Both Python and TypeScript workflows publish stubs before SDK, so we followed the same pattern.
 
 ## Session Progress (2026-03-16, Session 7)
 
@@ -102,11 +118,11 @@ Important decisions, learnings, and gotchas captured during development.
 
 ## Next Steps
 
-1. **Task 5**: Maven Central publishing setup
-   - Configure `pom.xml` with required Central metadata
-   - Add signing, source, and javadoc plugins
-   - Create `.github/workflows/release.maven.yaml`
-   - Owner action items: Sonatype account, GPG key, DNS verification
+All tasks are complete. To publish the first release:
+
+1. Push a `v*` tag (e.g., `git tag v0.1.0 && git push origin v0.1.0`)
+2. The `release.maven.yaml` workflow will automatically publish both `stigmer-java-stubs` and `stigmer-java` to Maven Central
+3. Verify artifacts appear at https://central.sonatype.com/search?q=ai.stigmer
 
 ## Context for Resume
 
@@ -153,6 +169,7 @@ sdk/java/src/main/java/ai/stigmer/sdk/gen/
 - `_changelog/2026-03/2026-03-16-112653-go-sdk-stripe-style-restructure.md`
 - `_changelog/2026-03/2026-03-16-115418-go-sdk-all-resource-codegen.md`
 - `_changelog/2026-03/2026-03-16-140949-java-sdk-remove-internal-from-generated-package.md`
+- `_changelog/2026-03/2026-03-16-150451-java-sdk-maven-central-publishing-setup.md`
 
 ---
 
@@ -160,9 +177,8 @@ sdk/java/src/main/java/ai/stigmer/sdk/gen/
 
 After loading this file into chat, you can say:
 
-- **"Continue with Task 5"** — Maven Central publishing setup
 - **"Show current status"** — Get overview of all tasks and progress
-- **"What's next?"** — Move to next task
+- **"Trigger first release"** — Instructions for pushing the first version tag
 
 ---
 
