@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Button } from "../../internal/button.js";
-import { Textarea } from "../../internal/textarea.js";
+import { Button } from "../../internal/button";
+import { Textarea } from "../../internal/textarea";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { Check, X, SkipForward, Loader2 } from "lucide-react";

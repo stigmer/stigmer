@@ -1,30 +1,30 @@
 // Components
-export { ExecutionStream } from "./components/ExecutionStream.js";
-export { ExecutionStatus } from "./components/ExecutionStatus.js";
-export { OutputBlock } from "./components/OutputBlock.js";
-export { ToolCallCard } from "./components/ToolCallCard.js";
-export { ApprovalControls } from "./components/ApprovalControls.js";
-export { SubAgentCard } from "./components/SubAgentCard.js";
-export { MessageInput } from "./components/MessageInput.js";
+export { ExecutionStream } from "./components/ExecutionStream";
+export { ExecutionStatus } from "./components/ExecutionStatus";
+export { OutputBlock } from "./components/OutputBlock";
+export { ToolCallCard } from "./components/ToolCallCard";
+export { ApprovalControls } from "./components/ApprovalControls";
+export { SubAgentCard } from "./components/SubAgentCard";
+export { MessageInput } from "./components/MessageInput";
 export {
   MessageEntry,
   HumanMessageBubble,
   SystemMessageBlock,
-} from "./components/MessageEntry.js";
+} from "./components/MessageEntry";
 
 // Hooks
-export { useAgentExecution } from "./hooks/useAgentExecution.js";
+export { useAgentExecution } from "./hooks/useAgentExecution";
 export type {
   UseAgentExecutionOptions,
   UseAgentExecutionReturn,
   CreateExecutionInput,
-} from "./hooks/useAgentExecution.js";
+} from "./hooks/useAgentExecution";
 
-export { useApproval } from "./hooks/useApproval.js";
+export { useApproval } from "./hooks/useApproval";
 export type {
   UseApprovalOptions,
   UseApprovalReturn,
-} from "./hooks/useApproval.js";
+} from "./hooks/useApproval";
 
 // Helpers
 export {
@@ -43,4 +43,4 @@ export {
   buildSubAgentIndex,
   qualifiedToolName,
   formatDuration,
-} from "./helpers.js";
+} from "./helpers";

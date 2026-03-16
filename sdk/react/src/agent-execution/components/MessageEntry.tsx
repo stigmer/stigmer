@@ -1,10 +1,10 @@
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { OutputBlock } from "./OutputBlock.js";
-import { ToolCallCard } from "./ToolCallCard.js";
-import { SubAgentCard } from "./SubAgentCard.js";
-import { isHumanMessage, isAiMessage, isSystemMessage } from "../helpers.js";
+import { OutputBlock } from "./OutputBlock";
+import { ToolCallCard } from "./ToolCallCard";
+import { SubAgentCard } from "./SubAgentCard";
+import { isHumanMessage, isAiMessage, isSystemMessage } from "../helpers";
 import { User, BotMessageSquare, Info } from "lucide-react";
 
 export interface MessageEntryProps {

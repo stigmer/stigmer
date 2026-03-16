@@ -1,5 +1,5 @@
 import { ConnectError, Code } from "@connectrpc/connect";
-import { StigmerError, type ErrorCode } from "./gen/errors.js";
+import { StigmerError, type ErrorCode } from "./gen/errors";
 
 // Re-export generated error types
 export {
@@ -10,7 +10,7 @@ export {
   isUnauthenticated,
   isPermissionDenied,
   isRetryable,
-} from "./gen/errors.js";
+} from "./gen/errors";
 
 /**
  * Coarse-grained error categories derived from gRPC/Connect status codes.

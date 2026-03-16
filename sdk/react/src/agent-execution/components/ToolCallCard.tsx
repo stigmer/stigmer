@@ -1,19 +1,19 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Badge } from "../../internal/badge.js";
+import { Badge } from "../../internal/badge";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "../../internal/collapsible.js";
-import { ApprovalControls } from "./ApprovalControls.js";
+} from "../../internal/collapsible";
+import { ApprovalControls } from "./ApprovalControls";
 import {
   toolCallStatusLabel,
   toolCallStatusVariant,
   qualifiedToolName,
   formatDuration,
-} from "../helpers.js";
+} from "../helpers";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";

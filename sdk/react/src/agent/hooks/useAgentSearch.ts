@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useStigmer } from "../../hooks.js";
+import { useStigmer } from "../../hooks";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
 const DEBOUNCE_MS = 300;

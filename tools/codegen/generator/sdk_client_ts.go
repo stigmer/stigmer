@@ -264,7 +264,7 @@ func generateTSResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, 
 	imports.addValue("@connectrpc/connect", "createClient")
 	imports.addType("@connectrpc/connect", "Client")
 	imports.addType("@connectrpc/connect", "Transport")
-	imports.addValue("./errors.js", "wrapError")
+	imports.addValue("./errors", "wrapError")
 
 	for _, svc := range schema.Services {
 		file := svc.Role + "_pb"
@@ -342,7 +342,7 @@ func generateTSResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, 
 	if needsApiResourceDeleteInput {
 		needsCreate = true
 		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceDeleteInputSchema")
-		imports.addType("./types.js", "DeleteResourceInput")
+		imports.addType("./types", "DeleteResourceInput")
 	}
 	if needsEmptySchema {
 		imports.addValue("@bufbuild/protobuf/wkt", "EmptySchema")
@@ -363,8 +363,8 @@ func generateTSResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, 
 		imports.addValue("@stigmer/protos/ai/stigmer/search/v1/io_pb", "SearchRequestSchema")
 		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb", "ApiResourceKind")
 		imports.addValue("@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb", "PageInfoSchema")
-		imports.addType("./types.js", "ListParams")
-		imports.addType("./types.js", "ListResult")
+		imports.addType("./types", "ListParams")
+		imports.addType("./types", "ListResult")
 	}
 
 	typeMap := make(map[string]*TypeSchema)
@@ -379,10 +379,10 @@ func generateTSResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, 
 			scanFieldForSpecialImports(f, typeMap, &needsEnvSpec, &needsResourceRef)
 		}
 		if needsEnvSpec {
-			imports.addType("./types.js", "EnvSpecInput")
+			imports.addType("./types", "EnvSpecInput")
 		}
 		if needsResourceRef {
-			imports.addType("./types.js", "ResourceRef")
+			imports.addType("./types", "ResourceRef")
 		}
 	}
 
@@ -580,7 +580,7 @@ func generateTSMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefinition
 		buf.WriteString("  }\n")
 
 	case isApiResourceRefInput:
-		imports.addType("./types.js", "ResourceRef")
+		imports.addType("./types", "ResourceRef")
 		fmt.Fprintf(buf, "  async %s(ref: ResourceRef): Promise<%s> {\n", tsMethodName(m.Name), outputType)
 		fmt.Fprintf(buf, "    try {\n")
 		fmt.Fprintf(buf, "      %sawait this.%s.%s(create(ApiResourceReferenceSchema, ref));\n", returnKeyword, svc.Role, tsMethodName(m.Name))
@@ -781,13 +781,13 @@ func tsTypeForTypeSpec(ts *TypeSpec, imports *tsImportSet, _ string) string {
 	case "message":
 		switch ts.MessageType {
 		case "EnvironmentSpec":
-			imports.addType("./types.js", "EnvSpecInput")
+			imports.addType("./types", "EnvSpecInput")
 			return "EnvSpecInput"
 		case "EnvironmentValue", "ExecutionValue":
-			imports.addType("./types.js", "EnvVarInput")
+			imports.addType("./types", "EnvVarInput")
 			return "EnvVarInput"
 		case "ApiResourceReference":
-			imports.addType("./types.js", "ResourceRef")
+			imports.addType("./types", "ResourceRef")
 			return "ResourceRef"
 		default:
 			return ts.MessageType + "Input"
@@ -847,7 +847,7 @@ func generateTSClientFile(outputDir string, resources []resourceGenInfo) error {
 	buf.WriteString("import type { Transport } from \"@connectrpc/connect\";\n")
 
 	for _, r := range resources {
-		fmt.Fprintf(&buf, "import { %s } from \"./%s.js\";\n", r.clientName, r.resource)
+		fmt.Fprintf(&buf, "import { %s } from \"./%s\";\n", r.clientName, r.resource)
 	}
 	buf.WriteString("\n")
 
@@ -871,18 +871,18 @@ func generateTSClientFile(outputDir string, resources []resourceGenInfo) error {
 	buf.WriteString("\n// Re-export all resource client types and input types.\n")
 	for _, r := range resources {
 		// Client class export (value)
-		fmt.Fprintf(&buf, "export { %s } from \"./%s.js\";\n", r.clientName, r.resource)
+		fmt.Fprintf(&buf, "export { %s } from \"./%s\";\n", r.clientName, r.resource)
 		// Input types export (type-only, required by isolatedModules)
 		if len(r.inputTypes) > 0 {
 			var typeExports []string
 			for _, t := range r.inputTypes {
 				typeExports = append(typeExports, "type "+t)
 			}
-			fmt.Fprintf(&buf, "export { %s } from \"./%s.js\";\n", strings.Join(typeExports, ", "), r.resource)
+			fmt.Fprintf(&buf, "export { %s } from \"./%s\";\n", strings.Join(typeExports, ", "), r.resource)
 		}
 	}
-	buf.WriteString("export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvSpecInput, type EnvVarInput, type Page } from \"./types.js\";\n")
-	buf.WriteString("export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable } from \"./errors.js\";\n")
+	buf.WriteString("export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvSpecInput, type EnvVarInput, type Page } from \"./types\";\n")
+	buf.WriteString("export { StigmerError, type ErrorCode, isNotFound, isUnauthenticated, isPermissionDenied, isRetryable } from \"./errors\";\n")
 
 	return os.WriteFile(filepath.Join(outputDir, "client.ts"), buf.Bytes(), 0644)
 }

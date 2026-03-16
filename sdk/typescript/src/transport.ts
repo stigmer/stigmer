@@ -1,13 +1,13 @@
 import { createGrpcWebTransport } from "@connectrpc/connect-web";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import type { Transport, Interceptor } from "@connectrpc/connect";
-import type { StigmerConfig, TokenProvider } from "./config.js";
+import type { StigmerConfig, TokenProvider } from "./config";
 import {
   createAuthInterceptor,
   rpcMetadataInterceptor,
   errorStripInterceptor,
   createAuthRedirectInterceptor,
-} from "./internal/interceptors.js";
+} from "./internal/interceptors";
 
 /**
  * Create a Connect-RPC transport configured for the Stigmer API.

@@ -4,12 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { ExecutionStatus } from "./ExecutionStatus.js";
-import { MessageEntry, HumanMessageBubble } from "./MessageEntry.js";
-import { MessageInput } from "./MessageInput.js";
-import { buildSubAgentIndex, isTerminalPhase } from "../helpers.js";
+import { ExecutionStatus } from "./ExecutionStatus";
+import { MessageEntry, HumanMessageBubble } from "./MessageEntry";
+import { MessageInput } from "./MessageInput";
+import { buildSubAgentIndex, isTerminalPhase } from "../helpers";
 import { cn } from "@stigmer/theme";
-import { Button } from "../../internal/button.js";
+import { Button } from "../../internal/button";
 import { ArrowDown, AlertCircle } from "lucide-react";
 
 interface ExecutionStreamProps {

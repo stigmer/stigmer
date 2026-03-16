@@ -15,13 +15,13 @@ import {
 
 import { cn } from "@stigmer/theme";
 
-import { Badge } from "../../internal/badge.js";
+import { Badge } from "../../internal/badge";
 import {
   Collapsible,
   CollapsibleTrigger,
   CollapsibleContent,
-} from "../../internal/collapsible.js";
-import { Section } from "../../internal/section.js";
+} from "../../internal/collapsible";
+import { Section } from "../../internal/section";
 
 const INSTRUCTIONS_COLLAPSE_THRESHOLD = 300;
 

@@ -1,10 +1,10 @@
 // Public API for @stigmer/sdk
 
 // Top-level client
-export { Stigmer } from "./stigmer.js";
+export { Stigmer } from "./stigmer";
 
 // Configuration
-export { type StigmerConfig, type TokenProvider } from "./config.js";
+export { type StigmerConfig, type TokenProvider } from "./config";
 
 // Error handling
 export {
@@ -22,7 +22,7 @@ export {
   type RpcErrorMetadata,
   annotateRpcError,
   getRpcMetadata,
-} from "./errors.js";
+} from "./errors";
 
 // Search client
 export {
@@ -30,7 +30,7 @@ export {
   type SearchParams,
   type SearchResponse,
   ApiResourceKind,
-} from "./search.js";
+} from "./search";
 
 // Shared types (from generated code)
 export {
@@ -41,7 +41,7 @@ export {
   type ListResult,
   type EnvSpecInput,
   type EnvVarInput,
-} from "./gen/types.js";
+} from "./gen/types";
 
 // Re-export all resource client classes and input types
 export {
@@ -51,52 +51,52 @@ export {
   type ToolApprovalOverrideInput,
   type SubAgentInput,
   type McpAccessInput,
-} from "./gen/agent.js";
+} from "./gen/agent";
 export {
   AgentExecutionClient,
   type AgentExecutionInput,
   type ExecutionConfigInput,
   type ContextManagementConfigInput,
   type AttachmentInput,
-} from "./gen/agentexecution.js";
+} from "./gen/agentexecution";
 export {
   AgentInstanceClient,
   type AgentInstanceInput,
-} from "./gen/agentinstance.js";
-export { ApiKeyClient, type ApiKeyInput } from "./gen/apikey.js";
+} from "./gen/agentinstance";
+export { ApiKeyClient, type ApiKeyInput } from "./gen/apikey";
 export {
   EnvironmentClient,
   type EnvironmentInput,
-} from "./gen/environment.js";
+} from "./gen/environment";
 export {
   ExecutionContextClient,
   type ExecutionContextInput,
-} from "./gen/executioncontext.js";
+} from "./gen/executioncontext";
 export {
   IamPolicyClient,
   type IamPolicyInput,
   type ApiResourceRefInput,
-} from "./gen/iampolicy.js";
+} from "./gen/iampolicy";
 export {
   IdentityAccountClient,
   type IdentityAccountInput,
-} from "./gen/identityaccount.js";
+} from "./gen/identityaccount";
 export {
   IdentityProviderClient,
   type IdentityProviderInput,
-} from "./gen/identityprovider.js";
+} from "./gen/identityprovider";
 export {
   McpServerClient,
   type McpServerInput,
   type StdioServerConfigInput,
   type HttpServerConfigInput,
   type ToolApprovalPolicyInput,
-} from "./gen/mcpserver.js";
+} from "./gen/mcpserver";
 export {
   OrganizationClient,
   type OrganizationInput,
-} from "./gen/organization.js";
-export { ProjectClient, type ProjectInput } from "./gen/project.js";
+} from "./gen/organization";
+export { ProjectClient, type ProjectInput } from "./gen/project";
 export {
   SessionClient,
   type SessionInput,
@@ -104,8 +104,8 @@ export {
   type WorkspaceSourceInput,
   type GitRepoSourceInput,
   type LocalPathSourceInput,
-} from "./gen/session.js";
-export { SkillClient, type SkillInput } from "./gen/skill.js";
+} from "./gen/session";
+export { SkillClient, type SkillInput } from "./gen/skill";
 export {
   WorkflowClient,
   type WorkflowInput,
@@ -113,12 +113,12 @@ export {
   type WorkflowTaskInput,
   type ExportInput,
   type FlowControlInput,
-} from "./gen/workflow.js";
+} from "./gen/workflow";
 export {
   WorkflowExecutionClient,
   type WorkflowExecutionInput,
-} from "./gen/workflowexecution.js";
+} from "./gen/workflowexecution";
 export {
   WorkflowInstanceClient,
   type WorkflowInstanceInput,
-} from "./gen/workflowinstance.js";
+} from "./gen/workflowinstance";

@@ -5,8 +5,8 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
 import { CancelAgentExecutionInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { useStigmer } from "../../hooks.js";
-import { isTerminalPhase } from "../helpers.js";
+import { useStigmer } from "../../hooks";
+import { isTerminalPhase } from "../helpers";
 
 export interface CreateExecutionInput {
   agentId?: string;
