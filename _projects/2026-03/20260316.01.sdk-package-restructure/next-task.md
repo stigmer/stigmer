@@ -14,9 +14,21 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-03-16 09:59
-**Last Session**: 2026-03-16 (Session 6) — Fix Turbopack `.js` extension resolution
-**Current Task**: Phase 2B (CSS Modules for embeddable components)
-**Status**: Phases 1, 2, 3, Cleanup, and Turbopack fix complete. All 4 npm packages build and publish correctly. `tsc --noEmit` passes. `next build` compiles with 0 errors.
+**Last Session**: 2026-03-16 (Session 7) — Style isolation for @stigmer/react embeddable components
+**Current Task**: All phases complete
+**Status**: All phases complete. CSS Cascade Layer isolation, namespaced design tokens, and scoped preflight implemented. All 4 npm packages build and publish correctly. `tsc --noEmit` passes. `next build` compiles with 0 errors. Browser smoke test passes 9/9 checks.
+
+## Session Progress (2026-03-16, Session 7)
+
+### Completed: Style Isolation for @stigmer/react Embeddable Components (Phase 2B)
+
+- Rejected CSS Modules migration in favor of CSS Layers + namespaced tokens + scoped preflight (industry-standard approach used by Stripe, Clerk, Mantine)
+- Namespaced all 82 CSS custom properties in `@stigmer/theme/tokens.css` from `--x` to `--stgm-x`
+- Restructured `sdk/react/src/styles.css`: granular `layer(stgm)` Tailwind imports, omitted preflight, added scoped reset
+- Modified `StigmerProvider` to render `.stgm` wrapper div for style scoping
+- Updated web console `globals.css` to reference `--stgm-*` tokens
+- Changed `package.json` sideEffects to `["*.css"]`
+- Verified: `tsc`, `next build`, `build:libs`, dry-run publish, browser smoke test (9/9 checks pass)
 
 ## Session Progress (2026-03-16, Session 6)
 
@@ -124,11 +136,14 @@ Drop this file into your conversation to quickly resume work on this project.
 - `next build` unblocked
 - Committed as `4c21bd24`
 
+### Phase 2B: Style Isolation for Embeddable Components (Session 7)
+- CSS Cascade Layers, namespaced tokens, scoped preflight (no CSS Modules)
+- Zero style leakage to host applications
+- Zero component code changes required
+
 ## Next Steps
 
-1. **Phase 2B: CSS Modules for embeddable components**
-   - Migrate from Tailwind to CSS Modules for style encapsulation
-   - Ensure `@stigmer/react` components don't leak styles into host applications
+All phases are complete. This project is ready for final review and sign-off.
 
 ## Context for Resume
 
