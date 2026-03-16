@@ -1,17 +1,17 @@
 // Hooks
-export { useAgentSearch } from "./hooks/useAgentSearch.js";
+export { useAgentSearch } from "./hooks/useAgentSearch";
 export type {
   UseAgentSearchOptions,
   UseAgentSearchReturn,
   AgentSearchResult,
-} from "./hooks/useAgentSearch.js";
+} from "./hooks/useAgentSearch";
 
 // Components
-export { AgentCard } from "./components/AgentCard.js";
-export type { AgentCardProps } from "./components/AgentCard.js";
+export { AgentCard } from "./components/AgentCard";
+export type { AgentCardProps } from "./components/AgentCard";
 
-export { AgentOverview } from "./components/AgentOverview.js";
-export type { AgentOverviewProps } from "./components/AgentOverview.js";
+export { AgentOverview } from "./components/AgentOverview";
+export type { AgentOverviewProps } from "./components/AgentOverview";
 
-export { AgentPicker } from "./components/AgentPicker.js";
-export type { AgentPickerProps, SelectedAgent } from "./components/AgentPicker.js";
+export { AgentPicker } from "./components/AgentPicker";
+export type { AgentPickerProps, SelectedAgent } from "./components/AgentPicker";

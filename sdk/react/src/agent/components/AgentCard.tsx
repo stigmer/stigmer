@@ -4,7 +4,7 @@ import { Bot, Globe, Server, FileCode2, Users } from "lucide-react";
 
 import { cn } from "@stigmer/theme";
 
-import { Badge } from "../../internal/badge.js";
+import { Badge } from "../../internal/badge";
 
 export interface AgentCardProps {
   agent: Agent;

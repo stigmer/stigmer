@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { create } from "@bufbuild/protobuf";
 import { ListSessionsByAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
-import { useStigmer } from "../../hooks.js";
+import { useStigmer } from "../../hooks";
 
 const DEFAULT_PAGE_SIZE = 5;
 

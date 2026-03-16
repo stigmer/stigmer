@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import type { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { create } from "@bufbuild/protobuf";
 import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import { useStigmer } from "../../hooks.js";
+import { useStigmer } from "../../hooks";
 
 export interface UseApprovalOptions {
   executionId: string;

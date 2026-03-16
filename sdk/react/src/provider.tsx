@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { Stigmer } from "@stigmer/sdk";
-import { StigmerContext } from "./context.js";
+import { StigmerContext } from "./context";
 
 export interface StigmerProviderProps {
   /** A configured {@link Stigmer} client instance. */

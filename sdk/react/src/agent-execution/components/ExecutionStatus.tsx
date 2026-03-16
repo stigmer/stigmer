@@ -1,5 +1,5 @@
-import { Badge } from "../../internal/badge.js";
-import { phaseLabel, phaseVariant, isTerminalPhase } from "../helpers.js";
+import { Badge } from "../../internal/badge";
+import { phaseLabel, phaseVariant, isTerminalPhase } from "../helpers";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { Loader2 } from "lucide-react";

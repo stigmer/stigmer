@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useRef, type KeyboardEvent } from "react";
-import { Textarea } from "../../internal/textarea.js";
-import { Button } from "../../internal/button.js";
+import { Textarea } from "../../internal/textarea";
+import { Button } from "../../internal/button";
 import { cn } from "@stigmer/theme";
 import { SendHorizontal, Loader2 } from "lucide-react";
 

@@ -2,8 +2,8 @@
 
 import { History, Loader2, AlertCircle, RotateCw } from "lucide-react";
 import { cn } from "@stigmer/theme";
-import { SessionCard } from "./SessionCard.js";
-import { useAgentSessionList } from "../hooks/useAgentSessionList.js";
+import { SessionCard } from "./SessionCard";
+import { useAgentSessionList } from "../hooks/useAgentSessionList";
 
 export interface AgentSessionHistoryProps {
   agentId: string;

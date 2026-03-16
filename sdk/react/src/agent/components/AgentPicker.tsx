@@ -9,7 +9,7 @@ import {
 } from "react";
 import { Bot, Search, X, Loader2 } from "lucide-react";
 import { cn } from "@stigmer/theme";
-import { useAgentSearch, type AgentSearchResult } from "../hooks/useAgentSearch.js";
+import { useAgentSearch, type AgentSearchResult } from "../hooks/useAgentSearch";
 
 export interface SelectedAgent {
   id: string;

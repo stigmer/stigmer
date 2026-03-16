@@ -1,13 +1,13 @@
 // Hooks
-export { useAgentSessionList } from "./hooks/useAgentSessionList.js";
+export { useAgentSessionList } from "./hooks/useAgentSessionList";
 export type {
   UseAgentSessionListOptions,
   UseAgentSessionListReturn,
-} from "./hooks/useAgentSessionList.js";
+} from "./hooks/useAgentSessionList";
 
 // Components
-export { SessionCard } from "./components/SessionCard.js";
-export type { SessionCardProps } from "./components/SessionCard.js";
+export { SessionCard } from "./components/SessionCard";
+export type { SessionCardProps } from "./components/SessionCard";
 
-export { AgentSessionHistory } from "./components/AgentSessionHistory.js";
-export type { AgentSessionHistoryProps } from "./components/AgentSessionHistory.js";
+export { AgentSessionHistory } from "./components/AgentSessionHistory";
+export type { AgentSessionHistoryProps } from "./components/AgentSessionHistory";

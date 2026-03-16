@@ -1,6 +1,6 @@
 // Provider and context
-export { StigmerProvider, type StigmerProviderProps } from "./provider.js";
-export { StigmerContext } from "./context.js";
+export { StigmerProvider, type StigmerProviderProps } from "./provider";
+export { StigmerContext } from "./context";
 
 // Hooks
-export { useStigmer } from "./hooks.js";
+export { useStigmer } from "./hooks";

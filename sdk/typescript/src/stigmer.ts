@@ -1,24 +1,24 @@
-import { GeneratedClient } from "./gen/client.js";
-import { SearchClient } from "./search.js";
-import { createStigmerTransport } from "./transport.js";
-import { validateConfig, type StigmerConfig } from "./config.js";
-import type { AgentClient } from "./gen/agent.js";
-import type { AgentExecutionClient } from "./gen/agentexecution.js";
-import type { AgentInstanceClient } from "./gen/agentinstance.js";
-import type { ApiKeyClient } from "./gen/apikey.js";
-import type { EnvironmentClient } from "./gen/environment.js";
-import type { ExecutionContextClient } from "./gen/executioncontext.js";
-import type { IamPolicyClient } from "./gen/iampolicy.js";
-import type { IdentityAccountClient } from "./gen/identityaccount.js";
-import type { IdentityProviderClient } from "./gen/identityprovider.js";
-import type { McpServerClient } from "./gen/mcpserver.js";
-import type { OrganizationClient } from "./gen/organization.js";
-import type { ProjectClient } from "./gen/project.js";
-import type { SessionClient } from "./gen/session.js";
-import type { SkillClient } from "./gen/skill.js";
-import type { WorkflowClient } from "./gen/workflow.js";
-import type { WorkflowExecutionClient } from "./gen/workflowexecution.js";
-import type { WorkflowInstanceClient } from "./gen/workflowinstance.js";
+import { GeneratedClient } from "./gen/client";
+import { SearchClient } from "./search";
+import { createStigmerTransport } from "./transport";
+import { validateConfig, type StigmerConfig } from "./config";
+import type { AgentClient } from "./gen/agent";
+import type { AgentExecutionClient } from "./gen/agentexecution";
+import type { AgentInstanceClient } from "./gen/agentinstance";
+import type { ApiKeyClient } from "./gen/apikey";
+import type { EnvironmentClient } from "./gen/environment";
+import type { ExecutionContextClient } from "./gen/executioncontext";
+import type { IamPolicyClient } from "./gen/iampolicy";
+import type { IdentityAccountClient } from "./gen/identityaccount";
+import type { IdentityProviderClient } from "./gen/identityprovider";
+import type { McpServerClient } from "./gen/mcpserver";
+import type { OrganizationClient } from "./gen/organization";
+import type { ProjectClient } from "./gen/project";
+import type { SessionClient } from "./gen/session";
+import type { SkillClient } from "./gen/skill";
+import type { WorkflowClient } from "./gen/workflow";
+import type { WorkflowExecutionClient } from "./gen/workflowexecution";
+import type { WorkflowInstanceClient } from "./gen/workflowinstance";
 
 /**
  * Top-level Stigmer API client.
