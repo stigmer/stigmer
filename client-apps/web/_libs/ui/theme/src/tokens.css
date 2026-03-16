@@ -1,4 +1,6 @@
 :root {
+  --stgm-font-sans: var(--font-geist-sans, system-ui, sans-serif);
+  --stgm-font-mono: var(--font-geist-mono, ui-monospace, monospace);
   --stgm-radius: 0.625rem;
   --stgm-background: oklch(1 0 0);
   --stgm-foreground: oklch(0.145 0 0);
