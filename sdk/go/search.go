@@ -5,8 +5,8 @@ import (
 
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	rpc "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
-	"github.com/stigmer/stigmer/sdk/go/internal/gen"
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
+	"github.com/stigmer/stigmer/sdk/go/internal/gen"
 	"google.golang.org/grpc"
 )
 

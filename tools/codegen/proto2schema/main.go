@@ -121,8 +121,8 @@ type MethodSchema struct {
 	InputFullType   string `json:"inputFullType"`
 	OutputType      string `json:"outputType"`
 	OutputFullType  string `json:"outputFullType"`
-	ServerStreaming  bool   `json:"serverStreaming,omitempty"`
-	ClientStreaming  bool   `json:"clientStreaming,omitempty"`
+	ServerStreaming bool   `json:"serverStreaming,omitempty"`
+	ClientStreaming bool   `json:"clientStreaming,omitempty"`
 	Description     string `json:"description,omitempty"`
 }
 
@@ -1114,8 +1114,8 @@ func writeSchemaFile(schema interface{}, outputPath string) error {
 // This is a server-side indexing concern: only resources indexed in the
 // search system can use SearchService-backed listing.
 var searchListResources = map[string]bool{
-	"agent":    true,
-	"skill":    true,
+	"agent":     true,
+	"skill":     true,
 	"mcpserver": true,
 }
 
@@ -1180,14 +1180,14 @@ func extractServiceSchemas(protoDir, includeDir string, useBufCache bool) (*Serv
 			}
 			for _, method := range svc.GetMethods() {
 				ms := MethodSchema{
-					Name:           capitalize(method.GetName()),
-					InputType:      method.GetInputType().GetName(),
-					InputFullType:  method.GetInputType().GetFullyQualifiedName(),
-					OutputType:     method.GetOutputType().GetName(),
-					OutputFullType: method.GetOutputType().GetFullyQualifiedName(),
+					Name:            capitalize(method.GetName()),
+					InputType:       method.GetInputType().GetName(),
+					InputFullType:   method.GetInputType().GetFullyQualifiedName(),
+					OutputType:      method.GetOutputType().GetName(),
+					OutputFullType:  method.GetOutputType().GetFullyQualifiedName(),
 					ServerStreaming: method.IsServerStreaming(),
 					ClientStreaming: method.IsClientStreaming(),
-					Description:    extractServiceMethodComments(method),
+					Description:     extractServiceMethodComments(method),
 				}
 				svcDef.Methods = append(svcDef.Methods, ms)
 			}

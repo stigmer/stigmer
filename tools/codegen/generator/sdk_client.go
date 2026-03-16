@@ -27,14 +27,14 @@ type ServiceDefinition struct {
 }
 
 type MethodSchema struct {
-	Name           string `json:"name"`
-	InputType      string `json:"inputType"`
-	InputFullType  string `json:"inputFullType"`
-	OutputType     string `json:"outputType"`
-	OutputFullType string `json:"outputFullType"`
+	Name            string `json:"name"`
+	InputType       string `json:"inputType"`
+	InputFullType   string `json:"inputFullType"`
+	OutputType      string `json:"outputType"`
+	OutputFullType  string `json:"outputFullType"`
 	ServerStreaming bool   `json:"serverStreaming,omitempty"`
 	ClientStreaming bool   `json:"clientStreaming,omitempty"`
-	Description    string `json:"description,omitempty"`
+	Description     string `json:"description,omitempty"`
 }
 
 type sdkResourceConfig struct {
@@ -54,9 +54,9 @@ var metaFieldNames = map[string]bool{
 
 // resourceGenInfo tracks generated type names per resource for client.go/types.go generation.
 type resourceGenInfo struct {
-	resource   string
-	clientName string
-	inputTypes []string // all exported input/nested types (e.g., "AgentInput", "McpServerUsageInput")
+	resource    string
+	clientName  string
+	inputTypes  []string // all exported input/nested types (e.g., "AgentInput", "McpServerUsageInput")
 	streamTypes []string // all exported stream types (e.g., "SubscribeStream")
 }
 
