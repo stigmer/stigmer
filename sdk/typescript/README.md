@@ -1,0 +1,199 @@
+# @stigmer/sdk
+
+TypeScript SDK for the Stigmer platform. Provides typed API clients for all Stigmer resources with authentication, error handling, and cross-resource search.
+
+## Installation
+
+```bash
+npm install @stigmer/sdk @stigmer/protos @bufbuild/protobuf
+```
+
+`@stigmer/protos` and `@bufbuild/protobuf` are peer dependencies.
+
+## Quick Start
+
+### Server-to-server (static API key)
+
+```typescript
+import { Stigmer } from "@stigmer/sdk";
+
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.io",
+  apiKey: "sk_live_abc123",
+});
+
+const agent = await stigmer.agent.get("agent-id");
+```
+
+### Browser / rotating credentials
+
+```typescript
+import { Stigmer } from "@stigmer/sdk";
+
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.io",
+  getAccessToken: () => authStore.getToken(),
+  onUnauthenticated: () => router.push("/login"),
+});
+
+const agents = await stigmer.agent.list({ org: "my-org" });
+```
+
+## Resource Clients
+
+Every resource type has a typed client accessible as a property on the `Stigmer` instance:
+
+| Property             | Resource           |
+|----------------------|--------------------|
+| `agent`              | Agent              |
+| `agentExecution`     | AgentExecution     |
+| `agentInstance`      | AgentInstance      |
+| `apiKey`             | ApiKey             |
+| `environment`        | Environment        |
+| `executionContext`   | ExecutionContext    |
+| `iamPolicy`          | IamPolicy          |
+| `identityAccount`    | IdentityAccount    |
+| `identityProvider`   | IdentityProvider   |
+| `mcpServer`          | McpServer          |
+| `organization`       | Organization       |
+| `project`            | Project            |
+| `session`            | Session            |
+| `skill`              | Skill              |
+| `workflow`           | Workflow           |
+| `workflowExecution`  | WorkflowExecution  |
+| `workflowInstance`   | WorkflowInstance   |
+| `search`             | Cross-resource search |
+
+### Common operations
+
+```typescript
+// Create
+const agent = await stigmer.agent.create({
+  name: "my-agent",
+  org: "my-org",
+  description: "Handles customer inquiries",
+  instructions: "Be helpful and concise.",
+});
+
+// Get by ID
+const agent = await stigmer.agent.get("agent-id");
+
+// Get by reference (org + slug)
+const agent = await stigmer.agent.getByReference({
+  org: "my-org",
+  slug: "my-agent",
+});
+
+// Update
+const updated = await stigmer.agent.update({
+  name: "my-agent",
+  org: "my-org",
+  description: "Updated description",
+});
+
+// Delete
+const deleted = await stigmer.agent.delete("agent-id");
+
+// List (search-backed)
+const results = await stigmer.agent.list({
+  org: "my-org",
+  query: "customer",
+  page: { num: 1, size: 20 },
+});
+```
+
+### Cross-resource search
+
+```typescript
+import { ApiResourceKind } from "@stigmer/sdk";
+
+const results = await stigmer.search.query({
+  kinds: [ApiResourceKind.agent, ApiResourceKind.skill],
+  org: "my-org",
+  query: "customer support",
+});
+```
+
+## Streaming
+
+Resources with streaming RPCs return `AsyncGenerator`:
+
+```typescript
+for await (const event of stigmer.agentExecution.watch("execution-id")) {
+  console.log(event);
+}
+
+// With cancellation
+const controller = new AbortController();
+for await (const event of stigmer.agentExecution.watch("execution-id", controller.signal)) {
+  if (shouldStop(event)) {
+    controller.abort();
+  }
+}
+```
+
+## Error Handling
+
+All SDK operations throw `StigmerError` with structured error codes:
+
+```typescript
+import { StigmerError, isNotFound, isRetryable } from "@stigmer/sdk";
+
+try {
+  const agent = await stigmer.agent.get("nonexistent");
+} catch (err) {
+  if (isNotFound(err)) {
+    console.log("Agent not found");
+  } else if (isRetryable(err)) {
+    console.log("Transient error, retry later");
+  } else if (err instanceof StigmerError) {
+    console.log(`Error [${err.code}]: ${err.message}`);
+  }
+}
+```
+
+Error codes: `not-found`, `permission-denied`, `unauthenticated`, `invalid-argument`, `already-exists`, `resource-exhausted`, `failed-precondition`, `internal`, `unavailable`, `cancelled`, `unknown`.
+
+## Transport Protocol
+
+The SDK supports two transport protocols. Both are supported by the Stigmer server.
+
+```typescript
+// gRPC-Web (default) — compact binary protocol
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.io",
+  apiKey: "sk_live_abc123",
+});
+
+// Connect protocol — HTTP/JSON, easier to debug with browser devtools
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.io",
+  apiKey: "sk_live_abc123",
+  transport: "connect",
+});
+```
+
+## Configuration
+
+```typescript
+interface StigmerConfig {
+  baseUrl: string;
+  apiKey?: string;                    // Static API key (mutually exclusive with getAccessToken)
+  getAccessToken?: () => string | null | Promise<string | null>;  // Dynamic token provider
+  onUnauthenticated?: () => void;     // Called once on UNAUTHENTICATED (code 16)
+  transport?: "grpc-web" | "connect"; // Default: "grpc-web"
+}
+```
+
+Exactly one of `apiKey` or `getAccessToken` must be provided.
+
+## Code Generation
+
+The resource clients in `src/gen/` are generated from protobuf service schemas. To regenerate after proto changes:
+
+```bash
+cd sdk/typescript
+make codegen
+```
+
+Handwritten code lives in `src/` (outside `src/gen/`): `config.ts`, `transport.ts`, `stigmer.ts`, `search.ts`, `index.ts`, and `internal/`.

@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": [
     "apis/stubs/ts",
+    "sdk/typescript",
     "client-apps/web",
     "client-apps/web/_libs/infra/*",
     "client-apps/web/_libs/ui/*",
