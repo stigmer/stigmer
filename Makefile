@@ -175,14 +175,19 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 		echo "error: tag $$NEW_TAG already exists" && exit 1; \
 	fi; \
 	echo "$$LATEST_TAG -> $$NEW_TAG"; \
+	cd sdk/go && go mod edit -require "github.com/stigmer/stigmer/apis/stubs/go@$$NEW_TAG" && cd ../..; \
+	git add sdk/go/go.mod; \
+	git commit -m "release: update sdk/go stubs dependency to $$NEW_TAG"; \
 	git tag -a "apis/stubs/go/$$NEW_TAG" -m "Release apis/stubs/go $$NEW_TAG"; \
+	git tag -a "sdk/go/$$NEW_TAG" -m "Release sdk/go $$NEW_TAG"; \
 	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
 	git tag -a "mcp-server/$$NEW_TAG" -m "Release mcp-server $$NEW_TAG"; \
-	git push origin "apis/stubs/go/$$NEW_TAG" "$$NEW_TAG" "mcp-server/$$NEW_TAG"
+	git push origin "apis/stubs/go/$$NEW_TAG" "sdk/go/$$NEW_TAG" "$$NEW_TAG" "mcp-server/$$NEW_TAG"
 	@echo ""
 	@echo "Tags pushed. CI will handle:"
 	@echo "  - CLI binaries + GitHub release  (release.cli.yaml)"
 	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
+	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
 
 protos-release: ## Publish protos to Buf, then tag release
 	$(MAKE) -C apis release
