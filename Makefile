@@ -76,7 +76,7 @@ tidy: ## Run go mod tidy on all Go modules
 
 # ─── Lint ─────────────────────────────────────
 
-.PHONY: lint check
+.PHONY: lint web-build check
 lint: ## Run all linters and type checks
 	@for mod in $(GO_MODULES); do \
 		(cd $$mod && go vet ./...) || exit 1; \
@@ -87,13 +87,12 @@ lint: ## Run all linters and type checks
 	@cd $(AGENT_RUNNER_DIR) && poetry run ruff check .
 	@cd $(AGENT_RUNNER_DIR) && poetry install --no-interaction --quiet && \
 		poetry run mypy grpc_client/ worker/ --show-error-codes
-	@if [ -d client-apps/web/node_modules ]; then \
-		npm run lint -w client-apps/web; \
-	else \
-		echo "skip: client-apps/web lint (run npm install first)"; \
-	fi
+	npm run lint -w client-apps/web
 
-check: tidy lint build test ## Run full CI gate locally
+web-build: ## Lint and build web console (matches CI)
+	npm run build -w client-apps/web
+
+check: protos tidy lint web-build build test ## Run full CI gate locally
 
 # ─── Dependencies ─────────────────────────────
 
