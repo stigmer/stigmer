@@ -49,6 +49,7 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/go codegen
 	$(MAKE) -C sdk/typescript codegen
 	$(MAKE) -C sdk/python codegen
+	$(MAKE) -C sdk/java codegen
 
 # ─── Test ─────────────────────────────────────
 
