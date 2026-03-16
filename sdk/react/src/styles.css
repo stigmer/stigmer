@@ -27,9 +27,31 @@
   --color-accent-foreground: var(--stgm-accent-foreground);
   --color-destructive: var(--stgm-destructive);
   --color-destructive-foreground: var(--stgm-destructive-foreground);
+  --color-success: var(--stgm-success);
+  --color-success-foreground: var(--stgm-success-foreground);
+  --color-warning: var(--stgm-warning);
+  --color-warning-foreground: var(--stgm-warning-foreground);
+  --color-info: var(--stgm-info);
+  --color-info-foreground: var(--stgm-info-foreground);
   --color-border: var(--stgm-border);
   --color-input: var(--stgm-input);
   --color-ring: var(--stgm-ring);
+  --color-chart-1: var(--stgm-chart-1);
+  --color-chart-2: var(--stgm-chart-2);
+  --color-chart-3: var(--stgm-chart-3);
+  --color-chart-4: var(--stgm-chart-4);
+  --color-chart-5: var(--stgm-chart-5);
+  --font-sans: var(--stgm-font-sans);
+  --font-mono: var(--stgm-font-mono);
+  --shadow-sm: var(--stgm-shadow-sm);
+  --shadow-md: var(--stgm-shadow-md);
+  --shadow-lg: var(--stgm-shadow-lg);
+  --default-transition-duration: var(--stgm-transition-duration);
+  --default-transition-timing-function: var(--stgm-transition-timing);
+}
+
+@utility z-popover {
+  z-index: var(--stgm-z-popover);
 }
 
 @layer stgm {

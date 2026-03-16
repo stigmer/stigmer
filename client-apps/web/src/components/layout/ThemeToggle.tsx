@@ -1,8 +1,15 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { cn } from "@stigmer/theme";
+
+const subscribe = () => () => {};
+
+function useMounted() {
+  return useSyncExternalStore(subscribe, () => true, () => false);
+}
 
 const themes = [
   { value: "light", icon: Sun, label: "Light" },
@@ -11,10 +18,10 @@ const themes = [
 ] as const;
 
 export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const mounted = useMounted();
 
-  // resolvedTheme is undefined during SSR / before hydration
-  if (resolvedTheme === undefined) {
+  if (!mounted) {
     return <ThemeToggleSkeleton />;
   }
 
