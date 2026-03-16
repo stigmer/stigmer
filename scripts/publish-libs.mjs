@@ -36,9 +36,9 @@ const root = resolve(__dirname, "..");
 
 const PACKAGES = [
   "apis/stubs/ts",
-  "client-apps/web/_libs/infra/rpc-client",
+  "sdk/typescript",
+  "sdk/react",
   "client-apps/web/_libs/ui/theme",
-  "client-apps/web/_libs/domain/react-ui",
 ];
 
 function run(cmd, cwd = root) {

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
-import { SessionCard as DomainSessionCard } from "@stigmer/session";
+import { SessionCard as DomainSessionCard } from "@stigmer/react/session";
 
 interface SessionCardProps {
   session: Session;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAgentQueryService } from "@stigmer/agent";
+import { useStigmer } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { agentKeys } from "./keys";
@@ -26,12 +26,12 @@ export function useAgentList() {
   const [page, setPage] = useState(1);
   const debouncedQuery = useDebouncedValue(query, DEBOUNCE_MS);
 
-  const service = useAgentQueryService();
+  const stigmer = useStigmer();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: agentKeys.list({ org, query: debouncedQuery, page }),
     queryFn: () =>
-      service.search({
+      stigmer.agent.list({
         query: debouncedQuery,
         org,
         page: { num: page, size: DEFAULT_PAGE_SIZE },

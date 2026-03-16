@@ -4,6 +4,7 @@ import type { Transport, Interceptor } from "@connectrpc/connect";
 import type { StigmerConfig, TokenProvider } from "./config.js";
 import {
   createAuthInterceptor,
+  rpcMetadataInterceptor,
   errorStripInterceptor,
   createAuthRedirectInterceptor,
 } from "./internal/interceptors.js";
@@ -13,8 +14,9 @@ import {
  *
  * Interceptor chain (applied in order):
  * 1. Auth — attaches `Authorization: Bearer <token>`
- * 2. Error-strip — removes gRPC status-code prefixes from messages
- * 3. Auth redirect — calls `onUnauthenticated` on code 16 (if configured)
+ * 2. RPC metadata — annotates errors with method name and service path
+ * 3. Error-strip — removes gRPC status-code prefixes from messages
+ * 4. Auth redirect — calls `onUnauthenticated` on code 16 (if configured)
  */
 export function createStigmerTransport(config: StigmerConfig): Transport {
   const tokenProvider: TokenProvider = config.apiKey
@@ -23,6 +25,7 @@ export function createStigmerTransport(config: StigmerConfig): Transport {
 
   const interceptors: Interceptor[] = [
     createAuthInterceptor(tokenProvider),
+    rpcMetadataInterceptor,
     errorStripInterceptor,
   ];
 

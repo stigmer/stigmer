@@ -2,7 +2,9 @@
 
 import { useCallback } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useSessionQueryService } from "@stigmer/session";
+import { useStigmer } from "@stigmer/react";
+import { create } from "@bufbuild/protobuf";
+import { ListSessionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { sessionKeys } from "./keys";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -20,15 +22,17 @@ export interface UseSessionListOptions {
  */
 export function useSessionList(options?: UseSessionListOptions) {
   const pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
-  const service = useSessionQueryService();
+  const stigmer = useStigmer();
 
   const query = useInfiniteQuery({
     queryKey: sessionKeys.list({ pageSize }),
     queryFn: ({ pageParam }) =>
-      service.list({
-        pageSize,
-        pageToken: pageParam > 0 ? String(pageParam) : "",
-      }),
+      stigmer.session.list(
+        create(ListSessionsRequestSchema, {
+          pageSize,
+          pageToken: pageParam > 0 ? String(pageParam) : "",
+        }),
+      ),
     initialPageParam: 0,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
       if (lastPageParam + 1 >= lastPage.totalPages) return undefined;

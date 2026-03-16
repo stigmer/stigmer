@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useAgentQueryService } from "@stigmer/agent";
+import { useStigmer } from "@stigmer/react";
 import { agentKeys } from "./keys";
 
 /**
@@ -14,11 +14,11 @@ import { agentKeys } from "./keys";
  * fetching (e.g. before an ID is available from route params).
  */
 export function useAgent(agentId: string) {
-  const service = useAgentQueryService();
+  const stigmer = useStigmer();
 
   return useQuery({
     queryKey: agentKeys.detail(agentId),
-    queryFn: () => service.get(agentId),
+    queryFn: () => stigmer.agent.get(agentId),
     enabled: !!agentId,
   });
 }

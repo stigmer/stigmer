@@ -1,13 +1,9 @@
 import type { NextConfig } from "next";
 
 const stigmerLibs = [
-  "@stigmer/rpc-client",
+  "@stigmer/sdk",
+  "@stigmer/react",
   "@stigmer/theme",
-  "@stigmer/agent-execution",
-  "@stigmer/agent",
-  "@stigmer/mcp-server",
-  "@stigmer/session",
-  "@stigmer/skill",
 ];
 
 const nextConfig: NextConfig = {
