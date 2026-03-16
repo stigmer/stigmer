@@ -61,6 +61,9 @@ ENV/
 *~
 .DS_Store
 
+# Java / Maven
+target/
+
 # Node.js
 node_modules/
 

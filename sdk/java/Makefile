@@ -1,6 +1,6 @@
 # Stigmer Java SDK - Makefile
 
-SDK_GEN_DIR := src/main/java/ai/stigmer/sdk/internal/gen
+SDK_GEN_DIR := src/main/java/ai/stigmer/sdk/gen
 
 .PHONY: help
 help: ## Display this help message
