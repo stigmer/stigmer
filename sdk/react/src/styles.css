@@ -50,6 +50,10 @@
   --default-transition-timing-function: var(--stgm-transition-timing);
 }
 
+@utility z-popover {
+  z-index: var(--stgm-z-popover);
+}
+
 @layer stgm {
   .stgm {
     line-height: 1.5;
