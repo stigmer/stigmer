@@ -134,14 +134,29 @@ Add timestamps and notes to track your progress.
 
 ## Task 6: Write @stigmer/react README — integration guide, theming instructions, preset usage, custom token override examples
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-16 17:08
+**Completed**: 2026-03-16
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Define doc blueprint: audience (platform builders), gap analysis (no README existed), structure outline
+- [x] Write Install section with peer dependencies table
+- [x] Write Quick Start with minimal working example (client + provider + component + stylesheet)
+- [x] Write Provider section with props table and `useStigmer()` hook usage
+- [x] Write Theming section: built-in presets table, custom token override CSS example, dark mode explanation, token categories reference
+- [x] Write Style Isolation section: `@layer stgm`, `.stgm` container scoping, `--stgm-*` namespacing
+- [x] Write Components and Hooks section: all 6 subpath exports with per-export tables
+- [x] Write Exports quick-reference table
+- [x] Cross-reference `@stigmer/theme` README for full token reference (no duplication)
 
 ### Notes
-- [Add notes about this task here]
+- Followed the tone and structure of `@stigmer/theme` README — concise, code-heavy, no marketing.
+- Custom token override example includes shadow and transition tokens (from Tasks 3-4) alongside colors, demonstrating the full theming surface.
+- Dark mode explanation covers the descendant selector pattern (`&:is(.dark *)`) that was fixed in Task 2.
+- Component tables mirror the actual barrel exports from each subpath `index.ts` file.
+- Deliberately did not duplicate the full token reference table — pointed readers to `@stigmer/theme` README via relative link.
+- HITL acronym expanded on first use (Human-in-the-Loop) per doc writer standards.
+- MCP acronym expanded on first use (Model Context Protocol) per doc writer standards.
 
 
 ## Project Completion Checklist

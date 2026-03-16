@@ -67,7 +67,14 @@ That's it! No complex structure - just focused work.
 ## Current Status
 
 **Last Updated**: 2026-03-16  
-**Current Focus**: Tasks 1–5 complete. Next up: Task 6 (SDK README)
+**Current Focus**: All 6 tasks complete. Project done.
+
+## Session Progress (2026-03-16, session 7)
+- Completed Task 6: Created `sdk/react/README.md` — full integration guide for platform builders
+- Sections: Install (peer deps table), Quick Start (minimal working example), Provider (props table + useStigmer hook), Theming (presets, custom overrides, dark mode, token categories), Style Isolation (@layer stgm, .stgm scoping, --stgm-* namespacing), Components and Hooks (all 6 subpath exports), Exports quick-reference
+- Cross-references `@stigmer/theme` README for full token reference — no duplication
+- Follows existing README tone: concise, code-heavy, no marketing fluff
+- All acronyms expanded on first use (HITL, MCP)
 
 ## Session Progress (2026-03-16, session 6)
 - Completed Task 5: Added z-index popover token (`--stgm-z-popover`) to theme system
@@ -116,7 +123,7 @@ That's it! No complex structure - just focused work.
 - Committed: `14f0c8ad` on branch `feat/move-theme-to-sdk`
 
 ## Next Steps
-1. Task 6: Write @stigmer/react README for platform builders
+All tasks complete. Project ready for final review and merge.
 
 ## Context for Resume
 - Branch: `feat/move-theme-to-sdk`
