@@ -3,7 +3,6 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "auth",
     srcs = [
-        "browser.go",
         "callback.go",
         "config.go",
         "login.go",
@@ -14,6 +13,7 @@ go_library(
     visibility = ["//client-apps/cli:__subpackages__"],
     deps = [
         "//apis/stubs/go/ai/stigmer/iam/identityaccount/v1:identityaccount",
+        "//client-apps/cli/internal/cli/browser",
         "//client-apps/cli/internal/cli/config",
         "@com_github_pkg_errors//:errors",
         "@org_golang_google_grpc//:grpc",

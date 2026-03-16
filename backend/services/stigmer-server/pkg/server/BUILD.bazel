@@ -63,6 +63,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/query/search/extractor",
         "//backend/services/stigmer-server/pkg/query/search/handler",
         "//backend/services/stigmer-server/pkg/query/search/store",
+        "@com_github_improbable_eng_grpc_web//go/grpcweb",
         "@com_github_rs_zerolog//:zerolog",
         "@com_github_rs_zerolog//log",
         "@io_temporal_go_sdk//client",
