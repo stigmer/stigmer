@@ -92,19 +92,19 @@ This defines CSS custom properties on `:root` (light) and `.dark` (dark mode). A
 | `--stgm-sidebar-border` | Sidebar border |
 | `--stgm-sidebar-ring` | Sidebar focus ring |
 
-## Color Presets
+## Design Language Presets
 
-Stigmer ships with 5 color presets. The **Default** preset is built into `tokens.css`. The remaining 4 are optional CSS files that override personality tokens (primary, ring, chart, sidebar-primary) while keeping structural tokens (background, foreground, border, etc.) unchanged.
+Stigmer ships with 5 design language presets. Each represents a real-world product category's visual DNA — not just a color swap, but a complete design language with different border radius, surface treatments, border styles, sidebar appearance, and color palette.
 
-| Preset | Import | CSS Class |
-|--------|--------|-----------|
-| Default | (built-in) | *(none)* |
-| Rose | `@stigmer/theme/presets/rose.css` | `stgm-theme-rose` |
-| Amber | `@stigmer/theme/presets/amber.css` | `stgm-theme-amber` |
-| Violet | `@stigmer/theme/presets/violet.css` | `stgm-theme-violet` |
-| Emerald | `@stigmer/theme/presets/emerald.css` | `stgm-theme-emerald` |
+| Preset | Archetype | Import | CSS Class |
+|--------|-----------|--------|-----------|
+| Default | Stigmer's own identity | (built-in) | *(none)* |
+| Corporate | Enterprise SaaS (Azure, Salesforce) | `@stigmer/theme/presets/corporate.css` | `stgm-theme-corporate` |
+| Startup | Dev tools (Linear, Vercel) | `@stigmer/theme/presets/startup.css` | `stgm-theme-startup` |
+| Friendly | Consumer SaaS (Notion, Intercom) | `@stigmer/theme/presets/friendly.css` | `stgm-theme-friendly` |
+| Fintech | Premium financial (Stripe, Mercury) | `@stigmer/theme/presets/fintech.css` | `stgm-theme-fintech` |
 
-Each preset defines overrides for both light and dark modes (e.g., `.stgm-theme-rose` and `.stgm-theme-rose.dark`).
+Each preset overrides the full token surface — radius, all surface colors, borders, sidebar, and accent palette — for both light and dark modes.
 
 ### Using a Preset
 
@@ -112,19 +112,19 @@ Each preset defines overrides for both light and dark modes (e.g., `.stgm-theme-
 
 ```css
 @import "@stigmer/theme/tokens.css";
-@import "@stigmer/theme/presets/rose.css";
+@import "@stigmer/theme/presets/corporate.css";
 ```
 
 2. Add the preset class to a root element:
 
 ```html
-<html class="stgm-theme-rose">
+<html class="stgm-theme-corporate">
 ```
 
 For dark mode, both classes coexist:
 
 ```html
-<html class="stgm-theme-rose dark">
+<html class="stgm-theme-corporate dark">
 ```
 
 3. All components consuming `--stgm-*` variables automatically pick up the new colors.
@@ -171,15 +171,19 @@ Apply it the same way:
 <html class="my-custom-theme dark">
 ```
 
-### Tokens That Define "Personality"
+### What a Full Preset Overrides
 
-When creating a preset, focus on these tokens — they define the palette's character without affecting structural readability:
+A complete design language preset overrides the entire token surface:
 
-- `--stgm-primary` / `--stgm-primary-foreground`
-- `--stgm-ring`
-- `--stgm-sidebar-primary` / `--stgm-sidebar-primary-foreground`
-- `--stgm-sidebar-ring`
-- `--stgm-chart-1` through `--stgm-chart-5`
+- **Shape**: `--stgm-radius` (sharp `0.25rem` to very rounded `0.875rem`)
+- **Surfaces**: `--stgm-background`, `--stgm-card`, `--stgm-popover`, `--stgm-muted`, `--stgm-secondary`, `--stgm-accent`
+- **Text**: `--stgm-foreground`, `--stgm-card-foreground`, `--stgm-muted-foreground`, etc.
+- **Accent**: `--stgm-primary` / `--stgm-primary-foreground`, `--stgm-ring`
+- **Borders**: `--stgm-border`, `--stgm-input`
+- **Sidebar**: `--stgm-sidebar`, `--stgm-sidebar-primary`, `--stgm-sidebar-accent`, `--stgm-sidebar-border`
+- **Charts**: `--stgm-chart-1` through `--stgm-chart-5`
+
+You can also create minimal presets that override only a subset of tokens.
 
 ### Color Format
 
@@ -204,10 +208,10 @@ import { cn } from "@stigmer/theme";
 | `@stigmer/theme` | `cn()`, `ClassValue`, `THEME_PRESETS`, `ThemePreset` |
 | `@stigmer/theme/tokens.css` | Base CSS custom properties (light + dark) |
 | `@stigmer/theme/presets` | `THEME_PRESETS` array and `ThemePreset` type |
-| `@stigmer/theme/presets/rose.css` | Rose preset overrides |
-| `@stigmer/theme/presets/amber.css` | Amber preset overrides |
-| `@stigmer/theme/presets/violet.css` | Violet preset overrides |
-| `@stigmer/theme/presets/emerald.css` | Emerald preset overrides |
+| `@stigmer/theme/presets/corporate.css` | Corporate (Enterprise SaaS) design language |
+| `@stigmer/theme/presets/startup.css` | Startup (Modern dev tools) design language |
+| `@stigmer/theme/presets/friendly.css` | Friendly (Consumer SaaS) design language |
+| `@stigmer/theme/presets/fintech.css` | Fintech (Premium financial) design language |
 
 ## License
 

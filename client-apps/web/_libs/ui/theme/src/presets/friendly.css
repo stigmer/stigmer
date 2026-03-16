@@ -1,0 +1,69 @@
+/* Friendly — Consumer SaaS design language (Notion, Intercom, Slack)
+   Very rounded, warm coral, cream-tinted surfaces, soft borders, approachable */
+
+.stgm-theme-friendly {
+  --stgm-radius: 0.875rem;
+  --stgm-background: oklch(0.985 0.005 70);
+  --stgm-foreground: oklch(0.20 0.015 50);
+  --stgm-card: oklch(0.995 0.003 70);
+  --stgm-card-foreground: oklch(0.20 0.015 50);
+  --stgm-popover: oklch(0.995 0.003 70);
+  --stgm-popover-foreground: oklch(0.20 0.015 50);
+  --stgm-primary: oklch(0.62 0.19 45);
+  --stgm-primary-foreground: oklch(0.985 0 0);
+  --stgm-secondary: oklch(0.965 0.008 70);
+  --stgm-secondary-foreground: oklch(0.28 0.015 50);
+  --stgm-muted: oklch(0.96 0.01 70);
+  --stgm-muted-foreground: oklch(0.52 0.02 50);
+  --stgm-accent: oklch(0.955 0.015 70);
+  --stgm-accent-foreground: oklch(0.28 0.015 50);
+  --stgm-border: oklch(0.925 0.008 70);
+  --stgm-input: oklch(0.92 0.01 70);
+  --stgm-ring: oklch(0.62 0.14 45);
+  --stgm-chart-1: oklch(0.65 0.19 45);
+  --stgm-chart-2: oklch(0.60 0.15 150);
+  --stgm-chart-3: oklch(0.55 0.18 280);
+  --stgm-chart-4: oklch(0.75 0.16 90);
+  --stgm-chart-5: oklch(0.58 0.15 200);
+  --stgm-sidebar: oklch(0.975 0.008 70);
+  --stgm-sidebar-foreground: oklch(0.20 0.015 50);
+  --stgm-sidebar-primary: oklch(0.62 0.19 45);
+  --stgm-sidebar-primary-foreground: oklch(0.985 0 0);
+  --stgm-sidebar-accent: oklch(0.955 0.012 70);
+  --stgm-sidebar-accent-foreground: oklch(0.28 0.015 50);
+  --stgm-sidebar-border: oklch(0.925 0.008 70);
+  --stgm-sidebar-ring: oklch(0.62 0.14 45);
+}
+
+.stgm-theme-friendly.dark {
+  --stgm-background: oklch(0.16 0.01 50);
+  --stgm-foreground: oklch(0.94 0.005 70);
+  --stgm-card: oklch(0.22 0.015 50);
+  --stgm-card-foreground: oklch(0.94 0.005 70);
+  --stgm-popover: oklch(0.26 0.012 50);
+  --stgm-popover-foreground: oklch(0.94 0.005 70);
+  --stgm-primary: oklch(0.75 0.17 45);
+  --stgm-primary-foreground: oklch(0.15 0 0);
+  --stgm-secondary: oklch(0.25 0.012 50);
+  --stgm-secondary-foreground: oklch(0.94 0.005 70);
+  --stgm-muted: oklch(0.25 0.01 50);
+  --stgm-muted-foreground: oklch(0.65 0.02 50);
+  --stgm-accent: oklch(0.32 0.015 50);
+  --stgm-accent-foreground: oklch(0.94 0.005 70);
+  --stgm-border: oklch(1 0 0 / 10%);
+  --stgm-input: oklch(1 0 0 / 14%);
+  --stgm-ring: oklch(0.60 0.14 45);
+  --stgm-chart-1: oklch(0.68 0.20 45);
+  --stgm-chart-2: oklch(0.65 0.17 150);
+  --stgm-chart-3: oklch(0.60 0.18 280);
+  --stgm-chart-4: oklch(0.72 0.18 90);
+  --stgm-chart-5: oklch(0.62 0.17 200);
+  --stgm-sidebar: oklch(0.19 0.012 50);
+  --stgm-sidebar-foreground: oklch(0.92 0.005 70);
+  --stgm-sidebar-primary: oklch(0.75 0.17 45);
+  --stgm-sidebar-primary-foreground: oklch(0.15 0 0);
+  --stgm-sidebar-accent: oklch(0.27 0.015 50);
+  --stgm-sidebar-accent-foreground: oklch(0.92 0.005 70);
+  --stgm-sidebar-border: oklch(1 0 0 / 8%);
+  --stgm-sidebar-ring: oklch(0.55 0.12 45);
+}
