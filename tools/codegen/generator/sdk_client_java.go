@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const javaGenPackage = "ai.stigmer.sdk.internal.gen"
+const javaGenPackage = "ai.stigmer.sdk.gen"
 
 // =========================================================================
 // Java Import Tracking

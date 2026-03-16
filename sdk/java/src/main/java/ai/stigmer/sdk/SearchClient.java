@@ -2,8 +2,8 @@ package ai.stigmer.sdk;
 
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.commons.rpc.PageInfo;
-import ai.stigmer.sdk.internal.gen.Page;
-import ai.stigmer.sdk.internal.gen.StigmerException;
+import ai.stigmer.sdk.gen.Page;
+import ai.stigmer.sdk.gen.StigmerException;
 import ai.stigmer.search.v1.SearchRequest;
 import ai.stigmer.search.v1.SearchResult;
 import ai.stigmer.search.v1.SearchServiceGrpc;
