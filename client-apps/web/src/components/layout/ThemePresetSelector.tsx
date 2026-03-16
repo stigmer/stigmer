@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { Palette } from "lucide-react";
 import { cn, THEME_PRESETS } from "@stigmer/theme";
 import {
@@ -15,9 +15,31 @@ import {
 
 const STORAGE_KEY = "stgm-theme-preset";
 
-function getStoredPresetId(): string {
-  if (typeof window === "undefined") return "default";
+const noopSubscribe = () => () => {};
+
+function useMounted() {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}
+
+const presetListeners = new Set<() => void>();
+
+function subscribePresetStore(cb: () => void) {
+  presetListeners.add(cb);
+  return () => {
+    presetListeners.delete(cb);
+  };
+}
+
+function getPresetSnapshot() {
   return localStorage.getItem(STORAGE_KEY) ?? "default";
+}
+
+function getPresetServerSnapshot() {
+  return "default";
+}
+
+function notifyPresetChange() {
+  presetListeners.forEach((cb) => cb());
 }
 
 function applyPresetClass(presetId: string) {
@@ -34,21 +56,22 @@ function applyPresetClass(presetId: string) {
 }
 
 export function ThemePresetSelector() {
-  const [presetId, setPresetId] = useState("default");
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
+  const presetId = useSyncExternalStore(
+    subscribePresetStore,
+    getPresetSnapshot,
+    getPresetServerSnapshot,
+  );
 
   useEffect(() => {
-    const stored = getStoredPresetId();
-    setPresetId(stored);
-    applyPresetClass(stored);
-    setMounted(true);
-  }, []);
+    applyPresetClass(presetId);
+  }, [presetId]);
 
   const handleChange = useCallback((value: unknown) => {
     const id = value as string;
-    setPresetId(id);
     localStorage.setItem(STORAGE_KEY, id);
     applyPresetClass(id);
+    notifyPresetChange();
   }, []);
 
   if (!mounted) {

@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { cn } from "@stigmer/theme";
+
+const subscribe = () => () => {};
+
+function useMounted() {
+  return useSyncExternalStore(subscribe, () => true, () => false);
+}
 
 const themes = [
   { value: "light", icon: Sun, label: "Light" },
@@ -13,9 +19,7 @@ const themes = [
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
 
   if (!mounted) {
     return <ThemeToggleSkeleton />;
