@@ -2,52 +2,56 @@
 
 ## Current State
 - **Status**: in-progress
-- **Last Session**: 2026-03-16 — Completed Task 1 (Python codegen generator)
-- **Active Task**: Task 2 (Scaffold sdk/python package)
+- **Last Session**: 2026-03-16 — Completed Task 2 (Scaffold sdk/python handwritten runtime layer)
+- **Active Task**: Task 3 (Wire codegen into build pipeline)
 
-## Session Progress (2026-03-16)
-- Created `tools/codegen/generator/sdk_client_python.go` (~850 lines)
-- Registered `sdk-client-python` target in `main.go`
-- Generator produces 21 Python files: 17 resource clients, `_client.py`, `_errors.py`, `_types.py`, `__init__.py`
-- Fixed 3 bugs during verification: enum defaults, ApiResourceId case ordering, Python keyword collisions (`as` → `as_`)
-- All generated files pass `python3 -c "import ast; ast.parse(...)"` syntax validation
-- Verified: import paths (`from ai.stigmer...`), stub method names (lowerCamelCase), type annotations, dataclass field ordering
+## Session Progress (2026-03-16, Session 2)
+- Created 7 handwritten runtime files for `sdk/python/src/stigmer/`
+- `_interceptors.py` — `AuthInterceptor` with `_ClientCallDetails` wrapper, handles unary + server-streaming RPCs
+- `_transport.py` — `create_channel()` factory with TLS/insecure support, applies interceptors via `grpc.intercept_channel()`
+- `_search.py` — `SearchClient`, `SearchParams`, `SearchResponse` dataclasses for cross-resource search
+- `_client.py` — `StigmerClient` wrapping `GeneratedClient` (17 sub-clients) + `SearchClient`, context manager support
+- `__init__.py` — Public API surface with 71 exports in `__all__`
+- `pyproject.toml` — Package metadata with hatchling build backend, dependencies on grpcio/protobuf/stigmer-stubs
+- `py.typed` — PEP 561 marker for inline type support
+- Validated: syntax check, editable install, all 71 exports resolve, all 18 sub-client type annotations correct, interceptor metadata injection tested, channel creation tested, context manager verified
 
 ## Next Steps
-1. **Task 2**: Scaffold `sdk/python` package — handwritten transport layer, `StigmerClient` wrapper, `pyproject.toml`, interceptors, `_search.py`
-2. **Task 3**: Wire codegen into build pipeline — `Makefile`, root `make protos` integration
-3. **Task 4**: PyPI publishing setup — Trusted Publishers, GitHub Actions workflow
+1. **Task 3**: Wire codegen into build pipeline — `sdk/python/Makefile`, root `make protos` integration, `codegen-verify` target
+2. **Task 4**: PyPI publishing setup — Trusted Publishers, GitHub Actions workflow, README
 
 ## Context for Resume
 
-### Key Decisions Made
-- Import paths use `from ai.stigmer...` (no `stigmer.` prefix) — matching the actual pyproject.toml package layout
-- Fields that collide with Python keywords get trailing underscore (`as` → `as_`) with `setattr()` for proto assignment
-- Target name is `sdk-client-python` (not `sdk-python`) to match existing `sdk-client` / `sdk-client-ts` naming
-- Enum fields default to `0` in Python since they're typed as `int`
-- `_to_proto()` methods are generated inline within each `@dataclass` — no separate converter module
+### Key Decisions Made (Session 2)
+- **Transport**: `grpc.intercept_channel()` with custom interceptors (not `composite_channel_credentials`) — works with both secure and insecure channels, matches Go SDK pattern
+- **No `_options.py`**: Python keyword args on `StigmerClient.__init__()` replace Go's functional options pattern — simpler, idiomatic
+- **No handwritten `errors.py`**: Generated `_gen/_errors.py` provides everything needed; TypeScript's extra `ErrorCategory`/`getUserMessage` layer is UI-specific, not needed for Python
+- **Public API excludes internals**: `wrap_error` and `GeneratedClient` are not re-exported — they're implementation details
+- **Build backend**: `hatchling` (PEP 517/621) instead of `poetry-core` — lighter, no lockfile requirement
+- **Sync-only**: No async (`grpc.aio`) in initial release — follow-up work
 
-### Generated File Structure
+### Handwritten File Structure
 ```
-sdk/python/src/stigmer/_gen/
-├── __init__.py          (re-exports all public types with __all__)
-├── _client.py           (GeneratedClient composing 17 sub-clients)
-├── _errors.py           (StigmerError, ErrorCode, wrap_error, sentinels)
-├── _types.py            (DeleteResourceInput, ResourceRef, ListParams, etc.)
-├── _agent.py            (AgentClient, AgentInput, nested inputs)
-├── _agentexecution.py   (AgentExecutionClient — includes streaming)
-├── ... (15 more resource files)
-└── _workflow.py         (WorkflowClient — contains keyword-escaped fields)
+sdk/python/
+├── pyproject.toml                    (hatchling build, dependencies)
+└── src/stigmer/
+    ├── __init__.py                   (71 public exports)
+    ├── py.typed                      (PEP 561 marker)
+    ├── _client.py                    (StigmerClient — entry point)
+    ├── _transport.py                 (gRPC channel factory)
+    ├── _interceptors.py              (auth metadata interceptor)
+    ├── _search.py                    (cross-resource search client)
+    └── _gen/                         (codegen output — 21 files from Task 1)
 ```
 
-### What Still Needs Handwriting (Task 2)
-- `src/stigmer/_client.py` — `StigmerClient` wrapping `GeneratedClient` with channel management
-- `src/stigmer/_transport.py` — gRPC channel factory (TLS / insecure)
-- `src/stigmer/_interceptors.py` — API key metadata interceptor
-- `src/stigmer/_search.py` — SearchService client
-- `src/stigmer/__init__.py` — public API re-exports
-- `pyproject.toml` — package metadata, dependencies
-- `py.typed` — PEP 561 marker
+### Validation Results
+- All `.py` files pass `ast.parse()` syntax validation
+- `pip install -e` succeeds for both `stigmer-stubs` and `stigmer`
+- All 71 names in `__all__` resolve to real objects
+- All 18 `StigmerClient` attributes properly typed (IDE-discoverable)
+- `AuthInterceptor` correctly injects `authorization: Bearer <token>` for both unary and streaming, preserves pre-existing metadata
+- Empty API key rejected with `ValueError`
+- Context manager (`with StigmerClient(...):`) works correctly
 
 ## Quick Resume
 To continue this project, drag this file into chat:
