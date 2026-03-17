@@ -70,7 +70,7 @@ When starting a new session:
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.6 (Web — Active Session View)
 **Status**: Ready to start
-**Last Session**: 2026-03-17 — Local Folder Browser (Phase 2) implementation (session 13)
+**Last Session**: 2026-03-17 — Reject LocalPathSource in Cloud (session 14)
 **Pending Pre-req**: ~~GitHub OAuth App registration~~ Done — credentials embedded in binary and configured in cloud deployment
 
 ## Session Progress (2026-03-17)
@@ -194,6 +194,14 @@ When starting a new session:
 - **Security model**: No path restrictions (industry standard — VS Code, Jupyter, Docker Desktop). `127.0.0.1` binding, OS permissions, read-only endpoint. Cloud mode excluded entirely.
 - **Key decisions**: Plain `fetch` (not gRPC) for local-only utility endpoint. `FolderBrowser` in SDK (not Console) for platform builder reuse. Text input preserved as fallback via `enableFolderBrowser=false` default.
 
+### Completed: Reject LocalPathSource in Cloud Backend (Session 14)
+- Investigated security and UX implications of `LocalPathSource` entries reaching the cloud backend
+- Identified UX gap: API callers can bypass frontend and submit `LocalPathSource` directly, causing late failure in agent runner
+- **Java (stigmer-cloud)**: Added `RejectLocalPathWorkspaceStep` inner class in `SessionCreateHandler.java` — pure validation step that rejects `LocalPathSource` entries with `INVALID_ARGUMENT` at API time
+- Pipeline placement: after `validateFieldConstraints`, before `authorize` — fail fast before authorization or persistence
+- Defense-in-depth: four layers now active (frontend UI hiding → Java API validation → agent runner guard → Daytona sandbox isolation)
+- No Go backend changes needed — Go serves both local and cloud modes, and `LocalPathSource` is valid in local mode
+
 ### Key Decisions (cumulative)
 1. **No MCP server usages** — the assistant is purely general-purpose. Tools come from the runtime.
 2. **Minimal instructions** — 5 lines. Identity, mission, tone, action bias, honesty.
@@ -229,6 +237,7 @@ When starting a new session:
 32. **`FolderBrowser` in SDK, not Console** — Platform builders running Stigmer locally need folder selection too. Follows `GitHubRepoPicker` pattern: SDK component with clean props, composed by Console.
 33. **`enableFolderBrowser` as opt-in prop** — Default `false` preserves backward compatibility. Text input fallback remains available for cases where the endpoint doesn't exist.
 34. **CWD as default starting directory** — Better than home directory because users typically launch `stigmer` from near their projects. The Go endpoint uses `os.Getwd()` when no path is provided.
+35. **Cloud backend rejects LocalPathSource at API level** — `RejectLocalPathWorkspaceStep` in `SessionCreateHandler` returns `INVALID_ARGUMENT` immediately, avoiding late failure in agent runner. Not in Go backend because Go serves both local and cloud modes.
 
 ## Next Steps
 1. **T01.6**: Web — Active Session View (`/sessions/[id]`) — conversation thread, real-time streaming, follow-up input, right context panel
@@ -243,7 +252,7 @@ When starting a new session:
 - The session launcher flow: create session -> create agent execution -> navigate to `/sessions/[id]`.
 - `/sessions/[id]/page.tsx` exists as a placeholder — T01.6 builds the actual session view.
 - Proto `agent_instance_id` is optional in SessionSpec. Backend resolves default agent instance if omitted.
-- Java (stigmer-cloud) has a matching `ResolveDefaultAgentInstanceStep` in `SessionCreateHandler`.
+- Java (stigmer-cloud) has `ResolveDefaultAgentInstanceStep` and `RejectLocalPathWorkspaceStep` in `SessionCreateHandler`.
 - Model list is hardcoded in `sdk/react/src/models/registry.ts` (22 models from Python `model_registry.py`). Future: backend RPC.
 
 ## Quick Resume
