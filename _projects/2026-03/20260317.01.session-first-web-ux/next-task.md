@@ -70,7 +70,7 @@ When starting a new session:
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.6 (Web — Active Session View)
 **Status**: Ready to start
-**Last Session**: 2026-03-17 — Completed T01.5 + build fix + validated static export architecture (session 8)
+**Last Session**: 2026-03-17 — Fixed nested form hydration error in WorkspaceEditor (session 9)
 
 ## Session Progress (2026-03-17)
 
@@ -145,6 +145,14 @@ When starting a new session:
   - Model registry hardcoded for now; future backend RPC will replace it
   - `@base-ui/react` added as SDK peer dependency for accessible primitives
 
+### Fixed: Nested Form Hydration Error (Session 9)
+- `WorkspaceEditor` (SDK) used a `<form>` element for its add-workspace panel
+- When rendered inside `SessionLauncher`'s `<form>`, this created invalid nested `<form>` HTML
+- React detected the mismatch and reported two hydration errors
+- **Fix**: Replaced `<form>` with `<div>` in `WorkspaceEditor.tsx`, wired `onClick`/`onKeyDown` handlers explicitly
+- **Why in SDK**: SDK components must be embeddable in any host element per the platform-for-platforms contract
+- Committed: `e9e05648`
+
 ### Key Decisions (cumulative)
 1. **No MCP server usages** — the assistant is purely general-purpose. Tools come from the runtime.
 2. **Minimal instructions** — 5 lines. Identity, mission, tone, action bias, honesty.
@@ -168,6 +176,7 @@ When starting a new session:
 20. **Always two-step flow** — Session is always created explicitly before execution, even without workspace entries. Simpler, consistent, provides sessionId upfront.
 21. **`output: "export"` + `__placeholder__` is the correct architecture** — The web console is embedded as static files in the Go CLI binary via `//go:embed`. Dynamic routes use `generateStaticParams()` returning `[{ id: "__placeholder__" }]`. The Go `spaHandler` (`client-apps/cli/embedded/webconsole/handler.go`) explicitly rewrites dynamic route requests to their `__placeholder__` variants. This is not a workaround — it's a properly engineered SPA serving mechanism for the single-binary distribution model. Do NOT switch to `output: "standalone"`.
 22. **Dynamic route pattern for static export** — Dynamic routes like `/sessions/[id]` use a server component `page.tsx` (exports `generateStaticParams`) + a client component `SessionPage.tsx` (uses `useParams`). This is the established pattern from the pre-teardown codebase.
+23. **SDK components must not use `<form>`** — `WorkspaceEditor` and similar SDK components must avoid `<form>` elements because they may be embedded inside a host application's own form. Use `<div>` with explicit `onClick`/`onKeyDown` handlers instead.
 
 ## Next Steps
 1. **T01.6**: Web — Active Session View (`/sessions/[id]`) — conversation thread, real-time streaming, follow-up input, right context panel
