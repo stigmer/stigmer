@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-17 09:01
-**Current Task**: T01.4 (Web — App Shell)
+**Current Task**: T01.5 (Web — New Session Launcher)
 **Status**: In Progress
-**Last Session**: 2026-03-17 — Completed T01.2 (Backend Default Agent Resolution) in both Go and Java
+**Last Session**: 2026-03-17 — Completed T01.4 (Web App Shell — three-panel layout)
 
 ## Session Progress (2026-03-17)
 
@@ -104,31 +104,55 @@ When starting a new session:
 - Build passes (`npm run build` — zero errors, 2 static routes)
 - Lint passes (`npm run lint` — zero errors)
 
+### Completed: React SDK Teardown (companion to T01.3)
+- Deleted 33 files across 7 directories (2,959 lines) from `sdk/react/`:
+  - `src/agent/`, `src/session/`, `src/agent-execution/`, `src/catalog/`, `src/skill/`, `src/mcp-server/`, `src/internal/`
+- Removed 6 sub-path exports and 5 unused peer dependencies (`@base-ui/react`, `class-variance-authority`, `lucide-react`, `react-markdown`, `remark-gfm`)
+- Updated `README.md` to reflect minimal provider-only state
+- Preserved: `StigmerProvider`, `StigmerContext`, `useStigmer`, `styles.css` (5 source files)
+- Typecheck and build pass clean for both `sdk/react` and `client-apps/web`
+- Committed: `c6b707cd`
+
+### Completed: T01.4 — Web App Shell (Three-Panel Layout)
+- Created 8 files in `client-apps/web/src/components/layout/`: `AppShell.tsx`, `AppHeader.tsx`, `Sidebar.tsx`, `ContextPanel.tsx`, `OrgSwitcher.tsx`, `ThemeToggle.tsx`, `UserMenu.tsx`, `use-layout-state.ts`
+- Grid + Flex layout: 48px header, 280px sidebar (toggle visibility), 320px context panel (closed by default)
+- Sidebar: "New Session" link + recents empty state. Context panel: collapsible shell with children slot.
+- Responsive: sidebar becomes fixed overlay on mobile (< 1024px) with backdrop + Escape-to-close. Context panel hidden below lg.
+- State: `useSyncExternalStore` — sidebar persists to localStorage, context panel is session-scoped (in-memory).
+- OrgSwitcher, ThemeToggle, UserMenu recovered from git (`10513ce1^`). ThemePresetSelector deferred.
+- `layout.tsx` wraps children in `<AppShell>`. Build and lint pass clean.
+
 ### Key Decisions
 1. **No MCP server usages** — the assistant is purely general-purpose, not a platform help desk. Platform browsing is a UI concern. Tools come from the runtime.
 2. **Minimal instructions** — 5 lines. Identity, mission, tone, action bias, honesty. The LLM figures out the rest from its available tools.
 3. **No skill_refs, sub_agents, or env_spec** — intentionally omitted to keep the agent as a clean slate.
 4. **Fresh start, not incremental refactor** — Deleted all existing UI and rebuilt from scratch. Avoids legacy patterns influencing new code.
-5. **package.json untouched** — Temporarily unused deps (`react-markdown`, `remark-gfm`, `@base-ui/react`) will be needed in T01.5/T01.6. No premature cleanup.
-6. **Font declarations kept in layout.tsx** — Six fonts loaded. T01.4 may revise, but removing now is unnecessary churn.
+5. **Web package.json untouched** — Temporarily unused deps (`react-markdown`, `remark-gfm`, `@base-ui/react`) will be needed in T01.5/T01.6. No premature cleanup in web app. SDK package.json was cleaned (unused peer deps removed).
+6. **Font declarations kept in layout.tsx** — Six fonts loaded. T01.4 kept them as-is.
+10. **Toggle visibility, not icon rail** — Sidebar uses binary show/hide (like Claude/ChatGPT), not a compact icon-rail collapse. Sessions don't have meaningful icons.
+11. **48px header** — Down from 56px. Maximizes content area for conversation thread.
+12. **ThemePresetSelector deferred** — Only dark/light toggle in header. Presets to a future settings page (Hick's Law).
+13. **Context panel toggle hidden in T01.4** — No content until T01.6. Showing a toggle for an empty panel violates Nielsen heuristic #1.
+14. **`@base-ui/react` Button lacks `asChild`** — Use `buttonVariants` + `cn` on `<Link>` directly instead of `<Button asChild>`.
 7. **Platform-level default agent** — The default assistant is a system-wide resource in the `stigmer` org with `visibility_public`, not a per-org concept. Resolution is global.
 8. **Session ownership follows the caller** — Sessions are created in the caller's org even when using a cross-org public agent. This is critical for multi-tenancy in Cloud mode.
 9. **Labels as first-class store concept** — Go `store.Store` got explicit `FindByLabel`/`FindAllByLabel` methods rather than overloading `FindByField`, because label keys contain dots that conflict with field-path dot notation.
 
 ## Next Steps
-1. **T01.4**: Web — App Shell (three-panel layout: sidebar, main content, collapsible right context panel)
-2. **T01.5**: Web — New Session Launcher (landing page at `/`)
-3. **T01.6**: Web — Active Session View (`/sessions/[id]`)
-4. **T01.7**: Web — Sidebar Recents
+1. **T01.5**: Web — New Session Launcher (landing page at `/`)
+2. **T01.6**: Web — Active Session View (`/sessions/[id]`)
+3. **T01.7**: Web — Sidebar Recents
 
 ## Context for Resume
 - Branch: `feat/session-first-web-ux` (stigmer repo), `main` (stigmer-cloud repo)
-- T01.1 committed (`ca2b2554`). T01.2 committed. T01.3 committed. T01.4 is next.
-- The web app is a clean slate: auth infra + UI primitives + provider tree. No pages, no layout, no hooks.
-- Post-teardown file tree has 31 files in `src/`. Build and lint pass clean.
-- `run/page.tsx` in git history is valuable reference for T01.5/T01.6 — shows exact `@stigmer/react` import patterns (`AgentPicker`, `ExecutionStream`, `MessageInput`, `useAgentExecution`, `useApproval`).
-- T01.4 components to create: `AppHeader.tsx`, `Sidebar.tsx`, `ContextPanel.tsx`, `AppShell.tsx` in `src/components/layout/`.
+- T01.1 committed (`ca2b2554`). T01.2 committed. T01.3 committed. React SDK teardown committed (`c6b707cd`). T01.4 committed.
+- The web app has a full three-panel shell: AppShell (Grid+Flex), AppHeader (48px), Sidebar (280px toggle), ContextPanel (320px, closed).
+- The React SDK is a clean slate: provider + context + hook + styles. No feature components. 5 source files in `sdk/react/src/`.
+- Post-T01.4 file tree has 39 files in `client-apps/web/src/` (31 from teardown + 8 new layout files). Build and lint pass clean.
+- `run/page.tsx` in git history is valuable reference for T01.5/T01.6 — shows `@stigmer/react` import patterns that existed before teardown.
+- Feature components for the React SDK will be rebuilt alongside the web UI (T01.5/T01.6) with embeddability as a primary design constraint.
 - Default agent resolution is fully wired in both backends. The frontend can now create executions with just a message — no agent_id or session_id needed.
+- T01.5 will replace the placeholder `page.tsx` with the session launcher. It will need to create an AgentExecution without specifying an agent (backend resolves default).
 
 ## Quick Resume
 To continue this project, drag this file into chat:
@@ -137,7 +161,7 @@ To continue this project, drag this file into chat:
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.4" - Start building the three-panel app shell
+- "Continue with T01.5" - Start building the session launcher
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
