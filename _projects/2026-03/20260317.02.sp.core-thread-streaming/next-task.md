@@ -101,9 +101,37 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-17 18:16
-**Current Task**: T01 Step 4 (Console SessionPage)
-**Status**: Steps 1-3 complete, Step 4 ready to start
-**Last Session**: 2026-03-17 — Completed Step 3: SDK Styled Components
+**Current Task**: T01 Step 5 (Barrel Exports + Dependencies verification)
+**Status**: Steps 1-4 complete, Step 5 ready to start
+**Last Session**: 2026-03-17 — Completed Step 4: Console SessionPage
+
+## Session Progress (2026-03-17, Session 4)
+
+### Completed: Step 4 — Console SessionPage
+
+- Rewrote `client-apps/web/src/app/sessions/[id]/SessionPage.tsx` from placeholder to full orchestration page
+  - Hook orchestration: `useSession(id)`, `useSessionExecutions(id)`, `useExecutionStream(activeExecutionId)`
+  - Active execution identification: walks executions from last to first, finds the first with a non-terminal phase
+  - `TERMINAL_PHASES` constant for `COMPLETED`, `FAILED`, `CANCELLED`, `TERMINATED`
+  - Stream-to-fetch fallback: `displayActiveExecution = stream.execution ?? fetchedActiveExecution` — prevents content flash during stream connection window (100-500ms)
+  - Execution splitting: completed executions filtered from the streamed one, passed separately to `<MessageThread>`
+- Four UI states:
+  - **Loading**: `SessionSkeleton` — pulse-animated blocks simulating user message, AI response, tool call bar
+  - **Error**: `SessionError` — centered AlertTriangle + message + "Try again" / "Go home" (matches existing `error.tsx` pattern)
+  - **Empty**: `SessionStarting` — spinner + "Starting session..." for the transient window before execution is indexed
+  - **Normal**: `<MessageThread>` fills page (`flex-1`), `StreamErrorBanner` at bottom if stream disconnects (WifiOff + error + "Reconnect")
+- Scroll containment: `h-full flex flex-col` on SessionPage ensures `<main>` never scrolls; `MessageThread` is sole scroll container
+- All sub-components (`SessionSkeleton`, `SessionError`, `SessionStarting`, `StreamErrorBanner`) are file-local — Console-specific, not exported
+- Verification: `npm run typecheck`, `npm run build` (sdk/react), `npm run build` (client-apps/web) all pass clean
+
+### Key Design Decisions (Step 4)
+
+1. **Stream-to-fetch fallback** — When `useSessionExecutions` returns an active execution but `useExecutionStream` hasn't connected yet, the fetched snapshot fills the gap. Once the stream delivers its first snapshot, it seamlessly takes over. No content flash, no empty thread.
+2. **`TERMINAL_PHASES` inlined in Console file** — Third location where this constant exists (also in `useExecutionStream` and `MessageThread`). Flagged for extraction to a shared SDK utility (`isTerminalPhase()`) as a follow-up.
+3. **Console imports `ExecutionPhase` from `@stigmer/protos`** — Established pattern (org-context.tsx already does this). The Console understands domain concepts; it's the reference implementation.
+4. **All sub-components are file-local** — `SessionSkeleton`, `SessionError`, `SessionStarting`, `StreamErrorBanner` are Console-specific presentation. If any prove reusable, extract to SDK later.
+5. **No session header/title bar** — The thread IS the page. Session subject is a sidebar concern (recents list, not yet implemented).
+6. **`window.location.reload()` for error retry** — Simplest approach for SP1. The hooks don't expose a shared retry mechanism. A more sophisticated retry can be added when needed.
 
 ## Session Progress (2026-03-17, Session 3)
 
@@ -183,22 +211,21 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Step 4**: Console SessionPage — Rewrite `client-apps/web/src/app/sessions/[id]/SessionPage.tsx` to orchestrate SDK hooks and render `<MessageThread>` with completed + streaming executions
-2. **Step 5**: Barrel Exports + Dependencies — Already partially done (react-markdown/remark-gfm added, barrel exports updated). Verify final export surface is clean.
+1. **Step 5**: Barrel Exports + Dependencies — Already partially done (react-markdown/remark-gfm added, barrel exports updated). Verify final export surface is clean. This is a lightweight verification step.
+2. **After SP1 completion**: Update parent project `next-task.md` to mark SP1 as done and begin SP2 (Follow-up Conversation Loop).
 
 ## Context for Resume
 
 - Branch: `feat/session-first-web-ux`
-- Steps 1-3 committed. Steps 4-5 pending.
-- Step 4 will use: `useSession(id)` for metadata, `useSessionExecutions(id)` for history, `useExecutionStream(activeId)` for live streaming, and `<MessageThread>` to render it all.
-- `MessageThread` accepts `executions: AgentExecution[]` + `activeStreamExecution?: AgentExecution | null`. The Console page identifies the active execution as the last one with a non-terminal phase.
-- `SessionPage` currently at `client-apps/web/src/app/sessions/[id]/SessionPage.tsx` is a placeholder showing "Session {id} — coming in T01.6".
-- Loading skeleton and error states are Console concerns (not SDK).
+- Steps 1-4 committed. Step 5 pending (lightweight verification).
+- Step 5 is primarily a check — barrel exports and dependencies were already updated during Steps 2-3. Just verify the final export surface is clean and matches the plan.
+- The full data flow is now wired: `SessionPage` → `useSession` + `useSessionExecutions` + `useExecutionStream` → `<MessageThread>` → user sees conversation thread with streaming, tool call summaries, and phase badges.
+- Open follow-up: extract `TERMINAL_PHASES` / `isTerminalPhase()` to a shared SDK utility (currently duplicated in 3 files).
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Step 4" - Start Console SessionPage
+- "Continue with Step 5" - Verify barrel exports and dependencies
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
