@@ -1,19 +1,9 @@
-/**
- * Placeholder page for an active session.
- * Full implementation is planned for T01.6 (Session View).
- */
-export default async function SessionPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+import SessionPage from "./SessionPage";
 
-  return (
-    <div className="flex h-full items-center justify-center">
-      <p className="text-sm text-muted-foreground">
-        Session <span className="font-mono">{id}</span> — coming in T01.6
-      </p>
-    </div>
-  );
+export async function generateStaticParams() {
+  return [{ id: "__placeholder__" }];
+}
+
+export default function Page() {
+  return <SessionPage />;
 }
