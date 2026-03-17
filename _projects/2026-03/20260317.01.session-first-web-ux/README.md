@@ -100,3 +100,13 @@ Only task logs (T##_1_feedback.md, T##_2_execution.md) can be updated without pe
 ## Notes
 
 _Add any additional notes, links, or context here as the project evolves._
+
+## Sub-Projects
+
+| Sub-Project | Path | Status | Description |
+|-------------|------|--------|-------------|
+| core-thread-streaming | [20260317.02.sp.core-thread-streaming](../20260317.02.sp.core-thread-streaming/) | Active | Build the minimum viable session view at /sessions/[id] with real-time execution streaming, message rendering (markdown), and collapsed tool call summaries. SDK hooks for data fetching and streaming, SDK styled components for messages and tool groups, Console page orchestration. |
+| follow-up-conversation-loop | [20260317.03.sp.follow-up-conversation-loop](../20260317.03.sp.follow-up-conversation-loop/) | Active | Add follow-up input to the session view, enabling users to continue conversations by sending additional messages within the same session. SDK FollowUpInput component with model selector, Console-level orchestration for creating executions and streaming them into the existing thread. |
+| session-context-panel | [20260317.04.sp.session-context-panel](../20260317.04.sp.session-context-panel/) | Active | Populate the right context panel with execution metadata. Add a context panel slot mechanism so pages can inject content. Build SessionContextContent with execution phase, model, token usage, cost, duration, workspace entries, and resolved context (MCP servers, tools). |
+| expandable-tool-groups | [20260317.05.sp.expandable-tool-groups](../20260317.05.sp.expandable-tool-groups/) | Active | Make collapsed tool call summaries expandable to reveal individual tool calls with args, results, status, and timing. Add sub-agent sections as expandable nested threads. Two-level progressive disclosure: summary line -> list of tool calls -> individual call detail. |
+| hitl-approvals | [20260317.06.sp.hitl-approvals](../20260317.06.sp.hitl-approvals/) | Active | Add human-in-the-loop approval UI to the session view. Build useSubmitApproval behavior hook and ApprovalCard styled component with approve/skip/reject actions. Integrate approval flow into the conversation thread when executions enter WAITING_FOR_APPROVAL phase. |

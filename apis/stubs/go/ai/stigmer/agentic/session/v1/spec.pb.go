@@ -7,7 +7,6 @@
 package sessionv1
 
 import (
-	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -49,7 +48,7 @@ type SessionSpec struct {
 	//
 	// When empty, the session uses an empty workspace directory
 	// (existing default behavior, no provisioning step).
-	WorkspaceEntries []*WorkspaceEntry `protobuf:"bytes,7,rep,name=workspace_entries,json=workspaceEntries,proto3" json:"workspace_entries,omitempty"`
+	WorkspaceEntries []*WorkspaceEntry `protobuf:"bytes,6,rep,name=workspace_entries,json=workspaceEntries,proto3" json:"workspace_entries,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -130,7 +129,7 @@ var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a\x1bbuf/validate/validate.proto\"\x96\x03\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a-ai/stigmer/agentic/session/v1/workspace.proto\"\xfe\x02\n" +
 	"\vSessionSpec\x12*\n" +
 	"\x11agent_instance_id\x18\x01 \x01(\tR\x0fagentInstanceId\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
@@ -138,10 +137,10 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
 	"sandbox_id\x18\x04 \x01(\tR\tsandboxId\x12T\n" +
 	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Z\n" +
-	"\x11workspace_entries\x18\a \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x1a;\n" +
+	"\x11workspace_entries\x18\x06 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x06\x10\aR\x10workspace_sourceB\x99\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x99\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\tSpecProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (

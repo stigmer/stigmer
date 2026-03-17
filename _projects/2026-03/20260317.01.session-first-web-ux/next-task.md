@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-17 09:01
-**Current Task**: T01.6 (Web — Active Session View)
-**Status**: Ready to start
+**Current Task**: T01.6 — decomposed into 5 sub-projects (SP1-SP5)
+**Status**: SP1 (Core Thread + Streaming) ready to start
 **Last Session**: 2026-03-17 — GitHubClient added to Python, Go, and Java SDKs (session 16)
 **Pending Pre-req**: ~~GitHub OAuth App registration~~ Done — credentials embedded in binary and configured in cloud deployment
 
@@ -272,8 +272,20 @@ When starting a new session:
 40. **`is_skip_authorization` vs `is_public`** — Two distinct proto options. `is_skip_authorization` removes FGA resource-level checks but keeps authentication (JWT/API-key). `is_public` removes authentication entirely. GitHub OAuth RPCs use `is_skip_authorization` only — callers must still authenticate.
 
 ## Next Steps
-1. **T01.6**: Web — Active Session View (`/sessions/[id]`) — conversation thread, real-time streaming, follow-up input, right context panel
-2. **T01.7**: Web — Sidebar Recents
+
+T01.6 has been decomposed into 5 sub-projects (SP1-SP5). Execute in order:
+
+| # | Sub-Project | Resume File | Depends On |
+|---|---|---|---|
+| SP1 | Core Thread + Streaming | `20260317.02.sp.core-thread-streaming/next-task.md` | Nothing |
+| SP2 | Follow-Up + Conversation Loop | `20260317.03.sp.follow-up-conversation-loop/next-task.md` | SP1 |
+| SP3 | Session Context Panel | `20260317.04.sp.session-context-panel/next-task.md` | SP1 |
+| SP4 | Expandable Tool Groups | `20260317.05.sp.expandable-tool-groups/next-task.md` | SP1 |
+| SP5 | HITL Approvals | `20260317.06.sp.hitl-approvals/next-task.md` | SP1 + SP4 |
+
+SP2, SP3, SP4 are independent of each other after SP1.
+
+After T01.6 sub-projects: **T01.7** — Web — Sidebar Recents
 
 ## Context for Resume
 - Branch: `feat/session-first-web-ux` (stigmer repo), `feat/session-first-web-ux` (stigmer-cloud repo)

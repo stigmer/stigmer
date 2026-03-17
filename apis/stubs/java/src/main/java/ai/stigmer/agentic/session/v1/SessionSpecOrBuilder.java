@@ -166,7 +166,7 @@ java.lang.String defaultValue);
    * (existing default behavior, no provisioning step).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
+   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
    */
   java.util.List<ai.stigmer.agentic.session.v1.WorkspaceEntry> 
       getWorkspaceEntriesList();
@@ -182,7 +182,7 @@ java.lang.String defaultValue);
    * (existing default behavior, no provisioning step).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
+   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
    */
   ai.stigmer.agentic.session.v1.WorkspaceEntry getWorkspaceEntries(int index);
   /**
@@ -197,7 +197,7 @@ java.lang.String defaultValue);
    * (existing default behavior, no provisioning step).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
+   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
    */
   int getWorkspaceEntriesCount();
   /**
@@ -212,7 +212,7 @@ java.lang.String defaultValue);
    * (existing default behavior, no provisioning step).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
+   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
    */
   java.util.List<? extends ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder> 
       getWorkspaceEntriesOrBuilderList();
@@ -228,7 +228,7 @@ java.lang.String defaultValue);
    * (existing default behavior, no provisioning step).
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7 [json_name = "workspaceEntries"];</code>
+   * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
    */
   ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder getWorkspaceEntriesOrBuilder(
       int index);

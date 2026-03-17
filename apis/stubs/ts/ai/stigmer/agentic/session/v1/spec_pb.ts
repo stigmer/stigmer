@@ -6,14 +6,13 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { WorkspaceEntry } from "./workspace_pb";
 import { file_ai_stigmer_agentic_session_v1_workspace } from "./workspace_pb";
-import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSK/AgoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSEgoKc2FuZGJveF9pZBgEIAEoCRJKCghtZXRhZGF0YRgFIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLk1ldGFkYXRhRW50cnkSSAoRd29ya3NwYWNlX2VudHJpZXMYByADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgGEAdSEHdvcmtzcGFjZV9zb3VyY2ViBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_workspace, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKnAgoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSEgoKc2FuZGJveF9pZBgEIAEoCRJKCghtZXRhZGF0YRgFIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLk1ldGFkYXRhRW50cnkSSAoRd29ya3NwYWNlX2VudHJpZXMYBiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_workspace]);
 
 /**
  * SessionSpec defines the configurable properties of an agent conversation session.
@@ -72,7 +71,7 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * When empty, the session uses an empty workspace directory
    * (existing default behavior, no provisioning step).
    *
-   * @generated from field: repeated ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 7;
+   * @generated from field: repeated ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6;
    */
   workspaceEntries: WorkspaceEntry[];
 };
