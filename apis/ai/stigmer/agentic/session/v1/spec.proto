@@ -8,9 +8,13 @@ import "buf/validate/validate.proto";
 // SessionSpec defines the configurable properties of an agent conversation session.
 // This is the "Execution" layer - ephemeral runtime against an AgentInstance.
 message SessionSpec {
-  // ID of the AgentInstance this session runs against (required).
-  // The instance contains all configuration and secrets needed for execution.
-  string agent_instance_id = 1 [(buf.validate.field).required = true];
+  // ID of the AgentInstance this session runs against.
+  //
+  // When provided, the session uses this specific agent instance.
+  // When empty, the backend resolves the platform default agent
+  // (labeled stigmer.ai/default-agent: "true" with visibility_public)
+  // and auto-creates a default instance if needed.
+  string agent_instance_id = 1;
 
   // Conversation title/subject for UI display (optional).
   string subject = 2;

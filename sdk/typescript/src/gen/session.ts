@@ -67,7 +67,7 @@ export class SessionClient {
 export interface SessionInput {
   name: string;
   org: string;
-  agentInstanceId: string;
+  agentInstanceId?: string;
   subject?: string;
   threadId?: string;
   sandboxId?: string;

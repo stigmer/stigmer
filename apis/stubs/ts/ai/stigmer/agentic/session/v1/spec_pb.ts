@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSLHAgoLU2Vzc2lvblNwZWMSIQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAlCBrpIA8gBARIPCgdzdWJqZWN0GAIgASgJEhEKCXRocmVhZF9pZBgDIAEoCRISCgpzYW5kYm94X2lkGAQgASgJEkoKCG1ldGFkYXRhGAUgAygLMjguYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvblNwZWMuTWV0YWRhdGFFbnRyeRJIChF3b3Jrc3BhY2VfZW50cmllcxgHIAMoCzItLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLldvcmtzcGFjZUVudHJ5Gi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AUoECAYQB1IQd29ya3NwYWNlX3NvdXJjZWIGcHJvdG8z", [file_ai_stigmer_agentic_session_v1_workspace, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSK/AgoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSEgoKc2FuZGJveF9pZBgEIAEoCRJKCghtZXRhZGF0YRgFIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLk1ldGFkYXRhRW50cnkSSAoRd29ya3NwYWNlX2VudHJpZXMYByADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgGEAdSEHdvcmtzcGFjZV9zb3VyY2ViBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_workspace, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of an agent conversation session.
@@ -23,8 +23,12 @@ export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
  */
 export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> & {
   /**
-   * ID of the AgentInstance this session runs against (required).
-   * The instance contains all configuration and secrets needed for execution.
+   * ID of the AgentInstance this session runs against.
+   *
+   * When provided, the session uses this specific agent instance.
+   * When empty, the backend resolves the platform default agent
+   * (labeled stigmer.ai/default-agent: "true" with visibility_public)
+   * and auto-creates a default instance if needed.
    *
    * @generated from field: string agent_instance_id = 1;
    */

@@ -68,9 +68,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-17 09:01
-**Current Task**: T01.5 (Web — New Session Launcher)
-**Status**: In Progress
-**Last Session**: 2026-03-17 — Refined T01.4 layout to headerless sidebar-driven design (session 6)
+**Current Task**: T01.6 (Web — Active Session View)
+**Status**: Ready to start
+**Last Session**: 2026-03-17 — Completed T01.5: Session Launcher with full SDK architecture (session 7)
 
 ## Session Progress (2026-03-17)
 
@@ -84,7 +84,7 @@ When starting a new session:
 ### Completed: T01.2 — Backend Default Agent Resolution
 - Implemented in both Go (`stigmer`) and Java (`stigmer-cloud`)
 - **Seedpack**: `assistant.yaml` updated with `visibility: visibility_public`
-- **Proto**: `spec.proto` field comments updated — documents three-way resolution (session_id → agent_id → platform default)
+- **Proto**: `spec.proto` field comments updated — documents three-way resolution (session_id -> agent_id -> platform default)
 - **Go Store**: Added `FindByLabel` and `FindAllByLabel` to `store.Store` interface + SQLite implementation using proto reflection for `metadata.labels` map access
 - **Go Pipeline**: Added `ResolveDefaultAgentStep` before `ValidateSessionOrAgent` in `AgentExecution` create pipeline. Updated `CreateSessionIfNeeded` to use caller's org for session ownership.
 - **Java AgentRepo**: Added `findDefault()` — MongoDB query by label `stigmer.ai/default-agent=true` + `visibility_public`
@@ -125,40 +125,63 @@ When starting a new session:
 - Context panel: collapsible 320px shell (closed by default, no toggle yet). Hidden below lg.
 - `layout.tsx` wraps children in `<AppShell>`. Build and lint pass clean.
 
-### Key Decisions
-1. **No MCP server usages** — the assistant is purely general-purpose, not a platform help desk. Platform browsing is a UI concern. Tools come from the runtime.
-2. **Minimal instructions** — 5 lines. Identity, mission, tone, action bias, honesty. The LLM figures out the rest from its available tools.
+### Completed: T01.5 — Web — New Session Launcher
+- **SDK Architecture (headless-first, three-layer)**:
+  - **Data hook**: `useModelRegistry()` — hardcoded model list ported from Python `model_registry.py` (22 models, grouped by provider, cost tiers)
+  - **Behavior hooks**: `useCreateSession()` (Session aggregate), `useCreateAgentExecution()` (AgentExecution aggregate), `useWorkspaceEntries()` (workspace entry state management)
+  - **Styled components**: `<ModelSelector>` (theme-able dropdown via `@base-ui/react` Select), `<WorkspaceEditor>` (add/remove workspace entries UI)
+- **Backend changes**:
+  - Proto: `agent_instance_id` made optional in `SessionSpec` — backend resolves default agent instance if omitted
+  - Go: Added `resolveDefaultAgentInstanceStep` to session creation pipeline, `SessionController` gains `SetClients()` for agent/agentInstance dependency injection
+  - Java (stigmer-cloud): Added `ResolveDefaultAgentInstanceStep` inner class in `SessionCreateHandler`
+- **Console integration**:
+  - `SessionLauncher` component composes SDK hooks with Console-specific concerns (org context, Next.js routing, toast notifications)
+  - Flow: `useCreateSession()` -> `useCreateAgentExecution()` -> navigate to `/sessions/[id]`
+  - Placeholder `/sessions/[id]/page.tsx` created for T01.6
+- **Key architectural decisions**:
+  - Hooks follow aggregate boundaries: `useCreateSession` for Session, `useCreateAgentExecution` for AgentExecution — no cross-aggregate orchestration in hooks
+  - `SessionLauncher` stays in Console (not SDK) because it composes Console-specific concerns (org context, routing, toasts)
+  - Named `useCreateAgentExecution` (not `useCreateExecution`) to leave room for future `useCreateWorkflowExecution`
+  - Model registry hardcoded for now; future backend RPC will replace it
+  - `@base-ui/react` added as SDK peer dependency for accessible primitives
+
+### Key Decisions (cumulative)
+1. **No MCP server usages** — the assistant is purely general-purpose. Tools come from the runtime.
+2. **Minimal instructions** — 5 lines. Identity, mission, tone, action bias, honesty.
 3. **No skill_refs, sub_agents, or env_spec** — intentionally omitted to keep the agent as a clean slate.
-4. **Fresh start, not incremental refactor** — Deleted all existing UI and rebuilt from scratch. Avoids legacy patterns influencing new code.
-5. **Web package.json untouched** — Temporarily unused deps (`react-markdown`, `remark-gfm`, `@base-ui/react`) will be needed in T01.5/T01.6. No premature cleanup in web app. SDK package.json was cleaned (unused peer deps removed).
-6. **Font declarations kept in layout.tsx** — Six fonts loaded. T01.4 kept them as-is.
-10. **Toggle visibility, not icon rail** — Sidebar uses binary show/hide (like Claude/ChatGPT), not a compact icon-rail collapse. Sessions don't have meaningful icons.
-11. **Headerless layout** — Removed the 48px header entirely. Sidebar owns all controls. Main content gets full viewport height.
-12. **Appearance in user menu** — Theme switching (Light/Dark/System) is a submenu inside the user dropdown, not a standalone widget. Matches Cursor's pattern.
-13. **`border-foreground/10` for borders** — The `--stgm-sidebar-border` token lacks contrast in light mode. Using foreground at 10% opacity guarantees visibility in both themes.
-14. **DropdownMenu for OrgSwitcher** — Replaced native `<select>` for consistent interaction. Full-width trigger, radio items with checkmark.
-15. **Context panel toggle hidden in T01.4** — No content until T01.6. Showing a toggle for an empty panel violates Nielsen heuristic #1.
-16. **`@base-ui/react` Button lacks `asChild`** — Use `buttonVariants` + `cn` on `<Link>` directly instead of `<Button asChild>`.
-7. **Platform-level default agent** — The default assistant is a system-wide resource in the `stigmer` org with `visibility_public`, not a per-org concept. Resolution is global.
-8. **Session ownership follows the caller** — Sessions are created in the caller's org even when using a cross-org public agent. This is critical for multi-tenancy in Cloud mode.
-9. **Labels as first-class store concept** — Go `store.Store` got explicit `FindByLabel`/`FindAllByLabel` methods rather than overloading `FindByField`, because label keys contain dots that conflict with field-path dot notation.
+4. **Fresh start, not incremental refactor** — Deleted all existing UI and rebuilt from scratch.
+5. **Web package.json untouched** — Temporarily unused deps will be needed in T01.5/T01.6.
+6. **Font declarations kept in layout.tsx** — Six fonts loaded.
+7. **Platform-level default agent** — System-wide resource with `visibility_public`, not per-org.
+8. **Session ownership follows the caller** — Sessions created in caller's org even when using cross-org public agent.
+9. **Labels as first-class store concept** — Go store got `FindByLabel`/`FindAllByLabel` methods.
+10. **Toggle visibility, not icon rail** — Binary show/hide sidebar (like Claude/ChatGPT).
+11. **Headerless layout** — No top bar. Sidebar owns all controls.
+12. **Appearance in user menu** — Theme switching is submenu inside user dropdown.
+13. **`border-foreground/10` for borders** — Guaranteed visibility in both themes.
+14. **DropdownMenu for OrgSwitcher** — Full-width trigger, radio items with checkmark.
+15. **Context panel toggle hidden in T01.4** — No content until T01.6.
+16. **`@base-ui/react` Button lacks `asChild`** — Use `buttonVariants` + `cn` on `<Link>` directly.
+17. **Hooks follow aggregate boundaries** — `useCreateSession` for Session, `useCreateAgentExecution` for AgentExecution. No orchestration hooks.
+18. **`SessionLauncher` is Console-only** — Composes SDK hooks + Console concerns (org, routing, toasts). Not an SDK component.
+19. **`useCreateAgentExecution` not `useCreateExecution`** — Future-proofing for workflow executions.
+20. **Always two-step flow** — Session is always created explicitly before execution, even without workspace entries. Simpler, consistent, provides sessionId upfront.
 
 ## Next Steps
-1. **T01.5**: Web — New Session Launcher (landing page at `/`)
-2. **T01.6**: Web — Active Session View (`/sessions/[id]`)
-3. **T01.7**: Web — Sidebar Recents
+1. **T01.6**: Web — Active Session View (`/sessions/[id]`) — conversation thread, real-time streaming, follow-up input, right context panel
+2. **T01.7**: Web — Sidebar Recents
 
 ## Context for Resume
-- Branch: `feat/session-first-web-ux` (stigmer repo), `main` (stigmer-cloud repo)
-- T01.1 committed (`ca2b2554`). T01.2 committed. T01.3 committed. React SDK teardown committed (`c6b707cd`). T01.4 committed (initial + layout refinements).
-- The web app has a headerless sidebar-driven layout: AppShell (Flex), Sidebar (280px, collapsible on all sizes), ContextPanel (320px, closed).
-- Sidebar structure: top = collapse toggle + OrgSwitcher, middle = New Session + Recents, bottom = UserMenu (with Appearance submenu).
-- No AppHeader or ThemeToggle files — deleted. Theme switching lives in UserMenu. OrgSwitcher uses DropdownMenu.
-- The React SDK is a clean slate: provider + context + hook + styles. No feature components. 5 source files in `sdk/react/src/`.
-- `run/page.tsx` in git history is valuable reference for T01.5/T01.6 — shows `@stigmer/react` import patterns that existed before teardown.
-- Feature components for the React SDK will be rebuilt alongside the web UI (T01.5/T01.6) with embeddability as a primary design constraint.
-- Default agent resolution is fully wired in both backends. The frontend can now create executions with just a message — no agent_id or session_id needed.
-- T01.5 will replace the placeholder `page.tsx` with the session launcher. It will need to create an AgentExecution without specifying an agent (backend resolves default).
+- Branch: `feat/session-first-web-ux` (stigmer repo), `feat/session-first-web-ux` (stigmer-cloud repo)
+- T01.1 through T01.5 are complete and committed.
+- The web app has a headerless sidebar-driven layout with a working session launcher at `/`.
+- The React SDK now has three feature modules: `models/`, `workspace/`, `session/`, `execution/`.
+- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useCreateSession`, `useCreateAgentExecution`.
+- The session launcher flow: create session -> create agent execution -> navigate to `/sessions/[id]`.
+- `/sessions/[id]/page.tsx` exists as a placeholder — T01.6 builds the actual session view.
+- Proto `agent_instance_id` is optional in SessionSpec. Backend resolves default agent instance if omitted.
+- Java (stigmer-cloud) has a matching `ResolveDefaultAgentInstanceStep` in `SessionCreateHandler`.
+- Model list is hardcoded in `sdk/react/src/models/registry.ts` (22 models from Python `model_registry.py`). Future: backend RPC.
 
 ## Quick Resume
 To continue this project, drag this file into chat:
@@ -167,7 +190,7 @@ To continue this project, drag this file into chat:
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.5" - Start building the session launcher
+- "Continue with T01.6" - Start building the active session view
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

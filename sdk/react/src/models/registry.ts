@@ -1,0 +1,60 @@
+/**
+ * Model registry — UI-relevant metadata for all platform-supported LLM models.
+ *
+ * Ported from the Python source of truth at
+ * backend/libs/python/graphton/src/graphton/core/model_registry.py.
+ *
+ * This is a static, hardcoded list. A future backend RPC will replace it
+ * with a dynamic query; when that happens consumers will only need to
+ * swap from the static constant to a fetched result — the shape stays
+ * the same.
+ */
+
+export type CostTier = "economy" | "standard" | "premium";
+
+export type Provider = "anthropic" | "openai" | "ollama";
+
+export interface ModelInfo {
+  readonly modelId: string;
+  readonly provider: Provider;
+  readonly displayName: string;
+  readonly costTier: CostTier;
+}
+
+export const MODEL_REGISTRY: readonly ModelInfo[] = [
+  // ── Anthropic — Generation 4.6 ────────────────────────────────────
+  { modelId: "claude-opus-4.6", provider: "anthropic", displayName: "Claude Opus 4.6", costTier: "premium" },
+  { modelId: "claude-sonnet-4.6", provider: "anthropic", displayName: "Claude Sonnet 4.6", costTier: "standard" },
+
+  // ── Anthropic — Generation 4.5 ────────────────────────────────────
+  { modelId: "claude-opus-4.5", provider: "anthropic", displayName: "Claude Opus 4.5", costTier: "premium" },
+  { modelId: "claude-sonnet-4.5", provider: "anthropic", displayName: "Claude Sonnet 4.5", costTier: "standard" },
+
+  // ── Anthropic — Generation 4 ──────────────────────────────────────
+  { modelId: "claude-opus-4", provider: "anthropic", displayName: "Claude Opus 4", costTier: "premium" },
+  { modelId: "claude-haiku-4.5", provider: "anthropic", displayName: "Claude Haiku 4.5", costTier: "economy" },
+
+  // ── Anthropic — Generation 3.5 ────────────────────────────────────
+  { modelId: "claude-sonnet-3.5", provider: "anthropic", displayName: "Claude Sonnet 3.5", costTier: "standard" },
+  { modelId: "claude-haiku-3.5", provider: "anthropic", displayName: "Claude Haiku 3.5", costTier: "economy" },
+
+  // ── OpenAI ────────────────────────────────────────────────────────
+  { modelId: "gpt-4", provider: "openai", displayName: "GPT-4", costTier: "premium" },
+  { modelId: "gpt-4-turbo", provider: "openai", displayName: "GPT-4 Turbo", costTier: "standard" },
+  { modelId: "gpt-4o", provider: "openai", displayName: "GPT-4o", costTier: "standard" },
+  { modelId: "gpt-4o-mini", provider: "openai", displayName: "GPT-4o Mini", costTier: "economy" },
+  { modelId: "gpt-3.5-turbo", provider: "openai", displayName: "GPT-3.5 Turbo", costTier: "economy" },
+  { modelId: "o1", provider: "openai", displayName: "o1", costTier: "premium" },
+  { modelId: "o1-mini", provider: "openai", displayName: "o1 Mini", costTier: "standard" },
+
+  // ── Ollama (local, no cost) ───────────────────────────────────────
+  { modelId: "qwen2.5-coder:7b", provider: "ollama", displayName: "Qwen 2.5 Coder 7B", costTier: "economy" },
+  { modelId: "qwen2.5-coder:14b", provider: "ollama", displayName: "Qwen 2.5 Coder 14B", costTier: "economy" },
+  { modelId: "codellama:7b", provider: "ollama", displayName: "Code Llama 7B", costTier: "economy" },
+  { modelId: "codellama:13b", provider: "ollama", displayName: "Code Llama 13B", costTier: "economy" },
+  { modelId: "deepseek-coder-v2:16b", provider: "ollama", displayName: "DeepSeek Coder V2 16B", costTier: "economy" },
+  { modelId: "llama3.2:3b", provider: "ollama", displayName: "Llama 3.2 3B", costTier: "economy" },
+  { modelId: "mistral:7b", provider: "ollama", displayName: "Mistral 7B", costTier: "economy" },
+] as const;
+
+export const DEFAULT_MODEL_ID = "claude-sonnet-4.5";

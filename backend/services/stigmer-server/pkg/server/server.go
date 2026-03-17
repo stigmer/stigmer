@@ -406,6 +406,7 @@ func Run() error {
 	// Note: Controllers are already registered, we're just updating their internal state
 	agentController.SetAgentInstanceClient(agentInstanceClient)
 	agentExecutionController.SetClients(agentClient, agentInstanceClient, sessionClient, environmentClient, executionContextClient)
+	sessionController.SetClients(agentClient, agentInstanceClient)
 	workflowController.SetWorkflowInstanceClient(workflowInstanceClient)
 	workflowInstanceController.SetWorkflowClient(workflowClient)
 	workflowExecutionController.SetWorkflowInstanceClient(workflowInstanceClient)
