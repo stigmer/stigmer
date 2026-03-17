@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, type FormEvent } from "react";
+import { useState, useCallback, type KeyboardEvent } from "react";
 import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries";
 
 export interface WorkspaceEditorProps {
@@ -29,20 +29,26 @@ export function WorkspaceEditor({
   const [branch, setBranch] = useState("");
   const [localPath, setLocalPath] = useState("");
 
-  const handleSubmit = useCallback(
-    (e: FormEvent) => {
-      e.preventDefault();
-      if (type === "git" && url.trim()) {
-        workspace.addGitRepo(url.trim(), branch.trim() || undefined);
-        setUrl("");
-        setBranch("");
-      } else if (type === "local" && localPath.trim()) {
-        workspace.addLocalPath(localPath.trim());
-        setLocalPath("");
+  const handleAdd = useCallback(() => {
+    if (type === "git" && url.trim()) {
+      workspace.addGitRepo(url.trim(), branch.trim() || undefined);
+      setUrl("");
+      setBranch("");
+    } else if (type === "local" && localPath.trim()) {
+      workspace.addLocalPath(localPath.trim());
+      setLocalPath("");
+    }
+    setShowForm(false);
+  }, [type, url, branch, localPath, workspace]);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleAdd();
       }
-      setShowForm(false);
     },
-    [type, url, branch, localPath, workspace],
+    [handleAdd],
   );
 
   return (
@@ -73,8 +79,7 @@ export function WorkspaceEditor({
 
       {/* Add form / trigger */}
       {showForm ? (
-        <form
-          onSubmit={handleSubmit}
+        <div
           className="space-y-2 rounded-md border border-border bg-card p-3"
         >
           <div className="flex gap-2">
@@ -111,8 +116,8 @@ export function WorkspaceEditor({
                 placeholder="https://github.com/org/repo.git"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                required
                 autoFocus
               />
               <input
@@ -120,6 +125,7 @@ export function WorkspaceEditor({
                 placeholder="Branch (optional)"
                 value={branch}
                 onChange={(e) => setBranch(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
@@ -129,8 +135,8 @@ export function WorkspaceEditor({
               placeholder="/path/to/project"
               value={localPath}
               onChange={(e) => setLocalPath(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              required
               autoFocus
             />
           )}
@@ -144,13 +150,14 @@ export function WorkspaceEditor({
               Cancel
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={handleAdd}
               className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 transition-colors"
             >
               Add
             </button>
           </div>
-        </form>
+        </div>
       ) : (
         <button
           type="button"
