@@ -119,12 +119,6 @@ update-agent-runner-deps: ## Regenerate agent-runner requirements.txt from poetr
 # ─── Local Dev ────────────────────────────────
 
 DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner.devSourceDir=$(CURDIR)/backend/services/agent-runner
-ifdef STIGMER_GITHUB_CLIENT_ID
-DEV_LDFLAGS += -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=$(STIGMER_GITHUB_CLIENT_ID)
-endif
-ifdef STIGMER_GITHUB_CLIENT_SECRET
-DEV_LDFLAGS += -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$(STIGMER_GITHUB_CLIENT_SECRET)
-endif
 
 .PHONY: local build-release
 local: ## Build + install CLI for local development
