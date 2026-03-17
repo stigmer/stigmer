@@ -10,6 +10,14 @@ const nextConfig: NextConfig = {
   output: "export",
   devIndicators: false,
   transpilePackages: stigmerLibs,
+  async rewrites() {
+    return [
+      {
+        source: "/api/fs/:path*",
+        destination: "http://localhost:8234/api/fs/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;
