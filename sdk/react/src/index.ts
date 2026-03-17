@@ -47,8 +47,9 @@ export type {
   UseSessionExecutionsReturn,
 } from "./session";
 
-// Execution — behavior hooks and styled components (AgentExecution aggregate)
+// Execution — behavior hooks, styled components, and utilities (AgentExecution aggregate)
 export {
+  isTerminalPhase,
   useCreateAgentExecution,
   useExecutionStream,
   ExecutionPhaseBadge,

@@ -8,6 +8,7 @@ import {
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
+import { isTerminalPhase } from "./execution-phases";
 import { MessageEntry } from "./MessageEntry";
 import { ToolCallGroup } from "./ToolCallGroup";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
@@ -28,13 +29,6 @@ export interface MessageThreadProps {
    */
   readonly formatToolCallSummary?: (toolCalls: readonly ToolCall[]) => string;
 }
-
-const TERMINAL_PHASES: ReadonlySet<ExecutionPhase> = new Set([
-  ExecutionPhase.EXECUTION_COMPLETED,
-  ExecutionPhase.EXECUTION_FAILED,
-  ExecutionPhase.EXECUTION_CANCELLED,
-  ExecutionPhase.EXECUTION_TERMINATED,
-]);
 
 const AUTO_SCROLL_THRESHOLD_PX = 80;
 
@@ -90,7 +84,7 @@ function buildThreadItems(
   const lastPhase =
     lastExec?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
 
-  if (TERMINAL_PHASES.has(lastPhase)) {
+  if (isTerminalPhase(lastPhase)) {
     items.push({
       kind: "phase-badge",
       phase: lastPhase,
