@@ -101,9 +101,50 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-17 18:16
-**Current Task**: T01 Step 3 (SDK Styled Components)
-**Status**: Steps 1-2 complete, Step 3 ready to start
-**Last Session**: 2026-03-17 — Completed Step 2: SDK Behavior Hook (useExecutionStream)
+**Current Task**: T01 Step 4 (Console SessionPage)
+**Status**: Steps 1-3 complete, Step 4 ready to start
+**Last Session**: 2026-03-17 — Completed Step 3: SDK Styled Components
+
+## Session Progress (2026-03-17, Session 3)
+
+### Completed: Step 3 — SDK Styled Components
+
+- Created `ExecutionPhaseBadge` in `sdk/react/src/execution/ExecutionPhaseBadge.tsx`
+  - Inline badge with icon + label for all 8 execution phases
+  - Map-based config lookup (phase → icon, label, color class) — zero branching
+  - Animated pulse dot for `IN_PROGRESS`, semantic colors for terminal/blocking states
+  - Returns `null` for `UNSPECIFIED`
+  - `role="status"` + `aria-label` for screen reader accessibility
+- Created `ToolCallGroup` in `sdk/react/src/execution/ToolCallGroup.tsx`
+  - Collapsed summary line for a group of tool calls from one AI turn
+  - Aggregate status derivation: running > waiting > failed > completed > pending
+  - Default summary: tool name for single, `"{name} ×{count}"` for homogeneous, `"{count} tool calls"` for mixed
+  - Optional `formatSummary` prop for platform builders who want custom labels
+  - Status-aware icons: spinner/clock/X-circle/check-circle/dot
+  - `role="group"` + `aria-label` for accessibility
+- Created `MessageEntry` in `sdk/react/src/execution/MessageEntry.tsx`
+  - Renders messages by `MessageType`: HUMAN (plain text, muted bg), AI (markdown via react-markdown + remark-gfm), SYSTEM (muted italic), TOOL/UNSPECIFIED (nothing)
+  - 15 markdown component overrides — headings, lists, code, tables, blockquotes, links — all themed via `--stgm-*` tokens
+  - Streaming cursor (blinking `|`) when `isStreaming === true`
+  - `role="article"` + `aria-label` per message type; `aria-busy` for streaming state
+- Created `MessageThread` in `sdk/react/src/execution/MessageThread.tsx`
+  - Orchestrates `MessageEntry`, `ToolCallGroup`, `ExecutionPhaseBadge` into a scrollable thread
+  - Accepts `executions: AgentExecution[]` + optional `activeStreamExecution` — flattens into discriminated-union `ThreadItem[]` via `useMemo`
+  - Sticky auto-scroll: tracks nearness to bottom, scrolls on new content, pauses on user scroll-up
+  - `role="log"` + `aria-live="polite"` + `aria-relevant="additions"` for screen reader announcement
+  - Renders nothing when no executions provided (empty state is Console concern)
+- Added `react-markdown` (^10.1.0) and `remark-gfm` (^4.0.1) to `sdk/react/package.json` as regular dependencies
+- Updated barrel exports: `sdk/react/src/execution/index.ts` and `sdk/react/src/index.ts`
+- Verification: `npm run typecheck`, `npm run build` (sdk/react), `npm run build` (client-apps/web) all pass clean
+
+### Key Design Decisions (Step 3)
+
+1. **`react-markdown` as regular dependency (not peer)** — Simplest DX for styled component consumers. Tree-shaking via `sideEffects: ["*.css"]` ensures hook-only consumers pay nothing. Matches radix-ui dependency pattern.
+2. **Inline SVG icons (no lucide-react)** — Zero additional SDK dependency. Consistent with ModelSelector/WorkspaceEditor pattern. ~6 small purpose-built icons total.
+3. **Tool call summary: honest defaults + pluggable formatter** — Default shows tool name or count (never guesses categories). `formatSummary` prop for platform builders who know their tools.
+4. **Discriminated-union `ThreadItem` type** — Keeps render loop a simple switch. Three kinds: `message`, `tool-group`, `phase-badge`. No type narrowing gymnastics.
+5. **`MessageThread` accepts `AgentExecution[]` (not flattened messages)** — Preserves execution-level context for phase badges and future execution boundary rendering (SP4+).
+6. **Auto-scroll via `isNearBottomRef` pattern** — Ref-based tracking avoids re-renders. Threshold of 80px. `useEffect` on `items` triggers scroll when user is near bottom.
 
 ## Session Progress (2026-03-17, Session 2)
 
@@ -142,24 +183,22 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Step 3**: SDK Styled Components — `MessageEntry`, `ToolCallGroup`, `ExecutionPhaseBadge`, `MessageThread`
-2. **Step 4**: Console SessionPage — Orchestration at `/sessions/[id]`
-3. **Step 5**: Barrel Exports + Dependencies (`react-markdown`, `remark-gfm`)
+1. **Step 4**: Console SessionPage — Rewrite `client-apps/web/src/app/sessions/[id]/SessionPage.tsx` to orchestrate SDK hooks and render `<MessageThread>` with completed + streaming executions
+2. **Step 5**: Barrel Exports + Dependencies — Already partially done (react-markdown/remark-gfm added, barrel exports updated). Verify final export surface is clean.
 
 ## Context for Resume
 
 - Branch: `feat/session-first-web-ux`
-- Steps 1-2 files committed. Steps 3-5 pending.
-- `useExecutionStream` returns full `AgentExecution` snapshots. `MessageThread` (Step 3) will consume `execution.status?.messages` and `execution.status?.toolCalls`.
-- `AgentMessage` fields: `type` (HUMAN/AI/TOOL/SYSTEM), `content`, `timestamp`, `tool_calls`, `is_streaming`, `token_count`, `model`.
-- `ToolCall` fields: `id`, `name`, `args`, `result`, `status` (PENDING/RUNNING/COMPLETED/FAILED/WAITING_FOR_APPROVAL), `is_streaming`, `error`.
-- `ExecutionPhase` enum values: `EXECUTION_PENDING`, `EXECUTION_IN_PROGRESS`, `EXECUTION_COMPLETED`, `EXECUTION_FAILED`, `EXECUTION_CANCELLED`, `EXECUTION_TERMINATED`, `EXECUTION_WAITING_FOR_APPROVAL`, `EXECUTION_PAUSED`.
-- Step 3 needs `react-markdown` and `remark-gfm` dependencies added to `sdk/react/package.json`.
+- Steps 1-3 committed. Steps 4-5 pending.
+- Step 4 will use: `useSession(id)` for metadata, `useSessionExecutions(id)` for history, `useExecutionStream(activeId)` for live streaming, and `<MessageThread>` to render it all.
+- `MessageThread` accepts `executions: AgentExecution[]` + `activeStreamExecution?: AgentExecution | null`. The Console page identifies the active execution as the last one with a non-terminal phase.
+- `SessionPage` currently at `client-apps/web/src/app/sessions/[id]/SessionPage.tsx` is a placeholder showing "Session {id} — coming in T01.6".
+- Loading skeleton and error states are Console concerns (not SDK).
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Step 3" - Start SDK Styled Components
+- "Continue with Step 4" - Start Console SessionPage
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
