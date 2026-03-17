@@ -37,12 +37,14 @@ export type {
   FolderBrowserProps,
 } from "./workspace";
 
-// Session — behavior hook (Session aggregate)
-export { useCreateSession } from "./session";
+// Session — data hooks and behavior hook (Session aggregate)
+export { useCreateSession, useSession, useSessionExecutions } from "./session";
 export type {
   CreateSessionInput,
   CreateSessionResult,
   UseCreateSessionReturn,
+  UseSessionReturn,
+  UseSessionExecutionsReturn,
 } from "./session";
 
 // Execution — behavior hook (AgentExecution aggregate)
