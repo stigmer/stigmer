@@ -12,21 +12,29 @@ public interface SessionSpecOrBuilder extends
 
   /**
    * <pre>
-   * ID of the AgentInstance this session runs against (required).
-   * The instance contains all configuration and secrets needed for execution.
+   * ID of the AgentInstance this session runs against.
+   *
+   * When provided, the session uses this specific agent instance.
+   * When empty, the backend resolves the platform default agent
+   * (labeled stigmer.ai/default-agent: "true" with visibility_public)
+   * and auto-creates a default instance if needed.
    * </pre>
    *
-   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
    * @return The agentInstanceId.
    */
   java.lang.String getAgentInstanceId();
   /**
    * <pre>
-   * ID of the AgentInstance this session runs against (required).
-   * The instance contains all configuration and secrets needed for execution.
+   * ID of the AgentInstance this session runs against.
+   *
+   * When provided, the session uses this specific agent instance.
+   * When empty, the backend resolves the platform default agent
+   * (labeled stigmer.ai/default-agent: "true" with visibility_public)
+   * and auto-creates a default instance if needed.
    * </pre>
    *
-   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
    * @return The bytes for agentInstanceId.
    */
   com.google.protobuf.ByteString

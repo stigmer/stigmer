@@ -70,7 +70,8 @@ When starting a new session:
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.6 (Web — Active Session View)
 **Status**: Ready to start
-**Last Session**: 2026-03-17 — Fixed nested form hydration error in WorkspaceEditor (session 9)
+**Last Session**: 2026-03-17 — Implemented GitHub OAuth workspace integration (session 10)
+**Pending Pre-req**: GitHub OAuth App registration (see `tasks/T01_github_app_registration.md`)
 
 ## Session Progress (2026-03-17)
 
@@ -145,6 +146,19 @@ When starting a new session:
   - Model registry hardcoded for now; future backend RPC will replace it
   - `@base-ui/react` added as SDK peer dependency for accessible primitives
 
+### Completed: Workspace GitHub OAuth Repo Picker (Session 10)
+- Implemented full Phase 1 of GitHub OAuth workspace integration (9 tasks: T1-T8 + Phase 2 docs)
+- **Proto**: New `platform/github/v1` bounded context with `GitHubService` (2 RPCs)
+- **Go Backend**: `GitHubController` with OAuth code exchange, config via env vars
+- **Java Backend** (stigmer-cloud): `@AutoGrpcRouterController` + pipeline handlers
+- **SDK TypeScript**: Hand-written `GitHubClient` (non-resource service, like `SearchClient`)
+- **SDK React**: `useGitHubConnection` hook, `useGitHubRepos` hook, `GitHubRepoPicker` component
+- **WorkspaceEditor redesign**: Two source buttons ("GitHub Repo" / "Local Folder") with progressive disclosure
+- **Console**: OAuth callback page, `useDeploymentMode` hook, `SessionLauncher` integration
+- **SPA handler**: `.html` extension fallback for static routes
+- **Documented**: Phase 2 local folder browser, GitHub App registration task
+- **Pending**: GitHub OAuth App registration (manual task — see `tasks/T01_github_app_registration.md`)
+
 ### Fixed: Nested Form Hydration Error (Session 9)
 - `WorkspaceEditor` (SDK) used a `<form>` element for its add-workspace panel
 - When rendered inside `SessionLauncher`'s `<form>`, this created invalid nested `<form>` HTML
@@ -177,6 +191,10 @@ When starting a new session:
 21. **`output: "export"` + `__placeholder__` is the correct architecture** — The web console is embedded as static files in the Go CLI binary via `//go:embed`. Dynamic routes use `generateStaticParams()` returning `[{ id: "__placeholder__" }]`. The Go `spaHandler` (`client-apps/cli/embedded/webconsole/handler.go`) explicitly rewrites dynamic route requests to their `__placeholder__` variants. This is not a workaround — it's a properly engineered SPA serving mechanism for the single-binary distribution model. Do NOT switch to `output: "standalone"`.
 22. **Dynamic route pattern for static export** — Dynamic routes like `/sessions/[id]` use a server component `page.tsx` (exports `generateStaticParams`) + a client component `SessionPage.tsx` (uses `useParams`). This is the established pattern from the pre-teardown codebase.
 23. **SDK components must not use `<form>`** — `WorkspaceEditor` and similar SDK components must avoid `<form>` elements because they may be embedded inside a host application's own form. Use `<div>` with explicit `onClick`/`onKeyDown` handlers instead.
+24. **Non-resource gRPC services are hand-written in SDK** — The `stigmer-codegen` tool only generates TypeScript clients for CRUD resources. Non-resource services (Search, GitHub) need hand-written clients following the `SearchClient` pattern.
+25. **`platform` bounded context for utility services** — GitHub OAuth lives under `apis/ai/stigmer/platform/github/v1/`. This is for platform-level utilities, not domain resources.
+26. **GitHub token in localStorage, not backend DB** — Key `stigmer:github:token`. Ephemeral by design — frontend persists, backend never stores.
+27. **Two-button workspace source selection** — "GitHub Repo" and "Local Folder" as action triggers, not tabs. Progressive disclosure via inline dropdowns.
 
 ## Next Steps
 1. **T01.6**: Web — Active Session View (`/sessions/[id]`) — conversation thread, real-time streaming, follow-up input, right context panel
@@ -187,7 +205,7 @@ When starting a new session:
 - T01.1 through T01.5 are complete and committed.
 - The web app has a headerless sidebar-driven layout with a working session launcher at `/`.
 - The React SDK now has three feature modules: `models/`, `workspace/`, `session/`, `execution/`.
-- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useCreateSession`, `useCreateAgentExecution`.
+- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useCreateSession`, `useCreateAgentExecution`, `useGitHubConnection`, `useGitHubRepos`, `GitHubRepoPicker`.
 - The session launcher flow: create session -> create agent execution -> navigate to `/sessions/[id]`.
 - `/sessions/[id]/page.tsx` exists as a placeholder — T01.6 builds the actual session view.
 - Proto `agent_instance_id` is optional in SessionSpec. Backend resolves default agent instance if omitted.

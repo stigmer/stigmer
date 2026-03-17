@@ -1,4 +1,5 @@
 import { GeneratedClient } from "./gen/client";
+import { GitHubClient } from "./github";
 import { SearchClient } from "./search";
 import { createStigmerTransport } from "./transport";
 import { validateConfig, type StigmerConfig } from "./config";
@@ -55,6 +56,7 @@ export class Stigmer {
   readonly workflowExecution: WorkflowExecutionClient;
   readonly workflowInstance: WorkflowInstanceClient;
   readonly search: SearchClient;
+  readonly github: GitHubClient;
 
   constructor(config: StigmerConfig) {
     validateConfig(config);
@@ -79,5 +81,6 @@ export class Stigmer {
     this.workflowExecution = client.workflowExecution;
     this.workflowInstance = client.workflowInstance;
     this.search = new SearchClient(transport);
+    this.github = new GitHubClient(transport);
   }
 }

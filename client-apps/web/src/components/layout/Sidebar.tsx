@@ -47,7 +47,7 @@ export function Sidebar() {
       </div>
 
       <div className="px-3 py-1">
-        <Separator className="bg-foreground/10" />
+        <Separator className="bg-sidebar-border" />
       </div>
 
       {/* Scrollable recents */}
@@ -61,7 +61,7 @@ export function Sidebar() {
       </ScrollArea>
 
       {/* Bottom: user menu */}
-      <div className="border-foreground/10 flex-none border-t px-3 py-2">
+      <div className="border-sidebar-border flex-none border-t px-3 py-2">
         <UserMenu />
       </div>
     </nav>

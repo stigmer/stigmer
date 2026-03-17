@@ -75,11 +75,15 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object agentInstanceId_ = "";
   /**
    * <pre>
-   * ID of the AgentInstance this session runs against (required).
-   * The instance contains all configuration and secrets needed for execution.
+   * ID of the AgentInstance this session runs against.
+   *
+   * When provided, the session uses this specific agent instance.
+   * When empty, the backend resolves the platform default agent
+   * (labeled stigmer.ai/default-agent: "true" with visibility_public)
+   * and auto-creates a default instance if needed.
    * </pre>
    *
-   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
    * @return The agentInstanceId.
    */
   @java.lang.Override
@@ -97,11 +101,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ID of the AgentInstance this session runs against (required).
-   * The instance contains all configuration and secrets needed for execution.
+   * ID of the AgentInstance this session runs against.
+   *
+   * When provided, the session uses this specific agent instance.
+   * When empty, the backend resolves the platform default agent
+   * (labeled stigmer.ai/default-agent: "true" with visibility_public)
+   * and auto-creates a default instance if needed.
    * </pre>
    *
-   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+   * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
    * @return The bytes for agentInstanceId.
    */
   @java.lang.Override
@@ -963,11 +971,15 @@ java.lang.String defaultValue) {
     private java.lang.Object agentInstanceId_ = "";
     /**
      * <pre>
-     * ID of the AgentInstance this session runs against (required).
-     * The instance contains all configuration and secrets needed for execution.
+     * ID of the AgentInstance this session runs against.
+     *
+     * When provided, the session uses this specific agent instance.
+     * When empty, the backend resolves the platform default agent
+     * (labeled stigmer.ai/default-agent: "true" with visibility_public)
+     * and auto-creates a default instance if needed.
      * </pre>
      *
-     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
      * @return The agentInstanceId.
      */
     public java.lang.String getAgentInstanceId() {
@@ -984,11 +996,15 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * ID of the AgentInstance this session runs against (required).
-     * The instance contains all configuration and secrets needed for execution.
+     * ID of the AgentInstance this session runs against.
+     *
+     * When provided, the session uses this specific agent instance.
+     * When empty, the backend resolves the platform default agent
+     * (labeled stigmer.ai/default-agent: "true" with visibility_public)
+     * and auto-creates a default instance if needed.
      * </pre>
      *
-     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
      * @return The bytes for agentInstanceId.
      */
     public com.google.protobuf.ByteString
@@ -1006,11 +1022,15 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * ID of the AgentInstance this session runs against (required).
-     * The instance contains all configuration and secrets needed for execution.
+     * ID of the AgentInstance this session runs against.
+     *
+     * When provided, the session uses this specific agent instance.
+     * When empty, the backend resolves the platform default agent
+     * (labeled stigmer.ai/default-agent: "true" with visibility_public)
+     * and auto-creates a default instance if needed.
      * </pre>
      *
-     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
      * @param value The agentInstanceId to set.
      * @return This builder for chaining.
      */
@@ -1024,11 +1044,15 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * ID of the AgentInstance this session runs against (required).
-     * The instance contains all configuration and secrets needed for execution.
+     * ID of the AgentInstance this session runs against.
+     *
+     * When provided, the session uses this specific agent instance.
+     * When empty, the backend resolves the platform default agent
+     * (labeled stigmer.ai/default-agent: "true" with visibility_public)
+     * and auto-creates a default instance if needed.
      * </pre>
      *
-     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
      * @return This builder for chaining.
      */
     public Builder clearAgentInstanceId() {
@@ -1039,11 +1063,15 @@ java.lang.String defaultValue) {
     }
     /**
      * <pre>
-     * ID of the AgentInstance this session runs against (required).
-     * The instance contains all configuration and secrets needed for execution.
+     * ID of the AgentInstance this session runs against.
+     *
+     * When provided, the session uses this specific agent instance.
+     * When empty, the backend resolves the platform default agent
+     * (labeled stigmer.ai/default-agent: "true" with visibility_public)
+     * and auto-creates a default instance if needed.
      * </pre>
      *
-     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId", (.buf.validate.field) = { ... }</code>
+     * <code>string agent_instance_id = 1 [json_name = "agentInstanceId"];</code>
      * @param value The bytes for agentInstanceId to set.
      * @return This builder for chaining.
      */

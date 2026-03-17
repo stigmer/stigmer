@@ -16,8 +16,10 @@ import {
   WorkspaceEditor,
   useCreateSession,
   useCreateAgentExecution,
+  useGitHubConnection,
 } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
+import { useDeploymentMode } from "@/hooks/useDeploymentMode";
 
 /**
  * Console-specific session launcher — the landing page widget that
@@ -25,13 +27,16 @@ import { useActiveOrgSlug } from "@/contexts/org-context";
  *
  * Flow: create session -> create first execution -> navigate.
  *
- * Adds org context, Next.js routing, and Console layout that would
- * not belong in an embeddable SDK component.
+ * Adds org context, Next.js routing, Console layout, GitHub connection,
+ * and deployment mode detection that would not belong in an embeddable
+ * SDK component.
  */
 export function SessionLauncher() {
   const router = useRouter();
   const org = useActiveOrgSlug();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const deploymentMode = useDeploymentMode();
+  const gitHubConnection = useGitHubConnection();
 
   const [message, setMessage] = useState("");
   const [modelId, setModelId] = useState<string | undefined>(undefined);
@@ -167,8 +172,14 @@ export function SessionLauncher() {
             </p>
           )}
 
-          {/* Workspace editor */}
-          <WorkspaceEditor workspace={workspace} disabled={isSubmitting} />
+          {/* Workspace editor with GitHub integration */}
+          <WorkspaceEditor
+            workspace={workspace}
+            disabled={isSubmitting}
+            gitHubConnection={gitHubConnection}
+            enableGitHub
+            enableLocal={deploymentMode === "local"}
+          />
         </form>
 
         <p className="text-center text-[0.65rem] text-muted-foreground">

@@ -28,6 +28,12 @@ type Config struct {
 	// artifact downloads. Only used when ArtifactStorage.Type == "local".
 	// Default: GRPCPort + 1 (7235).
 	ArtifactHTTPPort int
+
+	// GitHub OAuth configuration for workspace repo selection.
+	// Override via STIGMER_GITHUB_CLIENT_ID / STIGMER_GITHUB_CLIENT_SECRET.
+	// When empty, the GitHub workspace source is disabled in the UI.
+	GitHubOAuthClientID     string
+	GitHubOAuthClientSecret string
 }
 
 // LoadConfig loads configuration from environment variables
@@ -48,6 +54,10 @@ func LoadConfig() (*Config, error) {
 
 		// Artifact HTTP server port (for local artifact downloads)
 		ArtifactHTTPPort: artifactHTTPPort,
+
+		// GitHub OAuth configuration
+		GitHubOAuthClientID:     getEnvString("STIGMER_GITHUB_CLIENT_ID", ""),
+		GitHubOAuthClientSecret: getEnvString("STIGMER_GITHUB_CLIENT_SECRET", ""),
 
 		// Artifact storage configuration
 		ArtifactStorage: artifactstorage.Config{

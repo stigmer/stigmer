@@ -26,8 +26,12 @@ const (
 // This is the "Execution" layer - ephemeral runtime against an AgentInstance.
 type SessionSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// ID of the AgentInstance this session runs against (required).
-	// The instance contains all configuration and secrets needed for execution.
+	// ID of the AgentInstance this session runs against.
+	//
+	// When provided, the session uses this specific agent instance.
+	// When empty, the backend resolves the platform default agent
+	// (labeled stigmer.ai/default-agent: "true" with visibility_public)
+	// and auto-creates a default instance if needed.
 	AgentInstanceId string `protobuf:"bytes,1,opt,name=agent_instance_id,json=agentInstanceId,proto3" json:"agent_instance_id,omitempty"`
 	// Conversation title/subject for UI display (optional).
 	Subject string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
@@ -126,9 +130,9 @@ var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a\x1bbuf/validate/validate.proto\"\x9e\x03\n" +
-	"\vSessionSpec\x122\n" +
-	"\x11agent_instance_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0fagentInstanceId\x12\x18\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a\x1bbuf/validate/validate.proto\"\x96\x03\n" +
+	"\vSessionSpec\x12*\n" +
+	"\x11agent_instance_id\x18\x01 \x01(\tR\x0fagentInstanceId\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
 	"\tthread_id\x18\x03 \x01(\tR\bthreadId\x12\x1d\n" +
 	"\n" +

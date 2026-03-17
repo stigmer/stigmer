@@ -51,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div
         className={cn(
           "shrink-0 overflow-hidden",
-          "border-foreground/10 border-r",
+          "border-sidebar-border border-r",
           "transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
           sidebar.isOpen ? "w-70" : "w-0",
           "max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-50 max-lg:shadow-lg",
