@@ -3,7 +3,6 @@ syntax = "proto3";
 package ai.stigmer.agentic.session.v1;
 
 import "ai/stigmer/agentic/session/v1/workspace.proto";
-import "buf/validate/validate.proto";
 
 // SessionSpec defines the configurable properties of an agent conversation session.
 // This is the "Execution" layer - ephemeral runtime against an AgentInstance.
@@ -28,11 +27,6 @@ message SessionSpec {
   // Session metadata (e.g., client info, tags).
   map<string, string> metadata = 5;
 
-  // Field 6 was workspace_source (singular WorkspaceSource). Removed in the
-  // multi-workspace migration; replaced by workspace_entries (field 7).
-  reserved 6;
-  reserved "workspace_source";
-
   // Workspace entries for this session (optional, may be empty).
   //
   // Each entry pairs a name with a source (git repo or local path), forming
@@ -41,5 +35,5 @@ message SessionSpec {
   //
   // When empty, the session uses an empty workspace directory
   // (existing default behavior, no provisioning step).
-  repeated WorkspaceEntry workspace_entries = 7;
+  repeated WorkspaceEntry workspace_entries = 6;
 }

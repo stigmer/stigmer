@@ -72,7 +72,7 @@ class SessionInput:
 
     name: str
     org: str
-    agent_instance_id: str
+    agent_instance_id: str = ""
     subject: str = ""
     thread_id: str = ""
     sandbox_id: str = ""

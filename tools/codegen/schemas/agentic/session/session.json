@@ -12,11 +12,8 @@
       "type": {
         "kind": "string"
       },
-      "description": "ID of the AgentInstance this session runs against (required).\n The instance contains all configuration and secrets needed for execution.",
-      "required": true,
-      "validation": {
-        "required": true
-      }
+      "description": "ID of the AgentInstance this session runs against.\n\n When provided, the session uses this specific agent instance.\n When empty, the backend resolves the platform default agent\n (labeled stigmer.ai/default-agent: \"true\" with visibility_public)\n and auto-creates a default instance if needed.",
+      "required": false
     },
     {
       "name": "Subject",
