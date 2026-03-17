@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, type KeyboardEvent } from "react";
+import { useState, useCallback, useEffect, type KeyboardEvent } from "react";
 import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { GitHubRepoPicker } from "../github/GitHubRepoPicker";
@@ -21,6 +21,8 @@ export interface WorkspaceEditorProps {
 }
 
 type ActivePanel = "none" | "github" | "local";
+
+const STORAGE_KEY_LAST_FOLDER = "stigmer:folder:last-path";
 
 /**
  * Styled component that renders add/remove UI for workspace entries.
@@ -48,6 +50,18 @@ export function WorkspaceEditor({
   const [manualUrl, setManualUrl] = useState("");
   const [manualBranch, setManualBranch] = useState("");
   const [localPath, setLocalPath] = useState("");
+  const [lastFolderPath, setLastFolderPath] = useState<string | undefined>(
+    () => {
+      if (typeof window === "undefined") return undefined;
+      return localStorage.getItem(STORAGE_KEY_LAST_FOLDER) ?? undefined;
+    },
+  );
+
+  useEffect(() => {
+    if (lastFolderPath) {
+      localStorage.setItem(STORAGE_KEY_LAST_FOLDER, lastFolderPath);
+    }
+  }, [lastFolderPath]);
 
   const handleGitHubSelect = useCallback(
     (repoUrl: string, branch: string) => {
@@ -161,6 +175,7 @@ export function WorkspaceEditor({
             <GitHubPanel
               connection={gitHubConnection}
               onSelect={handleGitHubSelect}
+              onClose={() => setActivePanel("none")}
             />
           ) : (
             <ManualGitPanel
@@ -181,7 +196,9 @@ export function WorkspaceEditor({
         <div className="rounded-md border border-border bg-card p-3">
           {enableFolderBrowser ? (
             <FolderBrowser
+              initialPath={lastFolderPath}
               onSelect={(path) => {
+                setLastFolderPath(path);
                 workspace.addLocalPath(path);
                 setActivePanel("none");
               }}
@@ -227,9 +244,11 @@ export function WorkspaceEditor({
 function GitHubPanel({
   connection,
   onSelect,
+  onClose,
 }: {
   connection: UseGitHubConnectionReturn;
   onSelect: (repoUrl: string, branch: string) => void;
+  onClose: () => void;
 }) {
   if (connection.isLoading) {
     return (
@@ -242,6 +261,16 @@ function GitHubPanel({
   if (!connection.isConnected) {
     return (
       <div className="space-y-3 text-center">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Close"
+          >
+            <XIcon />
+          </button>
+        </div>
         <div className="space-y-1">
           <p className="text-xs font-medium text-foreground">
             Choose a GitHub repo to add to workspace
@@ -280,15 +309,29 @@ function GitHubPanel({
             {connection.user?.login ?? "Connected"}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={connection.disconnect}
-          className="text-[0.6rem] text-muted-foreground hover:text-destructive transition-colors"
-        >
-          Disconnect
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={connection.disconnect}
+            className="text-[0.6rem] text-muted-foreground hover:text-destructive transition-colors"
+          >
+            Disconnect
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Close"
+          >
+            <XIcon />
+          </button>
+        </div>
       </div>
-      <GitHubRepoPicker token={connection.token!} onSelect={onSelect} />
+      <GitHubRepoPicker
+        token={connection.token!}
+        onSelect={onSelect}
+        onCancel={onClose}
+      />
     </div>
   );
 }
