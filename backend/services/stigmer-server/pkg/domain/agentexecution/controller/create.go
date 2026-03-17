@@ -37,15 +37,19 @@ const (
 //
 // Pipeline (Stigmer OSS - simplified from Cloud):
 // 1. ValidateFieldConstraints - Validate proto field constraints using buf validate
-// 2. ResolveSlug - Generate slug from metadata.name
+// 2. ResolveDefaultAgent - If no session_id or agent_id, resolve platform default agent
 // 3. ValidateSessionOrAgent - Ensure session_id OR agent_id is provided
-// 4. CheckDuplicate - Skip (executions don't need duplicate check)
+// 4. ResolveSlug - Generate slug from metadata.name
 // 5. BuildNewState - Generate ID, clear status, set audit fields (timestamps, actors, event)
-// 6. CreateDefaultInstanceIfNeeded - Create default agent instance if missing
-// 7. CreateSessionIfNeeded - Create session if session_id not provided
-// 8. SetInitialPhase - Set execution phase to PENDING
-// 9. Persist - Save execution to repository
-// 10. StartWorkflow - Start Temporal workflow (if Temporal is available)
+// 6. NormalizeReferences - Resolve cross-references (slugs to IDs)
+// 7. CreateDefaultInstanceIfNeeded - Create default agent instance if missing
+// 8. CreateSessionIfNeeded - Create session if session_id not provided (uses caller's org)
+// 9. SetInitialPhase - Set execution phase to PENDING
+// 10. CreateExecutionContext - Merge environment into execution context
+// 11. ProcessAttachments - Validate pre-uploaded attachments
+// 12. Persist - Save execution to repository
+// 13. IndexSearch - Update search index
+// 14. StartWorkflow - Start Temporal workflow (if Temporal is available)
 //
 // Note: Compared to Stigmer Cloud, OSS excludes:
 // - Authorize step (no multi-tenant auth in OSS)
@@ -66,29 +70,102 @@ func (c *AgentExecutionController) Create(ctx context.Context, execution *agente
 }
 
 // buildCreatePipeline constructs the pipeline for agent execution creation
-
-// buildCreatePipeline constructs the pipeline for agent execution creation
 func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*agentexecutionv1.AgentExecution] {
 	return pipeline.NewPipeline[*agentexecutionv1.AgentExecution]("agent-execution-create").
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.AgentExecution]()).                                            // 1. Validate field constraints
-		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).                                              // 2. Resolve slug
+		AddStep(newResolveDefaultAgentStep(c.store)).                                                                       // 2. Resolve platform default agent if needed
 		AddStep(newValidateSessionOrAgentStep()).                                                                           // 3. Validate session_id OR agent_id
-		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).                                            // 4. Build new state
-		AddStep(steps.NewNormalizeReferencesStep[*agentexecutionv1.AgentExecution]()).                                      // 5. Normalize cross-references
-		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)).                       // 6. Create default instance if needed
-		AddStep(newCreateSessionIfNeededStep(c.agentClient, c.sessionClient)).                                              // 6. Create session if needed
-		AddStep(newSetInitialPhaseStep()).                                                                                  // 7. Set phase to PENDING
-		AddStep(c.newCreateExecutionContextStep()).                                                                         // 8. Create ExecutionContext with merged environment
-		AddStep(c.newProcessAttachmentsStep()).                                                                             // 9. Process attachments (upload large files to storage)
-		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                                           // 9. Persist execution
-		AddStep(steps.NewIndexSearchStep[*agentexecutionv1.AgentExecution](c.store, &extractor.AgentExecutionExtractor{})). // 10. Update search index
-		AddStep(c.newStartWorkflowStep()).                                                                                  // 11. Start Temporal workflow
+		AddStep(steps.NewResolveSlugStep[*agentexecutionv1.AgentExecution]()).                                              // 4. Resolve slug
+		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).                                            // 5. Build new state
+		AddStep(steps.NewNormalizeReferencesStep[*agentexecutionv1.AgentExecution]()).                                      // 6. Normalize cross-references
+		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)).                       // 7. Create default instance if needed
+		AddStep(newCreateSessionIfNeededStep(c.sessionClient)).                                                              // 8. Create session if needed
+		AddStep(newSetInitialPhaseStep()).                                                                                  // 9. Set phase to PENDING
+		AddStep(c.newCreateExecutionContextStep()).                                                                         // 10. Create ExecutionContext with merged environment
+		AddStep(c.newProcessAttachmentsStep()).                                                                             // 11. Process attachments
+		AddStep(steps.NewPersistStep[*agentexecutionv1.AgentExecution](c.store)).                                           // 12. Persist execution
+		AddStep(steps.NewIndexSearchStep[*agentexecutionv1.AgentExecution](c.store, &extractor.AgentExecutionExtractor{})). // 13. Update search index
+		AddStep(c.newStartWorkflowStep()).                                                                                  // 14. Start Temporal workflow
 		Build()
 }
 
 // ============================================================================
 // Pipeline Steps (inline implementations following Java AgentExecutionCreateHandler pattern)
 // ============================================================================
+
+// resolveDefaultAgentStep resolves the platform's public default agent when
+// neither session_id nor agent_id is provided on the execution request.
+//
+// The default agent is a platform-level concept: an agent in the stigmer org
+// labeled stigmer.ai/default-agent: "true" with visibility_public. This enables
+// the session-first UX where users start a conversation without choosing an agent.
+//
+// If session_id or agent_id is already provided, this step is a no-op.
+type resolveDefaultAgentStep struct {
+	store store.Store
+}
+
+func newResolveDefaultAgentStep(store store.Store) *resolveDefaultAgentStep {
+	return &resolveDefaultAgentStep{store: store}
+}
+
+func (s *resolveDefaultAgentStep) Name() string {
+	return "ResolveDefaultAgent"
+}
+
+func (s *resolveDefaultAgentStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution]) error {
+	execution := ctx.Input()
+	sessionID := execution.GetSpec().GetSessionId()
+	agentID := execution.GetSpec().GetAgentId()
+
+	if sessionID != "" || agentID != "" {
+		return nil
+	}
+
+	log.Info().Msg("Neither session_id nor agent_id provided, resolving platform default agent")
+
+	defaultAgent := &agentv1.Agent{}
+	err := s.store.FindByLabel(
+		ctx.Context(),
+		apiresourcekind.ApiResourceKind_agent,
+		"stigmer.ai/default-agent", "true",
+		defaultAgent,
+	)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to find platform default agent")
+		return grpclib.WrapError(
+			fmt.Errorf("no default agent available on this platform: %w", err),
+			codes.NotFound,
+			"No default agent available. Ensure an agent with label stigmer.ai/default-agent=true and visibility_public exists",
+		)
+	}
+
+	if defaultAgent.GetMetadata().GetVisibility() != apiresource.ApiResourceVisibility_visibility_public {
+		log.Error().
+			Str("agent_id", defaultAgent.GetMetadata().GetId()).
+			Str("visibility", defaultAgent.GetMetadata().GetVisibility().String()).
+			Msg("Default agent is not visibility_public")
+		return grpclib.WrapError(
+			fmt.Errorf("default agent is not publicly accessible"),
+			codes.FailedPrecondition,
+			"Default agent exists but is not visibility_public",
+		)
+	}
+
+	resolvedID := defaultAgent.GetMetadata().GetId()
+
+	log.Info().
+		Str("agent_id", resolvedID).
+		Str("agent_name", defaultAgent.GetMetadata().GetName()).
+		Msg("Resolved platform default agent")
+
+	if execution.Spec == nil {
+		execution.Spec = &agentexecutionv1.AgentExecutionSpec{}
+	}
+	execution.Spec.AgentId = resolvedID
+
+	return nil
+}
 
 // validateSessionOrAgentStep validates that at least one of session_id or agent_id is provided
 type validateSessionOrAgentStep struct{}
@@ -282,20 +359,15 @@ func (s *createDefaultInstanceIfNeededStep) Execute(ctx *pipeline.RequestContext
 // This step:
 // 1. Skips if session_id is provided
 // 2. Gets default_instance_id from context (set by previous step)
-// 3. Loads agent metadata for session scope
+// 3. Uses the caller's org from execution metadata for session ownership
 // 4. Creates session with default instance ID
 // 5. Updates execution request with created session_id
 type createSessionIfNeededStep struct {
-	agentClient   *agent.Client
 	sessionClient *session.Client
 }
 
-func newCreateSessionIfNeededStep(
-	agentClient *agent.Client,
-	sessionClient *session.Client,
-) *createSessionIfNeededStep {
+func newCreateSessionIfNeededStep(sessionClient *session.Client) *createSessionIfNeededStep {
 	return &createSessionIfNeededStep{
-		agentClient:   agentClient,
 		sessionClient: sessionClient,
 	}
 }
@@ -334,17 +406,13 @@ func (s *createSessionIfNeededStep) Execute(ctx *pipeline.RequestContext[*agente
 		Str("default_instance_id", defaultInstanceID).
 		Msg("Using default instance from context for session creation")
 
-	// 2. Load agent for metadata (org) via in-process gRPC (single source of truth)
-	agent, err := s.agentClient.Get(ctx.Context(), &agentv1.AgentId{Value: agentID})
-	if err != nil {
-		log.Error().
-			Err(err).
-			Str("agent_id", agentID).
-			Msg("Agent not found")
-		return err // Already a gRPC error from the client
+	// 2. Determine session org: use the caller's org from the execution metadata,
+	// not the agent's org. This ensures sessions are owned by the caller even when
+	// using a cross-org public agent (e.g., the platform default assistant).
+	orgID := ctx.NewState().GetMetadata().GetOrg()
+	if orgID == "" {
+		orgID = ctx.Input().GetMetadata().GetOrg()
 	}
-
-	orgID := agent.GetMetadata().GetOrg()
 
 	// 3. Build session request with default instance
 	sessionMetadataBuilder := &apiresource.ApiResourceMetadata{

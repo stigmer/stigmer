@@ -70,6 +70,7 @@ When starting a new session:
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.4 (Web — App Shell)
 **Status**: In Progress
+**Last Session**: 2026-03-17 — Completed T01.2 (Backend Default Agent Resolution) in both Go and Java
 
 ## Session Progress (2026-03-17)
 
@@ -80,10 +81,20 @@ When starting a new session:
 - Agent gets its tools from the runtime; instructions just set tone and action bias
 - No changes needed to `embed.go` or `BUILD.bazel` (auto-pickup via glob)
 
-### In Progress: T01.2 — Backend Default Agent Resolution
-- Being worked on in a separate conversation
-- Touches `apis/`, `backend/libs/go/store/` (interface + sqlite implementation)
-- Changes are unstaged on `feat/session-first-web-ux` branch
+### Completed: T01.2 — Backend Default Agent Resolution
+- Implemented in both Go (`stigmer`) and Java (`stigmer-cloud`)
+- **Seedpack**: `assistant.yaml` updated with `visibility: visibility_public`
+- **Proto**: `spec.proto` field comments updated — documents three-way resolution (session_id → agent_id → platform default)
+- **Go Store**: Added `FindByLabel` and `FindAllByLabel` to `store.Store` interface + SQLite implementation using proto reflection for `metadata.labels` map access
+- **Go Pipeline**: Added `ResolveDefaultAgentStep` before `ValidateSessionOrAgent` in `AgentExecution` create pipeline. Updated `CreateSessionIfNeeded` to use caller's org for session ownership.
+- **Java AgentRepo**: Added `findDefault()` — MongoDB query by label `stigmer.ai/default-agent=true` + `visibility_public`
+- **Java Pipeline**: Added `ResolveDefaultAgentStep` before `ValidateSessionOrAgentStep` in `AgentExecutionCreateHandler`. Updated `CreateSessionIfNeededStep` to use caller's org for session ownership.
+- **Key design decisions**:
+  - Default agent is platform-level (stigmer org), not per-org
+  - Resolution is global: label + visibility_public, not org-scoped
+  - Session ownership: caller's org (not agent's org) — enables cross-org public agent usage
+  - Default instance stays shared in agent's org (stigmer)
+  - Cloud mode gracefully fails if default agent not provisioned (seedpack is OSS-only)
 
 ### Completed: T01.3 — Web UI Teardown
 - Deleted ~55 files: all layout components, dashboard, resource pages, hooks, draft/run flows, config files, utils
@@ -100,6 +111,9 @@ When starting a new session:
 4. **Fresh start, not incremental refactor** — Deleted all existing UI and rebuilt from scratch. Avoids legacy patterns influencing new code.
 5. **package.json untouched** — Temporarily unused deps (`react-markdown`, `remark-gfm`, `@base-ui/react`) will be needed in T01.5/T01.6. No premature cleanup.
 6. **Font declarations kept in layout.tsx** — Six fonts loaded. T01.4 may revise, but removing now is unnecessary churn.
+7. **Platform-level default agent** — The default assistant is a system-wide resource in the `stigmer` org with `visibility_public`, not a per-org concept. Resolution is global.
+8. **Session ownership follows the caller** — Sessions are created in the caller's org even when using a cross-org public agent. This is critical for multi-tenancy in Cloud mode.
+9. **Labels as first-class store concept** — Go `store.Store` got explicit `FindByLabel`/`FindAllByLabel` methods rather than overloading `FindByField`, because label keys contain dots that conflict with field-path dot notation.
 
 ## Next Steps
 1. **T01.4**: Web — App Shell (three-panel layout: sidebar, main content, collapsible right context panel)
@@ -108,12 +122,13 @@ When starting a new session:
 4. **T01.7**: Web — Sidebar Recents
 
 ## Context for Resume
-- Branch: `feat/session-first-web-ux`
-- T01.1 committed (`ca2b2554`). T01.3 committed. T01.2 in progress (separate conversation).
+- Branch: `feat/session-first-web-ux` (stigmer repo), `main` (stigmer-cloud repo)
+- T01.1 committed (`ca2b2554`). T01.2 committed. T01.3 committed. T01.4 is next.
 - The web app is a clean slate: auth infra + UI primitives + provider tree. No pages, no layout, no hooks.
 - Post-teardown file tree has 31 files in `src/`. Build and lint pass clean.
 - `run/page.tsx` in git history is valuable reference for T01.5/T01.6 — shows exact `@stigmer/react` import patterns (`AgentPicker`, `ExecutionStream`, `MessageInput`, `useAgentExecution`, `useApproval`).
 - T01.4 components to create: `AppHeader.tsx`, `Sidebar.tsx`, `ContextPanel.tsx`, `AppShell.tsx` in `src/components/layout/`.
+- Default agent resolution is fully wired in both backends. The frontend can now create executions with just a message — no agent_id or session_id needed.
 
 ## Quick Resume
 To continue this project, drag this file into chat:
