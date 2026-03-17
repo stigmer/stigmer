@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter, Nunito, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Providers } from "@/components/auth/Providers";
-import { AppShell } from "@/components/layout/AppShell";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -42,8 +41,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "Stigmer Console",
-  description:
-    "Stigmer Web Console — run agents, draft resources, browse the catalog",
+  description: "Stigmer Web Console",
 };
 
 export default function RootLayout({
@@ -57,7 +55,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${nunito.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} antialiased`}
       >
         <Providers>
-          <AppShell>{children}</AppShell>
+          {children}
         </Providers>
       </body>
     </html>

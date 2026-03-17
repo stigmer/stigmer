@@ -68,7 +68,7 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-17 09:01
-**Current Task**: T01.2 (Backend — Default Agent Resolution)
+**Current Task**: T01.4 (Web — App Shell)
 **Status**: In Progress
 
 ## Session Progress (2026-03-17)
@@ -80,21 +80,40 @@ When starting a new session:
 - Agent gets its tools from the runtime; instructions just set tone and action bias
 - No changes needed to `embed.go` or `BUILD.bazel` (auto-pickup via glob)
 
+### In Progress: T01.2 — Backend Default Agent Resolution
+- Being worked on in a separate conversation
+- Touches `apis/`, `backend/libs/go/store/` (interface + sqlite implementation)
+- Changes are unstaged on `feat/session-first-web-ux` branch
+
+### Completed: T01.3 — Web UI Teardown
+- Deleted ~55 files: all layout components, dashboard, resource pages, hooks, draft/run flows, config files, utils
+- Modified `layout.tsx`: removed `AppShell` import and wrapper, trimmed metadata
+- Replaced `page.tsx` with minimal placeholder (server component, no imports from deleted modules)
+- Preserved: `src/auth/` (9 files), `src/contexts/org-context.tsx`, `Providers.tsx`, `StigmerTransportBridge.tsx`, `src/components/ui/` (10 shadcn primitives), `src/config/env.ts`, error boundaries, `globals.css`
+- Build passes (`npm run build` — zero errors, 2 static routes)
+- Lint passes (`npm run lint` — zero errors)
+
 ### Key Decisions
 1. **No MCP server usages** — the assistant is purely general-purpose, not a platform help desk. Platform browsing is a UI concern. Tools come from the runtime.
 2. **Minimal instructions** — 5 lines. Identity, mission, tone, action bias, honesty. The LLM figures out the rest from its available tools.
 3. **No skill_refs, sub_agents, or env_spec** — intentionally omitted to keep the agent as a clean slate.
+4. **Fresh start, not incremental refactor** — Deleted all existing UI and rebuilt from scratch. Avoids legacy patterns influencing new code.
+5. **package.json untouched** — Temporarily unused deps (`react-markdown`, `remark-gfm`, `@base-ui/react`) will be needed in T01.5/T01.6. No premature cleanup.
+6. **Font declarations kept in layout.tsx** — Six fonts loaded. T01.4 may revise, but removing now is unnecessary churn.
 
 ## Next Steps
-1. **T01.2**: Backend — Default Agent Resolution (add `FindDefaultAgent` query by label, wire into session/execution creation)
-2. **T01.3**: Web — Delete existing UI, keep auth infrastructure
-3. **T01.4**: Web — App Shell (three-panel layout)
+1. **T01.4**: Web — App Shell (three-panel layout: sidebar, main content, collapsible right context panel)
+2. **T01.5**: Web — New Session Launcher (landing page at `/`)
+3. **T01.6**: Web — Active Session View (`/sessions/[id]`)
+4. **T01.7**: Web — Sidebar Recents
 
 ## Context for Resume
 - Branch: `feat/session-first-web-ux`
-- T01.1 is committed. Ready to start T01.2.
-- T01.2 touches `stigmer-cloud` repo (Java backend) — AgentRepo, session/execution creation handlers.
-- The `stigmer.ai/default-agent: "true"` label is the contract between seedpack (T01.1) and backend (T01.2).
+- T01.1 committed (`ca2b2554`). T01.3 committed. T01.2 in progress (separate conversation).
+- The web app is a clean slate: auth infra + UI primitives + provider tree. No pages, no layout, no hooks.
+- Post-teardown file tree has 31 files in `src/`. Build and lint pass clean.
+- `run/page.tsx` in git history is valuable reference for T01.5/T01.6 — shows exact `@stigmer/react` import patterns (`AgentPicker`, `ExecutionStream`, `MessageInput`, `useAgentExecution`, `useApproval`).
+- T01.4 components to create: `AppHeader.tsx`, `Sidebar.tsx`, `ContextPanel.tsx`, `AppShell.tsx` in `src/components/layout/`.
 
 ## Quick Resume
 To continue this project, drag this file into chat:
@@ -103,7 +122,7 @@ To continue this project, drag this file into chat:
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.2" - Start backend default agent resolution
+- "Continue with T01.4" - Start building the three-panel app shell
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
