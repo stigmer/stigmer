@@ -70,7 +70,7 @@ When starting a new session:
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.6 (Web — Active Session View)
 **Status**: Ready to start
-**Last Session**: 2026-03-17 — Completed T01.5: Session Launcher with full SDK architecture (session 7)
+**Last Session**: 2026-03-17 — Completed T01.5 + build fix + validated static export architecture (session 8)
 
 ## Session Progress (2026-03-17)
 
@@ -166,6 +166,8 @@ When starting a new session:
 18. **`SessionLauncher` is Console-only** — Composes SDK hooks + Console concerns (org, routing, toasts). Not an SDK component.
 19. **`useCreateAgentExecution` not `useCreateExecution`** — Future-proofing for workflow executions.
 20. **Always two-step flow** — Session is always created explicitly before execution, even without workspace entries. Simpler, consistent, provides sessionId upfront.
+21. **`output: "export"` + `__placeholder__` is the correct architecture** — The web console is embedded as static files in the Go CLI binary via `//go:embed`. Dynamic routes use `generateStaticParams()` returning `[{ id: "__placeholder__" }]`. The Go `spaHandler` (`client-apps/cli/embedded/webconsole/handler.go`) explicitly rewrites dynamic route requests to their `__placeholder__` variants. This is not a workaround — it's a properly engineered SPA serving mechanism for the single-binary distribution model. Do NOT switch to `output: "standalone"`.
+22. **Dynamic route pattern for static export** — Dynamic routes like `/sessions/[id]` use a server component `page.tsx` (exports `generateStaticParams`) + a client component `SessionPage.tsx` (uses `useParams`). This is the established pattern from the pre-teardown codebase.
 
 ## Next Steps
 1. **T01.6**: Web — Active Session View (`/sessions/[id]`) — conversation thread, real-time streaming, follow-up input, right context panel
