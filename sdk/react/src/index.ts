@@ -43,3 +43,18 @@ export type {
   CreateAgentExecutionResult,
   UseCreateAgentExecutionReturn,
 } from "./execution";
+
+// GitHub — OAuth connection, repo picker, and hooks
+export {
+  useGitHubConnection,
+  useGitHubRepos,
+  GitHubRepoPicker,
+} from "./github";
+export type {
+  GitHubUser,
+  UseGitHubConnectionReturn,
+  GitHubRepo,
+  GitHubBranch,
+  UseGitHubReposReturn,
+  GitHubRepoPickerProps,
+} from "./github";

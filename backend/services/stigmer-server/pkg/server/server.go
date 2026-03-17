@@ -55,6 +55,10 @@ import (
 	mcpserverclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/mcpserver"
 	skillclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/skill"
 
+	// Platform service imports
+	githubv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/github/v1"
+	githubcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/github/controller"
+
 	// Search service imports
 	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
 	agentinstanceclient "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/agentinstance"
@@ -332,6 +336,12 @@ func Run() error {
 	extractor.GetRegistry().ValidateExpectedKinds()
 
 	log.Info().Msg("Registered SearchService controller")
+
+	// Create and register GitHub OAuth controller
+	ghController := githubcontroller.NewGitHubController(cfg.GitHubOAuthClientID, cfg.GitHubOAuthClientSecret)
+	githubv1.RegisterGitHubServiceServer(grpcServer, ghController)
+
+	log.Info().Msg("Registered GitHubService controller")
 
 	// ============================================================================
 	// CRITICAL: All services MUST be registered BEFORE starting the server
