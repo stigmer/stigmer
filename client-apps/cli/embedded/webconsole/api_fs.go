@@ -38,7 +38,7 @@ func handleFSList(w http.ResponseWriter, r *http.Request) {
 	home, _ := os.UserHomeDir()
 
 	if requestedPath == "" {
-		requestedPath = cwd
+		requestedPath = home
 	}
 
 	if !filepath.IsAbs(requestedPath) {

@@ -70,7 +70,7 @@ When starting a new session:
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.6 (Web — Active Session View)
 **Status**: Ready to start
-**Last Session**: 2026-03-17 — Reject LocalPathSource in Cloud (session 14)
+**Last Session**: 2026-03-17 — GitHub Repo Picker UX overhaul + Tailwind CSS infrastructure fix (session 15)
 **Pending Pre-req**: ~~GitHub OAuth App registration~~ Done — credentials embedded in binary and configured in cloud deployment
 
 ## Session Progress (2026-03-17)
@@ -202,6 +202,16 @@ When starting a new session:
 - Defense-in-depth: four layers now active (frontend UI hiding → Java API validation → agent runner guard → Daytona sandbox isolation)
 - No Go backend changes needed — Go serves both local and cloud modes, and `LocalPathSource` is valid in local mode
 
+### Completed: GitHub Repo Picker UX Overhaul + Tailwind CSS Infrastructure Fix (Session 15)
+- Fixed critical Tailwind CSS infrastructure bug: SDK's `styles.css` was missing `@source "./**/*.{ts,tsx}";` directive, causing layout-critical utility classes in SDK `.tsx` files to be silently dropped from generated CSS
+- Rewrote `GitHubRepoPicker` with owner-grouped sections (personal first, then orgs), recent repos (localStorage), keyboard navigation (Arrow/Enter/Escape), scroll shadows, and search highlighting
+- Simplified scroll layout from complex flex nesting (`flex-col max-h-[300px]` + `flex-1 min-h-0` + `h-full`) to simple `max-h-64 overflow-y-auto` matching `FolderBrowser`'s proven pattern
+- Refactored `useGitHubRepos` with eager background pagination (PER_PAGE=100, auto-fetches all pages), added `ownerType` field for grouping, `isBackgroundLoading` state
+- Added close button and `onCancel` prop to GitHub panel in `WorkspaceEditor`
+- Persisted model selection (`stigmer:session:model`) and last folder path (`stigmer:folder:last-path`) to localStorage
+- Fixed `SessionLauncher` overflow by replacing `justify-center` with `overflow-y-auto` + `my-auto`
+- Changed default folder browser path from CWD to home directory in `api_fs.go`
+
 ### Key Decisions (cumulative)
 1. **No MCP server usages** — the assistant is purely general-purpose. Tools come from the runtime.
 2. **Minimal instructions** — 5 lines. Identity, mission, tone, action bias, honesty.
@@ -238,6 +248,9 @@ When starting a new session:
 33. **`enableFolderBrowser` as opt-in prop** — Default `false` preserves backward compatibility. Text input fallback remains available for cases where the endpoint doesn't exist.
 34. **CWD as default starting directory** — Better than home directory because users typically launch `stigmer` from near their projects. The Go endpoint uses `os.Getwd()` when no path is provided.
 35. **Cloud backend rejects LocalPathSource at API level** — `RejectLocalPathWorkspaceStep` in `SessionCreateHandler` returns `INVALID_ARGUMENT` immediately, avoiding late failure in agent runner. Not in Go backend because Go serves both local and cloud modes.
+36. **`@source` directive required in SDK styles.css** — Tailwind v4 requires explicit `@source` paths for content detection in monorepo setups. Without `@source "./**/*.{ts,tsx}";` in the SDK's stylesheet, Tailwind only scans the consuming app's source files and silently drops SDK-internal class names.
+37. **Simple scroll pattern over complex flex nesting** — `max-h-64 overflow-y-auto` directly on the listbox (matching `FolderBrowser`) instead of `flex-col max-h` + `flex-1 min-h-0` + `h-full`. The simple pattern is robust, portable, and avoids subtle CSS height resolution bugs.
+38. **Home directory as default folder browser path** — Changed from CWD because users may launch `stigmer` from non-project directories. Home is a more universal starting point for folder browsing.
 
 ## Next Steps
 1. **T01.6**: Web — Active Session View (`/sessions/[id]`) — conversation thread, real-time streaming, follow-up input, right context panel

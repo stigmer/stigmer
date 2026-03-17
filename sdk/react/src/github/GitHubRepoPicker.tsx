@@ -1,30 +1,172 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { useGitHubRepos, type GitHubBranch } from "./useGitHubRepos";
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+  type KeyboardEvent,
+} from "react";
+import { useGitHubRepos, type GitHubRepo, type GitHubBranch } from "./useGitHubRepos";
 
 export interface GitHubRepoPickerProps {
   /** GitHub access token for API calls. */
   readonly token: string;
   /** Called when the user selects a repo and branch. */
   readonly onSelect: (repoUrl: string, branch: string) => void;
+  /** Called when the user dismisses the picker (Escape key). */
+  readonly onCancel?: () => void;
   readonly className?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Recent repos (localStorage persistence)
+// ---------------------------------------------------------------------------
+
+interface RecentRepo {
+  readonly owner: string;
+  readonly name: string;
+  readonly cloneUrl: string;
+  readonly defaultBranch: string;
+}
+
+const RECENT_REPOS_KEY = "stigmer:github:recent-repos";
+const MAX_RECENT = 3;
+
+function getRecentRepos(): RecentRepo[] {
+  try {
+    const stored = localStorage.getItem(RECENT_REPOS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function addRecentRepo(repo: RecentRepo): void {
+  const current = getRecentRepos().filter(
+    (r) => !(r.owner === repo.owner && r.name === repo.name),
+  );
+  const updated = [repo, ...current].slice(0, MAX_RECENT);
+  localStorage.setItem(RECENT_REPOS_KEY, JSON.stringify(updated));
+}
+
+// ---------------------------------------------------------------------------
+// Repo grouping
+// ---------------------------------------------------------------------------
+
+interface RepoGroup {
+  readonly key: string;
+  readonly label: string;
+  readonly isRecent: boolean;
+  readonly repos: GitHubRepo[];
+}
+
+function groupRepos(
+  filteredRepos: readonly GitHubRepo[],
+  recentEntries: readonly RecentRepo[],
+): RepoGroup[] {
+  const groups: RepoGroup[] = [];
+  const repoLookup = new Map(
+    filteredRepos.map((r) => [`${r.owner}/${r.name}`, r]),
+  );
+
+  // Recent group — only include entries that exist in the filtered set
+  const recentMatched = recentEntries
+    .map((r) => repoLookup.get(`${r.owner}/${r.name}`))
+    .filter((r): r is GitHubRepo => r !== undefined);
+
+  if (recentMatched.length > 0) {
+    groups.push({
+      key: "recent",
+      label: "Recent",
+      isRecent: true,
+      repos: recentMatched,
+    });
+  }
+
+  // Owner groups — personal (User) repos first, then orgs by repo count
+  const ownerMap = new Map<
+    string,
+    { ownerType: "User" | "Organization"; repos: GitHubRepo[] }
+  >();
+  for (const repo of filteredRepos) {
+    const existing = ownerMap.get(repo.owner);
+    if (existing) {
+      existing.repos.push(repo);
+    } else {
+      ownerMap.set(repo.owner, { ownerType: repo.ownerType, repos: [repo] });
+    }
+  }
+
+  const sortedOwners = [...ownerMap.entries()].sort(([, a], [, b]) => {
+    if (a.ownerType !== b.ownerType)
+      return a.ownerType === "User" ? -1 : 1;
+    return b.repos.length - a.repos.length;
+  });
+
+  for (const [owner, { repos }] of sortedOwners) {
+    groups.push({ key: owner, label: owner, isRecent: false, repos });
+  }
+
+  return groups;
+}
+
+// ---------------------------------------------------------------------------
+// Search highlighting
+// ---------------------------------------------------------------------------
+
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <span className="text-foreground font-medium">
+        {text.slice(idx, idx + query.length)}
+      </span>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
+const LIST_ID = "stgm-repo-list";
 
 /**
  * Styled component for browsing and selecting a GitHub repository.
  *
- * Shows a search input, scrollable repo list, and branch selector.
+ * Features:
+ * - Owner-grouped sections (personal repos first, then orgs)
+ * - Recently selected repos pinned at top
+ * - Fixed 300px max-height with scroll shadow indicators
+ * - Keyboard navigation (Arrow keys, Enter, Escape)
+ * - Search with match highlighting
+ * - Branch selector after repo selection
+ *
  * All visual properties flow through `--stgm-*` tokens.
  */
 export function GitHubRepoPicker({
   token,
   onSelect,
+  onCancel,
   className,
 }: GitHubRepoPickerProps) {
-  const { repos, isLoading, error, search, setSearch, hasMore, loadMore, fetchBranches } =
-    useGitHubRepos(token);
+  const {
+    repos,
+    isLoading,
+    isBackgroundLoading,
+    error,
+    search,
+    setSearch,
+    fetchBranches,
+  } = useGitHubRepos(token);
 
+  // Branch selection state
   const [selectedRepo, setSelectedRepo] = useState<{
     owner: string;
     name: string;
@@ -35,11 +177,80 @@ export function GitHubRepoPicker({
   const [selectedBranch, setSelectedBranch] = useState("");
   const [loadingBranches, setLoadingBranches] = useState(false);
 
+  // Keyboard navigation
+  const [focusIndex, setFocusIndex] = useState(-1);
   const listRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Scroll shadow state
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  // Recent repos
+  const [recentRepos, setRecentRepos] = useState<RecentRepo[]>(getRecentRepos);
+
+  // Group and flatten repos for rendering + keyboard nav
+  const groups = useMemo(
+    () => groupRepos(repos, recentRepos),
+    [repos, recentRepos],
+  );
+
+  const flatItems = useMemo(() => {
+    const items: GitHubRepo[] = [];
+    for (const group of groups) {
+      for (const repo of group.repos) {
+        items.push(repo);
+      }
+    }
+    return items;
+  }, [groups]);
+
+  // Reset focus index when search changes
+  useEffect(() => {
+    setFocusIndex(-1);
+  }, [search]);
+
+  // Scroll focused item into view
+  useEffect(() => {
+    if (focusIndex >= 0) {
+      const el = listRef.current?.querySelector(
+        `[data-idx="${focusIndex}"]`,
+      );
+      el?.scrollIntoView({ block: "nearest" });
+    }
+  }, [focusIndex]);
+
+  // Scroll shadow tracking
+  const updateScrollShadows = useCallback(() => {
+    const el = listRef.current;
+    if (!el) return;
+    setCanScrollUp(el.scrollTop > 0);
+    setCanScrollDown(
+      el.scrollTop + el.clientHeight < el.scrollHeight - 1,
+    );
+  }, []);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateScrollShadows, { passive: true });
+    updateScrollShadows();
+    return () => el.removeEventListener("scroll", updateScrollShadows);
+  }, [updateScrollShadows]);
+
+  // Re-check shadows when repo data changes
+  useEffect(() => {
+    updateScrollShadows();
+  }, [repos, updateScrollShadows]);
 
   const handleRepoClick = useCallback(
-    async (repo: { owner: string; name: string; cloneUrl: string; defaultBranch: string }) => {
-      setSelectedRepo(repo);
+    async (repo: GitHubRepo) => {
+      setSelectedRepo({
+        owner: repo.owner,
+        name: repo.name,
+        cloneUrl: repo.cloneUrl,
+        defaultBranch: repo.defaultBranch,
+      });
       setSelectedBranch(repo.defaultBranch);
       setLoadingBranches(true);
       const b = await fetchBranches(repo.owner, repo.name);
@@ -51,6 +262,13 @@ export function GitHubRepoPicker({
 
   const handleAdd = useCallback(() => {
     if (selectedRepo && selectedBranch) {
+      addRecentRepo({
+        owner: selectedRepo.owner,
+        name: selectedRepo.name,
+        cloneUrl: selectedRepo.cloneUrl,
+        defaultBranch: selectedRepo.defaultBranch,
+      });
+      setRecentRepos(getRecentRepos());
       onSelect(selectedRepo.cloneUrl, selectedBranch);
       setSelectedRepo(null);
       setBranches([]);
@@ -58,21 +276,42 @@ export function GitHubRepoPicker({
     }
   }, [selectedRepo, selectedBranch, onSelect]);
 
-  const handleScroll = useCallback(() => {
-    const el = listRef.current;
-    if (!el || isLoading || !hasMore) return;
-    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 20) {
-      loadMore();
-    }
-  }, [isLoading, hasMore, loadMore]);
+  // Combobox keyboard handler — all keyboard interaction goes through the
+  // search input so focus never leaves it.
+  const handleSearchKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusIndex((prev) =>
+          prev < flatItems.length - 1 ? prev + 1 : prev,
+        );
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusIndex((prev) => (prev > 0 ? prev - 1 : -1));
+      } else if (
+        e.key === "Enter" &&
+        focusIndex >= 0 &&
+        focusIndex < flatItems.length
+      ) {
+        e.preventDefault();
+        handleRepoClick(flatItems[focusIndex]);
+      } else if (e.key === "Enter") {
+        // Prevent form submission when no item is focused
+        e.preventDefault();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        if (search) {
+          setSearch("");
+          setFocusIndex(-1);
+        } else {
+          onCancel?.();
+        }
+      }
+    },
+    [flatItems, focusIndex, handleRepoClick, onCancel, search, setSearch],
+  );
 
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", handleScroll);
-    return () => el.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
-
+  // --- Branch selection view ---
   if (selectedRepo) {
     return (
       <div className={["space-y-2", className].filter(Boolean).join(" ")}>
@@ -82,6 +321,8 @@ export function GitHubRepoPicker({
             onClick={() => {
               setSelectedRepo(null);
               setBranches([]);
+              // Restore focus to search
+              setTimeout(() => searchRef.current?.focus(), 0);
             }}
             className="text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Back to repo list"
@@ -130,63 +371,184 @@ export function GitHubRepoPicker({
     );
   }
 
+  // --- Compute flat index offsets per group for rendering ---
+  let runningIndex = 0;
+  const groupOffsets = groups.map((g) => {
+    const offset = runningIndex;
+    runningIndex += g.repos.length;
+    return offset;
+  });
+
+  // --- Main repo list view ---
   return (
-    <div className={["space-y-2", className].filter(Boolean).join(" ")}>
+    <div
+      className={["space-y-1.5", className].filter(Boolean).join(" ")}
+    >
+      {/* Search input — combobox pattern: focus stays here */}
       <input
+        ref={searchRef}
         type="text"
+        role="combobox"
+        aria-expanded={true}
+        aria-controls={LIST_ID}
+        aria-activedescendant={
+          focusIndex >= 0 ? `stgm-repo-${focusIndex}` : undefined
+        }
         placeholder="Search repositories..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        onKeyDown={handleSearchKeyDown}
         className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         autoFocus
       />
 
       {error && (
-        <p className="text-xs text-destructive">{error}</p>
+        <p className="text-xs text-destructive">
+          {error}
+        </p>
       )}
 
-      <div
-        ref={listRef}
-        className="max-h-48 overflow-y-auto space-y-0.5"
-      >
-        {repos.map((repo) => (
-          <button
-            key={repo.id}
-            type="button"
-            onClick={() =>
-              handleRepoClick({
-                owner: repo.owner,
-                name: repo.name,
-                cloneUrl: repo.cloneUrl,
-                defaultBranch: repo.defaultBranch,
-              })
-            }
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-accent/50 transition-colors"
-          >
-            <span className="min-w-0 flex-1 truncate text-foreground">
-              {repo.fullName}
-            </span>
-            <span className="shrink-0 rounded px-1 py-0.5 text-[0.6rem] bg-muted text-muted-foreground">
-              {repo.isPrivate ? "private" : "public"}
-            </span>
-          </button>
-        ))}
-
-        {isLoading && (
-          <div className="py-2 text-center text-xs text-muted-foreground">
-            Loading...
-          </div>
+      {/* Scrollable repo list with scroll shadows */}
+      <div className="relative">
+        {canScrollUp && (
+          <div
+            className="absolute inset-x-0 top-0 h-3 z-10 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(to bottom, var(--color-card, hsl(0 0% 9%)), transparent)",
+            }}
+          />
         )}
 
-        {!isLoading && repos.length === 0 && (
-          <div className="py-4 text-center text-xs text-muted-foreground">
-            {search ? "No repos match your search" : "No repositories found"}
-          </div>
+        <div
+          ref={listRef}
+          id={LIST_ID}
+          role="listbox"
+          aria-label="Repositories"
+          className="max-h-64 overflow-y-auto"
+        >
+          {isLoading ? (
+            <LoadingSkeleton />
+          ) : flatItems.length === 0 ? (
+            <div className="py-4 text-center text-xs text-muted-foreground">
+              {search
+                ? "No repos match your search"
+                : "No repositories found"}
+            </div>
+          ) : (
+            <>
+              {groups.map((group, gi) => (
+                <div key={group.key}>
+                  <div
+                    className="sticky top-0 z-[1] bg-card/95 px-2 py-1 text-[0.65rem] font-medium text-muted-foreground backdrop-blur-sm"
+                  >
+                    {group.label}
+                    {!group.isRecent && (
+                      <span className="ml-1 opacity-50">
+                        ({group.repos.length})
+                      </span>
+                    )}
+                  </div>
+
+                  {group.repos.map((repo, ri) => {
+                    const flatIdx = groupOffsets[gi] + ri;
+                    return (
+                      <button
+                        key={`${group.key}-${repo.id}`}
+                        id={`stgm-repo-${flatIdx}`}
+                        type="button"
+                        data-idx={flatIdx}
+                        onClick={() => handleRepoClick(repo)}
+                        className={[
+                          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+                          flatIdx === focusIndex
+                            ? "bg-accent text-foreground"
+                            : "text-foreground hover:bg-accent/50",
+                        ].join(" ")}
+                        role="option"
+                        aria-selected={flatIdx === focusIndex}
+                      >
+                        <span className="min-w-0 flex-1 truncate">
+                          {group.isRecent ? (
+                            <HighlightMatch
+                              text={repo.fullName}
+                              query={search}
+                            />
+                          ) : (
+                            <HighlightMatch
+                              text={repo.name}
+                              query={search}
+                            />
+                          )}
+                        </span>
+                        <span className="shrink-0 rounded px-1 py-0.5 text-[0.6rem] bg-muted text-muted-foreground">
+                          {repo.isPrivate ? "private" : "public"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+
+              {isBackgroundLoading && (
+                <div className="py-1 text-center text-[0.6rem] text-muted-foreground">
+                  Loading more...
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {canScrollDown && (
+          <div
+            className="absolute inset-x-0 bottom-0 h-3 z-10 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(to top, var(--color-card, hsl(0 0% 9%)), transparent)",
+            }}
+          />
         )}
       </div>
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Loading skeleton
+// ---------------------------------------------------------------------------
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-1 py-1">
+      <div className="px-2 py-1">
+        <div className="h-2.5 w-16 rounded bg-muted animate-pulse" />
+      </div>
+      {[55, 70, 40, 62].map((w, i) => (
+        <div key={i} className="flex items-center gap-2 px-2 py-1.5">
+          <div
+            className="h-3 rounded bg-muted animate-pulse"
+            style={{ width: `${w}%` }}
+          />
+        </div>
+      ))}
+      <div className="px-2 py-1">
+        <div className="h-2.5 w-20 rounded bg-muted animate-pulse" />
+      </div>
+      {[48, 65, 53].map((w, i) => (
+        <div key={i + 4} className="flex items-center gap-2 px-2 py-1.5">
+          <div
+            className="h-3 rounded bg-muted animate-pulse"
+            style={{ width: `${w}%` }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Icons
+// ---------------------------------------------------------------------------
 
 function ChevronLeftIcon() {
   return (

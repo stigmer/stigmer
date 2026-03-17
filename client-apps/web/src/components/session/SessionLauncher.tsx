@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useRef,
   useState,
   type KeyboardEvent,
@@ -12,6 +13,7 @@ import { toast } from "sonner";
 import { ArrowUp, Loader2 } from "lucide-react";
 import {
   ModelSelector,
+  useModelRegistry,
   useWorkspaceEntries,
   WorkspaceEditor,
   useCreateSession,
@@ -31,6 +33,8 @@ import { useDeploymentMode } from "@/hooks/useDeploymentMode";
  * and deployment mode detection that would not belong in an embeddable
  * SDK component.
  */
+const STORAGE_KEY_MODEL = "stigmer:session:model";
+
 export function SessionLauncher() {
   const router = useRouter();
   const org = useActiveOrgSlug();
@@ -38,10 +42,24 @@ export function SessionLauncher() {
   const deploymentMode = useDeploymentMode();
   const gitHubConnection = useGitHubConnection();
 
+  const { getModel } = useModelRegistry();
+
   const [message, setMessage] = useState("");
-  const [modelId, setModelId] = useState<string | undefined>(undefined);
+  const [modelId, setModelId] = useState<string | undefined>(() => {
+    if (typeof window === "undefined") return undefined;
+    const stored = localStorage.getItem(STORAGE_KEY_MODEL);
+    return stored ?? undefined;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const validModelId = modelId && getModel(modelId) ? modelId : undefined;
+
+  useEffect(() => {
+    if (modelId) {
+      localStorage.setItem(STORAGE_KEY_MODEL, modelId);
+    }
+  }, [modelId]);
 
   const workspace = useWorkspaceEntries();
   const { create: createSession } = useCreateSession();
@@ -69,7 +87,7 @@ export function SessionLauncher() {
           org,
           sessionId,
           message: trimmed,
-          modelName: modelId,
+          modelName: validModelId,
         });
 
         router.push(`/sessions/${sessionId}`);
@@ -84,7 +102,7 @@ export function SessionLauncher() {
       message,
       isSubmitting,
       org,
-      modelId,
+      validModelId,
       workspace,
       createSession,
       createExecution,
@@ -110,8 +128,8 @@ export function SessionLauncher() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col items-center justify-center px-4">
-      <div className="w-full max-w-2xl space-y-6">
+    <div className="flex h-full flex-col items-center overflow-y-auto px-4">
+      <div className="my-auto w-full max-w-2xl space-y-6">
         <h1 className="text-center text-lg font-medium text-foreground">
           What would you like to work on?
         </h1>
@@ -138,7 +156,7 @@ export function SessionLauncher() {
             <div className="flex items-center justify-between gap-2 border-t border-border/50 px-3 py-2">
               <div className="flex items-center gap-2">
                 <ModelSelector
-                  value={modelId}
+                  value={validModelId}
                   onValueChange={setModelId}
                   disabled={isSubmitting}
                 />
