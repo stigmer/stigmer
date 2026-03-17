@@ -4,3 +4,9 @@ export type {
   CreateSessionResult,
   UseCreateSessionReturn,
 } from "./useCreateSession";
+
+export { useSession } from "./useSession";
+export type { UseSessionReturn } from "./useSession";
+
+export { useSessionExecutions } from "./useSessionExecutions";
+export type { UseSessionExecutionsReturn } from "./useSessionExecutions";
