@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
-import { AppHeader, HEADER_HEIGHT } from "./AppHeader";
-import { Sidebar, SIDEBAR_WIDTH } from "./Sidebar";
+import { Button } from "@/components/ui/button";
+import { Sidebar } from "./Sidebar";
 import { ContextPanel, CONTEXT_PANEL_WIDTH } from "./ContextPanel";
 import { useSidebarOpen, useContextPanelOpen } from "./use-layout-state";
 
@@ -22,58 +23,61 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [sidebar]);
 
   return (
-    <div
-      className="bg-background text-foreground grid h-screen"
-      style={{ gridTemplateRows: `${HEADER_HEIGHT}px 1fr` }}
-    >
-      <AppHeader />
+    <div className="bg-background text-foreground flex h-screen">
+      {/* Mobile backdrop */}
+      {sidebar.isOpen && (
+        <div
+          className="bg-background/80 fixed inset-0 z-40 backdrop-blur-sm lg:hidden"
+          onClick={sidebar.close}
+          aria-hidden="true"
+        />
+      )}
 
-      <div className="flex min-h-0 overflow-hidden">
-        {/* Backdrop — only renders on mobile (< lg) when sidebar is open */}
-        {sidebar.isOpen && (
-          <div
-            className="bg-background/80 fixed inset-0 z-40 backdrop-blur-sm lg:hidden"
-            style={{ top: HEADER_HEIGHT }}
-            onClick={sidebar.close}
-            aria-hidden="true"
-          />
+      {/* Reopen button — visible on all screen sizes when sidebar is collapsed */}
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={sidebar.open}
+        aria-label="Open sidebar"
+        className={cn(
+          "fixed top-2 left-2 z-30",
+          sidebar.isOpen && "hidden",
         )}
+      >
+        <PanelLeft className="size-4" />
+      </Button>
 
-        {/*
-         * Sidebar wrapper: inline flex child on desktop, fixed overlay on mobile.
-         * `top` in the style prop is inert when position is static (desktop)
-         * and only takes effect when max-lg:fixed activates (mobile).
-         */}
-        <div
-          className={cn(
-            "shrink-0 overflow-hidden",
-            "transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
-            "max-lg:fixed max-lg:bottom-0 max-lg:left-0 max-lg:z-50 max-lg:shadow-lg",
-          )}
-          style={{ width: sidebar.isOpen ? SIDEBAR_WIDTH : 0, top: HEADER_HEIGHT }}
-        >
-          <div style={{ width: SIDEBAR_WIDTH }} className="h-full">
-            <Sidebar />
-          </div>
+      {/* Sidebar — collapsible on all screen sizes */}
+      <div
+        className={cn(
+          "shrink-0 overflow-hidden",
+          "border-foreground/10 border-r",
+          "transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
+          sidebar.isOpen ? "w-70" : "w-0",
+          "max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-50 max-lg:shadow-lg",
+        )}
+      >
+        <div className="h-full w-70">
+          <Sidebar />
         </div>
+      </div>
 
-        {/* Main content */}
-        <main className="min-w-0 flex-1 overflow-y-auto">
-          {children}
-        </main>
+      {/* Main content */}
+      <main className="min-w-0 flex-1 overflow-y-auto">
+        {children}
+      </main>
 
-        {/* Context panel — hidden below lg breakpoint */}
-        <div
-          className={cn(
-            "shrink-0 overflow-hidden",
-            "transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
-            "max-lg:hidden",
-          )}
-          style={{ width: contextPanel.isOpen ? CONTEXT_PANEL_WIDTH : 0 }}
-        >
-          <div style={{ width: CONTEXT_PANEL_WIDTH }} className="h-full">
-            <ContextPanel />
-          </div>
+      {/* Context panel — hidden below lg breakpoint */}
+      <div
+        className={cn(
+          "shrink-0 overflow-hidden",
+          "transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
+          "max-lg:hidden",
+        )}
+        style={{ width: contextPanel.isOpen ? CONTEXT_PANEL_WIDTH : 0 }}
+      >
+        <div style={{ width: CONTEXT_PANEL_WIDTH }} className="h-full">
+          <ContextPanel />
         </div>
       </div>
     </div>
