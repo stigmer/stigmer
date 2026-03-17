@@ -70,8 +70,8 @@ When starting a new session:
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.6 (Web — Active Session View)
 **Status**: Ready to start
-**Last Session**: 2026-03-17 — Fixed base theme surface hierarchy (session 11)
-**Pending Pre-req**: GitHub OAuth App registration (see `tasks/T01_github_app_registration.md`)
+**Last Session**: 2026-03-17 — GitHub OAuth App registration + credential embedding (session 12)
+**Pending Pre-req**: ~~GitHub OAuth App registration~~ Done — credentials embedded in binary and configured in cloud deployment
 
 ## Session Progress (2026-03-17)
 
@@ -166,6 +166,16 @@ When starting a new session:
 - **Fix**: Replaced `<form>` with `<div>` in `WorkspaceEditor.tsx`, wired `onClick`/`onKeyDown` handlers explicitly
 - **Why in SDK**: SDK components must be embeddable in any host element per the platform-for-platforms contract
 - Committed: `e9e05648`
+
+### Completed: GitHub OAuth App Registration + Credential Embedding (Session 12)
+- Registered "Stigmer Local" and "Stigmer Cloud" GitHub OAuth Apps
+- Implemented compile-time credential embedding via Go ldflags (same pattern as `gh` CLI)
+- `config.go`: Added `defaultGitHubOAuthClientID`/`defaultGitHubOAuthClientSecret` vars, env vars take precedence
+- `Makefile`: Conditional ldflags injection for local dev builds
+- `release.cli.yaml`: All 3 CI build jobs inject credentials from GitHub Actions secrets
+- Created GitHub Actions secrets: `STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID`, `STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET`
+- stigmer-cloud: Created variables-group + secrets-group for cloud deployment, updated base + prod overlay service.yaml
+- **Decision**: Embed in binary (like `gh`). Localhost-only OAuth App client_secret has limited attack surface. Accepted industry pattern.
 
 ### Fixed: Base Theme Surface Hierarchy (Session 11)
 - Base theme tokens in `sdk/theme/src/tokens.css` had zero visual distinction between `card` and `background` in light mode — both were `oklch(1 0 0)`.

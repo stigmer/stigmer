@@ -1,71 +1,58 @@
-# Pending: GitHub OAuth App Registration
+# Done: GitHub OAuth App Registration
 
-**Status:** Pending (manual task — requires GitHub org admin access)
+**Status:** Complete (Local App registered + credential embedding implemented)
 **Blocks:** End-to-end testing of the GitHub workspace integration (Phase 1)
 
-## What needs to happen
+## What was done
 
-The Phase 1 implementation is code-complete, but the OAuth flow requires a registered
-GitHub OAuth App to function. Without the `client_id` and `client_secret`, the backend
-returns `FAILED_PRECONDITION` and the "Connect GitHub" button cannot initiate the flow.
+### 1. "Stigmer Local" OAuth App — Registered
 
-## Apps to register
-
-### 1. Local/OSS App
-
-- **Where:** GitHub > Stigmer org > Settings > Developer settings > OAuth Apps
-- **App name:** `Stigmer Local` (or `Stigmer Dev`)
+- **GitHub OAuth App name:** `Stigmer Local`
 - **Homepage URL:** `https://stigmer.ai`
-- **Authorization callback URL:** `http://localhost:8234/auth/github/callback`
-- **Scopes needed:** `repo`, `read:user`
-- **After creation:** Note the `client_id` and `client_secret`
+- **Authorization callback URL:** `http://localhost:3000/auth/github/callback`
+- **Scopes (requested at flow time):** `repo`, `read:user`
+- **Device Flow:** Disabled (not needed; web application flow only)
+- **Client ID:** `Ov23li4q5kgj90QMr226`
 
-**How to use:**
-Set environment variables before starting the local server:
-```bash
-export STIGMER_GITHUB_CLIENT_ID=Ov23li...
-export STIGMER_GITHUB_CLIENT_SECRET=abc123...
-```
+### 2. Credential embedding in binary (Option 1 — like `gh` CLI)
 
-### 2. Cloud App
+**Decision:** Embed both `client_id` and `client_secret` as compiled defaults in
+the Go binary via `-ldflags -X`, with env var overrides for enterprise/self-hosted
+users. This is the same pattern used by GitHub CLI (`gh`).
 
-- **Where:** Same GitHub org, separate OAuth App
-- **App name:** `Stigmer Cloud` (or `Stigmer`)
-- **Homepage URL:** `https://stigmer.ai`
-- **Authorization callback URL:** `https://<cloud-domain>/auth/github/callback`
-  (add multiple callback URLs if needed for staging/production)
-- **Scopes needed:** `repo`, `read:user`
-- **After creation:** Configure as environment secrets in cloud deployment:
-  - `GITHUB_OAUTH_CLIENT_ID` (Java backend reads from `application.yaml`)
-  - `GITHUB_OAUTH_CLIENT_SECRET`
+**Security rationale:** The `client_secret` for a localhost-only OAuth App has
+limited attack surface — tokens can only be delivered to `localhost`. This is an
+accepted industry pattern for developer tools. Any user can extract it from the
+binary regardless, so it is not treated as a secret.
 
-## Open question: embedding credentials in the OSS binary
+**Implementation:**
 
-For the open-source distribution, users shouldn't need to register their own
-GitHub App just to use the workspace picker. Options to explore:
+- **`config.go`:** Added `defaultGitHubOAuthClientID` and `defaultGitHubOAuthClientSecret`
+  package-level vars (empty by default, injected via ldflags at build time).
+  `LoadConfig()` uses these as fallback defaults; env vars always take precedence.
 
-1. **Embed in binary (like GitHub CLI `gh`)** — compile the `client_id` and
-   `client_secret` as defaults in `config.go`. The `client_id` is public anyway.
-   The `client_secret` for a localhost-only OAuth App has limited attack surface
-   since tokens can only be delivered to localhost. This is an accepted pattern
-   for developer tools.
+- **`Makefile`:** `DEV_LDFLAGS` conditionally includes GitHub OAuth credentials
+  when `STIGMER_GITHUB_CLIENT_ID` / `STIGMER_GITHUB_CLIENT_SECRET` are set in
+  the environment.
 
-2. **Fetch from a Stigmer API at startup** — the CLI fetches the credentials
-   from a public Stigmer endpoint on first run. Avoids committing the secret
-   to the repo but adds a network dependency.
+- **`release.cli.yaml`:** All three CI build jobs (darwin-arm64, darwin-amd64,
+  linux-amd64) inject credentials from GitHub Actions secrets via ldflags.
 
-3. **User registers their own** — document the steps and require users to set
-   env vars. Worst UX but simplest implementation.
+- **GitHub Actions secrets:** `STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID` and
+  `STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET` created in `stigmer/stigmer` repo.
 
-**Recommendation:** Option 1 (embed in binary) for the `client_id`, with the
-`client_secret` either embedded (like `gh`) or fetched. Env var overrides for
-enterprise/self-hosted users who want their own GitHub App.
+### 3. "Stigmer Cloud" OAuth App — Pending
+
+- Needs to be registered when cloud domain is finalized.
+- Java backend already reads from `GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET`
+  env vars via Spring `application.yaml` — no code changes needed.
+- Credentials will be configured as deployment secrets.
 
 ## Where credentials are consumed
 
 - **Go backend:** `backend/services/stigmer-server/pkg/config/config.go`
-  - `STIGMER_GITHUB_CLIENT_ID` → `Config.GitHubOAuthClientID`
-  - `STIGMER_GITHUB_CLIENT_SECRET` → `Config.GitHubOAuthClientSecret`
+  - `STIGMER_GITHUB_CLIENT_ID` → `Config.GitHubOAuthClientID` (fallback: ldflags default)
+  - `STIGMER_GITHUB_CLIENT_SECRET` → `Config.GitHubOAuthClientSecret` (fallback: ldflags default)
 
 - **Java backend:** `stigmer-cloud/.../application.yaml`
   - `GITHUB_OAUTH_CLIENT_ID` → `github.oauth.client-id`
@@ -73,9 +60,11 @@ enterprise/self-hosted users who want their own GitHub App.
 
 ## Checklist
 
-- [ ] Register "Stigmer Local" OAuth App in GitHub org (localhost callback)
+- [x] Register "Stigmer Local" OAuth App in GitHub org (localhost callback)
 - [ ] Register "Stigmer Cloud" OAuth App in GitHub org (cloud callback)
-- [ ] Set credentials in local dev environment and verify end-to-end OAuth flow
+- [x] Add compiled defaults to `config.go` for local mode (ldflags pattern)
+- [x] Update Makefile for local dev builds with optional credential injection
+- [x] Update CI workflow to inject credentials from secrets
+- [x] Add GitHub Actions secrets for Local App credentials
 - [ ] Set credentials in cloud deployment secrets
-- [ ] Decide on OSS distribution strategy for credentials (embed vs fetch vs manual)
-- [ ] If embedding: add compiled defaults to `config.go` for local mode
+- [ ] Verify end-to-end OAuth flow with embedded credentials
