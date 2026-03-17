@@ -5,6 +5,8 @@ export type {
   UseCreateAgentExecutionReturn,
 } from "./useCreateAgentExecution";
 
+export { isTerminalPhase } from "./execution-phases";
+
 export { useExecutionStream } from "./useExecutionStream";
 export type { UseExecutionStreamReturn } from "./useExecutionStream";
 

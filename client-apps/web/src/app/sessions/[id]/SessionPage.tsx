@@ -4,21 +4,14 @@ import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, Loader2, RotateCcw, WifiOff } from "lucide-react";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import {
   useSession,
   useSessionExecutions,
   useExecutionStream,
+  isTerminalPhase,
   MessageThread,
 } from "@stigmer/react";
 import { Button } from "@/components/ui/button";
-
-const TERMINAL_PHASES: ReadonlySet<ExecutionPhase> = new Set([
-  ExecutionPhase.EXECUTION_COMPLETED,
-  ExecutionPhase.EXECUTION_FAILED,
-  ExecutionPhase.EXECUTION_CANCELLED,
-  ExecutionPhase.EXECUTION_TERMINATED,
-]);
 
 export default function SessionPage() {
   const { id } = useParams<{ id: string }>();
@@ -32,10 +25,8 @@ export default function SessionPage() {
 
   const activeExecutionId = useMemo(() => {
     for (let i = executions.length - 1; i >= 0; i--) {
-      const phase =
-        executions[i].status?.phase ??
-        ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-      if (!TERMINAL_PHASES.has(phase)) {
+      const phase = executions[i].status?.phase;
+      if (phase === undefined || !isTerminalPhase(phase)) {
         return executions[i].metadata?.id ?? null;
       }
     }

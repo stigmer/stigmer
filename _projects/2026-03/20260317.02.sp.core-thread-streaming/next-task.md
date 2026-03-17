@@ -101,9 +101,36 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-17 18:16
-**Current Task**: T01 Step 5 (Barrel Exports + Dependencies verification)
-**Status**: Steps 1-4 complete, Step 5 ready to start
-**Last Session**: 2026-03-17 — Completed Step 4: Console SessionPage
+**Current Task**: T01 COMPLETE — All 5 steps delivered
+**Status**: SP1 complete. All builds pass. Ready for parent project update and SP2.
+**Last Session**: 2026-03-17 — Completed Step 5: Barrel Exports + TERMINAL_PHASES extraction
+
+## Session Progress (2026-03-17, Session 5)
+
+### Completed: Step 5 — Barrel Exports, Dependencies, and TERMINAL_PHASES Extraction
+
+- Created `sdk/react/src/execution/execution-phases.ts` — single source of truth for `isTerminalPhase()`
+  - Exported function: `isTerminalPhase(phase: ExecutionPhase): boolean`
+  - `TERMINAL_PHASES` Set is an unexported implementation detail
+  - JSDoc documents the semantic meaning (final, immutable execution state)
+- Updated `sdk/react/src/execution/useExecutionStream.ts` — removed local `TERMINAL_PHASES`, imports shared `isTerminalPhase`
+- Updated `sdk/react/src/execution/MessageThread.tsx` — removed local `TERMINAL_PHASES`, imports shared `isTerminalPhase`
+- Updated `client-apps/web/src/app/sessions/[id]/SessionPage.tsx`:
+  - Removed local `TERMINAL_PHASES` constant
+  - Removed direct `@stigmer/protos` import for `ExecutionPhase` — Console no longer reaches into proto layer for phase logic
+  - Imports `isTerminalPhase` from `@stigmer/react` — correct SDK layering
+  - Simplified phase check: `phase === undefined || !isTerminalPhase(phase)` instead of fallback-to-UNSPECIFIED pattern
+- Updated barrel exports: `sdk/react/src/execution/index.ts` and `sdk/react/src/index.ts`
+- Verified barrel export surface: all SP1 hooks, components, types, and utility are exported
+- Verified dependencies: `react-markdown` (^10.1.0) and `remark-gfm` (^4.0.1) in `sdk/react/package.json`
+- Verification: `npm run typecheck` (sdk/react), `npm run build` (sdk/react), `npx tsc --noEmit` (web), `npm run build` (web) all pass clean
+
+### Key Design Decisions (Step 5)
+
+1. **`isTerminalPhase` in `@stigmer/react`, not `@stigmer/sdk`** — All current consumers are React-based. `@stigmer/sdk` scope is typed API clients, not domain utilities. If a future Vue/Svelte SDK needs this, the function migrates trivially without signature change.
+2. **Function over raw Set** — `isTerminalPhase()` is the public API. The `TERMINAL_PHASES` Set is unexported. A function is more discoverable via intellisense, easier to document, and doesn't leak implementation choices.
+3. **Console no longer imports from `@stigmer/protos` for phase logic** — `SessionPage.tsx` now consumes `isTerminalPhase` from `@stigmer/react`. The Console uses the SDK; it doesn't reach into the proto layer for domain logic. This is the correct layering.
+4. **`undefined` check instead of UNSPECIFIED fallback** — In SessionPage, `phase === undefined` replaces the `?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED` pattern. An execution with no status is clearly not terminal. Eliminates the need for the proto enum import entirely.
 
 ## Session Progress (2026-03-17, Session 4)
 
@@ -211,25 +238,47 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Step 5**: Barrel Exports + Dependencies — Already partially done (react-markdown/remark-gfm added, barrel exports updated). Verify final export surface is clean. This is a lightweight verification step.
-2. **After SP1 completion**: Update parent project `next-task.md` to mark SP1 as done and begin SP2 (Follow-up Conversation Loop).
+1. **SP1 is COMPLETE.** All 5 steps of T01 delivered and verified.
+2. **Next action**: Update parent project `next-task.md` (20260317.01.session-first-web-ux) to mark SP1 as done and begin SP2 (Follow-up Conversation Loop).
 
 ## Context for Resume
 
 - Branch: `feat/session-first-web-ux`
-- Steps 1-4 committed. Step 5 pending (lightweight verification).
-- Step 5 is primarily a check — barrel exports and dependencies were already updated during Steps 2-3. Just verify the final export surface is clean and matches the plan.
-- The full data flow is now wired: `SessionPage` → `useSession` + `useSessionExecutions` + `useExecutionStream` → `<MessageThread>` → user sees conversation thread with streaming, tool call summaries, and phase badges.
-- Open follow-up: extract `TERMINAL_PHASES` / `isTerminalPhase()` to a shared SDK utility (currently duplicated in 3 files).
+- All 5 steps committed. SP1 fully delivered.
+- The full data flow is wired end-to-end: `SessionPage` → `useSession` + `useSessionExecutions` + `useExecutionStream` → `<MessageThread>` → user sees conversation thread with streaming, tool call summaries, and phase badges.
+- `TERMINAL_PHASES` duplication resolved — `isTerminalPhase()` is the single source of truth, exported from `@stigmer/react`.
+- No remaining follow-ups within SP1 scope.
+
+## SP1 Final Export Surface
+
+```
+@stigmer/react exports (from this SP):
+
+  Hooks:
+    useSession(id)                     → { session, isLoading, error }
+    useSessionExecutions(sessionId)    → { executions, isLoading, error, refetch }
+    useExecutionStream(executionId)    → { execution, phase, isStreaming, isConnecting, error, reconnect }
+
+  Components:
+    MessageThread        — scrollable conversation thread with auto-scroll
+    MessageEntry         — single message (HUMAN/AI/SYSTEM) with markdown rendering
+    ToolCallGroup        — collapsed tool call summary line
+    ExecutionPhaseBadge  — inline phase indicator with icon + label
+
+  Utilities:
+    isTerminalPhase(phase) → boolean
+
+  Types:
+    UseSessionReturn, UseSessionExecutionsReturn, UseExecutionStreamReturn,
+    MessageThreadProps, MessageEntryProps, ToolCallGroupProps, ExecutionPhaseBadgeProps
+```
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Step 5" - Verify barrel exports and dependencies
-- "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
+- "Show project status" - Get overview of SP1 completion
 - "Check parent status" - Review parent project state
+- "Begin SP2" - Start Follow-up Conversation Loop sub-project
 
 ---
 

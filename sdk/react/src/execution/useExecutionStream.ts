@@ -4,20 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { useStigmer } from "../hooks";
-
-/**
- * Execution phases that represent a final, immutable state.
- *
- * Once an execution enters one of these phases, the server closes the
- * stream and no further updates will arrive. The hook uses this to
- * stop consuming the generator and transition `isStreaming` to `false`.
- */
-const TERMINAL_PHASES: ReadonlySet<ExecutionPhase> = new Set([
-  ExecutionPhase.EXECUTION_COMPLETED,
-  ExecutionPhase.EXECUTION_FAILED,
-  ExecutionPhase.EXECUTION_CANCELLED,
-  ExecutionPhase.EXECUTION_TERMINATED,
-]);
+import { isTerminalPhase } from "./execution-phases";
 
 export interface UseExecutionStreamReturn {
   /** Latest full execution snapshot from the stream, or `null` before the first update arrives. */
@@ -125,7 +112,7 @@ export function useExecutionStream(
           const currentPhase =
             snapshot.status?.phase ??
             ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-          const isTerminal = TERMINAL_PHASES.has(currentPhase);
+          const isTerminal = isTerminalPhase(currentPhase);
 
           setExecution(snapshot);
           setIsConnecting(false);
