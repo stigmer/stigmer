@@ -47,13 +47,24 @@ export type {
   UseSessionExecutionsReturn,
 } from "./session";
 
-// Execution — behavior hooks (AgentExecution aggregate)
-export { useCreateAgentExecution, useExecutionStream } from "./execution";
+// Execution — behavior hooks and styled components (AgentExecution aggregate)
+export {
+  useCreateAgentExecution,
+  useExecutionStream,
+  ExecutionPhaseBadge,
+  ToolCallGroup,
+  MessageEntry,
+  MessageThread,
+} from "./execution";
 export type {
   CreateAgentExecutionInput,
   CreateAgentExecutionResult,
   UseCreateAgentExecutionReturn,
   UseExecutionStreamReturn,
+  ExecutionPhaseBadgeProps,
+  ToolCallGroupProps,
+  MessageEntryProps,
+  MessageThreadProps,
 } from "./execution";
 
 // GitHub — OAuth connection, repo picker, and hooks
