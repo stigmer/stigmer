@@ -70,7 +70,7 @@ When starting a new session:
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.5 (Web — New Session Launcher)
 **Status**: In Progress
-**Last Session**: 2026-03-17 — Completed T01.4 (Web App Shell — three-panel layout)
+**Last Session**: 2026-03-17 — Refined T01.4 layout to headerless sidebar-driven design (session 6)
 
 ## Session Progress (2026-03-17)
 
@@ -114,12 +114,15 @@ When starting a new session:
 - Committed: `c6b707cd`
 
 ### Completed: T01.4 — Web App Shell (Three-Panel Layout)
-- Created 8 files in `client-apps/web/src/components/layout/`: `AppShell.tsx`, `AppHeader.tsx`, `Sidebar.tsx`, `ContextPanel.tsx`, `OrgSwitcher.tsx`, `ThemeToggle.tsx`, `UserMenu.tsx`, `use-layout-state.ts`
-- Grid + Flex layout: 48px header, 280px sidebar (toggle visibility), 320px context panel (closed by default)
-- Sidebar: "New Session" link + recents empty state. Context panel: collapsible shell with children slot.
-- Responsive: sidebar becomes fixed overlay on mobile (< 1024px) with backdrop + Escape-to-close. Context panel hidden below lg.
+- Created layout files in `client-apps/web/src/components/layout/`: `AppShell.tsx`, `Sidebar.tsx`, `ContextPanel.tsx`, `OrgSwitcher.tsx`, `UserMenu.tsx`, `use-layout-state.ts`
+- **Headerless layout** — No top bar. Sidebar owns all controls (like Claude Cowork / Cursor).
+- Sidebar top: collapse toggle + OrgSwitcher. Middle: "New Session" + scrollable Recents. Bottom: UserMenu with Appearance submenu.
+- Theme switching embedded in UserMenu dropdown as "Appearance" submenu with Light/Dark/System radio items.
+- OrgSwitcher uses DropdownMenu + RadioGroup (not native `<select>`).
+- Sidebar collapsible on all screen sizes. Floating reopen button when collapsed.
+- Border uses `border-foreground/10` for guaranteed visibility in both themes.
 - State: `useSyncExternalStore` — sidebar persists to localStorage, context panel is session-scoped (in-memory).
-- OrgSwitcher, ThemeToggle, UserMenu recovered from git (`10513ce1^`). ThemePresetSelector deferred.
+- Context panel: collapsible 320px shell (closed by default, no toggle yet). Hidden below lg.
 - `layout.tsx` wraps children in `<AppShell>`. Build and lint pass clean.
 
 ### Key Decisions
@@ -130,10 +133,12 @@ When starting a new session:
 5. **Web package.json untouched** — Temporarily unused deps (`react-markdown`, `remark-gfm`, `@base-ui/react`) will be needed in T01.5/T01.6. No premature cleanup in web app. SDK package.json was cleaned (unused peer deps removed).
 6. **Font declarations kept in layout.tsx** — Six fonts loaded. T01.4 kept them as-is.
 10. **Toggle visibility, not icon rail** — Sidebar uses binary show/hide (like Claude/ChatGPT), not a compact icon-rail collapse. Sessions don't have meaningful icons.
-11. **48px header** — Down from 56px. Maximizes content area for conversation thread.
-12. **ThemePresetSelector deferred** — Only dark/light toggle in header. Presets to a future settings page (Hick's Law).
-13. **Context panel toggle hidden in T01.4** — No content until T01.6. Showing a toggle for an empty panel violates Nielsen heuristic #1.
-14. **`@base-ui/react` Button lacks `asChild`** — Use `buttonVariants` + `cn` on `<Link>` directly instead of `<Button asChild>`.
+11. **Headerless layout** — Removed the 48px header entirely. Sidebar owns all controls. Main content gets full viewport height.
+12. **Appearance in user menu** — Theme switching (Light/Dark/System) is a submenu inside the user dropdown, not a standalone widget. Matches Cursor's pattern.
+13. **`border-foreground/10` for borders** — The `--stgm-sidebar-border` token lacks contrast in light mode. Using foreground at 10% opacity guarantees visibility in both themes.
+14. **DropdownMenu for OrgSwitcher** — Replaced native `<select>` for consistent interaction. Full-width trigger, radio items with checkmark.
+15. **Context panel toggle hidden in T01.4** — No content until T01.6. Showing a toggle for an empty panel violates Nielsen heuristic #1.
+16. **`@base-ui/react` Button lacks `asChild`** — Use `buttonVariants` + `cn` on `<Link>` directly instead of `<Button asChild>`.
 7. **Platform-level default agent** — The default assistant is a system-wide resource in the `stigmer` org with `visibility_public`, not a per-org concept. Resolution is global.
 8. **Session ownership follows the caller** — Sessions are created in the caller's org even when using a cross-org public agent. This is critical for multi-tenancy in Cloud mode.
 9. **Labels as first-class store concept** — Go `store.Store` got explicit `FindByLabel`/`FindAllByLabel` methods rather than overloading `FindByField`, because label keys contain dots that conflict with field-path dot notation.
@@ -145,10 +150,11 @@ When starting a new session:
 
 ## Context for Resume
 - Branch: `feat/session-first-web-ux` (stigmer repo), `main` (stigmer-cloud repo)
-- T01.1 committed (`ca2b2554`). T01.2 committed. T01.3 committed. React SDK teardown committed (`c6b707cd`). T01.4 committed.
-- The web app has a full three-panel shell: AppShell (Grid+Flex), AppHeader (48px), Sidebar (280px toggle), ContextPanel (320px, closed).
+- T01.1 committed (`ca2b2554`). T01.2 committed. T01.3 committed. React SDK teardown committed (`c6b707cd`). T01.4 committed (initial + layout refinements).
+- The web app has a headerless sidebar-driven layout: AppShell (Flex), Sidebar (280px, collapsible on all sizes), ContextPanel (320px, closed).
+- Sidebar structure: top = collapse toggle + OrgSwitcher, middle = New Session + Recents, bottom = UserMenu (with Appearance submenu).
+- No AppHeader or ThemeToggle files — deleted. Theme switching lives in UserMenu. OrgSwitcher uses DropdownMenu.
 - The React SDK is a clean slate: provider + context + hook + styles. No feature components. 5 source files in `sdk/react/src/`.
-- Post-T01.4 file tree has 39 files in `client-apps/web/src/` (31 from teardown + 8 new layout files). Build and lint pass clean.
 - `run/page.tsx` in git history is valuable reference for T01.5/T01.6 — shows `@stigmer/react` import patterns that existed before teardown.
 - Feature components for the React SDK will be rebuilt alongside the web UI (T01.5/T01.6) with embeddability as a primary design constraint.
 - Default agent resolution is fully wired in both backends. The frontend can now create executions with just a message — no agent_id or session_id needed.
