@@ -9,6 +9,17 @@ import (
 	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 )
 
+// defaultGitHubOAuthClientID and defaultGitHubOAuthClientSecret are compiled
+// into release builds via ldflags so OSS users get GitHub workspace support
+// without registering their own OAuth App. Env vars always take precedence.
+//
+//   -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=...
+//   -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=...
+var (
+	defaultGitHubOAuthClientID     = ""
+	defaultGitHubOAuthClientSecret = ""
+)
+
 // Config holds server configuration
 type Config struct {
 	GRPCPort    int
@@ -56,8 +67,8 @@ func LoadConfig() (*Config, error) {
 		ArtifactHTTPPort: artifactHTTPPort,
 
 		// GitHub OAuth configuration
-		GitHubOAuthClientID:     getEnvString("STIGMER_GITHUB_CLIENT_ID", ""),
-		GitHubOAuthClientSecret: getEnvString("STIGMER_GITHUB_CLIENT_SECRET", ""),
+		GitHubOAuthClientID:     getEnvString("STIGMER_GITHUB_CLIENT_ID", defaultGitHubOAuthClientID),
+		GitHubOAuthClientSecret: getEnvString("STIGMER_GITHUB_CLIENT_SECRET", defaultGitHubOAuthClientSecret),
 
 		// Artifact storage configuration
 		ArtifactStorage: artifactstorage.Config{

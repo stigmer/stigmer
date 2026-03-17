@@ -179,9 +179,16 @@ jobs:
       - name: Build CLI
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
+          GH_OAUTH_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
+          GH_OAUTH_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
         run: |
           cd client-apps/cli
-          go build -tags 'embed_agentrunner embed_webconsole' -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
+          go build -tags 'embed_agentrunner embed_webconsole' \
+            -ldflags="-s -w \
+              -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION \
+              -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=$GH_OAUTH_CLIENT_ID \
+              -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
+            -o ../../bin/stigmer .
 
       - name: Verify binary
         env:
@@ -245,9 +252,16 @@ jobs:
           GOARCH: amd64
           GOOS: darwin
           VERSION: ${{ needs.determine-version.outputs.version }}
+          GH_OAUTH_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
+          GH_OAUTH_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
         run: |
           cd client-apps/cli
-          go build -tags 'embed_agentrunner embed_webconsole' -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
+          go build -tags 'embed_agentrunner embed_webconsole' \
+            -ldflags="-s -w \
+              -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION \
+              -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=$GH_OAUTH_CLIENT_ID \
+              -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
+            -o ../../bin/stigmer .
 
       - name: Verify binary
         env:
@@ -309,9 +323,16 @@ jobs:
       - name: Build CLI
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
+          GH_OAUTH_CLIENT_ID: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_ID }}
+          GH_OAUTH_CLIENT_SECRET: ${{ secrets.STIGMER_LOCAL_GITHUB_OAUTH_CLIENT_SECRET }}
         run: |
           cd client-apps/cli
-          go build -tags 'embed_agentrunner embed_webconsole' -ldflags="-s -w -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION" -o ../../bin/stigmer .
+          go build -tags 'embed_agentrunner embed_webconsole' \
+            -ldflags="-s -w \
+              -X github.com/stigmer/stigmer/client-apps/cli/embedded.buildVersion=$VERSION \
+              -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=$GH_OAUTH_CLIENT_ID \
+              -X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=$GH_OAUTH_CLIENT_SECRET" \
+            -o ../../bin/stigmer .
 
       - name: Verify binary
         env:
