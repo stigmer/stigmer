@@ -28,14 +28,16 @@ function uid(): string {
 }
 
 function deriveNameFromGitUrl(url: string): string {
-  const segments = url.replace(/\/+$/, "").split("/");
-  const last = segments[segments.length - 1] ?? url;
-  return last.replace(/\.git$/, "");
+  const cleaned = url.replace(/\/+$/, "").replace(/\.git$/, "");
+  const segments = cleaned.split("/");
+  if (segments.length >= 2) {
+    return `${segments[segments.length - 2]}/${segments[segments.length - 1]}`;
+  }
+  return segments[segments.length - 1] ?? url;
 }
 
 function deriveNameFromPath(path: string): string {
-  const segments = path.replace(/[/\\]+$/, "").split(/[/\\]/);
-  return segments[segments.length - 1] ?? path;
+  return path.replace(/[/\\]+$/, "") || path;
 }
 
 /**

@@ -24,6 +24,11 @@ type ActivePanel = "none" | "github" | "local";
 
 const STORAGE_KEY_LAST_FOLDER = "stigmer:folder:last-path";
 
+const TYPE_LABELS: Record<string, string> = {
+  git: "GitHub",
+  local: "Local",
+};
+
 /**
  * Styled component that renders add/remove UI for workspace entries.
  *
@@ -113,11 +118,17 @@ export function WorkspaceEditor({
           key={entry.id}
           className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs"
         >
-          <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.65rem] uppercase text-muted-foreground">
-            {entry.type}
+          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
+            {TYPE_LABELS[entry.type] ?? entry.type}
           </span>
-          <span className="min-w-0 flex-1 truncate text-foreground">
-            {entry.name}
+          <span
+            className={[
+              "min-w-0 flex-1 truncate text-foreground",
+              entry.type === "local" ? "[direction:rtl] text-left" : "",
+            ].join(" ")}
+            title={entry.name}
+          >
+            <bdi>{entry.name}</bdi>
           </span>
           <button
             type="button"
