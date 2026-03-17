@@ -70,7 +70,7 @@ When starting a new session:
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.6 (Web — Active Session View)
 **Status**: Ready to start
-**Last Session**: 2026-03-17 — GitHub Repo Picker UX overhaul + Tailwind CSS infrastructure fix (session 15)
+**Last Session**: 2026-03-17 — GitHubClient added to Python, Go, and Java SDKs (session 16)
 **Pending Pre-req**: ~~GitHub OAuth App registration~~ Done — credentials embedded in binary and configured in cloud deployment
 
 ## Session Progress (2026-03-17)
@@ -202,6 +202,15 @@ When starting a new session:
 - Defense-in-depth: four layers now active (frontend UI hiding → Java API validation → agent runner guard → Daytona sandbox isolation)
 - No Go backend changes needed — Go serves both local and cloud modes, and `LocalPathSource` is valid in local mode
 
+### Completed: GitHubClient SDK Parity — Python, Go, Java (Session 16)
+- Added handwritten `GitHubClient` to Python, Go, and Java SDKs — full parity with TypeScript
+- **Python**: `_github.py` with dataclass params/responses, `grpc.Channel`, `wrap_error`. Wired into `StigmerClient`, exported from `__init__.py`
+- **Go**: `github.go` with struct params/responses, `context.Context`, `gen.WrapErr`. Added `GitHub *GitHubClient` to `Client` struct
+- **Java**: `GitHubClient.java` with builder-pattern inner classes, `StigmerException.wrap`. Added `github()` accessor to `StigmerClient`
+- Each follows its SDK's existing `SearchClient` pattern exactly
+- Authorization clarified: `is_skip_authorization` skips FGA checks but NOT authentication — SDK transport unchanged
+- Committed: `7f72f0ec`
+
 ### Completed: GitHub Repo Picker UX Overhaul + Tailwind CSS Infrastructure Fix (Session 15)
 - Fixed critical Tailwind CSS infrastructure bug: SDK's `styles.css` was missing `@source "./**/*.{ts,tsx}";` directive, causing layout-critical utility classes in SDK `.tsx` files to be silently dropped from generated CSS
 - Rewrote `GitHubRepoPicker` with owner-grouped sections (personal first, then orgs), recent repos (localStorage), keyboard navigation (Arrow/Enter/Escape), scroll shadows, and search highlighting
@@ -211,6 +220,14 @@ When starting a new session:
 - Persisted model selection (`stigmer:session:model`) and last folder path (`stigmer:folder:last-path`) to localStorage
 - Fixed `SessionLauncher` overflow by replacing `justify-center` with `overflow-y-auto` + `my-auto`
 - Changed default folder browser path from CWD to home directory in `api_fs.go`
+
+### Fixed: TypeScript SDK Codegen Proto Serialization Bug (Session 17)
+- The `buildXxxProto` functions in all 17 generated TypeScript SDK clients used `Object.assign(create(SpecSchema), { ...allFields })` which copied `undefined` values for omitted optional fields, overwriting protobuf-es defaults (empty `{}` for maps, empty `[]` for repeated) and crashing the binary serializer
+- **Root cause**: Single line in `tools/codegen/generator/sdk_client_ts.go` unconditionally emitted all spec fields regardless of optionality
+- **Fix**: Added `stripUndefined` utility to codegen — emitted as `sdk/typescript/src/gen/proto-utils.ts`, imported by all resource clients, wraps spec field object in `buildXxxProto` functions
+- **Cross-SDK analysis**: Confirmed Go (zero values), Python (`if is not None:` guards), Java (Builder + null checks) are all naturally safe — TypeScript was the only vulnerable SDK
+- Regenerated all 17 resource client files via `make -C sdk/typescript codegen`
+- Committed: (this session)
 
 ### Key Decisions (cumulative)
 1. **No MCP server usages** — the assistant is purely general-purpose. Tools come from the runtime.
@@ -251,6 +268,8 @@ When starting a new session:
 36. **`@source` directive required in SDK styles.css** — Tailwind v4 requires explicit `@source` paths for content detection in monorepo setups. Without `@source "./**/*.{ts,tsx}";` in the SDK's stylesheet, Tailwind only scans the consuming app's source files and silently drops SDK-internal class names.
 37. **Simple scroll pattern over complex flex nesting** — `max-h-64 overflow-y-auto` directly on the listbox (matching `FolderBrowser`) instead of `flex-col max-h` + `flex-1 min-h-0` + `h-full`. The simple pattern is robust, portable, and avoids subtle CSS height resolution bugs.
 38. **Home directory as default folder browser path** — Changed from CWD because users may launch `stigmer` from non-project directories. Home is a more universal starting point for folder browsing.
+39. **Utility service SDK clients are handwritten across all SDKs** — `GitHubClient` and `SearchClient` exist as hand-written wrappers in all four SDKs (TypeScript, Python, Go, Java). Will remain manual until the number of utility services justifies extending codegen.
+40. **`is_skip_authorization` vs `is_public`** — Two distinct proto options. `is_skip_authorization` removes FGA resource-level checks but keeps authentication (JWT/API-key). `is_public` removes authentication entirely. GitHub OAuth RPCs use `is_skip_authorization` only — callers must still authenticate.
 
 ## Next Steps
 1. **T01.6**: Web — Active Session View (`/sessions/[id]`) — conversation thread, real-time streaming, follow-up input, right context panel
@@ -283,3 +302,13 @@ After loading context:
 ---
 
 *This file provides direct paths to all project resources for quick context loading.*
+
+## Sub-Projects
+
+Active sub-projects spawned from this project:
+
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-03/20260317.02.sp.core-thread-streaming/next-task.md` - Build the minimum viable session view at /sessions/[id] with real-time execution streaming, message rendering (markdown), and collapsed tool call summaries. SDK hooks for data fetching and streaming, SDK styled components for messages and tool groups, Console page orchestration.
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-03/20260317.03.sp.follow-up-conversation-loop/next-task.md` - Add follow-up input to the session view, enabling users to continue conversations by sending additional messages within the same session. SDK FollowUpInput component with model selector, Console-level orchestration for creating executions and streaming them into the existing thread.
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-03/20260317.04.sp.session-context-panel/next-task.md` - Populate the right context panel with execution metadata. Add a context panel slot mechanism so pages can inject content. Build SessionContextContent with execution phase, model, token usage, cost, duration, workspace entries, and resolved context (MCP servers, tools).
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-03/20260317.05.sp.expandable-tool-groups/next-task.md` - Make collapsed tool call summaries expandable to reveal individual tool calls with args, results, status, and timing. Add sub-agent sections as expandable nested threads. Two-level progressive disclosure: summary line -> list of tool calls -> individual call detail.
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-03/20260317.06.sp.hitl-approvals/next-task.md` - Add human-in-the-loop approval UI to the session view. Build useSubmitApproval behavior hook and ApprovalCard styled component with approve/skip/reject actions. Integrate approval flow into the conversation thread when executions enter WAITING_FOR_APPROVAL phase.
