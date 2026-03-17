@@ -13,10 +13,11 @@ import (
 // to interact with the Stigmer platform.
 //
 // All resource clients (Agent, Skill, Organization, etc.) are available
-// via the embedded gen.Client. The Search client is added separately.
+// via the embedded gen.Client. The Search and GitHub clients are added separately.
 type Client struct {
 	*gen.Client
 	Search *SearchClient
+	GitHub *GitHubClient
 
 	conn *grpc.ClientConn
 }
@@ -48,6 +49,7 @@ func NewClient(apiKey string, opts ...ClientOption) (*Client, error) {
 	return &Client{
 		Client: gen.NewClient(conn),
 		Search: newSearchClient(conn),
+		GitHub: newGitHubClient(conn),
 		conn:   conn,
 	}, nil
 }

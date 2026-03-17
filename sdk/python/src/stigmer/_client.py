@@ -23,6 +23,7 @@ from ._gen._skill import SkillClient
 from ._gen._workflow import WorkflowClient
 from ._gen._workflowexecution import WorkflowExecutionClient
 from ._gen._workflowinstance import WorkflowInstanceClient
+from ._github import GitHubClient
 from ._search import SearchClient
 from ._transport import DEFAULT_TARGET, create_channel
 
@@ -32,7 +33,7 @@ class StigmerClient:
 
     Creates a gRPC channel to the Stigmer platform and exposes typed
     sub-clients for every resource kind, plus a cross-resource
-    :attr:`search` client.
+    :attr:`search` client and a :attr:`github` OAuth client.
 
     Usage::
 
@@ -64,6 +65,7 @@ class StigmerClient:
     workflow_executions: WorkflowExecutionClient
     workflow_instances: WorkflowInstanceClient
     search: SearchClient
+    github: GitHubClient
 
     def __init__(
         self,
@@ -103,6 +105,7 @@ class StigmerClient:
         self.workflow_instances = gen.workflow_instances
 
         self.search = SearchClient(channel)
+        self.github = GitHubClient(channel)
 
     def close(self) -> None:
         """Release the underlying gRPC channel."""
