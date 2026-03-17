@@ -70,7 +70,7 @@ When starting a new session:
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.6 (Web — Active Session View)
 **Status**: Ready to start
-**Last Session**: 2026-03-17 — Implemented GitHub OAuth workspace integration (session 10)
+**Last Session**: 2026-03-17 — Fixed base theme surface hierarchy (session 11)
 **Pending Pre-req**: GitHub OAuth App registration (see `tasks/T01_github_app_registration.md`)
 
 ## Session Progress (2026-03-17)
@@ -167,6 +167,15 @@ When starting a new session:
 - **Why in SDK**: SDK components must be embeddable in any host element per the platform-for-platforms contract
 - Committed: `e9e05648`
 
+### Fixed: Base Theme Surface Hierarchy (Session 11)
+- Base theme tokens in `sdk/theme/src/tokens.css` had zero visual distinction between `card` and `background` in light mode — both were `oklch(1 0 0)`.
+- Borders (`oklch(0.922 0 0)`) and muted surfaces (`oklch(0.97 0 0)`) were barely perceptible against white.
+- **Fix**: Adjusted 15 token values (12 light, 3 dark) to create a surface elevation ladder: `popover/card (1.0) > background (0.98) > sidebar (0.97) > muted (0.94) > border (0.885) > input (0.87)`.
+- Dark mode: bumped border opacity from 10%→14% and input from 15%→20%.
+- Fixed 3 token bypasses in `AppShell.tsx` and `Sidebar.tsx`: replaced `foreground/10` with proper `sidebar-border` token.
+- No component architecture changes. Preset themes unaffected (they override base tokens).
+- Verified visually in both light and dark modes.
+
 ### Key Decisions (cumulative)
 1. **No MCP server usages** — the assistant is purely general-purpose. Tools come from the runtime.
 2. **Minimal instructions** — 5 lines. Identity, mission, tone, action bias, honesty.
@@ -195,6 +204,8 @@ When starting a new session:
 25. **`platform` bounded context for utility services** — GitHub OAuth lives under `apis/ai/stigmer/platform/github/v1/`. This is for platform-level utilities, not domain resources.
 26. **GitHub token in localStorage, not backend DB** — Key `stigmer:github:token`. Ephemeral by design — frontend persists, backend never stores.
 27. **Two-button workspace source selection** — "GitHub Repo" and "Local Folder" as action triggers, not tabs. Progressive disclosure via inline dropdowns.
+28. **Base theme tokens must establish surface hierarchy** — `card` must differ from `background` in both modes. Minimum ~0.02 OKLCH lightness gap for perceptible elevation. Border tokens need at least ~0.1 gap from adjacent surfaces.
+29. **No `foreground/N%` for borders** — Always use the token system (`border-border`, `border-sidebar-border`). Opacity on `foreground` bypasses preset overrides and produces inconsistent results.
 
 ## Next Steps
 1. **T01.6**: Web — Active Session View (`/sessions/[id]`) — conversation thread, real-time streaming, follow-up input, right context panel
