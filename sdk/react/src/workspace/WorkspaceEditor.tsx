@@ -4,6 +4,7 @@ import { useState, useCallback, type KeyboardEvent } from "react";
 import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { GitHubRepoPicker } from "../github/GitHubRepoPicker";
+import { FolderBrowser } from "./FolderBrowser";
 
 export interface WorkspaceEditorProps {
   readonly workspace: UseWorkspaceEntriesReturn;
@@ -15,6 +16,8 @@ export interface WorkspaceEditorProps {
   readonly enableGitHub?: boolean;
   /** Show the Local Folder source button. Default: false (set by Console based on deployment mode). */
   readonly enableLocal?: boolean;
+  /** Use the visual folder browser instead of a text input for local paths. Requires the /api/fs/list endpoint. Default: false. */
+  readonly enableFolderBrowser?: boolean;
 }
 
 type ActivePanel = "none" | "github" | "local";
@@ -39,6 +42,7 @@ export function WorkspaceEditor({
   gitHubConnection,
   enableGitHub = true,
   enableLocal = false,
+  enableFolderBrowser = false,
 }: WorkspaceEditorProps) {
   const [activePanel, setActivePanel] = useState<ActivePanel>("none");
   const [manualUrl, setManualUrl] = useState("");
@@ -174,33 +178,45 @@ export function WorkspaceEditor({
 
       {/* Local folder panel */}
       {activePanel === "local" && (
-        <div className="rounded-md border border-border bg-card p-3 space-y-2">
-          <input
-            type="text"
-            placeholder="/path/to/project"
-            value={localPath}
-            onChange={(e) => setLocalPath(e.target.value)}
-            onKeyDown={handleKeyDown(handleLocalAdd)}
-            className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            autoFocus
-          />
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setActivePanel("none")}
-              className="rounded-md px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleLocalAdd}
-              disabled={!localPath.trim()}
-              className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
-            >
-              Add
-            </button>
-          </div>
+        <div className="rounded-md border border-border bg-card p-3">
+          {enableFolderBrowser ? (
+            <FolderBrowser
+              onSelect={(path) => {
+                workspace.addLocalPath(path);
+                setActivePanel("none");
+              }}
+              onCancel={() => setActivePanel("none")}
+            />
+          ) : (
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="/path/to/project"
+                value={localPath}
+                onChange={(e) => setLocalPath(e.target.value)}
+                onKeyDown={handleKeyDown(handleLocalAdd)}
+                className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActivePanel("none")}
+                  className="rounded-md px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLocalAdd}
+                  disabled={!localPath.trim()}
+                  className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

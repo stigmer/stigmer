@@ -20,12 +20,21 @@ export type {
   ModelSelectorProps,
 } from "./models";
 
-// Workspace — behavior hook and styled component
-export { useWorkspaceEntries, WorkspaceEditor } from "./workspace";
+// Workspace — behavior hooks, data hook, and styled components
+export {
+  useWorkspaceEntries,
+  WorkspaceEditor,
+  useFolderListing,
+  FolderBrowser,
+} from "./workspace";
 export type {
   WorkspaceEntry,
   UseWorkspaceEntriesReturn,
   WorkspaceEditorProps,
+  FolderEntry,
+  FolderListing,
+  UseFolderListingReturn,
+  FolderBrowserProps,
 } from "./workspace";
 
 // Session — behavior hook (Session aggregate)
