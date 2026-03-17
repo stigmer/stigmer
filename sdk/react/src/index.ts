@@ -4,3 +4,42 @@ export { StigmerContext } from "./context";
 
 // Hooks
 export { useStigmer } from "./hooks";
+
+// Models — data hook, styled component, and registry data
+export {
+  MODEL_REGISTRY,
+  DEFAULT_MODEL_ID,
+  useModelRegistry,
+  ModelSelector,
+} from "./models";
+export type {
+  ModelInfo,
+  Provider,
+  CostTier,
+  UseModelRegistryReturn,
+  ModelSelectorProps,
+} from "./models";
+
+// Workspace — behavior hook and styled component
+export { useWorkspaceEntries, WorkspaceEditor } from "./workspace";
+export type {
+  WorkspaceEntry,
+  UseWorkspaceEntriesReturn,
+  WorkspaceEditorProps,
+} from "./workspace";
+
+// Session — behavior hook (Session aggregate)
+export { useCreateSession } from "./session";
+export type {
+  CreateSessionInput,
+  CreateSessionResult,
+  UseCreateSessionReturn,
+} from "./session";
+
+// Execution — behavior hook (AgentExecution aggregate)
+export { useCreateAgentExecution } from "./execution";
+export type {
+  CreateAgentExecutionInput,
+  CreateAgentExecutionResult,
+  UseCreateAgentExecutionReturn,
+} from "./execution";
