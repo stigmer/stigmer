@@ -1,6 +1,8 @@
 # @stigmer/react
 
-React hooks and embeddable components for the Stigmer platform. Drop pre-built agent UIs into any React application with full theming control and style isolation.
+React provider and client hook for the Stigmer platform SDK. Provides the foundational wiring for connecting React applications to a Stigmer backend — style-isolated and theme-aware.
+
+> Feature components (agent picker, execution stream, session history, etc.) have been removed as part of the session-first UX redesign and will be rebuilt with a platform-for-platforms architecture.
 
 ## Install
 
@@ -17,18 +19,12 @@ Peer dependencies (install alongside):
 | `@stigmer/sdk` | `*` |
 | `@stigmer/protos` | `*` |
 | `@bufbuild/protobuf` | `^2.0.0` |
-| `@base-ui/react` | `^1.0.0` |
-| `class-variance-authority` | `^0.7.0` |
-| `lucide-react` | `>=0.400.0` |
-| `react-markdown` | `^10.0.0` |
-| `remark-gfm` | `^4.0.0` |
 
 ## Quick Start
 
 ```tsx
 import { Stigmer } from "@stigmer/sdk";
 import { StigmerProvider } from "@stigmer/react";
-import { AgentPicker } from "@stigmer/react/agent";
 import "@stigmer/react/styles.css";
 
 const client = new Stigmer({
@@ -39,7 +35,7 @@ const client = new Stigmer({
 function App() {
   return (
     <StigmerProvider client={client} preset="corporate">
-      <AgentPicker onSelect={(agent) => console.log(agent)} />
+      <YourApp />
     </StigmerProvider>
   );
 }
@@ -146,22 +142,6 @@ Stigmer components respond to the `.dark` class on `<html>` (or any ancestor). T
 
 No additional configuration is needed. If your host application toggles `.dark` on `document.documentElement`, Stigmer components follow automatically.
 
-### Token Categories
-
-All tokens use the `--stgm-*` namespace. The full reference is in [`@stigmer/theme` README](../theme/README.md). Key categories:
-
-| Category | Tokens | Notes |
-|----------|--------|-------|
-| Colors (core) | `--stgm-background`, `--stgm-foreground`, `--stgm-primary`, `--stgm-secondary`, `--stgm-muted`, `--stgm-accent`, `--stgm-card`, `--stgm-popover` | Each has a `-foreground` counterpart |
-| Colors (semantic) | `--stgm-destructive`, `--stgm-success`, `--stgm-warning`, `--stgm-info` | Each has a `-foreground` counterpart |
-| Colors (form) | `--stgm-border`, `--stgm-input`, `--stgm-ring` | |
-| Colors (chart) | `--stgm-chart-1` through `--stgm-chart-5` | Data visualization palette |
-| Typography | `--stgm-font-sans`, `--stgm-font-mono` | |
-| Shape | `--stgm-radius` | Base border radius |
-| Shadows | `--stgm-shadow-sm`, `--stgm-shadow-md`, `--stgm-shadow-lg` | Override per mode — dark surfaces need higher opacity |
-| Transitions | `--stgm-transition-duration`, `--stgm-transition-timing` | Applied to all `transition-*` Tailwind utilities |
-| Z-index | `--stgm-z-popover` | Stacking context for overlay components |
-
 ## Style Isolation
 
 `@stigmer/react` is designed to embed inside any host application without style conflicts.
@@ -172,75 +152,11 @@ All tokens use the `--stgm-*` namespace. The full reference is in [`@stigmer/the
 
 This means you can mount `<StigmerProvider>` inside a sidebar, modal, or any section of your page and Stigmer's styles stay contained.
 
-## Components and Hooks
-
-Components are organized by domain and available via subpath imports.
-
-### `@stigmer/react/agent`
-
-| Export | Type | Description |
-|--------|------|-------------|
-| `AgentPicker` | Component | Searchable agent picker with keyboard navigation |
-| `AgentCard` | Component | Card displaying agent name, icon, badges, and resource counts |
-| `AgentOverview` | Component | Detailed agent view with collapsible instructions |
-| `useAgentSearch` | Hook | Search agents with debounced query and pagination |
-
-### `@stigmer/react/session`
-
-| Export | Type | Description |
-|--------|------|-------------|
-| `AgentSessionHistory` | Component | Paginated list of recent sessions for an agent |
-| `SessionCard` | Component | Card displaying session subject and timestamps |
-| `useAgentSessionList` | Hook | Fetch paginated session list for an agent |
-
-### `@stigmer/react/agent-execution`
-
-| Export | Type | Description |
-|--------|------|-------------|
-| `ExecutionStream` | Component | Scrollable message stream with tool calls and approval controls |
-| `ExecutionStatus` | Component | Badge displaying execution phase (running, waiting, completed) |
-| `OutputBlock` | Component | Markdown output with optional streaming cursor |
-| `ToolCallCard` | Component | Collapsible card for a tool call with input/output and approval |
-| `ApprovalControls` | Component | Approve / reject / skip controls for HITL (Human-in-the-Loop) |
-| `SubAgentCard` | Component | Collapsible card for sub-agent execution |
-| `MessageInput` | Component | Textarea with send button for user messages |
-| `MessageEntry` | Component | Routes a message to the appropriate renderer |
-| `HumanMessageBubble` | Component | Styled bubble for human messages |
-| `SystemMessageBlock` | Component | Block for system messages |
-| `useAgentExecution` | Hook | Manage execution lifecycle — create, stream, and track phase |
-| `useApproval` | Hook | Submit approval decisions for tool calls requiring HITL |
-
-### `@stigmer/react/catalog`
-
-| Export | Type | Description |
-|--------|------|-------------|
-| `ResourceSearchCard` | Component | Card for cross-resource search results (agents, skills, MCP servers) |
-| `formatRelativeTime` | Utility | Format a timestamp as relative time (e.g., "3 hours ago") |
-| `toDate` | Utility | Convert protobuf `Timestamp` to a JavaScript `Date` |
-
-### `@stigmer/react/skill`
-
-| Export | Type | Description |
-|--------|------|-------------|
-| `useSkillSearch` | Hook | Search skills with debounced query and pagination |
-
-### `@stigmer/react/mcp-server`
-
-| Export | Type | Description |
-|--------|------|-------------|
-| `useMcpServerSearch` | Hook | Search MCP (Model Context Protocol) servers with debounced query and pagination |
-
 ## Exports
 
 | Import path | Content |
 |-------------|---------|
 | `@stigmer/react` | `StigmerProvider`, `StigmerContext`, `useStigmer` |
-| `@stigmer/react/agent` | Agent components and `useAgentSearch` hook |
-| `@stigmer/react/session` | Session components and `useAgentSessionList` hook |
-| `@stigmer/react/agent-execution` | Execution stream components, `useAgentExecution`, `useApproval`, helpers |
-| `@stigmer/react/catalog` | `ResourceSearchCard`, time utilities |
-| `@stigmer/react/skill` | `useSkillSearch` hook |
-| `@stigmer/react/mcp-server` | `useMcpServerSearch` hook |
 | `@stigmer/react/styles.css` | Compiled stylesheet (import once at app root) |
 
 ## License

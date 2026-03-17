@@ -1,7 +1,7 @@
 {
   "name": "@stigmer/react",
   "version": "0.0.0-dev",
-  "description": "React hooks and embeddable components for the Stigmer platform",
+  "description": "React provider and client hook for the Stigmer platform SDK",
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": [
@@ -11,12 +11,6 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./agent": "./src/agent/index.ts",
-    "./session": "./src/session/index.ts",
-    "./agent-execution": "./src/agent-execution/index.ts",
-    "./catalog": "./src/catalog/index.ts",
-    "./skill": "./src/skill/index.ts",
-    "./mcp-server": "./src/mcp-server/index.ts",
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
@@ -35,10 +29,7 @@
     "stigmer",
     "react",
     "sdk",
-    "ai-agents",
-    "embeddable",
-    "execution-streaming",
-    "hitl"
+    "ai-agents"
   ],
   "publishConfig": {
     "access": "public",
@@ -48,30 +39,6 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
-      },
-      "./agent": {
-        "types": "./dist/agent/index.d.ts",
-        "import": "./dist/agent/index.js"
-      },
-      "./session": {
-        "types": "./dist/session/index.d.ts",
-        "import": "./dist/session/index.js"
-      },
-      "./agent-execution": {
-        "types": "./dist/agent-execution/index.d.ts",
-        "import": "./dist/agent-execution/index.js"
-      },
-      "./catalog": {
-        "types": "./dist/catalog/index.d.ts",
-        "import": "./dist/catalog/index.js"
-      },
-      "./skill": {
-        "types": "./dist/skill/index.d.ts",
-        "import": "./dist/skill/index.js"
-      },
-      "./mcp-server": {
-        "types": "./dist/mcp-server/index.d.ts",
-        "import": "./dist/mcp-server/index.js"
       },
       "./styles.css": "./dist/styles.css"
     }
@@ -89,11 +56,6 @@
     "react-dom": "^19.0.0",
     "@stigmer/sdk": "*",
     "@stigmer/protos": "*",
-    "@bufbuild/protobuf": "^2.0.0",
-    "@base-ui/react": "^1.0.0",
-    "class-variance-authority": "^0.7.0",
-    "lucide-react": ">=0.400.0",
-    "react-markdown": "^10.0.0",
-    "remark-gfm": "^4.0.0"
+    "@bufbuild/protobuf": "^2.0.0"
   }
 }
