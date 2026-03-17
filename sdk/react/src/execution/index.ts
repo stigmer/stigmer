@@ -4,3 +4,6 @@ export type {
   CreateAgentExecutionResult,
   UseCreateAgentExecutionReturn,
 } from "./useCreateAgentExecution";
+
+export { useExecutionStream } from "./useExecutionStream";
+export type { UseExecutionStreamReturn } from "./useExecutionStream";

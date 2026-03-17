@@ -101,54 +101,65 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-17 18:16
-**Current Task**: T01 Step 2 (SDK Behavior Hook — useExecutionStream)
-**Status**: Step 1 complete, Step 2 ready to start
-**Last Session**: 2026-03-17 — Completed Step 1: SDK Data Hooks
+**Current Task**: T01 Step 3 (SDK Styled Components)
+**Status**: Steps 1-2 complete, Step 3 ready to start
+**Last Session**: 2026-03-17 — Completed Step 2: SDK Behavior Hook (useExecutionStream)
 
-## Session Progress (2026-03-17)
+## Session Progress (2026-03-17, Session 2)
+
+### Completed: Step 2 — SDK Behavior Hook (`useExecutionStream`)
+
+- Created `useExecutionStream(executionId: string | null)` in `sdk/react/src/execution/useExecutionStream.ts`
+  - Subscribes to `stigmer.agentExecution.subscribe(id, signal)` (AsyncGenerator over gRPC-Web server streaming)
+  - Returns `{ execution, phase, isStreaming, isConnecting, error, reconnect }`
+  - Each server message replaces state atomically (full AgentExecution snapshot, no delta merge)
+  - `AbortController` per subscription, stored in ref, aborted on cleanup/id-change/reconnect
+  - AbortError suppression: checks `controller.signal.aborted` before setting error state
+  - Terminal phase detection via `TERMINAL_PHASES` Set (COMPLETED, FAILED, CANCELLED, TERMINATED)
+  - `phase` derived via `useMemo` from `execution.status?.phase` — always consistent, no stored state drift
+  - `reconnect()` via `connectKey` counter pattern (consistent with `refetch()` in other hooks)
+  - State clearing on `executionId` change prevents stale cross-execution data
+  - Async IIFE in `useEffect` consumes generator with `for await...of` + `try/catch`
+- Updated barrel exports: `sdk/react/src/execution/index.ts` and `sdk/react/src/index.ts`
+- Verification: `npm run typecheck`, `npm run build` (sdk/react), `npm run build` (client-apps/web) all pass clean
+
+### Key Design Decisions (Step 2)
+
+1. **`phase` as derived state via `useMemo`** — Eliminates impossible state where `phase` and `execution` disagree. `EXECUTION_PHASE_UNSPECIFIED` when `execution` is `null` is semantically correct.
+2. **`isStreaming` and `isConnecting` as stored state** — These track lifecycle events (loop entry/exit) not derivable from `execution` alone. `isStreaming` must become `false` when the stream ends even though `execution` still holds the last snapshot.
+3. **`reconnect()` via `connectKey` counter** — Same pattern as `refetch()` in `useSessionExecutions`. Works in any lifecycle state (error, complete, mid-stream).
+4. **State clearing on `executionId` change** — Unlike data hooks that keep stale data during reload, streaming hook clears `execution` to `null` when switching execution IDs. Stale data from a different execution would be actively misleading.
+5. **`TERMINAL_PHASES` not exported** — Internal to the hook. Platform builders check `phase` directly. If multiple hooks/components need it, extract a shared utility then.
+
+## Session Progress (2026-03-17, Session 1)
 
 ### Completed: Step 1 — SDK Data Hooks
 
 - Created `useSession(id: string | null)` in `sdk/react/src/session/useSession.ts`
-  - Fetches a single Session by ID via `stigmer.session.get()`
-  - Returns `{ session, isLoading, error }` with full proto `Session` type
-  - `null` parameter = stable no-op (consistent with other hooks)
-  - Stale response suppression via `cancelled` flag pattern
 - Created `useSessionExecutions(sessionId: string | null)` in `sdk/react/src/session/useSessionExecutions.ts`
-  - Fetches `AgentExecution[]` for a session via `stigmer.agentExecution.listBySession()`
-  - Returns `{ executions, isLoading, error, refetch }`
-  - `refetch()` via `fetchKey` counter pattern (needed by SP2)
-  - `pageSize: 100` — sufficient for typical sessions, full pagination deferred
-  - Constructs proto request via `create(ListAgentExecutionsBySessionRequestSchema, { ... })`
 - Updated barrel exports: `sdk/react/src/session/index.ts` and `sdk/react/src/index.ts`
-- Verification: `npm run typecheck`, `npm run build` (sdk/react), `npm run build` (client-apps/web) all pass clean
-
-### Key Design Decisions (Step 1)
-
-1. **`string | null` parameter type** — Consistent null-means-skip convention across all data hooks. Matches `useExecutionStream` plan.
-2. **Full proto return types** — Data hooks return `Session` and `AgentExecution` directly (not simplified wrappers). Avoids parallel type hierarchy drift.
-3. **Both hooks under `session/`** — Grouped by consumption context (session view), not resource type. `useExecutionStream` will go under `execution/`.
-4. **`fetchKey` counter for refetch** — Simple, testable pattern. No external state tracking.
+- Verification: all builds pass clean
 
 ## Next Steps
 
-1. **Step 2**: SDK Behavior Hook — `useExecutionStream` (streaming subscription)
-2. **Step 3**: SDK Styled Components — `MessageEntry`, `ToolCallGroup`, `ExecutionPhaseBadge`, `MessageThread`
-3. **Step 4**: Console SessionPage — Orchestration at `/sessions/[id]`
-4. **Step 5**: Barrel Exports + Dependencies (`react-markdown`, `remark-gfm`)
+1. **Step 3**: SDK Styled Components — `MessageEntry`, `ToolCallGroup`, `ExecutionPhaseBadge`, `MessageThread`
+2. **Step 4**: Console SessionPage — Orchestration at `/sessions/[id]`
+3. **Step 5**: Barrel Exports + Dependencies (`react-markdown`, `remark-gfm`)
 
 ## Context for Resume
 
 - Branch: `feat/session-first-web-ux`
-- Step 1 files committed. Steps 2-5 pending.
-- The `subscribe` method on `AgentExecutionClient` is an `AsyncGenerator<AgentExecution>` that accepts an optional `AbortSignal`. Step 2 will use this.
-- `ExecutionPhase` enum values: `EXECUTION_PENDING`, `EXECUTION_IN_PROGRESS`, `EXECUTION_COMPLETED`, `EXECUTION_FAILED`, `EXECUTION_CANCELLED`, `EXECUTION_TERMINATED`, `EXECUTION_WAITING_FOR_APPROVAL`, `EXECUTION_PAUSED`. Terminal phases: COMPLETED, FAILED, CANCELLED, TERMINATED.
-- `AgentExecutionStatus` has `messages: AgentMessage[]`, `toolCalls: ToolCall[]`, `phase: ExecutionPhase`, plus usage, approvals, artifacts, etc.
+- Steps 1-2 files committed. Steps 3-5 pending.
+- `useExecutionStream` returns full `AgentExecution` snapshots. `MessageThread` (Step 3) will consume `execution.status?.messages` and `execution.status?.toolCalls`.
+- `AgentMessage` fields: `type` (HUMAN/AI/TOOL/SYSTEM), `content`, `timestamp`, `tool_calls`, `is_streaming`, `token_count`, `model`.
+- `ToolCall` fields: `id`, `name`, `args`, `result`, `status` (PENDING/RUNNING/COMPLETED/FAILED/WAITING_FOR_APPROVAL), `is_streaming`, `error`.
+- `ExecutionPhase` enum values: `EXECUTION_PENDING`, `EXECUTION_IN_PROGRESS`, `EXECUTION_COMPLETED`, `EXECUTION_FAILED`, `EXECUTION_CANCELLED`, `EXECUTION_TERMINATED`, `EXECUTION_WAITING_FOR_APPROVAL`, `EXECUTION_PAUSED`.
+- Step 3 needs `react-markdown` and `remark-gfm` dependencies added to `sdk/react/package.json`.
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Step 2" - Start useExecutionStream
+- "Continue with Step 3" - Start SDK Styled Components
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
