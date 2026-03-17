@@ -26,7 +26,13 @@ func NewSPAHandler() http.Handler {
 		return http.NotFoundHandler()
 	}
 
-	return &spaHandler{fs: assets}
+	spa := &spaHandler{fs: assets}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/fs/list", handleFSList)
+	mux.Handle("/", spa)
+
+	return mux
 }
 
 type spaHandler struct {

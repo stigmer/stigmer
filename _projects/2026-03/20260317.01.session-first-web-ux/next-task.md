@@ -70,7 +70,7 @@ When starting a new session:
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.6 (Web — Active Session View)
 **Status**: Ready to start
-**Last Session**: 2026-03-17 — GitHub OAuth App registration + credential embedding (session 12)
+**Last Session**: 2026-03-17 — Local Folder Browser (Phase 2) implementation (session 13)
 **Pending Pre-req**: ~~GitHub OAuth App registration~~ Done — credentials embedded in binary and configured in cloud deployment
 
 ## Session Progress (2026-03-17)
@@ -186,6 +186,14 @@ When starting a new session:
 - No component architecture changes. Preset themes unaffected (they override base tokens).
 - Verified visually in both light and dark modes.
 
+### Completed: Local Folder Browser — Phase 2 (Session 13)
+- Replaced raw text input for local workspace paths with a backend-powered folder browser
+- **Go Backend**: New `api_fs.go` with `GET /api/fs/list` handler — returns sorted directory entries with `cwd`, `home`, and `hidden` flags. `NewSPAHandler()` wraps SPA in `http.ServeMux` for API routing.
+- **SDK React**: `useFolderListing` data hook (fetch, abort, LRU cache, `isAvailable` detection) + `FolderBrowser` styled component (breadcrumb path bar, directory list, Home/CWD quick nav, hidden files toggle, keyboard navigation, loading skeletons, error states, graceful fallback to text input)
+- **Console**: `WorkspaceEditor` gains `enableFolderBrowser` prop; `SessionLauncher` passes `enableFolderBrowser={deploymentMode === "local"}`
+- **Security model**: No path restrictions (industry standard — VS Code, Jupyter, Docker Desktop). `127.0.0.1` binding, OS permissions, read-only endpoint. Cloud mode excluded entirely.
+- **Key decisions**: Plain `fetch` (not gRPC) for local-only utility endpoint. `FolderBrowser` in SDK (not Console) for platform builder reuse. Text input preserved as fallback via `enableFolderBrowser=false` default.
+
 ### Key Decisions (cumulative)
 1. **No MCP server usages** — the assistant is purely general-purpose. Tools come from the runtime.
 2. **Minimal instructions** — 5 lines. Identity, mission, tone, action bias, honesty.
@@ -216,6 +224,11 @@ When starting a new session:
 27. **Two-button workspace source selection** — "GitHub Repo" and "Local Folder" as action triggers, not tabs. Progressive disclosure via inline dropdowns.
 28. **Base theme tokens must establish surface hierarchy** — `card` must differ from `background` in both modes. Minimum ~0.02 OKLCH lightness gap for perceptible elevation. Border tokens need at least ~0.1 gap from adjacent surfaces.
 29. **No `foreground/N%` for borders** — Always use the token system (`border-border`, `border-sidebar-border`). Opacity on `foreground` bypasses preset overrides and produces inconsistent results.
+30. **Plain `fetch` for local-only utilities** — The `/api/fs/list` endpoint is outside the domain API surface (no proto, no gRPC). `useFolderListing` uses `fetch` directly, not `@stigmer/sdk` clients. Same rationale as `useDeploymentMode` checking the API URL directly.
+31. **No filesystem path restrictions** — Industry standard (VS Code, Jupyter, Docker Desktop, code-server) is unrestricted local filesystem access. Security comes from `127.0.0.1` binding and OS permissions, not artificial path limits.
+32. **`FolderBrowser` in SDK, not Console** — Platform builders running Stigmer locally need folder selection too. Follows `GitHubRepoPicker` pattern: SDK component with clean props, composed by Console.
+33. **`enableFolderBrowser` as opt-in prop** — Default `false` preserves backward compatibility. Text input fallback remains available for cases where the endpoint doesn't exist.
+34. **CWD as default starting directory** — Better than home directory because users typically launch `stigmer` from near their projects. The Go endpoint uses `os.Getwd()` when no path is provided.
 
 ## Next Steps
 1. **T01.6**: Web — Active Session View (`/sessions/[id]`) — conversation thread, real-time streaming, follow-up input, right context panel
@@ -226,7 +239,7 @@ When starting a new session:
 - T01.1 through T01.5 are complete and committed.
 - The web app has a headerless sidebar-driven layout with a working session launcher at `/`.
 - The React SDK now has three feature modules: `models/`, `workspace/`, `session/`, `execution/`.
-- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useCreateSession`, `useCreateAgentExecution`, `useGitHubConnection`, `useGitHubRepos`, `GitHubRepoPicker`.
+- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useFolderListing`, `FolderBrowser`, `useCreateSession`, `useCreateAgentExecution`, `useGitHubConnection`, `useGitHubRepos`, `GitHubRepoPicker`.
 - The session launcher flow: create session -> create agent execution -> navigate to `/sessions/[id]`.
 - `/sessions/[id]/page.tsx` exists as a placeholder — T01.6 builds the actual session view.
 - Proto `agent_instance_id` is optional in SessionSpec. Backend resolves default agent instance if omitted.

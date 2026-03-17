@@ -179,6 +179,7 @@ export function SessionLauncher() {
             gitHubConnection={gitHubConnection}
             enableGitHub
             enableLocal={deploymentMode === "local"}
+            enableFolderBrowser={deploymentMode === "local"}
           />
         </form>
 
