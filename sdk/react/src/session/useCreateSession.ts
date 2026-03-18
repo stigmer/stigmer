@@ -1,13 +1,19 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { WorkspaceEntryInput } from "@stigmer/sdk";
+import type {
+  McpServerUsageInput,
+  ResourceRef,
+  WorkspaceEntryInput,
+} from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 
 export interface CreateSessionInput {
   readonly org: string;
   readonly workspaceEntries?: WorkspaceEntryInput[];
   readonly subject?: string;
+  readonly mcpServerUsages?: McpServerUsageInput[];
+  readonly skillRefs?: ResourceRef[];
 }
 
 export interface CreateSessionResult {
@@ -49,6 +55,8 @@ export function useCreateSession(): UseCreateSessionReturn {
           org: input.org,
           subject: input.subject,
           workspaceEntries: input.workspaceEntries,
+          mcpServerUsages: input.mcpServerUsages,
+          skillRefs: input.skillRefs,
         });
 
         return { sessionId: session.metadata!.id };

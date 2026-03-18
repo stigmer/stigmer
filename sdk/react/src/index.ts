@@ -58,6 +58,7 @@ export type {
   UseSessionListOptions,
   UseSessionListReturn,
   UseSessionExecutionsReturn,
+  SendFollowUpOptions,
   UseSessionConversationReturn,
   SessionGroup,
 } from "./session";

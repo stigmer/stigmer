@@ -5,8 +5,14 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, type ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
+import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-import type { WorkspaceEntryInput } from "@stigmer/sdk";
+import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import type {
+  McpServerUsageInput,
+  ResourceRef,
+  WorkspaceEntryInput,
+} from "@stigmer/sdk";
 import { isTerminalPhase } from "../execution/execution-phases";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 import { useExecutionStream } from "../execution/useExecutionStream";
@@ -14,6 +20,21 @@ import { useSubmitApproval } from "../execution/useSubmitApproval";
 import { useSession } from "./useSession";
 import { useSessionExecutions } from "./useSessionExecutions";
 import { useUpdateSession } from "./useUpdateSession";
+
+/**
+ * Options for {@link UseSessionConversationReturn.sendFollowUp}.
+ *
+ * Session-level fields (`workspaceEntries`, `mcpServerUsages`,
+ * `skillRefs`) trigger a `session.update()` before the execution is
+ * created. Only provided fields are overwritten; omitted fields
+ * preserve the session's existing values.
+ */
+export interface SendFollowUpOptions {
+  readonly modelName?: string;
+  readonly workspaceEntries?: WorkspaceEntryInput[];
+  readonly mcpServerUsages?: McpServerUsageInput[];
+  readonly skillRefs?: ResourceRef[];
+}
 
 export interface UseSessionConversationReturn {
   /** The session object, or null while loading. */
@@ -31,13 +52,13 @@ export interface UseSessionConversationReturn {
    * Submit a follow-up message. Internally creates an execution and
    * starts streaming it.
    *
-   * When `workspaceEntries` is provided, the session's workspace list
-   * is updated via `session.update()` before creating the execution.
+   * When session-level fields (`workspaceEntries`, `mcpServerUsages`,
+   * `skillRefs`) are provided in options, the session is updated via
+   * `session.update()` before creating the execution.
    */
   readonly sendFollowUp: (
     message: string,
-    modelName?: string,
-    workspaceEntries?: WorkspaceEntryInput[],
+    options?: SendFollowUpOptions,
   ) => Promise<void>;
   /** True when the input should be enabled (no active execution, not creating). */
   readonly canSendFollowUp: boolean;
@@ -52,6 +73,10 @@ export interface UseSessionConversationReturn {
 
   /** Current workspace entries from the session spec. Empty array when session is not loaded. */
   readonly workspaceEntries: readonly ProtoWorkspaceEntry[];
+  /** Current MCP server usages from the session spec. Empty array when session is not loaded. */
+  readonly mcpServerUsages: readonly ProtoMcpServerUsage[];
+  /** Current skill references from the session spec. Empty array when session is not loaded. */
+  readonly skillRefs: readonly ProtoApiResourceReference[];
 
   /** Pending approval requests from the active execution, empty when none. */
   readonly pendingApprovals: readonly PendingApproval[];
@@ -113,7 +138,7 @@ export interface UseSessionConversationReturn {
  *         dismissedApprovalIds={conv.dismissedApprovalIds}
  *       />
  *       <SessionComposer
- *         onSubmit={(msg, model) => conv.sendFollowUp(msg, model)}
+ *         onSubmit={(msg, model) => conv.sendFollowUp(msg, { modelName: model })}
  *         disabled={!conv.canSendFollowUp}
  *         isSubmitting={conv.isSending}
  *       />
@@ -231,20 +256,35 @@ export function useSessionConversation(
     [session],
   );
 
+  const mcpServerUsages = useMemo<readonly ProtoMcpServerUsage[]>(
+    () => session?.spec?.mcpServerUsages ?? [],
+    [session],
+  );
+
+  const skillRefs = useMemo<readonly ProtoApiResourceReference[]>(
+    () => session?.spec?.skillRefs ?? [],
+    [session],
+  );
+
   const sendFollowUp = useCallback(
-    async (
-      message: string,
-      modelName?: string,
-      newWorkspaceEntries?: WorkspaceEntryInput[],
-    ): Promise<void> => {
+    async (message: string, options?: SendFollowUpOptions): Promise<void> => {
       if (!sessionId || !session) return;
 
       setPendingUserMessage(message);
 
       try {
-        if (newWorkspaceEntries) {
+        const needsSessionUpdate =
+          options?.workspaceEntries !== undefined ||
+          options?.mcpServerUsages !== undefined ||
+          options?.skillRefs !== undefined;
+
+        if (needsSessionUpdate) {
           await updateSession(
-            buildUpdateInput(session, newWorkspaceEntries),
+            buildUpdateInput(session, {
+              workspaceEntries: options?.workspaceEntries,
+              mcpServerUsages: options?.mcpServerUsages,
+              skillRefs: options?.skillRefs,
+            }),
           );
         }
 
@@ -252,7 +292,7 @@ export function useSessionConversation(
           org,
           sessionId,
           message,
-          modelName,
+          modelName: options?.modelName,
         });
         setPendingExecutionId(result.executionId);
         refetch();
@@ -305,6 +345,8 @@ export function useSessionConversation(
     pendingUserMessage,
 
     workspaceEntries,
+    mcpServerUsages,
+    skillRefs,
 
     pendingApprovals,
     submitApproval,
@@ -326,18 +368,86 @@ export function useSessionConversation(
 // ---------------------------------------------------------------------------
 
 /**
- * Converts the existing Session proto into a SessionInput with workspace
- * entries replaced. Preserves all other spec fields to avoid data loss
- * during the update RPC (which uses replace semantics).
+ * Converts the existing Session proto into a SessionInput suitable for
+ * the update RPC (which uses replace semantics — the full spec is sent).
+ *
+ * For each session-level collection (workspace, MCP servers, skills):
+ * if an override is provided, it replaces the existing value; otherwise
+ * the current session value is preserved by converting it back to input
+ * format.
  */
 function buildUpdateInput(
   session: Session,
-  workspaceEntries: WorkspaceEntryInput[],
+  overrides: {
+    workspaceEntries?: WorkspaceEntryInput[];
+    mcpServerUsages?: McpServerUsageInput[];
+    skillRefs?: ResourceRef[];
+  },
 ) {
   const meta = session.metadata!;
   const spec = session.spec;
 
-  const mcpServerUsages = spec?.mcpServerUsages?.map((u) => ({
+  const workspaceEntries =
+    overrides.workspaceEntries ?? specWorkspaceToInput(spec);
+
+  const mcpServerUsages =
+    overrides.mcpServerUsages ?? specMcpUsagesToInput(spec);
+
+  const skillRefs = overrides.skillRefs ?? specSkillRefsToInput(spec);
+
+  return {
+    name: meta.name,
+    org: meta.org,
+    agentInstanceId: spec?.agentInstanceId || undefined,
+    subject: spec?.subject || undefined,
+    threadId: spec?.threadId || undefined,
+    sandboxId: spec?.sandboxId || undefined,
+    metadata:
+      spec?.metadata && Object.keys(spec.metadata).length > 0
+        ? { ...spec.metadata }
+        : undefined,
+    workspaceEntries: workspaceEntries?.length ? workspaceEntries : undefined,
+    mcpServerUsages: mcpServerUsages?.length ? mcpServerUsages : undefined,
+    skillRefs: skillRefs?.length ? skillRefs : undefined,
+  };
+}
+
+/** Convert proto workspace entries back to SDK input format. */
+function specWorkspaceToInput(
+  spec: Session["spec"],
+): WorkspaceEntryInput[] | undefined {
+  return spec?.workspaceEntries?.map((e): WorkspaceEntryInput => {
+    if (e.source?.source.case === "gitRepo") {
+      const v = e.source.source.value;
+      return {
+        name: e.name || undefined,
+        source: {
+          gitRepo: {
+            url: v.url,
+            branch: v.branch || undefined,
+            commit: v.commit || undefined,
+            depth: v.depth || undefined,
+          },
+        },
+      };
+    }
+    if (e.source?.source.case === "localPath") {
+      return {
+        name: e.name || undefined,
+        source: {
+          localPath: { path: e.source.source.value.path || undefined },
+        },
+      };
+    }
+    return { name: e.name || undefined, source: {} };
+  });
+}
+
+/** Convert proto MCP server usages back to SDK input format. */
+function specMcpUsagesToInput(
+  spec: Session["spec"],
+): McpServerUsageInput[] | undefined {
+  return spec?.mcpServerUsages?.map((u) => ({
     mcpServerRef: {
       org: u.mcpServerRef?.org ?? "",
       slug: u.mcpServerRef?.slug ?? "",
@@ -353,26 +463,16 @@ function buildUpdateInput(
         }))
       : undefined,
   }));
+}
 
-  const skillRefs = spec?.skillRefs?.map((r) => ({
+/** Convert proto skill references back to SDK input format. */
+function specSkillRefsToInput(
+  spec: Session["spec"],
+): ResourceRef[] | undefined {
+  return spec?.skillRefs?.map((r) => ({
     org: r.org ?? "",
     slug: r.slug ?? "",
     version: r.version || undefined,
     kind: r.kind,
   }));
-
-  return {
-    name: meta.name,
-    org: meta.org,
-    agentInstanceId: spec?.agentInstanceId || undefined,
-    subject: spec?.subject || undefined,
-    threadId: spec?.threadId || undefined,
-    sandboxId: spec?.sandboxId || undefined,
-    metadata: spec?.metadata && Object.keys(spec.metadata).length > 0
-      ? { ...spec.metadata }
-      : undefined,
-    workspaceEntries,
-    mcpServerUsages: mcpServerUsages?.length ? mcpServerUsages : undefined,
-    skillRefs: skillRefs?.length ? skillRefs : undefined,
-  };
 }
