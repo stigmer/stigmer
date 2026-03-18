@@ -232,4 +232,167 @@ java.lang.String defaultValue);
    */
   ai.stigmer.agentic.session.v1.WorkspaceEntryOrBuilder getWorkspaceEntriesOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * MCP servers to make available in this session (merged with agent's at execution time).
+   *
+   * Enables users to augment the agent's tool set for a specific conversation
+   * without modifying the agent blueprint. Each usage references an McpServer
+   * resource; the agent runner merges these with the agent's mcp_server_usages
+   * when constructing the execution graph.
+   *
+   * Merge semantics: session-level usages are union'd with agent-level usages.
+   * If both reference the same MCP server slug, the session-level entry takes
+   * precedence (enables per-session tool restriction or expansion).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<ai.stigmer.agentic.agent.v1.McpServerUsage> 
+      getMcpServerUsagesList();
+  /**
+   * <pre>
+   * MCP servers to make available in this session (merged with agent's at execution time).
+   *
+   * Enables users to augment the agent's tool set for a specific conversation
+   * without modifying the agent blueprint. Each usage references an McpServer
+   * resource; the agent runner merges these with the agent's mcp_server_usages
+   * when constructing the execution graph.
+   *
+   * Merge semantics: session-level usages are union'd with agent-level usages.
+   * If both reference the same MCP server slug, the session-level entry takes
+   * precedence (enables per-session tool restriction or expansion).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.agentic.agent.v1.McpServerUsage getMcpServerUsages(int index);
+  /**
+   * <pre>
+   * MCP servers to make available in this session (merged with agent's at execution time).
+   *
+   * Enables users to augment the agent's tool set for a specific conversation
+   * without modifying the agent blueprint. Each usage references an McpServer
+   * resource; the agent runner merges these with the agent's mcp_server_usages
+   * when constructing the execution graph.
+   *
+   * Merge semantics: session-level usages are union'd with agent-level usages.
+   * If both reference the same MCP server slug, the session-level entry takes
+   * precedence (enables per-session tool restriction or expansion).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   */
+  int getMcpServerUsagesCount();
+  /**
+   * <pre>
+   * MCP servers to make available in this session (merged with agent's at execution time).
+   *
+   * Enables users to augment the agent's tool set for a specific conversation
+   * without modifying the agent blueprint. Each usage references an McpServer
+   * resource; the agent runner merges these with the agent's mcp_server_usages
+   * when constructing the execution graph.
+   *
+   * Merge semantics: session-level usages are union'd with agent-level usages.
+   * If both reference the same MCP server slug, the session-level entry takes
+   * precedence (enables per-session tool restriction or expansion).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder> 
+      getMcpServerUsagesOrBuilderList();
+  /**
+   * <pre>
+   * MCP servers to make available in this session (merged with agent's at execution time).
+   *
+   * Enables users to augment the agent's tool set for a specific conversation
+   * without modifying the agent blueprint. Each usage references an McpServer
+   * resource; the agent runner merges these with the agent's mcp_server_usages
+   * when constructing the execution graph.
+   *
+   * Merge semantics: session-level usages are union'd with agent-level usages.
+   * If both reference the same MCP server slug, the session-level entry takes
+   * precedence (enables per-session tool restriction or expansion).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
+      int index);
+
+  /**
+   * <pre>
+   * Skills to inject into this session's context (merged with agent's at execution time).
+   *
+   * Enables users to provide domain-specific knowledge for a specific conversation
+   * without modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is injected into the agent's context alongside agent-level skills.
+   *
+   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
+      getSkillRefsList();
+  /**
+   * <pre>
+   * Skills to inject into this session's context (merged with agent's at execution time).
+   *
+   * Enables users to provide domain-specific knowledge for a specific conversation
+   * without modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is injected into the agent's context alongside agent-level skills.
+   *
+   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReference getSkillRefs(int index);
+  /**
+   * <pre>
+   * Skills to inject into this session's context (merged with agent's at execution time).
+   *
+   * Enables users to provide domain-specific knowledge for a specific conversation
+   * without modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is injected into the agent's context alongside agent-level skills.
+   *
+   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   */
+  int getSkillRefsCount();
+  /**
+   * <pre>
+   * Skills to inject into this session's context (merged with agent's at execution time).
+   *
+   * Enables users to provide domain-specific knowledge for a specific conversation
+   * without modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is injected into the agent's context alongside agent-level skills.
+   *
+   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   */
+  java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getSkillRefsOrBuilderList();
+  /**
+   * <pre>
+   * Skills to inject into this session's context (merged with agent's at execution time).
+   *
+   * Enables users to provide domain-specific knowledge for a specific conversation
+   * without modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is injected into the agent's context alongside agent-level skills.
+   *
+   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   */
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getSkillRefsOrBuilder(
+      int index);
 }

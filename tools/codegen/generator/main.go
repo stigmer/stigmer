@@ -1489,6 +1489,9 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 	case "int32":
 		fmt.Fprintf(w, "\t\tc.%s = int32(val.GetNumberValue())\n", field.Name)
 
+	case "uint32":
+		fmt.Fprintf(w, "\t\tc.%s = uint32(val.GetNumberValue())\n", field.Name)
+
 	case "int64":
 		fmt.Fprintf(w, "\t\tc.%s = int64(val.GetNumberValue())\n", field.Name)
 
@@ -1592,6 +1595,28 @@ func (c *genContext) genFromProtoField(w *bytes.Buffer, field *FieldSchema) {
 				fmt.Fprintf(w, "\t\t_ = val // suppress unused variable warning\n")
 			}
 		}
+
+	case "timestamp":
+		c.addImportWithAlias("google.golang.org/protobuf/types/known/timestamppb", "timestamppb")
+		c.addImport("time")
+		fmt.Fprintf(w, "\t\tif strVal := val.GetStringValue(); strVal != \"\" {\n")
+		fmt.Fprintf(w, "\t\t\tt, err := time.Parse(time.RFC3339Nano, strVal)\n")
+		fmt.Fprintf(w, "\t\t\tif err != nil {\n")
+		fmt.Fprintf(w, "\t\t\t\treturn err\n")
+		fmt.Fprintf(w, "\t\t\t}\n")
+		fmt.Fprintf(w, "\t\t\tc.%s = timestamppb.New(t)\n", field.Name)
+		fmt.Fprintf(w, "\t\t} else if structVal := val.GetStructValue(); structVal != nil {\n")
+		fmt.Fprintf(w, "\t\t\tfields := structVal.GetFields()\n")
+		fmt.Fprintf(w, "\t\t\tseconds := int64(0)\n")
+		fmt.Fprintf(w, "\t\t\tnanos := int32(0)\n")
+		fmt.Fprintf(w, "\t\t\tif s, ok := fields[\"seconds\"]; ok {\n")
+		fmt.Fprintf(w, "\t\t\t\tseconds = int64(s.GetNumberValue())\n")
+		fmt.Fprintf(w, "\t\t\t}\n")
+		fmt.Fprintf(w, "\t\t\tif n, ok := fields[\"nanos\"]; ok {\n")
+		fmt.Fprintf(w, "\t\t\t\tnanos = int32(n.GetNumberValue())\n")
+		fmt.Fprintf(w, "\t\t\t}\n")
+		fmt.Fprintf(w, "\t\t\tc.%s = &timestamppb.Timestamp{Seconds: seconds, Nanos: nanos}\n", field.Name)
+		fmt.Fprintf(w, "\t\t}\n")
 
 	default:
 		// For unknown types, suppress unused variable warning
@@ -1713,6 +1738,8 @@ func (c *genContext) goType(typeSpec TypeSpec) string {
 		return "int32"
 	case "int64":
 		return "int64"
+	case "uint32":
+		return "uint32"
 	case "bool":
 		return "bool"
 	case "float":
@@ -1767,6 +1794,10 @@ func (c *genContext) goType(typeSpec TypeSpec) string {
 	case "struct":
 		// google.protobuf.Struct → map[string]interface{}
 		return "map[string]interface{}"
+
+	case "timestamp":
+		c.addImportWithAlias("google.golang.org/protobuf/types/known/timestamppb", "timestamppb")
+		return "*timestamppb.Timestamp"
 
 	default:
 		panic(fmt.Sprintf("unknown type kind: %s", typeSpec.Kind))

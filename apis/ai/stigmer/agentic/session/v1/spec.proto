@@ -51,13 +51,11 @@ message SessionSpec {
   // Merge semantics: session-level usages are union'd with agent-level usages.
   // If both reference the same MCP server slug, the session-level entry takes
   // precedence (enables per-session tool restriction or expansion).
-  repeated ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [
-    (buf.validate.field).repeated.items.cel = {
-      id: "session_mcp_server_usages.kind"
-      message: "mcp_server_usages must reference resources with kind=mcp_server"
-      expression: "this.mcp_server_ref.kind == 44"
-    }
-  ];
+  repeated ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [(buf.validate.field).repeated.items.cel = {
+    id: "session_mcp_server_usages.kind"
+    message: "mcp_server_usages must reference resources with kind=mcp_server"
+    expression: "this.mcp_server_ref.kind == 44"
+  }];
 
   // Skills to inject into this session's context (merged with agent's at execution time).
   //

@@ -4,15 +4,21 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { McpServerUsage } from "../../agent/v1/spec_pb";
+import { file_ai_stigmer_agentic_agent_v1_spec } from "../../agent/v1/spec_pb";
 import type { WorkspaceEntry } from "./workspace_pb";
 import { file_ai_stigmer_agentic_session_v1_workspace } from "./workspace_pb";
+import { file_ai_stigmer_commons_apiresource_field_options } from "../../../commons/apiresource/field_options_pb";
+import type { ApiResourceReference } from "../../../commons/apiresource/io_pb";
+import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
+import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/session/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSKnAgoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSEgoKc2FuZGJveF9pZBgEIAEoCRJKCghtZXRhZGF0YRgFIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLk1ldGFkYXRhRW50cnkSSAoRd29ya3NwYWNlX2VudHJpZXMYBiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRovCg1NZXRhZGF0YUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_workspace]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9zcGVjLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSK+BQoLU2Vzc2lvblNwZWMSGQoRYWdlbnRfaW5zdGFuY2VfaWQYASABKAkSDwoHc3ViamVjdBgCIAEoCRIRCgl0aHJlYWRfaWQYAyABKAkSEgoKc2FuZGJveF9pZBgEIAEoCRJKCghtZXRhZGF0YRgFIAMoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25TcGVjLk1ldGFkYXRhRW50cnkSSAoRd29ya3NwYWNlX2VudHJpZXMYBiADKAsyLS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VFbnRyeRLZAQoRbWNwX3NlcnZlcl91c2FnZXMYByADKAsyKy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEuTWNwU2VydmVyVXNhZ2VCkAG6SIwBkgGIASKFAboBgQEKHnNlc3Npb25fbWNwX3NlcnZlcl91c2FnZXMua2luZBI/bWNwX3NlcnZlcl91c2FnZXMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1tY3Bfc2VydmVyGh50aGlzLm1jcF9zZXJ2ZXJfcmVmLmtpbmQgPT0gNDQSuAEKCnNraWxsX3JlZnMYCCADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCbrpIZ5IBZCJiugFfChdzZXNzaW9uX3NraWxsX3JlZnMua2luZBIzc2tpbGxfcmVmcyBtdXN0IHJlZmVyZW5jZSByZXNvdXJjZXMgd2l0aCBraW5kPXNraWxsGg90aGlzLmtpbmQgPT0gNDPghSwrGi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4AWIGcHJvdG8z", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_session_v1_workspace, file_ai_stigmer_commons_apiresource_field_options, file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * SessionSpec defines the configurable properties of an agent conversation session.
@@ -74,6 +80,35 @@ export type SessionSpec = Message<"ai.stigmer.agentic.session.v1.SessionSpec"> &
    * @generated from field: repeated ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6;
    */
   workspaceEntries: WorkspaceEntry[];
+
+  /**
+   * MCP servers to make available in this session (merged with agent's at execution time).
+   *
+   * Enables users to augment the agent's tool set for a specific conversation
+   * without modifying the agent blueprint. Each usage references an McpServer
+   * resource; the agent runner merges these with the agent's mcp_server_usages
+   * when constructing the execution graph.
+   *
+   * Merge semantics: session-level usages are union'd with agent-level usages.
+   * If both reference the same MCP server slug, the session-level entry takes
+   * precedence (enables per-session tool restriction or expansion).
+   *
+   * @generated from field: repeated ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7;
+   */
+  mcpServerUsages: McpServerUsage[];
+
+  /**
+   * Skills to inject into this session's context (merged with agent's at execution time).
+   *
+   * Enables users to provide domain-specific knowledge for a specific conversation
+   * without modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is injected into the agent's context alongside agent-level skills.
+   *
+   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+   *
+   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8;
+   */
+  skillRefs: ApiResourceReference[];
 };
 
 /**
