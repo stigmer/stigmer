@@ -68,8 +68,23 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-18 12:40
-**Current Task**: T01.9 complete — all UI tasks done
-**Status**: In Progress — T01.1-T01.9 complete, pending visual QA and end-to-end testing
+**Current Task**: Agent runner merge complete — full pipeline operational
+**Status**: Complete — T01.1-T01.9 UI tasks done, agent runner merge implemented, pending visual QA only
+
+## Session Progress (2026-03-18, Session 5)
+
+- Implemented agent runner session context merge — the final missing piece in the session context composition pipeline
+- Created `session_context_merge.py` in `worker/activities/graphton/` with two pure functions:
+  - `merge_mcp_server_usages()` — union by slug, session-level entry takes full precedence on slug collision
+  - `merge_skill_refs()` — union by slug, deduplicated
+- Edited `execute_graphton.py` — 3 surgical changes:
+  - Line 1679: `skill_refs = merge_skill_refs(agent.spec.skill_refs, session.spec.skill_refs)`
+  - Lines 1925-1927: `mcp_server_usages = merge_mcp_server_usages(agent.spec.mcp_server_usages, session.spec.mcp_server_usages)`
+  - Line 2345: Sub-agent transform now receives merged usages instead of agent-only
+- Updated `graphton/__init__.py` with exports for the new module
+- Created 16 unit tests (8 for MCP merge, 8 for skill merge) — all passing
+- Verified zero regressions against 86 existing related tests
+- Design decision: session-level context augments the root agent only; sub-agent MCP access remains governed by blueprint `McpAccess` grants
 
 ## Session Progress (2026-03-18, Session 4)
 
@@ -93,10 +108,9 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Visual QA** — open the web console, create sessions with MCP servers and skills, verify popover positioning, chip rendering, and removal behavior
-2. **End-to-end testing** — confirm `createSession` and `sendFollowUp` correctly pass MCP/skill context to backend
-3. **Theme token review** — ensure all new components respect `--stgm-*` tokens across light/dark themes
-4. **Accessibility pass** — keyboard navigation in pickers, focus management in popovers, screen reader labels
+1. **Visual QA** — open the web console, create sessions with MCP servers and skills, verify popover positioning, chip rendering, and removal behavior (manual)
+2. **Theme token review** — ensure all new components respect `--stgm-*` tokens across light/dark themes
+3. **Accessibility pass** — keyboard navigation in pickers, focus management in popovers, screen reader labels
 
 ## Context for Resume
 

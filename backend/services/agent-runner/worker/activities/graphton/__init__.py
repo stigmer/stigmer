@@ -3,6 +3,7 @@
 This package contains utilities for graphton agent execution:
 - approval_policy: HITL approval policy resolution
 - checkpoint_validator: Post-stream checkpoint validation
+- session_context_merge: Session + agent context merging
 - skill_writer: Skill injection and sandbox mounting
 - status_builder: Event processing and status building
 - subagent_transformer: SubAgent transformation utilities
@@ -17,6 +18,10 @@ from worker.activities.graphton.checkpoint_validator import (
     CheckpointValidationResult,
     validate_against_checkpoint,
 )
+from worker.activities.graphton.session_context_merge import (
+    merge_mcp_server_usages,
+    merge_skill_refs,
+)
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.status_builder import StatusBuilder
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
@@ -26,6 +31,8 @@ __all__ = [
     "build_approval_config",
     "CheckpointValidationResult",
     "create_approval_checker",
+    "merge_mcp_server_usages",
+    "merge_skill_refs",
     "SkillWriter",
     "StatusBuilder",
     "transform_sub_agents",

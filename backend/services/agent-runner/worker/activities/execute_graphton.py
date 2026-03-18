@@ -47,6 +47,10 @@ from worker.activities.graphton.approval_policy import (
     create_approval_checker,
     resolve_platform_tool_name,
 )
+from worker.activities.graphton.session_context_merge import (
+    merge_mcp_server_usages,
+    merge_skill_refs,
+)
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
@@ -1672,7 +1676,7 @@ async def _execute_graphton_impl(
         setup_timer.start("skills")
         skills_prompt_section = ""
         skills = []  # List of Skill protos (populated if skill_refs exist)
-        skill_refs = agent.spec.skill_refs  # repeated ApiResourceReference
+        skill_refs = merge_skill_refs(agent.spec.skill_refs, session.spec.skill_refs)
         
         # Create skill client (needed for both parent skills and subagent skills)
         skill_client = SkillClient(api_key, channel=ch)
@@ -1912,13 +1916,15 @@ async def _execute_graphton_impl(
             "injected_count": len(injected_files),
         })
         
-        # Step 5: Fetch and transform MCP servers (from agent template via mcp_server_usages)
+        # Step 5: Fetch and transform MCP servers (agent + session usages merged)
         # MCP servers provide external tools via Model Context Protocol
         setup_timer.start("mcp_servers")
         mcp_servers_config = {}
         mcp_tools_config = {}
         mcp_servers = []  # Initialize to empty list (populated if usages exist and fetch succeeds)
-        mcp_server_usages = agent.spec.mcp_server_usages
+        mcp_server_usages = merge_mcp_server_usages(
+            agent.spec.mcp_server_usages, session.spec.mcp_server_usages
+        )
         
         if mcp_server_usages:
             activity_logger.info(
@@ -2336,7 +2342,7 @@ async def _execute_graphton_impl(
                     sub_agents=list(agent.spec.sub_agents),
                     parent_mcp_servers=mcp_servers_config or {},
                     parent_mcp_tools=mcp_tools_config or {},
-                    parent_mcp_usages=list(agent.spec.mcp_server_usages) if agent.spec.mcp_server_usages else [],
+                    parent_mcp_usages=list(mcp_server_usages) if mcp_server_usages else [],
                     skill_client=skill_client,
                     skill_writer_class=SkillWriter,
                     skill_writer_kwargs={"backend": workspace_backend},
