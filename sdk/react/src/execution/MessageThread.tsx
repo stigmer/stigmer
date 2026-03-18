@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import {
   ExecutionPhase,
   MessageType,
@@ -47,7 +48,7 @@ const AUTO_SCROLL_THRESHOLD_PX = 80;
  */
 type ThreadItem =
   | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string }
-  | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly key: string }
+  | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
   | { readonly kind: "pending-message"; readonly content: string; readonly key: string };
 
@@ -64,6 +65,7 @@ function buildThreadItems(
   for (let ei = 0; ei < allExecutions.length; ei++) {
     const exec = allExecutions[ei];
     const messages = exec.status?.messages ?? [];
+    const subAgents = exec.status?.subAgentExecutions ?? [];
 
     for (let mi = 0; mi < messages.length; mi++) {
       const msg = messages[mi];
@@ -83,6 +85,7 @@ function buildThreadItems(
         items.push({
           kind: "tool-group",
           toolCalls: msg.toolCalls,
+          subAgentExecutions: subAgents,
           key: `e${ei}-m${mi}-tc`,
         });
       }
@@ -184,6 +187,7 @@ export function MessageThread({
               <ToolCallGroup
                 key={item.key}
                 toolCalls={item.toolCalls}
+                subAgentExecutions={item.subAgentExecutions}
                 formatSummary={formatToolCallSummary}
                 className="mx-4"
               />
