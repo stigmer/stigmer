@@ -1,17 +1,31 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
+import { ToolCallItem } from "./ToolCallItem";
 
 export interface ToolCallGroupProps {
   readonly toolCalls: readonly ToolCall[];
+  /**
+   * Sub-agent executions from the parent `AgentExecutionStatus`.
+   * When provided, tool calls whose `id` matches a
+   * `SubAgentExecution.id` are rendered with a nested sub-agent
+   * thread instead of a standard detail panel.
+   */
+  readonly subAgentExecutions?: readonly SubAgentExecution[];
   /**
    * Custom summary formatter. Receives the tool calls and returns a
    * display string. When omitted, the component uses a default that
    * shows the tool name for single calls and a count for multiple.
    */
   readonly formatSummary?: (toolCalls: readonly ToolCall[]) => string;
+  /**
+   * Initial expansion state. Defaults to `false`.
+   */
+  readonly defaultExpanded?: boolean;
   readonly className?: string;
 }
 
@@ -82,11 +96,14 @@ const STATUS_COLOR: Record<AggregateStatus, string> = {
 };
 
 /**
- * Renders a collapsed summary line for a group of tool calls from
- * a single AI turn.
+ * Renders a summary line for a group of tool calls from a single
+ * AI turn. Click to expand and see individual tool calls.
  *
- * Shows an aggregate status icon and a summary label. Not expandable
- * in SP1 — expansion is deferred to SP4.
+ * Two-level progressive disclosure:
+ * 1. **Collapsed** — aggregate status icon + summary label.
+ * 2. **Expanded** — list of {@link ToolCallItem} rows, each
+ *    expandable to show detail (args, result, error, timing) or
+ *    a nested sub-agent thread.
  *
  * Platform builders can provide a `formatSummary` prop for
  * domain-specific labels (e.g., "Ran 2 commands").
@@ -98,9 +115,22 @@ const STATUS_COLOR: Record<AggregateStatus, string> = {
  */
 export function ToolCallGroup({
   toolCalls,
+  subAgentExecutions,
   formatSummary,
+  defaultExpanded = false,
   className,
 }: ToolCallGroupProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  const subAgentMap = useMemo(() => {
+    if (!subAgentExecutions || subAgentExecutions.length === 0) return null;
+    const map = new Map<string, SubAgentExecution>();
+    for (const sub of subAgentExecutions) {
+      map.set(sub.id, sub);
+    }
+    return map;
+  }, [subAgentExecutions]);
+
   if (toolCalls.length === 0) return null;
 
   const status = deriveAggregateStatus(toolCalls);
@@ -115,17 +145,56 @@ export function ToolCallGroup({
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        "flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs text-muted-foreground",
+        "rounded-md border border-border bg-muted/30",
         className,
       )}
     >
-      <span className={cn("shrink-0", STATUS_COLOR[status])} aria-hidden="true">
-        <Icon />
-      </span>
-      <span className="truncate">{summary}</span>
+      {/* Summary trigger */}
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+        className={cn(
+          "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors",
+          "hover:bg-muted/50",
+          "cursor-pointer",
+        )}
+      >
+        <span className={cn("shrink-0", STATUS_COLOR[status])} aria-hidden="true">
+          <Icon />
+        </span>
+        <span className="min-w-0 flex-1 truncate">{summary}</span>
+        <ChevronIcon expanded={expanded} />
+      </button>
+
+      {/* Expanded tool call list — CSS grid-rows animation */}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-150 ease-out",
+          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+      >
+        <div className="overflow-hidden">
+          {expanded && (
+            <div className="border-t border-border/50">
+              {toolCalls.map((tc) => (
+                <ToolCallItem
+                  key={tc.id || tc.name}
+                  toolCall={tc}
+                  subAgentExecution={subAgentMap?.get(tc.id) ?? null}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Inline SVG icons — same as SP1, kept inline for SDK independence
+// ---------------------------------------------------------------------------
 
 function SpinnerIcon() {
   return (
@@ -209,6 +278,28 @@ function DotIcon() {
       fill="currentColor"
     >
       <circle cx="4" cy="4" r="3" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn(
+        "shrink-0 text-muted-foreground transition-transform duration-150",
+        expanded && "rotate-90",
+      )}
+      aria-hidden="true"
+    >
+      <path d="M4.5 2.5L7.5 6L4.5 9.5" />
     </svg>
   );
 }

@@ -16,6 +16,15 @@ export type { ExecutionPhaseBadgeProps } from "./ExecutionPhaseBadge";
 export { ToolCallGroup } from "./ToolCallGroup";
 export type { ToolCallGroupProps } from "./ToolCallGroup";
 
+export { ToolCallDetail, formatDuration } from "./ToolCallDetail";
+export type { ToolCallDetailProps } from "./ToolCallDetail";
+
+export { ToolCallItem } from "./ToolCallItem";
+export type { ToolCallItemProps } from "./ToolCallItem";
+
+export { SubAgentSection } from "./SubAgentSection";
+export type { SubAgentSectionProps } from "./SubAgentSection";
+
 export { MessageEntry } from "./MessageEntry";
 export type { MessageEntryProps } from "./MessageEntry";
 
