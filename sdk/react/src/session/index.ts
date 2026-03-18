@@ -5,6 +5,9 @@ export type {
   UseCreateSessionReturn,
 } from "./useCreateSession";
 
+export { useUpdateSession } from "./useUpdateSession";
+export type { UseUpdateSessionReturn } from "./useUpdateSession";
+
 export { useSession } from "./useSession";
 export type { UseSessionReturn } from "./useSession";
 

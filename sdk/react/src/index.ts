@@ -42,6 +42,7 @@ export type {
 // Session — data hooks, behavior hooks, utilities (Session aggregate + conversation lifecycle)
 export {
   useCreateSession,
+  useUpdateSession,
   useSession,
   useSessionList,
   useSessionExecutions,
@@ -52,6 +53,7 @@ export type {
   CreateSessionInput,
   CreateSessionResult,
   UseCreateSessionReturn,
+  UseUpdateSessionReturn,
   UseSessionReturn,
   UseSessionListOptions,
   UseSessionListReturn,
@@ -99,6 +101,17 @@ export type {
   ContextWindowMeterProps,
   ApprovalCardProps,
 } from "./execution";
+
+// Composer — unified message input with model + workspace attachments
+export {
+  useComposer,
+  SessionComposer,
+} from "./composer";
+export type {
+  UseComposerOptions,
+  UseComposerReturn,
+  SessionComposerProps,
+} from "./composer";
 
 // GitHub — OAuth connection, repo picker, and hooks
 export {

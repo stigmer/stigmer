@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -12,13 +12,15 @@ import {
 import {
   useSessionConversation,
   useModelRegistry,
+  useWorkspaceEntries,
+  useGitHubConnection,
   MessageThread,
-  FollowUpInput,
+  SessionComposer,
   ExecutionSummary,
   ContextWindowMeter,
-  WorkspaceSummary,
 } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
+import { useDeploymentMode } from "@/hooks/useDeploymentMode";
 import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY_MODEL = "stigmer:session:model";
@@ -47,11 +49,35 @@ export default function SessionPage() {
   const conv = useSessionConversation(id, org);
   const [modelId, setModelId] = usePersistedModel();
 
+  const deploymentMode = useDeploymentMode();
+  const gitHubConnection = useGitHubConnection();
+  const workspace = useWorkspaceEntries();
+  const initialSyncDone = useRef(false);
+
+  useEffect(() => {
+    if (!conv.session || initialSyncDone.current) return;
+    initialSyncDone.current = true;
+
+    const protoEntries = conv.session.spec?.workspaceEntries ?? [];
+    for (const entry of protoEntries) {
+      if (entry.source?.source.case === "gitRepo") {
+        const { url, branch } = entry.source.source.value;
+        workspace.addGitRepo(url, branch || undefined);
+      } else if (entry.source?.source.case === "localPath") {
+        workspace.addLocalPath(entry.source.source.value.path);
+      }
+    }
+  }, [conv.session, workspace]);
+
   const handleSubmit = useCallback(
     (message: string, model?: string) => {
-      conv.sendFollowUp(message, model ?? modelId);
+      conv.sendFollowUp(
+        message,
+        model ?? modelId,
+        workspace.hasEntries ? workspace.toInput() : undefined,
+      );
     },
-    [conv, modelId],
+    [conv, modelId, workspace],
   );
 
   const displayExecution = useMemo(() => {
@@ -64,11 +90,9 @@ export default function SessionPage() {
   if (conv.loadError) return <SessionError message={conv.loadError} />;
   if (!conv.session && !conv.isLoading) return <SessionStarting />;
 
-  const workspaceEntries = conv.session?.spec?.workspaceEntries ?? [];
-
   return (
     <div className="flex h-full w-full flex-col pl-[220px]">
-      <div className="flex min-h-0 flex-1 gap-[220px]">
+      <div className="flex min-h-0 flex-1 gap-3">
         <div className="flex min-w-0 flex-1 flex-col">
           <MessageThread
             executions={conv.completedExecutions}
@@ -77,29 +101,37 @@ export default function SessionPage() {
             onApprovalSubmit={conv.submitApproval}
             submittingApprovalIds={conv.submittingApprovalIds}
             dismissedApprovalIds={conv.dismissedApprovalIds}
-            className="flex-1"
+            className="flex-1 lg:pr-[208px]"
           />
-          {conv.streamError && (
-            <StreamErrorBanner
-              message={conv.streamError}
-              onReconnect={conv.reconnectStream}
+          <div className="lg:mr-[208px]">
+            {conv.streamError && (
+              <StreamErrorBanner
+                message={conv.streamError}
+                onReconnect={conv.reconnectStream}
+              />
+            )}
+            {(conv.sendError || conv.approvalError) && (
+              <div
+                role="alert"
+                className="border-border border-t px-4 py-2 text-xs text-destructive"
+              >
+                {conv.sendError || conv.approvalError}
+              </div>
+            )}
+            <SessionComposer
+              onSubmit={handleSubmit}
+              isSubmitting={conv.isSending}
+              disabled={!conv.canSendFollowUp}
+              defaultModelId={modelId}
+              onModelChange={setModelId}
+              workspace={workspace}
+              gitHubConnection={gitHubConnection}
+              enableGitHub
+              enableLocal={deploymentMode === "local"}
+              enableFolderBrowser={deploymentMode === "local"}
+              className="px-4 py-3"
             />
-          )}
-          {(conv.sendError || conv.approvalError) && (
-            <div
-              role="alert"
-              className="border-border border-t px-4 py-2 text-xs text-destructive"
-            >
-              {conv.sendError || conv.approvalError}
-            </div>
-          )}
-          <FollowUpInput
-            onSubmit={handleSubmit}
-            isSubmitting={conv.isSending}
-            disabled={!conv.canSendFollowUp}
-            defaultModelId={modelId}
-            onModelChange={setModelId}
-          />
+          </div>
         </div>
         <aside
           className="hidden w-80 shrink-0 flex-col gap-3 overflow-y-auto py-4 pr-6 lg:flex"
@@ -117,11 +149,6 @@ export default function SessionPage() {
               />
             </div>
           )}
-          {workspaceEntries.length > 0 && (
-            <div className="rounded-lg border border-border bg-card p-3">
-              <WorkspaceSummary entries={workspaceEntries} />
-            </div>
-          )}
         </aside>
       </div>
     </div>
@@ -136,22 +163,18 @@ function SessionSkeleton() {
   return (
     <div className="flex h-full flex-col gap-4 p-4" aria-busy="true">
       <div className="animate-pulse space-y-4">
-        {/* User message block */}
         <div className="rounded-lg bg-muted/50 px-4 py-3">
           <div className="h-4 w-3/5 rounded bg-muted" />
         </div>
 
-        {/* AI response blocks */}
         <div className="space-y-2 px-4">
           <div className="h-4 w-4/5 rounded bg-muted/60" />
           <div className="h-4 w-3/5 rounded bg-muted/60" />
           <div className="h-4 w-2/5 rounded bg-muted/60" />
         </div>
 
-        {/* Tool call block */}
         <div className="mx-4 h-8 w-2/5 rounded-md border border-border bg-muted/30" />
 
-        {/* Second AI response */}
         <div className="space-y-2 px-4">
           <div className="h-4 w-3/4 rounded bg-muted/60" />
           <div className="h-4 w-1/2 rounded bg-muted/60" />
