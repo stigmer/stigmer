@@ -69,11 +69,23 @@ When starting a new session:
 
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.6 — decomposed into 5 sub-projects (SP1-SP5)
-**Status**: SP1 + SP2 + SP3 + SP4 complete. SP5 ready to start (unblocked, depends on SP1 + SP4, both done).
-**Last Session**: 2026-03-18 — SP3 (Session Context Panel) completed (session 20)
+**Status**: SP1 + SP2 + SP3 + SP4 + SP5 complete. All T01.6 sub-projects done. Ready for T01.7 (Sidebar Recents).
+**Last Session**: 2026-03-18 — SP5 (HITL Approvals) completed
 **Pending Pre-req**: ~~GitHub OAuth App registration~~ Done — credentials embedded in binary and configured in cloud deployment
 
 ## Session Progress (2026-03-18)
+
+### Completed: SP5 — HITL Approval UI
+- Implemented all 6 steps of SP5 in a single session
+- **SDK — `useSubmitApproval`** (`sdk/react/src/execution/useSubmitApproval.ts`): Behavior hook wrapping `agentExecution.submitApproval()` with per-tool-call submitting state (`Set<string>`). Proto message construction via `create(SubmitApprovalInputSchema, {...})`. Error/clearError. Follows `useCreateAgentExecution` pattern.
+- **SDK — `ApprovalCard`** (`sdk/react/src/execution/ApprovalCard.tsx`): Styled component for pending approval requests. Shield icon header (with sub-agent variant), tool name badge, approval message, collapsible args preview (auto-formatted JSON, 8-line truncation), live-ticking wait duration, three action buttons (Approve/Skip/Reject) with per-button spinner. `role="alert"`, `--stgm-*` tokens, inline SVG icons, `<div>` not `<form>`. No comment field in v1.
+- **SDK — `MessageThread` updated**: New `"approval-request"` ThreadItem kind. Optional `onApprovalSubmit` and `submittingApprovalIds` props. `buildThreadItems()` appends approval items from `lastExec.status.pendingApprovals` when callback provided. Backward compatible — no approval UI when props omitted.
+- **SDK — `useSessionConversation` updated**: Composes `useSubmitApproval()` internally. Exposes `submitApproval(toolCallId, action, comment?)` wrapping with current `activeExecutionId`, `pendingApprovals`, `submittingApprovalIds`, `approvalError`, `clearApprovalError`.
+- **Console — `SessionPage` updated**: Passes approval props to `MessageThread`. Displays approval errors alongside send errors.
+- **Barrel exports** updated across `execution/index.ts` and `src/index.ts`
+- **Key decisions**: Thread-level ApprovalCards (not inline); per-tool-call Set<string> state; useSessionConversation abstracts executionId; optional props for backward compat; no comment field in v1; ApprovalCard independently importable.
+- Verification: `npm run typecheck`, `npm run build` (sdk/react), `npx tsc --noEmit`, `npm run build` (web) — all pass clean
+- Committed: `adf565d5`
 
 ### Completed: SP3 — Session Context Panel (Session 20)
 - Implemented all 4 steps of SP3 in a single session
@@ -319,6 +331,13 @@ When starting a new session:
 54. **`workspaceEntries` as optional prop on `ExecutionDetails`** — Workspace is session-level data, not execution-level. Including it as optional lets the component show workspace context when available without forcing consumers to fetch session data. Component is usable with just an execution.
 55. **Auto-open context panel with ref guard** — Panel auto-opens on first execution data via `useRef(false)`. Once the ref flips, the panel won't re-open if the user manually closes it. Respects user intent while providing default visibility of system status.
 
+56. **Thread-level ApprovalCards, not inline in ToolCallItem** — Blocking actions must be immediately visible with zero clicks to reach. `PendingApproval` proto is self-contained (carries tool_name, message, args_preview). Tool call groups show "Waiting for approval" status; thread cards provide the action buttons.
+57. **Per-tool-call submitting state via `Set<string>`** — Not a single boolean. Essential for batch approval scenarios where user might approve tool A while tool B decision is still in flight.
+58. **`useSessionConversation` abstracts executionId for approvals** — Consumer calls `submitApproval(toolCallId, action)` without knowing the executionId. Orchestration hooks are allowed to cross aggregate boundaries (decision #41).
+59. **`onApprovalSubmit` is optional on MessageThread** — Backward compatible. No approval UI rendered when omitted. Existing consumers see zero difference.
+60. **No comment field in v1** — Reduces friction for the common case (click Approve). Proto accepts empty comment. Collapsible comment section can be added later.
+61. **`ApprovalCard` independently importable** — Platform builders who don't use MessageThread can import ApprovalCard + useSubmitApproval directly for custom approval UIs.
+
 ## Next Steps
 
 T01.6 has been decomposed into 5 sub-projects (SP1-SP5). Execute in order:
@@ -329,9 +348,9 @@ T01.6 has been decomposed into 5 sub-projects (SP1-SP5). Execute in order:
 | SP2 | Follow-Up + Conversation Loop | `20260317.03.sp.follow-up-conversation-loop/next-task.md` | SP1 | COMPLETE |
 | SP3 | Session Context Panel | `20260317.04.sp.session-context-panel/next-task.md` | SP1 | COMPLETE |
 | SP4 | Expandable Tool Groups | `20260317.05.sp.expandable-tool-groups/next-task.md` | SP1 | COMPLETE |
-| SP5 | HITL Approvals | `20260317.06.sp.hitl-approvals/next-task.md` | SP1 + SP4 | Ready (unblocked) |
+| SP5 | HITL Approvals | `20260317.06.sp.hitl-approvals/next-task.md` | SP1 + SP4 | COMPLETE |
 
-SP3 and SP5 are independent of each other. Both are ready to start.
+All T01.6 sub-projects (SP1-SP5) are complete.
 
 After T01.6 sub-projects: **T01.7** — Web — Sidebar Recents
 
@@ -340,7 +359,7 @@ After T01.6 sub-projects: **T01.7** — Web — Sidebar Recents
 - T01.1 through T01.5 are complete and committed.
 - The web app has a headerless sidebar-driven layout with a working session launcher at `/`.
 - The React SDK now has three feature modules: `models/`, `workspace/`, `session/`, `execution/`.
-- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useFolderListing`, `FolderBrowser`, `useCreateSession`, `useCreateAgentExecution`, `useGitHubConnection`, `useGitHubRepos`, `GitHubRepoPicker`, `useSession`, `useSessionExecutions`, `useExecutionStream`, `useSessionConversation`, `isTerminalPhase`, `MessageThread`, `MessageEntry`, `ToolCallGroup`, `ToolCallDetail`, `formatDuration`, `ToolCallItem`, `SubAgentSection`, `ExecutionPhaseBadge`, `FollowUpInput`, `ExecutionDetails`.
+- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useFolderListing`, `FolderBrowser`, `useCreateSession`, `useCreateAgentExecution`, `useGitHubConnection`, `useGitHubRepos`, `GitHubRepoPicker`, `useSession`, `useSessionExecutions`, `useExecutionStream`, `useSubmitApproval`, `useSessionConversation`, `isTerminalPhase`, `MessageThread`, `MessageEntry`, `ToolCallGroup`, `ToolCallDetail`, `formatDuration`, `ToolCallItem`, `SubAgentSection`, `ExecutionPhaseBadge`, `FollowUpInput`, `ExecutionDetails`, `ApprovalCard`.
 - The session launcher flow: create session -> create agent execution -> navigate to `/sessions/[id]`.
 - `/sessions/[id]/page.tsx` exists as a placeholder — T01.6 builds the actual session view.
 - Proto `agent_instance_id` is optional in SessionSpec. Backend resolves default agent instance if omitted.

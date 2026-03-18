@@ -101,8 +101,29 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-17 18:16
-**Current Task**: T01 (Initial Setup)
-**Status**: Planning
+**Current Task**: Complete
+**Status**: Done
+**Last Session**: 2026-03-18 — Full implementation in a single session
+**Committed**: `adf565d5`
+
+## Session Progress (2026-03-18)
+
+### Completed: SP5 — HITL Approval UI
+- **`useSubmitApproval`** behavior hook — wraps `agentExecution.submitApproval()` with per-tool-call submitting state (`Set<string>`), proto message construction via `create(SubmitApprovalInputSchema, {...})`, error/clearError
+- **`ApprovalCard`** styled component — shield icon header, tool name badge, approval message, collapsible args preview (auto-formatted JSON with expand/collapse), live-ticking wait duration, sub-agent attribution, three action buttons (Approve/Skip/Reject) with per-button spinner, `role="alert"`, all `--stgm-*` tokens, inline SVG icons, `<div>` not `<form>`
+- **`MessageThread` updated** — new `"approval-request"` ThreadItem kind in discriminated union, optional `onApprovalSubmit` and `submittingApprovalIds` props, `buildThreadItems()` appends approval items from `lastExec.status.pendingApprovals` when callback provided, fully backward compatible
+- **`useSessionConversation` updated** — composes `useSubmitApproval()` internally, exposes `submitApproval(toolCallId, action, comment?)` wrapping with current `activeExecutionId`, exposes `pendingApprovals`, `submittingApprovalIds`, `approvalError`, `clearApprovalError`
+- **`SessionPage` updated** — passes `onApprovalSubmit` and `submittingApprovalIds` to `MessageThread`, displays `approvalError` alongside existing `sendError`
+- **Barrel exports** updated in `execution/index.ts` and `src/index.ts`
+- **Build verification**: `typecheck`, `build` pass clean for both `sdk/react` and `client-apps/web`
+
+### Key Decisions
+- Thread-level ApprovalCards (not inline in ToolCallItem) — blocking actions must be unmissable, zero clicks to reach
+- Per-tool-call submitting state via `Set<string>` — essential for batch approval scenarios
+- `useSessionConversation` abstracts executionId — consumer calls `submitApproval(toolCallId, action)` without knowing the executionId
+- `onApprovalSubmit` is optional on MessageThread — backward compatible
+- No comment field in v1 — reduces friction, proto accepts empty comment
+- `ApprovalCard` is independently importable — platform builders can use it standalone with `useSubmitApproval`
 
 ## Quick Commands
 
