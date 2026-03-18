@@ -15,7 +15,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260318.03.session-page-redesign/checkpoints/2026-03-18-session-3.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260318.03.session-page-redesign/checkpoints/2026-03-18-session-4.md
 ```
 
 ### 2. Current Task
@@ -67,9 +67,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-18 14:46
-**Current Task**: Phase 4 — Theme Token Alignment
-**Status**: Phase 1 Complete, Phase 2 Complete, Phase 3 Complete, Phase 4 Pending
-**Last Session**: 2026-03-18 — Completed Phase 3 (SessionPage layout redesign)
+**Current Task**: All phases complete
+**Status**: Phase 1 Complete, Phase 2 Complete, Phase 3 Complete, Phase 4 Complete
+**Last Session**: 2026-03-18 — Completed Phase 4 (Dark mode sidebar token alignment)
 
 ## Session Progress (2026-03-18, Session 1)
 
@@ -102,28 +102,34 @@ When starting a new session:
 - Zero SDK changes — all Phase 2 components consumed as-is
 - Zero lint errors
 
-## Next Steps
+## Session Progress (2026-03-18, Session 4)
 
-1. **Phase 4**: Theme token alignment — ensure unified background works across themes. Consider reducing dark mode `--stgm-sidebar` luminance gap so the left sidebar blends better with the single-canvas main content area.
+- Completed Phase 4: Fixed dark mode sidebar luminance direction
+- Base theme was the only theme where dark mode sidebar (L=0.205) was lighter than background (L=0.145) — all four presets had sidebar darker
+- Inverted the direction: `--stgm-sidebar` from oklch(0.205) to oklch(0.12), `--stgm-sidebar-accent` from oklch(0.269) to oklch(0.20)
+- New dark mode surface ladder: `accent (0.371) > popover/muted/secondary (0.269) > card (0.205) > background (0.145) > sidebar (0.12)`
+- Single file changed: `sdk/theme/src/tokens.css` (2 token value changes)
+- Zero component code changes — all layout components already reference correct token-based classes
+- Zero lint errors; visually verified in browser
 
-## Context for Resume
+## Project Complete
 
-- SessionPage now uses a two-area flex layout: `div.flex.min-h-0.flex-1` wrapping MessageThread and aside
+All four phases of the session page redesign have been delivered:
+
+1. **Phase 1**: Remove ContextPanel right sidebar (Console) — `38ea38ad`
+2. **Phase 2**: Decompose ExecutionDetails into SDK widgets — `fbe911ca`
+3. **Phase 3**: Redesign SessionPage layout with inline widgets — `3e38e3db`
+4. **Phase 4**: Dark mode sidebar token alignment — `7b40bf77`
+
+## Final Architecture
+
+- SessionPage uses a two-area flex layout: `div.flex.min-h-0.flex-1` wrapping MessageThread and aside
 - MessageThread has `min-w-0 flex-1`, aside has `hidden lg:flex w-60 shrink-0`
 - Widget cards use `rounded-lg border border-border bg-card p-3` wrapper — widgets render chrome-free content
 - `displayExecution` memo: `activeStreamExecution ?? completedExecutions[last]` — shows final metrics even after execution completes
-- Workspace entries derived from `conv.session?.spec?.workspaceEntries`
 - FollowUpInput override: `className="border-t-0 bg-transparent"` via tailwind-merge
-- No panel chrome on the widget column — no border-l, no separate background, no header/close button
+- Dark mode sidebar recedes below background (L=0.12 vs L=0.145), consistent with all presets
 - `ExecutionDetails` still available in SDK for backward compat — not used in SessionPage
-
-## Quick Commands
-
-After loading context:
-- "Continue with Phase 4" - Start the next phase
-- "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
 
 ---
 
