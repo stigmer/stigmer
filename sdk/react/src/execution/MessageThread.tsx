@@ -114,13 +114,20 @@ function buildThreadItems(
     for (let mi = 0; mi < messages.length; mi++) {
       const msg = messages[mi];
 
+      // MESSAGE_TOOL messages are not rendered — tool calls are attached
+      // to their parent MESSAGE_AI and rendered via ToolCallGroup.
       if (msg.type === MessageType.MESSAGE_TOOL) continue;
 
-      items.push({
-        kind: "message",
-        message: msg,
-        key: `e${ei}-m${mi}`,
-      });
+      const isEmptyAi =
+        msg.type === MessageType.MESSAGE_AI && !msg.content.trim();
+
+      if (!isEmptyAi) {
+        items.push({
+          kind: "message",
+          message: msg,
+          key: `e${ei}-m${mi}`,
+        });
+      }
 
       if (
         msg.type === MessageType.MESSAGE_AI &&

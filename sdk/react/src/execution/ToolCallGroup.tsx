@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -140,7 +140,25 @@ export function ToolCallGroup({
   defaultExpanded = false,
   className,
 }: ToolCallGroupProps) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  const status = deriveAggregateStatus(toolCalls);
+  const isActive = status === "running" || status === "pending" || status === "waiting";
+
+  const [expanded, setExpanded] = useState(defaultExpanded || isActive);
+  const userToggledRef = useRef(false);
+
+  useEffect(() => {
+    if (userToggledRef.current) return;
+    if (isActive) {
+      setExpanded(true);
+    } else {
+      setExpanded(false);
+    }
+  }, [isActive]);
+
+  const handleToggle = () => {
+    userToggledRef.current = true;
+    setExpanded((v) => !v);
+  };
 
   const subAgentMap = useMemo(() => {
     if (!subAgentExecutions || subAgentExecutions.length === 0) return null;
@@ -153,7 +171,6 @@ export function ToolCallGroup({
 
   if (toolCalls.length === 0) return null;
 
-  const status = deriveAggregateStatus(toolCalls);
   const summary = formatSummary
     ? formatSummary(toolCalls)
     : defaultFormatSummary(toolCalls, status);
@@ -173,7 +190,7 @@ export function ToolCallGroup({
       <button
         type="button"
         aria-expanded={expanded}
-        onClick={() => setExpanded((v) => !v)}
+        onClick={handleToggle}
         className={cn(
           "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs text-muted-foreground transition-colors",
           "hover:bg-muted/50",

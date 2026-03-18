@@ -67,9 +67,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-18 14:46
-**Current Task**: Post-phase visual refinements complete
-**Status**: Phase 1-4 Complete, Post-phase UX refinements complete
-**Last Session**: 2026-03-18 — Reply widget appearance and human message indentation
+**Current Task**: Tool call visibility and auto-expand complete
+**Status**: Phase 1-4 Complete, Post-phase UX refinements complete, Tool call visibility fixed
+**Last Session**: 2026-03-18 — Fix tool call visibility in message thread and auto-expand UX
 
 ## Session Progress (2026-03-18, Session 1)
 
@@ -120,6 +120,17 @@ When starting a new session:
 - SDK changes: `MessageEntry.tsx`, `MessageThread.tsx`, `FollowUpInput.tsx`
 - Console change: `SessionPage.tsx` (removed className override)
 - Zero lint errors
+
+## Session Progress (2026-03-18, Session 6)
+
+- Fixed tool call visibility in message thread — tool calls were completely absent from the conversation thread
+- Root cause: backend created `MESSAGE_TOOL` wrappers, frontend expected tool calls on `MESSAGE_AI.tool_calls[]`
+- Migrated to standard AI-message-owns-its-tool-calls model (matches OpenAI/Anthropic/LangChain convention)
+- Added `_ensure_parent_ai_message()` helper — creates empty-content AI message when tool calls fire before text
+- Thinking blocks now render inline: empty AI message holds thinking TC, then new AI message holds text + tool calls
+- Frontend skips empty-content AI message bubbles, shows only their tool call groups
+- `ToolCallGroup` auto-expands when running/pending/waiting, auto-collapses on completion, respects user toggle
+- Backend: `status_builder.py` (+246/-111), Frontend: `MessageThread.tsx` (+17), `ToolCallGroup.tsx` (+25)
 
 ## Project Complete
 
