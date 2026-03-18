@@ -159,10 +159,13 @@ func (s *resolveDefaultAgentStep) Execute(ctx *pipeline.RequestContext[*agentexe
 		Str("agent_name", defaultAgent.GetMetadata().GetName()).
 		Msg("Resolved platform default agent")
 
-	if execution.Spec == nil {
-		execution.Spec = &agentexecutionv1.AgentExecutionSpec{}
+	// Set agent_id on newState (not input). The pipeline clones input into
+	// newState at construction; later steps and Persist operate on newState.
+	newState := ctx.NewState()
+	if newState.Spec == nil {
+		newState.Spec = &agentexecutionv1.AgentExecutionSpec{}
 	}
-	execution.Spec.AgentId = resolvedID
+	newState.Spec.AgentId = resolvedID
 
 	return nil
 }
@@ -179,7 +182,7 @@ func (s *validateSessionOrAgentStep) Name() string {
 }
 
 func (s *validateSessionOrAgentStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.AgentExecution]) error {
-	execution := ctx.Input()
+	execution := ctx.NewState()
 	sessionID := execution.GetSpec().GetSessionId()
 	agentID := execution.GetSpec().GetAgentId()
 
