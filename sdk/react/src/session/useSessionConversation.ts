@@ -176,6 +176,14 @@ export function useSessionConversation(
     }
   }, [pendingUserMessage, stream.execution]);
 
+  // Refetch executions when stream reaches a terminal phase so the
+  // fetched list reflects the completed status and listActiveId clears.
+  useEffect(() => {
+    if (activeExecutionId && isTerminalPhase(stream.phase)) {
+      refetch();
+    }
+  }, [activeExecutionId, stream.phase, refetch]);
+
   const completedExecutions = useMemo(() => {
     if (!activeExecutionId) return executions;
     return executions.filter(

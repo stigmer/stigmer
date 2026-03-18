@@ -67,9 +67,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-18 14:46
-**Current Task**: Tool call visibility and auto-expand complete
-**Status**: Phase 1-4 Complete, Post-phase UX refinements complete, Tool call visibility fixed
-**Last Session**: 2026-03-18 — Fix tool call visibility in message thread and auto-expand UX
+**Current Task**: All tasks complete
+**Status**: Phase 1-4 Complete, Post-phase UX refinements complete, Tool call visibility fixed, Follow-up input re-enable bug fixed
+**Last Session**: 2026-03-18 — Fix follow-up input staying disabled after execution completes
 
 ## Session Progress (2026-03-18, Session 1)
 
@@ -131,6 +131,14 @@ When starting a new session:
 - Frontend skips empty-content AI message bubbles, shows only their tool call groups
 - `ToolCallGroup` auto-expands when running/pending/waiting, auto-collapses on completion, respects user toggle
 - Backend: `status_builder.py` (+246/-111), Frontend: `MessageThread.tsx` (+17), `ToolCallGroup.tsx` (+25)
+
+## Session Progress (2026-03-18, Session 7)
+
+- Fixed follow-up input remaining disabled after execution completes
+- Root cause: `useSessionConversation` computed `canSendFollowUp` from `activeExecutionId`, which derived from `listActiveId` scanning the fetched executions list. When the stream reached terminal phase, the fetched list was never refreshed, so `listActiveId` kept returning the completed execution's ID (stale non-terminal phase).
+- Fix: added `useEffect` that calls `refetch()` when `stream.phase` becomes terminal — re-fetched list has updated phase, `listActiveId` clears, `canSendFollowUp` flips to `true`, input enables and auto-focuses
+- Single file changed: `sdk/react/src/session/useSessionConversation.ts` (+8 lines)
+- Zero lint errors
 
 ## Project Complete
 
