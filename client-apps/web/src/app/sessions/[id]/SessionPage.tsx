@@ -105,6 +105,8 @@ export default function SessionPage() {
         executions={conv.completedExecutions}
         activeStreamExecution={conv.activeStreamExecution}
         pendingUserMessage={conv.pendingUserMessage}
+        onApprovalSubmit={conv.submitApproval}
+        submittingApprovalIds={conv.submittingApprovalIds}
         className="flex-1"
       />
       {conv.streamError && (
@@ -113,12 +115,12 @@ export default function SessionPage() {
           onReconnect={conv.reconnectStream}
         />
       )}
-      {conv.sendError && (
+      {(conv.sendError || conv.approvalError) && (
         <div
           role="alert"
           className="border-border border-t px-4 py-2 text-xs text-destructive"
         >
-          {conv.sendError}
+          {conv.sendError || conv.approvalError}
         </div>
       )}
       <FollowUpInput

@@ -58,6 +58,7 @@ export {
   isTerminalPhase,
   useCreateAgentExecution,
   useExecutionStream,
+  useSubmitApproval,
   ExecutionPhaseBadge,
   ToolCallGroup,
   ToolCallDetail,
@@ -68,12 +69,14 @@ export {
   MessageThread,
   FollowUpInput,
   ExecutionDetails,
+  ApprovalCard,
 } from "./execution";
 export type {
   CreateAgentExecutionInput,
   CreateAgentExecutionResult,
   UseCreateAgentExecutionReturn,
   UseExecutionStreamReturn,
+  UseSubmitApprovalReturn,
   ExecutionPhaseBadgeProps,
   ToolCallGroupProps,
   ToolCallDetailProps,
@@ -83,6 +86,7 @@ export type {
   MessageThreadProps,
   FollowUpInputProps,
   ExecutionDetailsProps,
+  ApprovalCardProps,
 } from "./execution";
 
 // GitHub — OAuth connection, repo picker, and hooks
