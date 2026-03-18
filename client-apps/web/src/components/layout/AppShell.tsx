@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { PanelLeft } from "lucide-react";
+import { PanelLeft, PanelRight } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "./Sidebar";
@@ -9,12 +9,12 @@ import { ContextPanel, CONTEXT_PANEL_WIDTH } from "./ContextPanel";
 import {
   useSidebarOpen,
   useContextPanelOpen,
+  useContextPanelSlotContent,
   ContextPanelSlotProvider,
 } from "./use-layout-state";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const sidebar = useSidebarOpen();
-  const contextPanel = useContextPanelOpen();
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -72,20 +72,50 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
 
-        {/* Context panel — hidden below lg breakpoint */}
-        <div
-          className={cn(
-            "shrink-0 overflow-hidden",
-            "transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
-            "max-lg:hidden",
-          )}
-          style={{ width: contextPanel.isOpen ? CONTEXT_PANEL_WIDTH : 0 }}
-        >
-          <div style={{ width: CONTEXT_PANEL_WIDTH }} className="h-full">
-            <ContextPanel />
-          </div>
-        </div>
+        <ContextPanelContainer />
       </div>
     </ContextPanelSlotProvider>
+  );
+}
+
+/**
+ * Wraps the context panel and its re-open affordance. Rendered inside
+ * ContextPanelSlotProvider so it can read slot content and condition
+ * visibility on both user intent (isOpen) and content availability.
+ */
+function ContextPanelContainer() {
+  const contextPanel = useContextPanelOpen();
+  const slotContent = useContextPanelSlotContent();
+  const hasContent = slotContent != null;
+  const isVisible = contextPanel.isOpen && hasContent;
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={contextPanel.open}
+        aria-label="Open details panel"
+        className={cn(
+          "fixed top-2 right-2 z-30 max-lg:hidden",
+          (isVisible || !hasContent) && "hidden",
+        )}
+      >
+        <PanelRight className="size-4" />
+      </Button>
+
+      <div
+        className={cn(
+          "shrink-0 overflow-hidden",
+          "transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
+          "max-lg:hidden",
+        )}
+        style={{ width: isVisible ? CONTEXT_PANEL_WIDTH : 0 }}
+      >
+        <div style={{ width: CONTEXT_PANEL_WIDTH }} className="h-full">
+          <ContextPanel />
+        </div>
+      </div>
+    </>
   );
 }
