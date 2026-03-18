@@ -1,14 +1,17 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { LogOut, User, ChevronsUpDown, SunMoon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/auth";
-import { cn } from "@stigmer/theme";
+import { cn, THEME_PRESETS, resolvePresetClass } from "@stigmer/theme";
+import type { ThemePresetId } from "@stigmer/theme";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -21,6 +24,38 @@ import {
 const noopSubscribe = () => () => {};
 function useMounted() {
   return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}
+
+const PRESET_STORAGE_KEY = "stgm-theme-preset";
+const PRESET_CLASSES = THEME_PRESETS.map((p) => p.className).filter(Boolean);
+
+function usePresetId(): [ThemePresetId, (id: ThemePresetId) => void] {
+  const mounted = useMounted();
+  const [presetId, setPresetIdState] = useState<ThemePresetId>("default");
+
+  useEffect(() => {
+    const stored = localStorage.getItem(PRESET_STORAGE_KEY);
+    if (stored && THEME_PRESETS.some((p) => p.id === stored)) {
+      setPresetIdState(stored as ThemePresetId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const el = document.documentElement;
+    for (const cls of PRESET_CLASSES) {
+      el.classList.remove(cls);
+    }
+    const active = resolvePresetClass(presetId);
+    if (active) el.classList.add(active);
+  }, [presetId, mounted]);
+
+  const setPresetId = useCallback((id: ThemePresetId) => {
+    setPresetIdState(id);
+    localStorage.setItem(PRESET_STORAGE_KEY, id);
+  }, []);
+
+  return [presetId, setPresetId];
 }
 
 function UserAvatar({
@@ -51,6 +86,7 @@ function UserAvatar({
 function AppearanceSubmenu() {
   const { theme, setTheme } = useTheme();
   const mounted = useMounted();
+  const [presetId, setPresetId] = usePresetId();
 
   const themeLabel = mounted && theme
     ? theme.charAt(0).toUpperCase() + theme.slice(1)
@@ -68,14 +104,35 @@ function AppearanceSubmenu() {
         )}
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent>
-        <DropdownMenuRadioGroup
-          value={theme ?? "system"}
-          onValueChange={(val) => setTheme(val as string)}
-        >
-          <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Color Scheme</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={theme ?? "system"}
+            onValueChange={(val) => setTheme(val as string)}
+          >
+            <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Theme</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={presetId}
+            onValueChange={(val) => setPresetId(val as ThemePresetId)}
+          >
+            {THEME_PRESETS.map((preset) => (
+              <DropdownMenuRadioItem key={preset.id} value={preset.id}>
+                <span
+                  className="size-3 shrink-0 rounded-full border border-border"
+                  style={{ backgroundColor: preset.swatch }}
+                />
+                {preset.name}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
       </DropdownMenuSubContent>
     </DropdownMenuSub>
   );

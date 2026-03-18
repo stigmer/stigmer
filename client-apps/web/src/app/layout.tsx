@@ -55,6 +55,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${nunito.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} antialiased`}
       >
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var p=localStorage.getItem("stgm-theme-preset");var m={corporate:"stgm-theme-corporate",startup:"stgm-theme-startup",friendly:"stgm-theme-friendly",fintech:"stgm-theme-fintech"};if(p&&m[p])document.documentElement.classList.add(m[p])}catch(e){}`,
+          }}
+        />
         <Providers>
           <AppShell>
             {children}
