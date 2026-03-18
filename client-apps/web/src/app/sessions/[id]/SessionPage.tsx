@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,6 +14,9 @@ import {
   useModelRegistry,
   MessageThread,
   FollowUpInput,
+  ExecutionSummary,
+  ContextWindowMeter,
+  WorkspaceSummary,
 } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { Button } from "@/components/ui/button";
@@ -51,21 +54,53 @@ export default function SessionPage() {
     [conv, modelId],
   );
 
+  const displayExecution = useMemo(() => {
+    if (conv.activeStreamExecution) return conv.activeStreamExecution;
+    const completed = conv.completedExecutions;
+    return completed.length > 0 ? completed[completed.length - 1] : null;
+  }, [conv.activeStreamExecution, conv.completedExecutions]);
+
   if (conv.isLoading) return <SessionSkeleton />;
   if (conv.loadError) return <SessionError message={conv.loadError} />;
   if (!conv.session && !conv.isLoading) return <SessionStarting />;
 
+  const workspaceEntries = conv.session?.spec?.workspaceEntries ?? [];
+
   return (
     <div className="flex h-full flex-col">
-      <MessageThread
-        executions={conv.completedExecutions}
-        activeStreamExecution={conv.activeStreamExecution}
-        pendingUserMessage={conv.pendingUserMessage}
-        onApprovalSubmit={conv.submitApproval}
-        submittingApprovalIds={conv.submittingApprovalIds}
-        dismissedApprovalIds={conv.dismissedApprovalIds}
-        className="flex-1"
-      />
+      <div className="flex min-h-0 flex-1">
+        <MessageThread
+          executions={conv.completedExecutions}
+          activeStreamExecution={conv.activeStreamExecution}
+          pendingUserMessage={conv.pendingUserMessage}
+          onApprovalSubmit={conv.submitApproval}
+          submittingApprovalIds={conv.submittingApprovalIds}
+          dismissedApprovalIds={conv.dismissedApprovalIds}
+          className="min-w-0 flex-1"
+        />
+        <aside
+          className="hidden w-60 shrink-0 flex-col gap-3 overflow-y-auto p-4 lg:flex"
+          aria-label="Execution details"
+        >
+          {displayExecution && (
+            <div className="rounded-lg border border-border bg-card p-3">
+              <ExecutionSummary execution={displayExecution} />
+            </div>
+          )}
+          {displayExecution?.status?.contextInfo && (
+            <div className="rounded-lg border border-border bg-card p-3">
+              <ContextWindowMeter
+                contextInfo={displayExecution.status.contextInfo}
+              />
+            </div>
+          )}
+          {workspaceEntries.length > 0 && (
+            <div className="rounded-lg border border-border bg-card p-3">
+              <WorkspaceSummary entries={workspaceEntries} />
+            </div>
+          )}
+        </aside>
+      </div>
       {conv.streamError && (
         <StreamErrorBanner
           message={conv.streamError}
@@ -86,6 +121,7 @@ export default function SessionPage() {
         disabled={!conv.canSendFollowUp}
         defaultModelId={modelId}
         onModelChange={setModelId}
+        className="border-t-0 bg-transparent"
       />
     </div>
   );
