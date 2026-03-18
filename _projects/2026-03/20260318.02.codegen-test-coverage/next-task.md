@@ -67,29 +67,40 @@ That's it! No complex structure - just focused work.
 ## Current State
 
 - **Status**: in-progress
-- **Last Session**: 2026-03-18 — Completed Task 2 (generator pure function tests)
-- **Active Task**: Task 3 (ToProto/FromProto generation and roundtrip correctness)
+- **Last Session**: 2026-03-18 — Completed Task 3 (ToProto/FromProto generation and roundtrip correctness tests)
+- **Active Task**: Task 4 (integration test: JSON schema -> generated Go code compiles)
 
-## Session Progress (2026-03-18)
+## Session Progress (2026-03-18, Session 3)
+
+- Completed Task 3: Added 12 test functions (57 subtests) for ToProto/FromProto code generation
+- Created `tools/codegen/generator/conversion_test.go` (643 lines)
+- Covered both conversion systems:
+  - main.go structpb path: genFromProtoField (18 branches), genToProtoMethod (8 branches), genWellKnownTypeFromProto, generateMessageFieldConversion, genTypeFromProtoMethod
+  - sdk_client.go typed proto path: emitToProtoField (14 branches), emitOneofToProto, emitNestedToProto (struct/non-struct paths, skip conditions, recursion)
+- Added roundtrip symmetry tests verifying ToProto/FromProto JSON key and field name consistency
+- Discovered: import paths are tracked as side-effects on genContext.imports, not written to the buffer — must assert on ctx.imports
+- Discovered: when genContext.packageName == "types", shared type prefix is suppressed — tested explicitly
+- Total test count across both generator test files: 450 passing subtests
+
+## Previous Session Progress (2026-03-18, Sessions 1-2)
 
 - Completed Task 1: Added 39 unit tests across 7 test functions for proto2schema pure functions
 - Completed Task 2: Added 62 test functions (358 total test cases) for generator pure functions across all 6 source files
 - Created `tools/codegen/generator/main_test.go` covering functions from main.go, sdk_client.go, sdk_client_ts.go, sdk_client_python.go, sdk_client_java.go, mcp.go
 - Discovered that `isScalarSlice` doesn't verify `[]` prefix — bare scalar names also return true
 - Both singularize implementations strip trailing "s" from "Bus" → "Bu" (known limitation)
-- All tests passing
 
 ## Next Steps
 
-1. **Task 3**: Add unit tests for ToProto/FromProto generation and roundtrip correctness
-2. **Task 4**: Add integration test: JSON schema -> generated Go code compiles successfully
+1. **Task 4**: Add integration test: JSON schema -> generated Go code compiles successfully
 
 ## Context for Resume
 
 - `tools/codegen/proto2schema/main_test.go` — 39 test cases for proto2schema pure functions
 - `tools/codegen/generator/main_test.go` — 358 test cases for generator pure functions across all 6 files
-- Task 3 should focus on testing the generated conversion code (ToProto/FromProto) for correctness
+- `tools/codegen/generator/conversion_test.go` — 57 subtests for ToProto/FromProto code generation + roundtrip symmetry
 - Task 4 should verify that generated Go code compiles successfully end-to-end
+- Tests use `go test` directly (not Bazel) — no go_test rule in BUILD.bazel, consistent with existing test files
 - The `extractStringFromUnknownFields` tests use `protowire` to construct binary test data — same pattern can be reused for similar low-level tests
 
 ---

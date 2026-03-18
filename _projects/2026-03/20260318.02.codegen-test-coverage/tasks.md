@@ -53,14 +53,30 @@ Add timestamps and notes to track your progress.
 
 ## Task 3: Add unit tests for ToProto/FromProto generation and roundtrip correctness
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-18 14:12
+**Completed**: 2026-03-18
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Test genFromProtoField — all 18 TypeSpec.Kind branches (scalars, struct, map variants, message variants, array variants, unknown)
+- [x] Test genFromProtoField shared type import behavior (cross-package vs same-package)
+- [x] Test genFromProtoField shared type in map values (import added)
+- [x] Test genToProtoMethod — 8 branches (required/optional x scalar/expression/message/array-of-message)
+- [x] Test genToProtoMethod import side-effects (structpb, encoding/json)
+- [x] Test genWellKnownTypeFromProto — Timestamp (RFC3339 + struct paths), Duration, unknown type
+- [x] Test generateMessageFieldConversion — HttpEndpoint coerceToString vs no-op
+- [x] Test genTypeFromProtoMethod — shared type FromProto boilerplate
+- [x] Test roundtrip symmetry — verify ToProto/FromProto use matching JSON keys and field names
+- [x] Test emitToProtoField (sdk_client.go) — all 14 switch branches (timestamp, struct, scalars, messages, arrays, maps)
+- [x] Test emitOneofToProto — wrapper struct generation + typeMap miss
+- [x] Test emitNestedToProto — simple/struct paths, ApiResourceReference, skip conditions, recursion
 
 ### Notes
-- [Add notes about this task here]
+- Created `tools/codegen/generator/conversion_test.go` with 12 test functions and 57 subtests
+- Tests cover both conversion systems: main.go structpb path (ToProto + FromProto) and sdk_client.go typed proto path (toProto only)
+- Import path assertions must check `ctx.imports` (not buffer output) — imports are tracked as side-effects on genContext
+- When genContext.packageName matches the shared types package ("types"), no `types.` prefix is added — tested explicitly
+- All 450 subtests pass across both test files (main_test.go + conversion_test.go)
 
 ## Task 4: Add integration test: JSON schema -> generated Go code compiles successfully
 
