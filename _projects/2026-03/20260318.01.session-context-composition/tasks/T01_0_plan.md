@@ -1,7 +1,7 @@
 # Task T01: Session Context Composition — Implementation Plan
 
 **Created**: 2026-03-18
-**Status**: PENDING REVIEW
+**Status**: IN PROGRESS (T01.1-T01.6 complete, T01.7-T01.9 remaining)
 
 ## Objective
 
@@ -88,8 +88,8 @@ message SessionSpec {
 - `apis/ai/stigmer/agentic/session/v1/spec.proto` (edit)
 
 **Acceptance criteria:**
-- [ ] `buf lint` passes
-- [ ] No circular import issues (session imports agent spec types — verify this is clean)
+- [x] `buf lint` passes
+- [x] No circular import issues (session imports agent spec types — verify this is clean)
 
 ---
 
@@ -108,9 +108,9 @@ message SessionSpec {
 - `sdk/protos/` TypeScript proto stubs
 
 **Acceptance criteria:**
-- [ ] Go stubs compile (`go build ./...` in backend)
-- [ ] Java stubs compile (`./gradlew build` in stigmer-cloud)
-- [ ] TypeScript protos build (`npm run build` in sdk/protos)
+- [x] Go stubs compile (`go build ./...` in backend)
+- [x] Java stubs compile (`./gradlew build` in stigmer-cloud)
+- [x] TypeScript protos build (`npm run build` in sdk/protos)
 
 ---
 
@@ -132,8 +132,8 @@ message SessionSpec {
 - `sdk/typescript/src/gen/session.ts`
 
 **Acceptance criteria:**
-- [ ] `npm run build` passes for sdk/typescript
-- [ ] `SessionInput` type includes the new fields
+- [x] `npm run build` passes for sdk/typescript
+- [x] `SessionInput` type includes the new fields
 
 ---
 
@@ -153,10 +153,10 @@ message SessionSpec {
 - Session creation pipeline — no changes needed (fields are just persisted)
 
 **Acceptance criteria:**
-- [ ] Creating a session with `mcp_server_usages` persists correctly
-- [ ] `mcp_server_ref` slugs are resolved to IDs by normalization
-- [ ] `skill_refs` slugs are resolved to IDs by normalization
-- [ ] `go build ./...` passes
+- [x] Creating a session with `mcp_server_usages` persists correctly — `NormalizeReferencesStep` uses proto reflection with recursive traversal; auto-discovers nested `mcp_server_ref` inside `McpServerUsage`
+- [x] `mcp_server_ref` orgs are resolved by normalization — verified via existing test `TestNormalizeReferencesStep_McpServerUsageRef`
+- [x] `skill_refs` orgs are resolved by normalization — top-level `ApiResourceReference`, direct match
+- [x] `go build ./...` passes — no code changes needed
 
 ---
 
@@ -173,9 +173,9 @@ message SessionSpec {
 - No pipeline changes needed — fields are persisted by the existing persist step
 
 **Acceptance criteria:**
-- [ ] Creating a session with `mcp_server_usages` persists to MongoDB correctly
-- [ ] References are normalized (slug → ID)
-- [ ] `./gradlew build` passes
+- [x] Creating a session with `mcp_server_usages` persists to MongoDB correctly — `NormalizeApiResourceReferencesStepV2` uses proto descriptor reflection with recursive traversal; auto-discovers nested `mcp_server_ref`
+- [x] References are normalized (org resolution) — same recursive walk pattern as Go backend
+- [x] `./gradlew build` passes — no code changes needed
 
 ---
 
@@ -204,9 +204,14 @@ The hook passes these through to `stigmer.session.create()`, which flows to the 
 - `sdk/react/src/session/useCreateSession.ts` (edit)
 
 **Acceptance criteria:**
-- [ ] `useCreateSession` accepts `mcpServerUsages` and `skillRefs`
-- [ ] Values flow through to `stigmer.session.create()`
-- [ ] `npm run typecheck` passes
+- [x] `useCreateSession` accepts `mcpServerUsages` and `skillRefs`
+- [x] Values flow through to `stigmer.session.create()`
+- [x] `npm run typecheck` passes
+- [x] `sendFollowUp` refactored to options object (`SendFollowUpOptions`)
+- [x] `useSessionConversation` exposes `mcpServerUsages` and `skillRefs` read-only arrays
+- [x] Mid-conversation MCP/skill changes supported via `buildUpdateInput` overrides
+- [x] Console `SessionPage` updated to new signature
+- [x] Commit: `136ec8d9`
 
 ---
 
