@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
+import {
+  resolveToolCategory,
+  extractPrimaryArgFromPreview,
+} from "./tool-categories";
 
 export interface ApprovalCardProps {
   readonly pendingApproval: PendingApproval;
@@ -25,12 +29,10 @@ const TRUNCATION_LINE_LIMIT = 8;
  * Renders a pending tool-call approval request as a prominent card
  * with Approve, Skip, and Reject action buttons.
  *
- * Designed as a thread-level item in the conversation — the user sees
- * this card immediately without drilling into tool call details.
- *
- * Self-contained: receives a {@link PendingApproval} proto and an
- * `onSubmit` callback. All visual properties flow through `--stgm-*`
- * tokens. No `<form>` element (embeddable inside host forms).
+ * Tool-type-aware: shell tools render the command in a terminal-style
+ * block, file tools show the path prominently, and destructive tools
+ * (delete) use warning styling. Falls back to generic JSON args
+ * display for unrecognized tools.
  *
  * @example
  * ```tsx
@@ -63,22 +65,30 @@ export function ApprovalCard({
     }
   }, [isSubmitting]);
 
-  const header = pendingApproval.fromSubAgent
-    ? "Sub-agent approval required"
-    : "Approval required";
+  const categoryInfo = resolveToolCategory(pendingApproval.toolName);
+  const primaryArg = extractPrimaryArgFromPreview(
+    pendingApproval.toolName,
+    pendingApproval.argsPreview,
+  );
+
+  const { header, headerIcon, borderClass } = getApprovalHeader(
+    categoryInfo.category,
+    pendingApproval.fromSubAgent,
+  );
 
   return (
     <div
       role="alert"
       aria-label={`Approval required for ${pendingApproval.toolName}`}
       className={cn(
-        "rounded-lg border border-warning/30 bg-warning/5 px-4 py-3",
+        "rounded-lg border px-4 py-3",
+        borderClass,
         className,
       )}
     >
       {/* Header */}
       <div className="flex items-center gap-2 text-sm font-medium text-warning">
-        <ShieldIcon />
+        {headerIcon}
         <span>{header}</span>
       </div>
 
@@ -93,10 +103,10 @@ export function ApprovalCard({
         </p>
       )}
 
-      {/* Tool name */}
+      {/* Tool name badge */}
       <div className="mt-2 flex items-center gap-2">
         <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
-          {pendingApproval.toolName}
+          {categoryInfo.label}
         </span>
         <WaitingDuration requestedAt={pendingApproval.requestedAt} />
       </div>
@@ -108,12 +118,14 @@ export function ApprovalCard({
         </p>
       )}
 
-      {/* Arguments preview */}
-      {pendingApproval.argsPreview && (
-        <div className="mt-2">
-          <ArgsPreview content={pendingApproval.argsPreview} />
-        </div>
-      )}
+      {/* Category-specific args preview */}
+      <div className="mt-2">
+        <CategoryArgsPreview
+          category={categoryInfo.category}
+          primaryArg={primaryArg}
+          argsPreview={pendingApproval.argsPreview}
+        />
+      </div>
 
       {/* Action buttons */}
       <div className="mt-3 flex items-center gap-2">
@@ -142,6 +154,157 @@ export function ApprovalCard({
           variant="reject"
         />
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Category-aware header
+// ---------------------------------------------------------------------------
+
+function getApprovalHeader(
+  category: string,
+  fromSubAgent: boolean,
+): {
+  header: string;
+  headerIcon: React.JSX.Element;
+  borderClass: string;
+} {
+  if (fromSubAgent) {
+    return {
+      header: "Sub-agent approval required",
+      headerIcon: <ShieldIcon />,
+      borderClass: "border-warning/30 bg-warning/5",
+    };
+  }
+
+  switch (category) {
+    case "shell":
+      return {
+        header: "Execute command",
+        headerIcon: <TerminalApprovalIcon />,
+        borderClass: "border-warning/30 bg-warning/5",
+      };
+    case "delete":
+      return {
+        header: "Delete file",
+        headerIcon: <ShieldIcon />,
+        borderClass: "border-destructive/30 bg-destructive/5",
+      };
+    default:
+      return {
+        header: "Approval required",
+        headerIcon: <ShieldIcon />,
+        borderClass: "border-warning/30 bg-warning/5",
+      };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Category-specific args preview
+// ---------------------------------------------------------------------------
+
+function CategoryArgsPreview({
+  category,
+  primaryArg,
+  argsPreview,
+}: {
+  category: string;
+  primaryArg: string | null;
+  argsPreview: string;
+}) {
+  if (category === "shell" && primaryArg) {
+    return <ShellArgsPreview command={primaryArg} />;
+  }
+
+  if ((category === "read" || category === "write" || category === "edit" || category === "delete") && primaryArg) {
+    return <FileArgsPreview path={primaryArg} argsPreview={argsPreview} />;
+  }
+
+  if ((category === "search" || category === "list") && primaryArg) {
+    return <SearchArgsPreview pattern={primaryArg} />;
+  }
+
+  if (!argsPreview) return null;
+  return <GenericArgsPreview content={argsPreview} />;
+}
+
+function ShellArgsPreview({ command }: { command: string }) {
+  return (
+    <div className="rounded-md border border-border bg-[var(--stgm-terminal-bg,#1a1a2e)] p-2.5">
+      <pre className="whitespace-pre-wrap break-words font-mono text-xs text-[var(--stgm-terminal-fg,#e0e0e0)]">
+        <span className="select-none text-[var(--stgm-terminal-prompt,#6b7280)]">$ </span>
+        {command}
+      </pre>
+    </div>
+  );
+}
+
+function FileArgsPreview({
+  path,
+  argsPreview,
+}: {
+  path: string;
+  argsPreview: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5 text-xs">
+        <FilePathIcon />
+        <span className="font-mono text-foreground">{path}</span>
+      </div>
+      {argsPreview && <GenericArgsPreview content={argsPreview} />}
+    </div>
+  );
+}
+
+function SearchArgsPreview({ pattern }: { pattern: string }) {
+  return (
+    <div className="flex items-center gap-1.5 text-xs">
+      <span className="text-muted-foreground">Pattern:</span>
+      <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-foreground">
+        {pattern}
+      </code>
+    </div>
+  );
+}
+
+function GenericArgsPreview({ content }: { content: string }) {
+  const formatted = useMemo(() => {
+    try {
+      const parsed = JSON.parse(content);
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return content;
+    }
+  }, [content]);
+
+  const lines = formatted.split("\n");
+  const needsTruncation = lines.length > TRUNCATION_LINE_LIMIT;
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const displayContent =
+    needsTruncation && !isExpanded
+      ? lines.slice(0, TRUNCATION_LINE_LIMIT).join("\n") + "\n\u2026"
+      : formatted;
+
+  return (
+    <div className="space-y-1">
+      <span className="text-xs font-medium text-muted-foreground">
+        Arguments
+      </span>
+      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-xs text-foreground">
+        {displayContent}
+      </pre>
+      {needsTruncation && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded((v) => !v)}
+          className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
+        >
+          {isExpanded ? "Show less" : `Show all ${lines.length} lines`}
+        </button>
+      )}
     </div>
   );
 }
@@ -202,49 +365,8 @@ function ActionButton({
   );
 }
 
-function ArgsPreview({ content }: { content: string }) {
-  const formatted = useMemo(() => {
-    try {
-      const parsed = JSON.parse(content);
-      return JSON.stringify(parsed, null, 2);
-    } catch {
-      return content;
-    }
-  }, [content]);
-
-  const lines = formatted.split("\n");
-  const needsTruncation = lines.length > TRUNCATION_LINE_LIMIT;
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const displayContent =
-    needsTruncation && !isExpanded
-      ? lines.slice(0, TRUNCATION_LINE_LIMIT).join("\n") + "\n\u2026"
-      : formatted;
-
-  return (
-    <div className="space-y-1">
-      <span className="text-xs font-medium text-muted-foreground">
-        Arguments
-      </span>
-      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-xs text-foreground">
-        {displayContent}
-      </pre>
-      {needsTruncation && (
-        <button
-          type="button"
-          onClick={() => setIsExpanded((v) => !v)}
-          className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
-        >
-          {isExpanded ? "Show less" : `Show all ${lines.length} lines`}
-        </button>
-      )}
-    </div>
-  );
-}
-
 /**
  * Live-ticking elapsed time since the approval was requested.
- * Follows the `useElapsedMs` pattern from {@link ExecutionDetails}.
  */
 function WaitingDuration({ requestedAt }: { requestedAt: string }) {
   const startMs = useMemo(() => {
@@ -295,7 +417,7 @@ function formatElapsed(ms: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// Inline SVG icons — SDK pattern (no lucide-react dependency)
+// Inline SVG icons
 // ---------------------------------------------------------------------------
 
 function ShieldIcon() {
@@ -314,6 +436,46 @@ function ShieldIcon() {
       <path d="M7 1L2 3.5V6.5C2 9.75 4.1 12.35 7 13C9.9 12.35 12 9.75 12 6.5V3.5L7 1Z" />
       <path d="M7 5V8" />
       <circle cx="7" cy="10" r="0.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function TerminalApprovalIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="1" y="2" width="12" height="10" rx="2" />
+      <path d="M4 5.5L6 7.5L4 9.5" />
+      <path d="M7.5 9.5H10" />
+    </svg>
+  );
+}
+
+function FilePathIcon() {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0 text-muted-foreground"
+      aria-hidden="true"
+    >
+      <path d="M7 1H3C2.45 1 2 1.45 2 2V10C2 10.55 2.45 11 3 11H9C9.55 11 10 10.55 10 10V4L7 1Z" />
+      <path d="M7 1V4H10" />
     </svg>
   );
 }

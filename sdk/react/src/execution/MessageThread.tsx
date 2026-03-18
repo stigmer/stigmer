@@ -126,7 +126,10 @@ function buildThreadItems(
   const lastPhase =
     lastExec?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
 
-  if (isTerminalPhase(lastPhase)) {
+  if (
+    isTerminalPhase(lastPhase) &&
+    lastPhase !== ExecutionPhase.EXECUTION_COMPLETED
+  ) {
     items.push({
       kind: "phase-badge",
       phase: lastPhase,
