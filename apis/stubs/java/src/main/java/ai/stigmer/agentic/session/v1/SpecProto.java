@@ -46,29 +46,45 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n(ai/stigmer/agentic/session/v1/spec.pro" +
-      "to\022\035ai.stigmer.agentic.session.v1\032-ai/st" +
+      "to\022\035ai.stigmer.agentic.session.v1\032&ai/st" +
+      "igmer/agentic/agent/v1/spec.proto\032-ai/st" +
       "igmer/agentic/session/v1/workspace.proto" +
-      "\032\033buf/validate/validate.proto\"\236\003\n\013Sessio" +
-      "nSpec\0222\n\021agent_instance_id\030\001 \001(\tB\006\272H\003\310\001\001" +
-      "R\017agentInstanceId\022\030\n\007subject\030\002 \001(\tR\007subj" +
-      "ect\022\033\n\tthread_id\030\003 \001(\tR\010threadId\022\035\n\nsand" +
-      "box_id\030\004 \001(\tR\tsandboxId\022T\n\010metadata\030\005 \003(" +
-      "\01328.ai.stigmer.agentic.session.v1.Sessio" +
-      "nSpec.MetadataEntryR\010metadata\022Z\n\021workspa" +
-      "ce_entries\030\007 \003(\0132-.ai.stigmer.agentic.se" +
-      "ssion.v1.WorkspaceEntryR\020workspaceEntrie" +
+      "\0322ai/stigmer/commons/apiresource/field_o" +
+      "ptions.proto\032\'ai/stigmer/commons/apireso" +
+      "urce/io.proto\032\033buf/validate/validate.pro" +
+      "to\"\261\006\n\013SessionSpec\022*\n\021agent_instance_id\030" +
+      "\001 \001(\tR\017agentInstanceId\022\030\n\007subject\030\002 \001(\tR" +
+      "\007subject\022\033\n\tthread_id\030\003 \001(\tR\010threadId\022\035\n" +
+      "\nsandbox_id\030\004 \001(\tR\tsandboxId\022T\n\010metadata" +
+      "\030\005 \003(\01328.ai.stigmer.agentic.session.v1.S" +
+      "essionSpec.MetadataEntryR\010metadata\022Z\n\021wo" +
+      "rkspace_entries\030\006 \003(\0132-.ai.stigmer.agent" +
+      "ic.session.v1.WorkspaceEntryR\020workspaceE" +
+      "ntries\022\352\001\n\021mcp_server_usages\030\007 \003(\0132+.ai." +
+      "stigmer.agentic.agent.v1.McpServerUsageB" +
+      "\220\001\272H\214\001\222\001\210\001\"\205\001\272\001\201\001\n\036session_mcp_server_us" +
+      "ages.kind\022?mcp_server_usages must refere" +
+      "nce resources with kind=mcp_server\032\036this" +
+      ".mcp_server_ref.kind == 44R\017mcpServerUsa" +
+      "ges\022\303\001\n\nskill_refs\030\010 \003(\01324.ai.stigmer.co" +
+      "mmons.apiresource.ApiResourceReferenceBn" +
+      "\272Hg\222\001d\"b\272\001_\n\027session_skill_refs.kind\0223sk" +
+      "ill_refs must reference resources with k" +
+      "ind=skill\032\017this.kind == 43\340\205,+R\tskillRef" +
       "s\032;\n\rMetadataEntry\022\020\n\003key\030\001 \001(\tR\003key\022\024\n\005" +
-      "value\030\002 \001(\tR\005value:\0028\001J\004\010\006\020\007R\020workspace_" +
-      "sourceB\244\001B\tSpecProtoP\001\242\002\004ASAS\252\002\035Ai.Stigm" +
-      "er.Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agent" +
-      "ic\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Sessi" +
-      "on\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic" +
-      "::Session::V1b\006proto3"
+      "value\030\002 \001(\tR\005value:\0028\001B\244\001B\tSpecProtoP\001\242\002" +
+      "\004ASAS\252\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035" +
+      "Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\Stigm" +
+      "er\\Agentic\\Session\\V1\\GPBMetadata\352\002!Ai::" +
+      "Stigmer::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.agentic.agent.v1.SpecProto.getDescriptor(),
           ai.stigmer.agentic.session.v1.WorkspaceProto.getDescriptor(),
+          ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor(),
+          ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_descriptor =
@@ -76,7 +92,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_session_v1_SessionSpec_descriptor,
-        new java.lang.String[] { "AgentInstanceId", "Subject", "ThreadId", "SandboxId", "Metadata", "WorkspaceEntries", });
+        new java.lang.String[] { "AgentInstanceId", "Subject", "ThreadId", "SandboxId", "Metadata", "WorkspaceEntries", "McpServerUsages", "SkillRefs", });
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_MetadataEntry_descriptor =
       internal_static_ai_stigmer_agentic_session_v1_SessionSpec_descriptor.getNestedType(0);
     internal_static_ai_stigmer_agentic_session_v1_SessionSpec_MetadataEntry_fieldAccessorTable = new
@@ -84,10 +100,14 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_session_v1_SessionSpec_MetadataEntry_descriptor,
         new java.lang.String[] { "Key", "Value", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.agentic.agent.v1.SpecProto.getDescriptor();
     ai.stigmer.agentic.session.v1.WorkspaceProto.getDescriptor();
+    ai.stigmer.commons.apiresource.FieldOptionsProto.getDescriptor();
+    ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
+    registry.add(ai.stigmer.commons.apiresource.FieldOptionsProto.referenceKind);
     registry.add(build.buf.validate.ValidateProto.field);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);

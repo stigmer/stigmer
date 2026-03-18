@@ -14,6 +14,8 @@ from ai.stigmer.agentic.session.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 
 from ._errors import wrap_error
+from ._types import ResourceRef
+from ._agent import McpServerUsageInput, ToolApprovalOverrideInput
 
 
 class SessionClient:
@@ -72,12 +74,14 @@ class SessionInput:
 
     name: str
     org: str
-    agent_instance_id: str
+    agent_instance_id: str = ""
     subject: str = ""
     thread_id: str = ""
     sandbox_id: str = ""
     metadata: dict[str, str] = field(default_factory=dict)
     workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
+    mcp_server_usages: list[McpServerUsageInput] = field(default_factory=list)
+    skill_refs: list[ResourceRef] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
@@ -90,6 +94,10 @@ class SessionInput:
             spec.metadata.update(self.metadata)
         for item in self.workspace_entries:
             spec.workspace_entries.append(item._to_proto())
+        for item in self.mcp_server_usages:
+            spec.mcp_server_usages.append(item._to_proto())
+        for ref in self.skill_refs:
+            spec.skill_refs.append(ref._to_proto())
         return api_pb2.Session(
             api_version="agentic.stigmer.ai/v1",
             kind="Session",

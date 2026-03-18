@@ -98,6 +98,40 @@ type Store interface {
 	// Returns: slice of marshaled protobuf bytes (one per matching resource)
 	FindAllByField(ctx context.Context, kind apiresourcekind.ApiResourceKind, fieldPath string, value string) ([][]byte, error)
 
+	// FindByLabel retrieves a single resource matching a metadata label key-value pair.
+	// This enables queries like "find the Agent with stigmer.ai/default-agent=true".
+	// Returns ErrNotFound if no resource matches.
+	//
+	// Labels are stored in metadata.labels (map<string, string>) on all API resources.
+	// Unlike FindByField, this method handles map fields correctly and avoids
+	// ambiguity with dot-separated label keys (e.g., "stigmer.ai/default-agent").
+	//
+	// If multiple resources match, the first match is returned. Use FindAllByLabel
+	// when the caller needs to enforce uniqueness constraints.
+	//
+	// Parameters:
+	//   - kind: resource kind enum (e.g., ApiResourceKind_agent)
+	//   - labelKey: the label key to match (e.g., "stigmer.ai/default-agent")
+	//   - labelValue: the label value to match (e.g., "true")
+	//   - msg: pointer to proto message to unmarshal into (must be initialized)
+	//
+	// Note: This performs a full table scan for the given kind. For frequently
+	// queried labels, consider adding a dedicated index in the store implementation.
+	FindByLabel(ctx context.Context, kind apiresourcekind.ApiResourceKind, labelKey, labelValue string, msg proto.Message) error
+
+	// FindAllByLabel retrieves all resources matching a metadata label key-value pair.
+	// Returns an empty slice (not nil) if no resources match.
+	//
+	// Parameters:
+	//   - kind: resource kind enum (e.g., ApiResourceKind_agent)
+	//   - labelKey: the label key to match (e.g., "stigmer.ai/system")
+	//   - labelValue: the label value to match (e.g., "true")
+	//   - templateMsg: a zero-value proto message of the target type, used as a
+	//     deserialization template for label extraction (not modified)
+	//
+	// Returns: slice of marshaled protobuf bytes (one per matching resource)
+	FindAllByLabel(ctx context.Context, kind apiresourcekind.ApiResourceKind, labelKey, labelValue string, templateMsg proto.Message) ([][]byte, error)
+
 	// DeleteResourcesByKind removes all resources of a given kind.
 	// Useful for bulk cleanup operations (e.g., "stigmer local clean --kind=Agent").
 	//

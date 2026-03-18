@@ -1,6 +1,8 @@
-// Hooks
-export { useSkillSearch } from "./hooks/useSkillSearch";
+export { useSkillSearch } from "./useSkillSearch";
 export type {
   UseSkillSearchOptions,
   UseSkillSearchReturn,
-} from "./hooks/useSkillSearch";
+} from "./useSkillSearch";
+
+export { SkillPicker } from "./SkillPicker";
+export type { SkillPickerProps } from "./SkillPicker";

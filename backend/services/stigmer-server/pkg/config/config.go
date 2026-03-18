@@ -9,6 +9,24 @@ import (
 	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
 )
 
+// defaultGitHubOAuthClientID and defaultGitHubOAuthClientSecret are the
+// credentials for the "Stigmer Local" OAuth App (callback: localhost:3000).
+// Hardcoded in source following the same pattern as GitHub CLI (gh):
+// a localhost-only OAuth App's client_secret has negligible security value
+// since tokens can only be delivered to localhost.
+//
+// Enterprise/self-hosted users can override via STIGMER_GITHUB_CLIENT_ID
+// and STIGMER_GITHUB_CLIENT_SECRET environment variables.
+//
+// CI release builds may override via ldflags for the Cloud OAuth App:
+//
+//	-X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientID=...
+//	-X github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/config.defaultGitHubOAuthClientSecret=...
+var (
+	defaultGitHubOAuthClientID     = "Ov23li4q5kgj90QMr226"
+	defaultGitHubOAuthClientSecret = "edc089d10b6cc0dcee898f9680d62d1504e2c89a"
+)
+
 // Config holds server configuration
 type Config struct {
 	GRPCPort    int
@@ -28,6 +46,12 @@ type Config struct {
 	// artifact downloads. Only used when ArtifactStorage.Type == "local".
 	// Default: GRPCPort + 1 (7235).
 	ArtifactHTTPPort int
+
+	// GitHub OAuth configuration for workspace repo selection.
+	// Override via STIGMER_GITHUB_CLIENT_ID / STIGMER_GITHUB_CLIENT_SECRET.
+	// When empty, the GitHub workspace source is disabled in the UI.
+	GitHubOAuthClientID     string
+	GitHubOAuthClientSecret string
 }
 
 // LoadConfig loads configuration from environment variables
@@ -48,6 +72,10 @@ func LoadConfig() (*Config, error) {
 
 		// Artifact HTTP server port (for local artifact downloads)
 		ArtifactHTTPPort: artifactHTTPPort,
+
+		// GitHub OAuth configuration
+		GitHubOAuthClientID:     getEnvString("STIGMER_GITHUB_CLIENT_ID", defaultGitHubOAuthClientID),
+		GitHubOAuthClientSecret: getEnvString("STIGMER_GITHUB_CLIENT_SECRET", defaultGitHubOAuthClientSecret),
 
 		// Artifact storage configuration
 		ArtifactStorage: artifactstorage.Config{

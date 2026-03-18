@@ -12,7 +12,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Session ID this execution belongs to (optional).\n At least one of session_id or agent_id must be provided (enforced in handler).\n Both may be set — when both are present, session_id is used for session\n resolution and agent_id is preserved as metadata for downstream consumers\n (e.g., session subject generation).\n When absent, agent_id must be specified — a session is auto-created\n using the agent's default instance.",
+      "description": "Session ID this execution belongs to (optional).\n\n Resolution priority (enforced in handler pipeline):\n   1. session_id provided     -\u003e use existing session\n   2. agent_id provided       -\u003e auto-create session using agent's default instance\n   3. neither provided        -\u003e resolve platform default agent (label\n      stigmer.ai/default-agent + visibility_public), then auto-create session\n\n Both may be set — when both are present, session_id is used for session\n resolution and agent_id is preserved as metadata for downstream consumers\n (e.g., session subject generation).",
       "required": false
     },
     {
@@ -22,7 +22,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Agent ID (optional).\n At least one of session_id or agent_id must be provided (enforced in handler).\n Both may be set — agent_id is preserved on the execution record even when\n session_id is present, so downstream consumers can access the agent\n without resolving through the session chain.\n When provided without session_id, a new session is auto-created using\n the agent's default instance ID.",
+      "description": "Agent ID (optional).\n\n When absent along with session_id, the backend resolves the platform's\n public default agent — the agent labeled stigmer.ai/default-agent: \"true\"\n with visibility_public. This enables session-first UX where users start\n a conversation without choosing an agent.\n\n Both may be set — agent_id is preserved on the execution record even when\n session_id is present, so downstream consumers can access the agent\n without resolving through the session chain.\n\n When provided without session_id, a new session is auto-created using\n the agent's default instance ID.",
       "required": false
     },
     {

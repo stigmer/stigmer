@@ -10,6 +10,13 @@ Usage::
 """
 
 from ._client import StigmerClient
+from ._github import (
+    ExchangeOAuthCodeParams,
+    GetOAuthAuthorizeUrlParams,
+    GitHubClient,
+    OAuthAuthorizeUrlResponse,
+    OAuthTokenResponse,
+)
 from ._search import ApiResourceKind, SearchClient, SearchParams, SearchResponse
 
 # --- Resource clients and input types (generated) --------------------------
@@ -91,6 +98,12 @@ from ._gen._errors import (
 __all__ = [
     # Client
     "StigmerClient",
+    # GitHub
+    "ExchangeOAuthCodeParams",
+    "GetOAuthAuthorizeUrlParams",
+    "GitHubClient",
+    "OAuthAuthorizeUrlResponse",
+    "OAuthTokenResponse",
     # Search
     "ApiResourceKind",
     "SearchClient",
