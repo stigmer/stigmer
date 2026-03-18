@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   AlertTriangle,
   Loader2,
-  PanelRight,
   RotateCcw,
   WifiOff,
 } from "lucide-react";
@@ -88,19 +87,7 @@ export default function SessionPage() {
   if (!conv.session && !conv.isLoading) return <SessionStarting />;
 
   return (
-    <div className="relative flex h-full flex-col">
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={contextPanel.toggle}
-        aria-label={
-          contextPanel.isOpen ? "Close details panel" : "Open details panel"
-        }
-        className="absolute right-2 top-2 z-10 max-lg:hidden"
-      >
-        <PanelRight className="size-4" />
-      </Button>
-
+    <div className="flex h-full flex-col">
       <MessageThread
         executions={conv.completedExecutions}
         activeStreamExecution={conv.activeStreamExecution}
