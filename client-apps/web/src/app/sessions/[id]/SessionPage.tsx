@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,14 +14,9 @@ import {
   useModelRegistry,
   MessageThread,
   FollowUpInput,
-  ExecutionDetails,
 } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { Button } from "@/components/ui/button";
-import {
-  useContextPanelSlot,
-  useContextPanelOpen,
-} from "@/components/layout/use-layout-state";
 
 const STORAGE_KEY_MODEL = "stigmer:session:model";
 
@@ -48,32 +43,6 @@ export default function SessionPage() {
   const org = useActiveOrgSlug();
   const conv = useSessionConversation(id, org);
   const [modelId, setModelId] = usePersistedModel();
-  const contextPanel = useContextPanelOpen();
-
-  const activeExecution = useMemo(
-    () =>
-      conv.activeStreamExecution ??
-      conv.completedExecutions[conv.completedExecutions.length - 1] ??
-      null,
-    [conv.activeStreamExecution, conv.completedExecutions],
-  );
-
-  useContextPanelSlot(
-    activeExecution ? (
-      <ExecutionDetails
-        execution={activeExecution}
-        workspaceEntries={conv.session?.spec?.workspaceEntries}
-      />
-    ) : null,
-  );
-
-  const autoOpenedRef = useRef(false);
-  useEffect(() => {
-    if (activeExecution && !autoOpenedRef.current) {
-      autoOpenedRef.current = true;
-      contextPanel.open();
-    }
-  }, [activeExecution, contextPanel]);
 
   const handleSubmit = useCallback(
     (message: string, model?: string) => {
