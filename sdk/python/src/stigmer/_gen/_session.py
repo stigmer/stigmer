@@ -15,6 +15,7 @@ from ai.stigmer.commons.apiresource import metadata_pb2
 
 from ._errors import wrap_error
 from ._types import ResourceRef
+from ._agent import McpServerUsageInput, ToolApprovalOverrideInput
 
 
 class SessionClient:
@@ -168,42 +169,6 @@ class LocalPathSourceInput:
     def _to_proto(self) -> spec_pb2.LocalPathSource:
         msg = spec_pb2.LocalPathSource(
             path=self.path,
-        )
-        return msg
-
-
-@dataclass
-class McpServerUsageInput:
-    """SDK input type for McpServerUsage."""
-
-    mcp_server_ref: ResourceRef | None
-    enabled_tools: list[str] = field(default_factory=list)
-    tool_approval_overrides: list[ToolApprovalOverrideInput] = field(default_factory=list)
-
-    def _to_proto(self) -> spec_pb2.McpServerUsage:
-        msg = spec_pb2.McpServerUsage()
-        if self.mcp_server_ref is not None:
-            msg.mcp_server_ref.CopyFrom(self.mcp_server_ref._to_proto())
-        if self.enabled_tools:
-            msg.enabled_tools.extend(self.enabled_tools)
-        for item in self.tool_approval_overrides:
-            msg.tool_approval_overrides.append(item._to_proto())
-        return msg
-
-
-@dataclass
-class ToolApprovalOverrideInput:
-    """SDK input type for ToolApprovalOverride."""
-
-    tool_name: str = ""
-    requires_approval: bool = False
-    message: str = ""
-
-    def _to_proto(self) -> spec_pb2.ToolApprovalOverride:
-        msg = spec_pb2.ToolApprovalOverride(
-            tool_name=self.tool_name,
-            requires_approval=self.requires_approval,
-            message=self.message,
         )
         return msg
 

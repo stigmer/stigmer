@@ -177,7 +177,7 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 		echo "error: tag $$NEW_TAG already exists" && exit 1; \
 	fi; \
 	echo "$$LATEST_TAG -> $$NEW_TAG"; \
-	cd sdk/go && go mod edit -require "github.com/stigmer/stigmer/apis/stubs/go@$$NEW_TAG" && cd ../..; \
+	cd sdk/go && go mod edit -dropreplace "github.com/stigmer/stigmer/apis/stubs/go" -require "github.com/stigmer/stigmer/apis/stubs/go@$$NEW_TAG" && cd ../..; \
 	git add sdk/go/go.mod; \
 	git commit -m "release: update sdk/go stubs dependency to $$NEW_TAG"; \
 	git tag -a "apis/stubs/go/$$NEW_TAG" -m "Release apis/stubs/go $$NEW_TAG"; \

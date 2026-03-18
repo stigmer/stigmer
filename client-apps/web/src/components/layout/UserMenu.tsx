@@ -31,14 +31,14 @@ const PRESET_CLASSES = THEME_PRESETS.map((p) => p.className).filter(Boolean);
 
 function usePresetId(): [ThemePresetId, (id: ThemePresetId) => void] {
   const mounted = useMounted();
-  const [presetId, setPresetIdState] = useState<ThemePresetId>("default");
-
-  useEffect(() => {
+  const [presetId, setPresetIdState] = useState<ThemePresetId>(() => {
+    if (typeof window === "undefined") return "default";
     const stored = localStorage.getItem(PRESET_STORAGE_KEY);
     if (stored && THEME_PRESETS.some((p) => p.id === stored)) {
-      setPresetIdState(stored as ThemePresetId);
+      return stored as ThemePresetId;
     }
-  }, []);
+    return "default";
+  });
 
   useEffect(() => {
     if (!mounted) return;
