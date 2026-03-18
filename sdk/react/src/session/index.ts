@@ -10,3 +10,6 @@ export type { UseSessionReturn } from "./useSession";
 
 export { useSessionExecutions } from "./useSessionExecutions";
 export type { UseSessionExecutionsReturn } from "./useSessionExecutions";
+
+export { useSessionConversation } from "./useSessionConversation";
+export type { UseSessionConversationReturn } from "./useSessionConversation";

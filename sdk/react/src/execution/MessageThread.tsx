@@ -22,6 +22,13 @@ export interface MessageThreadProps {
    * execution is actively streaming.
    */
   readonly activeStreamExecution?: AgentExecution | null;
+  /**
+   * Optimistic user message shown at the end of the thread before the
+   * stream delivers the real message. Rendered as a human message with
+   * a sending indicator. Clear this prop once the stream delivers its
+   * first snapshot.
+   */
+  readonly pendingUserMessage?: string | null;
   readonly className?: string;
   /**
    * Custom formatter for tool call summary labels. Passed through to
@@ -41,11 +48,13 @@ const AUTO_SCROLL_THRESHOLD_PX = 80;
 type ThreadItem =
   | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly key: string }
-  | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string };
+  | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
+  | { readonly kind: "pending-message"; readonly content: string; readonly key: string };
 
 function buildThreadItems(
   executions: readonly AgentExecution[],
   activeStreamExecution: AgentExecution | null | undefined,
+  pendingUserMessage: string | null | undefined,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
   const allExecutions = activeStreamExecution
@@ -92,6 +101,14 @@ function buildThreadItems(
     });
   }
 
+  if (pendingUserMessage) {
+    items.push({
+      kind: "pending-message",
+      content: pendingUserMessage,
+      key: "pending-user-message",
+    });
+  }
+
   return items;
 }
 
@@ -121,6 +138,7 @@ function buildThreadItems(
 export function MessageThread({
   executions,
   activeStreamExecution,
+  pendingUserMessage,
   className,
   formatToolCallSummary,
 }: MessageThreadProps) {
@@ -128,8 +146,8 @@ export function MessageThread({
   const isNearBottomRef = useRef(true);
 
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution),
-    [executions, activeStreamExecution],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage),
+    [executions, activeStreamExecution, pendingUserMessage],
   );
 
   const handleScroll = useCallback(() => {
@@ -174,6 +192,19 @@ export function MessageThread({
             return (
               <div key={item.key} className="flex justify-center py-3">
                 <ExecutionPhaseBadge phase={item.phase} />
+              </div>
+            );
+          case "pending-message":
+            return (
+              <div
+                key={item.key}
+                role="article"
+                aria-label="Sending message"
+                className="rounded-lg bg-muted/50 px-4 py-3 opacity-70"
+              >
+                <p className="text-sm text-foreground whitespace-pre-wrap">
+                  {item.content}
+                </p>
               </div>
             );
         }
