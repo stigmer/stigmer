@@ -3,6 +3,7 @@ package agentexecution
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
@@ -12,6 +13,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
+	"google.golang.org/protobuf/proto"
 )
 
 // Context keys for inter-step communication
@@ -36,14 +38,16 @@ const (
 //   - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
 //   - REJECT: Execution fails with rejection error, phase becomes FAILED
 //
-// ## State Transitions
+// ## Immediate State Transitions (in this handler)
 //
-// On success:
+//   - The matching PendingApproval entry is removed from status.pending_approvals
 //   - ToolCall.approval_action = submitted action
 //   - ToolCall.approval_decided_at = current timestamp
-//   - ToolCall.approved_by = authenticated user ID
-//   - AgentExecutionStatus.pending_approvals = cleared
-//   - ExecutionPhase = EXECUTION_IN_PROGRESS (or EXECUTION_FAILED if REJECT)
+//   - Updated state is persisted and broadcast to subscribers
+//
+// The execution phase remains WAITING_FOR_APPROVAL until the Python activity
+// resumes and transitions it to IN_PROGRESS. This handler owns the approval
+// resolution; the phase transition is owned by the agent runner.
 //
 // ## Idempotency
 //
@@ -52,15 +56,12 @@ const (
 //
 // ## Temporal Integration
 //
-// The handler sends a submitApproval signal to the running Temporal workflow.
-// The workflow receives this signal and:
-//  1. Unblocks its Workflow.await()
-//  2. Embeds the approval decision in the execution proto
-//  3. Re-invokes the Python activity with the decision
-//  4. Python processes the decision and resumes execution
-//
-// Note: Status updates happen asynchronously via gRPC from the Python activity.
-// The handler returns the current execution state immediately after signaling.
+// After persisting the resolved state, the handler sends a submitApproval signal
+// to the running Temporal workflow. The workflow receives this signal and:
+//  1. Unblocks its signal channel
+//  2. Collects approval decisions (one per pending tool call)
+//  3. Re-invokes the Python activity with the decisions
+//  4. Python processes the decisions and resumes execution
 func (c *AgentExecutionController) SubmitApproval(ctx context.Context, input *agentexecutionv1.SubmitApprovalInput) (*agentexecutionv1.AgentExecution, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, input)
 
@@ -78,18 +79,20 @@ func (c *AgentExecutionController) SubmitApproval(ctx context.Context, input *ag
 // buildSubmitApprovalPipeline constructs the pipeline for submit-approval operations.
 //
 // Pipeline steps:
-//  1. ValidateProto       - Validate input constraints (tool_call_id, action required)
-//  2. LoadExisting        - Load AgentExecution from store
-//  3. ValidateApproval    - Validate phase, tool_call_id match, idempotency
-//  4. SignalWorkflow      - Send Temporal signal to running workflow
-//  5. BuildResponse       - Return current execution state (with audit log)
+//  1. ValidateProto            - Validate input constraints (tool_call_id, action required)
+//  2. LoadExisting             - Load AgentExecution from store
+//  3. ValidateApproval         - Validate phase, tool_call_id match, idempotency
+//  4. ResolvePendingApproval   - Remove resolved entry from DB, broadcast to subscribers
+//  5. SignalWorkflow           - Send Temporal signal to running workflow
+//  6. BuildResponse            - Return current execution state (with audit log)
 func (c *AgentExecutionController) buildSubmitApprovalPipeline() *pipeline.Pipeline[*agentexecutionv1.SubmitApprovalInput] {
 	return pipeline.NewPipeline[*agentexecutionv1.SubmitApprovalInput]("agent-execution-submit-approval").
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.SubmitApprovalInput]()). // 1. Validate input
 		AddStep(newLoadExistingForApprovalStep(c.store)).                             // 2. Load execution
 		AddStep(newValidateApprovalStep()).                                           // 3. Validate approval
-		AddStep(newSignalWorkflowStep(c.workflowCreator, c.store)).                   // 4. Signal workflow
-		AddStep(newBuildApprovalResponseStep()).                                      // 5. Build response
+		AddStep(newResolvePendingApprovalStep(c.store, c.streamBroker)).              // 4. Resolve pending approval
+		AddStep(newSignalWorkflowStep(c.workflowCreator, c.store)).                   // 5. Signal workflow
+		AddStep(newBuildApprovalResponseStep()).                                      // 6. Build response
 		Build()
 }
 
@@ -257,6 +260,130 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 	return nil
 }
 
+// resolvePendingApprovalStep removes the resolved pending_approval entry from the
+// execution status, records the decision on the matching ToolCall, persists the
+// updated state to the DB, and broadcasts to active subscribers.
+//
+// This step ensures the DB immediately reflects the user's approval decision.
+// Without it, pending_approvals persist in the DB after execution completes
+// because Python clears them in memory but protobuf3 serializes empty repeated
+// fields identically to absent fields, causing the Go merge logic in UpdateStatus
+// to preserve the stale entries.
+//
+// The step runs before SignalWorkflow so the DB is clean before the Temporal
+// workflow even receives the signal. No race condition exists because the Python
+// activity has already returned (the workflow is blocked on signal receipt).
+type resolvePendingApprovalStep struct {
+	store        store.Store
+	streamBroker *StreamBroker
+}
+
+func newResolvePendingApprovalStep(s store.Store, broker *StreamBroker) *resolvePendingApprovalStep {
+	return &resolvePendingApprovalStep{store: s, streamBroker: broker}
+}
+
+func (s *resolvePendingApprovalStep) Name() string {
+	return "ResolvePendingApproval"
+}
+
+func (s *resolvePendingApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.SubmitApprovalInput]) error {
+	if isIdempotent, ok := ctx.Get(IsIdempotentRequestKey).(bool); ok && isIdempotent {
+		log.Debug().Msg("Skipping pending approval resolution for idempotent request")
+		return nil
+	}
+
+	input := ctx.Input()
+	execution := ctx.Get(steps.TargetResourceKey).(*agentexecutionv1.AgentExecution)
+	executionID := execution.GetMetadata().GetId()
+	toolCallId := input.GetToolCallId()
+	action := input.GetAction()
+
+	updated := proto.Clone(execution).(*agentexecutionv1.AgentExecution)
+	if updated.Status == nil {
+		updated.Status = &agentexecutionv1.AgentExecutionStatus{}
+	}
+
+	// Remove the matching PendingApproval from the top-level list.
+	removed := removePendingApprovalByToolCallId(updated.Status, toolCallId)
+
+	if !removed {
+		// pending_approvals might be empty due to DB consistency lag (validated
+		// earlier as a warning). Nothing to remove -- proceed to signal.
+		log.Debug().
+			Str("execution_id", executionID).
+			Str("tool_call_id", toolCallId).
+			Msg("PendingApproval entry not found in status -- skipping removal (DB consistency lag)")
+		return nil
+	}
+
+	// Also remove from dual-surfaced SubAgentExecution.PendingApprovals.
+	for _, sa := range updated.Status.SubAgentExecutions {
+		removePendingApprovalByToolCallId(sa, toolCallId)
+	}
+
+	// Record the approval decision on the matching ToolCall for immediate UI
+	// feedback. Python will also set these when it resumes, but recording here
+	// provides instant visibility without waiting for the async activity.
+	now := time.Now().UTC().Format(time.RFC3339)
+	if tc := findToolCallInExecution(updated, toolCallId); tc != nil {
+		tc.ApprovalAction = action
+		tc.ApprovalDecidedAt = now
+	}
+
+	log.Info().
+		Str("execution_id", executionID).
+		Str("tool_call_id", toolCallId).
+		Str("action", action.String()).
+		Int("remaining_pending", len(updated.Status.PendingApprovals)).
+		Msg("Resolved pending approval entry")
+
+	if err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_agent_execution, executionID, updated); err != nil {
+		log.Error().
+			Err(err).
+			Str("execution_id", executionID).
+			Msg("Failed to persist resolved approval state")
+		return grpclib.InternalError(err, "failed to persist resolved approval state")
+	}
+
+	if s.streamBroker != nil {
+		s.streamBroker.Broadcast(updated)
+	}
+
+	// Update context so downstream steps see the resolved state.
+	ctx.Set(steps.TargetResourceKey, updated)
+
+	return nil
+}
+
+// pendingApprovalHolder is satisfied by any proto that carries a PendingApprovals
+// repeated field (AgentExecutionStatus and SubAgentExecution).
+type pendingApprovalHolder interface {
+	GetPendingApprovals() []*agentexecutionv1.PendingApproval
+}
+
+// removePendingApprovalByToolCallId removes the PendingApproval entry matching
+// toolCallId from the holder's list. Returns true if an entry was removed.
+//
+// Uses a type switch because AgentExecutionStatus and SubAgentExecution are
+// distinct generated types that both carry PendingApprovals but share no
+// settable interface for the field.
+func removePendingApprovalByToolCallId(holder pendingApprovalHolder, toolCallId string) bool {
+	approvals := holder.GetPendingApprovals()
+	for i, pa := range approvals {
+		if pa.GetToolCallId() == toolCallId {
+			remaining := append(approvals[:i], approvals[i+1:]...)
+			switch h := holder.(type) {
+			case *agentexecutionv1.AgentExecutionStatus:
+				h.PendingApprovals = remaining
+			case *agentexecutionv1.SubAgentExecution:
+				h.PendingApprovals = remaining
+			}
+			return true
+		}
+	}
+	return false
+}
+
 // signalWorkflowStep sends a Temporal signal to the running workflow.
 //
 // If the workflow is no longer running (WorkflowNotFound), this step reconciles
@@ -416,9 +543,9 @@ func (s *buildApprovalResponseStep) Execute(ctx *pipeline.RequestContext[*agente
 		Str("comment", comment).
 		Msg("AUDIT: Approval decision submitted")
 
-	// The execution state is already stored in context from LoadExisting step
-	// Status updates happen asynchronously via Temporal workflow -> Python activity -> gRPC
-	// We return the current state; clients should subscribe for real-time updates
+	// The execution state in context reflects the resolved approval from
+	// ResolvePendingApprovalStep. Clients receive the cleaned state immediately;
+	// further updates arrive via the Subscribe stream as Python resumes.
 
 	return nil
 }
