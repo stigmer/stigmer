@@ -11,6 +11,7 @@ import {
   useCreateAgentExecution,
   useGitHubConnection,
 } from "@stigmer/react";
+import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDeploymentMode } from "@/hooks/useDeploymentMode";
 
@@ -54,6 +55,8 @@ export function SessionLauncher() {
   }, [modelId]);
 
   const workspace = useWorkspaceEntries();
+  const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
+  const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const { create: createSession } = useCreateSession();
   const { create: createExecution } = useCreateAgentExecution();
 
@@ -71,6 +74,8 @@ export function SessionLauncher() {
           workspaceEntries: workspace.hasEntries
             ? workspace.toInput()
             : undefined,
+          mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
+          skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
         });
 
         await createExecution({
@@ -95,6 +100,8 @@ export function SessionLauncher() {
       org,
       validModelId,
       workspace,
+      mcpServerUsages,
+      skillRefs,
       createSession,
       createExecution,
       router,
@@ -111,11 +118,16 @@ export function SessionLauncher() {
         <SessionComposer
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
+          org={org}
           workspace={workspace}
           gitHubConnection={gitHubConnection}
           enableGitHub
           enableLocal={deploymentMode === "local"}
           enableFolderBrowser={deploymentMode === "local"}
+          mcpServerUsages={mcpServerUsages}
+          onMcpServerUsagesChange={setMcpServerUsages}
+          skillRefs={skillRefs}
+          onSkillRefsChange={setSkillRefs}
           defaultModelId={validModelId}
           onModelChange={setModelId}
           placeholder="Describe what you need help with..."
