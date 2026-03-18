@@ -853,11 +853,22 @@ func tsTypeHasNestedMessages(ts *TypeSchema) bool {
 }
 
 // tsAddSchemaImport adds the XxxSchema import for a TypeSchema.
+// When the type belongs to a different proto package (cross-package reference),
+// the import base is derived from the type's own ProtoType rather than the
+// current resource's package.
 func tsAddSchemaImport(ts *TypeSchema, imports *tsImportSet, importBase string) {
 	schemaName := ts.Name + "Schema"
 	if ts.ProtoFile != "" {
+		effectiveBase := importBase
+		if ts.ProtoType != "" {
+			parts := strings.Split(ts.ProtoType, ".")
+			if len(parts) > 1 {
+				typePkg := strings.Join(parts[:len(parts)-1], ".")
+				effectiveBase = deriveTSImportBase(typePkg)
+			}
+		}
 		suffix := tsProtoFileToSuffix(ts.ProtoFile)
-		imports.addValue(importBase+"/"+suffix, schemaName)
+		imports.addValue(effectiveBase+"/"+suffix, schemaName)
 	} else {
 		imports.addValue(importBase+"/spec_pb", schemaName)
 	}
@@ -1265,8 +1276,11 @@ func generateTSClientFile(outputDir string, resources []resourceGenInfo) error {
 	buf.WriteString("  }\n")
 	buf.WriteString("}\n")
 
-	// Re-export: classes as values, input types as types
+	// Re-export: classes as values, input types as types.
+	// Deduplicate type exports across resources to avoid "exported multiple times" errors
+	// when the same nested type (e.g., McpServerUsageInput) appears in multiple resources.
 	buf.WriteString("\n// Re-export all resource client types and input types.\n")
+	exportedTypes := make(map[string]bool)
 	for _, r := range resources {
 		// Client class export (value)
 		fmt.Fprintf(&buf, "export { %s } from \"./%s\";\n", r.clientName, r.resource)
@@ -1274,9 +1288,15 @@ func generateTSClientFile(outputDir string, resources []resourceGenInfo) error {
 		if len(r.inputTypes) > 0 {
 			var typeExports []string
 			for _, t := range r.inputTypes {
+				if exportedTypes[t] {
+					continue
+				}
+				exportedTypes[t] = true
 				typeExports = append(typeExports, "type "+t)
 			}
-			fmt.Fprintf(&buf, "export { %s } from \"./%s\";\n", strings.Join(typeExports, ", "), r.resource)
+			if len(typeExports) > 0 {
+				fmt.Fprintf(&buf, "export { %s } from \"./%s\";\n", strings.Join(typeExports, ", "), r.resource)
+			}
 		}
 	}
 	buf.WriteString("export { type ListParams, type ListResult, type DeleteResourceInput, type ResourceRef, type EnvSpecInput, type EnvVarInput, type Page } from \"./types\";\n")

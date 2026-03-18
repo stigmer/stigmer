@@ -2,6 +2,7 @@
 
 import { wrapError } from "./errors";
 import { stripUndefined } from "./proto-utils";
+import { type ResourceRef } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
@@ -9,7 +10,9 @@ import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/ses
 import { SessionIdSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import { McpServerUsageSchema, ToolApprovalOverrideSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on session resources. */
@@ -75,6 +78,8 @@ export interface SessionInput {
   sandboxId?: string;
   metadata?: Record<string, string>;
   workspaceEntries?: WorkspaceEntryInput[];
+  mcpServerUsages?: McpServerUsageInput[];
+  skillRefs?: ResourceRef[];
 }
 
 /** SDK input type for WorkspaceEntry. */
@@ -100,6 +105,20 @@ export interface GitRepoSourceInput {
 /** SDK input type for LocalPathSource. */
 export interface LocalPathSourceInput {
   path?: string;
+}
+
+/** SDK input type for McpServerUsage. */
+export interface McpServerUsageInput {
+  mcpServerRef: ResourceRef;
+  enabledTools?: string[];
+  toolApprovalOverrides?: ToolApprovalOverrideInput[];
+}
+
+/** SDK input type for ToolApprovalOverride. */
+export interface ToolApprovalOverrideInput {
+  toolName?: string;
+  requiresApproval?: boolean;
+  message?: string;
 }
 
 function buildGitRepoSourceProto(input: GitRepoSourceInput) {
@@ -134,8 +153,26 @@ function buildWorkspaceEntryProto(input: WorkspaceEntryInput) {
   return msg;
 }
 
+function buildToolApprovalOverrideProto(input: ToolApprovalOverrideInput) {
+  return Object.assign(create(ToolApprovalOverrideSchema), stripUndefined({
+    toolName: input.toolName,
+    requiresApproval: input.requiresApproval,
+    message: input.message,
+  }));
+}
+
+function buildMcpServerUsageProto(input: McpServerUsageInput) {
+  const msg = create(McpServerUsageSchema);
+  if (input.mcpServerRef) msg.mcpServerRef = create(ApiResourceReferenceSchema, input.mcpServerRef);
+  if (input.enabledTools) msg.enabledTools = input.enabledTools;
+  if (input.toolApprovalOverrides) msg.toolApprovalOverrides = input.toolApprovalOverrides.map(buildToolApprovalOverrideProto);
+  return msg;
+}
+
 function buildSessionProto(input: SessionInput): Session {
   const workspaceEntries = input.workspaceEntries?.map(buildWorkspaceEntryProto);
+  const mcpServerUsages = input.mcpServerUsages?.map(buildMcpServerUsageProto);
+  const skillRefs = input.skillRefs?.map(r => create(ApiResourceReferenceSchema, r));
   return Object.assign(create(SessionSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Session",
@@ -150,6 +187,8 @@ function buildSessionProto(input: SessionInput): Session {
       sandboxId: input.sandboxId,
       metadata: input.metadata,
       workspaceEntries,
+      mcpServerUsages,
+      skillRefs,
     })),
   }) as Session;
 }
