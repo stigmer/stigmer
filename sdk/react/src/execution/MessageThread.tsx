@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import {
+  ApprovalAction,
   ExecutionPhase,
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
@@ -13,6 +15,7 @@ import { isTerminalPhase } from "./execution-phases";
 import { MessageEntry } from "./MessageEntry";
 import { ToolCallGroup } from "./ToolCallGroup";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
+import { ApprovalCard } from "./ApprovalCard";
 
 export interface MessageThreadProps {
   /** Completed executions in chronological order. */
@@ -36,6 +39,23 @@ export interface MessageThreadProps {
    * each {@link ToolCallGroup}.
    */
   readonly formatToolCallSummary?: (toolCalls: readonly ToolCall[]) => string;
+  /**
+   * Callback for approval actions. When provided and the active
+   * execution has pending approvals, {@link ApprovalCard}s are
+   * rendered as thread items. When omitted, no approval UI is
+   * shown (backward compatible).
+   */
+  readonly onApprovalSubmit?: (
+    toolCallId: string,
+    action: ApprovalAction,
+    comment?: string,
+  ) => void;
+  /**
+   * Set of tool call IDs currently being submitted for approval.
+   * Drives per-card loading state. Only meaningful when
+   * `onApprovalSubmit` is provided.
+   */
+  readonly submittingApprovalIds?: ReadonlySet<string>;
 }
 
 const AUTO_SCROLL_THRESHOLD_PX = 80;
@@ -50,12 +70,14 @@ type ThreadItem =
   | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
-  | { readonly kind: "pending-message"; readonly content: string; readonly key: string };
+  | { readonly kind: "pending-message"; readonly content: string; readonly key: string }
+  | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string };
 
 function buildThreadItems(
   executions: readonly AgentExecution[],
   activeStreamExecution: AgentExecution | null | undefined,
   pendingUserMessage: string | null | undefined,
+  includeApprovals: boolean,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
   const allExecutions = activeStreamExecution
@@ -104,6 +126,17 @@ function buildThreadItems(
     });
   }
 
+  if (includeApprovals) {
+    const pendingApprovals = lastExec?.status?.pendingApprovals ?? [];
+    for (let ai = 0; ai < pendingApprovals.length; ai++) {
+      items.push({
+        kind: "approval-request",
+        pendingApproval: pendingApprovals[ai],
+        key: `approval-${pendingApprovals[ai].toolCallId || ai}`,
+      });
+    }
+  }
+
   if (pendingUserMessage) {
     items.push({
       kind: "pending-message",
@@ -144,13 +177,16 @@ export function MessageThread({
   pendingUserMessage,
   className,
   formatToolCallSummary,
+  onApprovalSubmit,
+  submittingApprovalIds,
 }: MessageThreadProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
 
+  const includeApprovals = onApprovalSubmit != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage),
-    [executions, activeStreamExecution, pendingUserMessage],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals],
   );
 
   const handleScroll = useCallback(() => {
@@ -197,6 +233,18 @@ export function MessageThread({
               <div key={item.key} className="flex justify-center py-3">
                 <ExecutionPhaseBadge phase={item.phase} />
               </div>
+            );
+          case "approval-request":
+            return (
+              <ApprovalCard
+                key={item.key}
+                pendingApproval={item.pendingApproval}
+                onSubmit={(action, comment) =>
+                  onApprovalSubmit!(item.pendingApproval.toolCallId, action, comment)
+                }
+                isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
+                className="mx-4"
+              />
             );
           case "pending-message":
             return (

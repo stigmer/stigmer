@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import { ApprovalAction, type ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { isTerminalPhase } from "../execution/execution-phases";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 import { useExecutionStream } from "../execution/useExecutionStream";
+import { useSubmitApproval } from "../execution/useSubmitApproval";
 import { useSession } from "./useSession";
 import { useSessionExecutions } from "./useSessionExecutions";
 
@@ -34,6 +36,19 @@ export interface UseSessionConversationReturn {
 
   /** The user's message text, shown in the thread before the stream delivers it. */
   readonly pendingUserMessage: string | null;
+
+  /** Pending approval requests from the active execution, empty when none. */
+  readonly pendingApprovals: readonly PendingApproval[];
+  /** Submit an approval decision. The executionId is managed internally. */
+  readonly submitApproval: (
+    toolCallId: string,
+    action: ApprovalAction,
+    comment?: string,
+  ) => Promise<void>;
+  /** Set of tool call IDs currently being submitted for approval. */
+  readonly submittingApprovalIds: ReadonlySet<string>;
+  readonly approvalError: string | null;
+  readonly clearApprovalError: () => void;
 
   readonly isLoading: boolean;
   readonly loadError: string | null;
@@ -71,6 +86,8 @@ export interface UseSessionConversationReturn {
  *         executions={conv.completedExecutions}
  *         activeStreamExecution={conv.activeStreamExecution}
  *         pendingUserMessage={conv.pendingUserMessage}
+ *         onApprovalSubmit={conv.submitApproval}
+ *         submittingApprovalIds={conv.submittingApprovalIds}
  *       />
  *       <FollowUpInput
  *         onSubmit={conv.sendFollowUp}
@@ -100,6 +117,12 @@ export function useSessionConversation(
     error: createError,
     clearError: clearCreateError,
   } = useCreateAgentExecution();
+  const {
+    submitApproval: rawSubmitApproval,
+    submittingToolCallIds,
+    error: approvalError,
+    clearError: clearApprovalError,
+  } = useSubmitApproval();
 
   const [pendingExecutionId, setPendingExecutionId] = useState<string | null>(
     null,
@@ -186,6 +209,23 @@ export function useSessionConversation(
     [sessionId, org, create, refetch],
   );
 
+  const pendingApprovals = useMemo<readonly PendingApproval[]>(
+    () => activeStreamExecution?.status?.pendingApprovals ?? [],
+    [activeStreamExecution],
+  );
+
+  const submitApproval = useCallback(
+    async (
+      toolCallId: string,
+      action: ApprovalAction,
+      comment?: string,
+    ): Promise<void> => {
+      if (!activeExecutionId) return;
+      await rawSubmitApproval(activeExecutionId, toolCallId, action, comment);
+    },
+    [activeExecutionId, rawSubmitApproval],
+  );
+
   const isLoading = sessionLoading || executionsLoading;
   const loadError = sessionError || executionsError;
 
@@ -203,6 +243,12 @@ export function useSessionConversation(
     clearSendError: clearCreateError,
 
     pendingUserMessage,
+
+    pendingApprovals,
+    submitApproval,
+    submittingApprovalIds: submittingToolCallIds,
+    approvalError,
+    clearApprovalError,
 
     isLoading,
     loadError,

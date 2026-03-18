@@ -36,3 +36,9 @@ export type { FollowUpInputProps } from "./FollowUpInput";
 
 export { ExecutionDetails } from "./ExecutionDetails";
 export type { ExecutionDetailsProps } from "./ExecutionDetails";
+
+export { useSubmitApproval } from "./useSubmitApproval";
+export type { UseSubmitApprovalReturn } from "./useSubmitApproval";
+
+export { ApprovalCard } from "./ApprovalCard";
+export type { ApprovalCardProps } from "./ApprovalCard";
