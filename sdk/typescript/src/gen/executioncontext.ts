@@ -9,7 +9,7 @@ import { ExecutionContextSchema, type ExecutionContext } from "@stigmer/protos/a
 import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/command_pb";
 import { ExecutionContextIdSchema, ExecutionContextExecutionIdInputSchema, type ExecutionContextExecutionIdInput } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/io_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
-import { ExecutionContextSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
+import { ExecutionContextSpecSchema, ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceReferenceSchema, ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -73,6 +73,11 @@ export interface ExecutionContextInput {
 }
 
 function buildExecutionContextProto(input: ExecutionContextInput): ExecutionContext {
+  let data;
+  if (input.data) {
+    data = Object.fromEntries(Object.entries(input.data).map(([k, v]) =>
+      [k, create(ExecutionValueSchema, { value: v.value, isSecret: v.isSecret })]));
+  }
   return Object.assign(create(ExecutionContextSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "ExecutionContext",
@@ -82,7 +87,7 @@ function buildExecutionContextProto(input: ExecutionContextInput): ExecutionCont
     }),
     spec: Object.assign(create(ExecutionContextSpecSchema), stripUndefined({
       executionId: input.executionId,
-      data: input.data,
+      data,
     })),
   }) as ExecutionContext;
 }

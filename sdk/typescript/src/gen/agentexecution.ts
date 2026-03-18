@@ -9,7 +9,8 @@ import { AgentExecutionSchema, type AgentExecution } from "@stigmer/protos/ai/st
 import { AgentExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/command_pb";
 import { AgentExecutionIdSchema, AgentExecutionUpdateStatusInputSchema, SubmitApprovalInputSchema, CancelAgentExecutionInputSchema, TerminateAgentExecutionInputSchema, RecoverAgentExecutionInputSchema, PauseAgentExecutionInputSchema, ResumeAgentExecutionInputSchema, UploadAttachmentRequestSchema, UploadAttachmentResponseSchema, ListAgentExecutionsRequestSchema, AgentExecutionListSchema, ListAgentExecutionsBySessionRequestSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, type AgentExecutionUpdateStatusInput, type SubmitApprovalInput, type CancelAgentExecutionInput, type TerminateAgentExecutionInput, type RecoverAgentExecutionInput, type PauseAgentExecutionInput, type ResumeAgentExecutionInput, type UploadAttachmentRequest, type UploadAttachmentResponse, type ListAgentExecutionsRequest, type AgentExecutionList, type ListAgentExecutionsBySessionRequest, type GetArtifactDownloadUrlRequest, type GetArtifactDownloadUrlResponse, type GetSessionUsageReportInput, type GetSessionUsageReportOutput, type GetAgentUsageReportInput, type GetAgentUsageReportOutput, type GetOrgUsageReportInput, type GetOrgUsageReportOutput } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { AgentExecutionQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/query_pb";
-import { AgentExecutionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { AgentExecutionSpecSchema, ContextManagementConfigSchema, ExecutionConfigSchema, AttachmentSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/spec_pb";
+import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { ApiResourceIdSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -182,7 +183,43 @@ export interface AttachmentInput {
   localPath?: string;
 }
 
+function buildContextManagementConfigProto(input: ContextManagementConfigInput) {
+  return Object.assign(create(ContextManagementConfigSchema), stripUndefined({
+    disableSummarization: input.disableSummarization,
+    customTriggerThreshold: input.customTriggerThreshold,
+    customTargetTokens: input.customTargetTokens,
+  }));
+}
+
+function buildExecutionConfigProto(input: ExecutionConfigInput) {
+  const msg = create(ExecutionConfigSchema);
+  if (input.modelName !== undefined) msg.modelName = input.modelName;
+  if (input.contextManagement) msg.contextManagement = buildContextManagementConfigProto(input.contextManagement);
+  if (input.maxToolRounds !== undefined) msg.maxToolRounds = input.maxToolRounds;
+  if (input.maxToolResultChars !== undefined) msg.maxToolResultChars = input.maxToolResultChars;
+  if (input.maxCostUsd !== undefined) msg.maxCostUsd = input.maxCostUsd;
+  return msg;
+}
+
+function buildAttachmentProto(input: AttachmentInput) {
+  return Object.assign(create(AttachmentSchema), stripUndefined({
+    filename: input.filename,
+    storageKey: input.storageKey,
+    mountPath: input.mountPath,
+    contentType: input.contentType,
+    extract: input.extract,
+    localPath: input.localPath,
+  }));
+}
+
 function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecution {
+  const executionConfig = input.executionConfig ? buildExecutionConfigProto(input.executionConfig) : undefined;
+  let runtimeEnv;
+  if (input.runtimeEnv) {
+    runtimeEnv = Object.fromEntries(Object.entries(input.runtimeEnv).map(([k, v]) =>
+      [k, create(ExecutionValueSchema, { value: v.value, isSecret: v.isSecret })]));
+  }
+  const attachments = input.attachments?.map(buildAttachmentProto);
   return Object.assign(create(AgentExecutionSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "AgentExecution",
@@ -194,12 +231,12 @@ function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecution {
       sessionId: input.sessionId,
       agentId: input.agentId,
       message: input.message,
-      executionConfig: input.executionConfig,
-      runtimeEnv: input.runtimeEnv,
+      executionConfig,
+      runtimeEnv,
       callbackToken: input.callbackToken,
       autoApproveAll: input.autoApproveAll,
       parentWorkflowId: input.parentWorkflowId,
-      attachments: input.attachments,
+      attachments,
       workspaceFileRefs: input.workspaceFileRefs,
     })),
   }) as AgentExecution;

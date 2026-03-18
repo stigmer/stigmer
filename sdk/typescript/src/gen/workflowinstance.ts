@@ -76,6 +76,7 @@ export interface WorkflowInstanceInput {
 }
 
 function buildWorkflowInstanceProto(input: WorkflowInstanceInput): WorkflowInstance {
+  const envRefs = input.envRefs?.map(r => create(ApiResourceReferenceSchema, r));
   return Object.assign(create(WorkflowInstanceSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "WorkflowInstance",
@@ -86,7 +87,7 @@ function buildWorkflowInstanceProto(input: WorkflowInstanceInput): WorkflowInsta
     spec: Object.assign(create(WorkflowInstanceSpecSchema), stripUndefined({
       workflowId: input.workflowId,
       description: input.description,
-      envRefs: input.envRefs,
+      envRefs,
     })),
   }) as WorkflowInstance;
 }

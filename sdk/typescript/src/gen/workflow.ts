@@ -5,12 +5,13 @@ import { stripUndefined } from "./proto-utils";
 import { type EnvSpecInput, type ResourceRef } from "./types";
 import { create, type JsonObject } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { WorkflowSchema, type Workflow } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/api_pb";
 import { WorkflowCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/command_pb";
 import { WorkflowTaskKind } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/enum_pb";
 import { WorkflowIdSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/io_pb";
 import { WorkflowQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/query_pb";
-import { WorkflowSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
+import { WorkflowSpecSchema, WorkflowDocumentSchema, ExportSchema, FlowControlSchema, WorkflowTaskSchema } from "@stigmer/protos/ai/stigmer/agentic/workflow/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -99,7 +100,49 @@ export interface FlowControlInput {
   then?: string;
 }
 
+function buildWorkflowDocumentProto(input: WorkflowDocumentInput) {
+  return Object.assign(create(WorkflowDocumentSchema), stripUndefined({
+    dsl: input.dsl,
+    namespace: input.namespace,
+    name: input.name,
+    version: input.version,
+    description: input.description,
+  }));
+}
+
+function buildExportProto(input: ExportInput) {
+  return Object.assign(create(ExportSchema), stripUndefined({
+    as: input.as,
+  }));
+}
+
+function buildFlowControlProto(input: FlowControlInput) {
+  return Object.assign(create(FlowControlSchema), stripUndefined({
+    then: input.then,
+  }));
+}
+
+function buildWorkflowTaskProto(input: WorkflowTaskInput) {
+  const msg = create(WorkflowTaskSchema);
+  if (input.name !== undefined) msg.name = input.name;
+  if (input.kind !== undefined) msg.kind = input.kind;
+  if (input.taskConfig !== undefined) msg.taskConfig = input.taskConfig;
+  if (input.export) msg.export = buildExportProto(input.export);
+  if (input.flow) msg.flow = buildFlowControlProto(input.flow);
+  return msg;
+}
+
 function buildWorkflowProto(input: WorkflowInput): Workflow {
+  const document = input.document ? buildWorkflowDocumentProto(input.document) : undefined;
+  const tasks = input.tasks?.map(buildWorkflowTaskProto);
+  let envSpec;
+  if (input.envSpec) {
+    const es = create(EnvironmentSpecSchema);
+    for (const [k, v] of Object.entries(input.envSpec.variables)) {
+      es.data[k] = create(EnvironmentValueSchema, { value: v.value, isSecret: v.isSecret, description: v.description });
+    }
+    envSpec = es;
+  }
   return Object.assign(create(WorkflowSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Workflow",
@@ -109,9 +152,9 @@ function buildWorkflowProto(input: WorkflowInput): Workflow {
     }),
     spec: Object.assign(create(WorkflowSpecSchema), stripUndefined({
       description: input.description,
-      document: input.document,
-      tasks: input.tasks,
-      envSpec: input.envSpec,
+      document,
+      tasks,
+      envSpec,
     })),
   }) as Workflow;
 }

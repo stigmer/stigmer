@@ -70,6 +70,7 @@ export interface ProjectInput {
 }
 
 function buildProjectProto(input: ProjectInput): Project {
+  const members = input.members?.map(r => create(ApiResourceReferenceSchema, r));
   return Object.assign(create(ProjectSchema), {
     apiVersion: "tenancy.stigmer.ai/v1",
     kind: "Project",
@@ -80,7 +81,7 @@ function buildProjectProto(input: ProjectInput): Project {
     spec: Object.assign(create(ProjectSpecSchema), stripUndefined({
       entryPoint: input.entryPoint,
       description: input.description,
-      members: input.members,
+      members,
     })),
   }) as Project;
 }
