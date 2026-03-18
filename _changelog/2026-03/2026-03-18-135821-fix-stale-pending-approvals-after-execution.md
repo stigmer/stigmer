@@ -70,7 +70,7 @@ A `removePendingApprovalByToolCallId` helper uses a `pendingApprovalHolder` inte
 - **Backend (Go OSS)**: Single file changed (`submit_approval.go`), one new pipeline step
 - **Frontend**: No changes -- stale approval cards disappear because the backend data is now correct
 - **Python agent-runner**: No changes -- Python's empty-list clearing is now harmless (preserving an already-empty list)
-- **Java Cloud backend**: Unaffected -- it already had a Phase 5.4 defensive cleanup for this scenario
+- **Java Cloud backend**: Affected -- Phase 5.4 defensive cleanup only handled the post-completion case. A follow-up fix ported ResolvePendingApprovalStep to Java and addressed a belt-and-suspenders persist race condition (see `2026-03-18-fix-pending-approvals-race-condition.md`)
 
 ## Related Work
 

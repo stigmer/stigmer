@@ -12,6 +12,7 @@ import (
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+	"google.golang.org/protobuf/proto"
 )
 
 // InvokeAgentExecutionWorkflowImpl implements InvokeAgentExecutionWorkflow.
@@ -260,13 +261,24 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			"pending_count", signalsNeeded,
 			"first_tool_call", firstToolCallId)
 
-		// Belt-and-suspenders: persist the WAITING_FOR_APPROVAL status (including
-		// pending_approvals) to the database via local activity before blocking on
-		// the signal. The agent-runner already sent this via gRPC, but there is a
-		// race: the gRPC update might not have been received/broadcast before the
-		// CLI started listening. By persisting again here, the StreamBroker
-		// broadcasts to any active subscriber, guaranteeing the CLI receives it.
-		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
+		// Belt-and-suspenders: persist the WAITING_FOR_APPROVAL phase to the
+		// database via local activity before blocking on the signal. The
+		// agent-runner already sent this via gRPC, but there is a race: the gRPC
+		// update might not have been received/broadcast before the CLI started
+		// listening. By persisting again here, the StreamBroker broadcasts to any
+		// active subscriber, guaranteeing the CLI receives it.
+		//
+		// IMPORTANT: pending_approvals are intentionally stripped from this
+		// persist. They were already persisted by Python's gRPC updateStatus
+		// call. Re-persisting them here creates a lost-update race with
+		// ResolvePendingApprovalStep in the SubmitApproval handler: if the user
+		// approves a tool call while this local activity is executing, the merge
+		// logic would overwrite the resolved list with the original stale list.
+		// With pending_approvals nil, the merge logic preserves whatever is
+		// currently in the DB (correct regardless of approval timing).
+		statusForPersist := proto.Clone(finalStatus).(*agentexecutionv1.AgentExecutionStatus)
+		statusForPersist.PendingApprovals = nil
+		if err := w.persistFinalStatus(ctx, executionID, statusForPersist); err != nil {
 			logger.Warn("Failed to persist WAITING_FOR_APPROVAL status before signal wait (non-fatal)",
 				"execution_id", executionID, "error", err.Error())
 		}
