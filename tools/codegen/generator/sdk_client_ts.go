@@ -806,14 +806,65 @@ func tsTypeForTypeSpec(ts *TypeSpec, imports *tsImportSet, _ string) string {
 // =========================================================================
 // Proto builder generation
 //
-// Uses Object.assign(create(Schema), { ...data }) to avoid MessageInit
-// type checking issues. protobuf-es v2 create() produces a valid message
-// instance, and Object.assign copies SDK input values onto it at runtime.
-// TypeScript sees the result as an intersection type which is safely
-// assignable to the original message type.
+// Generates buildXxxProto functions that properly construct protobuf-es
+// message instances using create(Schema). Nested message fields, repeated
+// messages, oneofs, and maps with message values are all handled.
+//
+// Mirrors the Go SDK's emitToProtoField / emitNestedToProto pattern,
+// adapted for protobuf-es semantics (create + Object.assign + oneof
+// { case, value } syntax).
 // =========================================================================
 
+func tsFieldNeedsConversion(f *FieldSchema) bool {
+	switch {
+	case f.Type.Kind == "message":
+		return true
+	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
+		return true
+	case f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.Kind == "message":
+		return true
+	default:
+		return false
+	}
+}
+
+// isSyntheticOneof returns true for proto3 optional synthetic oneofs (prefixed with _).
+// protobuf-es v2 exposes these as regular fields, not oneofs.
+func isSyntheticOneof(group string) bool {
+	return strings.HasPrefix(group, "_")
+}
+
+func tsTypeHasOneof(ts *TypeSchema) bool {
+	for _, f := range ts.Fields {
+		if f.OneofGroup != "" && !isSyntheticOneof(f.OneofGroup) {
+			return true
+		}
+	}
+	return false
+}
+
+func tsTypeHasNestedMessages(ts *TypeSchema) bool {
+	for _, f := range ts.Fields {
+		if tsFieldNeedsConversion(f) {
+			return true
+		}
+	}
+	return false
+}
+
+// tsAddSchemaImport adds the XxxSchema import for a TypeSchema.
+func tsAddSchemaImport(ts *TypeSchema, imports *tsImportSet, importBase string) {
+	schemaName := ts.Name + "Schema"
+	if ts.ProtoFile != "" {
+		suffix := tsProtoFileToSuffix(ts.ProtoFile)
+		imports.addValue(importBase+"/"+suffix, schemaName)
+	} else {
+		imports.addValue(importBase+"/spec_pb", schemaName)
+	}
+}
+
 func generateTSBuildProto(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig, spec *TaskConfigSchema, typeMap map[string]*TypeSchema, imports *tsImportSet) {
+	importBase := deriveTSImportBase(schema.Package)
 	inputName := cfg.inputPrefix + "Input"
 
 	var specFields []*FieldSchema
@@ -823,24 +874,365 @@ func generateTSBuildProto(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 		}
 	}
 
-	fmt.Fprintf(buf, "function build%sProto(input: %s): %s {\n", cfg.protoResType, inputName, cfg.protoResType)
-	fmt.Fprintf(buf, "  return Object.assign(create(%sSchema), {\n", cfg.protoResType)
-	fmt.Fprintf(buf, "    apiVersion: %q,\n", cfg.apiVersion)
-	fmt.Fprintf(buf, "    kind: %q,\n", cfg.protoResType)
-	fmt.Fprintf(buf, "    metadata: Object.assign(create(ApiResourceMetadataSchema), {\n")
-	fmt.Fprintf(buf, "      name: input.name,\n")
-	fmt.Fprintf(buf, "      org: input.org,\n")
-	fmt.Fprintf(buf, "    }),\n")
-	fmt.Fprintf(buf, "    spec: Object.assign(create(%sSchema), stripUndefined({\n", spec.Name)
-
+	// Emit nested builder functions first (so they're available to the main builder).
+	emitted := make(map[string]bool)
 	for _, f := range specFields {
-		fieldName := tsProtoFieldName(f.ProtoField)
-		fmt.Fprintf(buf, "      %s: input.%s,\n", fieldName, fieldName)
+		emitTSNestedBuilders(buf, f, typeMap, emitted, imports, importBase)
 	}
 
-	fmt.Fprintf(buf, "    })),\n")
-	fmt.Fprintf(buf, "  }) as %s;\n", cfg.protoResType)
+	// Separate spec fields into regular fields and oneof groups.
+	specOneofGroups := make(map[string][]*FieldSchema)
+	var specOneofOrder []string
+	var regularSpecFields []*FieldSchema
+	for _, f := range specFields {
+		if f.OneofGroup != "" && !isSyntheticOneof(f.OneofGroup) {
+			if _, seen := specOneofGroups[f.OneofGroup]; !seen {
+				specOneofOrder = append(specOneofOrder, f.OneofGroup)
+			}
+			specOneofGroups[f.OneofGroup] = append(specOneofGroups[f.OneofGroup], f)
+		} else {
+			regularSpecFields = append(regularSpecFields, f)
+		}
+	}
+
+	hasSpecOneofs := len(specOneofGroups) > 0
+
+	// Identify regular fields that need pre-computation (proto conversion).
+	var preComputed []*FieldSchema
+	for _, f := range regularSpecFields {
+		if tsFieldNeedsConversion(f) {
+			preComputed = append(preComputed, f)
+		}
+	}
+
+	fmt.Fprintf(buf, "function build%sProto(input: %s): %s {\n", cfg.protoResType, inputName, cfg.protoResType)
+
+	for _, f := range preComputed {
+		emitTSPreComputeField(buf, f, typeMap, imports)
+	}
+
+	if hasSpecOneofs {
+		// When spec has oneofs, build spec separately so we can assign oneofs imperatively.
+		fmt.Fprintf(buf, "  const spec = Object.assign(create(%sSchema), stripUndefined({\n", spec.Name)
+		for _, f := range regularSpecFields {
+			fieldName := tsProtoFieldName(f.ProtoField)
+			if tsFieldNeedsConversion(f) {
+				fmt.Fprintf(buf, "    %s,\n", fieldName)
+			} else {
+				fmt.Fprintf(buf, "    %s: input.%s,\n", fieldName, fieldName)
+			}
+		}
+		fmt.Fprintf(buf, "  }));\n")
+
+		// Emit oneof assignments on the spec.
+		for _, oneofName := range specOneofOrder {
+			fields := specOneofGroups[oneofName]
+			oneofTSName := tsProtoFieldName(oneofName)
+			for i, field := range fields {
+				fieldName := tsProtoFieldName(field.ProtoField)
+				prefix := "if"
+				if i > 0 {
+					prefix = "} else if"
+				}
+				fmt.Fprintf(buf, "  %s (input.%s) {\n", prefix, fieldName)
+
+				childType := field.Type.MessageType
+				if childType != "" && !isSpecialType(childType) {
+					if _, childOk := typeMap[childType]; childOk {
+						fmt.Fprintf(buf, "    spec.%s = { case: %q, value: build%sProto(input.%s) };\n",
+							oneofTSName, fieldName, childType, fieldName)
+					} else {
+						fmt.Fprintf(buf, "    spec.%s = { case: %q, value: input.%s };\n",
+							oneofTSName, fieldName, fieldName)
+					}
+				} else if childType == "ApiResourceReference" {
+					imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema")
+					fmt.Fprintf(buf, "    spec.%s = { case: %q, value: create(ApiResourceReferenceSchema, input.%s) };\n",
+						oneofTSName, fieldName, fieldName)
+				} else {
+					fmt.Fprintf(buf, "    spec.%s = { case: %q, value: input.%s };\n",
+						oneofTSName, fieldName, fieldName)
+				}
+			}
+			buf.WriteString("  }\n")
+		}
+
+		fmt.Fprintf(buf, "  return Object.assign(create(%sSchema), {\n", cfg.protoResType)
+		fmt.Fprintf(buf, "    apiVersion: %q,\n", cfg.apiVersion)
+		fmt.Fprintf(buf, "    kind: %q,\n", cfg.protoResType)
+		fmt.Fprintf(buf, "    metadata: Object.assign(create(ApiResourceMetadataSchema), {\n")
+		fmt.Fprintf(buf, "      name: input.name,\n")
+		fmt.Fprintf(buf, "      org: input.org,\n")
+		fmt.Fprintf(buf, "    }),\n")
+		fmt.Fprintf(buf, "    spec,\n")
+		fmt.Fprintf(buf, "  }) as %s;\n", cfg.protoResType)
+	} else {
+		fmt.Fprintf(buf, "  return Object.assign(create(%sSchema), {\n", cfg.protoResType)
+		fmt.Fprintf(buf, "    apiVersion: %q,\n", cfg.apiVersion)
+		fmt.Fprintf(buf, "    kind: %q,\n", cfg.protoResType)
+		fmt.Fprintf(buf, "    metadata: Object.assign(create(ApiResourceMetadataSchema), {\n")
+		fmt.Fprintf(buf, "      name: input.name,\n")
+		fmt.Fprintf(buf, "      org: input.org,\n")
+		fmt.Fprintf(buf, "    }),\n")
+		fmt.Fprintf(buf, "    spec: Object.assign(create(%sSchema), stripUndefined({\n", spec.Name)
+
+		for _, f := range regularSpecFields {
+			fieldName := tsProtoFieldName(f.ProtoField)
+			if tsFieldNeedsConversion(f) {
+				fmt.Fprintf(buf, "      %s,\n", fieldName)
+			} else {
+				fmt.Fprintf(buf, "      %s: input.%s,\n", fieldName, fieldName)
+			}
+		}
+
+		fmt.Fprintf(buf, "    })),\n")
+		fmt.Fprintf(buf, "  }) as %s;\n", cfg.protoResType)
+	}
 	buf.WriteString("}\n")
+}
+
+// emitTSPreComputeField emits a variable declaration that converts an input
+// field to proper proto message instance(s) before the main return statement.
+func emitTSPreComputeField(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*TypeSchema, imports *tsImportSet) {
+	fieldName := tsProtoFieldName(f.ProtoField)
+
+	switch {
+	case f.Type.Kind == "message" && f.Type.MessageType == "EnvironmentSpec":
+		imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentSpecSchema")
+		imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentValueSchema")
+		fmt.Fprintf(buf, "  let %s;\n", fieldName)
+		fmt.Fprintf(buf, "  if (input.%s) {\n", fieldName)
+		fmt.Fprintf(buf, "    const es = create(EnvironmentSpecSchema);\n")
+		fmt.Fprintf(buf, "    for (const [k, v] of Object.entries(input.%s.variables)) {\n", fieldName)
+		fmt.Fprintf(buf, "      es.data[k] = create(EnvironmentValueSchema, { value: v.value, isSecret: v.isSecret, description: v.description });\n")
+		fmt.Fprintf(buf, "    }\n")
+		fmt.Fprintf(buf, "    %s = es;\n", fieldName)
+		fmt.Fprintf(buf, "  }\n")
+
+	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":
+		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema")
+		fmt.Fprintf(buf, "  const %s = input.%s ? create(ApiResourceReferenceSchema, input.%s) : undefined;\n", fieldName, fieldName, fieldName)
+
+	case f.Type.Kind == "message":
+		builderName := "build" + f.Type.MessageType + "Proto"
+		fmt.Fprintf(buf, "  const %s = input.%s ? %s(input.%s) : undefined;\n", fieldName, fieldName, builderName, fieldName)
+
+	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message" && f.Type.ElementType.MessageType == "ApiResourceReference":
+		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema")
+		fmt.Fprintf(buf, "  const %s = input.%s?.map(r => create(ApiResourceReferenceSchema, r));\n", fieldName, fieldName)
+
+	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
+		builderName := "build" + f.Type.ElementType.MessageType + "Proto"
+		fmt.Fprintf(buf, "  const %s = input.%s?.map(%s);\n", fieldName, fieldName, builderName)
+
+	case f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.MessageType == "EnvironmentValue":
+		imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentValueSchema")
+		fmt.Fprintf(buf, "  let %s;\n", fieldName)
+		fmt.Fprintf(buf, "  if (input.%s) {\n", fieldName)
+		fmt.Fprintf(buf, "    %s = Object.fromEntries(Object.entries(input.%s).map(([k, v]) =>\n", fieldName, fieldName)
+		fmt.Fprintf(buf, "      [k, create(EnvironmentValueSchema, { value: v.value, isSecret: v.isSecret, description: v.description })]));\n")
+		fmt.Fprintf(buf, "  }\n")
+
+	case f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.MessageType == "ExecutionValue":
+		imports.addValue("@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb", "ExecutionValueSchema")
+		fmt.Fprintf(buf, "  let %s;\n", fieldName)
+		fmt.Fprintf(buf, "  if (input.%s) {\n", fieldName)
+		fmt.Fprintf(buf, "    %s = Object.fromEntries(Object.entries(input.%s).map(([k, v]) =>\n", fieldName, fieldName)
+		fmt.Fprintf(buf, "      [k, create(ExecutionValueSchema, { value: v.value, isSecret: v.isSecret })]));\n")
+		fmt.Fprintf(buf, "  }\n")
+
+	case f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.Kind == "message":
+		builderName := "build" + f.Type.ValueType.MessageType + "Proto"
+		fmt.Fprintf(buf, "  let %s;\n", fieldName)
+		fmt.Fprintf(buf, "  if (input.%s) {\n", fieldName)
+		fmt.Fprintf(buf, "    %s = Object.fromEntries(Object.entries(input.%s).map(([k, v]) => [k, %s(v)]));\n",
+			fieldName, fieldName, builderName)
+		fmt.Fprintf(buf, "  }\n")
+	}
+}
+
+// emitTSNestedBuilders recursively generates buildXxxProto helper functions
+// for each non-special nested message type referenced by a field.
+func emitTSNestedBuilders(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*TypeSchema, emitted map[string]bool, imports *tsImportSet, importBase string) {
+	var msgName string
+	switch {
+	case f.Type.Kind == "message":
+		msgName = f.Type.MessageType
+	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
+		msgName = f.Type.ElementType.MessageType
+	case f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.Kind == "message":
+		msgName = f.Type.ValueType.MessageType
+	default:
+		return
+	}
+
+	if isSpecialType(msgName) || emitted[msgName] {
+		return
+	}
+	ts, ok := typeMap[msgName]
+	if !ok {
+		return
+	}
+	emitted[msgName] = true
+
+	// Recurse into sub-types first so their builders are emitted before this one.
+	for _, field := range ts.Fields {
+		emitTSNestedBuilders(buf, field, typeMap, emitted, imports, importBase)
+	}
+
+	tsAddSchemaImport(ts, imports, importBase)
+
+	hasOneof := tsTypeHasOneof(ts)
+	hasNested := tsTypeHasNestedMessages(ts)
+	inputName := msgName + "Input"
+	builderName := "build" + msgName + "Proto"
+
+	if !hasOneof && !hasNested {
+		// All-scalar type: use Object.assign + stripUndefined pattern.
+		fmt.Fprintf(buf, "function %s(input: %s) {\n", builderName, inputName)
+		fmt.Fprintf(buf, "  return Object.assign(create(%sSchema), stripUndefined({\n", msgName)
+		for _, field := range ts.Fields {
+			fn := tsProtoFieldName(field.ProtoField)
+			fmt.Fprintf(buf, "    %s: input.%s,\n", fn, fn)
+		}
+		fmt.Fprintf(buf, "  }));\n")
+		fmt.Fprintf(buf, "}\n\n")
+		return
+	}
+
+	// Complex type: needs imperative construction (oneofs and/or nested messages).
+	fmt.Fprintf(buf, "function %s(input: %s) {\n", builderName, inputName)
+	fmt.Fprintf(buf, "  const msg = create(%sSchema);\n", msgName)
+
+	// Group fields by oneof (skip synthetic oneofs from proto3 optional).
+	oneofGroups := make(map[string][]*FieldSchema)
+	var oneofOrder []string
+	var regularFields []*FieldSchema
+	for _, field := range ts.Fields {
+		if field.OneofGroup != "" && !isSyntheticOneof(field.OneofGroup) {
+			if _, seen := oneofGroups[field.OneofGroup]; !seen {
+				oneofOrder = append(oneofOrder, field.OneofGroup)
+			}
+			oneofGroups[field.OneofGroup] = append(oneofGroups[field.OneofGroup], field)
+		} else {
+			regularFields = append(regularFields, field)
+		}
+	}
+
+	// Emit regular (non-oneof) fields.
+	for _, field := range regularFields {
+		emitTSNestedFieldAssign(buf, field, typeMap, imports, importBase)
+	}
+
+	// Emit oneof groups.
+	for _, oneofName := range oneofOrder {
+		fields := oneofGroups[oneofName]
+		for i, field := range fields {
+			fieldName := tsProtoFieldName(field.ProtoField)
+			prefix := "if"
+			if i > 0 {
+				prefix = "} else if"
+			}
+			fmt.Fprintf(buf, "  %s (input.%s) {\n", prefix, fieldName)
+
+			childType := field.Type.MessageType
+			if _, childOk := typeMap[childType]; childOk && !isSpecialType(childType) {
+				fmt.Fprintf(buf, "    msg.%s = { case: %q, value: build%sProto(input.%s) };\n",
+					oneofName, fieldName, childType, fieldName)
+			} else if isSpecialType(childType) && childType == "ApiResourceReference" {
+				imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema")
+				fmt.Fprintf(buf, "    msg.%s = { case: %q, value: create(ApiResourceReferenceSchema, input.%s) };\n",
+					oneofName, fieldName, fieldName)
+			} else {
+				fmt.Fprintf(buf, "    msg.%s = { case: %q, value: input.%s };\n",
+					oneofName, fieldName, fieldName)
+			}
+		}
+		buf.WriteString("  }\n")
+	}
+
+	buf.WriteString("  return msg;\n")
+	fmt.Fprintf(buf, "}\n\n")
+}
+
+// emitTSNestedFieldAssign emits a field assignment inside a nested builder function.
+func emitTSNestedFieldAssign(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*TypeSchema, imports *tsImportSet, importBase string) {
+	fieldName := tsProtoFieldName(f.ProtoField)
+
+	switch {
+	case f.Type.Kind == "string" || f.Type.Kind == "bool" || f.Type.Kind == "int32" ||
+		f.Type.Kind == "int64" || f.Type.Kind == "uint32" || f.Type.Kind == "float" ||
+		f.Type.Kind == "double" || f.Type.Kind == "bytes" || f.Type.Kind == "timestamp" ||
+		f.Type.Kind == "struct":
+		fmt.Fprintf(buf, "  if (input.%s !== undefined) msg.%s = input.%s;\n", fieldName, fieldName, fieldName)
+
+	case f.Type.Kind == "array" && (f.Type.ElementType == nil || f.Type.ElementType.Kind != "message"):
+		fmt.Fprintf(buf, "  if (input.%s) msg.%s = input.%s;\n", fieldName, fieldName, fieldName)
+
+	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message" && f.Type.ElementType.MessageType == "ApiResourceReference":
+		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema")
+		fmt.Fprintf(buf, "  if (input.%s) msg.%s = input.%s.map(r => create(ApiResourceReferenceSchema, r));\n",
+			fieldName, fieldName, fieldName)
+
+	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
+		elemMsg := f.Type.ElementType.MessageType
+		if !isSpecialType(elemMsg) {
+			fmt.Fprintf(buf, "  if (input.%s) msg.%s = input.%s.map(build%sProto);\n",
+				fieldName, fieldName, fieldName, elemMsg)
+		}
+
+	case f.Type.Kind == "message" && f.Type.MessageType == "EnvironmentSpec":
+		imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentSpecSchema")
+		imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentValueSchema")
+		fmt.Fprintf(buf, "  if (input.%s) {\n", fieldName)
+		fmt.Fprintf(buf, "    const es = create(EnvironmentSpecSchema);\n")
+		fmt.Fprintf(buf, "    for (const [k, v] of Object.entries(input.%s.variables)) {\n", fieldName)
+		fmt.Fprintf(buf, "      es.data[k] = create(EnvironmentValueSchema, { value: v.value, isSecret: v.isSecret, description: v.description });\n")
+		fmt.Fprintf(buf, "    }\n")
+		fmt.Fprintf(buf, "    msg.%s = es;\n", fieldName)
+		fmt.Fprintf(buf, "  }\n")
+
+	case f.Type.Kind == "message" && f.Type.MessageType == "ApiResourceReference":
+		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/io_pb", "ApiResourceReferenceSchema")
+		fmt.Fprintf(buf, "  if (input.%s) msg.%s = create(ApiResourceReferenceSchema, input.%s);\n",
+			fieldName, fieldName, fieldName)
+
+	case f.Type.Kind == "message":
+		msgType := f.Type.MessageType
+		if !isSpecialType(msgType) {
+			fmt.Fprintf(buf, "  if (input.%s) msg.%s = build%sProto(input.%s);\n",
+				fieldName, fieldName, msgType, fieldName)
+		}
+
+	case f.Type.Kind == "map" && (f.Type.ValueType == nil || f.Type.ValueType.Kind == "string"):
+		fmt.Fprintf(buf, "  if (input.%s) Object.assign(msg.%s, input.%s);\n", fieldName, fieldName, fieldName)
+
+	case f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.MessageType == "EnvironmentValue":
+		imports.addValue("@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb", "EnvironmentValueSchema")
+		fmt.Fprintf(buf, "  if (input.%s) {\n", fieldName)
+		fmt.Fprintf(buf, "    for (const [k, v] of Object.entries(input.%s)) {\n", fieldName)
+		fmt.Fprintf(buf, "      msg.%s[k] = create(EnvironmentValueSchema, { value: v.value, isSecret: v.isSecret, description: v.description });\n", fieldName)
+		fmt.Fprintf(buf, "    }\n")
+		fmt.Fprintf(buf, "  }\n")
+
+	case f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.MessageType == "ExecutionValue":
+		imports.addValue("@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb", "ExecutionValueSchema")
+		fmt.Fprintf(buf, "  if (input.%s) {\n", fieldName)
+		fmt.Fprintf(buf, "    for (const [k, v] of Object.entries(input.%s)) {\n", fieldName)
+		fmt.Fprintf(buf, "      msg.%s[k] = create(ExecutionValueSchema, { value: v.value, isSecret: v.isSecret });\n", fieldName)
+		fmt.Fprintf(buf, "    }\n")
+		fmt.Fprintf(buf, "  }\n")
+
+	case f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.Kind == "message":
+		elemMsg := f.Type.ValueType.MessageType
+		if !isSpecialType(elemMsg) {
+			fmt.Fprintf(buf, "  if (input.%s) {\n", fieldName)
+			fmt.Fprintf(buf, "    for (const [k, v] of Object.entries(input.%s)) {\n", fieldName)
+			fmt.Fprintf(buf, "      msg.%s[k] = build%sProto(v);\n", fieldName, elemMsg)
+			fmt.Fprintf(buf, "    }\n")
+			fmt.Fprintf(buf, "  }\n")
+		}
+	}
 }
 
 // =========================================================================

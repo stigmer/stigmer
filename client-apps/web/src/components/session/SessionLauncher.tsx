@@ -96,9 +96,11 @@ export function SessionLauncher() {
         });
 
         router.push(`/sessions/${sessionId}`);
-      } catch {
-        setSubmitError("Failed to start session");
-        toast.error("Failed to start session");
+      } catch (err) {
+        const detail =
+          err instanceof Error ? err.message : "Failed to start session";
+        setSubmitError(detail);
+        toast.error(detail);
       } finally {
         setIsSubmitting(false);
       }

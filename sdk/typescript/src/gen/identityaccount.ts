@@ -6,6 +6,7 @@ import { type ResourceRef } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { EmptySchema } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { type ApiResourceAuditActor } from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
 import { IdentityAccountSchema, type IdentityAccount } from "@stigmer/protos/ai/stigmer/iam/identityaccount/v1/api_pb";
@@ -95,6 +96,7 @@ export interface IdentityAccountInput {
 }
 
 function buildIdentityAccountProto(input: IdentityAccountInput): IdentityAccount {
+  const identityProviderRef = input.identityProviderRef ? create(ApiResourceReferenceSchema, input.identityProviderRef) : undefined;
   return Object.assign(create(IdentityAccountSchema), {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IdentityAccount",
@@ -110,7 +112,7 @@ function buildIdentityAccountProto(input: IdentityAccountInput): IdentityAccount
       pictureUrl: input.pictureUrl,
       isMachineAccount: input.isMachineAccount,
       provisioningMode: input.provisioningMode,
-      identityProviderRef: input.identityProviderRef,
+      identityProviderRef,
     })),
   }) as IdentityAccount;
 }

@@ -6,7 +6,7 @@ import { type ResourceRef } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { EmptySchema } from "@bufbuild/protobuf/wkt";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
-import { type FindApiResourcesRequest } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, type FindApiResourcesRequest } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { OrganizationSchema, type Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { OrganizationCommandController } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/command_pb";
@@ -86,6 +86,7 @@ export interface OrganizationInput {
 }
 
 function buildOrganizationProto(input: OrganizationInput): Organization {
+  const identityProviderRef = input.identityProviderRef ? create(ApiResourceReferenceSchema, input.identityProviderRef) : undefined;
   return Object.assign(create(OrganizationSchema), {
     apiVersion: "tenancy.stigmer.ai/v1",
     kind: "Organization",
@@ -97,7 +98,7 @@ function buildOrganizationProto(input: OrganizationInput): Organization {
       description: input.description,
       logoUrl: input.logoUrl,
       managementMode: input.managementMode,
-      identityProviderRef: input.identityProviderRef,
+      identityProviderRef,
       externalOrgId: input.externalOrgId,
     })),
   }) as Organization;

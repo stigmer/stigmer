@@ -92,7 +92,17 @@ export interface ApiResourceRefInput {
   relation?: string;
 }
 
+function buildApiResourceRefProto(input: ApiResourceRefInput) {
+  return Object.assign(create(ApiResourceRefSchema), stripUndefined({
+    kind: input.kind,
+    id: input.id,
+    relation: input.relation,
+  }));
+}
+
 function buildIamPolicyProto(input: IamPolicyInput): IamPolicy {
+  const principal = input.principal ? buildApiResourceRefProto(input.principal) : undefined;
+  const resource = input.resource ? buildApiResourceRefProto(input.resource) : undefined;
   return Object.assign(create(IamPolicySchema), {
     apiVersion: "iam.stigmer.ai/v1",
     kind: "IamPolicy",
@@ -101,8 +111,8 @@ function buildIamPolicyProto(input: IamPolicyInput): IamPolicy {
       org: input.org,
     }),
     spec: Object.assign(create(IamPolicySpecSchema), stripUndefined({
-      principal: input.principal,
-      resource: input.resource,
+      principal,
+      resource,
       relation: input.relation,
     })),
   }) as IamPolicy;

@@ -8,7 +8,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { EnvironmentSchema, type Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
-import { EnvironmentSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -72,6 +72,11 @@ export interface EnvironmentInput {
 }
 
 function buildEnvironmentProto(input: EnvironmentInput): Environment {
+  let data;
+  if (input.data) {
+    data = Object.fromEntries(Object.entries(input.data).map(([k, v]) =>
+      [k, create(EnvironmentValueSchema, { value: v.value, isSecret: v.isSecret, description: v.description })]));
+  }
   return Object.assign(create(EnvironmentSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Environment",
@@ -81,7 +86,7 @@ function buildEnvironmentProto(input: EnvironmentInput): Environment {
     }),
     spec: Object.assign(create(EnvironmentSpecSchema), stripUndefined({
       description: input.description,
-      data: input.data,
+      data,
     })),
   }) as Environment;
 }

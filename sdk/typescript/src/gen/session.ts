@@ -9,6 +9,7 @@ import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/ses
 import { SessionIdSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
+import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
 /** Provides operations on session resources. */
@@ -101,7 +102,40 @@ export interface LocalPathSourceInput {
   path?: string;
 }
 
+function buildGitRepoSourceProto(input: GitRepoSourceInput) {
+  return Object.assign(create(GitRepoSourceSchema), stripUndefined({
+    url: input.url,
+    branch: input.branch,
+    commit: input.commit,
+    depth: input.depth,
+  }));
+}
+
+function buildLocalPathSourceProto(input: LocalPathSourceInput) {
+  return Object.assign(create(LocalPathSourceSchema), stripUndefined({
+    path: input.path,
+  }));
+}
+
+function buildWorkspaceSourceProto(input: WorkspaceSourceInput) {
+  const msg = create(WorkspaceSourceSchema);
+  if (input.gitRepo) {
+    msg.source = { case: "gitRepo", value: buildGitRepoSourceProto(input.gitRepo) };
+  } else if (input.localPath) {
+    msg.source = { case: "localPath", value: buildLocalPathSourceProto(input.localPath) };
+  }
+  return msg;
+}
+
+function buildWorkspaceEntryProto(input: WorkspaceEntryInput) {
+  const msg = create(WorkspaceEntrySchema);
+  if (input.name !== undefined) msg.name = input.name;
+  if (input.source) msg.source = buildWorkspaceSourceProto(input.source);
+  return msg;
+}
+
 function buildSessionProto(input: SessionInput): Session {
+  const workspaceEntries = input.workspaceEntries?.map(buildWorkspaceEntryProto);
   return Object.assign(create(SessionSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "Session",
@@ -115,7 +149,7 @@ function buildSessionProto(input: SessionInput): Session {
       threadId: input.threadId,
       sandboxId: input.sandboxId,
       metadata: input.metadata,
-      workspaceEntries: input.workspaceEntries,
+      workspaceEntries,
     })),
   }) as Session;
 }

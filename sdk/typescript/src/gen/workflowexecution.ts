@@ -5,6 +5,7 @@ import { stripUndefined } from "./proto-utils";
 import { type EnvVarInput } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
 import { WorkflowExecutionSchema, type WorkflowExecution } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/api_pb";
 import { WorkflowExecutionCommandController } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/command_pb";
 import { WorkflowExecutionIdSchema, WorkflowExecutionUpdateStatusInputSchema, SubmitWorkflowApprovalInputSchema, SendSignalInputSchema, CancelWorkflowExecutionInputSchema, TerminateWorkflowExecutionInputSchema, RecoverWorkflowExecutionInputSchema, PauseWorkflowExecutionInputSchema, ResumeWorkflowExecutionInputSchema, ListWorkflowExecutionsRequestSchema, WorkflowExecutionListSchema, ListWorkflowExecutionsByWorkflowRequestSchema, SubscribeWorkflowExecutionRequestSchema, type WorkflowExecutionUpdateStatusInput, type SubmitWorkflowApprovalInput, type SendSignalInput, type CancelWorkflowExecutionInput, type TerminateWorkflowExecutionInput, type RecoverWorkflowExecutionInput, type PauseWorkflowExecutionInput, type ResumeWorkflowExecutionInput, type ListWorkflowExecutionsRequest, type WorkflowExecutionList, type ListWorkflowExecutionsByWorkflowRequest, type SubscribeWorkflowExecutionRequest } from "@stigmer/protos/ai/stigmer/agentic/workflowexecution/v1/io_pb";
@@ -129,6 +130,11 @@ export interface WorkflowExecutionInput {
 }
 
 function buildWorkflowExecutionProto(input: WorkflowExecutionInput): WorkflowExecution {
+  let runtimeEnv;
+  if (input.runtimeEnv) {
+    runtimeEnv = Object.fromEntries(Object.entries(input.runtimeEnv).map(([k, v]) =>
+      [k, create(ExecutionValueSchema, { value: v.value, isSecret: v.isSecret })]));
+  }
   return Object.assign(create(WorkflowExecutionSchema), {
     apiVersion: "agentic.stigmer.ai/v1",
     kind: "WorkflowExecution",
@@ -141,7 +147,7 @@ function buildWorkflowExecutionProto(input: WorkflowExecutionInput): WorkflowExe
       workflowId: input.workflowId,
       triggerMessage: input.triggerMessage,
       triggerMetadata: input.triggerMetadata,
-      runtimeEnv: input.runtimeEnv,
+      runtimeEnv,
       callbackToken: input.callbackToken,
     })),
   }) as WorkflowExecution;
