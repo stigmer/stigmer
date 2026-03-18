@@ -26,6 +26,7 @@ export {
   WorkspaceEditor,
   useFolderListing,
   FolderBrowser,
+  WorkspaceSummary,
 } from "./workspace";
 export type {
   WorkspaceEntry,
@@ -35,6 +36,7 @@ export type {
   FolderListing,
   UseFolderListingReturn,
   FolderBrowserProps,
+  WorkspaceSummaryProps,
 } from "./workspace";
 
 // Session — data hooks, behavior hooks, utilities (Session aggregate + conversation lifecycle)
@@ -74,6 +76,8 @@ export {
   MessageThread,
   FollowUpInput,
   ExecutionDetails,
+  ExecutionSummary,
+  ContextWindowMeter,
   ApprovalCard,
 } from "./execution";
 export type {
@@ -91,6 +95,8 @@ export type {
   MessageThreadProps,
   FollowUpInputProps,
   ExecutionDetailsProps,
+  ExecutionSummaryProps,
+  ContextWindowMeterProps,
   ApprovalCardProps,
 } from "./execution";
 

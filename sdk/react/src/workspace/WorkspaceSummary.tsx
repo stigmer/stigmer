@@ -1,0 +1,109 @@
+"use client";
+
+import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import type { WorkspaceSource } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
+import { cn } from "@stigmer/theme";
+
+export interface WorkspaceSummaryProps {
+  /** Session-level workspace entries. Renders nothing when empty. */
+  readonly entries: readonly WorkspaceEntry[];
+  readonly className?: string;
+}
+
+/**
+ * Compact, read-only display of workspace entries showing each
+ * entry's name and source (git repository URL or local path).
+ *
+ * This is the display-only counterpart to {@link WorkspaceEditor},
+ * designed for contexts where workspace data is shown but not edited
+ * (e.g., execution detail views, session summaries).
+ *
+ * Renders its content without card chrome (no border, background, or
+ * elevation). The consumer controls the container styling.
+ *
+ * All visual properties flow through `--stgm-*` tokens.
+ *
+ * @example
+ * ```tsx
+ * const { session } = useSession(sessionId);
+ *
+ * <WorkspaceSummary
+ *   entries={session?.spec?.workspaceEntries ?? []}
+ * />
+ * ```
+ */
+export function WorkspaceSummary({
+  entries,
+  className,
+}: WorkspaceSummaryProps) {
+  if (entries.length === 0) return null;
+
+  return (
+    <ul className={cn("space-y-1.5", className)} aria-label="Workspace entries">
+      {entries.map((entry) => (
+        <li key={entry.name} className="text-xs">
+          <div className="flex items-center gap-1.5 font-medium">
+            <FolderIcon />
+            <span className="truncate">{entry.name}</span>
+          </div>
+          <SourceLabel source={entry.source} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Internal sub-components
+// ---------------------------------------------------------------------------
+
+function SourceLabel({ source }: { source?: WorkspaceSource }) {
+  if (!source || source.source.case === undefined) return null;
+
+  if (source.source.case === "gitRepo") {
+    const url = source.source.value.url;
+    const short = url
+      .replace(/^https?:\/\//, "")
+      .replace(/\.git$/, "");
+    return (
+      <span
+        className="ml-5 block truncate text-muted-foreground"
+        title={url}
+      >
+        {short}
+      </span>
+    );
+  }
+
+  if (source.source.case === "localPath") {
+    const path = source.source.value.path;
+    return (
+      <span
+        className="ml-5 block truncate font-mono text-muted-foreground"
+        title={path}
+      >
+        {path}
+      </span>
+    );
+  }
+
+  return null;
+}
+
+function FolderIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M1.5 3V9.5a1 1 0 001 1h7a1 1 0 001-1V4.5a1 1 0 00-1-1H6L4.5 2H2.5a1 1 0 00-1 1z" />
+    </svg>
+  );
+}
