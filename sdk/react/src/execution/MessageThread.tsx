@@ -249,7 +249,14 @@ export function MessageThread({
       aria-live="polite"
       aria-relevant="additions"
       onScroll={handleScroll}
-      className={cn("flex flex-col gap-4 overflow-y-auto pt-6 pb-4", className)}
+      className={cn(
+        "flex flex-col gap-4 overflow-y-auto pt-6 pb-4",
+        "[scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent]",
+        "[&::-webkit-scrollbar]:w-1.5",
+        "[&::-webkit-scrollbar-track]:bg-transparent",
+        "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/40",
+        className,
+      )}
     >
       {items.map((item) => {
         switch (item.kind) {

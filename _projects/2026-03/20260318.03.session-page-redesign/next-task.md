@@ -68,8 +68,8 @@ When starting a new session:
 
 **Created**: 2026-03-18 14:46
 **Current Task**: All tasks complete
-**Status**: Phase 1-4 Complete, Post-phase UX refinements complete, Tool call visibility fixed, Follow-up input re-enable bug fixed, Unified SessionComposer component created
-**Last Session**: 2026-03-18 — Unified SessionComposer component with workspace editing in follow-up
+**Status**: Phase 1-4 Complete, Post-phase UX refinements complete, Tool call visibility fixed, Follow-up input re-enable bug fixed, Unified SessionComposer component created, Scrollbar refinements applied
+**Last Session**: 2026-03-18 — Subtle scrollbar styling and repositioned scrollbar near widget panel
 
 ## Session Progress (2026-03-18, Session 1)
 
@@ -151,6 +151,14 @@ When starting a new session:
 - Removed `WorkspaceSummary` from session page right sidebar — workspace editing now inline in composer
 - Deprecated `FollowUpInput` with JSDoc guidance pointing to `SessionComposer`
 - `buildUpdateInput` helper preserves all existing session spec fields during workspace-only updates
+
+## Session Progress (2026-03-18, Session 9)
+
+- Refined scrollbar UX for the session page message thread:
+  1. **Subtle scrollbar styling** (SDK): Added thin, semi-transparent scrollbar to `MessageThread` — `scrollbar-width: thin`, 6px WebKit thumb at 40% opacity with `bg-border/40`, transparent track. All colors flow through `--stgm-border` theme token.
+  2. **Scrollbar repositioning** (Console): Replaced `gap-[220px]` with `gap-3`, expanded scroll container width, added `lg:pr-[208px]` padding to keep content at same width while moving scrollbar to right edge near widget panel. Error/input wrapped in `lg:mr-[208px]`.
+- Validated changes against SDK architecture rules (roles 004, 006): scrollbar styling belongs in SDK (enhances default drop-in experience), layout positioning belongs in Console (page-level concern applied via `className` prop)
+- SessionPage layout changes were accidentally bundled into parallel agent's commit `d8539434`; only MessageThread scrollbar styling remains uncommitted
 
 ## Project Complete
 
