@@ -69,11 +69,23 @@ When starting a new session:
 
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.6 — decomposed into 5 sub-projects (SP1-SP5)
-**Status**: SP1 + SP2 complete. SP3, SP4 ready to start (independent of each other).
-**Last Session**: 2026-03-18 — SP2 (Follow-Up Conversation Loop) completed (session 18)
+**Status**: SP1 + SP2 + SP4 complete. SP3 ready to start. SP5 unblocked (depends on SP1 + SP4, both done).
+**Last Session**: 2026-03-18 — SP4 (Expandable Tool Groups) completed (session 19)
 **Pending Pre-req**: ~~GitHub OAuth App registration~~ Done — credentials embedded in binary and configured in cloud deployment
 
 ## Session Progress (2026-03-18)
+
+### Completed: SP4 — Expandable Tool Groups (Session 19)
+- Implemented all 6 steps of SP4 in a single session
+- **SDK — `ToolCallDetail`** (`sdk/react/src/execution/ToolCallDetail.tsx`): Detail panel for a single tool call — args (formatted JSON), result (auto-detect JSON), error (destructive styling), MCP server badge, status label, duration. `CollapsibleCode` for large payloads (>10 lines). Exports `formatDuration()` utility.
+- **SDK — `ToolCallItem`** (`sdk/react/src/execution/ToolCallItem.tsx`): Clickable row with status icon, tool name (or sub-agent subject), MCP server badge, duration, chevron. Expands to `ToolCallDetail` or `SubAgentSection`. Internal `useState` with `defaultExpanded`.
+- **SDK — `SubAgentSection`** (`sdk/react/src/execution/SubAgentSection.tsx`): Nested mini-thread for sub-agent delegations. Composes `MessageEntry` + `ToolCallGroup` (same building blocks as `MessageThread`). Visual distinction via `border-l-2 border-primary/20`. Header with name, subject, status, duration. Error footer for failures.
+- **SDK — `ToolCallGroup` enhanced**: Summary `<div>` → clickable `<button>` with `aria-expanded` and chevron. New `subAgentExecutions` prop with `Map<string, SubAgentExecution>` for O(1) ID-based lookup. CSS `grid-template-rows` animation. Backward compatible.
+- **SDK — `MessageThread` updated**: `ThreadItem.tool-group` gains `subAgentExecutions`. `buildThreadItems` extracts sub-agents per execution. No new props on `MessageThreadProps`.
+- **Barrel exports** updated across `execution/index.ts` and `src/index.ts`
+- **Key decisions**: Two-level disclosure (Hick's Law); sub-agent via prop not context; `ToolCall.result` over `MESSAGE_TOOL`; internal state with `defaultExpanded`; CSS-only animation; inline SVG icons; sub-agent ID matching via `SubAgentExecution.id === ToolCall.id`.
+- Verification: `npm run typecheck`, `npm run build` (sdk/react), `npx tsc --noEmit`, `npm run build` (web) — all pass clean
+- Committed: `7587e2f0`
 
 ### Completed: SP2 — Follow-Up Conversation Loop (Session 18)
 - Implemented all 5 steps of SP2 in a single session
@@ -286,20 +298,26 @@ When starting a new session:
 42. **Optimistic user message via `pendingUserMessage` prop** — MessageThread accepts an optional `pendingUserMessage` string. Rendered at 70% opacity as a HumanMessage. Cleared by the consumer when the stream delivers its first snapshot. Low cost, significant UX gain.
 43. **Sequential follow-ups, not concurrent** — Input disabled while an execution is in progress. Backend allows concurrent executions per session, but sequential follow-ups provide predictable UX and simpler state management. Can be relaxed later.
 44. **`pendingExecutionId` for immediate streaming** — After `createExecution` returns, set `pendingExecutionId` instead of waiting for `refetch()` to pick it up from the list. `activeExecutionId = pendingExecutionId ?? lastNonTerminal(list)`. Eliminates the latency gap between creation and stream subscription.
+45. **Two-level progressive disclosure for tool groups** — ToolCallGroup summary (Level 0) → ToolCallItem list (Level 1) → ToolCallDetail or SubAgentSection (Level 2). Matches Hick's Law: reduce choices at each level. Single-level expansion would overwhelm for 10+ tool calls.
+46. **SubAgentExecution via prop, not context** — ToolCallGroup receives `subAgentExecutions` as an optional prop. No React Context, no global state. Self-contained and embeddable. ToolCallGroup builds `Map<string, SubAgentExecution>` internally for O(1) lookup by tool call ID.
+47. **Sub-agent ID matching** — `SubAgentExecution.id` matches `ToolCall.id` from the parent's "task" tool invocation (documented in `subagent.proto`). One-level nesting only (proto has no recursive `sub_agent_executions` on `SubAgentExecution`).
+48. **Internal expansion state, not controlled** — `ToolCallGroup` and `ToolCallItem` use `useState` with `defaultExpanded` prop. No controlled `expanded`/`onToggle` mode in v1. Platform builders who need full control compose `ToolCallDetail` and `ToolCallItem` directly.
+49. **CSS-only expand animation** — `grid-template-rows: 0fr → 1fr` transition on ToolCallGroup. No JS animation library, no layout thrashing.
+50. **SubAgentSection composes existing primitives** — `SubAgentSection` renders the sub-agent's `messages` using `MessageEntry` + `ToolCallGroup` — the same building blocks as `MessageThread`. Composition, not duplication. Sub-agent's internal thread uses `buildSubAgentThreadItems` (local function), not the full `buildThreadItems` from MessageThread.
 
 ## Next Steps
 
 T01.6 has been decomposed into 5 sub-projects (SP1-SP5). Execute in order:
 
-| # | Sub-Project | Resume File | Depends On |
-|---|---|---|---|
-| SP1 | Core Thread + Streaming | `20260317.02.sp.core-thread-streaming/next-task.md` | Nothing |
-| SP2 | Follow-Up + Conversation Loop | `20260317.03.sp.follow-up-conversation-loop/next-task.md` | SP1 |
-| SP3 | Session Context Panel | `20260317.04.sp.session-context-panel/next-task.md` | SP1 |
-| SP4 | Expandable Tool Groups | `20260317.05.sp.expandable-tool-groups/next-task.md` | SP1 |
-| SP5 | HITL Approvals | `20260317.06.sp.hitl-approvals/next-task.md` | SP1 + SP4 |
+| # | Sub-Project | Resume File | Depends On | Status |
+|---|---|---|---|---|
+| SP1 | Core Thread + Streaming | `20260317.02.sp.core-thread-streaming/next-task.md` | Nothing | COMPLETE |
+| SP2 | Follow-Up + Conversation Loop | `20260317.03.sp.follow-up-conversation-loop/next-task.md` | SP1 | COMPLETE |
+| SP3 | Session Context Panel | `20260317.04.sp.session-context-panel/next-task.md` | SP1 | Ready |
+| SP4 | Expandable Tool Groups | `20260317.05.sp.expandable-tool-groups/next-task.md` | SP1 | COMPLETE |
+| SP5 | HITL Approvals | `20260317.06.sp.hitl-approvals/next-task.md` | SP1 + SP4 | Ready (unblocked) |
 
-SP2, SP3, SP4 are independent of each other after SP1.
+SP3 and SP5 are independent of each other. Both are ready to start.
 
 After T01.6 sub-projects: **T01.7** — Web — Sidebar Recents
 
@@ -308,7 +326,7 @@ After T01.6 sub-projects: **T01.7** — Web — Sidebar Recents
 - T01.1 through T01.5 are complete and committed.
 - The web app has a headerless sidebar-driven layout with a working session launcher at `/`.
 - The React SDK now has three feature modules: `models/`, `workspace/`, `session/`, `execution/`.
-- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useFolderListing`, `FolderBrowser`, `useCreateSession`, `useCreateAgentExecution`, `useGitHubConnection`, `useGitHubRepos`, `GitHubRepoPicker`, `useSession`, `useSessionExecutions`, `useExecutionStream`, `useSessionConversation`, `isTerminalPhase`, `MessageThread`, `MessageEntry`, `ToolCallGroup`, `ExecutionPhaseBadge`, `FollowUpInput`.
+- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useFolderListing`, `FolderBrowser`, `useCreateSession`, `useCreateAgentExecution`, `useGitHubConnection`, `useGitHubRepos`, `GitHubRepoPicker`, `useSession`, `useSessionExecutions`, `useExecutionStream`, `useSessionConversation`, `isTerminalPhase`, `MessageThread`, `MessageEntry`, `ToolCallGroup`, `ToolCallDetail`, `formatDuration`, `ToolCallItem`, `SubAgentSection`, `ExecutionPhaseBadge`, `FollowUpInput`.
 - The session launcher flow: create session -> create agent execution -> navigate to `/sessions/[id]`.
 - `/sessions/[id]/page.tsx` exists as a placeholder — T01.6 builds the actual session view.
 - Proto `agent_instance_id` is optional in SessionSpec. Backend resolves default agent instance if omitted.
