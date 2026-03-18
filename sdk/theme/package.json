@@ -4,7 +4,9 @@
   "description": "Design tokens, CSS custom properties, and utility functions for Stigmer UI components",
   "license": "Apache-2.0",
   "type": "module",
-  "sideEffects": ["*.css"],
+  "sideEffects": [
+    "*.css"
+  ],
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
@@ -19,7 +21,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json && cp src/tokens.css dist/tokens.css && mkdir -p dist/presets && cp src/presets/*.css dist/presets/",
-    "clean": "rm -rf dist tsconfig.build.tsbuildinfo"
+    "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "files": [
     "dist",
@@ -63,5 +67,8 @@
   "peerDependencies": {
     "clsx": "^2.0.0",
     "tailwind-merge": "^3.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
   }
 }
