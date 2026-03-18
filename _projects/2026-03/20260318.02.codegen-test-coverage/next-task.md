@@ -67,27 +67,29 @@ That's it! No complex structure - just focused work.
 ## Current State
 
 - **Status**: in-progress
-- **Last Session**: 2026-03-18 — Completed Task 1 (proto2schema pure function tests)
-- **Active Task**: Task 2 (generator pure function tests)
+- **Last Session**: 2026-03-18 — Completed Task 2 (generator pure function tests)
+- **Active Task**: Task 3 (ToProto/FromProto generation and roundtrip correctness)
 
 ## Session Progress (2026-03-18)
 
 - Completed Task 1: Added 39 unit tests across 7 test functions for proto2schema pure functions
-- Created `tools/codegen/proto2schema/main_test.go` covering: extractTaskKind, toCamelCase, deriveGoImportAlias, inferServiceRole, capitalize, countMethods, extractStringFromUnknownFields
-- Discovered that `toCamelCase` with `capitalizeFirst=false` leaves first part untouched (doesn't lowercase it)
+- Completed Task 2: Added 62 test functions (358 total test cases) for generator pure functions across all 6 source files
+- Created `tools/codegen/generator/main_test.go` covering functions from main.go, sdk_client.go, sdk_client_ts.go, sdk_client_python.go, sdk_client_java.go, mcp.go
+- Discovered that `isScalarSlice` doesn't verify `[]` prefix — bare scalar names also return true
+- Both singularize implementations strip trailing "s" from "Bus" → "Bu" (known limitation)
 - All tests passing
 
 ## Next Steps
 
-1. **Task 2**: Add unit tests for generator pure functions (`goType`, `toSnakeCase`, `titleCase`, `singularize`/`pluralize`, type mapping) across the 6 files in `tools/codegen/generator/`
-2. **Task 3**: Add unit tests for ToProto/FromProto generation and roundtrip correctness
-3. **Task 4**: Add integration test: JSON schema -> generated Go code compiles successfully
+1. **Task 3**: Add unit tests for ToProto/FromProto generation and roundtrip correctness
+2. **Task 4**: Add integration test: JSON schema -> generated Go code compiles successfully
 
 ## Context for Resume
 
-- `tools/codegen/proto2schema/main.go` is a single 1,323-line file with all logic
-- `tools/codegen/generator/` has 6 Go files — start by reading `main.go` and `sdk_client.go` to identify pure functions
-- Pure functions (no proto descriptor dependencies) are the easiest to test first
+- `tools/codegen/proto2schema/main_test.go` — 39 test cases for proto2schema pure functions
+- `tools/codegen/generator/main_test.go` — 358 test cases for generator pure functions across all 6 files
+- Task 3 should focus on testing the generated conversion code (ToProto/FromProto) for correctness
+- Task 4 should verify that generated Go code compiles successfully end-to-end
 - The `extractStringFromUnknownFields` tests use `protowire` to construct binary test data — same pattern can be reused for similar low-level tests
 
 ---

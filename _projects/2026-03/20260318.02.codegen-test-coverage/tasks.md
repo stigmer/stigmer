@@ -35,14 +35,21 @@ Add timestamps and notes to track your progress.
 
 ## Task 2: Add unit tests for generator pure functions (goType, toSnakeCase, titleCase, singularize/pluralize, type mapping)
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-18 14:12
+**Completed**: 2026-03-18
 
 ### Subtasks
-- [ ] [Add specific steps as you work]
+- [x] Read all 6 generator source files (main.go, sdk_client.go, sdk_client_ts.go, sdk_client_python.go, sdk_client_java.go, mcp.go)
+- [x] Create `tools/codegen/generator/main_test.go` with unit tests for pure functions across all 6 files
+- [x] Run tests and fix expectation mismatches
+- [x] All 62 top-level test functions pass (358 total test cases with subtests)
 
 ### Notes
-- [Add notes about this task here]
+- Created `tools/codegen/generator/main_test.go` covering pure functions from all 6 source files
+- Tests cover: extractDomain, extractSubdomain, protoTypeToGoImportPath, protoTypeToPackageAlias, titleCase, toSnakeCase, sanitizeDescription, matchEnumValue, isWordSubset, paramName, goType (scalars, arrays, maps, messages, well-known types, shared types), singularize, pluralize, needsCoercion, isWellKnownProtoType, deriveApiVersion, deriveGoImportPath, pascalToSnake, isSpecialType, isEmptyType, isIDType, goProtoFieldName, resolveType, deriveTSImportBase, tsProtoFieldName, tsClientFieldName, tsProtoFileToSuffix, tsResolveEnumImport, isCommonsType, tsMethodName, pyMethodName, pyStubMethodName, pyClientFieldName, pyTypeForTypeSpec, pyDefaultForTypeSpec, pyDefaultForField, pyIsNullableType, pyNeedsFieldImport, pyFieldName, pyIsScalarKind, javaCapCamel, javaCamel, javaSetterName, javaAddAllName, javaAddName, javaPutName, javaPutAllName, javaMethodLower, javaAccessorName, resolveJavaFQCN, javaBoxed, javaIsPrimitive, javaTypeForTypeSpec, resolveJavaEnumImport, scalarGoType, isScalarSlice, parseMapType, toPascalCase, singularize (mcp), protoTypeName
+- `isScalarSlice` doesn't verify the `[]` prefix — bare scalar type names also return true (quirk of TrimPrefix approach)
+- Both `genContext.singularize` and mcp `singularize` strip trailing "s" from words like "Bus" → "Bu" (known limitation of the simple heuristic)
 
 ## Task 3: Add unit tests for ToProto/FromProto generation and roundtrip correctness
 
