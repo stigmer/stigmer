@@ -34,14 +34,8 @@ export type { MessageThreadProps } from "./MessageThread";
 export { FollowUpInput } from "./FollowUpInput";
 export type { FollowUpInputProps } from "./FollowUpInput";
 
-export { ExecutionDetails } from "./ExecutionDetails";
-export type { ExecutionDetailsProps } from "./ExecutionDetails";
-
-export { ExecutionSummary } from "./ExecutionSummary";
-export type { ExecutionSummaryProps } from "./ExecutionSummary";
-
-export { ContextWindowMeter } from "./ContextWindowMeter";
-export type { ContextWindowMeterProps } from "./ContextWindowMeter";
+export { ExecutionProgress } from "./ExecutionProgress";
+export type { ExecutionProgressProps } from "./ExecutionProgress";
 
 export { useSubmitApproval } from "./useSubmitApproval";
 export type { UseSubmitApprovalReturn } from "./useSubmitApproval";

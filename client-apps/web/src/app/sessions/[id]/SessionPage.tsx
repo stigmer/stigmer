@@ -16,8 +16,7 @@ import {
   useGitHubConnection,
   MessageThread,
   SessionComposer,
-  ExecutionSummary,
-  ContextWindowMeter,
+  ExecutionProgress,
 } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDeploymentMode } from "@/hooks/useDeploymentMode";
@@ -135,18 +134,11 @@ export default function SessionPage() {
         </div>
         <aside
           className="hidden w-80 shrink-0 flex-col gap-3 overflow-y-auto py-4 pr-6 lg:flex"
-          aria-label="Execution details"
+          aria-label="Execution progress"
         >
           {displayExecution && (
             <div className="rounded-lg border border-border bg-card p-3">
-              <ExecutionSummary execution={displayExecution} />
-            </div>
-          )}
-          {displayExecution?.status?.contextInfo && (
-            <div className="rounded-lg border border-border bg-card p-3">
-              <ContextWindowMeter
-                contextInfo={displayExecution.status.contextInfo}
-              />
+              <ExecutionProgress execution={displayExecution} />
             </div>
           )}
         </aside>

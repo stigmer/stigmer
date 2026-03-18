@@ -69,6 +69,7 @@ export {
   useExecutionStream,
   useSubmitApproval,
   ExecutionPhaseBadge,
+  ExecutionProgress,
   ToolCallGroup,
   ToolCallDetail,
   formatDuration,
@@ -77,9 +78,6 @@ export {
   MessageEntry,
   MessageThread,
   FollowUpInput,
-  ExecutionDetails,
-  ExecutionSummary,
-  ContextWindowMeter,
   ApprovalCard,
 } from "./execution";
 export type {
@@ -89,6 +87,7 @@ export type {
   UseExecutionStreamReturn,
   UseSubmitApprovalReturn,
   ExecutionPhaseBadgeProps,
+  ExecutionProgressProps,
   ToolCallGroupProps,
   ToolCallDetailProps,
   ToolCallItemProps,
@@ -96,9 +95,6 @@ export type {
   MessageEntryProps,
   MessageThreadProps,
   FollowUpInputProps,
-  ExecutionDetailsProps,
-  ExecutionSummaryProps,
-  ContextWindowMeterProps,
   ApprovalCardProps,
 } from "./execution";
 
