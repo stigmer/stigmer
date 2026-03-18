@@ -68,8 +68,8 @@ When starting a new session:
 
 **Created**: 2026-03-18 14:46
 **Current Task**: All tasks complete
-**Status**: Phase 1-4 Complete, Post-phase UX refinements complete, Tool call visibility fixed, Follow-up input re-enable bug fixed
-**Last Session**: 2026-03-18 — Fix follow-up input staying disabled after execution completes
+**Status**: Phase 1-4 Complete, Post-phase UX refinements complete, Tool call visibility fixed, Follow-up input re-enable bug fixed, Unified SessionComposer component created
+**Last Session**: 2026-03-18 — Unified SessionComposer component with workspace editing in follow-up
 
 ## Session Progress (2026-03-18, Session 1)
 
@@ -139,6 +139,18 @@ When starting a new session:
 - Fix: added `useEffect` that calls `refetch()` when `stream.phase` becomes terminal — re-fetched list has updated phase, `listActiveId` clears, `canSendFollowUp` flips to `true`, input enables and auto-focuses
 - Single file changed: `sdk/react/src/session/useSessionConversation.ts` (+8 lines)
 - Zero lint errors
+
+## Session Progress (2026-03-18, Session 8)
+
+- Created unified `SessionComposer` component in `@stigmer/react` — merges launcher and follow-up inputs into a single reusable component
+- Created headless `useComposer` hook for platform builders wanting custom UI
+- Created `useUpdateSession` hook wrapping the `session.update()` SDK method
+- Extended `useSessionConversation` with workspace entries exposure and update-on-follow-up support
+- Migrated `SessionLauncher` to consume `SessionComposer` (home page, -87 lines)
+- Migrated `SessionPage` to consume `SessionComposer` with workspace editing (session page)
+- Removed `WorkspaceSummary` from session page right sidebar — workspace editing now inline in composer
+- Deprecated `FollowUpInput` with JSDoc guidance pointing to `SessionComposer`
+- `buildUpdateInput` helper preserves all existing session spec fields during workspace-only updates
 
 ## Project Complete
 

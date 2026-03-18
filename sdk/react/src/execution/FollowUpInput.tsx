@@ -43,12 +43,26 @@ const MAX_TEXTAREA_HEIGHT = 240;
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
+ * @deprecated Use {@link SessionComposer} instead. `SessionComposer`
+ * unifies the launcher and follow-up input into a single component
+ * with integrated workspace editing and extensible toolbar. This
+ * component will be removed in a future release.
+ *
  * @example
  * ```tsx
+ * // Before (deprecated):
  * <FollowUpInput
  *   onSubmit={(msg, model) => conv.sendFollowUp(msg, model)}
  *   disabled={!conv.canSendFollowUp}
  *   isSubmitting={conv.isSending}
+ * />
+ *
+ * // After:
+ * <SessionComposer
+ *   onSubmit={(msg, model) => conv.sendFollowUp(msg, model)}
+ *   disabled={!conv.canSendFollowUp}
+ *   isSubmitting={conv.isSending}
+ *   workspace={workspace}
  * />
  * ```
  */

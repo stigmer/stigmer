@@ -1,21 +1,12 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type FormEvent,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowUp, Loader2 } from "lucide-react";
 import {
-  ModelSelector,
+  SessionComposer,
   useModelRegistry,
   useWorkspaceEntries,
-  WorkspaceEditor,
   useCreateSession,
   useCreateAgentExecution,
   useGitHubConnection,
@@ -38,21 +29,17 @@ const STORAGE_KEY_MODEL = "stigmer:session:model";
 export function SessionLauncher() {
   const router = useRouter();
   const org = useActiveOrgSlug();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const deploymentMode = useDeploymentMode();
   const gitHubConnection = useGitHubConnection();
 
   const { getModel } = useModelRegistry();
 
-  const [message, setMessage] = useState("");
   const [modelId, setModelId] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const validModelId = modelId && getModel(modelId) ? modelId : undefined;
 
-  // Restore model from localStorage after mount to avoid hydration mismatch
-  // (server has no localStorage; initial render must match on both.)
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY_MODEL);
     if (stored && getModel(stored)) {
@@ -71,10 +58,8 @@ export function SessionLauncher() {
   const { create: createExecution } = useCreateAgentExecution();
 
   const handleSubmit = useCallback(
-    async (e?: FormEvent) => {
-      e?.preventDefault();
-      const trimmed = message.trim();
-      if (!trimmed || isSubmitting) return;
+    async (message: string, selectedModel?: string) => {
+      if (isSubmitting) return;
 
       setIsSubmitting(true);
       setSubmitError(null);
@@ -82,7 +67,7 @@ export function SessionLauncher() {
       try {
         const { sessionId } = await createSession({
           org,
-          subject: trimmed.slice(0, 120),
+          subject: message.slice(0, 120),
           workspaceEntries: workspace.hasEntries
             ? workspace.toInput()
             : undefined,
@@ -91,8 +76,8 @@ export function SessionLauncher() {
         await createExecution({
           org,
           sessionId,
-          message: trimmed,
-          modelName: validModelId,
+          message,
+          modelName: selectedModel ?? validModelId,
         });
 
         router.push(`/sessions/${sessionId}`);
@@ -106,7 +91,6 @@ export function SessionLauncher() {
       }
     },
     [
-      message,
       isSubmitting,
       org,
       validModelId,
@@ -117,23 +101,6 @@ export function SessionLauncher() {
     ],
   );
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleSubmit();
-      }
-    },
-    [handleSubmit],
-  );
-
-  const handleInput = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 240)}px`;
-  }, []);
-
   return (
     <div className="flex h-full flex-col items-center overflow-y-auto px-4">
       <div className="my-auto w-full max-w-2xl space-y-6">
@@ -141,72 +108,27 @@ export function SessionLauncher() {
           What would you like to work on?
         </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Textarea */}
-          <div className="rounded-xl border border-border bg-card shadow-sm focus-within:ring-2 focus-within:ring-ring">
-            <textarea
-              ref={textareaRef}
-              value={message}
-              onChange={(e) => {
-                setMessage(e.target.value);
-                handleInput();
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder="Describe what you need help with..."
-              disabled={isSubmitting}
-              rows={3}
-              className="block w-full resize-none bg-transparent px-4 pt-4 pb-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
-              autoFocus
-            />
+        <SessionComposer
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+          workspace={workspace}
+          gitHubConnection={gitHubConnection}
+          enableGitHub
+          enableLocal={deploymentMode === "local"}
+          enableFolderBrowser={deploymentMode === "local"}
+          defaultModelId={validModelId}
+          onModelChange={setModelId}
+          placeholder="Describe what you need help with..."
+          initialRows={3}
+          autoFocus
+          ariaLabel="Start a new session"
+        />
 
-            {/* Controls bar */}
-            <div className="flex items-center justify-between gap-2 border-t border-border/50 px-3 py-2">
-              <div className="flex items-center gap-2">
-                <ModelSelector
-                  value={validModelId}
-                  onValueChange={setModelId}
-                  disabled={isSubmitting}
-                />
-                {workspace.hasEntries ? (
-                  <span className="rounded-md bg-muted px-2 py-1 text-[0.65rem] text-muted-foreground">
-                    {workspace.entries.length} workspace
-                    {workspace.entries.length !== 1 ? "s" : ""}
-                  </span>
-                ) : null}
-              </div>
-
-              <button
-                type="submit"
-                disabled={!message.trim() || isSubmitting}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-40"
-                aria-label="Send message"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ArrowUp className="h-4 w-4" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Error display */}
-          {submitError && (
-            <p className="text-xs text-destructive" role="alert">
-              {submitError}
-            </p>
-          )}
-
-          {/* Workspace editor with GitHub integration */}
-          <WorkspaceEditor
-            workspace={workspace}
-            disabled={isSubmitting}
-            gitHubConnection={gitHubConnection}
-            enableGitHub
-            enableLocal={deploymentMode === "local"}
-            enableFolderBrowser={deploymentMode === "local"}
-          />
-        </form>
+        {submitError && (
+          <p className="text-xs text-destructive" role="alert">
+            {submitError}
+          </p>
+        )}
 
         <p className="text-center text-[0.65rem] text-muted-foreground">
           Press Enter to send, Shift+Enter for a new line
