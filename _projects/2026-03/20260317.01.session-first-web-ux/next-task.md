@@ -69,11 +69,20 @@ When starting a new session:
 
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.6 — decomposed into 5 sub-projects (SP1-SP5)
-**Status**: SP1 + SP2 + SP4 complete. SP3 ready to start. SP5 unblocked (depends on SP1 + SP4, both done).
-**Last Session**: 2026-03-18 — SP4 (Expandable Tool Groups) completed (session 19)
+**Status**: SP1 + SP2 + SP3 + SP4 complete. SP5 ready to start (unblocked, depends on SP1 + SP4, both done).
+**Last Session**: 2026-03-18 — SP3 (Session Context Panel) completed (session 20)
 **Pending Pre-req**: ~~GitHub OAuth App registration~~ Done — credentials embedded in binary and configured in cloud deployment
 
 ## Session Progress (2026-03-18)
+
+### Completed: SP3 — Session Context Panel (Session 20)
+- Implemented all 4 steps of SP3 in a single session
+- **Console — Context Panel Slot Mechanism**: Renamed `use-layout-state.ts` → `.tsx`. Added `ContextPanelSlotProvider` (React Context), `useContextPanelSlot(content)` (effect-based registration with unmount cleanup), `useContextPanelSlotContent()` (reader for `ContextPanel`). `AppShell` wraps children with provider. `ContextPanel` reads slot content instead of `children` prop.
+- **SDK — `ExecutionDetails`** (`sdk/react/src/execution/ExecutionDetails.tsx`): Self-contained panel rendering execution metadata as vertical stack of conditional sections: Status (phase badge + live elapsed timer via `useElapsedMs`), Model (provider + model name), Tokens (prompt/completion/total + cache breakdown + LLM calls), Cost (formatted USD), Context Window (color-coded progress bar with `role="meter"`), Resolved Context (MCP servers with tool counts, skill chips, env key count), Workspace (folder entries with source URLs/paths). All `--stgm-*` tokens, inline SVG icons, proper ARIA.
+- **Console — `SessionPage` integration**: Derives `activeExecution` (stream ?? last completed). Calls `useContextPanelSlot` with `<ExecutionDetails>`. Auto-opens panel on first execution data via `useRef` guard. `PanelRight` toggle button in top-right of session view (hidden below `lg`).
+- **Barrel exports** updated across `execution/index.ts` and `src/index.ts`
+- **Key decisions**: Slot in Console not SDK (layout infrastructure); `ExecutionDetails` in SDK (embeddable); full `AgentExecution` proto as prop (no prop explosion); workspace as optional prop; internal sections not exported in v1; React Context for slot (ReactNode not serializable); `useElapsedMs` for live duration; auto-open with ref guard.
+- Verification: `npm run typecheck`, `npm run build` (sdk/react), `npx tsc --noEmit`, `npm run build` (web) — all pass clean
 
 ### Completed: SP4 — Expandable Tool Groups (Session 19)
 - Implemented all 6 steps of SP4 in a single session
@@ -304,6 +313,11 @@ When starting a new session:
 48. **Internal expansion state, not controlled** — `ToolCallGroup` and `ToolCallItem` use `useState` with `defaultExpanded` prop. No controlled `expanded`/`onToggle` mode in v1. Platform builders who need full control compose `ToolCallDetail` and `ToolCallItem` directly.
 49. **CSS-only expand animation** — `grid-template-rows: 0fr → 1fr` transition on ToolCallGroup. No JS animation library, no layout thrashing.
 50. **SubAgentSection composes existing primitives** — `SubAgentSection` renders the sub-agent's `messages` using `MessageEntry` + `ToolCallGroup` — the same building blocks as `MessageThread`. Composition, not duplication. Sub-agent's internal thread uses `buildSubAgentThreadItems` (local function), not the full `buildThreadItems` from MessageThread.
+51. **Context panel slot in Console, not SDK** — The slot mechanism (`ContextPanelSlotProvider`, `useContextPanelSlot`, `useContextPanelSlotContent`) is Console layout infrastructure. It solves the Next.js App Router problem of bridging page content to a layout-level panel. Platform builders own their layout and don't need this.
+52. **`ExecutionDetails` in SDK** — Platform builders embedding execution viewers want execution metadata (model, tokens, cost, status). Self-contained, themed, embeddable. Full `AgentExecution` proto as prop avoids prop explosion and stays stable as new status fields are added.
+53. **React Context for slot content, `useSyncExternalStore` for visibility** — Slot content is `ReactNode` (not serializable), so React Context is the correct pattern. The existing open/close boolean state stays as `useSyncExternalStore` — each mechanism uses the appropriate primitive for its data type.
+54. **`workspaceEntries` as optional prop on `ExecutionDetails`** — Workspace is session-level data, not execution-level. Including it as optional lets the component show workspace context when available without forcing consumers to fetch session data. Component is usable with just an execution.
+55. **Auto-open context panel with ref guard** — Panel auto-opens on first execution data via `useRef(false)`. Once the ref flips, the panel won't re-open if the user manually closes it. Respects user intent while providing default visibility of system status.
 
 ## Next Steps
 
@@ -313,7 +327,7 @@ T01.6 has been decomposed into 5 sub-projects (SP1-SP5). Execute in order:
 |---|---|---|---|---|
 | SP1 | Core Thread + Streaming | `20260317.02.sp.core-thread-streaming/next-task.md` | Nothing | COMPLETE |
 | SP2 | Follow-Up + Conversation Loop | `20260317.03.sp.follow-up-conversation-loop/next-task.md` | SP1 | COMPLETE |
-| SP3 | Session Context Panel | `20260317.04.sp.session-context-panel/next-task.md` | SP1 | Ready |
+| SP3 | Session Context Panel | `20260317.04.sp.session-context-panel/next-task.md` | SP1 | COMPLETE |
 | SP4 | Expandable Tool Groups | `20260317.05.sp.expandable-tool-groups/next-task.md` | SP1 | COMPLETE |
 | SP5 | HITL Approvals | `20260317.06.sp.hitl-approvals/next-task.md` | SP1 + SP4 | Ready (unblocked) |
 
@@ -326,7 +340,7 @@ After T01.6 sub-projects: **T01.7** — Web — Sidebar Recents
 - T01.1 through T01.5 are complete and committed.
 - The web app has a headerless sidebar-driven layout with a working session launcher at `/`.
 - The React SDK now has three feature modules: `models/`, `workspace/`, `session/`, `execution/`.
-- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useFolderListing`, `FolderBrowser`, `useCreateSession`, `useCreateAgentExecution`, `useGitHubConnection`, `useGitHubRepos`, `GitHubRepoPicker`, `useSession`, `useSessionExecutions`, `useExecutionStream`, `useSessionConversation`, `isTerminalPhase`, `MessageThread`, `MessageEntry`, `ToolCallGroup`, `ToolCallDetail`, `formatDuration`, `ToolCallItem`, `SubAgentSection`, `ExecutionPhaseBadge`, `FollowUpInput`.
+- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useFolderListing`, `FolderBrowser`, `useCreateSession`, `useCreateAgentExecution`, `useGitHubConnection`, `useGitHubRepos`, `GitHubRepoPicker`, `useSession`, `useSessionExecutions`, `useExecutionStream`, `useSessionConversation`, `isTerminalPhase`, `MessageThread`, `MessageEntry`, `ToolCallGroup`, `ToolCallDetail`, `formatDuration`, `ToolCallItem`, `SubAgentSection`, `ExecutionPhaseBadge`, `FollowUpInput`, `ExecutionDetails`.
 - The session launcher flow: create session -> create agent execution -> navigate to `/sessions/[id]`.
 - `/sessions/[id]/page.tsx` exists as a placeholder — T01.6 builds the actual session view.
 - Proto `agent_instance_id` is optional in SessionSpec. Backend resolves default agent instance if omitted.

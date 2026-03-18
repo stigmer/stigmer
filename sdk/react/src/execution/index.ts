@@ -33,3 +33,6 @@ export type { MessageThreadProps } from "./MessageThread";
 
 export { FollowUpInput } from "./FollowUpInput";
 export type { FollowUpInputProps } from "./FollowUpInput";
+
+export { ExecutionDetails } from "./ExecutionDetails";
+export type { ExecutionDetailsProps } from "./ExecutionDetails";

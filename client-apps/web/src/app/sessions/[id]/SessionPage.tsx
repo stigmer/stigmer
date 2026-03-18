@@ -1,17 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, Loader2, RotateCcw, WifiOff } from "lucide-react";
+import {
+  AlertTriangle,
+  Loader2,
+  PanelRight,
+  RotateCcw,
+  WifiOff,
+} from "lucide-react";
 import {
   useSessionConversation,
   useModelRegistry,
   MessageThread,
   FollowUpInput,
+  ExecutionDetails,
 } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { Button } from "@/components/ui/button";
+import {
+  useContextPanelSlot,
+  useContextPanelOpen,
+} from "@/components/layout/use-layout-state";
 
 const STORAGE_KEY_MODEL = "stigmer:session:model";
 
@@ -38,6 +49,32 @@ export default function SessionPage() {
   const org = useActiveOrgSlug();
   const conv = useSessionConversation(id, org);
   const [modelId, setModelId] = usePersistedModel();
+  const contextPanel = useContextPanelOpen();
+
+  const activeExecution = useMemo(
+    () =>
+      conv.activeStreamExecution ??
+      conv.completedExecutions[conv.completedExecutions.length - 1] ??
+      null,
+    [conv.activeStreamExecution, conv.completedExecutions],
+  );
+
+  useContextPanelSlot(
+    activeExecution ? (
+      <ExecutionDetails
+        execution={activeExecution}
+        workspaceEntries={conv.session?.spec?.workspaceEntries}
+      />
+    ) : null,
+  );
+
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (activeExecution && !autoOpenedRef.current) {
+      autoOpenedRef.current = true;
+      contextPanel.open();
+    }
+  }, [activeExecution, contextPanel]);
 
   const handleSubmit = useCallback(
     (message: string, model?: string) => {
@@ -51,7 +88,19 @@ export default function SessionPage() {
   if (!conv.session && !conv.isLoading) return <SessionStarting />;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={contextPanel.toggle}
+        aria-label={
+          contextPanel.isOpen ? "Close details panel" : "Open details panel"
+        }
+        className="absolute right-2 top-2 z-10 max-lg:hidden"
+      >
+        <PanelRight className="size-4" />
+      </Button>
+
       <MessageThread
         executions={conv.completedExecutions}
         activeStreamExecution={conv.activeStreamExecution}

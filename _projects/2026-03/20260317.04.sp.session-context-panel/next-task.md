@@ -101,16 +101,86 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-17 18:16
-**Current Task**: T01 (Initial Setup)
-**Status**: Planning
+**Current Task**: T01 COMPLETE — All 4 steps delivered
+**Status**: SP3 complete. All builds pass. Ready for parent project update.
+**Last Session**: 2026-03-18 — Completed all 4 implementation steps in a single session
+
+## Session Progress (2026-03-18, Session 1)
+
+### Completed: All 4 Steps — Session Context Panel
+
+#### Step 1: Context Panel Slot Mechanism (Console)
+- Renamed `use-layout-state.ts` → `use-layout-state.tsx` (JSX needed for Provider component)
+- Added `ContextPanelSlotProvider` — React Context holding `{ content: ReactNode | null; setContent }` state
+- Added `useContextPanelSlot(content: ReactNode | null): void` — effect-based hook that registers content and clears on unmount
+- Added `useContextPanelSlotContent(): ReactNode | null` — reader hook for `ContextPanel`
+- `AppShell` wraps children with `ContextPanelSlotProvider`
+- `ContextPanel` reads slot content via `useContextPanelSlotContent()` instead of accepting `children` prop
+
+#### Step 2: ExecutionDetails Component (SDK)
+- Created `sdk/react/src/execution/ExecutionDetails.tsx`
+- Seven sections, each rendering conditionally based on data availability:
+  - **Status**: `ExecutionPhaseBadge` (reuse) + started timestamp + live elapsed timer (1s interval for in-progress via `useElapsedMs` hook) or total duration for terminal executions
+  - **Model**: provider name + model name in monospace (`usage.primaryProvider`, `usage.primaryModel`)
+  - **Tokens**: prompt/completion/total grid + cache write/read (if non-zero) + LLM call count, tabular numeric layout
+  - **Cost**: formatted USD (`$0.0234` for small, `$1.52` for larger values)
+  - **Context Window**: color-coded progress bar (green < 70% < yellow < 90% < red) with `role="meter"` and compact token counts
+  - **Resolved Context**: MCP servers (dot icon + slug + tool count), skills (monospace chips), env key count with key icon
+  - **Workspace**: folder icon + entry name + source URL/path (git repos show shortened URL, local paths in monospace)
+- Props: `execution: AgentExecution | null`, optional `workspaceEntries: readonly WorkspaceEntry[]`, `className`
+- All inline SVG icons (no lucide-react in SDK), all `--stgm-*` token styling, proper `aria-*` attributes
+- Internal `Section` primitive for consistent layout (border-b separators, uppercase label, vertical gap)
+- Utility formatters: `formatMs`, `formatTimestamp`, `formatNumber`, `formatCompactNumber`, `formatCost`
+
+#### Step 3: SessionPage Integration (Console)
+- Derives `activeExecution` from `conv.activeStreamExecution ?? lastCompleted ?? null`
+- Calls `useContextPanelSlot` with `<ExecutionDetails>` content — updates live during streaming
+- Auto-opens the context panel on first execution data via `useRef` guard (won't re-open if user closes)
+- `PanelRight` toggle button positioned absolute top-right of session view (hidden below `lg` breakpoint)
+
+#### Step 4: Barrel Exports + Build Verification
+- `ExecutionDetails` and `ExecutionDetailsProps` exported from `execution/index.ts`
+- Re-exported from top-level `src/index.ts`
+- Verification: `npm run typecheck` (sdk/react), `npm run build` (sdk/react), `npx tsc --noEmit` (web), `npm run build` (web) — all pass clean
+
+### Key Design Decisions
+
+1. **Slot mechanism in Console, not SDK** — The context panel slot is layout infrastructure for bridging Next.js page content to a layout-level panel. Platform builders own their layout.
+2. **`ExecutionDetails` in SDK** — Platform builders embedding execution viewers want execution metadata. Self-contained, themed, embeddable.
+3. **`execution: AgentExecution | null` as primary prop** — Full proto object avoids prop explosion, keeps API stable as new status fields are added. Zero transformation from hooks.
+4. **`workspaceEntries` as optional prop** — Workspace is session-level data. Optional prop lets the component show it when available without forcing consumers to also fetch session data.
+5. **Internal sections, not exported** — Individual sections (StatusSection, TokensSection, etc.) are internal for code organization. Not exported in v1 to avoid premature API surface expansion.
+6. **React Context for slot, not `useSyncExternalStore`** — Slot content is `ReactNode` (not serializable). Existing `useSyncExternalStore` pattern stays for open/close (primitive boolean).
+7. **`useElapsedMs` for live duration** — Client-side timer ticking every 1s during in-progress executions. Stops when terminal. Falls back to `totalDurationMs` from proto for completed executions.
+8. **Auto-open with ref guard** — Panel auto-opens on first execution data. `useRef(false)` prevents re-opening after user manually closes.
+
+## Next Steps
+
+1. **SP3 is COMPLETE.** All 4 steps delivered and verified.
+2. **Next action**: Update parent project `next-task.md` to mark SP3 as done. Pick SP5 (HITL Approvals) next.
+
+## Context for Resume
+
+- Branch: `feat/session-first-web-ux`
+- All 4 steps complete. SP3 fully delivered.
+- No remaining follow-ups within SP3 scope.
+
+## SP3 Final Export Surface
+
+```
+@stigmer/react exports (from this SP):
+
+  Components:
+    ExecutionDetails   → execution metadata panel (status, model, tokens, cost, context window, resolved context, workspace)
+
+  Types:
+    ExecutionDetailsProps
+```
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01" - Resume the current task
-- "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
+- "Show project status" - Get overview of SP3 completion
 - "Check parent status" - Review parent project state
 
 ---

@@ -1,6 +1,15 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import type { ReactNode } from "react";
 
 // ---------------------------------------------------------------------------
 // Sidebar visibility — persisted to localStorage, syncs across tabs
@@ -93,4 +102,67 @@ export function useContextPanelOpen() {
   const close = useCallback(() => setContextPanelValue(false), []);
 
   return { isOpen, toggle, open, close } as const;
+}
+
+// ---------------------------------------------------------------------------
+// Context panel slot — lets pages inject content into the layout-level panel
+// ---------------------------------------------------------------------------
+
+interface ContextPanelSlotState {
+  readonly content: ReactNode | null;
+  readonly setContent: (content: ReactNode | null) => void;
+}
+
+const ContextPanelSlotContext = createContext<ContextPanelSlotState | null>(
+  null,
+);
+
+export function ContextPanelSlotProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [content, setContent] = useState<ReactNode | null>(null);
+
+  const value = useMemo(
+    () => ({ content, setContent }),
+    [content],
+  );
+
+  return (
+    <ContextPanelSlotContext.Provider value={value}>
+      {children}
+    </ContextPanelSlotContext.Provider>
+  );
+}
+
+/**
+ * Registers content to display in the layout-level context panel.
+ *
+ * Call from any page rendered inside `AppShell`. The content is
+ * automatically cleared when the calling component unmounts.
+ */
+export function useContextPanelSlot(content: ReactNode | null): void {
+  const ctx = useContext(ContextPanelSlotContext);
+  if (!ctx) {
+    throw new Error(
+      "useContextPanelSlot must be used within ContextPanelSlotProvider — " +
+        "ensure AppShell wraps this component tree.",
+    );
+  }
+
+  useEffect(() => {
+    ctx.setContent(content);
+    return () => ctx.setContent(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content]);
+}
+
+/**
+ * Reads the current context panel slot content. Used by `ContextPanel`
+ * to render whatever the active page has registered.
+ */
+export function useContextPanelSlotContent(): ReactNode | null {
+  const ctx = useContext(ContextPanelSlotContext);
+  return ctx?.content ?? null;
 }
