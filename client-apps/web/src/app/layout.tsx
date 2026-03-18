@@ -41,8 +41,19 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Stigmer Console",
-  description: "Stigmer Web Console",
+  title: "Stigmer — Agents for Your Platform",
+  description:
+    "Embed AI agents into your platform. SDKs, sandboxing, and orchestration — ready to integrate.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({
