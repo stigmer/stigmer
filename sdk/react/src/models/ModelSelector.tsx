@@ -1,0 +1,132 @@
+"use client";
+
+import { Select } from "@base-ui/react/select";
+import { useModelRegistry } from "./useModelRegistry";
+import type { Provider } from "./registry";
+
+const PROVIDER_LABELS: Record<Provider, string> = {
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+  ollama: "Ollama",
+};
+
+const COST_TIER_INDICATOR: Record<string, string> = {
+  economy: "$",
+  standard: "$$",
+  premium: "$$$",
+};
+
+export interface ModelSelectorProps {
+  readonly value?: string;
+  readonly onValueChange: (modelId: string) => void;
+  readonly className?: string;
+  /** When true, disables the selector. */
+  readonly disabled?: boolean;
+}
+
+/**
+ * Theme-able model picker built on `@base-ui/react` Select for
+ * accessible keyboard navigation and ARIA.
+ *
+ * Consumes {@link useModelRegistry} internally. Groups models by
+ * provider and shows a subtle cost-tier indicator.
+ *
+ * All visual properties flow through `--stgm-*` tokens — no
+ * hardcoded colors or sizes.
+ *
+ * Platform builders who need different rendering use
+ * `useModelRegistry()` directly.
+ */
+export function ModelSelector({
+  value,
+  onValueChange,
+  className,
+  disabled,
+}: ModelSelectorProps) {
+  const { byProvider, defaultModel, providers } = useModelRegistry();
+
+  return (
+    <Select.Root
+      value={value ?? defaultModel.modelId}
+      onValueChange={(v) => { if (v !== null) onValueChange(v); }}
+      disabled={disabled}
+    >
+      <Select.Trigger
+        className={[
+          "inline-flex items-center gap-1.5 rounded-md border border-border",
+          "bg-background px-2.5 py-1.5 text-xs text-foreground",
+          "hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "disabled:pointer-events-none disabled:opacity-50",
+          "transition-colors",
+          className,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <Select.Value placeholder="Select model" />
+        <Select.Icon className="text-muted-foreground">
+          <ChevronIcon />
+        </Select.Icon>
+      </Select.Trigger>
+
+      <Select.Portal>
+        <Select.Positioner sideOffset={4}>
+          <Select.Popup
+            className={[
+              "z-popover max-h-72 min-w-[var(--anchor-width)] overflow-auto",
+              "rounded-lg border border-border bg-popover p-1 shadow-md",
+              "text-popover-foreground",
+            ].join(" ")}
+          >
+            {providers.map((provider) => {
+              const models = byProvider.get(provider);
+              if (!models?.length) return null;
+
+              return (
+                <Select.Group key={provider}>
+                  <Select.GroupLabel className="px-2 py-1.5 text-[0.65rem] font-medium uppercase tracking-wider text-muted-foreground">
+                    {PROVIDER_LABELS[provider]}
+                  </Select.GroupLabel>
+                  {models.map((model) => (
+                    <Select.Item
+                      key={model.modelId}
+                      value={model.modelId}
+                      className={[
+                        "flex cursor-pointer items-center justify-between gap-2",
+                        "rounded-md px-2 py-1.5 text-xs outline-none",
+                        "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
+                        "data-[selected]:font-medium",
+                      ].join(" ")}
+                    >
+                      <Select.ItemText>{model.displayName}</Select.ItemText>
+                      <span className="text-[0.6rem] text-muted-foreground">
+                        {COST_TIER_INDICATOR[model.costTier]}
+                      </span>
+                    </Select.Item>
+                  ))}
+                </Select.Group>
+              );
+            })}
+          </Select.Popup>
+        </Select.Positioner>
+      </Select.Portal>
+    </Select.Root>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 10 10"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2.5 3.75L5 6.25L7.5 3.75" />
+    </svg>
+  );
+}

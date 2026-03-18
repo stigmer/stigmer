@@ -203,6 +203,23 @@ func pyIsScalarKind(kind string) bool {
 	}
 }
 
+// pyProtoModuleAlias derives a Python import alias from a fully-qualified proto
+// package name. E.g. "ai.stigmer.agentic.agent.v1" → "agent_spec_pb2".
+func pyProtoModuleAlias(protoPkg string) string {
+	parts := strings.Split(protoPkg, ".")
+	if len(parts) >= 2 {
+		return parts[len(parts)-2] + "_spec_pb2"
+	}
+	return protoPkg + "_spec_pb2"
+}
+
+// pyProtoImportLine returns a Python import statement for a cross-package proto module.
+// E.g. "ai.stigmer.agentic.agent.v1" → "from ai.stigmer.agentic.agent.v1 import spec_pb2 as agent_spec_pb2"
+func pyProtoImportLine(protoPkg string) string {
+	alias := pyProtoModuleAlias(protoPkg)
+	return fmt.Sprintf("from %s import spec_pb2 as %s", protoPkg, alias)
+}
+
 // =========================================================================
 // Import tracking
 // =========================================================================
@@ -226,14 +243,18 @@ type pyImports struct {
 	needsEnvV1     bool
 	needsExecCtxV1 bool
 
-	typesNames map[string]bool
+	typesNames         map[string]bool
+	crossResourceTypes map[string][]string // "._agent" -> ["McpServerUsageInput", ...]
+	crossProtoPackages map[string]bool     // "ai.stigmer.agentic.agent.v1" -> true
 }
 
 func newPyImports(pkg string) *pyImports {
 	return &pyImports{
-		resourcePkg: pkg,
-		services:    make(map[string]bool),
-		typesNames:  make(map[string]bool),
+		resourcePkg:        pkg,
+		services:           make(map[string]bool),
+		typesNames:         make(map[string]bool),
+		crossResourceTypes: make(map[string][]string),
+		crossProtoPackages: make(map[string]bool),
 	}
 }
 
@@ -243,6 +264,15 @@ func (p *pyImports) addService(role string) {
 
 func (p *pyImports) addTypesImport(name string) {
 	p.typesNames[name] = true
+}
+
+func (p *pyImports) addCrossResourceImport(resource, typeName string) {
+	module := "._" + resource
+	p.crossResourceTypes[module] = append(p.crossResourceTypes[module], typeName)
+}
+
+func (p *pyImports) addCrossProtoPackage(protoPkg string) {
+	p.crossProtoPackages[protoPkg] = true
 }
 
 func (p *pyImports) emit(buf *bytes.Buffer) {
@@ -310,6 +340,16 @@ func (p *pyImports) emit(buf *bytes.Buffer) {
 		buf.WriteString("from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2\n")
 		buf.WriteString("from ai.stigmer.commons.rpc import pagination_pb2\n")
 	}
+	if len(p.crossProtoPackages) > 0 {
+		var pkgs []string
+		for pkg := range p.crossProtoPackages {
+			pkgs = append(pkgs, pkg)
+		}
+		sort.Strings(pkgs)
+		for _, pkg := range pkgs {
+			buf.WriteString(pyProtoImportLine(pkg) + "\n")
+		}
+	}
 	buf.WriteString("\n")
 
 	buf.WriteString("from ._errors import wrap_error\n")
@@ -320,6 +360,18 @@ func (p *pyImports) emit(buf *bytes.Buffer) {
 		}
 		sort.Strings(names)
 		fmt.Fprintf(buf, "from ._types import %s\n", strings.Join(names, ", "))
+	}
+	if len(p.crossResourceTypes) > 0 {
+		var modules []string
+		for m := range p.crossResourceTypes {
+			modules = append(modules, m)
+		}
+		sort.Strings(modules)
+		for _, m := range modules {
+			typeNames := p.crossResourceTypes[m]
+			sort.Strings(typeNames)
+			fmt.Fprintf(buf, "from %s import %s\n", m, strings.Join(typeNames, ", "))
+		}
 	}
 	buf.WriteString("\n\n")
 }
@@ -349,6 +401,7 @@ func runSDKClientPythonGeneration(schemaDir, outputDir string) error {
 	fmt.Printf("   -> _types.py\n")
 
 	var allResources []resourceGenInfo
+	globalEmitted := make(map[string]string)
 
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
@@ -381,7 +434,7 @@ func runSDKClientPythonGeneration(schemaDir, outputDir string) error {
 			}
 		}
 
-		code, genInfo, err := generatePythonResourceClient(&schema, cfg, specSchema, specTypes)
+		code, genInfo, err := generatePythonResourceClient(&schema, cfg, specSchema, specTypes, globalEmitted)
 		if err != nil {
 			return fmt.Errorf("failed to generate Python client for %s: %w", resource, err)
 		}
@@ -416,7 +469,7 @@ func runSDKClientPythonGeneration(schemaDir, outputDir string) error {
 // Per-resource client generation
 // =========================================================================
 
-func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, specSchema *TaskConfigSchema, specTypes []*TypeSchema) ([]byte, resourceGenInfo, error) {
+func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, specSchema *TaskConfigSchema, specTypes []*TypeSchema, globalEmitted map[string]string) ([]byte, resourceGenInfo, error) {
 	hasInputType := specSchema != nil
 	needsSearch := schema.ListVia == "SearchService"
 
@@ -514,7 +567,7 @@ func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConf
 
 	// Input types — each class includes its own _to_proto method
 	if specSchema != nil {
-		inputTypes := generatePythonInputAndProto(&body, schema, cfg, specSchema, typeMap, imports)
+		inputTypes := generatePythonInputAndProto(&body, schema, cfg, specSchema, typeMap, imports, globalEmitted)
 		genInfo.inputTypes = inputTypes
 	}
 
@@ -727,7 +780,7 @@ func generatePythonSearchList(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg 
 // generatePythonInputAndProto writes the main input @dataclass with its
 // _to_proto method, then all nested input @dataclasses with their _to_proto
 // methods. Returns the list of all emitted type names.
-func generatePythonInputAndProto(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig, spec *TaskConfigSchema, typeMap map[string]*TypeSchema, imports *pyImports) []string {
+func generatePythonInputAndProto(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig, spec *TaskConfigSchema, typeMap map[string]*TypeSchema, imports *pyImports, globalEmitted map[string]string) []string {
 	inputName := cfg.inputPrefix + "Input"
 	emitted := make(map[string]bool)
 	var allTypes []string
@@ -765,7 +818,7 @@ func generatePythonInputAndProto(buf *bytes.Buffer, schema *ServiceSchemaFile, c
 
 	// --- Nested input classes (each with their own _to_proto) ---
 	for _, f := range specFields {
-		emitPyNestedClassWithProto(buf, f, typeMap, emitted, &allTypes, imports)
+		emitPyNestedClassWithProto(buf, f, typeMap, emitted, &allTypes, imports, globalEmitted, schema.Resource)
 	}
 
 	return allTypes
@@ -839,7 +892,7 @@ func emitPyMainToProto(buf *bytes.Buffer, cfg sdkResourceConfig, spec *TaskConfi
 
 // emitPyNestedClassWithProto writes a nested @dataclass with its _to_proto method,
 // then recurses for any deeper nested types.
-func emitPyNestedClassWithProto(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*TypeSchema, emitted map[string]bool, allTypes *[]string, imports *pyImports) {
+func emitPyNestedClassWithProto(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*TypeSchema, emitted map[string]bool, allTypes *[]string, imports *pyImports, globalEmitted map[string]string, resource string) {
 	var msgName string
 	switch {
 	case f.Type.Kind == "message":
@@ -860,7 +913,17 @@ func emitPyNestedClassWithProto(buf *bytes.Buffer, f *FieldSchema, typeMap map[s
 		return
 	}
 	emitted[msgName] = true
+
 	inputName := msgName + "Input"
+
+	if sourceResource, alreadyGlobal := globalEmitted[msgName]; alreadyGlobal {
+		imports.addCrossResourceImport(sourceResource, inputName)
+		for _, field := range ts.Fields {
+			emitPyNestedClassWithProto(buf, field, typeMap, emitted, allTypes, imports, globalEmitted, resource)
+		}
+		return
+	}
+	globalEmitted[msgName] = resource
 
 	var requiredFields, optionalFields []*FieldSchema
 	for _, field := range ts.Fields {
@@ -891,15 +954,28 @@ func emitPyNestedClassWithProto(buf *bytes.Buffer, f *FieldSchema, typeMap map[s
 		}
 	}
 
-	fmt.Fprintf(buf, "\n    def _to_proto(self) -> spec_pb2.%s:\n", msgName)
+	protoModule := "spec_pb2"
+	if ts.ProtoType != "" {
+		parts := strings.Split(ts.ProtoType, ".")
+		if len(parts) > 1 {
+			typePkg := strings.Join(parts[:len(parts)-1], ".")
+			resourcePkg := imports.resourcePkg
+			if typePkg != resourcePkg {
+				protoModule = pyProtoModuleAlias(typePkg)
+				imports.addCrossProtoPackage(typePkg)
+			}
+		}
+	}
+
+	fmt.Fprintf(buf, "\n    def _to_proto(self) -> %s.%s:\n", protoModule, msgName)
 	if len(safeScalars) > 0 {
-		fmt.Fprintf(buf, "        msg = spec_pb2.%s(\n", msgName)
+		fmt.Fprintf(buf, "        msg = %s.%s(\n", protoModule, msgName)
 		for _, field := range safeScalars {
 			fmt.Fprintf(buf, "            %s=self.%s,\n", field.ProtoField, pyFieldName(field.ProtoField))
 		}
 		buf.WriteString("        )\n")
 	} else {
-		fmt.Fprintf(buf, "        msg = spec_pb2.%s()\n", msgName)
+		fmt.Fprintf(buf, "        msg = %s.%s()\n", protoModule, msgName)
 	}
 	for _, field := range kwScalars {
 		fmt.Fprintf(buf, "        setattr(msg, %q, self.%s)\n", field.ProtoField, pyFieldName(field.ProtoField))
@@ -913,7 +989,7 @@ func emitPyNestedClassWithProto(buf *bytes.Buffer, f *FieldSchema, typeMap map[s
 
 	// Recurse for deeper nested types
 	for _, field := range ts.Fields {
-		emitPyNestedClassWithProto(buf, field, typeMap, emitted, allTypes, imports)
+		emitPyNestedClassWithProto(buf, field, typeMap, emitted, allTypes, imports, globalEmitted, resource)
 	}
 }
 

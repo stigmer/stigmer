@@ -1,0 +1,430 @@
+"use client";
+
+import { useState, useCallback, useEffect, type KeyboardEvent } from "react";
+import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries";
+import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
+import { GitHubRepoPicker } from "../github/GitHubRepoPicker";
+import { FolderBrowser } from "./FolderBrowser";
+
+export interface WorkspaceEditorProps {
+  readonly workspace: UseWorkspaceEntriesReturn;
+  readonly className?: string;
+  readonly disabled?: boolean;
+  /** GitHub connection state. When provided, enables the GitHub repo picker. */
+  readonly gitHubConnection?: UseGitHubConnectionReturn;
+  /** Show the GitHub Repo source button. Default: true. */
+  readonly enableGitHub?: boolean;
+  /** Show the Local Folder source button. Default: false (set by Console based on deployment mode). */
+  readonly enableLocal?: boolean;
+  /** Use the visual folder browser instead of a text input for local paths. Requires the /api/fs/list endpoint. Default: false. */
+  readonly enableFolderBrowser?: boolean;
+}
+
+type ActivePanel = "none" | "github" | "local";
+
+const STORAGE_KEY_LAST_FOLDER = "stigmer:folder:last-path";
+
+const TYPE_LABELS: Record<string, string> = {
+  git: "GitHub",
+  local: "Local",
+};
+
+/**
+ * Styled component that renders add/remove UI for workspace entries.
+ *
+ * Redesigned with two source buttons (GitHub Repo, Local Folder) that
+ * open inline popovers instead of the old tab-based form.
+ *
+ * When `gitHubConnection` is provided and the user is connected, the
+ * GitHub button opens a repo picker. When not connected, it shows a
+ * connect prompt. When `gitHubConnection` is not provided, falls back
+ * to the manual URL input.
+ *
+ * All visual properties flow through `--stgm-*` tokens.
+ */
+export function WorkspaceEditor({
+  workspace,
+  className,
+  disabled,
+  gitHubConnection,
+  enableGitHub = true,
+  enableLocal = false,
+  enableFolderBrowser = false,
+}: WorkspaceEditorProps) {
+  const [activePanel, setActivePanel] = useState<ActivePanel>("none");
+  const [manualUrl, setManualUrl] = useState("");
+  const [manualBranch, setManualBranch] = useState("");
+  const [localPath, setLocalPath] = useState("");
+  const [lastFolderPath, setLastFolderPath] = useState<string | undefined>(
+    () => {
+      if (typeof window === "undefined") return undefined;
+      return localStorage.getItem(STORAGE_KEY_LAST_FOLDER) ?? undefined;
+    },
+  );
+
+  useEffect(() => {
+    if (lastFolderPath) {
+      localStorage.setItem(STORAGE_KEY_LAST_FOLDER, lastFolderPath);
+    }
+  }, [lastFolderPath]);
+
+  const handleGitHubSelect = useCallback(
+    (repoUrl: string, branch: string) => {
+      workspace.addGitRepo(repoUrl, branch);
+      setActivePanel("none");
+    },
+    [workspace],
+  );
+
+  const handleManualAdd = useCallback(() => {
+    if (manualUrl.trim()) {
+      workspace.addGitRepo(manualUrl.trim(), manualBranch.trim() || undefined);
+      setManualUrl("");
+      setManualBranch("");
+      setActivePanel("none");
+    }
+  }, [manualUrl, manualBranch, workspace]);
+
+  const handleLocalAdd = useCallback(() => {
+    if (localPath.trim()) {
+      workspace.addLocalPath(localPath.trim());
+      setLocalPath("");
+      setActivePanel("none");
+    }
+  }, [localPath, workspace]);
+
+  const handleKeyDown = useCallback(
+    (handler: () => void) => (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handler();
+      }
+    },
+    [],
+  );
+
+  const togglePanel = useCallback(
+    (panel: ActivePanel) => {
+      setActivePanel((prev) => (prev === panel ? "none" : panel));
+    },
+    [],
+  );
+
+  return (
+    <div className={["space-y-2", className].filter(Boolean).join(" ")}>
+      {/* Entry list */}
+      {workspace.entries.map((entry) => (
+        <div
+          key={entry.id}
+          className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs"
+        >
+          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
+            {TYPE_LABELS[entry.type] ?? entry.type}
+          </span>
+          <span
+            className={[
+              "min-w-0 flex-1 truncate text-foreground",
+              entry.type === "local" ? "[direction:rtl] text-left" : "",
+            ].join(" ")}
+            title={entry.name}
+          >
+            <bdi>{entry.name}</bdi>
+          </span>
+          <button
+            type="button"
+            onClick={() => workspace.remove(entry.id)}
+            disabled={disabled}
+            className="shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
+            aria-label={`Remove ${entry.name}`}
+          >
+            <XIcon />
+          </button>
+        </div>
+      ))}
+
+      {/* Source buttons */}
+      <div className="flex items-center gap-2">
+        {enableGitHub && (
+          <button
+            type="button"
+            onClick={() => togglePanel("github")}
+            disabled={disabled}
+            className={[
+              "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50",
+              activePanel === "github"
+                ? "bg-accent text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            ].join(" ")}
+          >
+            <GitHubIcon />
+            <span>GitHub Repo</span>
+          </button>
+        )}
+
+        {enableLocal && (
+          <button
+            type="button"
+            onClick={() => togglePanel("local")}
+            disabled={disabled}
+            className={[
+              "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs transition-colors disabled:pointer-events-none disabled:opacity-50",
+              activePanel === "local"
+                ? "bg-accent text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+            ].join(" ")}
+          >
+            <FolderIcon />
+            <span>Local Folder</span>
+          </button>
+        )}
+      </div>
+
+      {/* GitHub panel */}
+      {activePanel === "github" && (
+        <div className="rounded-md border border-border bg-card p-3">
+          {gitHubConnection ? (
+            <GitHubPanel
+              connection={gitHubConnection}
+              onSelect={handleGitHubSelect}
+              onClose={() => setActivePanel("none")}
+            />
+          ) : (
+            <ManualGitPanel
+              url={manualUrl}
+              branch={manualBranch}
+              onUrlChange={setManualUrl}
+              onBranchChange={setManualBranch}
+              onAdd={handleManualAdd}
+              onCancel={() => setActivePanel("none")}
+              onKeyDown={handleKeyDown(handleManualAdd)}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Local folder panel */}
+      {activePanel === "local" && (
+        <div className="rounded-md border border-border bg-card p-3">
+          {enableFolderBrowser ? (
+            <FolderBrowser
+              initialPath={lastFolderPath}
+              onSelect={(path) => {
+                setLastFolderPath(path);
+                workspace.addLocalPath(path);
+                setActivePanel("none");
+              }}
+              onCancel={() => setActivePanel("none")}
+            />
+          ) : (
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="/path/to/project"
+                value={localPath}
+                onChange={(e) => setLocalPath(e.target.value)}
+                onKeyDown={handleKeyDown(handleLocalAdd)}
+                className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActivePanel("none")}
+                  className="rounded-md px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLocalAdd}
+                  disabled={!localPath.trim()}
+                  className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** GitHub panel with progressive disclosure: connect prompt or repo picker. */
+function GitHubPanel({
+  connection,
+  onSelect,
+  onClose,
+}: {
+  connection: UseGitHubConnectionReturn;
+  onSelect: (repoUrl: string, branch: string) => void;
+  onClose: () => void;
+}) {
+  if (connection.isLoading) {
+    return (
+      <div className="py-4 text-center text-xs text-muted-foreground">
+        Checking GitHub connection...
+      </div>
+    );
+  }
+
+  if (!connection.isConnected) {
+    return (
+      <div className="space-y-3 text-center">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Close"
+          >
+            <XIcon />
+          </button>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-foreground">
+            Choose a GitHub repo to add to workspace
+          </p>
+          <p className="text-[0.65rem] text-muted-foreground">
+            Connect your GitHub account so the agent can access your repos
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            const redirectUri = `${window.location.origin}/auth/github/callback`;
+            connection.connect(redirectUri);
+          }}
+          className="inline-flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-xs text-background hover:bg-foreground/90 transition-colors"
+        >
+          <GitHubIcon />
+          <span>Connect GitHub</span>
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-xs">
+          {connection.user?.avatarUrl && (
+            <img
+              src={connection.user.avatarUrl}
+              alt=""
+              className="h-4 w-4 rounded-full"
+            />
+          )}
+          <span className="text-muted-foreground">
+            {connection.user?.login ?? "Connected"}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={connection.disconnect}
+            className="text-[0.6rem] text-muted-foreground hover:text-destructive transition-colors"
+          >
+            Disconnect
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Close"
+          >
+            <XIcon />
+          </button>
+        </div>
+      </div>
+      <GitHubRepoPicker
+        token={connection.token!}
+        onSelect={onSelect}
+        onCancel={onClose}
+      />
+    </div>
+  );
+}
+
+/** Fallback manual git URL input for platform builders without GitHub connection. */
+function ManualGitPanel({
+  url,
+  branch,
+  onUrlChange,
+  onBranchChange,
+  onAdd,
+  onCancel,
+  onKeyDown,
+}: {
+  url: string;
+  branch: string;
+  onUrlChange: (v: string) => void;
+  onBranchChange: (v: string) => void;
+  onAdd: () => void;
+  onCancel: () => void;
+  onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <input
+        type="url"
+        placeholder="https://github.com/org/repo.git"
+        value={url}
+        onChange={(e) => onUrlChange(e.target.value)}
+        onKeyDown={onKeyDown}
+        className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        autoFocus
+      />
+      <input
+        type="text"
+        placeholder="Branch (optional)"
+        value={branch}
+        onChange={(e) => onBranchChange(e.target.value)}
+        onKeyDown={onKeyDown}
+        className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      />
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-md px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={!url.trim()}
+          className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
+        >
+          Add
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4L10 10M10 4L4 10" />
+    </svg>
+  );
+}
+
+function GitHubIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+    </svg>
+  );
+}
+
+function FolderIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1.5 3.5V11a1 1 0 001 1h9a1 1 0 001-1V5.5a1 1 0 00-1-1H7L5.5 3H2.5a1 1 0 00-1 .5z" />
+    </svg>
+  );
+}

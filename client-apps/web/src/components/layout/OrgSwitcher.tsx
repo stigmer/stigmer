@@ -7,7 +7,13 @@ import {
   ChevronsUpDown,
 } from "lucide-react";
 import { useOrg } from "@/contexts/org-context";
-import { cn } from "@stigmer/theme";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function OrgSwitcher() {
   const { orgs, activeOrg, setActiveOrg, isLoading, error, retry } = useOrg();
@@ -18,7 +24,7 @@ export function OrgSwitcher() {
 
   if (error) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 px-2 py-1.5">
         <AlertCircle className="text-destructive size-4 shrink-0" />
         <span className="text-destructive truncate text-xs">{error}</span>
         <button
@@ -34,53 +40,60 @@ export function OrgSwitcher() {
 
   if (orgs.length === 0 || !activeOrg) {
     return (
-      <div className="text-muted-foreground flex items-center gap-2 text-xs">
+      <div className="text-muted-foreground flex items-center gap-2 px-2 py-1.5 text-sm">
         <Building2 className="size-4 shrink-0" />
         <span>No organizations</span>
       </div>
     );
   }
 
+  const orgLabel = activeOrg.metadata?.name || activeOrg.metadata?.slug;
+
   if (orgs.length === 1) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium">
         <Building2 className="text-muted-foreground size-4 shrink-0" />
-        <span className="truncate text-sm font-medium">
-          {activeOrg.metadata?.name || activeOrg.metadata?.slug}
-        </span>
+        <span className="truncate">{orgLabel}</span>
       </div>
     );
   }
 
   return (
-    <div className="relative">
-      <Building2 className="text-muted-foreground pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2" />
-      <ChevronsUpDown className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3 -translate-y-1/2" />
-      <select
-        value={activeOrg.metadata?.slug ?? ""}
-        onChange={(e) => {
-          const org = orgs.find((o) => o.metadata?.slug === e.target.value);
-          if (org) setActiveOrg(org);
-        }}
-        className={cn(
-          "cursor-pointer appearance-none rounded-md border bg-transparent py-1.5 pr-7 pl-7 text-sm font-medium",
-          "focus:ring-ring focus:ring-2 focus:ring-offset-1 focus:outline-none",
-          "hover:bg-accent/50 transition-colors",
-        )}
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label="Switch organization"
+        className="hover:bg-sidebar-accent flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors focus:outline-none"
       >
-        {orgs.map((org) => (
-          <option key={org.metadata?.slug} value={org.metadata?.slug ?? ""}>
-            {org.metadata?.name || org.metadata?.slug}
-          </option>
-        ))}
-      </select>
-    </div>
+        <Building2 className="text-muted-foreground size-4 shrink-0" />
+        <span className="truncate">{orgLabel}</span>
+        <ChevronsUpDown className="text-muted-foreground ml-auto size-3.5 shrink-0" />
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="start" side="bottom" sideOffset={4}>
+        <DropdownMenuRadioGroup
+          value={activeOrg.metadata?.slug ?? ""}
+          onValueChange={(val) => {
+            const org = orgs.find((o) => o.metadata?.slug === val);
+            if (org) setActiveOrg(org);
+          }}
+        >
+          {orgs.map((org) => (
+            <DropdownMenuRadioItem
+              key={org.metadata?.slug}
+              value={org.metadata?.slug ?? ""}
+            >
+              {org.metadata?.name || org.metadata?.slug}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
 function OrgSwitcherSkeleton() {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 px-2 py-1.5">
       <div className="bg-muted size-4 animate-pulse rounded" />
       <div className="bg-muted h-4 w-24 animate-pulse rounded" />
     </div>

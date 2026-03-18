@@ -110,7 +110,7 @@ func TestSessionController_Create(t *testing.T) {
 		}
 	})
 
-	t.Run("validation error - missing agent_instance_id", func(t *testing.T) {
+	t.Run("no default agent - missing agent_instance_id", func(t *testing.T) {
 		session := &sessionv1.Session{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
@@ -125,7 +125,7 @@ func TestSessionController_Create(t *testing.T) {
 
 		_, err := controller.Create(contextWithSessionKind(), session)
 		if err == nil {
-			t.Error("Expected error when agent_instance_id is not provided")
+			t.Error("Expected error when agent_instance_id is not provided and no default agent exists")
 		}
 	})
 
@@ -407,8 +407,7 @@ func TestSessionController_Update(t *testing.T) {
 		}
 	})
 
-	t.Run("validation error - missing agent_instance_id on update", func(t *testing.T) {
-		// Create session first
+	t.Run("update with empty agent_instance_id preserves field", func(t *testing.T) {
 		session := &sessionv1.Session{
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "Session",
@@ -427,12 +426,19 @@ func TestSessionController_Update(t *testing.T) {
 			t.Fatalf("Create failed: %v", err)
 		}
 
-		// Try to update with missing agent_instance_id
+		// Clearing agent_instance_id on update is allowed at the proto level
+		// since the field is no longer required (default agent resolution
+		// only applies during creation).
 		created.Spec.AgentInstanceId = ""
+		created.Spec.Subject = "Updated subject after clearing instance"
 
-		_, err = controller.Update(contextWithSessionKind(), created)
-		if err == nil {
-			t.Error("Expected error when updating with empty agent_instance_id")
+		updated, err := controller.Update(contextWithSessionKind(), created)
+		if err != nil {
+			t.Fatalf("Update failed: %v", err)
+		}
+
+		if updated.Spec.Subject != "Updated subject after clearing instance" {
+			t.Errorf("Expected updated subject, got '%s'", updated.Spec.Subject)
 		}
 	})
 }

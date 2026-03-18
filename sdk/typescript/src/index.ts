@@ -32,6 +32,15 @@ export {
   ApiResourceKind,
 } from "./search";
 
+// GitHub OAuth client
+export {
+  GitHubClient,
+  type GetOAuthAuthorizeUrlParams,
+  type OAuthAuthorizeUrlResponse,
+  type ExchangeOAuthCodeParams,
+  type OAuthTokenResponse,
+} from "./github";
+
 // Shared types (from generated code)
 export {
   type DeleteResourceInput,

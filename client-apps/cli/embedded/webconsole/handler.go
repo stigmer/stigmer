@@ -26,7 +26,13 @@ func NewSPAHandler() http.Handler {
 		return http.NotFoundHandler()
 	}
 
-	return &spaHandler{fs: assets}
+	spa := &spaHandler{fs: assets}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/fs/list", handleFSList)
+	mux.Handle("/", spa)
+
+	return mux
 }
 
 type spaHandler struct {
@@ -52,14 +58,21 @@ func (h *spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Dynamic route rewrite (__placeholder__).
+	// 2. Static route with .html extension (e.g. /auth/github/callback → auth/github/callback.html).
+	if path.Ext(fsPath) == "" && h.isFile(fsPath+".html") {
+		w.Header().Set("Cache-Control", "no-cache")
+		http.ServeFileFS(w, r, h.fs, fsPath+".html")
+		return
+	}
+
+	// 3. Dynamic route rewrite (__placeholder__).
 	if rewritten, ok := h.resolveDynamicRoute(fsPath); ok {
 		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeFileFS(w, r, h.fs, rewritten)
 		return
 	}
 
-	// 3. SPA fallback.
+	// 4. SPA fallback.
 	h.serveIndex(w, r)
 }
 

@@ -13,7 +13,9 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json",
-    "clean": "rm -rf dist tsconfig.build.tsbuildinfo"
+    "clean": "rm -rf dist tsconfig.build.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "files": [
     "dist",
@@ -53,5 +55,8 @@
   "peerDependencies": {
     "@bufbuild/protobuf": "^2.0.0",
     "@stigmer/protos": "*"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
   }
 }

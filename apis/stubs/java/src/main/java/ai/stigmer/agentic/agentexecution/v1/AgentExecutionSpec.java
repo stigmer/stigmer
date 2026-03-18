@@ -80,12 +80,16 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Session ID this execution belongs to (optional).
-   * At least one of session_id or agent_id must be provided (enforced in handler).
+   *
+   * Resolution priority (enforced in handler pipeline):
+   * 1. session_id provided     -&gt; use existing session
+   * 2. agent_id provided       -&gt; auto-create session using agent's default instance
+   * 3. neither provided        -&gt; resolve platform default agent (label
+   * stigmer.ai/default-agent + visibility_public), then auto-create session
+   *
    * Both may be set — when both are present, session_id is used for session
    * resolution and agent_id is preserved as metadata for downstream consumers
    * (e.g., session subject generation).
-   * When absent, agent_id must be specified — a session is auto-created
-   * using the agent's default instance.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -107,12 +111,16 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Session ID this execution belongs to (optional).
-   * At least one of session_id or agent_id must be provided (enforced in handler).
+   *
+   * Resolution priority (enforced in handler pipeline):
+   * 1. session_id provided     -&gt; use existing session
+   * 2. agent_id provided       -&gt; auto-create session using agent's default instance
+   * 3. neither provided        -&gt; resolve platform default agent (label
+   * stigmer.ai/default-agent + visibility_public), then auto-create session
+   *
    * Both may be set — when both are present, session_id is used for session
    * resolution and agent_id is preserved as metadata for downstream consumers
    * (e.g., session subject generation).
-   * When absent, agent_id must be specified — a session is auto-created
-   * using the agent's default instance.
    * </pre>
    *
    * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -139,10 +147,16 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Agent ID (optional).
-   * At least one of session_id or agent_id must be provided (enforced in handler).
+   *
+   * When absent along with session_id, the backend resolves the platform's
+   * public default agent — the agent labeled stigmer.ai/default-agent: "true"
+   * with visibility_public. This enables session-first UX where users start
+   * a conversation without choosing an agent.
+   *
    * Both may be set — agent_id is preserved on the execution record even when
    * session_id is present, so downstream consumers can access the agent
    * without resolving through the session chain.
+   *
    * When provided without session_id, a new session is auto-created using
    * the agent's default instance ID.
    * </pre>
@@ -166,10 +180,16 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Agent ID (optional).
-   * At least one of session_id or agent_id must be provided (enforced in handler).
+   *
+   * When absent along with session_id, the backend resolves the platform's
+   * public default agent — the agent labeled stigmer.ai/default-agent: "true"
+   * with visibility_public. This enables session-first UX where users start
+   * a conversation without choosing an agent.
+   *
    * Both may be set — agent_id is preserved on the execution record even when
    * session_id is present, so downstream consumers can access the agent
    * without resolving through the session chain.
+   *
    * When provided without session_id, a new session is auto-created using
    * the agent's default instance ID.
    * </pre>
@@ -1534,12 +1554,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Session ID this execution belongs to (optional).
-     * At least one of session_id or agent_id must be provided (enforced in handler).
+     *
+     * Resolution priority (enforced in handler pipeline):
+     * 1. session_id provided     -&gt; use existing session
+     * 2. agent_id provided       -&gt; auto-create session using agent's default instance
+     * 3. neither provided        -&gt; resolve platform default agent (label
+     * stigmer.ai/default-agent + visibility_public), then auto-create session
+     *
      * Both may be set — when both are present, session_id is used for session
      * resolution and agent_id is preserved as metadata for downstream consumers
      * (e.g., session subject generation).
-     * When absent, agent_id must be specified — a session is auto-created
-     * using the agent's default instance.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -1560,12 +1584,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Session ID this execution belongs to (optional).
-     * At least one of session_id or agent_id must be provided (enforced in handler).
+     *
+     * Resolution priority (enforced in handler pipeline):
+     * 1. session_id provided     -&gt; use existing session
+     * 2. agent_id provided       -&gt; auto-create session using agent's default instance
+     * 3. neither provided        -&gt; resolve platform default agent (label
+     * stigmer.ai/default-agent + visibility_public), then auto-create session
+     *
      * Both may be set — when both are present, session_id is used for session
      * resolution and agent_id is preserved as metadata for downstream consumers
      * (e.g., session subject generation).
-     * When absent, agent_id must be specified — a session is auto-created
-     * using the agent's default instance.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -1587,12 +1615,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Session ID this execution belongs to (optional).
-     * At least one of session_id or agent_id must be provided (enforced in handler).
+     *
+     * Resolution priority (enforced in handler pipeline):
+     * 1. session_id provided     -&gt; use existing session
+     * 2. agent_id provided       -&gt; auto-create session using agent's default instance
+     * 3. neither provided        -&gt; resolve platform default agent (label
+     * stigmer.ai/default-agent + visibility_public), then auto-create session
+     *
      * Both may be set — when both are present, session_id is used for session
      * resolution and agent_id is preserved as metadata for downstream consumers
      * (e.g., session subject generation).
-     * When absent, agent_id must be specified — a session is auto-created
-     * using the agent's default instance.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -1610,12 +1642,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Session ID this execution belongs to (optional).
-     * At least one of session_id or agent_id must be provided (enforced in handler).
+     *
+     * Resolution priority (enforced in handler pipeline):
+     * 1. session_id provided     -&gt; use existing session
+     * 2. agent_id provided       -&gt; auto-create session using agent's default instance
+     * 3. neither provided        -&gt; resolve platform default agent (label
+     * stigmer.ai/default-agent + visibility_public), then auto-create session
+     *
      * Both may be set — when both are present, session_id is used for session
      * resolution and agent_id is preserved as metadata for downstream consumers
      * (e.g., session subject generation).
-     * When absent, agent_id must be specified — a session is auto-created
-     * using the agent's default instance.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -1630,12 +1666,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Session ID this execution belongs to (optional).
-     * At least one of session_id or agent_id must be provided (enforced in handler).
+     *
+     * Resolution priority (enforced in handler pipeline):
+     * 1. session_id provided     -&gt; use existing session
+     * 2. agent_id provided       -&gt; auto-create session using agent's default instance
+     * 3. neither provided        -&gt; resolve platform default agent (label
+     * stigmer.ai/default-agent + visibility_public), then auto-create session
+     *
      * Both may be set — when both are present, session_id is used for session
      * resolution and agent_id is preserved as metadata for downstream consumers
      * (e.g., session subject generation).
-     * When absent, agent_id must be specified — a session is auto-created
-     * using the agent's default instance.
      * </pre>
      *
      * <code>string session_id = 1 [json_name = "sessionId"];</code>
@@ -1656,10 +1696,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Agent ID (optional).
-     * At least one of session_id or agent_id must be provided (enforced in handler).
+     *
+     * When absent along with session_id, the backend resolves the platform's
+     * public default agent — the agent labeled stigmer.ai/default-agent: "true"
+     * with visibility_public. This enables session-first UX where users start
+     * a conversation without choosing an agent.
+     *
      * Both may be set — agent_id is preserved on the execution record even when
      * session_id is present, so downstream consumers can access the agent
      * without resolving through the session chain.
+     *
      * When provided without session_id, a new session is auto-created using
      * the agent's default instance ID.
      * </pre>
@@ -1682,10 +1728,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Agent ID (optional).
-     * At least one of session_id or agent_id must be provided (enforced in handler).
+     *
+     * When absent along with session_id, the backend resolves the platform's
+     * public default agent — the agent labeled stigmer.ai/default-agent: "true"
+     * with visibility_public. This enables session-first UX where users start
+     * a conversation without choosing an agent.
+     *
      * Both may be set — agent_id is preserved on the execution record even when
      * session_id is present, so downstream consumers can access the agent
      * without resolving through the session chain.
+     *
      * When provided without session_id, a new session is auto-created using
      * the agent's default instance ID.
      * </pre>
@@ -1709,10 +1761,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Agent ID (optional).
-     * At least one of session_id or agent_id must be provided (enforced in handler).
+     *
+     * When absent along with session_id, the backend resolves the platform's
+     * public default agent — the agent labeled stigmer.ai/default-agent: "true"
+     * with visibility_public. This enables session-first UX where users start
+     * a conversation without choosing an agent.
+     *
      * Both may be set — agent_id is preserved on the execution record even when
      * session_id is present, so downstream consumers can access the agent
      * without resolving through the session chain.
+     *
      * When provided without session_id, a new session is auto-created using
      * the agent's default instance ID.
      * </pre>
@@ -1732,10 +1790,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Agent ID (optional).
-     * At least one of session_id or agent_id must be provided (enforced in handler).
+     *
+     * When absent along with session_id, the backend resolves the platform's
+     * public default agent — the agent labeled stigmer.ai/default-agent: "true"
+     * with visibility_public. This enables session-first UX where users start
+     * a conversation without choosing an agent.
+     *
      * Both may be set — agent_id is preserved on the execution record even when
      * session_id is present, so downstream consumers can access the agent
      * without resolving through the session chain.
+     *
      * When provided without session_id, a new session is auto-created using
      * the agent's default instance ID.
      * </pre>
@@ -1752,10 +1816,16 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     /**
      * <pre>
      * Agent ID (optional).
-     * At least one of session_id or agent_id must be provided (enforced in handler).
+     *
+     * When absent along with session_id, the backend resolves the platform's
+     * public default agent — the agent labeled stigmer.ai/default-agent: "true"
+     * with visibility_public. This enables session-first UX where users start
+     * a conversation without choosing an agent.
+     *
      * Both may be set — agent_id is preserved on the execution record even when
      * session_id is present, so downstream consumers can access the agent
      * without resolving through the session chain.
+     *
      * When provided without session_id, a new session is auto-created using
      * the agent's default instance ID.
      * </pre>

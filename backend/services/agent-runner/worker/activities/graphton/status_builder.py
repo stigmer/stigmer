@@ -349,6 +349,21 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────────
         self._llm_run_id_to_message: dict[str, AgentMessage] = {}
         
+        # ─────────────────────────────────────────────────────────────────────────
+        # AI Message Ownership Tracking (Tool Call → Parent AI Message)
+        #
+        # Tracks the most recently created AI message per execution context
+        # (keyed by namespace).  When a tool call fires (on_tool_start or
+        # early tool_use detection), the ToolCall proto is appended to this
+        # message's tool_calls repeated field — establishing the standard
+        # "AI message owns its tool calls" relationship used by OpenAI,
+        # Anthropic, and LangChain.
+        #
+        # Stores proto-managed references (the element inside the repeated
+        # field, not the original) so mutations are visible in the status.
+        # ─────────────────────────────────────────────────────────────────────────
+        self._last_ai_message: dict[str, AgentMessage] = {}
+        
         # Track tool execution timing for duration calculation (Phase 2.2)
         # Key: run_id, Value: start timestamp
         self._tool_start_times: dict[str, datetime] = {}
@@ -672,6 +687,28 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────
         early_tc = self._reconcile_early_tool_call(tool_name, run_id, tool_args, namespace)
         if early_tc is not None:
+            # The flat-list copy was updated in place by _reconcile_early_tool_call.
+            # Sync the reconciled state to the AI message copy (proto copies
+            # are independent objects — mutations to one don't propagate).
+            ns_key = namespace or ""
+            _, sa = self._get_execution_context(namespace)
+            msgs = sa.messages if sa else self.current_status.messages
+            for message in msgs:
+                if message.type != MessageType.MESSAGE_AI:
+                    continue
+                for tc in message.tool_calls:
+                    if tc.id == early_tc.id:
+                        tc.result = early_tc.result
+                        tc.is_streaming = early_tc.is_streaming
+                        tc.status = early_tc.status
+                        tc.mcp_server_slug = early_tc.mcp_server_slug
+                        if early_tc.args.ByteSize() > 0:
+                            tc.args.CopyFrom(early_tc.args)
+                        if early_tc.requires_approval:
+                            tc.requires_approval = True
+                            tc.approval_message = early_tc.approval_message
+                            tc.approval_requested_at = early_tc.approval_requested_at
+                        break
             return
         
         # Create component metadata
@@ -729,33 +766,27 @@ class StatusBuilder:
         # Track start time for duration calculation (even for approval-pending tools)
         self._tool_start_times[run_id] = now
         
-        # Create tool message wrapper
-        tool_message = AgentMessage(
-            type=MessageType.MESSAGE_TOOL,
-            content="",
-            timestamp=_utc_timestamp(now),
-        )
-        tool_message.tool_calls.append(tool_call)
-        
         # ─────────────────────────────────────────────────────────────────────
         # Namespace-Based Routing (Phase 2.3): Route to correct execution context
         # ─────────────────────────────────────────────────────────────────────
         context, sub_agent = self._get_execution_context(namespace)
+        ns_key = namespace or ""
         
         # Determine context info for logging
         status_name = ToolCallStatus.Name(initial_status)
         
+        # Attach tool call to the parent AI message (standard ownership model).
+        # The flat tool_calls list is kept as a queryable index.
+        parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
+        parent_ai.tool_calls.append(tool_call)
+        
         if sub_agent:
-            # Route to sub-agent's nested lists
             sub_agent.tool_calls.append(tool_call)
-            sub_agent.messages.append(tool_message)
             self.logger.debug(
                 f"[TOOL] execution={self.execution_id} sub_agent={sub_agent.id} "
                 f"tool={tool_name} run_id={run_id} status={status_name}"
             )
         else:
-            # Route to main agent status
-            self.current_status.messages.append(tool_message)
             self.current_status.tool_calls.append(tool_call)
             self.logger.debug(
                 f"[TOOL] execution={self.execution_id} "
@@ -788,6 +819,80 @@ class StatusBuilder:
                 sub_agent_name=sub_agent_name,
             )
     
+    def _ensure_parent_ai_message(self, ns_key: str, namespace: str) -> AgentMessage:
+        """Return the current parent AI message, creating an empty one if needed.
+
+        When a tool call (including thinking) fires before the LLM has produced
+        any text, there is no AI message to attach it to.  This method creates
+        a zero-content ``MESSAGE_AI`` so the tool call has a parent — the
+        frontend renders such messages as tool-only rows without a text bubble.
+
+        When the LLM later produces text tokens, ``_handle_chat_model_stream_event``
+        creates a *new* AI message (keyed by ``run_id``), which replaces
+        ``_last_ai_message[ns_key]``.  Subsequent tool calls attach to that
+        new message, preserving correct chronological grouping.
+        """
+        existing = self._last_ai_message.get(ns_key)
+        if existing is not None:
+            return existing
+
+        _, sub_agent = self._get_execution_context(namespace)
+        messages_list = sub_agent.messages if sub_agent else self.current_status.messages
+
+        now = datetime.utcnow()
+        ai_message = AgentMessage(
+            type=MessageType.MESSAGE_AI,
+            content="",
+            timestamp=_utc_timestamp(now),
+            is_streaming=False,
+        )
+        messages_list.append(ai_message)
+        managed = messages_list[-1]
+        self._last_ai_message[ns_key] = managed
+
+        self.logger.debug(
+            "[AI_MSG] execution=%s created empty parent AI message "
+            "namespace=%s (tool call arrived before text)",
+            self.execution_id,
+            namespace or "main",
+        )
+        return managed
+
+    def _update_tool_call_on_ai_message(
+        self,
+        tool_call_id: str,
+        messages_list: Any,
+        *,
+        result: str | None = None,
+        status: int | None = None,
+        completed_at: str | None = None,
+        is_streaming: bool | None = None,
+        args_struct: Any | None = None,
+    ) -> None:
+        """Find and update a ToolCall on its parent AI message.
+
+        Protobuf repeated-field append copies values, so the ToolCall on the
+        AI message and the one in the flat ``tool_calls`` list are independent
+        objects.  Callers must update both.  This method handles the message
+        copy; callers update the flat copy directly.
+        """
+        for message in messages_list:
+            if message.type != MessageType.MESSAGE_AI:
+                continue
+            for tc in message.tool_calls:
+                if tc.id == tool_call_id:
+                    if result is not None:
+                        tc.result = result
+                    if status is not None:
+                        tc.status = status
+                    if completed_at is not None:
+                        tc.completed_at = completed_at
+                    if is_streaming is not None:
+                        tc.is_streaming = is_streaming
+                    if args_struct is not None:
+                        tc.args.CopyFrom(args_struct)
+                    return
+    
     def _handle_tool_progress_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_custom_event with name='tool_progress'.
         
@@ -817,8 +922,7 @@ class StatusBuilder:
         # Resolve run-ID alias (resume-after-approval path)
         resolved_id = self._resolve_run_id(run_id)
         
-        # Find the ToolCall by resolved_id and update it.
-        # Uses _find_tool_call_by_id which searches both main agent and sub-agents.
+        # Find the ToolCall on the flat queryable list and update it.
         tool_call = self._find_tool_call_by_id(resolved_id)
         if tool_call is None:
             self.logger.debug(
@@ -837,6 +941,23 @@ class StatusBuilder:
             if len(chunk) > remaining:
                 tool_call.result += "\n[output truncated for display]"
         tool_call.is_streaming = True
+        
+        # Also update the AI-message copy so the frontend sees streaming output.
+        context, sub_agent = self._get_execution_context(namespace)
+        messages_list = sub_agent.messages if sub_agent else self.current_status.messages
+        for message in messages_list:
+            if message.type != MessageType.MESSAGE_AI:
+                continue
+            for tc in message.tool_calls:
+                if tc.id == resolved_id:
+                    tc_len = len(tc.result)
+                    if tc_len < _MAX_STATUS_RESULT_CHARS:
+                        tc_remaining = _MAX_STATUS_RESULT_CHARS - tc_len
+                        tc.result += chunk[:tc_remaining]
+                        if len(chunk) > tc_remaining:
+                            tc.result += "\n[output truncated for display]"
+                    tc.is_streaming = True
+                    break
 
         if not was_streaming:
             self.force_next_update = True
@@ -904,70 +1025,34 @@ class StatusBuilder:
             scope = sub_agent.id if sub_agent else MAIN_SCOPE
             self._usage_tracker.record_tool_duration(duration_ms, scope)
         
-        if sub_agent:
-            # Update in sub-agent's messages list
-            for message in sub_agent.messages:
-                if (message.type == MessageType.MESSAGE_TOOL and 
-                    len(message.tool_calls) > 0 and 
-                    message.tool_calls[0].id == resolved_id):
-                    
-                    tc = message.tool_calls[0]
-                    tc.result = persisted_result
-                    tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                    tc.completed_at = _utc_timestamp(now)
-                    tc.is_streaming = False
-                    # Update message content for CLI display
-                    message.content = self._format_tool_message_content(
-                        tool_name, tc.args, tool_result_content
-                    )
-                    break
-            
-            # Update in sub-agent's tool_calls list
-            for tool_call in sub_agent.tool_calls:
-                if tool_call.id == resolved_id:
-                    tool_call.result = persisted_result
-                    tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                    tool_call.completed_at = _utc_timestamp(now)
-                    tool_call.is_streaming = False
-                    break
-            
-            self.logger.debug(
-                f"[TOOL] execution={self.execution_id} sub_agent={sub_agent.id} "
-                f"tool={tool_name} run_id={run_id} resolved_id={resolved_id} "
-                f"status=COMPLETED duration_ms={duration_ms or 'N/A'}"
-            )
-        else:
-            # Update in main agent's messages list
-            for message in self.current_status.messages:
-                if (message.type == MessageType.MESSAGE_TOOL and 
-                    len(message.tool_calls) > 0 and 
-                    message.tool_calls[0].id == resolved_id):
-                    
-                    tc = message.tool_calls[0]
-                    tc.result = persisted_result
-                    tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                    tc.completed_at = _utc_timestamp(now)
-                    tc.is_streaming = False
-                    # Update message content for CLI display
-                    message.content = self._format_tool_message_content(
-                        tool_name, tc.args, tool_result_content
-                    )
-                    break
-            
-            # Update in main agent's tool_calls list
-            for tool_call in self.current_status.tool_calls:
-                if tool_call.id == resolved_id:
-                    tool_call.result = persisted_result
-                    tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                    tool_call.completed_at = _utc_timestamp(now)
-                    tool_call.is_streaming = False
-                    break
-            
-            self.logger.debug(
-                f"[TOOL] execution={self.execution_id} "
-                f"tool={tool_name} run_id={run_id} resolved_id={resolved_id} "
-                f"status=COMPLETED duration_ms={duration_ms or 'N/A'}"
-            )
+        completed_at = _utc_timestamp(now)
+        messages_list = sub_agent.messages if sub_agent else self.current_status.messages
+        flat_list = sub_agent.tool_calls if sub_agent else self.current_status.tool_calls
+        
+        # Update the ToolCall copy on the parent AI message
+        self._update_tool_call_on_ai_message(
+            resolved_id, messages_list,
+            result=persisted_result,
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+            completed_at=completed_at,
+            is_streaming=False,
+        )
+        
+        # Update the ToolCall copy in the flat queryable list
+        for tool_call in flat_list:
+            if tool_call.id == resolved_id:
+                tool_call.result = persisted_result
+                tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
+                tool_call.completed_at = completed_at
+                tool_call.is_streaming = False
+                break
+        
+        context_desc = f"sub_agent={sub_agent.id}" if sub_agent else "main_agent"
+        self.logger.debug(
+            f"[TOOL] execution={self.execution_id} {context_desc} "
+            f"tool={tool_name} run_id={run_id} resolved_id={resolved_id} "
+            f"status=COMPLETED duration_ms={duration_ms or 'N/A'}"
+        )
     
     def _handle_chat_model_stream_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_chat_model_stream event - updates local status."""
@@ -1143,12 +1228,18 @@ class StatusBuilder:
         )
         messages_list.append(ai_message)
         
+        # Store the proto-managed reference (not the original, which is
+        # disconnected after protobuf repeated-message append).
+        managed_ai_message = messages_list[-1]
+        
         if run_id:
-            # Store the proto-managed reference, not the original.
-            # Protobuf repeated-message append copies the value; the
-            # original is disconnected.  Subsequent token appends must
-            # mutate the proto element so the CLI sees incremental content.
-            self._llm_run_id_to_message[run_id] = messages_list[-1]
+            self._llm_run_id_to_message[run_id] = managed_ai_message
+        
+        # Track as the most recent AI message for this namespace so that
+        # subsequent tool calls (on_tool_start, early tool_use) are attached
+        # to the correct parent AI message.
+        ns_key = namespace or ""
+        self._last_ai_message[ns_key] = managed_ai_message
         
         # Track start time for duration calculation
         new_message_index = len(messages_list) - 1
@@ -1644,19 +1735,14 @@ class StatusBuilder:
             mcp_server_slug=mcp_server_slug,
         )
 
-        tool_message = AgentMessage(
-            type=MessageType.MESSAGE_TOOL,
-            content="",
-            timestamp=_utc_timestamp(now),
-        )
-        tool_message.tool_calls.append(tool_call)
+        # Attach to the parent AI message (creates empty one if needed).
+        parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
+        parent_ai.tool_calls.append(tool_call)
 
         context, sub_agent = self._get_execution_context(namespace)
         if sub_agent:
             sub_agent.tool_calls.append(tool_call)
-            sub_agent.messages.append(tool_message)
         else:
-            self.current_status.messages.append(tool_message)
             self.current_status.tool_calls.append(tool_call)
 
         sa_id = sub_agent.id if sub_agent else None
@@ -1782,6 +1868,11 @@ class StatusBuilder:
             started_at=_utc_timestamp(now),
         )
 
+        # Attach to parent AI message (creates empty one if none exists yet).
+        parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
+        parent_ai.tool_calls.append(tool_call)
+
+        # Flat index for quick lookup by ID.
         _context, sub_agent = self._get_execution_context(namespace)
         if sub_agent:
             sub_agent.tool_calls.append(tool_call)
@@ -1804,18 +1895,22 @@ class StatusBuilder:
         """Update the streaming think ToolCall with the latest accumulated content.
 
         Finds the existing RUNNING ToolCall by its tracked ID and replaces
-        ``result`` with the full accumulated thinking buffer.  The gRPC update
-        scheduler will push this change within ~500ms; the CLI detects the
-        content change via ``tc.IsStreaming && tc.Result != prevResults`` and
-        renders the latest lines.
+        ``result`` with the full accumulated thinking buffer on both the flat
+        list copy and the AI message copy.
         """
         tc_id = self._thinking_tool_call_ids.get(ns_key)
         if not tc_id:
             return
 
+        buf = self._thinking_buffers.get(ns_key, "")
+
         tool_call = self._find_tool_call_by_id(tc_id)
         if tool_call is not None:
-            tool_call.result = self._thinking_buffers.get(ns_key, "")
+            tool_call.result = buf
+
+        _, sub_agent = self._get_execution_context(ns_key)
+        messages_list = sub_agent.messages if sub_agent else self.current_status.messages
+        self._update_tool_call_on_ai_message(tc_id, messages_list, result=buf)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Tool Input Streaming Helpers
@@ -1911,6 +2006,10 @@ class StatusBuilder:
         args_struct = Struct()
         args_struct.update({"thought": thinking_text})
 
+        _, sub_agent = self._get_execution_context(namespace)
+        messages_list = sub_agent.messages if sub_agent else self.current_status.messages
+        completed_ts = _utc_timestamp(now)
+
         if tc_id:
             tool_call = self._find_tool_call_by_id(tc_id)
             if tool_call is not None:
@@ -1918,7 +2017,17 @@ class StatusBuilder:
                 tool_call.result = "ok"
                 tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
                 tool_call.is_streaming = False
-                tool_call.completed_at = _utc_timestamp(now)
+                tool_call.completed_at = completed_ts
+
+                self._update_tool_call_on_ai_message(
+                    tc_id,
+                    messages_list,
+                    result="ok",
+                    status=ToolCallStatus.TOOL_CALL_COMPLETED,
+                    is_streaming=False,
+                    completed_at=completed_ts,
+                    args_struct=args_struct,
+                )
 
                 self.logger.info(
                     "[THINK] execution=%s streaming_completed id=%s "
@@ -1932,7 +2041,7 @@ class StatusBuilder:
 
         # Defensive fallback: no streaming ToolCall exists.  Create a
         # completed one from scratch so thinking content is never lost.
-        tool_call = ToolCall(
+        fallback_tc = ToolCall(
             id=f"think-native-{uuid4()}",
             name="think",
             args=args_struct,
@@ -1943,14 +2052,16 @@ class StatusBuilder:
                 component_group="main-agent-tools",
             ),
             started_at=_utc_timestamp(started_at or now),
-            completed_at=_utc_timestamp(now),
+            completed_at=completed_ts,
         )
 
-        _context, sub_agent = self._get_execution_context(namespace)
+        parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
+        parent_ai.tool_calls.append(fallback_tc)
+
         if sub_agent:
-            sub_agent.tool_calls.append(tool_call)
+            sub_agent.tool_calls.append(fallback_tc)
         else:
-            self.current_status.tool_calls.append(tool_call)
+            self.current_status.tool_calls.append(fallback_tc)
 
         self.logger.info(
             "[THINK] execution=%s synthetic_think_tool_call "

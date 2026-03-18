@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
 go_library(
     name = "proto2schema_lib",
@@ -19,4 +19,11 @@ go_binary(
     name = "proto2schema",
     embed = [":proto2schema_lib"],
     visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "proto2schema_test",
+    srcs = ["main_test.go"],
+    embed = [":proto2schema_lib"],
+    deps = ["@org_golang_google_protobuf//encoding/protowire"],
 )

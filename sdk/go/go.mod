@@ -2,6 +2,8 @@ module github.com/stigmer/stigmer/sdk/go
 
 go 1.25.6
 
+replace github.com/stigmer/stigmer/apis/stubs/go => ../../apis/stubs/go
+
 require (
 	github.com/stigmer/stigmer/apis/stubs/go v0.0.36
 	google.golang.org/grpc v1.79.2

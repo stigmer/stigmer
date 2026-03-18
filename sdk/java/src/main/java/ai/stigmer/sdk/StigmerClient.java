@@ -49,12 +49,14 @@ public final class StigmerClient implements AutoCloseable {
     private final ManagedChannel channel;
     private final GeneratedClient generated;
     private final SearchClient search;
+    private final GitHubClient github;
 
     private StigmerClient(Builder builder) {
         this.channel = StigmerChannel.create(new StigmerChannel.Config(
                 builder.baseUrl, builder.apiKey, builder.insecure));
         this.generated = new GeneratedClient(channel);
         this.search = new SearchClient(channel);
+        this.github = new GitHubClient(channel);
     }
 
     /** Creates a new builder. The API key is required for all requests. */
@@ -86,6 +88,11 @@ public final class StigmerClient implements AutoCloseable {
 
     /** Returns the cross-resource search client. */
     public SearchClient search() { return search; }
+
+    // -- GitHub ---------------------------------------------------------------
+
+    /** Returns the GitHub OAuth integration client. */
+    public GitHubClient github() { return github; }
 
     // -- Lifecycle ------------------------------------------------------------
 

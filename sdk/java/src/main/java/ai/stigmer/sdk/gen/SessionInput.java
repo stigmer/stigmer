@@ -2,6 +2,8 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.agentic.agent.v1.McpServerUsage;
+import ai.stigmer.agentic.agent.v1.ToolApprovalOverride;
 import ai.stigmer.agentic.session.v1.GitRepoSource;
 import ai.stigmer.agentic.session.v1.LocalPathSource;
 import ai.stigmer.agentic.session.v1.Session;
@@ -20,6 +22,8 @@ public final class SessionInput {
     private final String sandboxId;
     private final java.util.Map<String, String> metadata;
     private final java.util.List<WorkspaceEntryInput> workspaceEntries;
+    private final java.util.List<McpServerUsageInput> mcpServerUsages;
+    private final java.util.List<ResourceRef> skillRefs;
 
     private SessionInput(Builder builder) {
         this.name = builder.name;
@@ -30,6 +34,8 @@ public final class SessionInput {
         this.sandboxId = builder.sandboxId;
         this.metadata = builder.metadata;
         this.workspaceEntries = builder.workspaceEntries;
+        this.mcpServerUsages = builder.mcpServerUsages;
+        this.skillRefs = builder.skillRefs;
     }
 
     Session toProto() {
@@ -54,6 +60,16 @@ public final class SessionInput {
                 spec.addWorkspaceEntries(item.toProto());
             }
         }
+        if (this.mcpServerUsages != null) {
+            for (McpServerUsageInput item : this.mcpServerUsages) {
+                spec.addMcpServerUsages(item.toProto());
+            }
+        }
+        if (this.skillRefs != null) {
+            for (ResourceRef item : this.skillRefs) {
+                spec.addSkillRefs(item.toProto());
+            }
+        }
         return Session.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("Session")
@@ -76,6 +92,8 @@ public final class SessionInput {
         private String sandboxId;
         private java.util.Map<String, String> metadata;
         private java.util.List<WorkspaceEntryInput> workspaceEntries;
+        private java.util.List<McpServerUsageInput> mcpServerUsages;
+        private java.util.List<ResourceRef> skillRefs;
 
         private Builder() {}
 
@@ -87,6 +105,8 @@ public final class SessionInput {
         public Builder sandboxId(String sandboxId) { this.sandboxId = sandboxId; return this; }
         public Builder metadata(java.util.Map<String, String> metadata) { this.metadata = metadata; return this; }
         public Builder workspaceEntries(java.util.List<WorkspaceEntryInput> workspaceEntries) { this.workspaceEntries = workspaceEntries; return this; }
+        public Builder mcpServerUsages(java.util.List<McpServerUsageInput> mcpServerUsages) { this.mcpServerUsages = mcpServerUsages; return this; }
+        public Builder skillRefs(java.util.List<ResourceRef> skillRefs) { this.skillRefs = skillRefs; return this; }
 
         public SessionInput build() { return new SessionInput(this); }
     }
@@ -237,6 +257,92 @@ public final class SessionInput {
             public Builder path(String path) { this.path = path; return this; }
 
             public LocalPathSourceInput build() { return new LocalPathSourceInput(this); }
+        }
+    }
+
+    /** SDK input type for McpServerUsage. */
+    public static final class McpServerUsageInput {
+        private final ResourceRef mcpServerRef;
+        private final java.util.List<String> enabledTools;
+        private final java.util.List<ToolApprovalOverrideInput> toolApprovalOverrides;
+
+        private McpServerUsageInput(Builder builder) {
+            this.mcpServerRef = builder.mcpServerRef;
+            this.enabledTools = builder.enabledTools;
+            this.toolApprovalOverrides = builder.toolApprovalOverrides;
+        }
+
+        McpServerUsage toProto() {
+            McpServerUsage.Builder builder = McpServerUsage.newBuilder();
+            if (this.mcpServerRef != null) {
+                builder.setMcpServerRef(this.mcpServerRef.toProto());
+            }
+            if (this.enabledTools != null) {
+                builder.addAllEnabledTools(this.enabledTools);
+            }
+            if (this.toolApprovalOverrides != null) {
+                for (ToolApprovalOverrideInput item : this.toolApprovalOverrides) {
+                    builder.addToolApprovalOverrides(item.toProto());
+                }
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private ResourceRef mcpServerRef;
+            private java.util.List<String> enabledTools;
+            private java.util.List<ToolApprovalOverrideInput> toolApprovalOverrides;
+
+            private Builder() {}
+
+            public Builder mcpServerRef(ResourceRef mcpServerRef) { this.mcpServerRef = mcpServerRef; return this; }
+            public Builder enabledTools(java.util.List<String> enabledTools) { this.enabledTools = enabledTools; return this; }
+            public Builder toolApprovalOverrides(java.util.List<ToolApprovalOverrideInput> toolApprovalOverrides) { this.toolApprovalOverrides = toolApprovalOverrides; return this; }
+
+            public McpServerUsageInput build() { return new McpServerUsageInput(this); }
+        }
+    }
+
+    /** SDK input type for ToolApprovalOverride. */
+    public static final class ToolApprovalOverrideInput {
+        private final String toolName;
+        private final boolean requiresApproval;
+        private final String message;
+
+        private ToolApprovalOverrideInput(Builder builder) {
+            this.toolName = builder.toolName;
+            this.requiresApproval = builder.requiresApproval;
+            this.message = builder.message;
+        }
+
+        ToolApprovalOverride toProto() {
+            ToolApprovalOverride.Builder builder = ToolApprovalOverride.newBuilder();
+            if (this.toolName != null) {
+                builder.setToolName(this.toolName);
+            }
+            builder.setRequiresApproval(this.requiresApproval);
+            if (this.message != null) {
+                builder.setMessage(this.message);
+            }
+            return builder.build();
+        }
+
+        public static Builder builder() { return new Builder(); }
+
+        public static final class Builder {
+            private String toolName;
+            private boolean requiresApproval;
+            private String message;
+
+            private Builder() {}
+
+            public Builder toolName(String toolName) { this.toolName = toolName; return this; }
+            public Builder requiresApproval(boolean requiresApproval) { this.requiresApproval = requiresApproval; return this; }
+            public Builder message(String message) { this.message = message; return this; }
+
+            public ToolApprovalOverrideInput build() { return new ToolApprovalOverrideInput(this); }
         }
     }
 }

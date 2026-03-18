@@ -81,6 +81,7 @@ func runSDKClientGeneration(schemaDir, outputDir string) error {
 	fmt.Printf("   -> types.go\n")
 
 	var allResources []resourceGenInfo
+	globalEmitted := make(map[string]bool)
 
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
@@ -113,7 +114,7 @@ func runSDKClientGeneration(schemaDir, outputDir string) error {
 			}
 		}
 
-		code, genInfo, err := generateResourceClient(&schema, cfg, specSchema, specTypes)
+		code, genInfo, err := generateResourceClient(&schema, cfg, specSchema, specTypes, globalEmitted)
 		if err != nil {
 			return fmt.Errorf("failed to generate client for %s: %w", resource, err)
 		}
@@ -255,7 +256,7 @@ func loadSpecSchemaWithTypes(specPath, schemaDir, resource string) (*TaskConfigS
 // Resource client generation
 // =========================================================================
 
-func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, specSchema *TaskConfigSchema, specTypes []*TypeSchema) ([]byte, resourceGenInfo, error) {
+func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, specSchema *TaskConfigSchema, specTypes []*TypeSchema, globalEmitted map[string]bool) ([]byte, resourceGenInfo, error) {
 	importPath := deriveGoImportPath(schema.Package)
 	alias := schema.GoImportPath
 
@@ -391,7 +392,7 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	}
 
 	if specSchema != nil {
-		inputTypes := generateInputTypesV2(&buf, schema, cfg, specSchema, typeMap, alias, needsExecutionContext)
+		inputTypes := generateInputTypesV2(&buf, schema, cfg, specSchema, typeMap, alias, needsExecutionContext, globalEmitted)
 		genInfo.inputTypes = inputTypes
 	}
 
@@ -547,7 +548,7 @@ func generateSearchList(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkRes
 // Input type generation from spec schemas
 // =========================================================================
 
-func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig, spec *TaskConfigSchema, typeMap map[string]*TypeSchema, alias string, needsExecCtx bool) []string {
+func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig, spec *TaskConfigSchema, typeMap map[string]*TypeSchema, alias string, needsExecCtx bool, globalEmitted map[string]bool) []string {
 	inputName := cfg.inputPrefix + "Input"
 	emitted := make(map[string]bool)
 	var allTypes []string
@@ -571,7 +572,7 @@ func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 	allTypes = append(allTypes, inputName)
 
 	for _, f := range specFields {
-		emitNestedTypes(buf, f, typeMap, emitted, &allTypes, alias)
+		emitNestedTypes(buf, f, typeMap, emitted, &allTypes, alias, globalEmitted)
 	}
 
 	fmt.Fprintf(buf, "func (i *%s) toProto() *%s.%s {\n", inputName, alias, cfg.protoResType)
@@ -592,7 +593,7 @@ func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 	buf.WriteString("\treturn resource\n}\n\n")
 
 	for _, f := range specFields {
-		emitNestedToProto(buf, f, alias, typeMap, emitted, spec.Name)
+		emitNestedToProto(buf, f, alias, typeMap, emitted, spec.Name, globalEmitted)
 	}
 
 	return allTypes
@@ -660,7 +661,7 @@ func goTypeForTypeSpec(ts *TypeSpec, typeMap map[string]*TypeSchema, alias strin
 	}
 }
 
-func emitNestedTypes(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*TypeSchema, emitted map[string]bool, allTypes *[]string, alias string) {
+func emitNestedTypes(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*TypeSchema, emitted map[string]bool, allTypes *[]string, alias string, globalEmitted map[string]bool) {
 	var msgName string
 	switch {
 	case f.Type.Kind == "message":
@@ -685,18 +686,22 @@ func emitNestedTypes(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*Type
 	}
 	emitted[msgName] = true
 
-	inputName := msgName + "Input"
-	fmt.Fprintf(buf, "// %s is the SDK input type for %s.\n", inputName, msgName)
-	fmt.Fprintf(buf, "type %s struct {\n", inputName)
-	for _, field := range ts.Fields {
-		goType := goTypeForField(field, typeMap, alias)
-		fmt.Fprintf(buf, "\t%s %s\n", field.Name, goType)
+	if !globalEmitted[msgName] {
+		globalEmitted[msgName] = true
+
+		inputName := msgName + "Input"
+		fmt.Fprintf(buf, "// %s is the SDK input type for %s.\n", inputName, msgName)
+		fmt.Fprintf(buf, "type %s struct {\n", inputName)
+		for _, field := range ts.Fields {
+			goType := goTypeForField(field, typeMap, alias)
+			fmt.Fprintf(buf, "\t%s %s\n", field.Name, goType)
+		}
+		buf.WriteString("}\n\n")
+		*allTypes = append(*allTypes, inputName)
 	}
-	buf.WriteString("}\n\n")
-	*allTypes = append(*allTypes, inputName)
 
 	for _, field := range ts.Fields {
-		emitNestedTypes(buf, field, typeMap, emitted, allTypes, alias)
+		emitNestedTypes(buf, field, typeMap, emitted, allTypes, alias, globalEmitted)
 	}
 }
 
@@ -805,7 +810,7 @@ func emitOneofToProto(buf *bytes.Buffer, f *FieldSchema, alias, specName string,
 	buf.WriteString("\t\t\t},\n\t\t}\n")
 }
 
-func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap map[string]*TypeSchema, emitted map[string]bool, specName string) {
+func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap map[string]*TypeSchema, emitted map[string]bool, specName string, globalEmitted map[string]bool) {
 	var msgName string
 	switch {
 	case f.Type.Kind == "message":
@@ -836,7 +841,23 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 	}
 	emitted[toProtoKey] = true
 
+	globalToProtoKey := msgName + "_toProto"
+	if globalEmitted[globalToProtoKey] {
+		for _, field := range ts.Fields {
+			emitNestedToProto(buf, field, alias, typeMap, emitted, specName, globalEmitted)
+		}
+		return
+	}
+	globalEmitted[globalToProtoKey] = true
+
 	inputName := msgName + "Input"
+
+	protoAlias := alias
+	if ts.ProtoType != "" {
+		if derivedAlias := protoTypeToPackageAlias(ts.ProtoType); derivedAlias != "" {
+			protoAlias = derivedAlias
+		}
+	}
 
 	hasStructField := false
 	for _, field := range ts.Fields {
@@ -847,8 +868,8 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 	}
 
 	if hasStructField {
-		fmt.Fprintf(buf, "func (i *%s) toProto() *%s.%s {\n", inputName, alias, msgName)
-		fmt.Fprintf(buf, "\tp := &%s.%s{}\n", alias, msgName)
+		fmt.Fprintf(buf, "func (i *%s) toProto() *%s.%s {\n", inputName, protoAlias, msgName)
+		fmt.Fprintf(buf, "\tp := &%s.%s{}\n", protoAlias, msgName)
 		for _, field := range ts.Fields {
 			pf := goProtoFieldName(field.ProtoField)
 			if field.Type.Kind == "struct" {
@@ -867,8 +888,8 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 		}
 		buf.WriteString("\treturn p\n}\n\n")
 	} else {
-		fmt.Fprintf(buf, "func (i *%s) toProto() *%s.%s {\n", inputName, alias, msgName)
-		fmt.Fprintf(buf, "\treturn &%s.%s{\n", alias, msgName)
+		fmt.Fprintf(buf, "func (i *%s) toProto() *%s.%s {\n", inputName, protoAlias, msgName)
+		fmt.Fprintf(buf, "\treturn &%s.%s{\n", protoAlias, msgName)
 		for _, field := range ts.Fields {
 			pf := goProtoFieldName(field.ProtoField)
 			if field.Type.Kind == "message" {
@@ -887,7 +908,7 @@ func emitNestedToProto(buf *bytes.Buffer, f *FieldSchema, alias string, typeMap 
 	}
 
 	for _, field := range ts.Fields {
-		emitNestedToProto(buf, field, alias, typeMap, emitted, specName)
+		emitNestedToProto(buf, field, alias, typeMap, emitted, specName, globalEmitted)
 	}
 }
 

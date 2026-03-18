@@ -68,6 +68,8 @@ type SessionInput struct {
 	SandboxId        string
 	Metadata         map[string]string
 	WorkspaceEntries []*WorkspaceEntryInput
+	McpServerUsages  []*McpServerUsageInput
+	SkillRefs        []ResourceRef
 }
 
 // WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
@@ -112,6 +114,12 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	resource.Spec.Metadata = i.Metadata
 	for _, item := range i.WorkspaceEntries {
 		resource.Spec.WorkspaceEntries = append(resource.Spec.WorkspaceEntries, item.toProto())
+	}
+	for _, item := range i.McpServerUsages {
+		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, item.toProto())
+	}
+	for _, r := range i.SkillRefs {
+		resource.Spec.SkillRefs = append(resource.Spec.SkillRefs, r.toProto())
 	}
 	return resource
 }

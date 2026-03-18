@@ -748,6 +748,140 @@ func (s *Store) FindAllByField(ctx context.Context, kind apiresourcekind.ApiReso
 	return results, nil
 }
 
+// =============================================================================
+// Label-Based Queries
+// =============================================================================
+
+// FindByLabel retrieves a single resource matching a metadata label key-value pair.
+// All API resources have metadata.labels (map<string, string>); this method uses
+// proto reflection to access the map without needing the concrete message type.
+//
+// Returns store.ErrNotFound if no resource matches.
+func (s *Store) FindByLabel(ctx context.Context, kind apiresourcekind.ApiResourceKind, labelKey, labelValue string, msg proto.Message) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("store is closed")
+	}
+
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT data FROM resources WHERE kind = ?`,
+		kind.String())
+	if err != nil {
+		return fmt.Errorf("query resources: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var data []byte
+		if err := rows.Scan(&data); err != nil {
+			return fmt.Errorf("scan row: %w", err)
+		}
+
+		testMsg := proto.Clone(msg)
+		proto.Reset(testMsg)
+
+		if err := proto.Unmarshal(data, testMsg); err != nil {
+			continue
+		}
+
+		if extractLabelValue(testMsg, labelKey) == labelValue {
+			if err := proto.Unmarshal(data, msg); err != nil {
+				return fmt.Errorf("unmarshal proto: %w", err)
+			}
+			return nil
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate rows: %w", err)
+	}
+
+	return fmt.Errorf("%w: %s with label %s=%s", store.ErrNotFound, kind.String(), labelKey, labelValue)
+}
+
+// FindAllByLabel retrieves all resources matching a metadata label key-value pair.
+// Returns an empty slice (not nil) if no resources match.
+func (s *Store) FindAllByLabel(ctx context.Context, kind apiresourcekind.ApiResourceKind, labelKey, labelValue string, templateMsg proto.Message) ([][]byte, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return nil, fmt.Errorf("store is closed")
+	}
+
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT data FROM resources WHERE kind = ?`,
+		kind.String())
+	if err != nil {
+		return nil, fmt.Errorf("query resources: %w", err)
+	}
+	defer rows.Close()
+
+	results := make([][]byte, 0)
+
+	for rows.Next() {
+		var data []byte
+		if err := rows.Scan(&data); err != nil {
+			return nil, fmt.Errorf("scan row: %w", err)
+		}
+
+		if matchesLabel(data, templateMsg, labelKey, labelValue) {
+			dataCopy := make([]byte, len(data))
+			copy(dataCopy, data)
+			results = append(results, dataCopy)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate rows: %w", err)
+	}
+
+	return results, nil
+}
+
+// extractLabelValue reads a single label value from metadata.labels using proto reflection.
+// Returns "" if the metadata field, labels map, or the specific key is not present.
+// Works for any API resource that has the standard metadata.labels field.
+func extractLabelValue(msg proto.Message, labelKey string) string {
+	ref := msg.ProtoReflect()
+
+	metadataFd := ref.Descriptor().Fields().ByName("metadata")
+	if metadataFd == nil || metadataFd.Kind() != protoreflect.MessageKind {
+		return ""
+	}
+	metadata := ref.Get(metadataFd).Message()
+
+	labelsFd := metadata.Descriptor().Fields().ByName("labels")
+	if labelsFd == nil || !labelsFd.IsMap() {
+		return ""
+	}
+
+	labelsMap := metadata.Get(labelsFd).Map()
+	val := labelsMap.Get(protoreflect.ValueOfString(labelKey).MapKey())
+	if !val.IsValid() {
+		return ""
+	}
+	return val.String()
+}
+
+// matchesLabel unmarshals raw proto bytes into a clone of templateMsg and checks
+// whether the resource's metadata.labels contains the given key-value pair.
+func matchesLabel(data []byte, templateMsg proto.Message, labelKey, labelValue string) bool {
+	testMsg := proto.Clone(templateMsg)
+	proto.Reset(testMsg)
+
+	if err := proto.Unmarshal(data, testMsg); err != nil {
+		return false
+	}
+	return extractLabelValue(testMsg, labelKey) == labelValue
+}
+
+// =============================================================================
+// Field Value Extraction Helpers
+// =============================================================================
+
 // extractFieldValue extracts a field value from a proto message using dot notation path.
 // Example: extractFieldValue(msg, "spec.executionId") extracts the executionId from spec.
 func extractFieldValue(msg proto.Message, fieldPath string) string {

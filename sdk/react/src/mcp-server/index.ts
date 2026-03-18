@@ -1,6 +1,8 @@
-// Hooks
-export { useMcpServerSearch } from "./hooks/useMcpServerSearch";
+export { useMcpServerSearch } from "./useMcpServerSearch";
 export type {
   UseMcpServerSearchOptions,
   UseMcpServerSearchReturn,
-} from "./hooks/useMcpServerSearch";
+} from "./useMcpServerSearch";
+
+export { McpServerPicker } from "./McpServerPicker";
+export type { McpServerPickerProps } from "./McpServerPicker";
