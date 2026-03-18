@@ -224,7 +224,7 @@ export function MessageThread({
       aria-live="polite"
       aria-relevant="additions"
       onScroll={handleScroll}
-      className={cn("flex flex-col gap-1 overflow-y-auto", className)}
+      className={cn("flex flex-col gap-4 overflow-y-auto pt-6 pb-4", className)}
     >
       {items.map((item) => {
         switch (item.kind) {
