@@ -67,8 +67,8 @@ export default function SessionPage() {
   const workspaceEntries = conv.session?.spec?.workspaceEntries ?? [];
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-6xl flex-col">
-      <div className="flex min-h-0 flex-1 gap-6">
+    <div className="flex h-full w-full flex-col pl-[220px]">
+      <div className="flex min-h-0 flex-1 gap-[220px]">
         <div className="flex min-w-0 flex-1 flex-col">
           <MessageThread
             executions={conv.completedExecutions}
@@ -102,7 +102,7 @@ export default function SessionPage() {
           />
         </div>
         <aside
-          className="hidden w-60 shrink-0 flex-col gap-3 overflow-y-auto p-4 lg:flex"
+          className="hidden w-80 shrink-0 flex-col gap-3 overflow-y-auto py-4 pr-6 lg:flex"
           aria-label="Execution details"
         >
           {displayExecution && (
