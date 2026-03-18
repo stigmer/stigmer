@@ -37,20 +37,25 @@ export type {
   FolderBrowserProps,
 } from "./workspace";
 
-// Session — data hooks, behavior hooks (Session aggregate + conversation lifecycle)
+// Session — data hooks, behavior hooks, utilities (Session aggregate + conversation lifecycle)
 export {
   useCreateSession,
   useSession,
+  useSessionList,
   useSessionExecutions,
   useSessionConversation,
+  groupSessionsByTime,
 } from "./session";
 export type {
   CreateSessionInput,
   CreateSessionResult,
   UseCreateSessionReturn,
   UseSessionReturn,
+  UseSessionListOptions,
+  UseSessionListReturn,
   UseSessionExecutionsReturn,
   UseSessionConversationReturn,
+  SessionGroup,
 } from "./session";
 
 // Execution — behavior hooks, styled components, and utilities (AgentExecution aggregate)
