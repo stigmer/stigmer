@@ -69,9 +69,21 @@ When starting a new session:
 
 **Created**: 2026-03-17 09:01
 **Current Task**: T01.6 — decomposed into 5 sub-projects (SP1-SP5)
-**Status**: SP1 (Core Thread + Streaming) ready to start
-**Last Session**: 2026-03-17 — GitHubClient added to Python, Go, and Java SDKs (session 16)
+**Status**: SP1 + SP2 complete. SP3, SP4 ready to start (independent of each other).
+**Last Session**: 2026-03-18 — SP2 (Follow-Up Conversation Loop) completed (session 18)
 **Pending Pre-req**: ~~GitHub OAuth App registration~~ Done — credentials embedded in binary and configured in cloud deployment
+
+## Session Progress (2026-03-18)
+
+### Completed: SP2 — Follow-Up Conversation Loop (Session 18)
+- Implemented all 5 steps of SP2 in a single session
+- **SDK — `FollowUpInput`** (`sdk/react/src/execution/FollowUpInput.tsx`): Auto-resizing textarea with optional `ModelSelector`, inline SVG icons, Enter/Shift+Enter, `onModelChange` callback, auto-focus on re-enable. `<div>` not `<form>` for embeddability.
+- **SDK — `pendingUserMessage` in `MessageThread`**: New optional prop for optimistic user message display (rendered at 70% opacity before stream delivers real data). Additive change — zero impact on existing consumers.
+- **SDK — `useSessionConversation`** (`sdk/react/src/session/useSessionConversation.ts`): Behavior hook composing `useSession`, `useSessionExecutions`, `useCreateAgentExecution`, `useExecutionStream`. Manages `pendingExecutionId` for immediate streaming, `pendingUserMessage` for optimistic UI, `canSendFollowUp` for sequential follow-ups. Platform builders get the full conversation loop without reimplementing orchestration.
+- **Console — `SessionPage`** rewritten to use `useSessionConversation(id, org)` + `FollowUpInput`. `usePersistedModel()` extracted for localStorage model persistence. Page is now a thin shell (~60 lines).
+- **Barrel exports** updated across all 3 layers (`execution/index.ts`, `session/index.ts`, `src/index.ts`)
+- **Key decisions**: `useSessionConversation` in SDK (not Console) for platform builder DX; `org` as explicit parameter; optimistic message via `pendingUserMessage` prop; sequential follow-ups only (input disabled during streaming); inline SVG icons.
+- Verification: `npm run typecheck`, `npm run build` (sdk/react), `npx tsc --noEmit`, `npm run build` (web) — all pass clean
 
 ## Session Progress (2026-03-17)
 
@@ -270,6 +282,10 @@ When starting a new session:
 38. **Home directory as default folder browser path** — Changed from CWD because users may launch `stigmer` from non-project directories. Home is a more universal starting point for folder browsing.
 39. **Utility service SDK clients are handwritten across all SDKs** — `GitHubClient` and `SearchClient` exist as hand-written wrappers in all four SDKs (TypeScript, Python, Go, Java). Will remain manual until the number of utility services justifies extending codegen.
 40. **`is_skip_authorization` vs `is_public`** — Two distinct proto options. `is_skip_authorization` removes FGA resource-level checks but keeps authentication (JWT/API-key). `is_public` removes authentication entirely. GitHub OAuth RPCs use `is_skip_authorization` only — callers must still authenticate.
+41. **`useSessionConversation` crosses aggregate boundaries** — Behavior hooks that compose multiple data/creation hooks are allowed to cross Session and AgentExecution boundaries. The key rule (decision #17) applies to data/creation hooks, not orchestration hooks. `useSessionConversation` composes existing hooks — it doesn't bypass aggregates for data fetching.
+42. **Optimistic user message via `pendingUserMessage` prop** — MessageThread accepts an optional `pendingUserMessage` string. Rendered at 70% opacity as a HumanMessage. Cleared by the consumer when the stream delivers its first snapshot. Low cost, significant UX gain.
+43. **Sequential follow-ups, not concurrent** — Input disabled while an execution is in progress. Backend allows concurrent executions per session, but sequential follow-ups provide predictable UX and simpler state management. Can be relaxed later.
+44. **`pendingExecutionId` for immediate streaming** — After `createExecution` returns, set `pendingExecutionId` instead of waiting for `refetch()` to pick it up from the list. `activeExecutionId = pendingExecutionId ?? lastNonTerminal(list)`. Eliminates the latency gap between creation and stream subscription.
 
 ## Next Steps
 
@@ -292,7 +308,7 @@ After T01.6 sub-projects: **T01.7** — Web — Sidebar Recents
 - T01.1 through T01.5 are complete and committed.
 - The web app has a headerless sidebar-driven layout with a working session launcher at `/`.
 - The React SDK now has three feature modules: `models/`, `workspace/`, `session/`, `execution/`.
-- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useFolderListing`, `FolderBrowser`, `useCreateSession`, `useCreateAgentExecution`, `useGitHubConnection`, `useGitHubRepos`, `GitHubRepoPicker`.
+- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useFolderListing`, `FolderBrowser`, `useCreateSession`, `useCreateAgentExecution`, `useGitHubConnection`, `useGitHubRepos`, `GitHubRepoPicker`, `useSession`, `useSessionExecutions`, `useExecutionStream`, `useSessionConversation`, `isTerminalPhase`, `MessageThread`, `MessageEntry`, `ToolCallGroup`, `ExecutionPhaseBadge`, `FollowUpInput`.
 - The session launcher flow: create session -> create agent execution -> navigate to `/sessions/[id]`.
 - `/sessions/[id]/page.tsx` exists as a placeholder — T01.6 builds the actual session view.
 - Proto `agent_instance_id` is optional in SessionSpec. Backend resolves default agent instance if omitted.

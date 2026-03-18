@@ -1,78 +1,84 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, Loader2, RotateCcw, WifiOff } from "lucide-react";
 import {
-  useSession,
-  useSessionExecutions,
-  useExecutionStream,
-  isTerminalPhase,
+  useSessionConversation,
+  useModelRegistry,
   MessageThread,
+  FollowUpInput,
 } from "@stigmer/react";
+import { useActiveOrgSlug } from "@/contexts/org-context";
 import { Button } from "@/components/ui/button";
+
+const STORAGE_KEY_MODEL = "stigmer:session:model";
+
+function usePersistedModel() {
+  const { getModel } = useModelRegistry();
+
+  const [modelId, setModelId] = useState<string | undefined>(() => {
+    if (typeof window === "undefined") return undefined;
+    return localStorage.getItem(STORAGE_KEY_MODEL) ?? undefined;
+  });
+
+  useEffect(() => {
+    if (modelId) {
+      localStorage.setItem(STORAGE_KEY_MODEL, modelId);
+    }
+  }, [modelId]);
+
+  const validModelId = modelId && getModel(modelId) ? modelId : undefined;
+  return [validModelId, setModelId] as const;
+}
 
 export default function SessionPage() {
   const { id } = useParams<{ id: string }>();
+  const org = useActiveOrgSlug();
+  const conv = useSessionConversation(id, org);
+  const [modelId, setModelId] = usePersistedModel();
 
-  const { isLoading: sessionLoading, error: sessionError } = useSession(id);
-  const {
-    executions,
-    isLoading: executionsLoading,
-    error: executionsError,
-  } = useSessionExecutions(id);
+  const handleSubmit = useCallback(
+    (message: string, model?: string) => {
+      conv.sendFollowUp(message, model ?? modelId);
+    },
+    [conv, modelId],
+  );
 
-  const activeExecutionId = useMemo(() => {
-    for (let i = executions.length - 1; i >= 0; i--) {
-      const phase = executions[i].status?.phase;
-      if (phase === undefined || !isTerminalPhase(phase)) {
-        return executions[i].metadata?.id ?? null;
-      }
-    }
-    return null;
-  }, [executions]);
-
-  const stream = useExecutionStream(activeExecutionId);
-
-  const completedExecutions = useMemo(() => {
-    if (!activeExecutionId) return executions;
-    return executions.filter(
-      (e) => (e.metadata?.id ?? "") !== activeExecutionId,
-    );
-  }, [executions, activeExecutionId]);
-
-  const fetchedActiveExecution = useMemo(() => {
-    if (!activeExecutionId) return null;
-    return (
-      executions.find(
-        (e) => (e.metadata?.id ?? "") === activeExecutionId,
-      ) ?? null
-    );
-  }, [executions, activeExecutionId]);
-
-  const displayActiveExecution = stream.execution ?? fetchedActiveExecution;
-
-  const isLoading = sessionLoading || executionsLoading;
-  const error = sessionError || executionsError;
-
-  if (isLoading) return <SessionSkeleton />;
-  if (error) return <SessionError message={error} />;
-  if (executions.length === 0) return <SessionStarting />;
+  if (conv.isLoading) return <SessionSkeleton />;
+  if (conv.loadError) return <SessionError message={conv.loadError} />;
+  if (!conv.session && !conv.isLoading) return <SessionStarting />;
 
   return (
     <div className="flex h-full flex-col">
       <MessageThread
-        executions={completedExecutions}
-        activeStreamExecution={displayActiveExecution}
+        executions={conv.completedExecutions}
+        activeStreamExecution={conv.activeStreamExecution}
+        pendingUserMessage={conv.pendingUserMessage}
         className="flex-1"
       />
-      {stream.error && (
+      {conv.streamError && (
         <StreamErrorBanner
-          message={stream.error}
-          onReconnect={stream.reconnect}
+          message={conv.streamError}
+          onReconnect={conv.reconnectStream}
         />
       )}
+      {conv.sendError && (
+        <div
+          role="alert"
+          className="border-border border-t px-4 py-2 text-xs text-destructive"
+        >
+          {conv.sendError}
+        </div>
+      )}
+      <FollowUpInput
+        onSubmit={handleSubmit}
+        isSubmitting={conv.isSending}
+        disabled={!conv.canSendFollowUp}
+        defaultModelId={modelId}
+        onModelChange={setModelId}
+      />
     </div>
   );
 }

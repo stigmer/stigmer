@@ -37,14 +37,20 @@ export type {
   FolderBrowserProps,
 } from "./workspace";
 
-// Session — data hooks and behavior hook (Session aggregate)
-export { useCreateSession, useSession, useSessionExecutions } from "./session";
+// Session — data hooks, behavior hooks (Session aggregate + conversation lifecycle)
+export {
+  useCreateSession,
+  useSession,
+  useSessionExecutions,
+  useSessionConversation,
+} from "./session";
 export type {
   CreateSessionInput,
   CreateSessionResult,
   UseCreateSessionReturn,
   UseSessionReturn,
   UseSessionExecutionsReturn,
+  UseSessionConversationReturn,
 } from "./session";
 
 // Execution — behavior hooks, styled components, and utilities (AgentExecution aggregate)
@@ -56,6 +62,7 @@ export {
   ToolCallGroup,
   MessageEntry,
   MessageThread,
+  FollowUpInput,
 } from "./execution";
 export type {
   CreateAgentExecutionInput,
@@ -66,6 +73,7 @@ export type {
   ToolCallGroupProps,
   MessageEntryProps,
   MessageThreadProps,
+  FollowUpInputProps,
 } from "./execution";
 
 // GitHub — OAuth connection, repo picker, and hooks
