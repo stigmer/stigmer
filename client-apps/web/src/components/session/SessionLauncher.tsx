@@ -45,15 +45,20 @@ export function SessionLauncher() {
   const { getModel } = useModelRegistry();
 
   const [message, setMessage] = useState("");
-  const [modelId, setModelId] = useState<string | undefined>(() => {
-    if (typeof window === "undefined") return undefined;
-    const stored = localStorage.getItem(STORAGE_KEY_MODEL);
-    return stored ?? undefined;
-  });
+  const [modelId, setModelId] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const validModelId = modelId && getModel(modelId) ? modelId : undefined;
+
+  // Restore model from localStorage after mount to avoid hydration mismatch
+  // (server has no localStorage; initial render must match on both.)
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY_MODEL);
+    if (stored && getModel(stored)) {
+      setModelId(stored);
+    }
+  }, [getModel]);
 
   useEffect(() => {
     if (modelId) {
