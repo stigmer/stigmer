@@ -23,6 +23,8 @@ export interface FollowUpInputProps {
   readonly defaultModelId?: string;
   /** Called when the user changes the selected model. */
   readonly onModelChange?: (modelId: string) => void;
+  /** Placeholder text for the textarea. Default: "Reply...". */
+  readonly placeholder?: string;
   readonly className?: string;
 }
 
@@ -57,6 +59,7 @@ export function FollowUpInput({
   showModelSelector = true,
   defaultModelId,
   onModelChange,
+  placeholder = "Reply\u2026",
   className,
 }: FollowUpInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -117,13 +120,13 @@ export function FollowUpInput({
       role="form"
       aria-label="Send follow-up message"
       className={cn(
-        "border-border bg-card shrink-0 border-t px-4 py-3",
+        "shrink-0 px-4 py-3",
         className,
       )}
     >
       <div
         className={cn(
-          "rounded-xl border border-border bg-background shadow-sm",
+          "rounded-xl border border-border bg-card shadow-sm",
           "focus-within:ring-2 focus-within:ring-ring",
           isDisabled && "opacity-50",
         )}
@@ -136,7 +139,7 @@ export function FollowUpInput({
             resizeTextarea();
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Send a follow-up…"
+          placeholder={placeholder}
           disabled={isDisabled}
           rows={1}
           className="block w-full resize-none bg-transparent px-4 pt-3 pb-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"

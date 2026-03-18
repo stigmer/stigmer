@@ -15,7 +15,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260318.03.session-page-redesign/checkpoints/2026-03-18-session-4.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260318.03.session-page-redesign/checkpoints/2026-03-18-session-5.md
 ```
 
 ### 2. Current Task
@@ -67,9 +67,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-18 14:46
-**Current Task**: All phases complete
-**Status**: Phase 1 Complete, Phase 2 Complete, Phase 3 Complete, Phase 4 Complete
-**Last Session**: 2026-03-18 — Completed Phase 4 (Dark mode sidebar token alignment)
+**Current Task**: Post-phase visual refinements complete
+**Status**: Phase 1-4 Complete, Post-phase UX refinements complete
+**Last Session**: 2026-03-18 — Reply widget appearance and human message indentation
 
 ## Session Progress (2026-03-18, Session 1)
 
@@ -112,14 +112,24 @@ When starting a new session:
 - Zero component code changes — all layout components already reference correct token-based classes
 - Zero lint errors; visually verified in browser
 
+## Session Progress (2026-03-18, Session 5)
+
+- Fixed two visual gaps compared to Claude Code reference:
+  1. **FollowUpInput widget appearance**: Inner card used `bg-background` which was invisible against page background in dark mode. Changed to `bg-card` for visible contrast. Removed outer wrapper's `border-t` and `bg-card` bar chrome — component now renders as floating widget by default. Removed SessionPage className override.
+  2. **Human message indentation**: Added `ms-[20%]` (margin-inline-start) to `HumanMessage` in MessageEntry and `pending-message` in MessageThread. Creates ~177px indent on the thread column, instantly differentiating user messages from AI/system messages.
+- SDK changes: `MessageEntry.tsx`, `MessageThread.tsx`, `FollowUpInput.tsx`
+- Console change: `SessionPage.tsx` (removed className override)
+- Zero lint errors
+
 ## Project Complete
 
-All four phases of the session page redesign have been delivered:
+All four phases of the session page redesign have been delivered, plus post-phase UX refinements:
 
 1. **Phase 1**: Remove ContextPanel right sidebar (Console) — `38ea38ad`
 2. **Phase 2**: Decompose ExecutionDetails into SDK widgets — `fbe911ca`
 3. **Phase 3**: Redesign SessionPage layout with inline widgets — `3e38e3db`
 4. **Phase 4**: Dark mode sidebar token alignment — `7b40bf77`
+5. **Post-phase**: Reply widget appearance + human message indentation (pending commit)
 
 ## Final Architecture
 
@@ -127,7 +137,8 @@ All four phases of the session page redesign have been delivered:
 - MessageThread has `min-w-0 flex-1`, aside has `hidden lg:flex w-60 shrink-0`
 - Widget cards use `rounded-lg border border-border bg-card p-3` wrapper — widgets render chrome-free content
 - `displayExecution` memo: `activeStreamExecution ?? completedExecutions[last]` — shows final metrics even after execution completes
-- FollowUpInput override: `className="border-t-0 bg-transparent"` via tailwind-merge
+- FollowUpInput renders as floating widget by default (bg-card inner card, no bar chrome on outer wrapper)
+- Human messages indented 20% from left via `ms-[20%]` — visual hierarchy matches Claude Code reference
 - Dark mode sidebar recedes below background (L=0.12 vs L=0.145), consistent with all presets
 - `ExecutionDetails` still available in SDK for backward compat — not used in SessionPage
 
