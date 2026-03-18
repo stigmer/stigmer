@@ -1,17 +1,27 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { UsageMetrics } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import type {
-  ContextInfo,
   McpServerResolutionStatus,
   ResolvedExecutionContext,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/context_pb";
+import type { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { cn } from "@stigmer/theme";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 import { isTerminalPhase } from "./execution-phases";
+import { ContextWindowMeter } from "./ContextWindowMeter";
+import { WorkspaceSummary } from "../workspace/WorkspaceSummary";
+import {
+  useElapsedMs,
+  hasModelData,
+  hasTokenData,
+  formatMs,
+  formatTimestamp,
+  formatNumber,
+  formatCost,
+} from "./execution-format";
 
 export interface ExecutionDetailsProps {
   /** The execution to display details for. Renders nothing when null. */
@@ -29,6 +39,8 @@ export interface ExecutionDetailsProps {
  * Designed for use in side panels, dashboards, or any layout where a
  * platform builder wants to display execution observability data
  * alongside a conversation thread.
+ *
+ * For a compact "at a glance" alternative, see {@link ExecutionSummary}.
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
@@ -75,29 +87,25 @@ export function ExecutionDetails({
         <CostSection usage={usage} />
       )}
       {contextInfo && contextInfo.contextWindowLimit > 0 && (
-        <ContextWindowSection contextInfo={contextInfo} />
+        <Section label="Context Window">
+          <ContextWindowMeter contextInfo={contextInfo} />
+        </Section>
       )}
       {context && hasResolvedContext(context) && (
         <ResolvedContextSection context={context} />
       )}
       {workspaceEntries && workspaceEntries.length > 0 && (
-        <WorkspaceSection entries={workspaceEntries} />
+        <Section label="Workspace">
+          <WorkspaceSummary entries={workspaceEntries} />
+        </Section>
       )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Guard helpers — determine whether a section has data worth showing
+// Guard helpers
 // ---------------------------------------------------------------------------
-
-function hasModelData(usage: UsageMetrics): boolean {
-  return usage.primaryModel !== "" || usage.primaryProvider !== "";
-}
-
-function hasTokenData(usage: UsageMetrics): boolean {
-  return usage.totalTokens > 0 || usage.promptTokens > 0;
-}
 
 function hasResolvedContext(ctx: ResolvedExecutionContext): boolean {
   return (
@@ -110,8 +118,6 @@ function hasResolvedContext(ctx: ResolvedExecutionContext): boolean {
 // ---------------------------------------------------------------------------
 // Section: Status
 // ---------------------------------------------------------------------------
-
-import type { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 function StatusSection({
   phase,
@@ -229,47 +235,6 @@ function CostSection({ usage }: { usage: UsageMetrics }) {
 }
 
 // ---------------------------------------------------------------------------
-// Section: Context Window
-// ---------------------------------------------------------------------------
-
-function ContextWindowSection({ contextInfo }: { contextInfo: ContextInfo }) {
-  const pct = Math.min(100, Math.max(0, contextInfo.utilizationPercent));
-  const barColor =
-    pct >= 90
-      ? "bg-destructive"
-      : pct >= 70
-        ? "bg-warning"
-        : "bg-success";
-
-  return (
-    <Section label="Context Window">
-      <div
-        role="meter"
-        aria-label="Context window utilization"
-        aria-valuenow={Math.round(pct)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        className="flex flex-col gap-1"
-      >
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className={cn("h-full rounded-full transition-[width] duration-300", barColor)}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>
-            {formatCompactNumber(contextInfo.currentTokenCount)} /{" "}
-            {formatCompactNumber(contextInfo.contextWindowLimit)}
-          </span>
-          <span>{Math.round(pct)}%</span>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Section: Resolved Context
 // ---------------------------------------------------------------------------
 
@@ -354,71 +319,6 @@ function McpServerRow({
 }
 
 // ---------------------------------------------------------------------------
-// Section: Workspace
-// ---------------------------------------------------------------------------
-
-function WorkspaceSection({
-  entries,
-}: {
-  entries: readonly WorkspaceEntry[];
-}) {
-  return (
-    <Section label="Workspace">
-      <ul className="space-y-1.5">
-        {entries.map((entry) => (
-          <li key={entry.name} className="text-xs">
-            <div className="flex items-center gap-1.5 font-medium">
-              <FolderIcon />
-              <span className="truncate">{entry.name}</span>
-            </div>
-            <WorkspaceSourceLabel source={entry.source} />
-          </li>
-        ))}
-      </ul>
-    </Section>
-  );
-}
-
-import type { WorkspaceSource } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
-
-function WorkspaceSourceLabel({
-  source,
-}: {
-  source?: WorkspaceSource;
-}) {
-  if (!source || source.source.case === undefined) return null;
-
-  if (source.source.case === "gitRepo") {
-    const url = source.source.value.url;
-    const short = url
-      .replace(/^https?:\/\//, "")
-      .replace(/\.git$/, "");
-    return (
-      <span
-        className="ml-5 block truncate text-muted-foreground"
-        title={url}
-      >
-        {short}
-      </span>
-    );
-  }
-
-  if (source.source.case === "localPath") {
-    const path = source.source.value.path;
-    return (
-      <span
-        className="ml-5 block truncate font-mono text-muted-foreground"
-        title={path}
-      >
-        {path}
-      </span>
-    );
-  }
-
-  return null;
-}
-
-// ---------------------------------------------------------------------------
 // Shared primitives
 // ---------------------------------------------------------------------------
 
@@ -460,85 +360,6 @@ function Dot() {
 }
 
 // ---------------------------------------------------------------------------
-// Hooks
-// ---------------------------------------------------------------------------
-
-/**
- * Ticks every second while active, returning elapsed milliseconds since
- * `startedAt`. Returns null when inactive or startedAt is empty/invalid.
- */
-function useElapsedMs(
-  startedAt: string | undefined,
-  active: boolean,
-): number | null {
-  const startMs = useMemo(() => {
-    if (!startedAt) return null;
-    const t = new Date(startedAt).getTime();
-    return Number.isNaN(t) ? null : t;
-  }, [startedAt]);
-
-  const [elapsed, setElapsed] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (startMs === null || !active) {
-      setElapsed(null);
-      return;
-    }
-    setElapsed(Math.max(0, Date.now() - startMs));
-    const id = setInterval(() => {
-      setElapsed(Math.max(0, Date.now() - startMs));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [startMs, active]);
-
-  return elapsed;
-}
-
-// ---------------------------------------------------------------------------
-// Formatters
-// ---------------------------------------------------------------------------
-
-function formatMs(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
-  const minutes = Math.floor(ms / 60_000);
-  const seconds = Math.round((ms % 60_000) / 1000);
-  if (minutes < 60) {
-    return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
-  }
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return remainingMinutes > 0
-    ? `${hours}h ${remainingMinutes}m`
-    : `${hours}h`;
-}
-
-function formatTimestamp(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function formatNumber(n: number): string {
-  return n.toLocaleString();
-}
-
-function formatCompactNumber(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return String(n);
-}
-
-function formatCost(usd: number): string {
-  if (usd === 0) return "$0.00";
-  if (usd < 0.01) return `$${usd.toFixed(4)}`;
-  return `$${usd.toFixed(2)}`;
-}
-
-// ---------------------------------------------------------------------------
 // Inline SVG icons — no lucide-react dependency in SDK
 // ---------------------------------------------------------------------------
 
@@ -572,24 +393,6 @@ function KeyIcon() {
     >
       <circle cx="7.5" cy="4.5" r="2.5" />
       <path d="M5.5 6.5L2 10M3.5 8.5L2 10M2 10L3 11" />
-    </svg>
-  );
-}
-
-function FolderIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M1.5 3V9.5a1 1 0 001 1h7a1 1 0 001-1V4.5a1 1 0 00-1-1H6L4.5 2H2.5a1 1 0 00-1 1z" />
     </svg>
   );
 }

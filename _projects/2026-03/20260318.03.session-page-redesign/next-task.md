@@ -9,13 +9,13 @@ Drop this file into your conversation to quickly resume work on this project.
 **Description**: Redesign the session/execution detail page to eliminate the right sidebar (ContextPanel), replace it with compact metadata widgets floating within the main content area, and restyle the FollowUpInput to match the SessionLauncher's visual language. Inspired by Claude Code's single-canvas layout.
 **Goal**: Achieve a single-canvas session page where the conversation thread, metadata widgets, and follow-up input are distinct components placed on one unified surface — no separate right panel.
 **Tech Stack**: TypeScript/React, @stigmer/react SDK, @stigmer/theme tokens, client-apps/web Next.js Console
-**Components**: @stigmer/react execution components (MessageThread, FollowUpInput, ExecutionDetails), client-apps/web layout (AppShell, SessionPage), @stigmer/theme tokens
+**Components**: @stigmer/react execution components (MessageThread, FollowUpInput, ExecutionDetails, ExecutionSummary, ContextWindowMeter), @stigmer/react workspace components (WorkspaceSummary), client-apps/web layout (AppShell, SessionPage), @stigmer/theme tokens
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260318.03.session-page-redesign/checkpoints/2026-03-18-session-1.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260318.03.session-page-redesign/checkpoints/2026-03-18-session-2.md
 ```
 
 ### 2. Current Task
@@ -67,11 +67,11 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-18 14:46
-**Current Task**: Phase 2 — Decompose ExecutionDetails into Compact Widgets
-**Status**: Phase 1 Complete, Phase 2 Pending
-**Last Session**: 2026-03-18 — Completed Phase 1 (ContextPanel removal)
+**Current Task**: Phase 3 — Redesign SessionPage Layout with Inline Widgets
+**Status**: Phase 1 Complete, Phase 2 Complete, Phase 3 Pending
+**Last Session**: 2026-03-18 — Completed Phase 2 (widget extraction)
 
-## Session Progress (2026-03-18)
+## Session Progress (2026-03-18, Session 1)
 
 - Completed Phase 1: Removed ContextPanel right sidebar infrastructure
 - Deleted `ContextPanel.tsx`, gutted `use-layout-state.tsx`, simplified `AppShell.tsx`, cleaned `SessionPage.tsx`
@@ -79,23 +79,35 @@ When starting a new session:
 - Zero SDK impact — all changes in `client-apps/web/`
 - Zero lint errors after changes
 
+## Session Progress (2026-03-18, Session 2)
+
+- Completed Phase 2: Decomposed ExecutionDetails into standalone SDK components
+- Created `ExecutionSummary` (compact execution overview: phase + duration + model + tokens + cost)
+- Created `ContextWindowMeter` (standalone context window utilization bar)
+- Created `WorkspaceSummary` (read-only workspace entry list, in `workspace/` domain)
+- Extracted shared formatters and `useElapsedMs` into `execution-format.ts`
+- Refactored `ExecutionDetails` to delegate to extracted components
+- Updated all barrel exports; zero TypeScript errors, zero lint errors
+
 ## Next Steps
 
-1. **Phase 2**: Create `ExecutionStatusWidget` and `WorkspaceWidget` in `@stigmer/react` — decompose the monolithic `ExecutionDetails` into small, independently usable widget components
-2. **Phase 3**: Redesign `SessionPage` layout — compose widgets top-right sticky within main content area, restyle `FollowUpInput` to match `SessionLauncher`
-3. **Phase 4**: Theme token alignment — ensure unified background works across themes
+1. **Phase 3**: Redesign `SessionPage` layout — compose `ExecutionSummary`, `ContextWindowMeter`, `WorkspaceSummary` as compact cards positioned top-right within main content area. Reintroduce `activeExecution` selection logic. Restyle `FollowUpInput` to match `SessionLauncher` visual language. Handle responsive collapse on narrow screens.
+2. **Phase 4**: Theme token alignment — ensure unified background works across themes
 
 ## Context for Resume
 
-- Execution metadata (status, model, tokens, workspace) is NOT displayed on the session page currently — this is an expected intermediate state
-- `ExecutionDetails` component remains exported from `@stigmer/react` for backward compatibility
-- The `activeExecution` memo was removed from SessionPage — Phase 3 will need to reintroduce execution selection logic
-- `Sidebar.tsx` only uses `useSidebarOpen` — confirmed unaffected
+- The new SDK components (`ExecutionSummary`, `ContextWindowMeter`, `WorkspaceSummary`) render content without card chrome — the consumer (SessionPage) must wrap them in card containers
+- `ExecutionDetails` still exists and is backward compatible — it now composes `ContextWindowMeter` and `WorkspaceSummary` internally
+- `ExecutionSummary` is NOT composed inside `ExecutionDetails` — their visual structures differ (compact vs. sectioned)
+- Shared formatters live in `execution-format.ts` (internal, not exported from barrel)
+- The `activeExecution` memo was removed from SessionPage in Phase 1 — Phase 3 must reintroduce execution selection logic
+- `useSessionConversation` already provides `activeStreamExecution` and `session` — these are the data sources for the widgets
+- Workspace entries come from `session.spec.workspaceEntries` (protobuf `WorkspaceEntry` type, different from the SDK's local `WorkspaceEntry` in `useWorkspaceEntries.ts`)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 2" - Start the next phase
+- "Continue with Phase 3" - Start the next phase
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

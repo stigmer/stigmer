@@ -13,3 +13,5 @@ export type {
 } from "./useFolderListing";
 export { FolderBrowser } from "./FolderBrowser";
 export type { FolderBrowserProps } from "./FolderBrowser";
+export { WorkspaceSummary } from "./WorkspaceSummary";
+export type { WorkspaceSummaryProps } from "./WorkspaceSummary";
