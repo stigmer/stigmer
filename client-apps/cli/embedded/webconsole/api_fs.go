@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 )
@@ -55,7 +56,7 @@ func handleFSList(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if os.IsPermission(err) {
-			writeJSONError(w, http.StatusForbidden, "permission denied")
+			writeJSONError(w, http.StatusForbidden, permissionMsg(requestedPath))
 			return
 		}
 		writeJSONError(w, http.StatusInternalServerError, "failed to stat path")
@@ -70,7 +71,7 @@ func handleFSList(w http.ResponseWriter, r *http.Request) {
 	dirEntries, err := os.ReadDir(requestedPath)
 	if err != nil {
 		if os.IsPermission(err) {
-			writeJSONError(w, http.StatusForbidden, "permission denied")
+			writeJSONError(w, http.StatusForbidden, permissionMsg(requestedPath))
 			return
 		}
 		writeJSONError(w, http.StatusInternalServerError, "failed to read directory")
@@ -113,6 +114,14 @@ func handleFSList(w http.ResponseWriter, r *http.Request) {
 		Home:    home,
 		Entries: entries,
 	})
+}
+
+func permissionMsg(path string) string {
+	name := filepath.Base(path)
+	if runtime.GOOS == "darwin" {
+		return name + ": access denied — grant Full Disk Access to your terminal in System Settings > Privacy & Security"
+	}
+	return name + ": permission denied"
 }
 
 func writeJSONError(w http.ResponseWriter, status int, msg string) {

@@ -40,7 +40,7 @@ export function FolderBrowser({
   initialPath,
   className,
 }: FolderBrowserProps) {
-  const { listing, isLoading, error, isAvailable, browse } =
+  const { listing, isLoading, error, isAvailable, browse, clearError } =
     useFolderListing(initialPath);
 
   const [showHidden, setShowHidden] = useState(false);
@@ -307,15 +307,13 @@ export function FolderBrowser({
       {error && (
         <div className="flex items-center justify-between rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-2 text-xs text-destructive">
           <span>{error}</span>
-          {currentPath !== "/" && (
-            <button
-              type="button"
-              onClick={() => navigateTo(parentPath(currentPath))}
-              className="shrink-0 rounded-md px-2 py-0.5 text-[0.65rem] hover:bg-destructive/10 transition-colors"
-            >
-              Go back
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={clearError}
+            className="shrink-0 rounded-md px-2 py-0.5 text-[0.65rem] hover:bg-destructive/10 transition-colors"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
