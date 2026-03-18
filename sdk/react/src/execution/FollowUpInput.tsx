@@ -52,14 +52,14 @@ const MAX_TEXTAREA_HEIGHT = 240;
  * ```tsx
  * // Before (deprecated):
  * <FollowUpInput
- *   onSubmit={(msg, model) => conv.sendFollowUp(msg, model)}
+ *   onSubmit={(msg, model) => conv.sendFollowUp(msg, { modelName: model })}
  *   disabled={!conv.canSendFollowUp}
  *   isSubmitting={conv.isSending}
  * />
  *
  * // After:
  * <SessionComposer
- *   onSubmit={(msg, model) => conv.sendFollowUp(msg, model)}
+ *   onSubmit={(msg, model) => conv.sendFollowUp(msg, { modelName: model })}
  *   disabled={!conv.canSendFollowUp}
  *   isSubmitting={conv.isSending}
  *   workspace={workspace}

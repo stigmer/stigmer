@@ -80,7 +80,7 @@ export interface SessionComposerProps {
  *
  * // Follow-up (bottom-pinned, compact)
  * <SessionComposer
- *   onSubmit={(msg, model) => conv.sendFollowUp(msg, model)}
+ *   onSubmit={(msg, model) => conv.sendFollowUp(msg, { modelName: model })}
  *   disabled={!conv.canSendFollowUp}
  *   isSubmitting={conv.isSending}
  *   workspace={workspace}

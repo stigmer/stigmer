@@ -70,11 +70,12 @@ export default function SessionPage() {
 
   const handleSubmit = useCallback(
     (message: string, model?: string) => {
-      conv.sendFollowUp(
-        message,
-        model ?? modelId,
-        workspace.hasEntries ? workspace.toInput() : undefined,
-      );
+      conv.sendFollowUp(message, {
+        modelName: model ?? modelId,
+        workspaceEntries: workspace.hasEntries
+          ? workspace.toInput()
+          : undefined,
+      });
     },
     [conv, modelId, workspace],
   );
