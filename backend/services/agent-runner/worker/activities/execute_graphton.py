@@ -2824,19 +2824,13 @@ async def _execute_graphton_impl(
         # agent is about to continue — eliminating the "black hole" feeling
         # when the agent takes time to produce its first event after resume.
         #
-        # The update transitions the phase to IN_PROGRESS and appends a
-        # system message so the UI can render a "Resuming..." indicator.
+        # The update transitions the phase to IN_PROGRESS. The approval
+        # outcome is already recorded on the ToolCall proto via
+        # approval_action / approval_decided_at — the UI renders this
+        # inline on the tool call item, so no system message is needed.
         # ─────────────────────────────────────────────────────────────────────────────
         if is_resume_from_approval:
 
-            
-            resume_msg = AgentMessage(
-                type=MessageType.MESSAGE_SYSTEM,
-                content="✅ Approval received — resuming execution.",
-                timestamp=_utc_timestamp(),
-            )
-            status_builder.current_status.messages.append(resume_msg)
-            
             try:
                 activity_logger.info(
                     "📤 [RESUME] Sending pre-stream IN_PROGRESS status update"

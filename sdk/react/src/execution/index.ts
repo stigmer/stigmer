@@ -42,3 +42,10 @@ export type { UseSubmitApprovalReturn } from "./useSubmitApproval";
 
 export { ApprovalCard } from "./ApprovalCard";
 export type { ApprovalCardProps } from "./ApprovalCard";
+
+export {
+  resolveToolCategory,
+  extractPrimaryArg,
+  extractPrimaryArgFromPreview,
+} from "./tool-categories";
+export type { ToolCategory, ToolCategoryInfo } from "./tool-categories";

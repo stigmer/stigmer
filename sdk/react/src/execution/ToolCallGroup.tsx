@@ -6,6 +6,7 @@ import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agent
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { ToolCallItem } from "./ToolCallItem";
+import { resolveToolCategory, extractPrimaryArg } from "./tool-categories";
 
 export interface ToolCallGroupProps {
   readonly toolCalls: readonly ToolCall[];
@@ -66,17 +67,34 @@ function deriveAggregateStatus(toolCalls: readonly ToolCall[]): AggregateStatus 
   return "pending";
 }
 
-function defaultFormatSummary(toolCalls: readonly ToolCall[]): string {
+function defaultFormatSummary(
+  toolCalls: readonly ToolCall[],
+  status: AggregateStatus,
+): string {
   if (toolCalls.length === 1) {
-    return toolCalls[0].name;
+    const cat = resolveToolCategory(toolCalls[0].name);
+    const primary = extractPrimaryArg(toolCalls[0]);
+    if (primary) {
+      const truncated =
+        primary.length > 60 ? primary.slice(0, 57) + "\u2026" : primary;
+      return `${cat.label}: ${truncated}`;
+    }
+    return cat.label;
   }
 
-  const uniqueNames = new Set(toolCalls.map((tc) => tc.name));
-  if (uniqueNames.size === 1) {
-    return `${toolCalls[0].name} \u00d7${toolCalls.length}`;
+  const noun = toolCalls.length === 1 ? "tool" : "tools";
+  switch (status) {
+    case "running":
+      return `Running ${toolCalls.length} ${noun}`;
+    case "waiting":
+      return "Waiting for approval";
+    case "failed":
+      return `Ran ${toolCalls.length} ${noun} (with errors)`;
+    case "completed":
+      return `Ran ${toolCalls.length} ${noun}`;
+    case "pending":
+      return `${toolCalls.length} ${noun} pending`;
   }
-
-  return `${toolCalls.length} tool calls`;
 }
 
 const STATUS_ICON: Record<AggregateStatus, () => React.JSX.Element> = {
@@ -105,8 +123,10 @@ const STATUS_COLOR: Record<AggregateStatus, string> = {
  *    expandable to show detail (args, result, error, timing) or
  *    a nested sub-agent thread.
  *
- * Platform builders can provide a `formatSummary` prop for
- * domain-specific labels (e.g., "Ran 2 commands").
+ * Default summaries use active-voice phrasing ("Ran 3 tools",
+ * "Running 2 tools") with category-aware labels for single tools
+ * (e.g., "Shell: ls -la /tmp"). Platform builders can override
+ * via the `formatSummary` prop.
  *
  * @example
  * ```tsx
@@ -136,7 +156,7 @@ export function ToolCallGroup({
   const status = deriveAggregateStatus(toolCalls);
   const summary = formatSummary
     ? formatSummary(toolCalls)
-    : defaultFormatSummary(toolCalls);
+    : defaultFormatSummary(toolCalls, status);
   const Icon = STATUS_ICON[status];
   const ariaLabel = `${summary}, ${status}`;
 
