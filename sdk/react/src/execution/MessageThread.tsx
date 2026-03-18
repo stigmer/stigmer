@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { AgentMessageSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import {
@@ -97,6 +99,18 @@ function buildThreadItems(
     const messages = exec.status?.messages ?? [];
     const subAgents = exec.status?.subAgentExecutions ?? [];
 
+    const specMessage = exec.spec?.message;
+    if (specMessage && specMessage !== "execute") {
+      const syntheticHumanMsg = create(AgentMessageSchema);
+      syntheticHumanMsg.type = MessageType.MESSAGE_HUMAN;
+      syntheticHumanMsg.content = specMessage;
+      items.push({
+        kind: "message",
+        message: syntheticHumanMsg,
+        key: `e${ei}-spec-msg`,
+      });
+    }
+
     for (let mi = 0; mi < messages.length; mi++) {
       const msg = messages[mi];
 
@@ -151,11 +165,15 @@ function buildThreadItems(
   }
 
   if (pendingUserMessage) {
-    items.push({
-      kind: "pending-message",
-      content: pendingUserMessage,
-      key: "pending-user-message",
-    });
+    const alreadySynthesized =
+      lastExec?.spec?.message === pendingUserMessage;
+    if (!alreadySynthesized) {
+      items.push({
+        kind: "pending-message",
+        content: pendingUserMessage,
+        key: "pending-user-message",
+      });
+    }
   }
 
   return items;
