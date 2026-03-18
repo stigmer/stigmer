@@ -15,7 +15,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260318.03.session-page-redesign/checkpoints/2026-03-18-session-2.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260318.03.session-page-redesign/checkpoints/2026-03-18-session-3.md
 ```
 
 ### 2. Current Task
@@ -67,9 +67,9 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-18 14:46
-**Current Task**: Phase 3 — Redesign SessionPage Layout with Inline Widgets
-**Status**: Phase 1 Complete, Phase 2 Complete, Phase 3 Pending
-**Last Session**: 2026-03-18 — Completed Phase 2 (widget extraction)
+**Current Task**: Phase 4 — Theme Token Alignment
+**Status**: Phase 1 Complete, Phase 2 Complete, Phase 3 Complete, Phase 4 Pending
+**Last Session**: 2026-03-18 — Completed Phase 3 (SessionPage layout redesign)
 
 ## Session Progress (2026-03-18, Session 1)
 
@@ -89,25 +89,38 @@ When starting a new session:
 - Refactored `ExecutionDetails` to delegate to extracted components
 - Updated all barrel exports; zero TypeScript errors, zero lint errors
 
+## Session Progress (2026-03-18, Session 3)
+
+- Completed Phase 3: Redesigned SessionPage layout with inline metadata widgets
+- Restructured layout from single-column to two-area flex (conversation thread + widget column)
+- Added `displayExecution` memo: falls back from active stream to last completed execution
+- Composed `ExecutionSummary`, `ContextWindowMeter`, `WorkspaceSummary` as individual cards in a right `<aside>` column
+- Widget column hidden on narrow screens (< lg) — conversation thread provides sufficient status via inline phase badges
+- Widget column always reserves space on lg screens for layout stability
+- Restyled `FollowUpInput` with `border-t-0 bg-transparent` to remove bar feel and match SessionLauncher visual language
+- Single file changed: `client-apps/web/src/app/sessions/[id]/SessionPage.tsx` (+46/-10)
+- Zero SDK changes — all Phase 2 components consumed as-is
+- Zero lint errors
+
 ## Next Steps
 
-1. **Phase 3**: Redesign `SessionPage` layout — compose `ExecutionSummary`, `ContextWindowMeter`, `WorkspaceSummary` as compact cards positioned top-right within main content area. Reintroduce `activeExecution` selection logic. Restyle `FollowUpInput` to match `SessionLauncher` visual language. Handle responsive collapse on narrow screens.
-2. **Phase 4**: Theme token alignment — ensure unified background works across themes
+1. **Phase 4**: Theme token alignment — ensure unified background works across themes. Consider reducing dark mode `--stgm-sidebar` luminance gap so the left sidebar blends better with the single-canvas main content area.
 
 ## Context for Resume
 
-- The new SDK components (`ExecutionSummary`, `ContextWindowMeter`, `WorkspaceSummary`) render content without card chrome — the consumer (SessionPage) must wrap them in card containers
-- `ExecutionDetails` still exists and is backward compatible — it now composes `ContextWindowMeter` and `WorkspaceSummary` internally
-- `ExecutionSummary` is NOT composed inside `ExecutionDetails` — their visual structures differ (compact vs. sectioned)
-- Shared formatters live in `execution-format.ts` (internal, not exported from barrel)
-- The `activeExecution` memo was removed from SessionPage in Phase 1 — Phase 3 must reintroduce execution selection logic
-- `useSessionConversation` already provides `activeStreamExecution` and `session` — these are the data sources for the widgets
-- Workspace entries come from `session.spec.workspaceEntries` (protobuf `WorkspaceEntry` type, different from the SDK's local `WorkspaceEntry` in `useWorkspaceEntries.ts`)
+- SessionPage now uses a two-area flex layout: `div.flex.min-h-0.flex-1` wrapping MessageThread and aside
+- MessageThread has `min-w-0 flex-1`, aside has `hidden lg:flex w-60 shrink-0`
+- Widget cards use `rounded-lg border border-border bg-card p-3` wrapper — widgets render chrome-free content
+- `displayExecution` memo: `activeStreamExecution ?? completedExecutions[last]` — shows final metrics even after execution completes
+- Workspace entries derived from `conv.session?.spec?.workspaceEntries`
+- FollowUpInput override: `className="border-t-0 bg-transparent"` via tailwind-merge
+- No panel chrome on the widget column — no border-l, no separate background, no header/close button
+- `ExecutionDetails` still available in SDK for backward compat — not used in SessionPage
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 3" - Start the next phase
+- "Continue with Phase 4" - Start the next phase
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
