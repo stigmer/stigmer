@@ -176,11 +176,14 @@ func (s *resolveDefaultAgentInstanceStep) Execute(ctx *pipeline.RequestContext[*
 			Msg("Created default instance for default agent")
 	}
 
-	// 3. Set agent_instance_id on the session
-	if sess.Spec == nil {
-		sess.Spec = &sessionv1.SessionSpec{}
+	// 3. Set agent_instance_id on the session's newState (not input).
+	// The pipeline clones input into newState at construction; Persist saves newState.
+	// Mutating input does NOT propagate to newState, so we must set it here.
+	newState := ctx.NewState()
+	if newState.Spec == nil {
+		newState.Spec = &sessionv1.SessionSpec{}
 	}
-	sess.Spec.AgentInstanceId = defaultInstanceID
+	newState.Spec.AgentInstanceId = defaultInstanceID
 
 	log.Info().
 		Str("agent_instance_id", defaultInstanceID).
