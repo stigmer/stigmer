@@ -3,12 +3,16 @@
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useContextPanelOpen } from "./use-layout-state";
+import {
+  useContextPanelOpen,
+  useContextPanelSlotContent,
+} from "./use-layout-state";
 
 export const CONTEXT_PANEL_WIDTH = 320;
 
-export function ContextPanel({ children }: { children?: React.ReactNode }) {
+export function ContextPanel() {
   const panel = useContextPanelOpen();
+  const slotContent = useContextPanelSlotContent();
 
   if (!panel.isOpen) return null;
 
@@ -32,7 +36,7 @@ export function ContextPanel({ children }: { children?: React.ReactNode }) {
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-3">{children}</div>
+        <div className="p-3">{slotContent}</div>
       </ScrollArea>
     </aside>
   );

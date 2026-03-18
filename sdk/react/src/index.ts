@@ -67,6 +67,7 @@ export {
   MessageEntry,
   MessageThread,
   FollowUpInput,
+  ExecutionDetails,
 } from "./execution";
 export type {
   CreateAgentExecutionInput,
@@ -81,6 +82,7 @@ export type {
   MessageEntryProps,
   MessageThreadProps,
   FollowUpInputProps,
+  ExecutionDetailsProps,
 } from "./execution";
 
 // GitHub — OAuth connection, repo picker, and hooks
