@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"sort"
 
 	"github.com/rs/zerolog/log"
 	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
@@ -100,11 +101,22 @@ func (s *listAllSessionsStep) Execute(ctx *pipeline.RequestContext[*sessionv1.Li
 		sessions = append(sessions, session)
 	}
 
+	sort.Slice(sessions, func(i, j int) bool {
+		ti := sessions[i].GetStatus().GetAudit().GetSpecAudit().GetCreatedAt()
+		tj := sessions[j].GetStatus().GetAudit().GetSpecAudit().GetCreatedAt()
+		if ti == nil || tj == nil {
+			return ti != nil
+		}
+		if ti.GetSeconds() != tj.GetSeconds() {
+			return ti.GetSeconds() > tj.GetSeconds()
+		}
+		return ti.GetNanos() > tj.GetNanos()
+	})
+
 	log.Info().
 		Int("count", len(sessions)).
 		Msg("Loaded sessions from database")
 
-	// Build response and store in context
 	sessionList := &sessionv1.SessionList{
 		Entries: sessions,
 	}

@@ -47,6 +47,12 @@ export interface UseSessionConversationReturn {
   ) => Promise<void>;
   /** Set of tool call IDs currently being submitted for approval. */
   readonly submittingApprovalIds: ReadonlySet<string>;
+  /**
+   * Tool call IDs that have been submitted and should be hidden from
+   * the approval UI. Pass to {@link MessageThread.dismissedApprovalIds}
+   * for optimistic removal.
+   */
+  readonly dismissedApprovalIds: ReadonlySet<string>;
   readonly approvalError: string | null;
   readonly clearApprovalError: () => void;
 
@@ -88,6 +94,7 @@ export interface UseSessionConversationReturn {
  *         pendingUserMessage={conv.pendingUserMessage}
  *         onApprovalSubmit={conv.submitApproval}
  *         submittingApprovalIds={conv.submittingApprovalIds}
+ *         dismissedApprovalIds={conv.dismissedApprovalIds}
  *       />
  *       <FollowUpInput
  *         onSubmit={conv.sendFollowUp}
@@ -130,6 +137,9 @@ export function useSessionConversation(
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(
     null,
   );
+  const [dismissedApprovalIds, setDismissedApprovalIds] = useState<
+    ReadonlySet<string>
+  >(new Set());
 
   const listActiveId = useMemo(() => {
     for (let i = executions.length - 1; i >= 0; i--) {
@@ -144,6 +154,10 @@ export function useSessionConversation(
   const activeExecutionId = pendingExecutionId ?? listActiveId;
 
   const stream = useExecutionStream(activeExecutionId);
+
+  useEffect(() => {
+    setDismissedApprovalIds(new Set());
+  }, [activeExecutionId]);
 
   // Clear pendingExecutionId once the execution appears in the fetched list
   useEffect(() => {
@@ -209,10 +223,11 @@ export function useSessionConversation(
     [sessionId, org, create, refetch],
   );
 
-  const pendingApprovals = useMemo<readonly PendingApproval[]>(
-    () => activeStreamExecution?.status?.pendingApprovals ?? [],
-    [activeStreamExecution],
-  );
+  const pendingApprovals = useMemo<readonly PendingApproval[]>(() => {
+    const all = activeStreamExecution?.status?.pendingApprovals ?? [];
+    if (dismissedApprovalIds.size === 0) return all;
+    return all.filter((a) => !dismissedApprovalIds.has(a.toolCallId));
+  }, [activeStreamExecution, dismissedApprovalIds]);
 
   const submitApproval = useCallback(
     async (
@@ -222,6 +237,11 @@ export function useSessionConversation(
     ): Promise<void> => {
       if (!activeExecutionId) return;
       await rawSubmitApproval(activeExecutionId, toolCallId, action, comment);
+      setDismissedApprovalIds((prev) => {
+        const next = new Set(prev);
+        next.add(toolCallId);
+        return next;
+      });
     },
     [activeExecutionId, rawSubmitApproval],
   );
@@ -247,6 +267,7 @@ export function useSessionConversation(
     pendingApprovals,
     submitApproval,
     submittingApprovalIds: submittingToolCallIds,
+    dismissedApprovalIds,
     approvalError,
     clearApprovalError,
 

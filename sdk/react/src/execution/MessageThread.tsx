@@ -56,6 +56,13 @@ export interface MessageThreadProps {
    * `onApprovalSubmit` is provided.
    */
   readonly submittingApprovalIds?: ReadonlySet<string>;
+  /**
+   * Tool call IDs to exclude from the approval list. Used for
+   * optimistic removal after a decision has been submitted --
+   * the card disappears immediately without waiting for the next
+   * stream snapshot. Managed by {@link useSessionConversation}.
+   */
+  readonly dismissedApprovalIds?: ReadonlySet<string>;
 }
 
 const AUTO_SCROLL_THRESHOLD_PX = 80;
@@ -78,6 +85,7 @@ function buildThreadItems(
   activeStreamExecution: AgentExecution | null | undefined,
   pendingUserMessage: string | null | undefined,
   includeApprovals: boolean,
+  dismissedApprovalIds: ReadonlySet<string> | undefined,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
   const allExecutions = activeStreamExecution
@@ -127,12 +135,14 @@ function buildThreadItems(
   }
 
   if (includeApprovals) {
-    const pendingApprovals = lastExec?.status?.pendingApprovals ?? [];
-    for (let ai = 0; ai < pendingApprovals.length; ai++) {
+    const allApprovals = lastExec?.status?.pendingApprovals ?? [];
+    for (let ai = 0; ai < allApprovals.length; ai++) {
+      const approval = allApprovals[ai];
+      if (dismissedApprovalIds?.has(approval.toolCallId)) continue;
       items.push({
         kind: "approval-request",
-        pendingApproval: pendingApprovals[ai],
-        key: `approval-${pendingApprovals[ai].toolCallId || ai}`,
+        pendingApproval: approval,
+        key: `approval-${approval.toolCallId || ai}`,
       });
     }
   }
@@ -179,14 +189,15 @@ export function MessageThread({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
+  dismissedApprovalIds,
 }: MessageThreadProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
 
   const includeApprovals = onApprovalSubmit != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals),
-    [executions, activeStreamExecution, pendingUserMessage, includeApprovals],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, dismissedApprovalIds),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, dismissedApprovalIds],
   );
 
   const handleScroll = useCallback(() => {
@@ -202,8 +213,6 @@ export function MessageThread({
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [items]);
-
-  if (items.length === 0) return null;
 
   return (
     <div

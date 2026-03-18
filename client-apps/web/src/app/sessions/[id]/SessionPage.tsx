@@ -107,6 +107,7 @@ export default function SessionPage() {
         pendingUserMessage={conv.pendingUserMessage}
         onApprovalSubmit={conv.submitApproval}
         submittingApprovalIds={conv.submittingApprovalIds}
+        dismissedApprovalIds={conv.dismissedApprovalIds}
         className="flex-1"
       />
       {conv.streamError && (
