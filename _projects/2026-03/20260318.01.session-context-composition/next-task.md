@@ -68,36 +68,53 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-18 12:40
-**Current Task**: T01.2 (Stub Regeneration)
-**Status**: In Progress
+**Current Task**: T01.9 complete — all UI tasks done
+**Status**: In Progress — T01.1-T01.9 complete, pending visual QA and end-to-end testing
 
-## Session Progress (2026-03-18)
+## Session Progress (2026-03-18, Session 4)
+
+- Completed T01.7 + T01.8 + T01.9 together via unified approach:
+  - Created internal `_useResourceSearch` hook (`sdk/react/src/search/`) — generic debounced search with loading/error states and `AbortController` cancellation
+  - Created `useMcpServerSearch` hook + `McpServerPicker` component (`sdk/react/src/mcp-server/`)
+  - Created `useSkillSearch` hook + `SkillPicker` component (`sdk/react/src/skill/`)
+  - Refactored `SessionComposer` to unified popover-based UX: toolbar trigger buttons, `@base-ui/react/popover` containers, removable chip display for selected items, workspace moved from inline to popover
+  - Updated `sdk/react/src/index.ts` with barrel exports for new modules
+  - Wired MCP/skill state into `SessionLauncher` (new sessions) and `SessionPage` (follow-up messages) in `client-apps/web`
+  - Typecheck and build verification passed for both `sdk/react` and `client-apps/web`
+
+## Prior Session Progress (2026-03-18, Sessions 1-3)
 
 - Completed T01.1: Added `mcp_server_usages` (field 7) and `skill_refs` (field 8) to `SessionSpec` proto
-- Reused `McpServerUsage` from agent spec for consistent ubiquitous language
-- Added CEL validation matching `AgentSpec` patterns (session-prefixed rule IDs)
-- `buf lint` passes cleanly
-- File modified: `apis/ai/stigmer/agentic/session/v1/spec.proto`
+- Completed T01.2: Regenerated Go, Java, TypeScript proto stubs
+- Completed T01.3: TypeScript SDK codegen — `SessionInput` includes `mcpServerUsages` and `skillRefs` with builder functions
+- Completed T01.4: Go backend verification — `NormalizeReferencesStep` auto-discovers nested refs via proto reflection. Zero code changes.
+- Completed T01.5: Java backend verification — `NormalizeApiResourceReferencesStepV2` same recursive pattern. Zero code changes.
+- Completed T01.6: React SDK hook update — `useCreateSession` accepts MCP/skill fields, `sendFollowUp` refactored to options-object pattern (`SendFollowUpOptions`), `useSessionConversation` exposes `mcpServerUsages` and `skillRefs` read-only arrays, `buildUpdateInput` supports independent overrides for all three session-level collections. Commit `136ec8d9`.
 
 ## Next Steps
 
-1. **T01.2: Stub Regeneration** — Regenerate Go, Java, TypeScript proto stubs from the updated proto
-2. **T01.3/T01.4/T01.5 (parallel)** — TypeScript SDK codegen, Go backend verification, Java backend verification
-3. **T01.6** — React SDK `useCreateSession` hook update
-4. **T01.7/T01.8 (parallel)** — MCP Server Picker and Skill Picker components
-5. **T01.9** — Web Console SessionLauncher integration
+1. **Visual QA** — open the web console, create sessions with MCP servers and skills, verify popover positioning, chip rendering, and removal behavior
+2. **End-to-end testing** — confirm `createSession` and `sendFollowUp` correctly pass MCP/skill context to backend
+3. **Theme token review** — ensure all new components respect `--stgm-*` tokens across light/dark themes
+4. **Accessibility pass** — keyboard navigation in pickers, focus management in popovers, screen reader labels
 
 ## Context for Resume
 
 - Branch: `feat/session-first-web-ux`
-- The plan proposed `mcp_server_usages` without CEL validation, but we added it to match `AgentSpec` consistency — session-level fields mirror agent-level validation exactly
-- CEL rule IDs use `session_` prefix to avoid collision with agent-level rule IDs
-- No circular import issue: session imports agent spec (leaf types only)
+- All UI components are SDK-first in `@stigmer/react`, zero Console dependencies
+- `_useResourceSearch` is internal (prefixed with underscore) — not exported from the package
+- `McpServerPicker` and `SkillPicker` are exported alongside their hooks for platform builder use
+- Popover uses `@base-ui/react/popover` with `align="start"` (not `alignment` — the latter is not a valid prop)
+- Presence of `onChange` callbacks implicitly enables corresponding picker — no extra boolean props needed
+- `displayNames` state in `SessionComposer` caches human-readable names for chips to avoid re-fetching
+- The plan proposed `mcp_server_usages` without CEL validation, but we added it to match `AgentSpec` consistency
+- Both Go and Java normalization steps use proto reflection with recursive traversal — zero backend code changes needed
+- Mid-conversation MCP/skill changes are supported via `sendFollowUp` options-object pattern
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.2" - Start stub regeneration
+- "Run visual QA" - Test the popovers and chips in the web console
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

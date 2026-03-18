@@ -18,6 +18,7 @@ import {
   SessionComposer,
   ExecutionProgress,
 } from "@stigmer/react";
+import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDeploymentMode } from "@/hooks/useDeploymentMode";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,8 @@ export default function SessionPage() {
   const deploymentMode = useDeploymentMode();
   const gitHubConnection = useGitHubConnection();
   const workspace = useWorkspaceEntries();
+  const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
+  const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const initialSyncDone = useRef(false);
 
   useEffect(() => {
@@ -75,9 +78,11 @@ export default function SessionPage() {
         workspaceEntries: workspace.hasEntries
           ? workspace.toInput()
           : undefined,
+        mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
+        skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
       });
     },
-    [conv, modelId, workspace],
+    [conv, modelId, workspace, mcpServerUsages, skillRefs],
   );
 
   const displayExecution = useMemo(() => {
@@ -122,6 +127,7 @@ export default function SessionPage() {
               onSubmit={handleSubmit}
               isSubmitting={conv.isSending}
               disabled={!conv.canSendFollowUp}
+              org={org}
               defaultModelId={modelId}
               onModelChange={setModelId}
               workspace={workspace}
@@ -129,6 +135,10 @@ export default function SessionPage() {
               enableGitHub
               enableLocal={deploymentMode === "local"}
               enableFolderBrowser={deploymentMode === "local"}
+              mcpServerUsages={mcpServerUsages}
+              onMcpServerUsagesChange={setMcpServerUsages}
+              skillRefs={skillRefs}
+              onSkillRefsChange={setSkillRefs}
               className="px-4 py-3"
             />
           </div>

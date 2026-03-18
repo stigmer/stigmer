@@ -110,6 +110,28 @@ export type {
   SessionComposerProps,
 } from "./composer";
 
+// MCP Server — search hook and picker component
+export {
+  useMcpServerSearch,
+  McpServerPicker,
+} from "./mcp-server";
+export type {
+  UseMcpServerSearchOptions,
+  UseMcpServerSearchReturn,
+  McpServerPickerProps,
+} from "./mcp-server";
+
+// Skill — search hook and picker component
+export {
+  useSkillSearch,
+  SkillPicker,
+} from "./skill";
+export type {
+  UseSkillSearchOptions,
+  UseSkillSearchReturn,
+  SkillPickerProps,
+} from "./skill";
+
 // GitHub — OAuth connection, repo picker, and hooks
 export {
   useGitHubConnection,
