@@ -16,20 +16,18 @@ export default function GitHubCallbackPage() {
   const searchParams = useSearchParams();
   const { handleCallback } = useGitHubConnection();
 
-  const [error, setError] = useState<string | null>(null);
+  const code = searchParams.get("code");
+  const state = searchParams.get("state");
+  const missingParams = !code || !state;
+
+  const [error, setError] = useState<string | null>(
+    missingParams ? "Missing authorization code or state parameter" : null,
+  );
   const attempted = useRef(false);
 
   useEffect(() => {
-    if (attempted.current) return;
+    if (missingParams || attempted.current) return;
     attempted.current = true;
-
-    const code = searchParams.get("code");
-    const state = searchParams.get("state");
-
-    if (!code || !state) {
-      setError("Missing authorization code or state parameter");
-      return;
-    }
 
     const redirectUri = `${window.location.origin}/auth/github/callback`;
 
@@ -44,7 +42,7 @@ export default function GitHubCallbackPage() {
             : "Failed to connect GitHub account",
         );
       });
-  }, [searchParams, handleCallback, router]);
+  }, [code, state, missingParams, handleCallback, router]);
 
   if (error) {
     return (

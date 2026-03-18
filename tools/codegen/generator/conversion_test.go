@@ -152,7 +152,7 @@ func TestGenFromProtoField(t *testing.T) {
 			},
 		},
 		{
-			name: "map_nil_key_value",
+			name:  "map_nil_key_value",
 			field: field("Data", "data", "data", TypeSpec{Kind: "map"}),
 			ctx:   newGenContext("gen"),
 			contains: []string{
@@ -173,7 +173,7 @@ func TestGenFromProtoField(t *testing.T) {
 			},
 		},
 		{
-			name: "message_local",
+			name:  "message_local",
 			field: field("Config", "config", "config", TypeSpec{Kind: "message", MessageType: "WorkflowTask"}),
 			ctx:   newGenContext("gen"),
 			contains: []string{
@@ -182,7 +182,7 @@ func TestGenFromProtoField(t *testing.T) {
 			},
 		},
 		{
-			name: "message_shared",
+			name:  "message_shared",
 			field: field("Endpoint", "endpoint", "endpoint", TypeSpec{Kind: "message", MessageType: "HttpEndpoint"}),
 			ctx:   newGenContextWithSharedTypes("gen", []string{"HttpEndpoint"}),
 			contains: []string{
@@ -191,7 +191,7 @@ func TestGenFromProtoField(t *testing.T) {
 			},
 		},
 		{
-			name: "message_well_known_timestamp",
+			name:  "message_well_known_timestamp",
 			field: field("CreatedAt", "createdAt", "created_at", TypeSpec{Kind: "message", MessageType: "Timestamp"}),
 			ctx:   newGenContext("gen"),
 			contains: []string{
@@ -263,7 +263,7 @@ func TestGenFromProtoField(t *testing.T) {
 			},
 		},
 		{
-			name: "array_nil_element",
+			name:  "array_nil_element",
 			field: field("Items", "items", "items", TypeSpec{Kind: "array"}),
 			ctx:   newGenContext("gen"),
 			contains: []string{
@@ -1018,7 +1018,7 @@ func TestEmitNestedToProto(t *testing.T) {
 		}
 		emitted := make(map[string]bool)
 		var buf bytes.Buffer
-		emitNestedToProto(&buf, f, "sessionv1", typeMap, emitted, "SessionSpec")
+		emitNestedToProto(&buf, f, "sessionv1", typeMap, emitted, "SessionSpec", make(map[string]bool))
 		got := buf.String()
 
 		mustContain(t, got, `func (i *WorkspaceEntryInput) toProto() *sessionv1.WorkspaceEntry`)
@@ -1041,7 +1041,7 @@ func TestEmitNestedToProto(t *testing.T) {
 		}
 		emitted := make(map[string]bool)
 		var buf bytes.Buffer
-		emitNestedToProto(&buf, f, "taskv1", typeMap, emitted, "TaskSpec")
+		emitNestedToProto(&buf, f, "taskv1", typeMap, emitted, "TaskSpec", make(map[string]bool))
 		got := buf.String()
 
 		mustContain(t, got, `func (i *WorkflowTaskInput) toProto() *taskv1.WorkflowTask`)
@@ -1066,7 +1066,7 @@ func TestEmitNestedToProto(t *testing.T) {
 		}
 		emitted := make(map[string]bool)
 		var buf bytes.Buffer
-		emitNestedToProto(&buf, f, "testv1", typeMap, emitted, "TestSpec")
+		emitNestedToProto(&buf, f, "testv1", typeMap, emitted, "TestSpec", make(map[string]bool))
 		got := buf.String()
 
 		mustContain(t, got, `Ref: i.Ref.toProto(),`)
@@ -1088,7 +1088,7 @@ func TestEmitNestedToProto(t *testing.T) {
 		}
 		emitted := make(map[string]bool)
 		var buf bytes.Buffer
-		emitNestedToProto(&buf, f, "testv1", typeMap, emitted, "TestSpec")
+		emitNestedToProto(&buf, f, "testv1", typeMap, emitted, "TestSpec", make(map[string]bool))
 		got := buf.String()
 
 		mustContain(t, got, `p.Ref = i.Ref.toProto()`)
@@ -1100,7 +1100,7 @@ func TestEmitNestedToProto(t *testing.T) {
 				f := field("Spec", "spec", "spec",
 					TypeSpec{Kind: "message", MessageType: specialType})
 				var buf bytes.Buffer
-				emitNestedToProto(&buf, f, "testv1", map[string]*TypeSchema{}, make(map[string]bool), "TestSpec")
+				emitNestedToProto(&buf, f, "testv1", map[string]*TypeSchema{}, make(map[string]bool), "TestSpec", make(map[string]bool))
 				if buf.String() != "" {
 					t.Errorf("expected no output for special type %s, got:\n%s", specialType, buf.String())
 				}
@@ -1120,7 +1120,7 @@ func TestEmitNestedToProto(t *testing.T) {
 			}},
 		}
 		var buf bytes.Buffer
-		emitNestedToProto(&buf, f, "testv1", typeMap, make(map[string]bool), "TestSpec")
+		emitNestedToProto(&buf, f, "testv1", typeMap, make(map[string]bool), "TestSpec", make(map[string]bool))
 		if buf.String() != "" {
 			t.Errorf("expected no output for oneof field, got:\n%s", buf.String())
 		}
@@ -1136,7 +1136,7 @@ func TestEmitNestedToProto(t *testing.T) {
 		}
 		emitted := map[string]bool{"SomeType_toProto": true}
 		var buf bytes.Buffer
-		emitNestedToProto(&buf, f, "testv1", typeMap, emitted, "TestSpec")
+		emitNestedToProto(&buf, f, "testv1", typeMap, emitted, "TestSpec", make(map[string]bool))
 		if buf.String() != "" {
 			t.Errorf("expected no output for already-emitted type, got:\n%s", buf.String())
 		}
@@ -1146,7 +1146,7 @@ func TestEmitNestedToProto(t *testing.T) {
 		f := field("Config", "config", "config",
 			TypeSpec{Kind: "message", MessageType: "NonExistent"})
 		var buf bytes.Buffer
-		emitNestedToProto(&buf, f, "testv1", map[string]*TypeSchema{}, make(map[string]bool), "TestSpec")
+		emitNestedToProto(&buf, f, "testv1", map[string]*TypeSchema{}, make(map[string]bool), "TestSpec", make(map[string]bool))
 		if buf.String() != "" {
 			t.Errorf("expected no output for unknown type, got:\n%s", buf.String())
 		}
@@ -1167,7 +1167,7 @@ func TestEmitNestedToProto(t *testing.T) {
 		}
 		emitted := make(map[string]bool)
 		var buf bytes.Buffer
-		emitNestedToProto(&buf, f, "orderv1", typeMap, emitted, "OrderSpec")
+		emitNestedToProto(&buf, f, "orderv1", typeMap, emitted, "OrderSpec", make(map[string]bool))
 		got := buf.String()
 
 		mustContain(t, got, `func (i *LineItemInput) toProto() *orderv1.LineItem`)
@@ -1192,7 +1192,7 @@ func TestEmitNestedToProto(t *testing.T) {
 		}
 		emitted := make(map[string]bool)
 		var buf bytes.Buffer
-		emitNestedToProto(&buf, f, "svcv1", typeMap, emitted, "SvcSpec")
+		emitNestedToProto(&buf, f, "svcv1", typeMap, emitted, "SvcSpec", make(map[string]bool))
 		got := buf.String()
 
 		mustContain(t, got, `func (i *ServerConfigInput) toProto() *svcv1.ServerConfig`)
@@ -1201,7 +1201,7 @@ func TestEmitNestedToProto(t *testing.T) {
 	t.Run("scalar_field_no_output", func(t *testing.T) {
 		f := field("Name", "name", "name", TypeSpec{Kind: "string"})
 		var buf bytes.Buffer
-		emitNestedToProto(&buf, f, "testv1", map[string]*TypeSchema{}, make(map[string]bool), "TestSpec")
+		emitNestedToProto(&buf, f, "testv1", map[string]*TypeSchema{}, make(map[string]bool), "TestSpec", make(map[string]bool))
 		if buf.String() != "" {
 			t.Errorf("expected no output for scalar field, got:\n%s", buf.String())
 		}
@@ -1228,7 +1228,7 @@ func TestEmitNestedToProto(t *testing.T) {
 		}
 		emitted := make(map[string]bool)
 		var buf bytes.Buffer
-		emitNestedToProto(&buf, f, "testv1", typeMap, emitted, "TestSpec")
+		emitNestedToProto(&buf, f, "testv1", typeMap, emitted, "TestSpec", make(map[string]bool))
 		got := buf.String()
 
 		mustContain(t, got, `func (i *OuterTypeInput) toProto()`)

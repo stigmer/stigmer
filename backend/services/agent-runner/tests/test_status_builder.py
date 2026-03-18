@@ -772,16 +772,16 @@ class TestToolCallStatus:
             "metadata": {}
         })
         
-        # Find the tool message
-        tool_message = None
+        # Tool calls are attached to a parent AI message
+        parent_ai = None
         for msg in status_builder.current_status.messages:
-            if msg.type == MessageType.MESSAGE_TOOL:
-                tool_message = msg
+            if msg.type == MessageType.MESSAGE_AI:
+                parent_ai = msg
                 break
         
-        assert tool_message is not None
-        assert len(tool_message.tool_calls) == 1
-        assert tool_message.tool_calls[0].status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert parent_ai is not None
+        assert len(parent_ai.tool_calls) == 1
+        assert parent_ai.tool_calls[0].status == ToolCallStatus.TOOL_CALL_RUNNING
         
         # End the tool
         await status_builder.process_event({
@@ -793,7 +793,7 @@ class TestToolCallStatus:
         })
         
         # Verify status updated in messages list too
-        assert tool_message.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert parent_ai.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
 
     @pytest.mark.asyncio
     async def test_tool_status_in_tool_calls_list(self, status_builder):
@@ -5572,15 +5572,15 @@ class TestRunIdAliasResolution:
         )
         mock_initial_status.tool_calls.append(existing_tc)
 
-        # Also add a message with the tool call (mirrors real status structure).
-        tool_msg = AgentMessage(type=MessageType.MESSAGE_TOOL)
-        tool_msg.tool_calls.append(ToolCall(
+        # Also add a parent AI message with the tool call (mirrors real status structure).
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.append(ToolCall(
             id=original_run_id,
             name="write",
             args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
         ))
-        mock_initial_status.messages.append(tool_msg)
+        mock_initial_status.messages.append(ai_msg)
 
         builder = StatusBuilder("exec-alias-2", mock_initial_status)
         builder.populate_fingerprints_from_existing_tool_calls()
@@ -5607,7 +5607,7 @@ class TestRunIdAliasResolution:
         assert mock_initial_status.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
         assert mock_initial_status.tool_calls[0].result == "File written successfully"
 
-        # The message's embedded tool call should also be COMPLETED.
+        # The AI message's embedded tool call should also be COMPLETED.
         assert mock_initial_status.messages[0].tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
 
     @pytest.mark.asyncio
@@ -5824,7 +5824,8 @@ class TestNativeThinkingTranslation:
 
     @pytest.mark.asyncio
     async def test_thinking_blocks_not_added_to_ai_message(self, status_builder):
-        """Test that thinking content blocks create a streaming ToolCall, not an AI message."""
+        """Test that thinking content blocks create a streaming ToolCall attached
+        to a parent AI message (with no text content)."""
         chunk = MagicMock()
         chunk.content = [{"type": "thinking", "thinking": "Let me analyze this..."}]
 
@@ -5836,10 +5837,17 @@ class TestNativeThinkingTranslation:
 
         await status_builder.process_event(event)
 
-        assert len(status_builder.current_status.messages) == 0
+        # A parent AI message is created (no text content) to hold the ToolCall.
+        assert len(status_builder.current_status.messages) == 1
+        parent_ai = status_builder.current_status.messages[0]
+        assert parent_ai.type == MessageType.MESSAGE_AI
+        assert parent_ai.content == ""
+        assert len(parent_ai.tool_calls) == 1
+        assert parent_ai.tool_calls[0].name == "think"
+
         assert status_builder._thinking_buffers.get("") == "Let me analyze this..."
 
-        # A streaming ToolCall should exist
+        # A streaming ToolCall should exist in the flat list
         assert len(status_builder.current_status.tool_calls) == 1
         tc = status_builder.current_status.tool_calls[0]
         assert tc.name == "think"
@@ -5910,9 +5918,10 @@ class TestNativeThinkingTranslation:
         assert tc.is_streaming is False
         assert tc.id.startswith("think-native-")
 
-        # Text should still create an AI message
-        assert len(status_builder.current_status.messages) == 1
-        assert status_builder.current_status.messages[0].content == "The answer is 42."
+        # Thinking created a parent AI message (no text), text created another
+        assert len(status_builder.current_status.messages) == 2
+        assert status_builder.current_status.messages[0].content == ""
+        assert status_builder.current_status.messages[1].content == "The answer is 42."
 
     @pytest.mark.asyncio
     async def test_thinking_buffer_flushed_on_chat_model_end(self, status_builder):
