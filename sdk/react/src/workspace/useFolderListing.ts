@@ -22,6 +22,8 @@ export interface UseFolderListingReturn {
   /** Whether the /api/fs/list endpoint is available. Null until first fetch. */
   readonly isAvailable: boolean | null;
   readonly browse: (path: string) => void;
+  /** Clears the current error without navigating. */
+  readonly clearError: () => void;
 }
 
 const MAX_CACHE_SIZE = 32;
@@ -118,5 +120,7 @@ export function useFolderListing(
     [fetchListing],
   );
 
-  return { listing, isLoading, error, isAvailable, browse };
+  const clearError = useCallback(() => setError(null), []);
+
+  return { listing, isLoading, error, isAvailable, browse, clearError };
 }

@@ -5,7 +5,6 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useMemo,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -106,16 +105,16 @@ export function useContextPanelOpen() {
 
 // ---------------------------------------------------------------------------
 // Context panel slot — lets pages inject content into the layout-level panel
+//
+// Split into two contexts so that writers (useContextPanelSlot) don't
+// re-render when the content they just set causes the value to change.
+// Only readers (useContextPanelSlotContent) subscribe to content updates.
 // ---------------------------------------------------------------------------
 
-interface ContextPanelSlotState {
-  readonly content: ReactNode | null;
-  readonly setContent: (content: ReactNode | null) => void;
-}
+type SetSlotContent = (content: ReactNode | null) => void;
 
-const ContextPanelSlotContext = createContext<ContextPanelSlotState | null>(
-  null,
-);
+const SlotSetterContext = createContext<SetSlotContent | null>(null);
+const SlotContentContext = createContext<ReactNode | null>(null);
 
 export function ContextPanelSlotProvider({
   children,
@@ -124,15 +123,12 @@ export function ContextPanelSlotProvider({
 }) {
   const [content, setContent] = useState<ReactNode | null>(null);
 
-  const value = useMemo(
-    () => ({ content, setContent }),
-    [content],
-  );
-
   return (
-    <ContextPanelSlotContext.Provider value={value}>
-      {children}
-    </ContextPanelSlotContext.Provider>
+    <SlotSetterContext.Provider value={setContent}>
+      <SlotContentContext.Provider value={content}>
+        {children}
+      </SlotContentContext.Provider>
+    </SlotSetterContext.Provider>
   );
 }
 
@@ -143,8 +139,8 @@ export function ContextPanelSlotProvider({
  * automatically cleared when the calling component unmounts.
  */
 export function useContextPanelSlot(content: ReactNode | null): void {
-  const ctx = useContext(ContextPanelSlotContext);
-  if (!ctx) {
+  const setContent = useContext(SlotSetterContext);
+  if (!setContent) {
     throw new Error(
       "useContextPanelSlot must be used within ContextPanelSlotProvider — " +
         "ensure AppShell wraps this component tree.",
@@ -152,10 +148,9 @@ export function useContextPanelSlot(content: ReactNode | null): void {
   }
 
   useEffect(() => {
-    ctx.setContent(content);
-    return () => ctx.setContent(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content]);
+    setContent(content);
+    return () => setContent(null);
+  }, [content, setContent]);
 }
 
 /**
@@ -163,6 +158,5 @@ export function useContextPanelSlot(content: ReactNode | null): void {
  * to render whatever the active page has registered.
  */
 export function useContextPanelSlotContent(): ReactNode | null {
-  const ctx = useContext(ContextPanelSlotContext);
-  return ctx?.content ?? null;
+  return useContext(SlotContentContext);
 }
