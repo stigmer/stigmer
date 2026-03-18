@@ -8,7 +8,8 @@ GO_MODULES := \
 	backend/services/workflow-runner \
 	client-apps/cli \
 	mcp-server \
-	sdk/go
+	sdk/go \
+	tools
 
 AGENT_RUNNER_DIR := backend/services/agent-runner
 

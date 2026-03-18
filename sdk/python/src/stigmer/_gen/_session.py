@@ -14,6 +14,7 @@ from ai.stigmer.agentic.session.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 
 from ._errors import wrap_error
+from ._types import ResourceRef
 
 
 class SessionClient:
@@ -78,6 +79,8 @@ class SessionInput:
     sandbox_id: str = ""
     metadata: dict[str, str] = field(default_factory=dict)
     workspace_entries: list[WorkspaceEntryInput] = field(default_factory=list)
+    mcp_server_usages: list[McpServerUsageInput] = field(default_factory=list)
+    skill_refs: list[ResourceRef] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.Session:
         spec = spec_pb2.SessionSpec(
@@ -90,6 +93,10 @@ class SessionInput:
             spec.metadata.update(self.metadata)
         for item in self.workspace_entries:
             spec.workspace_entries.append(item._to_proto())
+        for item in self.mcp_server_usages:
+            spec.mcp_server_usages.append(item._to_proto())
+        for ref in self.skill_refs:
+            spec.skill_refs.append(ref._to_proto())
         return api_pb2.Session(
             api_version="agentic.stigmer.ai/v1",
             kind="Session",
@@ -161,6 +168,42 @@ class LocalPathSourceInput:
     def _to_proto(self) -> spec_pb2.LocalPathSource:
         msg = spec_pb2.LocalPathSource(
             path=self.path,
+        )
+        return msg
+
+
+@dataclass
+class McpServerUsageInput:
+    """SDK input type for McpServerUsage."""
+
+    mcp_server_ref: ResourceRef | None
+    enabled_tools: list[str] = field(default_factory=list)
+    tool_approval_overrides: list[ToolApprovalOverrideInput] = field(default_factory=list)
+
+    def _to_proto(self) -> spec_pb2.McpServerUsage:
+        msg = spec_pb2.McpServerUsage()
+        if self.mcp_server_ref is not None:
+            msg.mcp_server_ref.CopyFrom(self.mcp_server_ref._to_proto())
+        if self.enabled_tools:
+            msg.enabled_tools.extend(self.enabled_tools)
+        for item in self.tool_approval_overrides:
+            msg.tool_approval_overrides.append(item._to_proto())
+        return msg
+
+
+@dataclass
+class ToolApprovalOverrideInput:
+    """SDK input type for ToolApprovalOverride."""
+
+    tool_name: str = ""
+    requires_approval: bool = False
+    message: str = ""
+
+    def _to_proto(self) -> spec_pb2.ToolApprovalOverride:
+        msg = spec_pb2.ToolApprovalOverride(
+            tool_name=self.tool_name,
+            requires_approval=self.requires_approval,
+            message=self.message,
         )
         return msg
 

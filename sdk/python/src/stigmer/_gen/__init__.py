@@ -13,7 +13,7 @@ from ._identityprovider import IdentityProviderClient, IdentityProviderInput
 from ._mcpserver import McpServerClient, McpServerInput, StdioServerConfigInput, HttpServerConfigInput, ToolApprovalPolicyInput
 from ._organization import OrganizationClient, OrganizationInput
 from ._project import ProjectClient, ProjectInput
-from ._session import SessionClient, SessionInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput
+from ._session import SessionClient, SessionInput, WorkspaceEntryInput, WorkspaceSourceInput, GitRepoSourceInput, LocalPathSourceInput, McpServerUsageInput, ToolApprovalOverrideInput
 from ._skill import SkillClient, SkillInput
 from ._workflow import WorkflowClient, WorkflowInput, WorkflowDocumentInput, WorkflowTaskInput, ExportInput, FlowControlInput
 from ._workflowexecution import WorkflowExecutionClient, WorkflowExecutionInput
@@ -80,6 +80,8 @@ __all__ = [
     "WorkspaceSourceInput",
     "GitRepoSourceInput",
     "LocalPathSourceInput",
+    "McpServerUsageInput",
+    "ToolApprovalOverrideInput",
     "SkillClient",
     "SkillInput",
     "WorkflowClient",

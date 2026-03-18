@@ -74,6 +74,35 @@
       },
       "description": "Workspace entries for this session (optional, may be empty).\n\n Each entry pairs a name with a source (git repo or local path), forming\n a multi-root workspace (VS Code model). Entries are provisioned on the\n first execution; subsequent executions reuse the same workspace.\n\n When empty, the session uses an empty workspace directory\n (existing default behavior, no provisioning step).",
       "required": false
+    },
+    {
+      "name": "McpServerUsages",
+      "jsonName": "mcpServerUsages",
+      "protoField": "mcp_server_usages",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "McpServerUsage"
+        }
+      },
+      "description": "MCP servers to make available in this session (merged with agent's at execution time).\n\n Enables users to augment the agent's tool set for a specific conversation\n without modifying the agent blueprint. Each usage references an McpServer\n resource; the agent runner merges these with the agent's mcp_server_usages\n when constructing the execution graph.\n\n Merge semantics: session-level usages are union'd with agent-level usages.\n If both reference the same MCP server slug, the session-level entry takes\n precedence (enables per-session tool restriction or expansion).",
+      "required": false
+    },
+    {
+      "name": "SkillRefs",
+      "jsonName": "skillRefs",
+      "protoField": "skill_refs",
+      "type": {
+        "kind": "array",
+        "elementType": {
+          "kind": "message",
+          "messageType": "ApiResourceReference"
+        }
+      },
+      "description": "Skills to inject into this session's context (merged with agent's at execution time).\n\n Enables users to provide domain-specific knowledge for a specific conversation\n without modifying the agent blueprint. Each reference points to a Skill resource\n whose content is injected into the agent's context alongside agent-level skills.\n\n Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.",
+      "required": false,
+      "referenceKind": 43
     }
   ]
 }

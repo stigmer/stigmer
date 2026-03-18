@@ -7,6 +7,9 @@
 package sessionv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	v1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -49,8 +52,27 @@ type SessionSpec struct {
 	// When empty, the session uses an empty workspace directory
 	// (existing default behavior, no provisioning step).
 	WorkspaceEntries []*WorkspaceEntry `protobuf:"bytes,6,rep,name=workspace_entries,json=workspaceEntries,proto3" json:"workspace_entries,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// MCP servers to make available in this session (merged with agent's at execution time).
+	//
+	// Enables users to augment the agent's tool set for a specific conversation
+	// without modifying the agent blueprint. Each usage references an McpServer
+	// resource; the agent runner merges these with the agent's mcp_server_usages
+	// when constructing the execution graph.
+	//
+	// Merge semantics: session-level usages are union'd with agent-level usages.
+	// If both reference the same MCP server slug, the session-level entry takes
+	// precedence (enables per-session tool restriction or expansion).
+	McpServerUsages []*v1.McpServerUsage `protobuf:"bytes,7,rep,name=mcp_server_usages,json=mcpServerUsages,proto3" json:"mcp_server_usages,omitempty"`
+	// Skills to inject into this session's context (merged with agent's at execution time).
+	//
+	// Enables users to provide domain-specific knowledge for a specific conversation
+	// without modifying the agent blueprint. Each reference points to a Skill resource
+	// whose content is injected into the agent's context alongside agent-level skills.
+	//
+	// Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+	SkillRefs     []*apiresource.ApiResourceReference `protobuf:"bytes,8,rep,name=skill_refs,json=skillRefs,proto3" json:"skill_refs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SessionSpec) Reset() {
@@ -125,11 +147,25 @@ func (x *SessionSpec) GetWorkspaceEntries() []*WorkspaceEntry {
 	return nil
 }
 
+func (x *SessionSpec) GetMcpServerUsages() []*v1.McpServerUsage {
+	if x != nil {
+		return x.McpServerUsages
+	}
+	return nil
+}
+
+func (x *SessionSpec) GetSkillRefs() []*apiresource.ApiResourceReference {
+	if x != nil {
+		return x.SkillRefs
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_session_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a-ai/stigmer/agentic/session/v1/workspace.proto\"\xfe\x02\n" +
+	"(ai/stigmer/agentic/session/v1/spec.proto\x12\x1dai.stigmer.agentic.session.v1\x1a&ai/stigmer/agentic/agent/v1/spec.proto\x1a-ai/stigmer/agentic/session/v1/workspace.proto\x1a2ai/stigmer/commons/apiresource/field_options.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xb1\x06\n" +
 	"\vSessionSpec\x12*\n" +
 	"\x11agent_instance_id\x18\x01 \x01(\tR\x0fagentInstanceId\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
@@ -137,7 +173,12 @@ const file_ai_stigmer_agentic_session_v1_spec_proto_rawDesc = "" +
 	"\n" +
 	"sandbox_id\x18\x04 \x01(\tR\tsandboxId\x12T\n" +
 	"\bmetadata\x18\x05 \x03(\v28.ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntryR\bmetadata\x12Z\n" +
-	"\x11workspace_entries\x18\x06 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x1a;\n" +
+	"\x11workspace_entries\x18\x06 \x03(\v2-.ai.stigmer.agentic.session.v1.WorkspaceEntryR\x10workspaceEntries\x12\xea\x01\n" +
+	"\x11mcp_server_usages\x18\a \x03(\v2+.ai.stigmer.agentic.agent.v1.McpServerUsageB\x90\x01\xbaH\x8c\x01\x92\x01\x88\x01\"\x85\x01\xba\x01\x81\x01\n" +
+	"\x1esession_mcp_server_usages.kind\x12?mcp_server_usages must reference resources with kind=mcp_server\x1a\x1ethis.mcp_server_ref.kind == 44R\x0fmcpServerUsages\x12\xc3\x01\n" +
+	"\n" +
+	"skill_refs\x18\b \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBn\xbaHg\x92\x01d\"b\xba\x01_\n" +
+	"\x17session_skill_refs.kind\x123skill_refs must reference resources with kind=skill\x1a\x0fthis.kind == 43\xe0\x85,+R\tskillRefs\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\x99\x02\n" +
@@ -157,18 +198,22 @@ func file_ai_stigmer_agentic_session_v1_spec_proto_rawDescGZIP() []byte {
 
 var file_ai_stigmer_agentic_session_v1_spec_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_session_v1_spec_proto_goTypes = []any{
-	(*SessionSpec)(nil),    // 0: ai.stigmer.agentic.session.v1.SessionSpec
-	nil,                    // 1: ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
-	(*WorkspaceEntry)(nil), // 2: ai.stigmer.agentic.session.v1.WorkspaceEntry
+	(*SessionSpec)(nil),                      // 0: ai.stigmer.agentic.session.v1.SessionSpec
+	nil,                                      // 1: ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
+	(*WorkspaceEntry)(nil),                   // 2: ai.stigmer.agentic.session.v1.WorkspaceEntry
+	(*v1.McpServerUsage)(nil),                // 3: ai.stigmer.agentic.agent.v1.McpServerUsage
+	(*apiresource.ApiResourceReference)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_agentic_session_v1_spec_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.session.v1.SessionSpec.metadata:type_name -> ai.stigmer.agentic.session.v1.SessionSpec.MetadataEntry
 	2, // 1: ai.stigmer.agentic.session.v1.SessionSpec.workspace_entries:type_name -> ai.stigmer.agentic.session.v1.WorkspaceEntry
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 2: ai.stigmer.agentic.session.v1.SessionSpec.mcp_server_usages:type_name -> ai.stigmer.agentic.agent.v1.McpServerUsage
+	4, // 3: ai.stigmer.agentic.session.v1.SessionSpec.skill_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_spec_proto_init() }

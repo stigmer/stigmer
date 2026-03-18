@@ -38,6 +38,8 @@ private static final long serialVersionUID = 0L;
     threadId_ = "";
     sandboxId_ = "";
     workspaceEntries_ = java.util.Collections.emptyList();
+    mcpServerUsages_ = java.util.Collections.emptyList();
+    skillRefs_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -459,6 +461,203 @@ java.lang.String defaultValue) {
     return workspaceEntries_.get(index);
   }
 
+  public static final int MCP_SERVER_USAGES_FIELD_NUMBER = 7;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.agent.v1.McpServerUsage> mcpServerUsages_;
+  /**
+   * <pre>
+   * MCP servers to make available in this session (merged with agent's at execution time).
+   *
+   * Enables users to augment the agent's tool set for a specific conversation
+   * without modifying the agent blueprint. Each usage references an McpServer
+   * resource; the agent runner merges these with the agent's mcp_server_usages
+   * when constructing the execution graph.
+   *
+   * Merge semantics: session-level usages are union'd with agent-level usages.
+   * If both reference the same MCP server slug, the session-level entry takes
+   * precedence (enables per-session tool restriction or expansion).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.agent.v1.McpServerUsage> getMcpServerUsagesList() {
+    return mcpServerUsages_;
+  }
+  /**
+   * <pre>
+   * MCP servers to make available in this session (merged with agent's at execution time).
+   *
+   * Enables users to augment the agent's tool set for a specific conversation
+   * without modifying the agent blueprint. Each usage references an McpServer
+   * resource; the agent runner merges these with the agent's mcp_server_usages
+   * when constructing the execution graph.
+   *
+   * Merge semantics: session-level usages are union'd with agent-level usages.
+   * If both reference the same MCP server slug, the session-level entry takes
+   * precedence (enables per-session tool restriction or expansion).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder> 
+      getMcpServerUsagesOrBuilderList() {
+    return mcpServerUsages_;
+  }
+  /**
+   * <pre>
+   * MCP servers to make available in this session (merged with agent's at execution time).
+   *
+   * Enables users to augment the agent's tool set for a specific conversation
+   * without modifying the agent blueprint. Each usage references an McpServer
+   * resource; the agent runner merges these with the agent's mcp_server_usages
+   * when constructing the execution graph.
+   *
+   * Merge semantics: session-level usages are union'd with agent-level usages.
+   * If both reference the same MCP server slug, the session-level entry takes
+   * precedence (enables per-session tool restriction or expansion).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public int getMcpServerUsagesCount() {
+    return mcpServerUsages_.size();
+  }
+  /**
+   * <pre>
+   * MCP servers to make available in this session (merged with agent's at execution time).
+   *
+   * Enables users to augment the agent's tool set for a specific conversation
+   * without modifying the agent blueprint. Each usage references an McpServer
+   * resource; the agent runner merges these with the agent's mcp_server_usages
+   * when constructing the execution graph.
+   *
+   * Merge semantics: session-level usages are union'd with agent-level usages.
+   * If both reference the same MCP server slug, the session-level entry takes
+   * precedence (enables per-session tool restriction or expansion).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.McpServerUsage getMcpServerUsages(int index) {
+    return mcpServerUsages_.get(index);
+  }
+  /**
+   * <pre>
+   * MCP servers to make available in this session (merged with agent's at execution time).
+   *
+   * Enables users to augment the agent's tool set for a specific conversation
+   * without modifying the agent blueprint. Each usage references an McpServer
+   * resource; the agent runner merges these with the agent's mcp_server_usages
+   * when constructing the execution graph.
+   *
+   * Merge semantics: session-level usages are union'd with agent-level usages.
+   * If both reference the same MCP server slug, the session-level entry takes
+   * precedence (enables per-session tool restriction or expansion).
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
+      int index) {
+    return mcpServerUsages_.get(index);
+  }
+
+  public static final int SKILL_REFS_FIELD_NUMBER = 8;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_;
+  /**
+   * <pre>
+   * Skills to inject into this session's context (merged with agent's at execution time).
+   *
+   * Enables users to provide domain-specific knowledge for a specific conversation
+   * without modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is injected into the agent's context alongside agent-level skills.
+   *
+   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getSkillRefsList() {
+    return skillRefs_;
+  }
+  /**
+   * <pre>
+   * Skills to inject into this session's context (merged with agent's at execution time).
+   *
+   * Enables users to provide domain-specific knowledge for a specific conversation
+   * without modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is injected into the agent's context alongside agent-level skills.
+   *
+   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+      getSkillRefsOrBuilderList() {
+    return skillRefs_;
+  }
+  /**
+   * <pre>
+   * Skills to inject into this session's context (merged with agent's at execution time).
+   *
+   * Enables users to provide domain-specific knowledge for a specific conversation
+   * without modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is injected into the agent's context alongside agent-level skills.
+   *
+   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public int getSkillRefsCount() {
+    return skillRefs_.size();
+  }
+  /**
+   * <pre>
+   * Skills to inject into this session's context (merged with agent's at execution time).
+   *
+   * Enables users to provide domain-specific knowledge for a specific conversation
+   * without modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is injected into the agent's context alongside agent-level skills.
+   *
+   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReference getSkillRefs(int index) {
+    return skillRefs_.get(index);
+  }
+  /**
+   * <pre>
+   * Skills to inject into this session's context (merged with agent's at execution time).
+   *
+   * Enables users to provide domain-specific knowledge for a specific conversation
+   * without modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is injected into the agent's context alongside agent-level skills.
+   *
+   * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getSkillRefsOrBuilder(
+      int index) {
+    return skillRefs_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -493,6 +692,12 @@ java.lang.String defaultValue) {
         5);
     for (int i = 0; i < workspaceEntries_.size(); i++) {
       output.writeMessage(6, workspaceEntries_.get(i));
+    }
+    for (int i = 0; i < mcpServerUsages_.size(); i++) {
+      output.writeMessage(7, mcpServerUsages_.get(i));
+    }
+    for (int i = 0; i < skillRefs_.size(); i++) {
+      output.writeMessage(8, skillRefs_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -534,6 +739,24 @@ java.lang.String defaultValue) {
           }
           size += 1 * count;
         }
+
+        {
+          final int count = mcpServerUsages_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(mcpServerUsages_.get(i));
+          }
+          size += 1 * count;
+        }
+
+        {
+          final int count = skillRefs_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(skillRefs_.get(i));
+          }
+          size += 1 * count;
+        }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -561,6 +784,10 @@ java.lang.String defaultValue) {
         other.internalGetMetadata())) return false;
     if (!getWorkspaceEntriesList()
         .equals(other.getWorkspaceEntriesList())) return false;
+    if (!getMcpServerUsagesList()
+        .equals(other.getMcpServerUsagesList())) return false;
+    if (!getSkillRefsList()
+        .equals(other.getSkillRefsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -587,6 +814,14 @@ java.lang.String defaultValue) {
     if (getWorkspaceEntriesCount() > 0) {
       hash = (37 * hash) + WORKSPACE_ENTRIES_FIELD_NUMBER;
       hash = (53 * hash) + getWorkspaceEntriesList().hashCode();
+    }
+    if (getMcpServerUsagesCount() > 0) {
+      hash = (37 * hash) + MCP_SERVER_USAGES_FIELD_NUMBER;
+      hash = (53 * hash) + getMcpServerUsagesList().hashCode();
+    }
+    if (getSkillRefsCount() > 0) {
+      hash = (37 * hash) + SKILL_REFS_FIELD_NUMBER;
+      hash = (53 * hash) + getSkillRefsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -758,6 +993,20 @@ java.lang.String defaultValue) {
         workspaceEntriesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000020);
+      if (mcpServerUsagesBuilder_ == null) {
+        mcpServerUsages_ = java.util.Collections.emptyList();
+      } else {
+        mcpServerUsages_ = null;
+        mcpServerUsagesBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000040);
+      if (skillRefsBuilder_ == null) {
+        skillRefs_ = java.util.Collections.emptyList();
+      } else {
+        skillRefs_ = null;
+        skillRefsBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00000080);
       return this;
     }
 
@@ -799,6 +1048,24 @@ java.lang.String defaultValue) {
         result.workspaceEntries_ = workspaceEntries_;
       } else {
         result.workspaceEntries_ = workspaceEntriesBuilder_.build();
+      }
+      if (mcpServerUsagesBuilder_ == null) {
+        if (((bitField0_ & 0x00000040) != 0)) {
+          mcpServerUsages_ = java.util.Collections.unmodifiableList(mcpServerUsages_);
+          bitField0_ = (bitField0_ & ~0x00000040);
+        }
+        result.mcpServerUsages_ = mcpServerUsages_;
+      } else {
+        result.mcpServerUsages_ = mcpServerUsagesBuilder_.build();
+      }
+      if (skillRefsBuilder_ == null) {
+        if (((bitField0_ & 0x00000080) != 0)) {
+          skillRefs_ = java.util.Collections.unmodifiableList(skillRefs_);
+          bitField0_ = (bitField0_ & ~0x00000080);
+        }
+        result.skillRefs_ = skillRefs_;
+      } else {
+        result.skillRefs_ = skillRefsBuilder_.build();
       }
     }
 
@@ -883,6 +1150,58 @@ java.lang.String defaultValue) {
           }
         }
       }
+      if (mcpServerUsagesBuilder_ == null) {
+        if (!other.mcpServerUsages_.isEmpty()) {
+          if (mcpServerUsages_.isEmpty()) {
+            mcpServerUsages_ = other.mcpServerUsages_;
+            bitField0_ = (bitField0_ & ~0x00000040);
+          } else {
+            ensureMcpServerUsagesIsMutable();
+            mcpServerUsages_.addAll(other.mcpServerUsages_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.mcpServerUsages_.isEmpty()) {
+          if (mcpServerUsagesBuilder_.isEmpty()) {
+            mcpServerUsagesBuilder_.dispose();
+            mcpServerUsagesBuilder_ = null;
+            mcpServerUsages_ = other.mcpServerUsages_;
+            bitField0_ = (bitField0_ & ~0x00000040);
+            mcpServerUsagesBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetMcpServerUsagesFieldBuilder() : null;
+          } else {
+            mcpServerUsagesBuilder_.addAllMessages(other.mcpServerUsages_);
+          }
+        }
+      }
+      if (skillRefsBuilder_ == null) {
+        if (!other.skillRefs_.isEmpty()) {
+          if (skillRefs_.isEmpty()) {
+            skillRefs_ = other.skillRefs_;
+            bitField0_ = (bitField0_ & ~0x00000080);
+          } else {
+            ensureSkillRefsIsMutable();
+            skillRefs_.addAll(other.skillRefs_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.skillRefs_.isEmpty()) {
+          if (skillRefsBuilder_.isEmpty()) {
+            skillRefsBuilder_.dispose();
+            skillRefsBuilder_ = null;
+            skillRefs_ = other.skillRefs_;
+            bitField0_ = (bitField0_ & ~0x00000080);
+            skillRefsBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetSkillRefsFieldBuilder() : null;
+          } else {
+            skillRefsBuilder_.addAllMessages(other.skillRefs_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -951,6 +1270,32 @@ java.lang.String defaultValue) {
               }
               break;
             } // case 50
+            case 58: {
+              ai.stigmer.agentic.agent.v1.McpServerUsage m =
+                  input.readMessage(
+                      ai.stigmer.agentic.agent.v1.McpServerUsage.parser(),
+                      extensionRegistry);
+              if (mcpServerUsagesBuilder_ == null) {
+                ensureMcpServerUsagesIsMutable();
+                mcpServerUsages_.add(m);
+              } else {
+                mcpServerUsagesBuilder_.addMessage(m);
+              }
+              break;
+            } // case 58
+            case 66: {
+              ai.stigmer.commons.apiresource.ApiResourceReference m =
+                  input.readMessage(
+                      ai.stigmer.commons.apiresource.ApiResourceReference.parser(),
+                      extensionRegistry);
+              if (skillRefsBuilder_ == null) {
+                ensureSkillRefsIsMutable();
+                skillRefs_.add(m);
+              } else {
+                skillRefsBuilder_.addMessage(m);
+              }
+              break;
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1952,6 +2297,900 @@ java.lang.String defaultValue) {
         workspaceEntries_ = null;
       }
       return workspaceEntriesBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.agent.v1.McpServerUsage> mcpServerUsages_ =
+      java.util.Collections.emptyList();
+    private void ensureMcpServerUsagesIsMutable() {
+      if (!((bitField0_ & 0x00000040) != 0)) {
+        mcpServerUsages_ = new java.util.ArrayList<ai.stigmer.agentic.agent.v1.McpServerUsage>(mcpServerUsages_);
+        bitField0_ |= 0x00000040;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agent.v1.McpServerUsage, ai.stigmer.agentic.agent.v1.McpServerUsage.Builder, ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder> mcpServerUsagesBuilder_;
+
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agent.v1.McpServerUsage> getMcpServerUsagesList() {
+      if (mcpServerUsagesBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(mcpServerUsages_);
+      } else {
+        return mcpServerUsagesBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public int getMcpServerUsagesCount() {
+      if (mcpServerUsagesBuilder_ == null) {
+        return mcpServerUsages_.size();
+      } else {
+        return mcpServerUsagesBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.agent.v1.McpServerUsage getMcpServerUsages(int index) {
+      if (mcpServerUsagesBuilder_ == null) {
+        return mcpServerUsages_.get(index);
+      } else {
+        return mcpServerUsagesBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setMcpServerUsages(
+        int index, ai.stigmer.agentic.agent.v1.McpServerUsage value) {
+      if (mcpServerUsagesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureMcpServerUsagesIsMutable();
+        mcpServerUsages_.set(index, value);
+        onChanged();
+      } else {
+        mcpServerUsagesBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setMcpServerUsages(
+        int index, ai.stigmer.agentic.agent.v1.McpServerUsage.Builder builderForValue) {
+      if (mcpServerUsagesBuilder_ == null) {
+        ensureMcpServerUsagesIsMutable();
+        mcpServerUsages_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        mcpServerUsagesBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addMcpServerUsages(ai.stigmer.agentic.agent.v1.McpServerUsage value) {
+      if (mcpServerUsagesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureMcpServerUsagesIsMutable();
+        mcpServerUsages_.add(value);
+        onChanged();
+      } else {
+        mcpServerUsagesBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addMcpServerUsages(
+        int index, ai.stigmer.agentic.agent.v1.McpServerUsage value) {
+      if (mcpServerUsagesBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureMcpServerUsagesIsMutable();
+        mcpServerUsages_.add(index, value);
+        onChanged();
+      } else {
+        mcpServerUsagesBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addMcpServerUsages(
+        ai.stigmer.agentic.agent.v1.McpServerUsage.Builder builderForValue) {
+      if (mcpServerUsagesBuilder_ == null) {
+        ensureMcpServerUsagesIsMutable();
+        mcpServerUsages_.add(builderForValue.build());
+        onChanged();
+      } else {
+        mcpServerUsagesBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addMcpServerUsages(
+        int index, ai.stigmer.agentic.agent.v1.McpServerUsage.Builder builderForValue) {
+      if (mcpServerUsagesBuilder_ == null) {
+        ensureMcpServerUsagesIsMutable();
+        mcpServerUsages_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        mcpServerUsagesBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addAllMcpServerUsages(
+        java.lang.Iterable<? extends ai.stigmer.agentic.agent.v1.McpServerUsage> values) {
+      if (mcpServerUsagesBuilder_ == null) {
+        ensureMcpServerUsagesIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, mcpServerUsages_);
+        onChanged();
+      } else {
+        mcpServerUsagesBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder clearMcpServerUsages() {
+      if (mcpServerUsagesBuilder_ == null) {
+        mcpServerUsages_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000040);
+        onChanged();
+      } else {
+        mcpServerUsagesBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder removeMcpServerUsages(int index) {
+      if (mcpServerUsagesBuilder_ == null) {
+        ensureMcpServerUsagesIsMutable();
+        mcpServerUsages_.remove(index);
+        onChanged();
+      } else {
+        mcpServerUsagesBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.agent.v1.McpServerUsage.Builder getMcpServerUsagesBuilder(
+        int index) {
+      return internalGetMcpServerUsagesFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder getMcpServerUsagesOrBuilder(
+        int index) {
+      if (mcpServerUsagesBuilder_ == null) {
+        return mcpServerUsages_.get(index);  } else {
+        return mcpServerUsagesBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder> 
+         getMcpServerUsagesOrBuilderList() {
+      if (mcpServerUsagesBuilder_ != null) {
+        return mcpServerUsagesBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(mcpServerUsages_);
+      }
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.agent.v1.McpServerUsage.Builder addMcpServerUsagesBuilder() {
+      return internalGetMcpServerUsagesFieldBuilder().addBuilder(
+          ai.stigmer.agentic.agent.v1.McpServerUsage.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.agentic.agent.v1.McpServerUsage.Builder addMcpServerUsagesBuilder(
+        int index) {
+      return internalGetMcpServerUsagesFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.agent.v1.McpServerUsage.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * MCP servers to make available in this session (merged with agent's at execution time).
+     *
+     * Enables users to augment the agent's tool set for a specific conversation
+     * without modifying the agent blueprint. Each usage references an McpServer
+     * resource; the agent runner merges these with the agent's mcp_server_usages
+     * when constructing the execution graph.
+     *
+     * Merge semantics: session-level usages are union'd with agent-level usages.
+     * If both reference the same MCP server slug, the session-level entry takes
+     * precedence (enables per-session tool restriction or expansion).
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agent.v1.McpServerUsage.Builder> 
+         getMcpServerUsagesBuilderList() {
+      return internalGetMcpServerUsagesFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agent.v1.McpServerUsage, ai.stigmer.agentic.agent.v1.McpServerUsage.Builder, ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder> 
+        internalGetMcpServerUsagesFieldBuilder() {
+      if (mcpServerUsagesBuilder_ == null) {
+        mcpServerUsagesBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.agent.v1.McpServerUsage, ai.stigmer.agentic.agent.v1.McpServerUsage.Builder, ai.stigmer.agentic.agent.v1.McpServerUsageOrBuilder>(
+                mcpServerUsages_,
+                ((bitField0_ & 0x00000040) != 0),
+                getParentForChildren(),
+                isClean());
+        mcpServerUsages_ = null;
+      }
+      return mcpServerUsagesBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> skillRefs_ =
+      java.util.Collections.emptyList();
+    private void ensureSkillRefsIsMutable() {
+      if (!((bitField0_ & 0x00000080) != 0)) {
+        skillRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(skillRefs_);
+        bitField0_ |= 0x00000080;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> skillRefsBuilder_;
+
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getSkillRefsList() {
+      if (skillRefsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(skillRefs_);
+      } else {
+        return skillRefsBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public int getSkillRefsCount() {
+      if (skillRefsBuilder_ == null) {
+        return skillRefs_.size();
+      } else {
+        return skillRefsBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference getSkillRefs(int index) {
+      if (skillRefsBuilder_ == null) {
+        return skillRefs_.get(index);
+      } else {
+        return skillRefsBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setSkillRefs(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (skillRefsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSkillRefsIsMutable();
+        skillRefs_.set(index, value);
+        onChanged();
+      } else {
+        skillRefsBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder setSkillRefs(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (skillRefsBuilder_ == null) {
+        ensureSkillRefsIsMutable();
+        skillRefs_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        skillRefsBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addSkillRefs(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (skillRefsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSkillRefsIsMutable();
+        skillRefs_.add(value);
+        onChanged();
+      } else {
+        skillRefsBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addSkillRefs(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (skillRefsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureSkillRefsIsMutable();
+        skillRefs_.add(index, value);
+        onChanged();
+      } else {
+        skillRefsBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addSkillRefs(
+        ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (skillRefsBuilder_ == null) {
+        ensureSkillRefsIsMutable();
+        skillRefs_.add(builderForValue.build());
+        onChanged();
+      } else {
+        skillRefsBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addSkillRefs(
+        int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
+      if (skillRefsBuilder_ == null) {
+        ensureSkillRefsIsMutable();
+        skillRefs_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        skillRefsBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder addAllSkillRefs(
+        java.lang.Iterable<? extends ai.stigmer.commons.apiresource.ApiResourceReference> values) {
+      if (skillRefsBuilder_ == null) {
+        ensureSkillRefsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, skillRefs_);
+        onChanged();
+      } else {
+        skillRefsBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder clearSkillRefs() {
+      if (skillRefsBuilder_ == null) {
+        skillRefs_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000080);
+        onChanged();
+      } else {
+        skillRefsBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public Builder removeSkillRefs(int index) {
+      if (skillRefsBuilder_ == null) {
+        ensureSkillRefsIsMutable();
+        skillRefs_.remove(index);
+        onChanged();
+      } else {
+        skillRefsBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getSkillRefsBuilder(
+        int index) {
+      return internalGetSkillRefsFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getSkillRefsOrBuilder(
+        int index) {
+      if (skillRefsBuilder_ == null) {
+        return skillRefs_.get(index);  } else {
+        return skillRefsBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+         getSkillRefsOrBuilderList() {
+      if (skillRefsBuilder_ != null) {
+        return skillRefsBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(skillRefs_);
+      }
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addSkillRefsBuilder() {
+      return internalGetSkillRefsFieldBuilder().addBuilder(
+          ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addSkillRefsBuilder(
+        int index) {
+      return internalGetSkillRefsFieldBuilder().addBuilder(
+          index, ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Skills to inject into this session's context (merged with agent's at execution time).
+     *
+     * Enables users to provide domain-specific knowledge for a specific conversation
+     * without modifying the agent blueprint. Each reference points to a Skill resource
+     * whose content is injected into the agent's context alongside agent-level skills.
+     *
+     * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 8 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
+     */
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference.Builder> 
+         getSkillRefsBuilderList() {
+      return internalGetSkillRefsFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
+        internalGetSkillRefsFieldBuilder() {
+      if (skillRefsBuilder_ == null) {
+        skillRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
+                skillRefs_,
+                ((bitField0_ & 0x00000080) != 0),
+                getParentForChildren(),
+                isClean());
+        skillRefs_ = null;
+      }
+      return skillRefsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.session.v1.SessionSpec)

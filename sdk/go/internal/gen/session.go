@@ -68,6 +68,8 @@ type SessionInput struct {
 	SandboxId        string
 	Metadata         map[string]string
 	WorkspaceEntries []*WorkspaceEntryInput
+	McpServerUsages  []*McpServerUsageInput
+	SkillRefs        []ResourceRef
 }
 
 // WorkspaceEntryInput is the SDK input type for WorkspaceEntry.
@@ -95,6 +97,20 @@ type LocalPathSourceInput struct {
 	Path string
 }
 
+// McpServerUsageInput is the SDK input type for McpServerUsage.
+type McpServerUsageInput struct {
+	McpServerRef          ResourceRef
+	EnabledTools          []string
+	ToolApprovalOverrides []*ToolApprovalOverrideInput
+}
+
+// ToolApprovalOverrideInput is the SDK input type for ToolApprovalOverride.
+type ToolApprovalOverrideInput struct {
+	ToolName         string
+	RequiresApproval bool
+	Message          string
+}
+
 func (i *SessionInput) toProto() *sessionv1.Session {
 	resource := &sessionv1.Session{
 		ApiVersion: "agentic.stigmer.ai/v1",
@@ -113,6 +129,12 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 	for _, item := range i.WorkspaceEntries {
 		resource.Spec.WorkspaceEntries = append(resource.Spec.WorkspaceEntries, item.toProto())
 	}
+	for _, item := range i.McpServerUsages {
+		resource.Spec.McpServerUsages = append(resource.Spec.McpServerUsages, item.toProto())
+	}
+	for _, r := range i.SkillRefs {
+		resource.Spec.SkillRefs = append(resource.Spec.SkillRefs, r.toProto())
+	}
 	return resource
 }
 
@@ -124,4 +146,19 @@ func (i *WorkspaceEntryInput) toProto() *sessionv1.WorkspaceEntry {
 
 func (i *WorkspaceSourceInput) toProto() *sessionv1.WorkspaceSource {
 	return &sessionv1.WorkspaceSource{}
+}
+
+func (i *McpServerUsageInput) toProto() *sessionv1.McpServerUsage {
+	return &sessionv1.McpServerUsage{
+		McpServerRef: i.McpServerRef.toProto(),
+		EnabledTools: i.EnabledTools,
+	}
+}
+
+func (i *ToolApprovalOverrideInput) toProto() *sessionv1.ToolApprovalOverride {
+	return &sessionv1.ToolApprovalOverride{
+		ToolName:         i.ToolName,
+		RequiresApproval: i.RequiresApproval,
+		Message:          i.Message,
+	}
 }

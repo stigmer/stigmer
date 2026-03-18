@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
 go_library(
     name = "generator_lib",
@@ -18,4 +18,14 @@ go_binary(
     name = "generator",
     embed = [":generator_lib"],
     visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "generator_test",
+    srcs = [
+        "conversion_test.go",
+        "integration_test.go",
+        "main_test.go",
+    ],
+    embed = [":generator_lib"],
 )
