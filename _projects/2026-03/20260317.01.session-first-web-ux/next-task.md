@@ -68,12 +68,21 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-17 09:01
-**Current Task**: T01.6 — decomposed into 5 sub-projects (SP1-SP5)
-**Status**: SP1 + SP2 + SP3 + SP4 + SP5 complete. All T01.6 sub-projects done. Ready for T01.7 (Sidebar Recents).
-**Last Session**: 2026-03-18 — SP5 (HITL Approvals) completed
+**Current Task**: T01.7 — Sidebar Recents (COMPLETE)
+**Status**: All T01 tasks (T01.1-T01.7) complete. Session-first web UX project is done.
+**Last Session**: 2026-03-18 — T01.7 (Sidebar Recents) completed
 **Pending Pre-req**: ~~GitHub OAuth App registration~~ Done — credentials embedded in binary and configured in cloud deployment
 
 ## Session Progress (2026-03-18)
+
+### Completed: T01.7 — Sidebar Recents
+- Implemented all steps of T01.7 in a single session
+- **SDK — `useSessionList`** (`sdk/react/src/session/useSessionList.ts`): Data hook that fetches a paginated list of sessions via `stigmer.session.list()`. Configurable `pageSize` (default 50) and optional `tags` filter. Follows `useSessionExecutions` pattern: `useEffect` + `useState` + cancellation + `fetchKey` for `refetch()`. Stable `tags` reference via `useRef` + deep comparison to avoid spurious re-fetches.
+- **SDK — `groupSessionsByTime`** (`sdk/react/src/session/group-sessions.ts`): Pure utility function (no React dependency) that groups sessions into time-based buckets: "Today", "Yesterday", "Previous 7 Days", "Previous 30 Days", "Older". Uses `timestampDate()` from `@bufbuild/protobuf/wkt` for protobuf Timestamp conversion. Omits empty groups. Accepts `now` parameter for deterministic testing. Preserves input order within groups.
+- **Console — `Sidebar.tsx` rewritten**: Replaced static `RecentsEmptyState` placeholder with live session data. Fetches via `useSessionList()`, groups via `groupSessionsByTime()`. Uses `usePathname()` from Next.js to trigger `refetch()` on navigation changes (catches new session creation and session switches). Extracts active session ID from URL for highlighting (`aria-current="page"`). Four states: loading skeletons (`RecentsSkeletons`), error (`RecentsError`), empty (`RecentsEmptyState`), grouped list (`SessionGroupList`).
+- **Barrel exports** updated across `session/index.ts` and `src/index.ts`
+- **Key decisions**: `useSessionList` in SDK (platform builders need session lists); `groupSessionsByTime` in SDK (universal UX pattern); sidebar rendering stays in Console (Next.js `<Link>`, `usePathname()`, sidebar tokens); no styled `<SessionListItem>` in SDK for v1 (platform builders use different layouts); no polling in v1 (pathname-triggered refetch covers primary flow); no individual timestamps (group labels provide temporal context, matching Claude/ChatGPT); group labels styled smaller than "Recents" header for visual hierarchy.
+- Verification: `npm run typecheck`, `npm run build` (sdk/react), `npx tsc --noEmit`, `npm run build` (web) — all pass clean
 
 ### Completed: SP5 — HITL Approval UI
 - Implemented all 6 steps of SP5 in a single session
@@ -338,28 +347,36 @@ When starting a new session:
 60. **No comment field in v1** — Reduces friction for the common case (click Approve). Proto accepts empty comment. Collapsible comment section can be added later.
 61. **`ApprovalCard` independently importable** — Platform builders who don't use MessageThread can import ApprovalCard + useSubmitApproval directly for custom approval UIs.
 
+62. **`useSessionList` in SDK, sidebar rendering in Console** — The data hook is a platform builder need. The sidebar item rendering depends on Next.js `<Link>`, `usePathname()`, and sidebar layout tokens — not embeddable. No styled `<SessionListItem>` in v1; platform builders rendering session lists will use different layouts.
+63. **`groupSessionsByTime` in SDK** — Time-grouped session lists are a universal UX pattern. Pure function with no React dependency. Platform builders get ready-made grouping without reimplementing date bucketing.
+64. **Pathname-triggered refetch, no polling** — `refetch()` is called on `usePathname()` changes. Catches new session creation (launcher navigates to `/sessions/[id]`), session switches, and returns to launcher. Sufficient freshness for v1; polling can be added later without API changes.
+65. **Group labels replace individual timestamps** — With time grouping ("Today", "Yesterday"), the group label provides temporal context. Individual session items show only the subject, matching Claude/ChatGPT. No `formatRelativeTime` utility needed for v1.
+
 ## Next Steps
 
-T01.6 has been decomposed into 5 sub-projects (SP1-SP5). Execute in order:
+All T01 tasks are complete:
 
-| # | Sub-Project | Resume File | Depends On | Status |
-|---|---|---|---|---|
-| SP1 | Core Thread + Streaming | `20260317.02.sp.core-thread-streaming/next-task.md` | Nothing | COMPLETE |
-| SP2 | Follow-Up + Conversation Loop | `20260317.03.sp.follow-up-conversation-loop/next-task.md` | SP1 | COMPLETE |
-| SP3 | Session Context Panel | `20260317.04.sp.session-context-panel/next-task.md` | SP1 | COMPLETE |
-| SP4 | Expandable Tool Groups | `20260317.05.sp.expandable-tool-groups/next-task.md` | SP1 | COMPLETE |
-| SP5 | HITL Approvals | `20260317.06.sp.hitl-approvals/next-task.md` | SP1 + SP4 | COMPLETE |
+| # | Task | Status |
+|---|---|---|
+| T01.1 | Seedpack Default Assistant Agent | COMPLETE |
+| T01.2 | Backend Default Agent Resolution | COMPLETE |
+| T01.3 | Web UI Teardown | COMPLETE |
+| T01.4 | Web App Shell (Three-Panel Layout) | COMPLETE |
+| T01.5 | Web — New Session Launcher | COMPLETE |
+| T01.6 | Web — Active Session View (SP1-SP5) | COMPLETE |
+| T01.7 | Web — Sidebar Recents | COMPLETE |
 
-All T01.6 sub-projects (SP1-SP5) are complete.
-
-After T01.6 sub-projects: **T01.7** — Web — Sidebar Recents
+**Project complete.** The session-first web UX is fully implemented. Next project phases per the original plan:
+- T02: Resource management pages (Agents, Skills, MCP Servers) — brought back with new navigation
+- T03: Workflow views, settings
+- T04: Embeddable component extraction
 
 ## Context for Resume
 - Branch: `feat/session-first-web-ux` (stigmer repo), `feat/session-first-web-ux` (stigmer-cloud repo)
 - T01.1 through T01.5 are complete and committed.
 - The web app has a headerless sidebar-driven layout with a working session launcher at `/`.
 - The React SDK now has three feature modules: `models/`, `workspace/`, `session/`, `execution/`.
-- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useFolderListing`, `FolderBrowser`, `useCreateSession`, `useCreateAgentExecution`, `useGitHubConnection`, `useGitHubRepos`, `GitHubRepoPicker`, `useSession`, `useSessionExecutions`, `useExecutionStream`, `useSubmitApproval`, `useSessionConversation`, `isTerminalPhase`, `MessageThread`, `MessageEntry`, `ToolCallGroup`, `ToolCallDetail`, `formatDuration`, `ToolCallItem`, `SubAgentSection`, `ExecutionPhaseBadge`, `FollowUpInput`, `ExecutionDetails`, `ApprovalCard`.
+- SDK exports: `useModelRegistry`, `ModelSelector`, `useWorkspaceEntries`, `WorkspaceEditor`, `useFolderListing`, `FolderBrowser`, `useCreateSession`, `useCreateAgentExecution`, `useGitHubConnection`, `useGitHubRepos`, `GitHubRepoPicker`, `useSession`, `useSessionList`, `groupSessionsByTime`, `useSessionExecutions`, `useExecutionStream`, `useSubmitApproval`, `useSessionConversation`, `isTerminalPhase`, `MessageThread`, `MessageEntry`, `ToolCallGroup`, `ToolCallDetail`, `formatDuration`, `ToolCallItem`, `SubAgentSection`, `ExecutionPhaseBadge`, `FollowUpInput`, `ExecutionDetails`, `ApprovalCard`.
 - The session launcher flow: create session -> create agent execution -> navigate to `/sessions/[id]`.
 - `/sessions/[id]/page.tsx` exists as a placeholder — T01.6 builds the actual session view.
 - Proto `agent_instance_id` is optional in SessionSpec. Backend resolves default agent instance if omitted.
@@ -373,9 +390,8 @@ To continue this project, drag this file into chat:
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.6" - Start building the active session view
 - "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
+- "Start T02" - Begin resource management pages
 - "Review guidelines" - Check established patterns
 
 ---
