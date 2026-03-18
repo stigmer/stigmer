@@ -298,14 +298,9 @@ export function SessionComposer({
               <>
                 {showWorkspace && (
                   <ContextPopover
-                    trigger={
-                      <ContextTriggerButton
-                        icon={<WorkspaceIcon />}
-                        label="Workspace"
-                        count={workspaceCount}
-                        disabled={isDisabled}
-                      />
-                    }
+                    icon={<WorkspaceIcon />}
+                    label="Workspace"
+                    count={workspaceCount}
                     disabled={isDisabled}
                   >
                     <WorkspaceEditor
@@ -321,14 +316,9 @@ export function SessionComposer({
 
                 {showMcp && (
                   <ContextPopover
-                    trigger={
-                      <ContextTriggerButton
-                        icon={<McpServerIcon />}
-                        label="MCP"
-                        count={mcpCount}
-                        disabled={isDisabled}
-                      />
-                    }
+                    icon={<McpServerIcon />}
+                    label="MCP"
+                    count={mcpCount}
                     disabled={isDisabled}
                   >
                     <McpServerPicker
@@ -343,14 +333,9 @@ export function SessionComposer({
 
                 {showSkills && (
                   <ContextPopover
-                    trigger={
-                      <ContextTriggerButton
-                        icon={<SkillIcon />}
-                        label="Skills"
-                        count={skillCount}
-                        disabled={isDisabled}
-                      />
-                    }
+                    icon={<SkillIcon />}
+                    label="Skills"
+                    count={skillCount}
                     disabled={isDisabled}
                   >
                     <SkillPicker
@@ -398,11 +383,15 @@ export function SessionComposer({
 // ---------------------------------------------------------------------------
 
 function ContextPopover({
-  trigger,
+  icon,
+  label,
+  count,
   children,
   disabled,
 }: {
-  trigger: React.ReactNode;
+  icon: React.ReactNode;
+  label: string;
+  count: number;
   children: React.ReactNode;
   disabled?: boolean;
 }) {
@@ -410,10 +399,22 @@ function ContextPopover({
     <Popover.Root>
       <Popover.Trigger
         disabled={disabled}
-        render={(props) => <span {...props}>{trigger}</span>}
-      />
+        className={cn(
+          "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
+          "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+          "disabled:pointer-events-none disabled:opacity-50",
+        )}
+      >
+        {icon}
+        <span>{label}</span>
+        {count > 0 && (
+          <span className="rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-medium text-primary">
+            {count}
+          </span>
+        )}
+      </Popover.Trigger>
       <Popover.Portal>
-          <Popover.Positioner sideOffset={8} align="start">
+        <Popover.Positioner sideOffset={8} align="start">
           <Popover.Popup
             className={[
               "z-popover overflow-hidden rounded-lg border border-border",
@@ -425,42 +426,6 @@ function ContextPopover({
         </Popover.Positioner>
       </Popover.Portal>
     </Popover.Root>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Context trigger button
-// ---------------------------------------------------------------------------
-
-function ContextTriggerButton({
-  icon,
-  label,
-  count,
-  disabled,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  count: number;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      className={cn(
-        "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
-        "text-muted-foreground hover:text-foreground hover:bg-accent/50",
-        "disabled:pointer-events-none disabled:opacity-50",
-      )}
-    >
-      {icon}
-      <span>{label}</span>
-      {count > 0 && (
-        <span className="rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-medium text-primary">
-          {count}
-        </span>
-      )}
-    </button>
   );
 }
 
