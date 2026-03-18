@@ -79,7 +79,7 @@ func (c *AgentExecutionController) buildCreatePipeline() *pipeline.Pipeline[*age
 		AddStep(steps.NewBuildNewStateStep[*agentexecutionv1.AgentExecution]()).                                            // 5. Build new state
 		AddStep(steps.NewNormalizeReferencesStep[*agentexecutionv1.AgentExecution]()).                                      // 6. Normalize cross-references
 		AddStep(newCreateDefaultInstanceIfNeededStep(c.agentClient, c.agentInstanceClient, c.store)).                       // 7. Create default instance if needed
-		AddStep(newCreateSessionIfNeededStep(c.sessionClient)).                                                              // 8. Create session if needed
+		AddStep(newCreateSessionIfNeededStep(c.sessionClient)).                                                             // 8. Create session if needed
 		AddStep(newSetInitialPhaseStep()).                                                                                  // 9. Set phase to PENDING
 		AddStep(c.newCreateExecutionContextStep()).                                                                         // 10. Create ExecutionContext with merged environment
 		AddStep(c.newProcessAttachmentsStep()).                                                                             // 11. Process attachments
