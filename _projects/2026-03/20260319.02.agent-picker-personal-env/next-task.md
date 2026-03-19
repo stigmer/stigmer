@@ -68,9 +68,18 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: T01.6 — `useAgentInstance` data hook
+**Current Task**: T01.7 — `useCreateAgentInstance` behavior hook
 **Status**: In Progress (Phase 1)
-**Last Session**: 2026-03-19 — Completed T01.5
+**Last Session**: 2026-03-19 — Completed T01.6
+
+## Session Progress (2026-03-19, Session 6)
+
+- Implemented T01.6: `useAgentInstance` data hook
+  - `sdk/react/src/agent-instance/useAgentInstance.ts` — data hook fetching single AgentInstance by `ResourceRef` (~85 lines)
+  - `sdk/react/src/agent-instance/index.ts` — barrel export for the agent-instance module
+  - TypeScript compiles cleanly, zero linter errors on new files
+- Naming decision: return property is `agentInstance` (not `instance`) — consistent with `useSession` → `session`, `useEnvironment` → `environment`. Full domain noun avoids ambiguity for platform builders destructuring multiple hooks.
+- Pattern: structurally identical to `useEnvironment` — `ResourceRef | null` input, primitive destructuring for deps, cancellation flag, `refetch()` via `fetchKey` increment, error as `string | null`
 
 ## Session Progress (2026-03-19, Session 5)
 
@@ -125,12 +134,11 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01.6** — `useAgentInstance` data hook
-2. **T01.7** — `useCreateAgentInstance` behavior hook
-3. **T01.8** — Barrel exports (agent, environment, agent-instance modules + main index.ts)
-4. **T01.9** — SessionComposer integration
-5. **T01.10** — `useCreateSession` wiring
-6. **T01.11** — Console integration (SessionLauncher)
+1. **T01.7** — `useCreateAgentInstance` behavior hook
+2. **T01.8** — Barrel exports (agent, environment, agent-instance modules + main index.ts)
+3. **T01.9** — SessionComposer integration
+4. **T01.10** — `useCreateSession` wiring
+5. **T01.11** — Console integration (SessionLauncher)
 
 ## Context for Resume
 
@@ -142,7 +150,9 @@ When starting a new session:
 - `useEnvironment` includes `refetch()` (unlike `useSession`) — needed by Phase 2 `usePersonalEnvironment` orchestration hook after mutations
 - `useCreateEnvironment` follows the `useUpdateSession` pattern exactly — uses `EnvironmentInput` from `@stigmer/sdk` directly, returns full `Environment` proto
 - `useUpdateEnvironment` follows the same pattern as `useCreateEnvironment` — wraps `stigmer.environment.update()` with `{ update, isUpdating, error, clearError }`; will be composed by Phase 2 `usePersonalEnvironment` for `addVariables`
-- Barrel exports exist at `sdk/react/src/agent/index.ts` and `sdk/react/src/environment/index.ts` but are NOT yet added to main `sdk/react/src/index.ts` — deferred to T01.8
+- `useAgentInstance` follows the `useEnvironment` pattern exactly — fetches by `ResourceRef`, returns `{ agentInstance, isLoading, error, refetch }`, includes `refetch()` for Phase 2 `usePersonalAgentInstance`
+- Return property naming convention: every data hook returns the full domain noun (`session`, `environment`, `agentInstance`) — never abbreviated
+- Barrel exports exist at `sdk/react/src/agent/index.ts`, `sdk/react/src/environment/index.ts`, and `sdk/react/src/agent-instance/index.ts` but are NOT yet added to main `sdk/react/src/index.ts` — deferred to T01.8
 - Pickers are self-contained by design — each will evolve independently (McpServerPicker will add per-tool selection, AgentPicker will add env form transition in Phase 2)
 - Key reference files: `sdk/react/src/skill/SkillPicker.tsx` (multi-select pattern), `sdk/react/src/composer/SessionComposer.tsx` (ContextPopover integration pattern), `sdk/react/src/session/useSession.ts` (single-resource fetch pattern)
 
