@@ -40,7 +40,7 @@ export type { FollowUpInputProps } from "./FollowUpInput";
 export { ExecutionProgress } from "./ExecutionProgress";
 export type { ExecutionProgressProps } from "./ExecutionProgress";
 
-export { ExecutionCostSummary } from "./ExecutionCostSummary";
+export { ExecutionCostSummary, formatCost, formatTokenCount } from "./ExecutionCostSummary";
 export type { ExecutionCostSummaryProps } from "./ExecutionCostSummary";
 
 export { useSubmitApproval } from "./useSubmitApproval";
