@@ -4,7 +4,13 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.environment.v1.Environment;
 import ai.stigmer.agentic.environment.v1.EnvironmentCommandControllerGrpc;
+import ai.stigmer.agentic.environment.v1.EnvironmentList;
 import ai.stigmer.agentic.environment.v1.EnvironmentQueryControllerGrpc;
+import ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput;
+import ai.stigmer.agentic.environment.v1.EnvironmentValue;
+import ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest;
+import ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest;
+import ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import io.grpc.Channel;
@@ -50,6 +56,18 @@ public final class EnvironmentClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
+    public Environment updateVariables(UpdateEnvironmentVariablesRequest input) {
+        try {
+            return command.updateVariables(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Environment removeVariables(RemoveEnvironmentVariablesRequest input) {
+        try {
+            return command.removeVariables(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
     public Environment get(String id) {
         try {
             return query.get(ApiResourceId.newBuilder().setValue(id).build());
@@ -59,6 +77,18 @@ public final class EnvironmentClient {
     public Environment getByReference(ResourceRef ref) {
         try {
             return query.getByReference(ref.toProto());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public EnvironmentValue getSecretValue(EnvironmentSecretValueInput input) {
+        try {
+            return query.getSecretValue(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public EnvironmentList list(ListEnvironmentsRequest input) {
+        try {
+            return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

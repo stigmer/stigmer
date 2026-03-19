@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	projectv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/project/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	projectv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1"
 	"google.golang.org/grpc"
 )
 
@@ -56,7 +56,9 @@ func (p *ProjectClient) GetByReference(ctx context.Context, input *apiresource.A
 // ProjectInput holds the fields for creating/updating a Project.
 type ProjectInput struct {
 	Name        string
+	Slug        string
 	Org         string
+	Labels      map[string]string
 	EntryPoint  string
 	Description string
 	Members     []ResourceRef
@@ -67,8 +69,10 @@ func (i *ProjectInput) toProto() *projectv1.Project {
 		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Slug:   i.Slug,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &projectv1.ProjectSpec{},
 	}

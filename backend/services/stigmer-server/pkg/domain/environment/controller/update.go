@@ -6,6 +6,7 @@ import (
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
+	envsteps "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller/steps"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
 )
 
@@ -43,7 +44,8 @@ func (c *EnvironmentController) buildUpdatePipeline() *pipeline.Pipeline[*enviro
 		AddStep(steps.NewResolveSlugStep[*environmentv1.Environment]()).                                           // 2. Resolve slug
 		AddStep(steps.NewLoadExistingStep[*environmentv1.Environment](c.store)).                                   // 3. Load existing environment
 		AddStep(steps.NewBuildUpdateStateStep[*environmentv1.Environment]()).                                      // 4. Build updated state
-		AddStep(steps.NewNormalizeReferencesStep[*environmentv1.Environment]()).                                   // 5. Normalize cross-references
+		AddStep(envsteps.NewPreserveRedactedSecretsStep()).                                                        // 5. Preserve secrets when redaction marker sent back
+		AddStep(steps.NewNormalizeReferencesStep[*environmentv1.Environment]()).                                   // 6. Normalize cross-references
 		AddStep(steps.NewPersistStep[*environmentv1.Environment](c.store)).                                        // 6. Persist environment
 		AddStep(steps.NewIndexSearchStep[*environmentv1.Environment](c.store, &extractor.EnvironmentExtractor{})). // 7. Update search index
 		Build()

@@ -179,6 +179,71 @@ func (x *AgentInstanceList) GetItems() []*AgentInstance {
 	return nil
 }
 
+// ListAgentInstancesRequest specifies parameters for listing agent instances.
+type ListAgentInstancesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Organization to list agent instances for (required).
+	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
+	// Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+	// Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
+	Labels map[string]string `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Pagination options (optional).
+	PageInfo      *rpc.PageInfo `protobuf:"bytes,3,opt,name=page_info,json=pageInfo,proto3" json:"page_info,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAgentInstancesRequest) Reset() {
+	*x = ListAgentInstancesRequest{}
+	mi := &file_ai_stigmer_agentic_agentinstance_v1_io_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAgentInstancesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAgentInstancesRequest) ProtoMessage() {}
+
+func (x *ListAgentInstancesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_agentinstance_v1_io_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAgentInstancesRequest.ProtoReflect.Descriptor instead.
+func (*ListAgentInstancesRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentinstance_v1_io_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ListAgentInstancesRequest) GetOrg() string {
+	if x != nil {
+		return x.Org
+	}
+	return ""
+}
+
+func (x *ListAgentInstancesRequest) GetLabels() map[string]string {
+	if x != nil {
+		return x.Labels
+	}
+	return nil
+}
+
+func (x *ListAgentInstancesRequest) GetPageInfo() *rpc.PageInfo {
+	if x != nil {
+		return x.PageInfo
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_agentinstance_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentinstance_v1_io_proto_rawDesc = "" +
@@ -192,7 +257,14 @@ const file_ai_stigmer_agentic_agentinstance_v1_io_proto_rawDesc = "" +
 	"\x11AgentInstanceList\x12\x1f\n" +
 	"\vtotal_count\x18\x01 \x01(\x05R\n" +
 	"totalCount\x12H\n" +
-	"\x05items\x18\x02 \x03(\v22.ai.stigmer.agentic.agentinstance.v1.AgentInstanceR\x05itemsB\xc1\x02\n" +
+	"\x05items\x18\x02 \x03(\v22.ai.stigmer.agentic.agentinstance.v1.AgentInstanceR\x05items\"\x94\x02\n" +
+	"\x19ListAgentInstancesRequest\x12\x19\n" +
+	"\x03org\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x03org\x12b\n" +
+	"\x06labels\x18\x02 \x03(\v2J.ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest.LabelsEntryR\x06labels\x12=\n" +
+	"\tpage_info\x18\x03 \x01(\v2 .ai.stigmer.commons.rpc.PageInfoR\bpageInfo\x1a9\n" +
+	"\vLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\xc1\x02\n" +
 	"'com.ai.stigmer.agentic.agentinstance.v1B\aIoProtoP\x01Z\\github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1;agentinstancev1\xa2\x02\x04ASAA\xaa\x02#Ai.Stigmer.Agentic.Agentinstance.V1\xca\x02#Ai\\Stigmer\\Agentic\\Agentinstance\\V1\xe2\x02/Ai\\Stigmer\\Agentic\\Agentinstance\\V1\\GPBMetadata\xea\x02'Ai::Stigmer::Agentic::Agentinstance::V1b\x06proto3"
 
 var (
@@ -207,22 +279,26 @@ func file_ai_stigmer_agentic_agentinstance_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentinstance_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentinstance_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_agentinstance_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_ai_stigmer_agentic_agentinstance_v1_io_proto_goTypes = []any{
 	(*AgentInstanceId)(nil),                 // 0: ai.stigmer.agentic.agentinstance.v1.AgentInstanceId
 	(*GetAgentInstancesByAgentRequest)(nil), // 1: ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest
 	(*AgentInstanceList)(nil),               // 2: ai.stigmer.agentic.agentinstance.v1.AgentInstanceList
-	(*rpc.PageInfo)(nil),                    // 3: ai.stigmer.commons.rpc.PageInfo
-	(*AgentInstance)(nil),                   // 4: ai.stigmer.agentic.agentinstance.v1.AgentInstance
+	(*ListAgentInstancesRequest)(nil),       // 3: ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest
+	nil,                                     // 4: ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest.LabelsEntry
+	(*rpc.PageInfo)(nil),                    // 5: ai.stigmer.commons.rpc.PageInfo
+	(*AgentInstance)(nil),                   // 6: ai.stigmer.agentic.agentinstance.v1.AgentInstance
 }
 var file_ai_stigmer_agentic_agentinstance_v1_io_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	4, // 1: ai.stigmer.agentic.agentinstance.v1.AgentInstanceList.items:type_name -> ai.stigmer.agentic.agentinstance.v1.AgentInstance
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	5, // 0: ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	6, // 1: ai.stigmer.agentic.agentinstance.v1.AgentInstanceList.items:type_name -> ai.stigmer.agentic.agentinstance.v1.AgentInstance
+	4, // 2: ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest.labels:type_name -> ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest.LabelsEntry
+	5, // 3: ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentinstance_v1_io_proto_init() }
@@ -237,7 +313,7 @@ func file_ai_stigmer_agentic_agentinstance_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentinstance_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_agentinstance_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

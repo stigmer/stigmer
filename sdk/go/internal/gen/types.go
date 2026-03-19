@@ -3,10 +3,10 @@
 package gen
 
 import (
-	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
+	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
 )
 
 // DeleteResourceInput provides arguments for deleting a resource.

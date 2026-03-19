@@ -87,6 +87,8 @@ class IamPolicyInput:
     principal: ApiResourceRefInput | None
     resource: ApiResourceRefInput | None
     relation: str
+    slug: str | None = None
+    labels: dict[str, str] | None = None
 
     def _to_proto(self) -> api_pb2.IamPolicy:
         spec = spec_pb2.IamPolicySpec(
@@ -96,13 +98,18 @@ class IamPolicyInput:
             spec.principal.CopyFrom(self.principal._to_proto())
         if self.resource is not None:
             spec.resource.CopyFrom(self.resource._to_proto())
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.slug:
+            metadata.slug = self.slug
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.IamPolicy(
             api_version="iam.stigmer.ai/v1",
             kind="IamPolicy",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

@@ -74,6 +74,8 @@ class WorkflowInstanceInput:
 
     name: str
     org: str
+    slug: str | None = None
+    labels: dict[str, str] | None = None
     workflow_id: str = ""
     description: str = ""
     env_refs: list[ResourceRef] = field(default_factory=list)
@@ -85,13 +87,18 @@ class WorkflowInstanceInput:
         )
         for ref in self.env_refs:
             spec.env_refs.append(ref._to_proto())
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.slug:
+            metadata.slug = self.slug
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.WorkflowInstance(
             api_version="agentic.stigmer.ai/v1",
             kind="WorkflowInstance",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

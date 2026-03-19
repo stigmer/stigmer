@@ -139,6 +139,68 @@ public final class EnvironmentCommandControllerGrpc {
     return getDeleteMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest,
+      ai.stigmer.agentic.environment.v1.Environment> getUpdateVariablesMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateVariables",
+      requestType = ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest.class,
+      responseType = ai.stigmer.agentic.environment.v1.Environment.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest,
+      ai.stigmer.agentic.environment.v1.Environment> getUpdateVariablesMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest, ai.stigmer.agentic.environment.v1.Environment> getUpdateVariablesMethod;
+    if ((getUpdateVariablesMethod = EnvironmentCommandControllerGrpc.getUpdateVariablesMethod) == null) {
+      synchronized (EnvironmentCommandControllerGrpc.class) {
+        if ((getUpdateVariablesMethod = EnvironmentCommandControllerGrpc.getUpdateVariablesMethod) == null) {
+          EnvironmentCommandControllerGrpc.getUpdateVariablesMethod = getUpdateVariablesMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest, ai.stigmer.agentic.environment.v1.Environment>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateVariables"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.environment.v1.Environment.getDefaultInstance()))
+              .setSchemaDescriptor(new EnvironmentCommandControllerMethodDescriptorSupplier("updateVariables"))
+              .build();
+        }
+      }
+    }
+    return getUpdateVariablesMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest,
+      ai.stigmer.agentic.environment.v1.Environment> getRemoveVariablesMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "removeVariables",
+      requestType = ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest.class,
+      responseType = ai.stigmer.agentic.environment.v1.Environment.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest,
+      ai.stigmer.agentic.environment.v1.Environment> getRemoveVariablesMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest, ai.stigmer.agentic.environment.v1.Environment> getRemoveVariablesMethod;
+    if ((getRemoveVariablesMethod = EnvironmentCommandControllerGrpc.getRemoveVariablesMethod) == null) {
+      synchronized (EnvironmentCommandControllerGrpc.class) {
+        if ((getRemoveVariablesMethod = EnvironmentCommandControllerGrpc.getRemoveVariablesMethod) == null) {
+          EnvironmentCommandControllerGrpc.getRemoveVariablesMethod = getRemoveVariablesMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest, ai.stigmer.agentic.environment.v1.Environment>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "removeVariables"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.environment.v1.Environment.getDefaultInstance()))
+              .setSchemaDescriptor(new EnvironmentCommandControllerMethodDescriptorSupplier("removeVariables"))
+              .build();
+        }
+      }
+    }
+    return getRemoveVariablesMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -246,6 +308,28 @@ public final class EnvironmentCommandControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getDeleteMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Add or update specific variables in an environment (server-side merge).
+     * Existing variables not included in the request are preserved unchanged.
+     * </pre>
+     */
+    default void updateVariables(ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateVariablesMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Remove specific variables from an environment by key.
+     * Keys that don't exist are silently ignored.
+     * </pre>
+     */
+    default void removeVariables(ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getRemoveVariablesMethod(), responseObserver);
+    }
   }
 
   /**
@@ -326,6 +410,30 @@ public final class EnvironmentCommandControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Add or update specific variables in an environment (server-side merge).
+     * Existing variables not included in the request are preserved unchanged.
+     * </pre>
+     */
+    public void updateVariables(ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateVariablesMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Remove specific variables from an environment by key.
+     * Keys that don't exist are silently ignored.
+     * </pre>
+     */
+    public void removeVariables(ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getRemoveVariablesMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -388,6 +496,28 @@ public final class EnvironmentCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Add or update specific variables in an environment (server-side merge).
+     * Existing variables not included in the request are preserved unchanged.
+     * </pre>
+     */
+    public ai.stigmer.agentic.environment.v1.Environment updateVariables(ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateVariablesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Remove specific variables from an environment by key.
+     * Keys that don't exist are silently ignored.
+     * </pre>
+     */
+    public ai.stigmer.agentic.environment.v1.Environment removeVariables(ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getRemoveVariablesMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -449,6 +579,28 @@ public final class EnvironmentCommandControllerGrpc {
     public ai.stigmer.agentic.environment.v1.Environment delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Add or update specific variables in an environment (server-side merge).
+     * Existing variables not included in the request are preserved unchanged.
+     * </pre>
+     */
+    public ai.stigmer.agentic.environment.v1.Environment updateVariables(ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateVariablesMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Remove specific variables from an environment by key.
+     * Keys that don't exist are silently ignored.
+     * </pre>
+     */
+    public ai.stigmer.agentic.environment.v1.Environment removeVariables(ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getRemoveVariablesMethod(), getCallOptions(), request);
     }
   }
 
@@ -516,12 +668,38 @@ public final class EnvironmentCommandControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getDeleteMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Add or update specific variables in an environment (server-side merge).
+     * Existing variables not included in the request are preserved unchanged.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.Environment> updateVariables(
+        ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateVariablesMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Remove specific variables from an environment by key.
+     * Keys that don't exist are silently ignored.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.Environment> removeVariables(
+        ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getRemoveVariablesMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_DELETE = 3;
+  private static final int METHODID_UPDATE_VARIABLES = 4;
+  private static final int METHODID_REMOVE_VARIABLES = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -554,6 +732,14 @@ public final class EnvironmentCommandControllerGrpc {
           break;
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.commons.apiresource.ApiResourceDeleteInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment>) responseObserver);
+          break;
+        case METHODID_UPDATE_VARIABLES:
+          serviceImpl.updateVariables((ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment>) responseObserver);
+          break;
+        case METHODID_REMOVE_VARIABLES:
+          serviceImpl.removeVariables((ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment>) responseObserver);
           break;
         default:
@@ -602,6 +788,20 @@ public final class EnvironmentCommandControllerGrpc {
               ai.stigmer.commons.apiresource.ApiResourceDeleteInput,
               ai.stigmer.agentic.environment.v1.Environment>(
                 service, METHODID_DELETE)))
+        .addMethod(
+          getUpdateVariablesMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest,
+              ai.stigmer.agentic.environment.v1.Environment>(
+                service, METHODID_UPDATE_VARIABLES)))
+        .addMethod(
+          getRemoveVariablesMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest,
+              ai.stigmer.agentic.environment.v1.Environment>(
+                service, METHODID_REMOVE_VARIABLES)))
         .build();
   }
 
@@ -654,6 +854,8 @@ public final class EnvironmentCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
+              .addMethod(getUpdateVariablesMethod())
+              .addMethod(getRemoveVariablesMethod())
               .build();
         }
       }

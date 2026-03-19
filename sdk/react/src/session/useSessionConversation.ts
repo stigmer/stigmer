@@ -9,6 +9,7 @@ import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/s
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type {
+  EnvVarInput,
   McpServerUsageInput,
   ResourceRef,
   WorkspaceEntryInput,
@@ -28,12 +29,25 @@ import { useUpdateSession } from "./useUpdateSession";
  * `skillRefs`) trigger a `session.update()` before the execution is
  * created. Only provided fields are overwritten; omitted fields
  * preserve the session's existing values.
+ *
+ * `runtimeEnv` is forwarded to the execution (Execution Flow). These
+ * values are scoped to the single execution and deleted on completion.
  */
 export interface SendFollowUpOptions {
   readonly modelName?: string;
   readonly workspaceEntries?: WorkspaceEntryInput[];
   readonly mcpServerUsages?: McpServerUsageInput[];
   readonly skillRefs?: ResourceRef[];
+  /**
+   * Execution-scoped secrets and configuration (Execution Flow).
+   *
+   * Values are injected into the agent sandbox for this execution only
+   * and deleted when the execution completes. They override both
+   * Environment values and agent defaults.
+   *
+   * @see {@link CreateAgentExecutionInput.runtimeEnv}
+   */
+  readonly runtimeEnv?: Record<string, EnvVarInput>;
 }
 
 export interface UseSessionConversationReturn {
@@ -293,6 +307,7 @@ export function useSessionConversation(
           sessionId,
           message,
           modelName: options?.modelName,
+          runtimeEnv: options?.runtimeEnv,
         });
         setPendingExecutionId(result.executionId);
         refetch();

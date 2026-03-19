@@ -31,6 +31,41 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_environment_v1_EnvironmentId_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_environment_v1_EnvironmentSecretValueInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_environment_v1_EnvironmentSecretValueInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_environment_v1_ListEnvironmentsRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_environment_v1_ListEnvironmentsRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_environment_v1_ListEnvironmentsRequest_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_environment_v1_ListEnvironmentsRequest_LabelsEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_environment_v1_EnvironmentList_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_environment_v1_EnvironmentList_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_environment_v1_UpdateEnvironmentVariablesRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_environment_v1_UpdateEnvironmentVariablesRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_environment_v1_UpdateEnvironmentVariablesRequest_VariablesEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_environment_v1_UpdateEnvironmentVariablesRequest_VariablesEntry_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_environment_v1_RemoveEnvironmentVariablesRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_environment_v1_RemoveEnvironmentVariablesRequest_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -42,17 +77,47 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n*ai/stigmer/agentic/environment/v1/io.p" +
       "roto\022!ai.stigmer.agentic.environment.v1\032" +
-      "\033buf/validate/validate.proto\"-\n\rEnvironm" +
-      "entId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001R\005valueB\262\001B\007" +
-      "IoProtoP\001\242\002\004ASAE\252\002!Ai.Stigmer.Agentic.En" +
-      "vironment.V1\312\002!Ai\\Stigmer\\Agentic\\Enviro" +
-      "nment\\V1\342\002-Ai\\Stigmer\\Agentic\\Environmen" +
-      "t\\V1\\GPBMetadata\352\002%Ai::Stigmer::Agentic:" +
-      ":Environment::V1b\006proto3"
+      "+ai/stigmer/agentic/environment/v1/api.p" +
+      "roto\032,ai/stigmer/agentic/environment/v1/" +
+      "spec.proto\032\'ai/stigmer/commons/rpc/pagin" +
+      "ation.proto\032\033buf/validate/validate.proto" +
+      "\"-\n\rEnvironmentId\022\034\n\005value\030\001 \001(\tB\006\272H\003\310\001\001" +
+      "R\005value\"h\n\033EnvironmentSecretValueInput\022." +
+      "\n\016environment_id\030\001 \001(\tB\007\272H\004r\002\020\001R\renviron" +
+      "mentId\022\031\n\003key\030\002 \001(\tB\007\272H\004r\002\020\001R\003key\"\216\002\n\027Li" +
+      "stEnvironmentsRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r" +
+      "\002\020\001R\003org\022^\n\006labels\030\002 \003(\0132F.ai.stigmer.ag" +
+      "entic.environment.v1.ListEnvironmentsReq" +
+      "uest.LabelsEntryR\006labels\022=\n\tpage_info\030\003 " +
+      "\001(\0132 .ai.stigmer.commons.rpc.PageInfoR\010p" +
+      "ageInfo\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR\003key" +
+      "\022\024\n\005value\030\002 \001(\tR\005value:\0028\001\"x\n\017Environmen" +
+      "tList\022\037\n\013total_count\030\001 \001(\005R\ntotalCount\022D" +
+      "\n\005items\030\002 \003(\0132..ai.stigmer.agentic.envir" +
+      "onment.v1.EnvironmentR\005items\"\271\002\n!UpdateE" +
+      "nvironmentVariablesRequest\022.\n\016environmen" +
+      "t_id\030\001 \001(\tB\007\272H\004r\002\020\001R\renvironmentId\022q\n\tva" +
+      "riables\030\002 \003(\0132S.ai.stigmer.agentic.envir" +
+      "onment.v1.UpdateEnvironmentVariablesRequ" +
+      "est.VariablesEntryR\tvariables\032q\n\016Variabl" +
+      "esEntry\022\020\n\003key\030\001 \001(\tR\003key\022I\n\005value\030\002 \001(\013" +
+      "23.ai.stigmer.agentic.environment.v1.Env" +
+      "ironmentValueR\005value:\0028\001\"q\n!RemoveEnviro" +
+      "nmentVariablesRequest\022.\n\016environment_id\030" +
+      "\001 \001(\tB\007\272H\004r\002\020\001R\renvironmentId\022\034\n\004keys\030\002 " +
+      "\003(\tB\010\272H\005\222\001\002\010\001R\004keysB\262\001B\007IoProtoP\001\242\002\004ASAE" +
+      "\252\002!Ai.Stigmer.Agentic.Environment.V1\312\002!A" +
+      "i\\Stigmer\\Agentic\\Environment\\V1\342\002-Ai\\St" +
+      "igmer\\Agentic\\Environment\\V1\\GPBMetadata" +
+      "\352\002%Ai::Stigmer::Agentic::Environment::V1" +
+      "b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.agentic.environment.v1.ApiProto.getDescriptor(),
+          ai.stigmer.agentic.environment.v1.SpecProto.getDescriptor(),
+          ai.stigmer.commons.rpc.PaginationProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_environment_v1_EnvironmentId_descriptor =
@@ -61,7 +126,52 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_environment_v1_EnvironmentId_descriptor,
         new java.lang.String[] { "Value", });
+    internal_static_ai_stigmer_agentic_environment_v1_EnvironmentSecretValueInput_descriptor =
+      getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_agentic_environment_v1_EnvironmentSecretValueInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_environment_v1_EnvironmentSecretValueInput_descriptor,
+        new java.lang.String[] { "EnvironmentId", "Key", });
+    internal_static_ai_stigmer_agentic_environment_v1_ListEnvironmentsRequest_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_environment_v1_ListEnvironmentsRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_environment_v1_ListEnvironmentsRequest_descriptor,
+        new java.lang.String[] { "Org", "Labels", "PageInfo", });
+    internal_static_ai_stigmer_agentic_environment_v1_ListEnvironmentsRequest_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_environment_v1_ListEnvironmentsRequest_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_environment_v1_ListEnvironmentsRequest_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_environment_v1_ListEnvironmentsRequest_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
+    internal_static_ai_stigmer_agentic_environment_v1_EnvironmentList_descriptor =
+      getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_agentic_environment_v1_EnvironmentList_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_environment_v1_EnvironmentList_descriptor,
+        new java.lang.String[] { "TotalCount", "Items", });
+    internal_static_ai_stigmer_agentic_environment_v1_UpdateEnvironmentVariablesRequest_descriptor =
+      getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_agentic_environment_v1_UpdateEnvironmentVariablesRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_environment_v1_UpdateEnvironmentVariablesRequest_descriptor,
+        new java.lang.String[] { "EnvironmentId", "Variables", });
+    internal_static_ai_stigmer_agentic_environment_v1_UpdateEnvironmentVariablesRequest_VariablesEntry_descriptor =
+      internal_static_ai_stigmer_agentic_environment_v1_UpdateEnvironmentVariablesRequest_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_environment_v1_UpdateEnvironmentVariablesRequest_VariablesEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_environment_v1_UpdateEnvironmentVariablesRequest_VariablesEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
+    internal_static_ai_stigmer_agentic_environment_v1_RemoveEnvironmentVariablesRequest_descriptor =
+      getDescriptor().getMessageType(5);
+    internal_static_ai_stigmer_agentic_environment_v1_RemoveEnvironmentVariablesRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_environment_v1_RemoveEnvironmentVariablesRequest_descriptor,
+        new java.lang.String[] { "EnvironmentId", "Keys", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.agentic.environment.v1.ApiProto.getDescriptor();
+    ai.stigmer.agentic.environment.v1.SpecProto.getDescriptor();
+    ai.stigmer.commons.rpc.PaginationProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();

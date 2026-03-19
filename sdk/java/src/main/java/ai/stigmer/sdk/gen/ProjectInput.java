@@ -10,6 +10,8 @@ import ai.stigmer.tenancy.project.v1.ProjectSpec;
 public final class ProjectInput {
     private final String name;
     private final String org;
+    private final String slug;
+    private final java.util.Map<String, String> labels;
     private final String entryPoint;
     private final String description;
     private final java.util.List<ResourceRef> members;
@@ -17,6 +19,8 @@ public final class ProjectInput {
     private ProjectInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.slug = builder.slug;
+        this.labels = builder.labels;
         this.entryPoint = builder.entryPoint;
         this.description = builder.description;
         this.members = builder.members;
@@ -35,13 +39,19 @@ public final class ProjectInput {
                 spec.addMembers(item.toProto());
             }
         }
+        ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
+            .setName(this.name)
+            .setOrg(this.org);
+        if (this.slug != null) {
+            metaBuilder.setSlug(this.slug);
+        }
+        if (this.labels != null) {
+            metaBuilder.putAllLabels(this.labels);
+        }
         return Project.newBuilder()
             .setApiVersion("tenancy.stigmer.ai/v1")
             .setKind("Project")
-            .setMetadata(ApiResourceMetadata.newBuilder()
-                .setName(this.name)
-                .setOrg(this.org)
-                .build())
+            .setMetadata(metaBuilder.build())
             .setSpec(spec.build())
             .build();
     }
@@ -51,6 +61,8 @@ public final class ProjectInput {
     public static final class Builder {
         private String name;
         private String org;
+        private String slug;
+        private java.util.Map<String, String> labels;
         private String entryPoint;
         private String description;
         private java.util.List<ResourceRef> members;
@@ -59,6 +71,8 @@ public final class ProjectInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder slug(String slug) { this.slug = slug; return this; }
+        public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder entryPoint(String entryPoint) { this.entryPoint = entryPoint; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder members(java.util.List<ResourceRef> members) { this.members = members; return this; }

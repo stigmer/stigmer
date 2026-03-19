@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	identityproviderv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityprovider/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	identityproviderv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityprovider/v1"
 	"google.golang.org/grpc"
 )
 
@@ -60,7 +60,9 @@ func (i *IdentityProviderClient) GetByReference(ctx context.Context, input *apir
 // IdentityProviderInput holds the fields for creating/updating a IdentityProvider.
 type IdentityProviderInput struct {
 	Name             string
+	Slug             string
 	Org              string
+	Labels           map[string]string
 	DisplayName      string
 	JwksUri          string
 	AllowedIssuers   []string
@@ -74,8 +76,10 @@ func (i *IdentityProviderInput) toProto() *identityproviderv1.IdentityProvider {
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IdentityProvider",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Slug:   i.Slug,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &identityproviderv1.IdentityProviderSpec{},
 	}

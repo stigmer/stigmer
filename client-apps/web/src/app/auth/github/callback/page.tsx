@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGitHubConnection } from "@stigmer/react";
+import { useActiveOrgSlug } from "@/contexts/org-context";
 
 /**
  * OAuth callback page for GitHub.
@@ -10,11 +11,16 @@ import { useGitHubConnection } from "@stigmer/react";
  * GitHub redirects here after the user authorizes. The page reads the
  * `code` and `state` query params, exchanges the code for a token via
  * the Stigmer backend, and redirects to the home page on success.
+ *
+ * The token is staged in localStorage by `handleCallback` and migrated
+ * to the server-side personal environment on the next page mount
+ * (see {@link useGitHubConnection} reconciliation logic).
  */
 export default function GitHubCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { handleCallback } = useGitHubConnection();
+  const org = useActiveOrgSlug();
+  const { handleCallback } = useGitHubConnection(org || null);
 
   const code = searchParams.get("code");
   const state = searchParams.get("state");

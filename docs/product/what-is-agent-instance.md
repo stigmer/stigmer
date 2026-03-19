@@ -281,3 +281,4 @@ stigmer agent instance delete github-bot-staging
 - [AgentInstance Resource Guide](../../apis/ai/stigmer/agentic/agentinstance/docs/agent-instance-resource-guide.md) — Complete spec and status schema reference
 - [Environment Binding](../../apis/ai/stigmer/agentic/agentinstance/docs/environment-binding.md) — Layered environment merging and resolution in depth
 - [AgentInstance Examples](../../apis/ai/stigmer/agentic/agentinstance/docs/examples.md) — Complete YAML examples from minimal to full-featured
+- [How to Provide Secrets](./how-to-provide-secrets.md) — Choosing between the Environment Flow (persistent) and the Execution Flow (ephemeral)

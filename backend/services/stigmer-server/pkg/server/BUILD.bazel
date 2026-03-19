@@ -61,6 +61,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/downstream/skill",
         "//backend/services/stigmer-server/pkg/downstream/workflow",
         "//backend/services/stigmer-server/pkg/downstream/workflowinstance",
+        "//backend/services/stigmer-server/pkg/encryption",
         "//backend/services/stigmer-server/pkg/query/search/controller",
         "//backend/services/stigmer-server/pkg/query/search/extractor",
         "//backend/services/stigmer-server/pkg/query/search/handler",

@@ -68,6 +68,8 @@ class IdentityProviderInput:
 
     name: str
     org: str
+    slug: str | None = None
+    labels: dict[str, str] | None = None
     display_name: str = ""
     jwks_uri: str = ""
     allowed_issuers: list[str] = field(default_factory=list)
@@ -85,13 +87,18 @@ class IdentityProviderInput:
         )
         if self.allowed_issuers:
             spec.allowed_issuers.extend(self.allowed_issuers)
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.slug:
+            metadata.slug = self.slug
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.IdentityProvider(
             api_version="iam.stigmer.ai/v1",
             kind="IdentityProvider",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

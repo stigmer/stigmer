@@ -62,7 +62,9 @@ export class ApiKeyClient {
 /** Input for creating/updating a ApiKey. */
 export interface ApiKeyInput {
   name: string;
+  slug?: string;
   org: string;
+  labels?: Record<string, string>;
   keyHash?: string;
   fingerprint?: string;
   expiresAt?: Date | string;
@@ -76,6 +78,8 @@ function buildApiKeyProto(input: ApiKeyInput): ApiKey {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.slug && { slug: input.slug }),
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(ApiKeySpecSchema), stripUndefined({
       keyHash: input.keyHash,

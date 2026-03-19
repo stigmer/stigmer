@@ -38,6 +38,14 @@ package ai.stigmer.commons.apiresource.apiresourcekind;
  * -&gt; Creates: agent_instance#organization&#64;organization:&lt;org_id&gt;
  * -&gt; Creates: agent_instance#agent&#64;agent:&lt;agent_id&gt;
  * -&gt; Creates: agent_instance#owner&#64;identity_account:&lt;creator_id&gt;
+ *
+ * Personal resource with creator attribution (environment):
+ * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+ * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+ * requires_creator_tuple: true
+ * -&gt; Creates: environment#organization&#64;organization:&lt;org_id&gt;
+ * -&gt; Creates: environment#owner&#64;identity_account:&lt;creator_id&gt;
+ * -&gt; Creates: environment#creator&#64;identity_account:&lt;creator_id&gt;
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig}
@@ -297,6 +305,27 @@ private static final long serialVersionUID = 0L;
     return visibility_ == null ? ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig.getDefaultInstance() : visibility_;
   }
 
+  public static final int REQUIRES_CREATOR_TUPLE_FIELD_NUMBER = 6;
+  private boolean requiresCreatorTuple_ = false;
+  /**
+   * <pre>
+   * When true, creates an immutable creator relation tuple alongside the owner tuple.
+   * FGA tuple: resource#creator&#64;identity_account:&lt;creator_id&gt;
+   * Used for resources where creator identity drives specific permissions
+   * (e.g., environment: only the creator can read unredacted secret values).
+   * The creator tuple uses the same identity as the owner tuple but serves
+   * a different purpose: owner is mutable (can be transferred), creator is
+   * permanent attribution.
+   * </pre>
+   *
+   * <code>bool requires_creator_tuple = 6 [json_name = "requiresCreatorTuple"];</code>
+   * @return The requiresCreatorTuple.
+   */
+  @java.lang.Override
+  public boolean getRequiresCreatorTuple() {
+    return requiresCreatorTuple_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -325,6 +354,9 @@ private static final long serialVersionUID = 0L;
     }
     if (((bitField0_ & 0x00000002) != 0)) {
       output.writeMessage(5, getVisibility());
+    }
+    if (requiresCreatorTuple_ != false) {
+      output.writeBool(6, requiresCreatorTuple_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -360,6 +392,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(5, getVisibility());
     }
+    if (requiresCreatorTuple_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(6, requiresCreatorTuple_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -389,6 +425,8 @@ private static final long serialVersionUID = 0L;
       if (!getVisibility()
           .equals(other.getVisibility())) return false;
     }
+    if (getRequiresCreatorTuple()
+        != other.getRequiresCreatorTuple()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -416,6 +454,9 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + VISIBILITY_FIELD_NUMBER;
       hash = (53 * hash) + getVisibility().hashCode();
     }
+    hash = (37 * hash) + REQUIRES_CREATOR_TUPLE_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getRequiresCreatorTuple());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -546,6 +587,14 @@ private static final long serialVersionUID = 0L;
    * -&gt; Creates: agent_instance#organization&#64;organization:&lt;org_id&gt;
    * -&gt; Creates: agent_instance#agent&#64;agent:&lt;agent_id&gt;
    * -&gt; Creates: agent_instance#owner&#64;identity_account:&lt;creator_id&gt;
+   *
+   * Personal resource with creator attribution (environment):
+   * scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+   * owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+   * requires_creator_tuple: true
+   * -&gt; Creates: environment#organization&#64;organization:&lt;org_id&gt;
+   * -&gt; Creates: environment#owner&#64;identity_account:&lt;creator_id&gt;
+   * -&gt; Creates: environment#creator&#64;identity_account:&lt;creator_id&gt;
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig}
@@ -608,6 +657,7 @@ private static final long serialVersionUID = 0L;
         visibilityBuilder_.dispose();
         visibilityBuilder_ = null;
       }
+      requiresCreatorTuple_ = false;
       return this;
     }
 
@@ -673,6 +723,9 @@ private static final long serialVersionUID = 0L;
             : visibilityBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.requiresCreatorTuple_ = requiresCreatorTuple_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -725,6 +778,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasVisibility()) {
         mergeVisibility(other.getVisibility());
+      }
+      if (other.getRequiresCreatorTuple() != false) {
+        setRequiresCreatorTuple(other.getRequiresCreatorTuple());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -789,6 +845,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 48: {
+              requiresCreatorTuple_ = input.readBool();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 48
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1646,6 +1707,68 @@ private static final long serialVersionUID = 0L;
         visibility_ = null;
       }
       return visibilityBuilder_;
+    }
+
+    private boolean requiresCreatorTuple_ ;
+    /**
+     * <pre>
+     * When true, creates an immutable creator relation tuple alongside the owner tuple.
+     * FGA tuple: resource#creator&#64;identity_account:&lt;creator_id&gt;
+     * Used for resources where creator identity drives specific permissions
+     * (e.g., environment: only the creator can read unredacted secret values).
+     * The creator tuple uses the same identity as the owner tuple but serves
+     * a different purpose: owner is mutable (can be transferred), creator is
+     * permanent attribution.
+     * </pre>
+     *
+     * <code>bool requires_creator_tuple = 6 [json_name = "requiresCreatorTuple"];</code>
+     * @return The requiresCreatorTuple.
+     */
+    @java.lang.Override
+    public boolean getRequiresCreatorTuple() {
+      return requiresCreatorTuple_;
+    }
+    /**
+     * <pre>
+     * When true, creates an immutable creator relation tuple alongside the owner tuple.
+     * FGA tuple: resource#creator&#64;identity_account:&lt;creator_id&gt;
+     * Used for resources where creator identity drives specific permissions
+     * (e.g., environment: only the creator can read unredacted secret values).
+     * The creator tuple uses the same identity as the owner tuple but serves
+     * a different purpose: owner is mutable (can be transferred), creator is
+     * permanent attribution.
+     * </pre>
+     *
+     * <code>bool requires_creator_tuple = 6 [json_name = "requiresCreatorTuple"];</code>
+     * @param value The requiresCreatorTuple to set.
+     * @return This builder for chaining.
+     */
+    public Builder setRequiresCreatorTuple(boolean value) {
+
+      requiresCreatorTuple_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * When true, creates an immutable creator relation tuple alongside the owner tuple.
+     * FGA tuple: resource#creator&#64;identity_account:&lt;creator_id&gt;
+     * Used for resources where creator identity drives specific permissions
+     * (e.g., environment: only the creator can read unredacted secret values).
+     * The creator tuple uses the same identity as the owner tuple but serves
+     * a different purpose: owner is mutable (can be transferred), creator is
+     * permanent attribution.
+     * </pre>
+     *
+     * <code>bool requires_creator_tuple = 6 [json_name = "requiresCreatorTuple"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearRequiresCreatorTuple() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      requiresCreatorTuple_ = false;
+      onChanged();
+      return this;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationConfig)

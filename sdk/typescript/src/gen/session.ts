@@ -71,7 +71,9 @@ export class SessionClient {
 /** Input for creating/updating a Session. */
 export interface SessionInput {
   name: string;
+  slug?: string;
   org: string;
+  labels?: Record<string, string>;
   agentInstanceId?: string;
   subject?: string;
   threadId?: string;
@@ -179,6 +181,8 @@ function buildSessionProto(input: SessionInput): Session {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.slug && { slug: input.slug }),
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(SessionSpecSchema), stripUndefined({
       agentInstanceId: input.agentInstanceId,

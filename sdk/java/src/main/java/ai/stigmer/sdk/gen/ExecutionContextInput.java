@@ -11,12 +11,16 @@ import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 public final class ExecutionContextInput {
     private final String name;
     private final String org;
+    private final String slug;
+    private final java.util.Map<String, String> labels;
     private final String executionId;
     private final java.util.Map<String, EnvVarInput> data;
 
     private ExecutionContextInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.slug = builder.slug;
+        this.labels = builder.labels;
         this.executionId = builder.executionId;
         this.data = builder.data;
     }
@@ -34,13 +38,19 @@ public final class ExecutionContextInput {
                     .build());
             }
         }
+        ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
+            .setName(this.name)
+            .setOrg(this.org);
+        if (this.slug != null) {
+            metaBuilder.setSlug(this.slug);
+        }
+        if (this.labels != null) {
+            metaBuilder.putAllLabels(this.labels);
+        }
         return ExecutionContext.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("ExecutionContext")
-            .setMetadata(ApiResourceMetadata.newBuilder()
-                .setName(this.name)
-                .setOrg(this.org)
-                .build())
+            .setMetadata(metaBuilder.build())
             .setSpec(spec.build())
             .build();
     }
@@ -50,6 +60,8 @@ public final class ExecutionContextInput {
     public static final class Builder {
         private String name;
         private String org;
+        private String slug;
+        private java.util.Map<String, String> labels;
         private String executionId;
         private java.util.Map<String, EnvVarInput> data;
 
@@ -57,6 +69,8 @@ public final class ExecutionContextInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder slug(String slug) { this.slug = slug; return this; }
+        public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder executionId(String executionId) { this.executionId = executionId; return this; }
         public Builder data(java.util.Map<String, EnvVarInput> data) { this.data = data; return this; }
 

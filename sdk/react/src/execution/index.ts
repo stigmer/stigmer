@@ -10,6 +10,9 @@ export { isTerminalPhase } from "./execution-phases";
 export { useExecutionStream } from "./useExecutionStream";
 export type { UseExecutionStreamReturn } from "./useExecutionStream";
 
+export { useExecutionUsage, aggregateUsage } from "./useExecutionUsage";
+export type { UseExecutionUsageReturn } from "./useExecutionUsage";
+
 export { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 export type { ExecutionPhaseBadgeProps } from "./ExecutionPhaseBadge";
 
@@ -37,6 +40,9 @@ export type { FollowUpInputProps } from "./FollowUpInput";
 export { ExecutionProgress } from "./ExecutionProgress";
 export type { ExecutionProgressProps } from "./ExecutionProgress";
 
+export { ExecutionCostSummary, formatCost, formatTokenCount } from "./ExecutionCostSummary";
+export type { ExecutionCostSummaryProps } from "./ExecutionCostSummary";
+
 export { useSubmitApproval } from "./useSubmitApproval";
 export type { UseSubmitApprovalReturn } from "./useSubmitApproval";
 
@@ -49,3 +55,12 @@ export {
   extractPrimaryArgFromPreview,
 } from "./tool-categories";
 export type { ToolCategory, ToolCategoryInfo } from "./tool-categories";
+
+export { FilePathLink } from "./FilePathLink";
+export type { FilePathLinkProps } from "./FilePathLink";
+
+export { FilePathContext } from "./FilePathContext";
+export type { FilePathContextValue } from "./FilePathContext";
+
+export { classifyPath, resolveGitBrowseUrl, resolvePathAction } from "./file-path-resolver";
+export type { PathClassification, ResolvedPathAction } from "./file-path-resolver";

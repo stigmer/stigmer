@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentInstanceSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_agentinstance_v1_api } from "./api_pb";
-import type { AgentInstanceIdSchema, AgentInstanceListSchema, GetAgentInstancesByAgentRequestSchema } from "./io_pb";
+import type { AgentInstanceIdSchema, AgentInstanceListSchema, GetAgentInstancesByAgentRequestSchema, ListAgentInstancesRequestSchema } from "./io_pb";
 import { file_ai_stigmer_agentic_agentinstance_v1_io } from "./io_pb";
 import type { ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from
  * Describes the file ai/stigmer/agentic/agentinstance/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_agentinstance_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRpbnN0YW5jZS92MS9xdWVyeS5wcm90bxIjYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEy2gMKHEFnZW50SW5zdGFuY2VRdWVyeUNvbnRyb2xsZXISpAEKA2dldBI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2VJZBoyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2UiM8K4GC8IAxAtIgV2YWx1ZSoidW5hdXRob3JpemVkIHRvIGdldCBBZ2VudCBJbnN0YW5jZRKQAQoKZ2V0QnlBZ2VudBJELmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkdldEFnZW50SW5zdGFuY2VzQnlBZ2VudFJlcXVlc3QaNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MS5BZ2VudEluc3RhbmNlTGlzdCIE0LgYARJ6Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2UaBKD/Ky1iBnByb3RvMw", [file_ai_stigmer_agentic_agentinstance_v1_api, file_ai_stigmer_agentic_agentinstance_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRpbnN0YW5jZS92MS9xdWVyeS5wcm90bxIjYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEy4QQKHEFnZW50SW5zdGFuY2VRdWVyeUNvbnRyb2xsZXISpAEKA2dldBI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2VJZBoyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2UiM8K4GC8IAxAtIgV2YWx1ZSoidW5hdXRob3JpemVkIHRvIGdldCBBZ2VudCBJbnN0YW5jZRKQAQoKZ2V0QnlBZ2VudBJELmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkdldEFnZW50SW5zdGFuY2VzQnlBZ2VudFJlcXVlc3QaNi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MS5BZ2VudEluc3RhbmNlTGlzdCIE0LgYARJ6Cg5nZXRCeVJlZmVyZW5jZRI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRoyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxLkFnZW50SW5zdGFuY2UShAEKBGxpc3QSPi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRpbnN0YW5jZS52MS5MaXN0QWdlbnRJbnN0YW5jZXNSZXF1ZXN0GjYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEuQWdlbnRJbnN0YW5jZUxpc3QiBNC4GAEaBKD/Ky1iBnByb3RvMw", [file_ai_stigmer_agentic_agentinstance_v1_api, file_ai_stigmer_agentic_agentinstance_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
  * AgentInstanceQueryController provides queries for retrieving agent instances.
@@ -57,6 +57,18 @@ export const AgentInstanceQueryController: GenService<{
     methodKind: "unary";
     input: typeof ApiResourceReferenceSchema;
     output: typeof AgentInstanceSchema;
+  },
+  /**
+   * List agent instances with optional label filtering.
+   * Authorization is handled in-handler via FGA-filtered queries (cloud)
+   * or unrestricted store queries (OSS).
+   *
+   * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController.list
+   */
+  list: {
+    methodKind: "unary";
+    input: typeof ListAgentInstancesRequestSchema;
+    output: typeof AgentInstanceListSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_agentinstance_v1_query, 0);

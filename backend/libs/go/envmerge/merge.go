@@ -1,6 +1,8 @@
 package envmerge
 
 import (
+	"sort"
+
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 )
@@ -58,4 +60,40 @@ func MergeEnvironmentLayers(
 	}
 
 	return merged
+}
+
+// FilterByEnvSpec restricts a merged environment map to only the keys declared
+// in the agent's or workflow's env_spec.data. This enforces least-privilege:
+// an agent only receives the environment variables it explicitly declared,
+// even if the linked environments contain additional secrets.
+//
+// Backward compatibility: if envSpecData is nil or empty, the merged map is
+// returned unchanged. This preserves legacy behavior for agents/workflows
+// that predate env_spec.
+//
+// The whitelist includes ALL keys in envSpecData, including entries with empty
+// values (schema-only declarations). A key like GITHUB_TOKEN may have an empty
+// value in env_spec but still be a valid key that should pass through from
+// environments or runtime_env.
+//
+// Returns the filtered map and a sorted list of excluded keys for observability.
+func FilterByEnvSpec(
+	merged map[string]*executioncontextv1.ExecutionValue,
+	envSpecData map[string]*environmentv1.EnvironmentValue,
+) (filtered map[string]*executioncontextv1.ExecutionValue, excludedKeys []string) {
+	if len(envSpecData) == 0 {
+		return merged, nil
+	}
+
+	filtered = make(map[string]*executioncontextv1.ExecutionValue, len(envSpecData))
+	for key, val := range merged {
+		if _, declared := envSpecData[key]; declared {
+			filtered[key] = val
+		} else {
+			excludedKeys = append(excludedKeys, key)
+		}
+	}
+
+	sort.Strings(excludedKeys)
+	return filtered, excludedKeys
 }

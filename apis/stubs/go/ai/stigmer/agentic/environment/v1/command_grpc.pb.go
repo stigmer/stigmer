@@ -20,10 +20,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	EnvironmentCommandController_Apply_FullMethodName  = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/apply"
-	EnvironmentCommandController_Create_FullMethodName = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/create"
-	EnvironmentCommandController_Update_FullMethodName = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/update"
-	EnvironmentCommandController_Delete_FullMethodName = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/delete"
+	EnvironmentCommandController_Apply_FullMethodName           = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/apply"
+	EnvironmentCommandController_Create_FullMethodName          = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/create"
+	EnvironmentCommandController_Update_FullMethodName          = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/update"
+	EnvironmentCommandController_Delete_FullMethodName          = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/delete"
+	EnvironmentCommandController_UpdateVariables_FullMethodName = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/updateVariables"
+	EnvironmentCommandController_RemoveVariables_FullMethodName = "/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/removeVariables"
 )
 
 // EnvironmentCommandControllerClient is the client API for EnvironmentCommandController service.
@@ -42,6 +44,12 @@ type EnvironmentCommandControllerClient interface {
 	Update(ctx context.Context, in *Environment, opts ...grpc.CallOption) (*Environment, error)
 	// Delete an Environment resource.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*Environment, error)
+	// Add or update specific variables in an environment (server-side merge).
+	// Existing variables not included in the request are preserved unchanged.
+	UpdateVariables(ctx context.Context, in *UpdateEnvironmentVariablesRequest, opts ...grpc.CallOption) (*Environment, error)
+	// Remove specific variables from an environment by key.
+	// Keys that don't exist are silently ignored.
+	RemoveVariables(ctx context.Context, in *RemoveEnvironmentVariablesRequest, opts ...grpc.CallOption) (*Environment, error)
 }
 
 type environmentCommandControllerClient struct {
@@ -92,6 +100,26 @@ func (c *environmentCommandControllerClient) Delete(ctx context.Context, in *api
 	return out, nil
 }
 
+func (c *environmentCommandControllerClient) UpdateVariables(ctx context.Context, in *UpdateEnvironmentVariablesRequest, opts ...grpc.CallOption) (*Environment, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Environment)
+	err := c.cc.Invoke(ctx, EnvironmentCommandController_UpdateVariables_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *environmentCommandControllerClient) RemoveVariables(ctx context.Context, in *RemoveEnvironmentVariablesRequest, opts ...grpc.CallOption) (*Environment, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Environment)
+	err := c.cc.Invoke(ctx, EnvironmentCommandController_RemoveVariables_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // EnvironmentCommandControllerServer is the server API for EnvironmentCommandController service.
 // All implementations should embed UnimplementedEnvironmentCommandControllerServer
 // for forward compatibility.
@@ -108,6 +136,12 @@ type EnvironmentCommandControllerServer interface {
 	Update(context.Context, *Environment) (*Environment, error)
 	// Delete an Environment resource.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*Environment, error)
+	// Add or update specific variables in an environment (server-side merge).
+	// Existing variables not included in the request are preserved unchanged.
+	UpdateVariables(context.Context, *UpdateEnvironmentVariablesRequest) (*Environment, error)
+	// Remove specific variables from an environment by key.
+	// Keys that don't exist are silently ignored.
+	RemoveVariables(context.Context, *RemoveEnvironmentVariablesRequest) (*Environment, error)
 }
 
 // UnimplementedEnvironmentCommandControllerServer should be embedded to have
@@ -128,6 +162,12 @@ func (UnimplementedEnvironmentCommandControllerServer) Update(context.Context, *
 }
 func (UnimplementedEnvironmentCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*Environment, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedEnvironmentCommandControllerServer) UpdateVariables(context.Context, *UpdateEnvironmentVariablesRequest) (*Environment, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateVariables not implemented")
+}
+func (UnimplementedEnvironmentCommandControllerServer) RemoveVariables(context.Context, *RemoveEnvironmentVariablesRequest) (*Environment, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveVariables not implemented")
 }
 func (UnimplementedEnvironmentCommandControllerServer) testEmbeddedByValue() {}
 
@@ -221,6 +261,42 @@ func _EnvironmentCommandController_Delete_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EnvironmentCommandController_UpdateVariables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateEnvironmentVariablesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnvironmentCommandControllerServer).UpdateVariables(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EnvironmentCommandController_UpdateVariables_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnvironmentCommandControllerServer).UpdateVariables(ctx, req.(*UpdateEnvironmentVariablesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EnvironmentCommandController_RemoveVariables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveEnvironmentVariablesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnvironmentCommandControllerServer).RemoveVariables(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EnvironmentCommandController_RemoveVariables_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnvironmentCommandControllerServer).RemoveVariables(ctx, req.(*RemoveEnvironmentVariablesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // EnvironmentCommandController_ServiceDesc is the grpc.ServiceDesc for EnvironmentCommandController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -243,6 +319,14 @@ var EnvironmentCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _EnvironmentCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "updateVariables",
+			Handler:    _EnvironmentCommandController_UpdateVariables_Handler,
+		},
+		{
+			MethodName: "removeVariables",
+			Handler:    _EnvironmentCommandController_RemoveVariables_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

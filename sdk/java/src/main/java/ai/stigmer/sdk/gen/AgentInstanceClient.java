@@ -8,6 +8,7 @@ import ai.stigmer.agentic.agentinstance.v1.AgentInstanceId;
 import ai.stigmer.agentic.agentinstance.v1.AgentInstanceList;
 import ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryControllerGrpc;
 import ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest;
+import ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -60,6 +61,12 @@ public final class AgentInstanceClient {
     public AgentInstance getByReference(ResourceRef ref) {
         try {
             return query.getByReference(ref.toProto());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public AgentInstanceList list(ListAgentInstancesRequest input) {
+        try {
+            return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

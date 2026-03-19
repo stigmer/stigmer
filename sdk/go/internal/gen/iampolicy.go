@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	iampolicyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	iampolicyv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/iampolicy/v1"
 	"google.golang.org/grpc"
 )
 
@@ -71,7 +71,9 @@ func (i *IamPolicyClient) ListAuthorizedPrincipalIds(ctx context.Context, input 
 // IamPolicyInput holds the fields for creating/updating a IamPolicy.
 type IamPolicyInput struct {
 	Name      string
+	Slug      string
 	Org       string
+	Labels    map[string]string
 	Principal *ApiResourceRefInput
 	Resource  *ApiResourceRefInput
 	Relation  string
@@ -89,8 +91,10 @@ func (i *IamPolicyInput) toProto() *iampolicyv1.IamPolicy {
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IamPolicy",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Slug:   i.Slug,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &iampolicyv1.IamPolicySpec{},
 	}

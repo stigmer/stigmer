@@ -84,7 +84,9 @@ export class IdentityAccountClient {
 /** Input for creating/updating a IdentityAccount. */
 export interface IdentityAccountInput {
   name: string;
+  slug?: string;
   org: string;
+  labels?: Record<string, string>;
   idpId: string;
   email?: string;
   firstName?: string;
@@ -103,6 +105,8 @@ function buildIdentityAccountProto(input: IdentityAccountInput): IdentityAccount
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.slug && { slug: input.slug }),
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(IdentityAccountSpecSchema), stripUndefined({
       idpId: input.idpId,

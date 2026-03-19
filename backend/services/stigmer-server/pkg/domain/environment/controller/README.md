@@ -70,7 +70,7 @@ All steps are reusable from `backend/libs/go/grpc/request/pipeline/steps/`:
 The controller is registered in `cmd/server/main.go`:
 
 ```go
-environmentController := environmentcontroller.NewEnvironmentController(store)
+environmentController := environmentcontroller.NewEnvironmentController(store, secretService)
 environmentv1.RegisterEnvironmentCommandControllerServer(grpcServer, environmentController)
 environmentv1.RegisterEnvironmentQueryControllerServer(grpcServer, environmentController)
 ```

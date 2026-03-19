@@ -87,6 +87,8 @@ class IdentityAccountInput:
     name: str
     org: str
     idp_id: str
+    slug: str | None = None
+    labels: dict[str, str] | None = None
     email: str = ""
     first_name: str = ""
     last_name: str = ""
@@ -107,13 +109,18 @@ class IdentityAccountInput:
         )
         if self.identity_provider_ref is not None:
             spec.identity_provider_ref.CopyFrom(self.identity_provider_ref._to_proto())
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.slug:
+            metadata.slug = self.slug
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.IdentityAccount(
             api_version="iam.stigmer.ai/v1",
             kind="IdentityAccount",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

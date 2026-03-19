@@ -511,3 +511,4 @@ stigmer agent execution recover aex_abc123
 - [What is an Agent?](./what-is-agent.md) — The four-layer stack: Agent → AgentInstance → Session → AgentExecution
 - [MCP Server Integration](../../apis/ai/stigmer/agentic/agent/docs/mcp-server-integration.md) — Tool access and approval policy configuration
 - [Agent Execution Lifecycle](../architecture/agent-execution-lifecycle.md) — Phases, pause/resume/cancel, checkpoint preservation
+- [How to Provide Secrets](./how-to-provide-secrets.md) — Choosing between the Environment Flow (persistent) and the Execution Flow (ephemeral `runtime_env`)

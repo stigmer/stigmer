@@ -31,7 +31,7 @@ export function SessionLauncher() {
   const router = useRouter();
   const org = useActiveOrgSlug();
   const deploymentMode = useDeploymentMode();
-  const gitHubConnection = useGitHubConnection();
+  const gitHubConnection = useGitHubConnection(org);
 
   const { getModel } = useModelRegistry();
 
@@ -55,6 +55,8 @@ export function SessionLauncher() {
   }, [modelId]);
 
   const workspace = useWorkspaceEntries();
+  const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
+  const [agentInstanceId, setAgentInstanceId] = useState<string | null>(null);
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const { create: createSession } = useCreateSession();
@@ -76,6 +78,8 @@ export function SessionLauncher() {
             : undefined,
           mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
+          agentInstanceId: agentInstanceId ?? undefined,
+          agentRef: agentRef ?? undefined,
         });
 
         await createExecution({
@@ -102,6 +106,8 @@ export function SessionLauncher() {
       workspace,
       mcpServerUsages,
       skillRefs,
+      agentRef,
+      agentInstanceId,
       createSession,
       createExecution,
       router,
@@ -124,6 +130,9 @@ export function SessionLauncher() {
           enableGitHub
           enableLocal={deploymentMode === "local"}
           enableFolderBrowser={deploymentMode === "local"}
+          agentRef={agentRef}
+          onAgentRefChange={setAgentRef}
+          onAgentInstanceIdChange={setAgentInstanceId}
           mcpServerUsages={mcpServerUsages}
           onMcpServerUsagesChange={setMcpServerUsages}
           skillRefs={skillRefs}

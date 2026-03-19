@@ -68,6 +68,14 @@
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
           "description": "Custom authorization in handler"
+        },
+        {
+          "name": "List",
+          "inputType": "ListAgentInstancesRequest",
+          "inputFullType": "ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest",
+          "outputType": "AgentInstanceList",
+          "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceList",
+          "description": "List agent instances with optional label filtering.\n Authorization is handled in-handler via FGA-filtered queries (cloud)\n or unrestricted store queries (OSS)."
         }
       ]
     }

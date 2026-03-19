@@ -6,6 +6,8 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { EnvironmentSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_environment_v1_api } from "./api_pb";
+import type { RemoveEnvironmentVariablesRequestSchema, UpdateEnvironmentVariablesRequestSchema } from "./io_pb";
+import { file_ai_stigmer_agentic_environment_v1_io } from "./io_pb";
 import type { ApiResourceDeleteInputSchema } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
@@ -15,7 +17,7 @@ import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from
  * Describes the file ai/stigmer/agentic/environment/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_environment_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvY29tbWFuZC5wcm90bxIhYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxMssEChxFbnZpcm9ubWVudENvbW1hbmRDb250cm9sbGVyEmcKBWFwcGx5Ei4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50EmgKBmNyZWF0ZRIuLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudBouLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudBKjAQoGdXBkYXRlEi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50IjnCuBg1CAQQNSILbWV0YWRhdGEuaWQqInVuYXV0aG9yaXplZCB0byB1cGRhdGUgZW52aXJvbm1lbnQSqwEKBmRlbGV0ZRI2LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZURlbGV0ZUlucHV0Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50IjnCuBg1CAQQNSILbWV0YWRhdGEuaWQqInVuYXV0aG9yaXplZCB0byBkZWxldGUgZW52aXJvbm1lbnQaBKD/KzViBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_api, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvY29tbWFuZC5wcm90bxIhYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxMu8HChxFbnZpcm9ubWVudENvbW1hbmRDb250cm9sbGVyEmcKBWFwcGx5Ei4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50EmgKBmNyZWF0ZRIuLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudBouLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudBKjAQoGdXBkYXRlEi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50IjnCuBg1CAQQNSILbWV0YWRhdGEuaWQqInVuYXV0aG9yaXplZCB0byB1cGRhdGUgZW52aXJvbm1lbnQSqwEKBmRlbGV0ZRI2LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZURlbGV0ZUlucHV0Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50IjnCuBg1CAQQNSILbWV0YWRhdGEuaWQqInVuYXV0aG9yaXplZCB0byBkZWxldGUgZW52aXJvbm1lbnQSzwEKD3VwZGF0ZVZhcmlhYmxlcxJELmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5VcGRhdGVFbnZpcm9ubWVudFZhcmlhYmxlc1JlcXVlc3QaLi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnQiRsK4GEIIBBA1Ig5lbnZpcm9ubWVudF9pZCosdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBlbnZpcm9ubWVudCB2YXJpYWJsZXMSzwEKD3JlbW92ZVZhcmlhYmxlcxJELmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5SZW1vdmVFbnZpcm9ubWVudFZhcmlhYmxlc1JlcXVlc3QaLi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnQiRsK4GEIIBBA1Ig5lbnZpcm9ubWVudF9pZCosdW5hdXRob3JpemVkIHRvIHJlbW92ZSBlbnZpcm9ubWVudCB2YXJpYWJsZXMaBKD/KzViBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_api, file_ai_stigmer_agentic_environment_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
  * EnvironmentCommandController provides write operations for Environment resources.
@@ -63,6 +65,28 @@ export const EnvironmentCommandController: GenService<{
   delete: {
     methodKind: "unary";
     input: typeof ApiResourceDeleteInputSchema;
+    output: typeof EnvironmentSchema;
+  },
+  /**
+   * Add or update specific variables in an environment (server-side merge).
+   * Existing variables not included in the request are preserved unchanged.
+   *
+   * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.updateVariables
+   */
+  updateVariables: {
+    methodKind: "unary";
+    input: typeof UpdateEnvironmentVariablesRequestSchema;
+    output: typeof EnvironmentSchema;
+  },
+  /**
+   * Remove specific variables from an environment by key.
+   * Keys that don't exist are silently ignored.
+   *
+   * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.removeVariables
+   */
+  removeVariables: {
+    methodKind: "unary";
+    input: typeof RemoveEnvironmentVariablesRequestSchema;
     output: typeof EnvironmentSchema;
   },
 }> = /*@__PURE__*/

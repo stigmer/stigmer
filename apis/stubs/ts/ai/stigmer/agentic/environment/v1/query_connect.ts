@@ -6,6 +6,8 @@
 import { ApiResourceId, ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 import { Environment } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
+import { EnvironmentList, EnvironmentSecretValueInput, ListEnvironmentsRequest } from "./io_pb.js";
+import { EnvironmentValue } from "./spec_pb.js";
 
 /**
  * EnvironmentQueryController provides read operations for Environment resources.
@@ -35,6 +37,32 @@ export const EnvironmentQueryController = {
       name: "getByReference",
       I: ApiResourceReference,
       O: Environment,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get the unredacted value of a single secret key in an environment.
+     * Creator-only: requires can_read_secrets permission (FGA: creator relation).
+     * Returns the EnvironmentValue with the decrypted value.
+     *
+     * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getSecretValue
+     */
+    getSecretValue: {
+      name: "getSecretValue",
+      I: EnvironmentSecretValueInput,
+      O: EnvironmentValue,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List environments with optional label filtering.
+     * Authorization is handled in-handler via FGA-filtered queries (cloud)
+     * or unrestricted store queries (OSS). Secret values are redacted.
+     *
+     * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.list
+     */
+    list: {
+      name: "list",
+      I: ListEnvironmentsRequest,
+      O: EnvironmentList,
       kind: MethodKind.Unary,
     },
   }

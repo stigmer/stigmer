@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	identityaccountv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/identityaccount/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	identityaccountv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityaccount/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -72,7 +72,9 @@ func (i *IdentityAccountClient) GetActorInfo(ctx context.Context, id string) (*a
 // IdentityAccountInput holds the fields for creating/updating a IdentityAccount.
 type IdentityAccountInput struct {
 	Name                string
+	Slug                string
 	Org                 string
+	Labels              map[string]string
 	IdpId               string
 	Email               string
 	FirstName           string
@@ -88,8 +90,10 @@ func (i *IdentityAccountInput) toProto() *identityaccountv1.IdentityAccount {
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IdentityAccount",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Slug:   i.Slug,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &identityaccountv1.IdentityAccountSpec{},
 	}

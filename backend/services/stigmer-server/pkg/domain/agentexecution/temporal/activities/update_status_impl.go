@@ -154,6 +154,21 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		status.CompletedAt = statusUpdates.CompletedAt
 	}
 
+	// Merge usage (replace with latest cumulative snapshot from request)
+	if statusUpdates.Usage != nil {
+		status.Usage = statusUpdates.Usage
+	}
+
+	// Merge context_info (replace with latest from request)
+	if statusUpdates.ContextInfo != nil {
+		status.ContextInfo = statusUpdates.ContextInfo
+	}
+
+	// Merge resolved_context (replace with latest from request)
+	if statusUpdates.ResolvedContext != nil {
+		status.ResolvedContext = statusUpdates.ResolvedContext
+	}
+
 	// Update audit timestamp (status was modified)
 	if status.Audit == nil {
 		status.Audit = &apiresource.ApiResourceAudit{}
@@ -173,6 +188,9 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		Int("sub_agents", len(existing.GetStatus().GetSubAgentExecutions())).
 		Int("todos", len(existing.GetStatus().GetTodos())).
 		Str("phase", existing.GetStatus().GetPhase().String()).
+		Bool("has_usage", existing.GetStatus().GetUsage() != nil).
+		Bool("has_context_info", existing.GetStatus().GetContextInfo() != nil).
+		Bool("has_resolved_context", existing.GetStatus().GetResolvedContext() != nil).
 		Msg("Built updated execution - new status")
 
 	// Persist to database
@@ -191,7 +209,8 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		Int("sub_agents", len(existing.GetStatus().GetSubAgentExecutions())).
 		Int("todos", len(existing.GetStatus().GetTodos())).
 		Str("phase", existing.GetStatus().GetPhase().String()).
-		Msg("✅ Activity completed - Updated execution status")
+		Bool("has_usage", existing.GetStatus().GetUsage() != nil).
+		Msg("Activity completed - Updated execution status")
 
 	// Broadcast to active subscribers (ADR 011: real-time streaming)
 	// This ensures that errors from workflow failures are immediately visible to users
