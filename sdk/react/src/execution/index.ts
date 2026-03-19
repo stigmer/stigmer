@@ -55,3 +55,12 @@ export {
   extractPrimaryArgFromPreview,
 } from "./tool-categories";
 export type { ToolCategory, ToolCategoryInfo } from "./tool-categories";
+
+export { FilePathLink } from "./FilePathLink";
+export type { FilePathLinkProps } from "./FilePathLink";
+
+export { FilePathContext } from "./FilePathContext";
+export type { FilePathContextValue } from "./FilePathContext";
+
+export { classifyPath, resolveGitBrowseUrl, resolvePathAction } from "./file-path-resolver";
+export type { PathClassification, ResolvedPathAction } from "./file-path-resolver";

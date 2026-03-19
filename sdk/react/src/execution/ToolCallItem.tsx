@@ -10,6 +10,7 @@ import {
 import { cn } from "@stigmer/theme";
 import { ToolCallDetail, formatDuration } from "./ToolCallDetail";
 import { SubAgentSection } from "./SubAgentSection";
+import { FilePathLink } from "./FilePathLink";
 import {
   resolveToolCategory,
   extractPrimaryArg,
@@ -32,16 +33,19 @@ export interface ToolCallItemProps {
 }
 
 /**
- * Renders a single tool call as a clickable row that expands to show
- * either a {@link ToolCallDetail} (regular tool) or a
- * {@link SubAgentSection} (sub-agent delegation).
+ * Renders a single tool call as a row in the tool call group.
+ *
+ * Two rendering modes:
+ *
+ * - **Non-expandable** (completed/skipped Read): a static `<div>` row
+ *   with a clickable {@link FilePathLink}. No chevron, no expansion.
+ *   The clickable path IS the complete information.
+ * - **Expandable** (all other tools): a `<button>` row that toggles a
+ *   {@link ToolCallDetail} or {@link SubAgentSection} detail panel.
  *
  * Shows category-aware labels (e.g., "Shell", "Read", "Edit") with
  * the primary argument as a subtitle, a category-specific icon, and
  * an inline approval decision badge when applicable.
- *
- * This is Level 2 of the progressive disclosure in the conversation
- * thread.
  *
  * @example
  * ```tsx
@@ -70,9 +74,77 @@ export function ToolCallItem({
     ? subAgentExecution.subject || subAgentExecution.name || categoryInfo.label
     : categoryInfo.label;
 
-  const displaySubtitle = isSubAgent ? null : primaryArg;
-
   const approvalBadge = getApprovalBadge(toolCall);
+
+  // Completed/skipped Read items are non-expandable — the clickable
+  // path in the row is the complete information. Failed reads remain
+  // expandable to show the error.
+  const isNonExpandableRead =
+    !isSubAgent &&
+    categoryInfo.category === "read" &&
+    (toolCall.status === ToolCallStatus.TOOL_CALL_COMPLETED ||
+      toolCall.status === ToolCallStatus.TOOL_CALL_SKIPPED);
+
+  const trailingContent = (
+    <>
+      {approvalBadge && (
+        <span
+          className={cn(
+            "shrink-0 rounded px-1 py-0.5 text-[10px] font-medium leading-none",
+            approvalBadge.colorClass,
+          )}
+        >
+          {approvalBadge.label}
+        </span>
+      )}
+
+      {toolCall.mcpServerSlug && (
+        <span className="shrink-0 rounded bg-muted px-1 py-0.5 font-mono text-muted-foreground">
+          {toolCall.mcpServerSlug}
+        </span>
+      )}
+
+      <span
+        className={cn("shrink-0", STATUS_COLOR[status])}
+        aria-hidden="true"
+      >
+        <StatusIcon />
+      </span>
+
+      {duration && (
+        <span className="shrink-0 tabular-nums text-muted-foreground">
+          {duration}
+        </span>
+      )}
+    </>
+  );
+
+  if (isNonExpandableRead) {
+    return (
+      <div className={cn("border-b border-border/50 last:border-b-0", className)}>
+        <div
+          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs"
+        >
+          <span className="shrink-0 text-muted-foreground" aria-hidden="true">
+            <CategoryIcon />
+          </span>
+
+          <span className="min-w-0 flex-1 flex items-center gap-1.5 overflow-hidden">
+            <span className="shrink-0 font-medium text-foreground">
+              {displayLabel}
+            </span>
+            {primaryArg && (
+              <FilePathLink path={primaryArg} className="min-w-0 text-xs" />
+            )}
+          </span>
+
+          {trailingContent}
+        </div>
+      </div>
+    );
+  }
+
+  const displaySubtitle = isSubAgent ? null : primaryArg;
 
   return (
     <div className={cn("border-b border-border/50 last:border-b-0", className)}>
@@ -86,12 +158,10 @@ export function ToolCallItem({
           expanded && "bg-muted/30",
         )}
       >
-        {/* Category icon */}
         <span className="shrink-0 text-muted-foreground" aria-hidden="true">
           <CategoryIcon />
         </span>
 
-        {/* Label + primary arg */}
         <span className="min-w-0 flex-1 flex items-baseline gap-1.5 overflow-hidden">
           <span className="shrink-0 font-medium text-foreground">
             {displayLabel}
@@ -103,41 +173,8 @@ export function ToolCallItem({
           )}
         </span>
 
-        {/* Approval decision badge */}
-        {approvalBadge && (
-          <span
-            className={cn(
-              "shrink-0 rounded px-1 py-0.5 text-[10px] font-medium leading-none",
-              approvalBadge.colorClass,
-            )}
-          >
-            {approvalBadge.label}
-          </span>
-        )}
+        {trailingContent}
 
-        {/* MCP server badge */}
-        {toolCall.mcpServerSlug && (
-          <span className="shrink-0 rounded bg-muted px-1 py-0.5 font-mono text-muted-foreground">
-            {toolCall.mcpServerSlug}
-          </span>
-        )}
-
-        {/* Status icon */}
-        <span
-          className={cn("shrink-0", STATUS_COLOR[status])}
-          aria-hidden="true"
-        >
-          <StatusIcon />
-        </span>
-
-        {/* Duration */}
-        {duration && (
-          <span className="shrink-0 tabular-nums text-muted-foreground">
-            {duration}
-          </span>
-        )}
-
-        {/* Chevron */}
         <ChevronIcon expanded={expanded} />
       </button>
 
