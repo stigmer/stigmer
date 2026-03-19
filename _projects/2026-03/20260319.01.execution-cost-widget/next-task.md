@@ -68,54 +68,60 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 09:07
-**Current Task**: Task 3 — Create `ExecutionCostSummary` component
+**Current Task**: Task 4 — Console integration and end-to-end verification
 **Status**: In Progress
 
-## Session Progress (2026-03-19, Session 2)
+## Session Progress (2026-03-19, Session 3)
 
 ### Completed
-- **Task 2: Create `useExecutionUsage` hook** — DONE
-  - Created `sdk/react/src/execution/useExecutionUsage.ts`
-  - `aggregateUsage()` pure function: sums UsageMetrics across main agent + sub-agents, merges modelBreakdown by model+provider key, concatenates llmCalls sorted by timestamp
-  - `useExecutionUsage()` hook: thin `useMemo` wrapper returning `UseExecutionUsageReturn`
-  - Uses proto types directly via `create(UsageMetricsSchema)` and `create(ModelUsageSchema)` — zero custom data interfaces, zero field duplication
-  - `UseExecutionUsageReturn` wraps `UsageMetrics | null` with aggregation metadata (`hasSubAgentUsage`, `subAgentUsageCount`)
-  - Short-circuits: returns main agent's UsageMetrics directly when no sub-agents have usage (no allocation)
-  - Handles `toolResultCharsTruncated` as `bigint` (matches `int64` proto field)
-  - Barrel exports added to `sdk/react/src/execution/index.ts` and `sdk/react/src/index.ts`
-  - 19 tests (15 pure function + 4 hook) — all passing
-  - Created `sdk/react/src/execution/__tests__/useExecutionUsage.test.tsx`
+- **Task 3: Create `ExecutionCostSummary` component** — DONE
+  - Created `sdk/react/src/execution/ExecutionCostSummary.tsx` (~145 lines)
+  - Chromeless styled component following `ExecutionProgress` pattern
+  - Internally uses `useExecutionUsage` hook for aggregated data
+  - `formatCost()`: `$0.00` / `$0.0042` (4 decimals < $1) / `$1.23` (2 decimals >= $1)
+  - `formatTokenCount()`: comma-separated via `Intl.NumberFormat("en-US")`
+  - `ModelBreakdown` sub-component: per-model cost table when multiple models
+  - `CacheLine` sub-component: conditional cache read/write display
+  - `tabular-nums` for stable digit widths during streaming
+  - `role="region"` + `aria-label="Execution cost summary"` for accessibility
+  - Barrel exports in `sdk/react/src/execution/index.ts` and `sdk/react/src/index.ts`
+  - 26 tests (10 formatting + 16 component render) — all passing
+  - Created `sdk/react/src/execution/__tests__/ExecutionCostSummary.test.tsx`
 
-### Decisions Made
-- Use proto types directly instead of custom data interfaces (consistent with all existing hooks)
-- Extract `aggregateUsage()` as a standalone pure function for testability and reuse
-- Naming: `UseExecutionUsageReturn` (not `ExecutionUsageSummary` which already exists in `io.proto` for session-level usage reports)
-- `llmCalls` sorted by `timestamp` (not `sequence`) because sequence numbers overlap across agents
+### Decisions Made (Session 3)
+- Duration metrics excluded from component (single responsibility: cost, not timing)
+- Flat layout, no expand/collapse (information density over interactivity)
+- Sub-agents: aggregated total with "Includes N sub-agents" annotation
+- Model breakdown: inline single-model, per-model cost table for multi-model
+- Cost: `$X.XXXX` for < $1, `$X.XX` for >= $1
+- Tokens: comma-separated integers (power-user precision)
+- No animation libraries (embeddability liability)
+- Formatting utilities exported from file for testability, not from barrel (internal API)
 
-### Previous Session (Session 1)
-- **Task 1 (P0): Server-side usage merge fix** — DONE
-  - Fixed in both Go (OSS) and Java (Cloud) servers
-  - 4 files changed across 2 repos
-  - Added merge logic for `usage`, `context_info`, `resolved_context`
+### Previous Sessions
+- **Session 2**: Task 2 (useExecutionUsage hook) — DONE, 19 tests
+- **Session 1**: Task 1 (server-side usage merge fix, Go + Java) — DONE, 4 files across 2 repos
 
 ### Pre-existing Inconsistencies Found (Not Fixed)
 - Both gRPC handlers merge `artifacts`, but both Temporal activities skip `artifacts`
 - Both Temporal activities set `StatusAudit.UpdatedAt`, but both gRPC handlers do not
 
 ## Next Steps
-1. **Task 3**: Create `ExecutionCostSummary` component in `sdk/react/src/execution/ExecutionCostSummary.tsx`
-2. **Task 4**: Export, Console integration, end-to-end verification
+1. **Task 4**: Add `<ExecutionCostSummary execution={displayExecution} />` to `SessionPage.tsx` sidebar alongside `ExecutionProgress`
+2. **Task 4**: End-to-end verification — run a full agent execution and confirm live cost updates
 
 ## Context for Resume
-- The 4 open questions from T01_0_plan.md are still unresolved (sub-agent breakdown display, number formatting, per-call metrics exposure)
-- The server-side fix is committed but not yet validated with a live agent execution
-- Task 3 is purely frontend — the hook (`useExecutionUsage`) provides the data layer; the component needs to consume it and render a styled widget using `@stigmer/theme` tokens
-- Task 2's plan file at `/Users/suresh/.cursor/plans/useexecutionusage_hook_d5e7d4ac.plan.md` documents the full design including architecture diagrams
+- All 4 open questions from T01_0_plan.md are now resolved through implementation
+- Tasks 1-3 are fully complete: server merge fix, data hook, styled component
+- Task 4 is purely Console integration — consuming the SDK component in `client-apps/web`
+- The integration point is `SessionPage.tsx` sidebar (`<aside>` tag, `w-80`, `flex-col gap-3`)
+- The `displayExecution` variable already exists and is used by `ExecutionProgress` — pass the same to `ExecutionCostSummary`
+- The component should be wrapped in the same card pattern: `<div className="rounded-lg border border-border bg-card p-3">`
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Task 2" - Start the useExecutionUsage hook
+- "Continue with Task 4" - Console integration
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
