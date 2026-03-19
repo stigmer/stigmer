@@ -102,8 +102,18 @@ When starting a new session:
 
 **Created**: 2026-03-19 13:12
 **Current Task**: T01 (Environment Authorization & Secret Redaction)
-**Status**: T01.1–T01.7 ALL COMPLETE
-**Last Session**: 2026-03-19, Session 4
+**Status**: T01.1–T01.7 ALL COMPLETE + Follow-up FGA fixes complete
+**Last Session**: 2026-03-19, Session 5
+
+## Session Progress (2026-03-19, Session 5)
+
+- **Follow-up fix**: Extended personal-resource FGA pattern to `session.fga` and `workflow_instance.fga`
+- Both had `admin from organization` in their `owner` relation, giving org admins implicit access to private conversations and workflow configurations
+- Removed `admin from organization` from `owner` in both files, matching the pattern applied to `environment.fga` and `agent_instance.fga` in Session 2
+- Updated comments and header blocks to reflect "Personal Resource" authorization model
+- Committed to stigmer-cloud: `ee8ea772`
+- Created changelog: `2026-03-19-152103-fga-session-workflow-instance-personal-resources.md`
+- All four personal resource types (environment, agent_instance, session, workflow_instance) now consistently exclude admin from ownership
 
 ## Session Progress (2026-03-19, Session 4)
 
@@ -150,7 +160,7 @@ When starting a new session:
 
 ## Next Steps
 
-All T01 subtasks are complete. Remaining follow-up work:
+All T01 subtasks and follow-up FGA fixes are complete. Remaining follow-up work:
 
 1. **Proto regeneration** in stigmer-cloud to pick up `EnvironmentSecretValueInput`, `EnvironmentValue`, and `getSecretValue` RPC stubs — needed before the Java handler compiles
 2. **SDK regeneration** in stigmer OSS to generate `getSecretValue()` on `EnvironmentClient` — then remove the `TODO(codegen)` type cast in `useRevealSecretValue.ts`
