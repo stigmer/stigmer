@@ -68,9 +68,24 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: T01.11 — Console integration
-**Status**: In Progress (Phase 1)
-**Last Session**: 2026-03-19 — Completed T01.10
+**Current Task**: Phase 1 complete — next is Phase 3 (backend env_spec filtering)
+**Status**: Phase 1 Complete
+**Last Session**: 2026-03-19 — Completed T01.11 (Phase 1 done)
+
+## Session Progress (2026-03-19, Session 11)
+
+- Completed T01.11: Console integration — wired agentRef into SessionLauncher
+  - Modified `client-apps/web/src/components/session/SessionLauncher.tsx` (+5 lines)
+  - Added `useState<ResourceRef | null>(null)` for `agentRef` — grouped with other context state (mcpServerUsages, skillRefs)
+  - Passed `agentRef` and `onAgentRefChange={setAgentRef}` to `SessionComposer` — positioned between workspace and MCP server props (matching toolbar order)
+  - Forwarded `agentRef: agentRef ?? undefined` to `createSession()` call — `?? undefined` coercion because state is `ResourceRef | null` but `CreateSessionInput.agentRef` is `ResourceRef | undefined`
+  - Added `agentRef` to `handleSubmit` useCallback dependency array
+  - Zero linter errors, zero TypeScript errors from the change (only pre-existing unrelated BigInt target error in useExecutionUsage.ts)
+- **Phase 1 is now complete** (T01.1–T01.11). Agent picker is wired end-to-end: toolbar selection in SessionComposer → agentRef state in SessionLauncher → useCreateSession resolution to default instance.
+- Design decisions confirmed for Phase 1:
+  - No agent persistence in localStorage — agent selection is contextual per session, unlike model preference
+  - No agent picker in SessionPage.tsx — follow-up messages are within an existing session already bound to an agent instance
+  - Error handling for missing default instance flows through existing catch/toast pattern
 
 ## Session Progress (2026-03-19, Session 10)
 
@@ -183,26 +198,25 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01.11** — Console integration (SessionLauncher — wire agentRef state, pass to SessionComposer and createSession)
+1. **Phase 3 (T03.1–T03.3)** — Backend env_spec whitelist filter in `envmerge` (security: must ship before personal environments accumulate secrets)
+2. **Phase 2 (T02.1–T02.5)** — Personal env orchestration, AgentEnvForm, inline env var collection (depends on Phase 1)
+3. **Phase 4 (T04.1–T04.3)** — GitHub token migration from localStorage to server-side personal env (depends on Phase 2)
 
 ## Context for Resume
 
-- All Phase 1 SDK work is now complete (T01.1–T01.10). Everything is importable from `@stigmer/react`. The remaining Phase 1 work is one task: Console integration (T01.11).
-- `useCreateSession` now accepts `agentInstanceId` (direct) and `agentRef` (resolved to default instance) on `CreateSessionInput`. Resolution priority: `agentInstanceId` > `agentRef` > omit. The `agentRef` path calls `agent.getByReference()` and extracts `status.defaultInstanceId`.
-- SessionComposer now accepts `agentRef` / `onAgentRefChange` props. The Agent trigger appears first in the toolbar (before Workspace, MCP, Skills). The consumer (SessionLauncher) still needs to add `useState` for `agentRef` and pass it down (T01.11).
-- `useCreateAgentInstance` follows the `useCreateEnvironment` pattern exactly — wraps `stigmer.agentInstance.create()` with `{ create, isCreating, error, clearError }`; will be composed by Phase 2 `usePersonalAgentInstance` for get-or-create flow
-- The `useAgentSearch` hook wraps `stigmer.agent.list()` via `useResourceSearch`
-- `AgentPicker` is a **single-select** component: `value: ResourceRef | null`, `onChange: (ref: ResourceRef | null) => void`
-- AgentPicker follows the structural pattern of SkillPicker/McpServerPicker but with single-select semantics: clicking a result replaces the current selection, deselect calls `onChange(null)`
-- AgentPicker uses `ApiResourceKind.agent` and its own `AgentIcon` (bot/robot metaphor)
-- `useEnvironment` is the **first hook that fetches by `ResourceRef`** (not by ID string like `useSession`). It uses `stigmer.environment.getByReference({ org, slug, version })` and destructures the ref into primitives for the dependency array
-- `useEnvironment` includes `refetch()` (unlike `useSession`) — needed by Phase 2 `usePersonalEnvironment` orchestration hook after mutations
-- `useCreateEnvironment` follows the `useUpdateSession` pattern exactly — uses `EnvironmentInput` from `@stigmer/sdk` directly, returns full `Environment` proto
-- `useUpdateEnvironment` follows the same pattern as `useCreateEnvironment` — wraps `stigmer.environment.update()` with `{ update, isUpdating, error, clearError }`; will be composed by Phase 2 `usePersonalEnvironment` for `addVariables`
-- `useAgentInstance` follows the `useEnvironment` pattern exactly — fetches by `ResourceRef`, returns `{ agentInstance, isLoading, error, refetch }`, includes `refetch()` for Phase 2 `usePersonalAgentInstance`
-- Return property naming convention: every data hook returns the full domain noun (`session`, `environment`, `agentInstance`) — never abbreviated
-- Pickers are self-contained by design — each will evolve independently (McpServerPicker will add per-tool selection, AgentPicker will add env form transition in Phase 2)
-- Key reference files: `sdk/react/src/skill/SkillPicker.tsx` (multi-select pattern), `sdk/react/src/composer/SessionComposer.tsx` (ContextPopover integration pattern), `sdk/react/src/session/useSession.ts` (single-resource fetch pattern)
+- **Phase 1 is fully complete** (T01.1–T01.11). Agent selection is wired end-to-end from the SessionComposer toolbar through SessionLauncher to useCreateSession.
+- The recommended execution order going forward is: **Phase 3 → Phase 2 → Phase 4**
+- Phase 3 is backend-only (Go, `backend/libs/go/envmerge/merge.go`) and independent of frontend work. It adds env_spec whitelist filtering so agents only receive env vars they declared.
+- Phase 2 builds Layer 2 orchestration hooks (`usePersonalEnvironment`, `usePersonalAgentInstance`) on top of the Layer 1 building blocks from Phase 1. It also adds `AgentEnvForm` and the picker-to-env-form transition in SessionComposer.
+- Phase 4 migrates the GitHub OAuth token from browser localStorage to the server-side personal Environment, using the infrastructure from Phase 2.
+- All Layer 1 hooks and components are importable from `@stigmer/react`: `useAgentSearch`, `AgentPicker`, `useEnvironment`, `useCreateEnvironment`, `useUpdateEnvironment`, `useAgentInstance`, `useCreateAgentInstance`, `useCreateSession` (with agentRef/agentInstanceId)
+- `useCreateSession` resolution priority: `agentInstanceId` > `agentRef` (resolved via `agent.getByReference()` → `status.defaultInstanceId`) > omitted (backend default)
+- SessionComposer accepts `agentRef` / `onAgentRefChange` — Agent trigger appears first in toolbar (before Workspace, MCP, Skills)
+- `AgentPicker` is single-select: `value: ResourceRef | null`, `onChange: (ref: ResourceRef | null) => void`
+- Data hooks fetch by `ResourceRef` (not ID string): `useEnvironment`, `useAgentInstance` both include `refetch()` for Phase 2 orchestration
+- Return property naming: full domain noun (`session`, `environment`, `agentInstance`) — never abbreviated
+- Pickers are self-contained by design — each evolves independently
+- Key reference files: `sdk/react/src/skill/SkillPicker.tsx`, `sdk/react/src/composer/SessionComposer.tsx`, `sdk/react/src/session/useSession.ts`
 
 ## Quick Resume
 
