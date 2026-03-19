@@ -178,7 +178,7 @@ export type {
   UseAgentSetupReturn,
 } from "./agent";
 
-// Environment — data hooks, list hook, personal convenience hook, secret reveal, and variable management
+// Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, and styled components
 export {
   useEnvironment,
   useEnvironmentList,
@@ -188,6 +188,9 @@ export {
   useUpdateEnvironmentVariables,
   useRemoveEnvironmentVariables,
   useRevealSecretValue,
+  EnvironmentVariableEditor,
+  EnvironmentListPanel,
+  CreateEnvironmentForm,
 } from "./environment";
 export type {
   UseEnvironmentReturn,
@@ -201,6 +204,9 @@ export type {
   UseRemoveEnvironmentVariablesReturn,
   UseRevealSecretValueOptions,
   UseRevealSecretValueReturn,
+  EnvironmentVariableEditorProps,
+  EnvironmentListPanelProps,
+  CreateEnvironmentFormProps,
 } from "./environment";
 
 // Agent Instance — data hooks, list hook, personal convenience hook, and behavior hook

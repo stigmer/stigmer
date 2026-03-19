@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { LogOut, User, ChevronsUpDown, SunMoon } from "lucide-react";
+import { LogOut, Settings, User, ChevronsUpDown, SunMoon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/auth";
 import { cn, THEME_PRESETS, resolvePresetClass } from "@stigmer/theme";
@@ -138,6 +139,16 @@ function AppearanceSubmenu() {
   );
 }
 
+function SettingsItem() {
+  const router = useRouter();
+  return (
+    <DropdownMenuItem onClick={() => router.push("/settings")}>
+      <Settings className="size-4" />
+      Settings
+    </DropdownMenuItem>
+  );
+}
+
 export function UserMenu() {
   const { user, logout } = useAuth();
 
@@ -158,6 +169,7 @@ export function UserMenu() {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" side="top" sideOffset={8}>
+          <SettingsItem />
           <AppearanceSubmenu />
         </DropdownMenuContent>
       </DropdownMenu>
@@ -185,6 +197,7 @@ export function UserMenu() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" side="top" sideOffset={8}>
+        <SettingsItem />
         <AppearanceSubmenu />
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={logout}>

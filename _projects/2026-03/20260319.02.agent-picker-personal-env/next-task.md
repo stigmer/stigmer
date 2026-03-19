@@ -68,9 +68,42 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: Phase 4 complete — next is T02.5 (manual e2e validation), then commit/PR all uncommitted work
-**Status**: Phase 4 Complete (GitHub token migrated to server-side personal environment)
-**Last Session**: 2026-03-19 — Completed Phase 4: GitHub token migration from localStorage to server-side personal environment
+**Current Task**: Settings page with environment management — SDK components and Console integration complete
+**Status**: Phase 5 Complete (Settings page with environment management)
+**Last Session**: 2026-03-19 — Added Settings page with environment management UI (SDK-first: 3 new components in @stigmer/react, Console settings route, UserMenu entry)
+
+## Session Progress (2026-03-19, Session 16)
+
+- **New Feature: Settings page with environment management**
+  - Built SDK-first: 3 new components in `@stigmer/react`, then consumed in Console
+  - All TypeScript compilation clean (zero new errors)
+- **SDK components (`@stigmer/react`)**:
+  - `EnvironmentVariableEditor` (`sdk/react/src/environment/EnvironmentVariableEditor.tsx`, ~800 lines)
+    - Self-contained component: fetches environment by ID, renders editable variable table
+    - Inline per-variable editing with immediate save (maps to `updateVariables` RPC)
+    - Secret value reveal via `getSecretValue` RPC (30s auto-clear)
+    - Inline delete confirmation, collapsible "Add variable" form
+    - Internal sub-components: `VariableRow`, `AddVariableForm`, `ActionButton`
+    - All icons inline SVGs (no icon library dependency in SDK)
+  - `EnvironmentListPanel` (`sdk/react/src/environment/EnvironmentListPanel.tsx`, ~250 lines)
+    - Lists environments for an org with expandable inline variable editors
+    - `labels` filter (include) and `excludeLabels` filter (exclude personal env from shared list)
+    - Accordion pattern: one environment expanded at a time
+  - `CreateEnvironmentForm` (`sdk/react/src/environment/CreateEnvironmentForm.tsx`, ~185 lines)
+    - Name (required) + description (optional), wraps `useCreateEnvironment`
+  - Updated barrel exports in `sdk/react/src/environment/index.ts` and `sdk/react/src/index.ts`
+- **Console integration (`client-apps/web`)**:
+  - `/settings` route (`client-apps/web/src/app/settings/page.tsx`) — server component, heading + EnvironmentsSection
+  - `EnvironmentsSection` (`client-apps/web/src/components/settings/EnvironmentsSection.tsx`, ~170 lines)
+    - **Personal Environment** (top, always expanded): auto-created via `usePersonalEnvironment.getOrCreate()`, "You" badge
+    - **Shared Environments** (below): `EnvironmentListPanel` with personal env excluded, "New environment" button + `CreateEnvironmentForm`
+  - `UserMenu` — added `SettingsItem` with gear icon + `router.push("/settings")` in both authenticated and local-mode dropdowns
+- Key design decisions:
+  - Inline per-variable save (matches GitHub Actions / Vercel / Netlify env var UX — Jakob's Law)
+  - Personal environment auto-created on settings page visit (consistent with agent setup flow)
+  - `EnvironmentVariableEditor` takes `environmentId` and is fully self-contained (platform builders: drop-in embeddability)
+  - Settings entry via UserMenu dropdown (not sidebar) — user preference, standard avatar-menu convention
+  - SDK components use `--stgm-*` tokens, no Console-specific dependencies
 
 ## Session Progress (2026-03-19, Session 15)
 
@@ -313,18 +346,25 @@ When starting a new session:
 ## Next Steps
 
 1. **T02.5** — Manual e2e validation: walkthrough of agent picker → env form → session creation flow against real backend
-2. **Commit & PR all uncommitted stigmer OSS work** — Phases 1–4 + sub-projects on `feat/add-customize-ui` branch
-3. **Commit & PR stigmer-cloud work** — Java env_spec filter + list handlers uncommitted on `feat/add-customize-ui`
+2. **Manual validation of Settings page** — verify environment management UI end-to-end against real backend
+3. **Commit & PR all uncommitted stigmer OSS work** — Phases 1–5 + sub-projects on `feat/add-customize-ui` branch
+4. **Commit & PR stigmer-cloud work** — Java env_spec filter + list handlers uncommitted on `feat/add-customize-ui`
 
 ## Context for Resume
 
-- **All 4 phases are code-complete**:
+- **All 5 phases are code-complete**:
   - Phase 1 (T01.1–T01.11): Agent picker wired end-to-end
   - Phase 2 (T02.1–T02.4): Personal env flow, AgentEnvForm, useAgentSetup, SessionComposer integration
   - Phase 3: env_spec whitelist filter in Go + Java
   - Phase 4: GitHub token migrated to server-side personal environment
-- **T02.5 (manual e2e validation)** is the only remaining task before shipping
+  - Phase 5: Settings page with environment management (SDK components + Console integration)
+- **T02.5 (manual e2e validation)** is the remaining task before shipping
 - **Important**: Both repos have uncommitted work on `feat/add-customize-ui` — commit and PR needed
+- **New SDK exports** from `@stigmer/react`: `EnvironmentVariableEditor`, `EnvironmentListPanel`, `CreateEnvironmentForm` + prop types
+- **New Console route**: `/settings` — accessible from UserMenu dropdown (both authenticated + local mode)
+- Settings page auto-creates personal environment on visit via `usePersonalEnvironment.getOrCreate()`
+- `EnvironmentVariableEditor` fetches environment by ID via `stigmer.environment.get()` and manages all CRUD inline
+- `EnvironmentListPanel` uses `excludeLabels` to filter personal env from the shared environment list
 - `useGitHubConnection(org)` now takes `org: string | null` — breaking change for platform builders (was no-arg). `null` gives localStorage-only fallback.
 - Token stored as `GITHUB_TOKEN` (isSecret: true) in personal environment. Dual-source mount: localStorage fast read → server reconciliation → migration → cleanup.
 - `useRevealSecretValue` TODO(codegen) cast cleaned up — now uses typed SDK client
