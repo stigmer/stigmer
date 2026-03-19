@@ -68,9 +68,17 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: T01.5 — `useUpdateEnvironment` behavior hook
+**Current Task**: T01.6 — `useAgentInstance` data hook
 **Status**: In Progress (Phase 1)
-**Last Session**: 2026-03-19 — Completed T01.1 + T01.2 + T01.3 + T01.4
+**Last Session**: 2026-03-19 — Completed T01.5
+
+## Session Progress (2026-03-19, Session 5)
+
+- Implemented T01.5: `useUpdateEnvironment` behavior hook
+  - `sdk/react/src/environment/useUpdateEnvironment.ts` — behavior hook wrapping `stigmer.environment.update()` (~75 lines)
+  - Updated `sdk/react/src/environment/index.ts` — added `useUpdateEnvironment` + `UseUpdateEnvironmentReturn` exports
+  - TypeScript compiles cleanly, zero linter errors on new/modified files
+- Pattern: structurally identical to `useCreateEnvironment` and `useUpdateSession` — same `EnvironmentInput` from `@stigmer/sdk`, return shape `{ update, isUpdating, error, clearError }`, full `Environment` proto returned
 
 ## Session Progress (2026-03-19, Session 4)
 
@@ -117,13 +125,12 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01.5** — `useUpdateEnvironment` behavior hook
-3. **T01.6** — `useAgentInstance` data hook
-4. **T01.7** — `useCreateAgentInstance` behavior hook
-5. **T01.8** — Barrel exports (agent, environment, agent-instance modules + main index.ts)
-6. **T01.9** — SessionComposer integration
-7. **T01.10** — `useCreateSession` wiring
-8. **T01.11** — Console integration (SessionLauncher)
+1. **T01.6** — `useAgentInstance` data hook
+2. **T01.7** — `useCreateAgentInstance` behavior hook
+3. **T01.8** — Barrel exports (agent, environment, agent-instance modules + main index.ts)
+4. **T01.9** — SessionComposer integration
+5. **T01.10** — `useCreateSession` wiring
+6. **T01.11** — Console integration (SessionLauncher)
 
 ## Context for Resume
 
@@ -134,7 +141,7 @@ When starting a new session:
 - `useEnvironment` is the **first hook that fetches by `ResourceRef`** (not by ID string like `useSession`). It uses `stigmer.environment.getByReference({ org, slug, version })` and destructures the ref into primitives for the dependency array
 - `useEnvironment` includes `refetch()` (unlike `useSession`) — needed by Phase 2 `usePersonalEnvironment` orchestration hook after mutations
 - `useCreateEnvironment` follows the `useUpdateSession` pattern exactly — uses `EnvironmentInput` from `@stigmer/sdk` directly, returns full `Environment` proto
-- T01.5 (`useUpdateEnvironment`) is the same pattern as T01.4 — structurally identical, wraps `stigmer.environment.update()` instead of `create()`
+- `useUpdateEnvironment` follows the same pattern as `useCreateEnvironment` — wraps `stigmer.environment.update()` with `{ update, isUpdating, error, clearError }`; will be composed by Phase 2 `usePersonalEnvironment` for `addVariables`
 - Barrel exports exist at `sdk/react/src/agent/index.ts` and `sdk/react/src/environment/index.ts` but are NOT yet added to main `sdk/react/src/index.ts` — deferred to T01.8
 - Pickers are self-contained by design — each will evolve independently (McpServerPicker will add per-tool selection, AgentPicker will add env form transition in Phase 2)
 - Key reference files: `sdk/react/src/skill/SkillPicker.tsx` (multi-select pattern), `sdk/react/src/composer/SessionComposer.tsx` (ContextPopover integration pattern), `sdk/react/src/session/useSession.ts` (single-resource fetch pattern)
