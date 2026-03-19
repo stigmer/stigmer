@@ -68,9 +68,21 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: T01.4 — `useCreateEnvironment` behavior hook
+**Current Task**: T01.5 — `useUpdateEnvironment` behavior hook
 **Status**: In Progress (Phase 1)
-**Last Session**: 2026-03-19 — Completed T01.1 + T01.2 + T01.3
+**Last Session**: 2026-03-19 — Completed T01.1 + T01.2 + T01.3 + T01.4
+
+## Session Progress (2026-03-19, Session 4)
+
+- Implemented T01.4: `useCreateEnvironment` behavior hook
+  - `sdk/react/src/environment/useCreateEnvironment.ts` — behavior hook wrapping `stigmer.environment.create()` (~75 lines)
+  - Updated `sdk/react/src/environment/index.ts` — added `useCreateEnvironment` + `UseCreateEnvironmentReturn` exports
+  - TypeScript compiles cleanly, zero linter errors
+- Key design decisions in this hook:
+  - Uses `EnvironmentInput` from `@stigmer/sdk` directly — no wrapper type (follows `useUpdateSession` pattern with `SessionInput`)
+  - Returns full `Environment` proto (not just an ID) — callers get immediate access to server-generated metadata; Layer 2 orchestration hook needs this for resource reference extraction
+  - No auto-naming — environments are named resources with semantic identifiers; the "personal" convention belongs in Layer 2's `usePersonalEnvironment`
+  - Return shape: `{ create, isCreating, error, clearError }` — consistent with all existing behavior hooks
 
 ## Session Progress (2026-03-19, Session 3)
 
@@ -105,8 +117,7 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01.4** — `useCreateEnvironment` behavior hook
-2. **T01.5** — `useUpdateEnvironment` behavior hook
+1. **T01.5** — `useUpdateEnvironment` behavior hook
 3. **T01.6** — `useAgentInstance` data hook
 4. **T01.7** — `useCreateAgentInstance` behavior hook
 5. **T01.8** — Barrel exports (agent, environment, agent-instance modules + main index.ts)
@@ -122,6 +133,8 @@ When starting a new session:
 - AgentPicker uses `ApiResourceKind.agent` and its own `AgentIcon` (bot/robot metaphor)
 - `useEnvironment` is the **first hook that fetches by `ResourceRef`** (not by ID string like `useSession`). It uses `stigmer.environment.getByReference({ org, slug, version })` and destructures the ref into primitives for the dependency array
 - `useEnvironment` includes `refetch()` (unlike `useSession`) — needed by Phase 2 `usePersonalEnvironment` orchestration hook after mutations
+- `useCreateEnvironment` follows the `useUpdateSession` pattern exactly — uses `EnvironmentInput` from `@stigmer/sdk` directly, returns full `Environment` proto
+- T01.5 (`useUpdateEnvironment`) is the same pattern as T01.4 — structurally identical, wraps `stigmer.environment.update()` instead of `create()`
 - Barrel exports exist at `sdk/react/src/agent/index.ts` and `sdk/react/src/environment/index.ts` but are NOT yet added to main `sdk/react/src/index.ts` — deferred to T01.8
 - Pickers are self-contained by design — each will evolve independently (McpServerPicker will add per-tool selection, AgentPicker will add env form transition in Phase 2)
 - Key reference files: `sdk/react/src/skill/SkillPicker.tsx` (multi-select pattern), `sdk/react/src/composer/SessionComposer.tsx` (ContextPopover integration pattern), `sdk/react/src/session/useSession.ts` (single-resource fetch pattern)
