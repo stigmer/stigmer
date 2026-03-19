@@ -68,9 +68,22 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: Two-flow secret delivery reframe — documentation and SDK surface complete
-**Status**: Phase 5 Complete + Secret delivery reframe complete
-**Last Session**: 2026-03-19 Session 17 — Reframed secret delivery from "two profiles" to "two flows" (Environment Flow + Execution Flow), exposed `runtimeEnv` in React SDK, updated JSDoc across 16 files, created `how-to-provide-secrets.md` product guide
+**Current Task**: Manual e2e validation + commit/PR
+**Status**: Phase 5 Complete + Secret delivery reframe complete + Slug uniqueness fix complete
+**Last Session**: 2026-03-19 Session 18 — Fixed personal resource slug uniqueness flaw via codegen, created shared builder, fixed env ref bug in useAgentSetup, revised DD-002
+
+## Session Progress (2026-03-19, Session 18)
+
+- **Fixed personal resource slug uniqueness flaw** — deterministic slugs (`personal`, `{agent}-personal`) collided in multi-user orgs due to `(org, slug)` uniqueness constraint
+- **Fixed codegen source** (`tools/codegen/generator/sdk_client_ts.go`): added `slug?: string` to all 17 generated SDK `*Input` interfaces and wired to `metadata.slug` in proto builders. Regenerated via `make codegen-clients`.
+- **Created `sdk/react/src/internal/slug.ts`** — `generateSlugSuffix()` utility (8 hex chars from `crypto.randomUUID()`)
+- **Created `sdk/react/src/agent-instance/buildPersonalInstanceInput.ts`** — shared pure function for personal instance creation, eliminating duplication between `usePersonalAgentInstance` and `useAgentSetup`
+- **Updated `usePersonalEnvironment`** — name: `"Personal Environment"`, slug: `env-personal-{suffix}`
+- **Updated `usePersonalAgentInstance`** — delegates to `buildPersonalInstanceInput()`
+- **Fixed `useAgentSetup`** — (1) `env.metadata!.name` → `env.metadata!.slug` bug (×2), (2) replaced inline instance creation with shared builder
+- **Revised DD-002** — Option C (deterministic slugs) superseded by Option D (labels + unique slugs)
+- User correctly flagged that generated SDK files should be fixed via codegen, not hand-edited
+- Files changed: 22 modified, 2 new, +109/-58 lines
 
 ## Session Progress (2026-03-19, Session 17)
 
@@ -360,18 +373,19 @@ When starting a new session:
 
 1. **T02.5** — Manual e2e validation: walkthrough of agent picker → env form → session creation flow against real backend
 2. **Manual validation of Settings page** — verify environment management UI end-to-end against real backend
-3. **Commit & PR all uncommitted stigmer OSS work** — Phases 1–5 + sub-projects on `feat/add-customize-ui` branch
+3. **Commit & PR all remaining uncommitted stigmer OSS work** — Phases 1–5 + sub-projects + slug fix on `feat/add-customize-ui` branch
 4. **Commit & PR stigmer-cloud work** — Java env_spec filter + list handlers uncommitted on `feat/add-customize-ui`
 
 ## Context for Resume
 
-- **All 5 phases are code-complete + secret delivery reframe done**:
+- **All 5 phases are code-complete + secret delivery reframe done + slug uniqueness fix done**:
   - Phase 1 (T01.1–T01.11): Agent picker wired end-to-end
   - Phase 2 (T02.1–T02.4): Personal env flow, AgentEnvForm, useAgentSetup, SessionComposer integration
   - Phase 3: env_spec whitelist filter in Go + Java
   - Phase 4: GitHub token migrated to server-side personal environment
   - Phase 5: Settings page with environment management (SDK components + Console integration)
   - Session 17: Two-flow secret delivery reframe — DD-005 rewrite, runtimeEnv in React SDK, JSDoc pass, product docs
+  - Session 18: Personal resource slug uniqueness fix — codegen, shared builder, env ref bug fix, DD-002 revision
 - **T02.5 (manual e2e validation)** is the remaining task before shipping
 - **Important**: Both repos have uncommitted work on `feat/add-customize-ui` — commit and PR needed
 - **Session 17 key changes**:

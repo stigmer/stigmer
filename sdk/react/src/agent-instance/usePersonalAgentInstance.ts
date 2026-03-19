@@ -5,6 +5,7 @@ import type { ResourceRef } from "@stigmer/sdk";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { useStigmer } from "../hooks";
 import { useAgentInstanceList } from "./useAgentInstanceList";
+import { buildPersonalInstanceInput } from "./buildPersonalInstanceInput";
 
 const PERSONAL_LABELS: Record<string, string> = {
   "stigmer.ai/personal": "true",
@@ -20,8 +21,8 @@ const PERSONAL_LABELS: Record<string, string> = {
  */
 export interface GetOrCreatePersonalInstanceInput {
   /**
-   * The agent's slug, used to derive the instance name
-   * (`"{agentSlug}-personal"`) and the `stigmer.ai/for-agent` label.
+   * The agent's slug, used to derive the instance display name and
+   * unique slug, and the `stigmer.ai/for-agent` label.
    */
   readonly agentSlug: string;
   /**
@@ -46,7 +47,8 @@ export interface UsePersonalAgentInstanceReturn {
    *
    * If one already exists (matched by `agentId`), returns it immediately
    * without a network call. Otherwise, creates a new instance with:
-   * - Name: `"{agentSlug}-personal"`
+   * - Name: `"{agentSlug} Personal"` (display-friendly, may be duplicate)
+   * - Slug: `"{agentSlug}-personal-{random}"` (unique per org)
    * - Labels: `stigmer.ai/personal: "true"`, `stigmer.ai/for-agent: "{org}/{agentSlug}"`
    * - Agent binding: the `agentId` passed to the hook
    * - Environment linkage: `[personalEnvironmentRef]`
@@ -70,11 +72,10 @@ export interface UsePersonalAgentInstanceReturn {
  * {@link AgentInstance} for a given organization, optionally scoped
  * to a specific agent.
  *
- * Encapsulates the "personal agent instance" convention: deterministic
- * slug (`"{agentSlug}-personal"`), labels (`stigmer.ai/personal`,
- * `stigmer.ai/for-agent`), and the get-or-create lifecycle. Composes
- * {@link useAgentInstanceList} for declarative reading and the SDK
- * client directly for mutations.
+ * Encapsulates the "personal agent instance" convention: unique slug
+ * per user, labels (`stigmer.ai/personal`, `stigmer.ai/for-agent`),
+ * and the get-or-create lifecycle. Composes {@link useAgentInstanceList}
+ * for declarative reading and the SDK client directly for mutations.
  *
  * Pass `null` as `org` to skip all operations (stable no-op).
  * The `agentId` parameter is optional for read-only use (listing all
@@ -101,7 +102,7 @@ export interface UsePersonalAgentInstanceReturn {
  *
  * const instance = await getOrCreate({
  *   agentSlug: "my-github-bot",
- *   personalEnvironmentRef: { org: "acme", slug: "personal" },
+ *   personalEnvironmentRef: { org: "acme", slug: "env-personal-a1b2c3d4" },
  * });
  * ```
  */
@@ -151,16 +152,14 @@ export function usePersonalAgentInstance(
       setMutationError(null);
 
       try {
-        const created = await stigmer.agentInstance.create({
-          name: `${input.agentSlug}-personal`,
-          org,
-          agentId,
-          labels: {
-            ...PERSONAL_LABELS,
-            "stigmer.ai/for-agent": `${org}/${input.agentSlug}`,
-          },
-          environmentRefs: [input.personalEnvironmentRef],
-        });
+        const created = await stigmer.agentInstance.create(
+          buildPersonalInstanceInput({
+            org,
+            agentId,
+            agentSlug: input.agentSlug,
+            environmentRef: input.personalEnvironmentRef,
+          }),
+        );
 
         refetch();
         return created;

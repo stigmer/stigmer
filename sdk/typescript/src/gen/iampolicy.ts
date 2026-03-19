@@ -79,6 +79,7 @@ export class IamPolicyClient {
 /** Input for creating/updating a IamPolicy. */
 export interface IamPolicyInput {
   name: string;
+  slug?: string;
   org: string;
   labels?: Record<string, string>;
   principal: ApiResourceRefInput;
@@ -110,6 +111,7 @@ function buildIamPolicyProto(input: IamPolicyInput): IamPolicy {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(IamPolicySpecSchema), stripUndefined({

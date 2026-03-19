@@ -63,6 +63,7 @@ export class ProjectClient {
 /** Input for creating/updating a Project. */
 export interface ProjectInput {
   name: string;
+  slug?: string;
   org: string;
   labels?: Record<string, string>;
   entryPoint?: string;
@@ -78,6 +79,7 @@ function buildProjectProto(input: ProjectInput): Project {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(ProjectSpecSchema), stripUndefined({
