@@ -61,6 +61,7 @@ func (i *IdentityProviderClient) GetByReference(ctx context.Context, input *apir
 type IdentityProviderInput struct {
 	Name             string
 	Org              string
+	Labels           map[string]string
 	DisplayName      string
 	JwksUri          string
 	AllowedIssuers   []string
@@ -74,8 +75,9 @@ func (i *IdentityProviderInput) toProto() *identityproviderv1.IdentityProvider {
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IdentityProvider",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &identityproviderv1.IdentityProviderSpec{},
 	}

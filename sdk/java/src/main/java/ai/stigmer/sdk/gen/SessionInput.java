@@ -16,6 +16,7 @@ import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 public final class SessionInput {
     private final String name;
     private final String org;
+    private final java.util.Map<String, String> labels;
     private final String agentInstanceId;
     private final String subject;
     private final String threadId;
@@ -28,6 +29,7 @@ public final class SessionInput {
     private SessionInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.labels = builder.labels;
         this.agentInstanceId = builder.agentInstanceId;
         this.subject = builder.subject;
         this.threadId = builder.threadId;
@@ -70,13 +72,16 @@ public final class SessionInput {
                 spec.addSkillRefs(item.toProto());
             }
         }
+        ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
+            .setName(this.name)
+            .setOrg(this.org);
+        if (this.labels != null) {
+            metaBuilder.putAllLabels(this.labels);
+        }
         return Session.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("Session")
-            .setMetadata(ApiResourceMetadata.newBuilder()
-                .setName(this.name)
-                .setOrg(this.org)
-                .build())
+            .setMetadata(metaBuilder.build())
             .setSpec(spec.build())
             .build();
     }
@@ -86,6 +91,7 @@ public final class SessionInput {
     public static final class Builder {
         private String name;
         private String org;
+        private java.util.Map<String, String> labels;
         private String agentInstanceId;
         private String subject;
         private String threadId;
@@ -99,6 +105,7 @@ public final class SessionInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder agentInstanceId(String agentInstanceId) { this.agentInstanceId = agentInstanceId; return this; }
         public Builder subject(String subject) { this.subject = subject; return this; }
         public Builder threadId(String threadId) { this.threadId = threadId; return this; }

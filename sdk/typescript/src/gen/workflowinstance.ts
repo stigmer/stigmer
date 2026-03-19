@@ -70,6 +70,7 @@ export class WorkflowInstanceClient {
 export interface WorkflowInstanceInput {
   name: string;
   org: string;
+  labels?: Record<string, string>;
   workflowId?: string;
   description?: string;
   envRefs?: ResourceRef[];
@@ -83,6 +84,7 @@ function buildWorkflowInstanceProto(input: WorkflowInstanceInput): WorkflowInsta
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(WorkflowInstanceSpecSchema), stripUndefined({
       workflowId: input.workflowId,

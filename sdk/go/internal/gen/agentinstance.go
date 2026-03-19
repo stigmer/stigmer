@@ -58,10 +58,16 @@ func (a *AgentInstanceClient) GetByReference(ctx context.Context, input *apireso
 	return resp, wrapErr(err)
 }
 
+func (a *AgentInstanceClient) List(ctx context.Context, input *agentinstancev1.ListAgentInstancesRequest) (*agentinstancev1.AgentInstanceList, error) {
+	resp, err := a.query.List(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // AgentInstanceInput holds the fields for creating/updating a AgentInstance.
 type AgentInstanceInput struct {
 	Name            string
 	Org             string
+	Labels          map[string]string
 	AgentId         string
 	Description     string
 	EnvironmentRefs []ResourceRef
@@ -72,8 +78,9 @@ func (i *AgentInstanceInput) toProto() *agentinstancev1.AgentInstance {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "AgentInstance",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &agentinstancev1.AgentInstanceSpec{},
 	}

@@ -11,6 +11,7 @@ import ai.stigmer.iam.iampolicy.v1.IamPolicySpec;
 public final class IamPolicyInput {
     private final String name;
     private final String org;
+    private final java.util.Map<String, String> labels;
     private final ApiResourceRefInput principal;
     private final ApiResourceRefInput resource;
     private final String relation;
@@ -18,6 +19,7 @@ public final class IamPolicyInput {
     private IamPolicyInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.labels = builder.labels;
         this.principal = builder.principal;
         this.resource = builder.resource;
         this.relation = builder.relation;
@@ -34,13 +36,16 @@ public final class IamPolicyInput {
         if (this.relation != null) {
             spec.setRelation(this.relation);
         }
+        ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
+            .setName(this.name)
+            .setOrg(this.org);
+        if (this.labels != null) {
+            metaBuilder.putAllLabels(this.labels);
+        }
         return IamPolicy.newBuilder()
             .setApiVersion("iam.stigmer.ai/v1")
             .setKind("IamPolicy")
-            .setMetadata(ApiResourceMetadata.newBuilder()
-                .setName(this.name)
-                .setOrg(this.org)
-                .build())
+            .setMetadata(metaBuilder.build())
             .setSpec(spec.build())
             .build();
     }
@@ -50,6 +55,7 @@ public final class IamPolicyInput {
     public static final class Builder {
         private String name;
         private String org;
+        private java.util.Map<String, String> labels;
         private ApiResourceRefInput principal;
         private ApiResourceRefInput resource;
         private String relation;
@@ -58,6 +64,7 @@ public final class IamPolicyInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder principal(ApiResourceRefInput principal) { this.principal = principal; return this; }
         public Builder resource(ApiResourceRefInput resource) { this.resource = resource; return this; }
         public Builder relation(String relation) { this.relation = relation; return this; }

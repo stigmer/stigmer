@@ -72,6 +72,7 @@ func (i *IamPolicyClient) ListAuthorizedPrincipalIds(ctx context.Context, input 
 type IamPolicyInput struct {
 	Name      string
 	Org       string
+	Labels    map[string]string
 	Principal *ApiResourceRefInput
 	Resource  *ApiResourceRefInput
 	Relation  string
@@ -89,8 +90,9 @@ func (i *IamPolicyInput) toProto() *iampolicyv1.IamPolicy {
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IamPolicy",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &iampolicyv1.IamPolicySpec{},
 	}

@@ -73,6 +73,7 @@ func (i *IdentityAccountClient) GetActorInfo(ctx context.Context, id string) (*a
 type IdentityAccountInput struct {
 	Name                string
 	Org                 string
+	Labels              map[string]string
 	IdpId               string
 	Email               string
 	FirstName           string
@@ -88,8 +89,9 @@ func (i *IdentityAccountInput) toProto() *identityaccountv1.IdentityAccount {
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "IdentityAccount",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &identityaccountv1.IdentityAccountSpec{},
 	}

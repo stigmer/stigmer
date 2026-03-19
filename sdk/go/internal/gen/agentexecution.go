@@ -143,6 +143,7 @@ func (a *AgentExecutionClient) GetOrgUsageReport(ctx context.Context, input *age
 type AgentExecutionInput struct {
 	Name              string
 	Org               string
+	Labels            map[string]string
 	SessionId         string
 	AgentId           string
 	Message           string
@@ -186,8 +187,9 @@ func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "AgentExecution",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &agentexecutionv1.AgentExecutionSpec{},
 	}

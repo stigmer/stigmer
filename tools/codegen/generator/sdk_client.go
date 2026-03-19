@@ -49,7 +49,7 @@ type sdkResourceConfig struct {
 // metaFieldNames are fields that always come from ApiResourceMetadata.
 // Spec fields with these names are skipped to avoid struct field conflicts.
 var metaFieldNames = map[string]bool{
-	"Name": true, "Org": true, "Tags": true, "Visibility": true,
+	"Name": true, "Org": true, "Tags": true, "Visibility": true, "Labels": true,
 }
 
 // resourceGenInfo tracks generated type names per resource for client.go/types.go generation.
@@ -562,8 +562,9 @@ func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 
 	fmt.Fprintf(buf, "// %s holds the fields for creating/updating a %s.\n", inputName, cfg.protoResType)
 	fmt.Fprintf(buf, "type %s struct {\n", inputName)
-	buf.WriteString("\tName string\n")
-	buf.WriteString("\tOrg  string\n")
+	buf.WriteString("\tName   string\n")
+	buf.WriteString("\tOrg    string\n")
+	buf.WriteString("\tLabels map[string]string\n")
 	for _, f := range specFields {
 		goType := goTypeForField(f, typeMap, alias)
 		fmt.Fprintf(buf, "\t%s %s\n", f.Name, goType)
@@ -580,8 +581,9 @@ func generateInputTypesV2(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 	fmt.Fprintf(buf, "\t\tApiVersion: %q,\n", cfg.apiVersion)
 	fmt.Fprintf(buf, "\t\tKind:       %q,\n", cfg.protoResType)
 	buf.WriteString("\t\tMetadata: &apiresource.ApiResourceMetadata{\n")
-	buf.WriteString("\t\t\tName: i.Name,\n")
-	buf.WriteString("\t\t\tOrg:  i.Org,\n")
+	buf.WriteString("\t\t\tName:   i.Name,\n")
+	buf.WriteString("\t\t\tOrg:    i.Org,\n")
+	buf.WriteString("\t\t\tLabels: i.Labels,\n")
 	buf.WriteString("\t\t},\n")
 	fmt.Fprintf(buf, "\t\tSpec: &%s.%s{},\n", alias, spec.Name)
 	buf.WriteString("\t}\n")

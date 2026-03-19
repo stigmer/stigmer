@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { AgentInstanceSchema, type AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { AgentInstanceCommandController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/command_pb";
-import { AgentInstanceIdSchema, GetAgentInstancesByAgentRequestSchema, AgentInstanceListSchema, type GetAgentInstancesByAgentRequest, type AgentInstanceList } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
+import { AgentInstanceIdSchema, GetAgentInstancesByAgentRequestSchema, AgentInstanceListSchema, ListAgentInstancesRequestSchema, type GetAgentInstancesByAgentRequest, type AgentInstanceList, type ListAgentInstancesRequest } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import { AgentInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/query_pb";
 import { AgentInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/spec_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -64,12 +64,19 @@ export class AgentInstanceClient {
       return await this.query.getByReference(create(ApiResourceReferenceSchema, ref));
     } catch (e) { throw wrapError(e); }
   }
+
+  async list(input: ListAgentInstancesRequest): Promise<AgentInstanceList> {
+    try {
+      return await this.query.list(input);
+    } catch (e) { throw wrapError(e); }
+  }
 }
 
 /** Input for creating/updating a AgentInstance. */
 export interface AgentInstanceInput {
   name: string;
   org: string;
+  labels?: Record<string, string>;
   agentId?: string;
   description?: string;
   environmentRefs?: ResourceRef[];
@@ -83,6 +90,7 @@ function buildAgentInstanceProto(input: AgentInstanceInput): AgentInstance {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(AgentInstanceSpecSchema), stripUndefined({
       agentId: input.agentId,

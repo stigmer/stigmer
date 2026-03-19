@@ -98,6 +98,7 @@ export class McpServerClient {
 export interface McpServerInput {
   name: string;
   org: string;
+  labels?: Record<string, string>;
   description?: string;
   iconUrl?: string;
   stdio?: StdioServerConfigInput;
@@ -180,6 +181,7 @@ function buildMcpServerProto(input: McpServerInput): McpServer {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.labels && { labels: input.labels }),
     }),
     spec,
   }) as McpServer;

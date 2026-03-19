@@ -7,8 +7,9 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { EnvironmentSchema, type Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
+import { EnvironmentSecretValueInputSchema, ListEnvironmentsRequestSchema, EnvironmentListSchema, type EnvironmentSecretValueInput, type ListEnvironmentsRequest, type EnvironmentList } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
-import { EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { EnvironmentValueSchema, EnvironmentSpecSchema, type EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -61,12 +62,25 @@ export class EnvironmentClient {
       return await this.query.getByReference(create(ApiResourceReferenceSchema, ref));
     } catch (e) { throw wrapError(e); }
   }
+
+  async getSecretValue(input: EnvironmentSecretValueInput): Promise<EnvironmentValue> {
+    try {
+      return await this.query.getSecretValue(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async list(input: ListEnvironmentsRequest): Promise<EnvironmentList> {
+    try {
+      return await this.query.list(input);
+    } catch (e) { throw wrapError(e); }
+  }
 }
 
 /** Input for creating/updating a Environment. */
 export interface EnvironmentInput {
   name: string;
   org: string;
+  labels?: Record<string, string>;
   description?: string;
   data?: Record<string, EnvVarInput>;
 }
@@ -83,6 +97,7 @@ function buildEnvironmentProto(input: EnvironmentInput): Environment {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(EnvironmentSpecSchema), stripUndefined({
       description: input.description,

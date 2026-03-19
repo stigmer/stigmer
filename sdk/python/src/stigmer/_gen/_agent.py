@@ -95,6 +95,7 @@ class AgentInput:
 
     name: str
     org: str
+    labels: dict[str, str] | None = None
     description: str = ""
     icon_url: str = ""
     instructions: str = ""
@@ -117,13 +118,16 @@ class AgentInput:
             spec.sub_agents.append(item._to_proto())
         if self.env_spec is not None:
             spec.env_spec.CopyFrom(self.env_spec._to_proto())
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.Agent(
             api_version="agentic.stigmer.ai/v1",
             kind="Agent",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

@@ -78,6 +78,7 @@ func (s *SkillClient) List(ctx context.Context, params *ListParams) (*ListResult
 type SkillInput struct {
 	Name        string
 	Org         string
+	Labels      map[string]string
 	SkillMd     string
 	Tag         string
 	Description string
@@ -88,8 +89,9 @@ func (i *SkillInput) toProto() *skillv1.Skill {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Skill",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &skillv1.SkillSpec{},
 	}

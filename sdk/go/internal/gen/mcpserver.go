@@ -92,6 +92,7 @@ func (m *McpServerClient) List(ctx context.Context, params *ListParams) (*ListRe
 type McpServerInput struct {
 	Name                 string
 	Org                  string
+	Labels               map[string]string
 	Description          string
 	IconUrl              string
 	Stdio                *StdioServerConfigInput
@@ -127,8 +128,9 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "McpServer",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &mcpserverv1.McpServerSpec{},
 	}

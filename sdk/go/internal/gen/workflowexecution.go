@@ -123,6 +123,7 @@ func (w *WorkflowExecutionClient) Subscribe(ctx context.Context, input *workflow
 type WorkflowExecutionInput struct {
 	Name               string
 	Org                string
+	Labels             map[string]string
 	WorkflowInstanceId string
 	WorkflowId         string
 	TriggerMessage     string
@@ -136,8 +137,9 @@ func (i *WorkflowExecutionInput) toProto() *workflowexecutionv1.WorkflowExecutio
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "WorkflowExecution",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &workflowexecutionv1.WorkflowExecutionSpec{},
 	}

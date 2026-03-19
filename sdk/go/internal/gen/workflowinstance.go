@@ -62,6 +62,7 @@ func (w *WorkflowInstanceClient) GetByReference(ctx context.Context, input *apir
 type WorkflowInstanceInput struct {
 	Name        string
 	Org         string
+	Labels      map[string]string
 	WorkflowId  string
 	Description string
 	EnvRefs     []ResourceRef
@@ -72,8 +73,9 @@ func (i *WorkflowInstanceInput) toProto() *workflowinstancev1.WorkflowInstance {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "WorkflowInstance",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &workflowinstancev1.WorkflowInstanceSpec{},
 	}

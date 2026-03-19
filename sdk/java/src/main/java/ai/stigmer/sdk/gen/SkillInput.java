@@ -10,6 +10,7 @@ import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 public final class SkillInput {
     private final String name;
     private final String org;
+    private final java.util.Map<String, String> labels;
     private final String skillMd;
     private final String tag;
     private final String description;
@@ -17,6 +18,7 @@ public final class SkillInput {
     private SkillInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.labels = builder.labels;
         this.skillMd = builder.skillMd;
         this.tag = builder.tag;
         this.description = builder.description;
@@ -33,13 +35,16 @@ public final class SkillInput {
         if (this.description != null) {
             spec.setDescription(this.description);
         }
+        ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
+            .setName(this.name)
+            .setOrg(this.org);
+        if (this.labels != null) {
+            metaBuilder.putAllLabels(this.labels);
+        }
         return Skill.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("Skill")
-            .setMetadata(ApiResourceMetadata.newBuilder()
-                .setName(this.name)
-                .setOrg(this.org)
-                .build())
+            .setMetadata(metaBuilder.build())
             .setSpec(spec.build())
             .build();
     }
@@ -49,6 +54,7 @@ public final class SkillInput {
     public static final class Builder {
         private String name;
         private String org;
+        private java.util.Map<String, String> labels;
         private String skillMd;
         private String tag;
         private String description;
@@ -57,6 +63,7 @@ public final class SkillInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder skillMd(String skillMd) { this.skillMd = skillMd; return this; }
         public Builder tag(String tag) { this.tag = tag; return this; }
         public Builder description(String description) { this.description = description; return this; }

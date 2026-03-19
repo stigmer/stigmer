@@ -60,6 +60,7 @@ func (a *ApiKeyClient) FindAll(ctx context.Context) (*apikeyv1.ApiKeys, error) {
 type ApiKeyInput struct {
 	Name         string
 	Org          string
+	Labels       map[string]string
 	KeyHash      string
 	Fingerprint  string
 	ExpiresAt    string
@@ -71,8 +72,9 @@ func (i *ApiKeyInput) toProto() *apikeyv1.ApiKey {
 		ApiVersion: "iam.stigmer.ai/v1",
 		Kind:       "ApiKey",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &apikeyv1.ApiKeySpec{},
 	}

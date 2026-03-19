@@ -67,6 +67,7 @@ export class IdentityProviderClient {
 export interface IdentityProviderInput {
   name: string;
   org: string;
+  labels?: Record<string, string>;
   displayName?: string;
   jwksUri?: string;
   allowedIssuers?: string[];
@@ -82,6 +83,7 @@ function buildIdentityProviderProto(input: IdentityProviderInput): IdentityProvi
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(IdentityProviderSpecSchema), stripUndefined({
       displayName: input.displayName,

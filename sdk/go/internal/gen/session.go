@@ -62,6 +62,7 @@ func (s *SessionClient) ListByAgent(ctx context.Context, input *sessionv1.ListSe
 type SessionInput struct {
 	Name             string
 	Org              string
+	Labels           map[string]string
 	AgentInstanceId  string
 	Subject          string
 	ThreadId         string
@@ -102,8 +103,9 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Session",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &sessionv1.SessionSpec{},
 	}

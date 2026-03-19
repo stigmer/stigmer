@@ -57,6 +57,7 @@ func (p *ProjectClient) GetByReference(ctx context.Context, input *apiresource.A
 type ProjectInput struct {
 	Name        string
 	Org         string
+	Labels      map[string]string
 	EntryPoint  string
 	Description string
 	Members     []ResourceRef
@@ -67,8 +68,9 @@ func (i *ProjectInput) toProto() *projectv1.Project {
 		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &projectv1.ProjectSpec{},
 	}

@@ -145,6 +145,7 @@ export class AgentExecutionClient {
 export interface AgentExecutionInput {
   name: string;
   org: string;
+  labels?: Record<string, string>;
   sessionId?: string;
   agentId?: string;
   message?: string;
@@ -226,6 +227,7 @@ function buildAgentExecutionProto(input: AgentExecutionInput): AgentExecution {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(AgentExecutionSpecSchema), stripUndefined({
       sessionId: input.sessionId,

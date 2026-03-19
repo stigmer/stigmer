@@ -83,6 +83,7 @@ func (a *AgentClient) List(ctx context.Context, params *ListParams) (*ListResult
 type AgentInput struct {
 	Name            string
 	Org             string
+	Labels          map[string]string
 	Description     string
 	IconUrl         string
 	Instructions    string
@@ -127,8 +128,9 @@ func (i *AgentInput) toProto() *agentv1.Agent {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Agent",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &agentv1.AgentSpec{},
 	}

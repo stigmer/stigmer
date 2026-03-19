@@ -57,10 +57,21 @@ func (e *EnvironmentClient) GetByReference(ctx context.Context, input *apiresour
 	return resp, wrapErr(err)
 }
 
+func (e *EnvironmentClient) GetSecretValue(ctx context.Context, input *environmentv1.EnvironmentSecretValueInput) (*environmentv1.EnvironmentValue, error) {
+	resp, err := e.query.GetSecretValue(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (e *EnvironmentClient) List(ctx context.Context, input *environmentv1.ListEnvironmentsRequest) (*environmentv1.EnvironmentList, error) {
+	resp, err := e.query.List(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // EnvironmentInput holds the fields for creating/updating a Environment.
 type EnvironmentInput struct {
 	Name        string
 	Org         string
+	Labels      map[string]string
 	Description string
 	Data        map[string]EnvVarInput
 }
@@ -70,8 +81,9 @@ func (i *EnvironmentInput) toProto() *environmentv1.Environment {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Environment",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &environmentv1.EnvironmentSpec{},
 	}
