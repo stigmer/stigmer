@@ -101,13 +101,53 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 15:01
-**Current Task**: T01 (Initial Setup)
-**Status**: Planning
+**Current Task**: T01 (Proto + SDK complete, backend handlers pending)
+**Status**: In Progress
+
+## Session Progress (2026-03-19)
+
+### Completed
+- T01.1: Added `ListEnvironmentsRequest`, `EnvironmentList`, and `list` RPC to `EnvironmentQueryController`
+- T01.2: Added `ListAgentInstancesRequest` and `list` RPC to `AgentInstanceQueryController`
+- T01.8a: Created `useEnvironmentList` and `useAgentInstanceList` generic list hooks
+- T01.8b: Created `usePersonalEnvironment` and `usePersonalAgentInstance` convenience hooks
+- All barrel exports updated (module-level and top-level `index.ts`)
+- Committed: `965277a0` on `feat/add-customize-ui`
+
+### Key Decisions
+- **Pagination**: Chose offset-based `PageInfo { num, size }` (Convention A) over cursor-based, consistent with `GetAgentInstancesByAgentRequest`
+- **Field naming**: `page_info` (not `page`) for consistency within agent instance resource type
+- **"Personal" concept**: Lives as a label convention at SDK layer, NOT in proto definitions. Proto is generic `list(org, labels, page_info)`.
+- **`usePersonalAgentInstance`**: Accepts `agentId?: string` instead of `ResourceRef` — simpler, avoids unnecessary resolution
+- **Codegen schemas**: Auto-generated from protos, no manual changes needed (corrected from original plan)
+
+### Cancelled
+- T01.7 (codegen schemas): Not needed — auto-generated from proto definitions
+
+### Remaining (Next Session)
+- T01.3: Go backend handler for environment list (stigmer OSS)
+- T01.4: Go backend handler for agent instance list (stigmer OSS)
+- T01.5: Java backend handler for environment list with FGA (stigmer-cloud)
+- T01.6: Java backend handler for agent instance list with FGA (stigmer-cloud)
+
+## Next Steps
+1. Implement Go handler for environment list (T01.3) — pipeline: ValidateProto -> ListByOrgAndLabels -> RedactSecretValues
+2. Implement Go handler for agent instance list (T01.4) — pipeline: ValidateProto -> ListByOrgAndLabels
+3. Implement Java handlers with FGA-filtered queries (T01.5, T01.6) in stigmer-cloud
+4. Run `buf generate` (or equivalent) to regenerate TypeScript proto stubs from the new proto definitions
+
+## Context for Resume
+- The `list` RPCs use `is_skip_authorization = true` — authorization must be handled in-handler via FGA (cloud) or unrestricted (OSS)
+- Environment list MUST apply `RedactSecretValues` to each item (same as get/getByReference)
+- The `AgentInstanceList` response type already existed and is reused; `EnvironmentList` was newly created
+- Existing list RPC patterns to reference: `Session.list` (session query controller), `AgentExecution.list` (agent execution query controller)
+- For Go handler patterns, check existing environment controller at `backend/services/stigmer-server/pkg/domain/environment/controller/`
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01" - Resume the current task
+- "Continue with T01.3" - Implement Go environment list handler
+- "Continue with T01.5" - Implement Java environment list handler
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
