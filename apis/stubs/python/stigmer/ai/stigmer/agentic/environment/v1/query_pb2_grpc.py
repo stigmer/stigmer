@@ -3,6 +3,8 @@
 import grpc
 
 from ai.stigmer.agentic.environment.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2
+from ai.stigmer.agentic.environment.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2
+from ai.stigmer.agentic.environment.v1 import spec_pb2 as ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_spec__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
@@ -26,6 +28,16 @@ class EnvironmentQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.FromString,
                 _registered_method=True)
+        self.getSecretValue = channel.unary_unary(
+                '/ai.stigmer.agentic.environment.v1.EnvironmentQueryController/getSecretValue',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.EnvironmentSecretValueInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_spec__pb2.EnvironmentValue.FromString,
+                _registered_method=True)
+        self.list = channel.unary_unary(
+                '/ai.stigmer.agentic.environment.v1.EnvironmentQueryController/list',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.ListEnvironmentsRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.EnvironmentList.FromString,
+                _registered_method=True)
 
 
 class EnvironmentQueryControllerServicer(object):
@@ -46,6 +58,24 @@ class EnvironmentQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getSecretValue(self, request, context):
+        """Get the unredacted value of a single secret key in an environment.
+        Creator-only: requires can_read_secrets permission (FGA: creator relation).
+        Returns the EnvironmentValue with the decrypted value.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def list(self, request, context):
+        """List environments with optional label filtering.
+        Authorization is handled in-handler via FGA-filtered queries (cloud)
+        or unrestricted store queries (OSS). Secret values are redacted.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_EnvironmentQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -58,6 +88,16 @@ def add_EnvironmentQueryControllerServicer_to_server(servicer, server):
                     servicer.getByReference,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.SerializeToString,
+            ),
+            'getSecretValue': grpc.unary_unary_rpc_method_handler(
+                    servicer.getSecretValue,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.EnvironmentSecretValueInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_spec__pb2.EnvironmentValue.SerializeToString,
+            ),
+            'list': grpc.unary_unary_rpc_method_handler(
+                    servicer.list,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.ListEnvironmentsRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.EnvironmentList.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -115,6 +155,60 @@ class EnvironmentQueryController(object):
             '/ai.stigmer.agentic.environment.v1.EnvironmentQueryController/getByReference',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getSecretValue(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.environment.v1.EnvironmentQueryController/getSecretValue',
+            ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.EnvironmentSecretValueInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_spec__pb2.EnvironmentValue.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def list(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.environment.v1.EnvironmentQueryController/list',
+            ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.ListEnvironmentsRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.EnvironmentList.FromString,
             options,
             channel_credentials,
             insecure,

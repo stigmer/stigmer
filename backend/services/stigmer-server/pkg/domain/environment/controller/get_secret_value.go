@@ -40,7 +40,7 @@ func (c *EnvironmentController) GetSecretValue(ctx context.Context, input *envir
 func (c *EnvironmentController) buildGetSecretValuePipeline() *pipeline.Pipeline[*environmentv1.EnvironmentSecretValueInput] {
 	return pipeline.NewPipeline[*environmentv1.EnvironmentSecretValueInput]("environment-get-secret-value").
 		AddStep(steps.NewValidateProtoStep[*environmentv1.EnvironmentSecretValueInput]()).
-		AddStep(envsteps.NewLoadEnvironmentByIDStep(c.store)).
+		AddStep(envsteps.NewLoadEnvironmentByIDStep[*environmentv1.EnvironmentSecretValueInput](c.store)).
 		AddStep(envsteps.NewExtractAndDecryptSingleKeyStep(c.secretService)).
 		Build()
 }

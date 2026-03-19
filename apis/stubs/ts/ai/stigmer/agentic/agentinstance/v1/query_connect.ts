@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AgentInstanceId, AgentInstanceList, GetAgentInstancesByAgentRequest } from "./io_pb.js";
+import { AgentInstanceId, AgentInstanceList, GetAgentInstancesByAgentRequest, ListAgentInstancesRequest } from "./io_pb.js";
 import { AgentInstance } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
@@ -50,6 +50,19 @@ export const AgentInstanceQueryController = {
       name: "getByReference",
       I: ApiResourceReference,
       O: AgentInstance,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * List agent instances with optional label filtering.
+     * Authorization is handled in-handler via FGA-filtered queries (cloud)
+     * or unrestricted store queries (OSS).
+     *
+     * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController.list
+     */
+    list: {
+      name: "list",
+      I: ListAgentInstancesRequest,
+      O: AgentInstanceList,
       kind: MethodKind.Unary,
     },
   }

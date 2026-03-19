@@ -41,6 +41,16 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentinstance_v1_AgentInstanceList_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentinstance_v1_ListAgentInstancesRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentinstance_v1_ListAgentInstancesRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentinstance_v1_ListAgentInstancesRequest_LabelsEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentinstance_v1_ListAgentInstancesRequest_LabelsEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -62,12 +72,19 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       ".rpc.PageInfoR\010pageInfo\"~\n\021AgentInstance" +
       "List\022\037\n\013total_count\030\001 \001(\005R\ntotalCount\022H\n" +
       "\005items\030\002 \003(\01322.ai.stigmer.agentic.agenti" +
-      "nstance.v1.AgentInstanceR\005itemsB\272\001B\007IoPr" +
-      "otoP\001\242\002\004ASAA\252\002#Ai.Stigmer.Agentic.Agenti" +
-      "nstance.V1\312\002#Ai\\Stigmer\\Agentic\\Agentins" +
-      "tance\\V1\342\002/Ai\\Stigmer\\Agentic\\Agentinsta" +
-      "nce\\V1\\GPBMetadata\352\002\'Ai::Stigmer::Agenti" +
-      "c::Agentinstance::V1b\006proto3"
+      "nstance.v1.AgentInstanceR\005items\"\224\002\n\031List" +
+      "AgentInstancesRequest\022\031\n\003org\030\001 \001(\tB\007\272H\004r" +
+      "\002\020\001R\003org\022b\n\006labels\030\002 \003(\0132J.ai.stigmer.ag" +
+      "entic.agentinstance.v1.ListAgentInstance" +
+      "sRequest.LabelsEntryR\006labels\022=\n\tpage_inf" +
+      "o\030\003 \001(\0132 .ai.stigmer.commons.rpc.PageInf" +
+      "oR\010pageInfo\0329\n\013LabelsEntry\022\020\n\003key\030\001 \001(\tR" +
+      "\003key\022\024\n\005value\030\002 \001(\tR\005value:\0028\001B\272\001B\007IoPro" +
+      "toP\001\242\002\004ASAA\252\002#Ai.Stigmer.Agentic.Agentin" +
+      "stance.V1\312\002#Ai\\Stigmer\\Agentic\\Agentinst" +
+      "ance\\V1\342\002/Ai\\Stigmer\\Agentic\\Agentinstan" +
+      "ce\\V1\\GPBMetadata\352\002\'Ai::Stigmer::Agentic" +
+      "::Agentinstance::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -94,6 +111,18 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentinstance_v1_AgentInstanceList_descriptor,
         new java.lang.String[] { "TotalCount", "Items", });
+    internal_static_ai_stigmer_agentic_agentinstance_v1_ListAgentInstancesRequest_descriptor =
+      getDescriptor().getMessageType(3);
+    internal_static_ai_stigmer_agentic_agentinstance_v1_ListAgentInstancesRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentinstance_v1_ListAgentInstancesRequest_descriptor,
+        new java.lang.String[] { "Org", "Labels", "PageInfo", });
+    internal_static_ai_stigmer_agentic_agentinstance_v1_ListAgentInstancesRequest_LabelsEntry_descriptor =
+      internal_static_ai_stigmer_agentic_agentinstance_v1_ListAgentInstancesRequest_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_agentinstance_v1_ListAgentInstancesRequest_LabelsEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentinstance_v1_ListAgentInstancesRequest_LabelsEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentinstance.v1.ApiProto.getDescriptor();
     ai.stigmer.commons.rpc.PaginationProto.getDescriptor();

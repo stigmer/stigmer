@@ -78,7 +78,7 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "\020\000\022\006\n\002v1\020\001*N\n\014ResourceTier\022\035\n\031resource_t" +
       "ier_unspecified\020\000\022\017\n\013open_source\020\001\022\016\n\ncl" +
       "oud_only\020\002*A\n\017PlatformIdValue\022!\n\035platfor" +
-      "m_id_value_unspecified\020\000\022\013\n\007stigmer\020\001*\262\013" +
+      "m_id_value_unspecified\020\000\022\013\n\007stigmer\020\001*\264\013" +
       "\n\017ApiResourceKind\022\035\n\031api_resource_kind_u" +
       "nknown\020\000\022[\n\024api_resource_version\020\001\032A\252\377+=" +
       "\010\001\020\001\032\022ApiResourceVersion\"\024API Resource V" +
@@ -110,22 +110,22 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "*\003win@\001J\'\010\002\020\001\"!\n\010workflow\022\010workflow\032\013wor" +
       "kflow_id\022T\n\022workflow_execution\0204\032<\252\377+8\010\001" +
       "\020\001\032\021WorkflowExecution\"\022Workflow Executio" +
-      "n*\003wex@\001J\004\010\002\020\001\022@\n\013environment\0205\032/\252\377++\010\001\020" +
-      "\001\032\013Environment\"\013Environment*\003env@\001J\004\010\002\020\001" +
-      "\022R\n\021execution_context\0206\032;\252\377+7\010\001\020\001\032\020Execu" +
-      "tionContext\"\021Execution Context*\004exec@\001J\004" +
-      "\010\005\020\004\0224\n\007project\020<\032\'\252\377+#\010\003\020\001\032\007Project\"\007Pr" +
-      "oject*\003prj@\001J\004\010\002\020\001:\205\001\n\tkind_meta\022!.googl" +
-      "e.protobuf.EnumValueOptions\030\365\277\005 \001(\0132C.ai" +
-      ".stigmer.commons.apiresource.apiresource" +
-      "kind.ApiResourceKindMetaR\010kindMetaB\364\001B\024A" +
-      "piResourceKindProtoP\001\242\002\005ASCAA\252\002.Ai.Stigm" +
-      "er.Commons.Apiresource.Apiresourcekind\312\002" +
-      ".Ai\\Stigmer\\Commons\\Apiresource\\Apiresou" +
-      "rcekind\342\002:Ai\\Stigmer\\Commons\\Apiresource" +
-      "\\Apiresourcekind\\GPBMetadata\352\0022Ai::Stigm" +
-      "er::Commons::Apiresource::Apiresourcekin" +
-      "db\006proto3"
+      "n*\003wex@\001J\004\010\002\020\001\022B\n\013environment\0205\0321\252\377+-\010\001\020" +
+      "\001\032\013Environment\"\013Environment*\003env@\001J\006\010\002\020\001" +
+      "0\001\022R\n\021execution_context\0206\032;\252\377+7\010\001\020\001\032\020Exe" +
+      "cutionContext\"\021Execution Context*\004exec@\001" +
+      "J\004\010\005\020\004\0224\n\007project\020<\032\'\252\377+#\010\003\020\001\032\007Project\"\007" +
+      "Project*\003prj@\001J\004\010\002\020\001:\205\001\n\tkind_meta\022!.goo" +
+      "gle.protobuf.EnumValueOptions\030\365\277\005 \001(\0132C." +
+      "ai.stigmer.commons.apiresource.apiresour" +
+      "cekind.ApiResourceKindMetaR\010kindMetaB\364\001B" +
+      "\024ApiResourceKindProtoP\001\242\002\005ASCAA\252\002.Ai.Sti" +
+      "gmer.Commons.Apiresource.Apiresourcekind" +
+      "\312\002.Ai\\Stigmer\\Commons\\Apiresource\\Apires" +
+      "ourcekind\342\002:Ai\\Stigmer\\Commons\\Apiresour" +
+      "ce\\Apiresourcekind\\GPBMetadata\352\0022Ai::Sti" +
+      "gmer::Commons::Apiresource::Apiresourcek" +
+      "indb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

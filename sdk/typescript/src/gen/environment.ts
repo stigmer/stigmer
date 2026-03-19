@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { EnvironmentSchema, type Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/command_pb";
-import { EnvironmentSecretValueInputSchema, ListEnvironmentsRequestSchema, EnvironmentListSchema, type EnvironmentSecretValueInput, type ListEnvironmentsRequest, type EnvironmentList } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
+import { UpdateEnvironmentVariablesRequestSchema, RemoveEnvironmentVariablesRequestSchema, EnvironmentSecretValueInputSchema, ListEnvironmentsRequestSchema, EnvironmentListSchema, type UpdateEnvironmentVariablesRequest, type RemoveEnvironmentVariablesRequest, type EnvironmentSecretValueInput, type ListEnvironmentsRequest, type EnvironmentList } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { EnvironmentValueSchema, EnvironmentSpecSchema, type EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
@@ -48,6 +48,18 @@ export class EnvironmentClient {
         versionMessage: input.versionMessage,
         force: input.force,
       }));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async updateVariables(input: UpdateEnvironmentVariablesRequest): Promise<Environment> {
+    try {
+      return await this.command.updateVariables(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async removeVariables(input: RemoveEnvironmentVariablesRequest): Promise<Environment> {
+    try {
+      return await this.command.removeVariables(input);
     } catch (e) { throw wrapError(e); }
   }
 

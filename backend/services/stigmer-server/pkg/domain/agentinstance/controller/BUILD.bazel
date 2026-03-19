@@ -10,6 +10,7 @@ go_library(
         "get.go",
         "get_by_agent.go",
         "get_by_reference.go",
+        "list.go",
         "update.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller",
