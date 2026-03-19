@@ -172,27 +172,35 @@ export type {
   AgentPickerProps,
 } from "./agent";
 
-// Environment — data hook, behavior hooks, and secret reveal
+// Environment — data hooks, list hook, personal convenience hook, and secret reveal
 export {
   useEnvironment,
+  useEnvironmentList,
+  usePersonalEnvironment,
   useCreateEnvironment,
   useUpdateEnvironment,
   useRevealSecretValue,
 } from "./environment";
 export type {
   UseEnvironmentReturn,
+  UseEnvironmentListReturn,
+  UsePersonalEnvironmentReturn,
   UseCreateEnvironmentReturn,
   UseUpdateEnvironmentReturn,
   UseRevealSecretValueOptions,
   UseRevealSecretValueReturn,
 } from "./environment";
 
-// Agent Instance — data hook and behavior hook
+// Agent Instance — data hooks, list hook, personal convenience hook, and behavior hook
 export {
   useAgentInstance,
+  useAgentInstanceList,
+  usePersonalAgentInstance,
   useCreateAgentInstance,
 } from "./agent-instance";
 export type {
   UseAgentInstanceReturn,
+  UseAgentInstanceListReturn,
+  UsePersonalAgentInstanceReturn,
   UseCreateAgentInstanceReturn,
 } from "./agent-instance";

@@ -33,4 +33,11 @@ service EnvironmentQueryController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "environment_id";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to read secret values (creator-only)";
   }
+
+  // List environments with optional label filtering.
+  // Authorization is handled in-handler via FGA-filtered queries (cloud)
+  // or unrestricted store queries (OSS). Secret values are redacted.
+  rpc list(ListEnvironmentsRequest) returns (EnvironmentList) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }

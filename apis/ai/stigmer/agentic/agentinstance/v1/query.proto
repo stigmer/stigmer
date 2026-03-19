@@ -30,4 +30,11 @@ service AgentInstanceQueryController {
 
   // Custom authorization in handler
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (AgentInstance);
+
+  // List agent instances with optional label filtering.
+  // Authorization is handled in-handler via FGA-filtered queries (cloud)
+  // or unrestricted store queries (OSS).
+  rpc list(ListAgentInstancesRequest) returns (AgentInstanceList) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }

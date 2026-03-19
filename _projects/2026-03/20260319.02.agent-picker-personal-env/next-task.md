@@ -232,3 +232,4 @@ To continue this project, drag this file into chat:
 Active sub-projects spawned from this project:
 
 - `~/scm/github.com/stigmer/stigmer/_projects/2026-03/20260319.03.sp.env-auth-and-secret-redaction/next-task.md` - Update FGA authorization model to support personal environments (member-level creation permissions) and implement secret value redaction in environment queries with owner-only secret retrieval.
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-03/20260319.04.sp.env-instance-list-rpcs/next-task.md` - Add label-based list RPCs for environments, agent instances, and other resource types that currently lack list/query capabilities. Enables personal resource lookup via labels instead of deterministic slug conventions, establishing a reusable pattern for all resource kinds.
