@@ -4,7 +4,11 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.environment.v1.Environment;
 import ai.stigmer.agentic.environment.v1.EnvironmentCommandControllerGrpc;
+import ai.stigmer.agentic.environment.v1.EnvironmentList;
 import ai.stigmer.agentic.environment.v1.EnvironmentQueryControllerGrpc;
+import ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput;
+import ai.stigmer.agentic.environment.v1.EnvironmentValue;
+import ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import io.grpc.Channel;
@@ -59,6 +63,18 @@ public final class EnvironmentClient {
     public Environment getByReference(ResourceRef ref) {
         try {
             return query.getByReference(ref.toProto());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public EnvironmentValue getSecretValue(EnvironmentSecretValueInput input) {
+        try {
+            return query.getSecretValue(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public EnvironmentList list(ListEnvironmentsRequest input) {
+        try {
+            return query.list(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

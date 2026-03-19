@@ -70,6 +70,7 @@ class WorkflowInput:
     name: str
     org: str
     document: WorkflowDocumentInput | None
+    labels: dict[str, str] | None = None
     description: str = ""
     tasks: list[WorkflowTaskInput] = field(default_factory=list)
     env_spec: EnvSpecInput | None = None
@@ -84,13 +85,16 @@ class WorkflowInput:
             spec.tasks.append(item._to_proto())
         if self.env_spec is not None:
             spec.env_spec.CopyFrom(self.env_spec._to_proto())
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.Workflow(
             api_version="agentic.stigmer.ai/v1",
             kind="Workflow",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

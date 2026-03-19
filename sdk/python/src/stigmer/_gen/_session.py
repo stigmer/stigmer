@@ -74,6 +74,7 @@ class SessionInput:
 
     name: str
     org: str
+    labels: dict[str, str] | None = None
     agent_instance_id: str = ""
     subject: str = ""
     thread_id: str = ""
@@ -98,13 +99,16 @@ class SessionInput:
             spec.mcp_server_usages.append(item._to_proto())
         for ref in self.skill_refs:
             spec.skill_refs.append(ref._to_proto())
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.Session(
             api_version="agentic.stigmer.ai/v1",
             kind="Session",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

@@ -69,6 +69,7 @@ class ExecutionContextInput:
 
     name: str
     org: str
+    labels: dict[str, str] | None = None
     execution_id: str = ""
     data: dict[str, EnvVarInput] = field(default_factory=dict)
 
@@ -80,13 +81,16 @@ class ExecutionContextInput:
             spec.data[k].CopyFrom(executioncontext_spec_pb2.ExecutionValue(
                 value=v.value, is_secret=v.is_secret,
             ))
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.ExecutionContext(
             api_version="agentic.stigmer.ai/v1",
             kind="ExecutionContext",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

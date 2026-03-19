@@ -58,6 +58,7 @@ func (w *WorkflowClient) GetByReference(ctx context.Context, input *apiresource.
 type WorkflowInput struct {
 	Name        string
 	Org         string
+	Labels      map[string]string
 	Description string
 	Document    *WorkflowDocumentInput
 	Tasks       []*WorkflowTaskInput
@@ -97,8 +98,9 @@ func (i *WorkflowInput) toProto() *workflowv1.Workflow {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Workflow",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &workflowv1.WorkflowSpec{},
 	}

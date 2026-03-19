@@ -80,6 +80,7 @@ class OrganizationInput:
 
     name: str
     org: str
+    labels: dict[str, str] | None = None
     description: str = ""
     logo_url: str = ""
     management_mode: int = 0
@@ -95,13 +96,16 @@ class OrganizationInput:
         )
         if self.identity_provider_ref is not None:
             spec.identity_provider_ref.CopyFrom(self.identity_provider_ref._to_proto())
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.Organization(
             api_version="tenancy.stigmer.ai/v1",
             kind="Organization",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

@@ -67,6 +67,12 @@ class AgentInstanceClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def list(self, input: io_pb2.ListAgentInstancesRequest) -> io_pb2.AgentInstanceList:
+        try:
+            return self._query.list(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class AgentInstanceInput:
@@ -74,6 +80,7 @@ class AgentInstanceInput:
 
     name: str
     org: str
+    labels: dict[str, str] | None = None
     agent_id: str = ""
     description: str = ""
     environment_refs: list[ResourceRef] = field(default_factory=list)
@@ -85,13 +92,16 @@ class AgentInstanceInput:
         )
         for ref in self.environment_refs:
             spec.environment_refs.append(ref._to_proto())
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.AgentInstance(
             api_version="agentic.stigmer.ai/v1",
             kind="AgentInstance",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

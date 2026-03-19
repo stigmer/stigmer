@@ -89,6 +89,7 @@ class SkillInput:
 
     name: str
     org: str
+    labels: dict[str, str] | None = None
     skill_md: str = ""
     tag: str = ""
     description: str = ""
@@ -99,13 +100,16 @@ class SkillInput:
             tag=self.tag,
             description=self.description,
         )
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.Skill(
             api_version="agentic.stigmer.ai/v1",
             kind="Skill",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

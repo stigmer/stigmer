@@ -121,6 +121,7 @@ export class WorkflowExecutionClient {
 export interface WorkflowExecutionInput {
   name: string;
   org: string;
+  labels?: Record<string, string>;
   workflowInstanceId?: string;
   workflowId?: string;
   triggerMessage?: string;
@@ -141,6 +142,7 @@ function buildWorkflowExecutionProto(input: WorkflowExecutionInput): WorkflowExe
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(WorkflowExecutionSpecSchema), stripUndefined({
       workflowInstanceId: input.workflowInstanceId,

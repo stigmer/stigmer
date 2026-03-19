@@ -149,6 +149,7 @@ class AgentExecutionInput:
 
     name: str
     org: str
+    labels: dict[str, str] | None = None
     session_id: str = ""
     agent_id: str = ""
     message: str = ""
@@ -179,13 +180,16 @@ class AgentExecutionInput:
             spec.attachments.append(item._to_proto())
         if self.workspace_file_refs:
             spec.workspace_file_refs.extend(self.workspace_file_refs)
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.AgentExecution(
             api_version="agentic.stigmer.ai/v1",
             kind="AgentExecution",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

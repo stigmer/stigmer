@@ -10,6 +10,7 @@ import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 public final class AgentInstanceInput {
     private final String name;
     private final String org;
+    private final java.util.Map<String, String> labels;
     private final String agentId;
     private final String description;
     private final java.util.List<ResourceRef> environmentRefs;
@@ -17,6 +18,7 @@ public final class AgentInstanceInput {
     private AgentInstanceInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.labels = builder.labels;
         this.agentId = builder.agentId;
         this.description = builder.description;
         this.environmentRefs = builder.environmentRefs;
@@ -35,13 +37,16 @@ public final class AgentInstanceInput {
                 spec.addEnvironmentRefs(item.toProto());
             }
         }
+        ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
+            .setName(this.name)
+            .setOrg(this.org);
+        if (this.labels != null) {
+            metaBuilder.putAllLabels(this.labels);
+        }
         return AgentInstance.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("AgentInstance")
-            .setMetadata(ApiResourceMetadata.newBuilder()
-                .setName(this.name)
-                .setOrg(this.org)
-                .build())
+            .setMetadata(metaBuilder.build())
             .setSpec(spec.build())
             .build();
     }
@@ -51,6 +56,7 @@ public final class AgentInstanceInput {
     public static final class Builder {
         private String name;
         private String org;
+        private java.util.Map<String, String> labels;
         private String agentId;
         private String description;
         private java.util.List<ResourceRef> environmentRefs;
@@ -59,6 +65,7 @@ public final class AgentInstanceInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder agentId(String agentId) { this.agentId = agentId; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }

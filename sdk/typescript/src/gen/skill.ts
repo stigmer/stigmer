@@ -81,6 +81,7 @@ export class SkillClient {
 export interface SkillInput {
   name: string;
   org: string;
+  labels?: Record<string, string>;
   skillMd?: string;
   tag?: string;
   description?: string;
@@ -93,6 +94,7 @@ function buildSkillProto(input: SkillInput): Skill {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(SkillSpecSchema), stripUndefined({
       skillMd: input.skillMd,

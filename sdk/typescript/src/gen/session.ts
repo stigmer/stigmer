@@ -72,6 +72,7 @@ export class SessionClient {
 export interface SessionInput {
   name: string;
   org: string;
+  labels?: Record<string, string>;
   agentInstanceId?: string;
   subject?: string;
   threadId?: string;
@@ -179,6 +180,7 @@ function buildSessionProto(input: SessionInput): Session {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(SessionSpecSchema), stripUndefined({
       agentInstanceId: input.agentInstanceId,

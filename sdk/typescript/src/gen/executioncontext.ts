@@ -68,6 +68,7 @@ export class ExecutionContextClient {
 export interface ExecutionContextInput {
   name: string;
   org: string;
+  labels?: Record<string, string>;
   executionId?: string;
   data?: Record<string, EnvVarInput>;
 }
@@ -84,6 +85,7 @@ function buildExecutionContextProto(input: ExecutionContextInput): ExecutionCont
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(ExecutionContextSpecSchema), stripUndefined({
       executionId: input.executionId,

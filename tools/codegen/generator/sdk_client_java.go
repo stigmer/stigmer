@@ -1174,6 +1174,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 
 	body.WriteString("    private final String name;\n")
 	body.WriteString("    private final String org;\n")
+	body.WriteString("    private final java.util.Map<String, String> labels;\n")
 	for _, f := range specFields {
 		jType := javaTypeForField(f, typeMap)
 		fmt.Fprintf(&body, "    private final %s %s;\n", jType, javaCamel(f.ProtoField))
@@ -1183,6 +1184,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	fmt.Fprintf(&body, "    private %s(Builder builder) {\n", inputName)
 	body.WriteString("        this.name = builder.name;\n")
 	body.WriteString("        this.org = builder.org;\n")
+	body.WriteString("        this.labels = builder.labels;\n")
 	for _, f := range specFields {
 		fieldName := javaCamel(f.ProtoField)
 		fmt.Fprintf(&body, "        this.%s = builder.%s;\n", fieldName, fieldName)
@@ -1196,6 +1198,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	body.WriteString("    public static final class Builder {\n")
 	body.WriteString("        private String name;\n")
 	body.WriteString("        private String org;\n")
+	body.WriteString("        private java.util.Map<String, String> labels;\n")
 	for _, f := range specFields {
 		jType := javaTypeForField(f, typeMap)
 		fmt.Fprintf(&body, "        private %s %s;\n", jType, javaCamel(f.ProtoField))
@@ -1203,6 +1206,7 @@ func generateJavaInputClass(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	body.WriteString("\n        private Builder() {}\n\n")
 	body.WriteString("        public Builder name(String name) { this.name = name; return this; }\n")
 	body.WriteString("        public Builder org(String org) { this.org = org; return this; }\n")
+	body.WriteString("        public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }\n")
 	for _, f := range specFields {
 		jType := javaTypeForField(f, typeMap)
 		fieldName := javaCamel(f.ProtoField)
@@ -1327,13 +1331,16 @@ func emitJavaToProto(buf *bytes.Buffer, cfg sdkResourceConfig, spec *TaskConfigS
 		emitJavaToProtoField(buf, f, typeMap, protoPackage, "        ")
 	}
 
+	buf.WriteString("        ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()\n")
+	buf.WriteString("            .setName(this.name)\n")
+	buf.WriteString("            .setOrg(this.org);\n")
+	buf.WriteString("        if (this.labels != null) {\n")
+	buf.WriteString("            metaBuilder.putAllLabels(this.labels);\n")
+	buf.WriteString("        }\n")
 	fmt.Fprintf(buf, "        return %s.newBuilder()\n", resType)
 	fmt.Fprintf(buf, "            .setApiVersion(%q)\n", cfg.apiVersion)
 	fmt.Fprintf(buf, "            .setKind(%q)\n", cfg.protoResType)
-	buf.WriteString("            .setMetadata(ApiResourceMetadata.newBuilder()\n")
-	buf.WriteString("                .setName(this.name)\n")
-	buf.WriteString("                .setOrg(this.org)\n")
-	buf.WriteString("                .build())\n")
+	buf.WriteString("            .setMetadata(metaBuilder.build())\n")
 	buf.WriteString("            .setSpec(spec.build())\n")
 	buf.WriteString("            .build();\n")
 	buf.WriteString("    }\n")

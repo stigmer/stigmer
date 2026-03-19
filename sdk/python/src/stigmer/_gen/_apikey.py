@@ -67,6 +67,7 @@ class ApiKeyInput:
 
     name: str
     org: str
+    labels: dict[str, str] | None = None
     key_hash: str = ""
     fingerprint: str = ""
     expires_at: str = ""
@@ -80,13 +81,16 @@ class ApiKeyInput:
         )
         if self.expires_at:
             spec.expires_at.FromJsonString(self.expires_at)
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.ApiKey(
             api_version="iam.stigmer.ai/v1",
             kind="ApiKey",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

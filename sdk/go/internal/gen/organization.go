@@ -68,6 +68,7 @@ func (o *OrganizationClient) GetByExternalOrgId(ctx context.Context, input *orga
 type OrganizationInput struct {
 	Name                string
 	Org                 string
+	Labels              map[string]string
 	Description         string
 	LogoUrl             string
 	ManagementMode      organizationv1.ManagementMode
@@ -80,8 +81,9 @@ func (i *OrganizationInput) toProto() *organizationv1.Organization {
 		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Organization",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &organizationv1.OrganizationSpec{},
 	}

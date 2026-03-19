@@ -16,6 +16,7 @@ import com.google.protobuf.Struct;
 public final class WorkflowInput {
     private final String name;
     private final String org;
+    private final java.util.Map<String, String> labels;
     private final String description;
     private final WorkflowDocumentInput document;
     private final java.util.List<WorkflowTaskInput> tasks;
@@ -24,6 +25,7 @@ public final class WorkflowInput {
     private WorkflowInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.labels = builder.labels;
         this.description = builder.description;
         this.document = builder.document;
         this.tasks = builder.tasks;
@@ -46,13 +48,16 @@ public final class WorkflowInput {
         if (this.envSpec != null) {
             spec.setEnvSpec(this.envSpec.toProto());
         }
+        ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
+            .setName(this.name)
+            .setOrg(this.org);
+        if (this.labels != null) {
+            metaBuilder.putAllLabels(this.labels);
+        }
         return Workflow.newBuilder()
             .setApiVersion("agentic.stigmer.ai/v1")
             .setKind("Workflow")
-            .setMetadata(ApiResourceMetadata.newBuilder()
-                .setName(this.name)
-                .setOrg(this.org)
-                .build())
+            .setMetadata(metaBuilder.build())
             .setSpec(spec.build())
             .build();
     }
@@ -62,6 +67,7 @@ public final class WorkflowInput {
     public static final class Builder {
         private String name;
         private String org;
+        private java.util.Map<String, String> labels;
         private String description;
         private WorkflowDocumentInput document;
         private java.util.List<WorkflowTaskInput> tasks;
@@ -71,6 +77,7 @@ public final class WorkflowInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder document(WorkflowDocumentInput document) { this.document = document; return this; }
         public Builder tasks(java.util.List<WorkflowTaskInput> tasks) { this.tasks = tasks; return this; }

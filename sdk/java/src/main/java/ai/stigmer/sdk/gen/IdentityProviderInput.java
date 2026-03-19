@@ -10,6 +10,7 @@ import ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec;
 public final class IdentityProviderInput {
     private final String name;
     private final String org;
+    private final java.util.Map<String, String> labels;
     private final String displayName;
     private final String jwksUri;
     private final java.util.List<String> allowedIssuers;
@@ -20,6 +21,7 @@ public final class IdentityProviderInput {
     private IdentityProviderInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.labels = builder.labels;
         this.displayName = builder.displayName;
         this.jwksUri = builder.jwksUri;
         this.allowedIssuers = builder.allowedIssuers;
@@ -46,13 +48,16 @@ public final class IdentityProviderInput {
         if (this.userinfoEndpoint != null) {
             spec.setUserinfoEndpoint(this.userinfoEndpoint);
         }
+        ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
+            .setName(this.name)
+            .setOrg(this.org);
+        if (this.labels != null) {
+            metaBuilder.putAllLabels(this.labels);
+        }
         return IdentityProvider.newBuilder()
             .setApiVersion("iam.stigmer.ai/v1")
             .setKind("IdentityProvider")
-            .setMetadata(ApiResourceMetadata.newBuilder()
-                .setName(this.name)
-                .setOrg(this.org)
-                .build())
+            .setMetadata(metaBuilder.build())
             .setSpec(spec.build())
             .build();
     }
@@ -62,6 +67,7 @@ public final class IdentityProviderInput {
     public static final class Builder {
         private String name;
         private String org;
+        private java.util.Map<String, String> labels;
         private String displayName;
         private String jwksUri;
         private java.util.List<String> allowedIssuers;
@@ -73,6 +79,7 @@ public final class IdentityProviderInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder displayName(String displayName) { this.displayName = displayName; return this; }
         public Builder jwksUri(String jwksUri) { this.jwksUri = jwksUri; return this; }
         public Builder allowedIssuers(java.util.List<String> allowedIssuers) { this.allowedIssuers = allowedIssuers; return this; }

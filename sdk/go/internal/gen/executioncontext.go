@@ -61,6 +61,7 @@ func (e *ExecutionContextClient) GetByExecutionId(ctx context.Context, input *ex
 type ExecutionContextInput struct {
 	Name        string
 	Org         string
+	Labels      map[string]string
 	ExecutionId string
 	Data        map[string]EnvVarInput
 }
@@ -70,8 +71,9 @@ func (i *ExecutionContextInput) toProto() *executioncontextv1.ExecutionContext {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "ExecutionContext",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &executioncontextv1.ExecutionContextSpec{},
 	}
