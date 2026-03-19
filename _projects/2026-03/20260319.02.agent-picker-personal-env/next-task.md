@@ -68,9 +68,31 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: Phase 1 complete — next is Phase 3 (backend env_spec filtering)
-**Status**: Phase 1 Complete
-**Last Session**: 2026-03-19 — Completed T01.11 (Phase 1 done)
+**Current Task**: Phase 2 T02.1 + T02.2 complete — next is T02.3 (AgentEnvForm) and T02.4 (SessionComposer integration)
+**Status**: Phase 2 In Progress (T02.1–T02.2 done)
+**Last Session**: 2026-03-19 — Completed T02.1 + T02.2 (personal orchestration hooks)
+
+## Session Progress (2026-03-19, Session 12)
+
+- Completed T02.1: Upgraded `usePersonalEnvironment` to full orchestration hook
+  - Added `getOrCreate(initialData?)` — creates personal env with slug `"personal"`, labels, optional initial data
+  - Added `addVariables(variables)` — server-side merge via `updateVariables` RPC, proto construction internal
+  - Added `removeVariables(keys)` — server-side removal via `removeVariables` RPC
+  - Added `isMutating` — unified boolean for any mutation in-flight
+  - Uses `useRef` for stable env reference; unified `error` state (mutation > list)
+- Completed T02.2: Upgraded `usePersonalAgentInstance` to full orchestration hook
+  - Added `getOrCreate({ agentSlug, personalEnvironmentRef })` — creates instance with slug `"{agentSlug}-personal"`, labels `stigmer.ai/personal` + `stigmer.ai/for-agent`, agent binding, environment linkage
+  - Added `isMutating` boolean
+  - New exported type: `GetOrCreatePersonalInstanceInput`
+  - `agentId` optional for read-only, required for `getOrCreate` (descriptive error)
+- Updated barrel exports: `agent-instance/index.ts` and `sdk/react/src/index.ts`
+- TypeScript verification: zero new errors (pre-existing errors in unrelated files only)
+- Key design decisions:
+  - Extend existing hooks in place (backward compatible return type expansion)
+  - SDK client directly for mutations, Layer 1 data hooks for reading (unified state)
+  - List+labels for existence check (not getByReference — graceful empty result)
+  - `getOrCreate` with optional initial data (saves round-trip for first-time users)
+  - Naming conventions fully encapsulated (callers never construct label strings)
 
 ## Session Progress (2026-03-19, Session 11)
 

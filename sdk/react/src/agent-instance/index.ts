@@ -5,4 +5,7 @@ export type { UseAgentInstanceListReturn } from "./useAgentInstanceList";
 export { useCreateAgentInstance } from "./useCreateAgentInstance";
 export type { UseCreateAgentInstanceReturn } from "./useCreateAgentInstance";
 export { usePersonalAgentInstance } from "./usePersonalAgentInstance";
-export type { UsePersonalAgentInstanceReturn } from "./usePersonalAgentInstance";
+export type {
+  GetOrCreatePersonalInstanceInput,
+  UsePersonalAgentInstanceReturn,
+} from "./usePersonalAgentInstance";
