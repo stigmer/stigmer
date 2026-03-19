@@ -31,7 +31,7 @@ export function SessionLauncher() {
   const router = useRouter();
   const org = useActiveOrgSlug();
   const deploymentMode = useDeploymentMode();
-  const gitHubConnection = useGitHubConnection();
+  const gitHubConnection = useGitHubConnection(org);
 
   const { getModel } = useModelRegistry();
 
