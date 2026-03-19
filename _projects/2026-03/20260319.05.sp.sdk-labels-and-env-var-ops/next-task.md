@@ -101,8 +101,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 16:50
-**Current Task**: T01 — Tracks A and B complete, Tracks C and D pending
-**Status**: In Progress
+**Current Task**: T01 — ALL TRACKS COMPLETE (A, B, C, D)
+**Status**: Complete
 
 ## Session Progress (2026-03-19 — Session 1)
 
@@ -150,35 +150,71 @@ When starting a new session:
 - (stigmer-cloud) `EnvironmentUpdateVariablesHandler.java` — NEW
 - (stigmer-cloud) `EnvironmentRemoveVariablesHandler.java` — NEW
 
-### What's Pending (Tracks C, D)
+## Session Progress (2026-03-19 — Session 3)
 
-- **Track C**: Backend Sentinel Defense-in-Depth
-  - T01.13–T01.14: Redaction marker preservation in update pipelines
-- **Track D**: SDK TypeScript Client + React Hooks
-  - T01.15–T01.18: TypeScript client methods, React hooks, barrel exports
+### Track C: Backend Sentinel Defense-in-Depth — COMPLETE
 
-## Next Steps
+**What was accomplished (4 insertion points across 2 repos):**
 
-1. **Track C — Sentinel defense** (T01.13–T01.14): Harden existing `update` RPC to preserve secrets when `***REDACTED***` marker is sent back. Independent from Track B. Protect against the read-modify-write destruction pattern.
-2. **Track D — React Hooks** (T01.15–T01.18): `useUpdateEnvironmentVariables`, `useRemoveEnvironmentVariables` hooks + barrel exports. Now unblocked by Track B completion.
+1. **Java Cloud `EncryptSecretValues` step** — Added sentinel check in the encryption loop for the full `update` RPC. When `***REDACTED***` marker is detected, the step uses `instanceof UpdateContextV2` to access the pre-update resource and preserves the existing encrypted value. New `preserveExistingSecret()` helper method. If no existing secret exists for the key, returns `INVALID_ARGUMENT` error.
+
+2. **Java Cloud `LoadMergeEncryptAndPersist` inner step** — Added sentinel check in the `updateVariables` RPC handler. Before encrypting an incoming variable, checks if its value equals the redaction marker and preserves the existing value from the loaded environment. Same `INVALID_ARGUMENT` error for the edge case.
+
+3. **Go OSS `PreserveRedactedSecretsStep`** (NEW) — New pipeline step inserted between `BuildUpdateState` and `NormalizeReferences` in the full `update` pipeline. Defines `RedactedMarker` constant. Iterates `newState.Spec.Data`, replaces any redacted secret entries with values from `ExistingResourceKey`. Returns `INVALID_ARGUMENT` if marker used for a non-existent key.
+
+4. **Go OSS `mergeVariablesAndPersistStep`** — Added sentinel check in the merge loop for the `updateVariables` RPC. Skips overwrite when incoming value matches the redaction marker and an existing secret exists.
+
+**Files created/modified:**
+- (stigmer-cloud) `EncryptSecretValues.java` — Added `UpdateContextV2` import, sentinel check, `preserveExistingSecret()` method
+- (stigmer-cloud) `EnvironmentUpdateVariablesHandler.java` — Added sentinel check in `LoadMergeEncryptAndPersist`
+- (stigmer) `steps/preserve_redacted_secrets.go` — NEW step with `RedactedMarker` constant
+- (stigmer) `steps/merge_variables_and_persist.go` — Added sentinel check in merge loop
+- (stigmer) `controller/update.go` — Added `envsteps` import and wired new step into pipeline
+- (stigmer) `steps/BUILD.bazel` — Added new file to srcs
+
+**Verification:** `go vet` and `go build` pass cleanly.
+
+### Track D: SDK React Hooks — COMPLETE
+
+**What was accomplished:**
+
+1. **`useUpdateEnvironmentVariables` hook** — New behavior hook accepting `UpdateEnvironmentVariablesInput` (friendly type with `EnvVarInput` from `@stigmer/sdk`). Converts to proto internally via `create(EnvironmentValueSchema, ...)` and `create(UpdateEnvironmentVariablesRequestSchema, ...)`. Returns `{ updateVariables, isUpdatingVariables, error, clearError }`.
+
+2. **`useRemoveEnvironmentVariables` hook** — New behavior hook accepting `RemoveEnvironmentVariablesInput`. Simpler conversion (just `environmentId` + `keys`). Returns `{ removeVariables, isRemovingVariables, error, clearError }`.
+
+3. **Barrel exports** — Both hooks and their types exported from `environment/index.ts` and the main `index.ts`.
+
+**Files created/modified:**
+- (stigmer) `sdk/react/src/environment/useUpdateEnvironmentVariables.ts` — NEW
+- (stigmer) `sdk/react/src/environment/useRemoveEnvironmentVariables.ts` — NEW
+- (stigmer) `sdk/react/src/environment/index.ts` — Added exports
+- (stigmer) `sdk/react/src/index.ts` — Added exports
+
+**Verification:** `tsc --noEmit` shows zero errors in new files (pre-existing errors in other files are unrelated).
+
+## Sub-Project Status: ALL TRACKS COMPLETE
+
+| Track | Description | Status |
+|-------|-------------|--------|
+| **A** | SDK Labels Codegen Fix | COMPLETE (Session 1) |
+| **B** | Environment Variable Management RPCs | COMPLETE (Session 2) |
+| **C** | Backend Sentinel Defense-in-Depth | COMPLETE (Session 3) |
+| **D** | SDK React Hooks | COMPLETE (Session 3) |
 
 ## Context for Resume
 
-- Tracks A and B are fully complete
-- Track B changes span both stigmer (OSS) and stigmer-cloud repos
-- SDK clients in all 4 languages now have `updateVariables()` and `removeVariables()` methods
-- Go code compiles cleanly; Java Cloud uses annotation processor so compile verification requires full Gradle build
-- The `HasEnvironmentId` interface in Go is reusable for any future RPC that carries `environment_id`
-- `updateSpecAudit()` helper in the steps package is shared between merge and remove steps
+- All 4 tracks are complete — this sub-project is done
+- Changes span both stigmer (OSS) and stigmer-cloud repos
+- Session 3 changes: 5 modified + 3 new files in stigmer OSS, 2 modified files in stigmer-cloud
+- `RedactedMarker` constant in Go steps package is reusable by future environment operations
+- React hooks follow the established mutation hook pattern (useState + useCallback, friendly input types)
+- The hooks shield platform builders from protobuf-es imports — they accept `EnvVarInput` from `@stigmer/sdk`
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Track C" - Start sentinel defense for update RPC
-- "Continue with Track D" - Start React hooks for variable management
 - "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
+- "Return to parent project" - Go back to 20260319.02.agent-picker-personal-env
 
 ---
 

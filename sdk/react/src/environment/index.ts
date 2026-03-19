@@ -11,5 +11,15 @@ export type {
   UseRevealSecretValueOptions,
   UseRevealSecretValueReturn,
 } from "./useRevealSecretValue";
+export { useRemoveEnvironmentVariables } from "./useRemoveEnvironmentVariables";
+export type {
+  RemoveEnvironmentVariablesInput,
+  UseRemoveEnvironmentVariablesReturn,
+} from "./useRemoveEnvironmentVariables";
 export { useUpdateEnvironment } from "./useUpdateEnvironment";
 export type { UseUpdateEnvironmentReturn } from "./useUpdateEnvironment";
+export { useUpdateEnvironmentVariables } from "./useUpdateEnvironmentVariables";
+export type {
+  UpdateEnvironmentVariablesInput,
+  UseUpdateEnvironmentVariablesReturn,
+} from "./useUpdateEnvironmentVariables";

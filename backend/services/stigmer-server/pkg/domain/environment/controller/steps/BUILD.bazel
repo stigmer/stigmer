@@ -6,6 +6,7 @@ go_library(
         "extract_and_decrypt_single_key.go",
         "load_environment_by_id.go",
         "merge_variables_and_persist.go",
+        "preserve_redacted_secrets.go",
         "remove_variable_keys_and_persist.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller/steps",
