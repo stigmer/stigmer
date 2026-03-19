@@ -51,6 +51,14 @@ func (s *mergeVariablesAndPersistStep) Execute(ctx *pipeline.RequestContext[*env
 
 	incoming := ctx.Input().GetVariables()
 	for key, val := range incoming {
+		if val.GetIsSecret() && val.GetValue() == RedactedMarker {
+			if existing, ok := env.Spec.Data[key]; ok && existing.GetIsSecret() {
+				log.Debug().Str("key", key).Msg("Preserved existing value for redacted secret variable")
+				continue
+			}
+			return grpclib.InvalidArgumentError(
+				"variable '%s': cannot use the redaction marker as a secret value", key)
+		}
 		env.Spec.Data[key] = val
 	}
 
