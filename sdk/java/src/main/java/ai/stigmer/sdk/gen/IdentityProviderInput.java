@@ -10,6 +10,7 @@ import ai.stigmer.iam.identityprovider.v1.IdentityProviderSpec;
 public final class IdentityProviderInput {
     private final String name;
     private final String org;
+    private final String slug;
     private final java.util.Map<String, String> labels;
     private final String displayName;
     private final String jwksUri;
@@ -21,6 +22,7 @@ public final class IdentityProviderInput {
     private IdentityProviderInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.slug = builder.slug;
         this.labels = builder.labels;
         this.displayName = builder.displayName;
         this.jwksUri = builder.jwksUri;
@@ -51,6 +53,9 @@ public final class IdentityProviderInput {
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
+        if (this.slug != null) {
+            metaBuilder.setSlug(this.slug);
+        }
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
@@ -67,6 +72,7 @@ public final class IdentityProviderInput {
     public static final class Builder {
         private String name;
         private String org;
+        private String slug;
         private java.util.Map<String, String> labels;
         private String displayName;
         private String jwksUri;
@@ -79,6 +85,7 @@ public final class IdentityProviderInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder displayName(String displayName) { this.displayName = displayName; return this; }
         public Builder jwksUri(String jwksUri) { this.jwksUri = jwksUri; return this; }

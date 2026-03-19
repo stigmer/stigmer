@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	organizationv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	organizationv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/organization/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -67,6 +67,7 @@ func (o *OrganizationClient) GetByExternalOrgId(ctx context.Context, input *orga
 // OrganizationInput holds the fields for creating/updating a Organization.
 type OrganizationInput struct {
 	Name                string
+	Slug                string
 	Org                 string
 	Labels              map[string]string
 	Description         string
@@ -82,6 +83,7 @@ func (i *OrganizationInput) toProto() *organizationv1.Organization {
 		Kind:       "Organization",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name:   i.Name,
+			Slug:   i.Slug,
 			Org:    i.Org,
 			Labels: i.Labels,
 		},

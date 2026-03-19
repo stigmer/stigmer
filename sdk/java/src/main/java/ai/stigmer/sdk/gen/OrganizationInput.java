@@ -11,6 +11,7 @@ import ai.stigmer.tenancy.organization.v1.OrganizationSpec;
 public final class OrganizationInput {
     private final String name;
     private final String org;
+    private final String slug;
     private final java.util.Map<String, String> labels;
     private final String description;
     private final String logoUrl;
@@ -21,6 +22,7 @@ public final class OrganizationInput {
     private OrganizationInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.slug = builder.slug;
         this.labels = builder.labels;
         this.description = builder.description;
         this.logoUrl = builder.logoUrl;
@@ -49,6 +51,9 @@ public final class OrganizationInput {
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
+        if (this.slug != null) {
+            metaBuilder.setSlug(this.slug);
+        }
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
@@ -65,6 +70,7 @@ public final class OrganizationInput {
     public static final class Builder {
         private String name;
         private String org;
+        private String slug;
         private java.util.Map<String, String> labels;
         private String description;
         private String logoUrl;
@@ -76,6 +82,7 @@ public final class OrganizationInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder logoUrl(String logoUrl) { this.logoUrl = logoUrl; return this; }

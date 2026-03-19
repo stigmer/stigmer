@@ -13,6 +13,7 @@ import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 public final class McpServerInput {
     private final String name;
     private final String org;
+    private final String slug;
     private final java.util.Map<String, String> labels;
     private final String description;
     private final String iconUrl;
@@ -25,6 +26,7 @@ public final class McpServerInput {
     private McpServerInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.slug = builder.slug;
         this.labels = builder.labels;
         this.description = builder.description;
         this.iconUrl = builder.iconUrl;
@@ -63,6 +65,9 @@ public final class McpServerInput {
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
+        if (this.slug != null) {
+            metaBuilder.setSlug(this.slug);
+        }
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
@@ -79,6 +84,7 @@ public final class McpServerInput {
     public static final class Builder {
         private String name;
         private String org;
+        private String slug;
         private java.util.Map<String, String> labels;
         private String description;
         private String iconUrl;
@@ -92,6 +98,7 @@ public final class McpServerInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder iconUrl(String iconUrl) { this.iconUrl = iconUrl; return this; }

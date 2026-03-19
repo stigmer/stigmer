@@ -80,6 +80,7 @@ class OrganizationInput:
 
     name: str
     org: str
+    slug: str | None = None
     labels: dict[str, str] | None = None
     description: str = ""
     logo_url: str = ""
@@ -100,6 +101,8 @@ class OrganizationInput:
             name=self.name,
             org=self.org,
         )
+        if self.slug:
+            metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
         return api_pb2.Organization(

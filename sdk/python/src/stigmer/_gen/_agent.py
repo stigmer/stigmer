@@ -95,6 +95,7 @@ class AgentInput:
 
     name: str
     org: str
+    slug: str | None = None
     labels: dict[str, str] | None = None
     description: str = ""
     icon_url: str = ""
@@ -122,6 +123,8 @@ class AgentInput:
             name=self.name,
             org=self.org,
         )
+        if self.slug:
+            metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
         return api_pb2.Agent(

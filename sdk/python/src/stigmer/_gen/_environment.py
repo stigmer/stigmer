@@ -93,6 +93,7 @@ class EnvironmentInput:
 
     name: str
     org: str
+    slug: str | None = None
     labels: dict[str, str] | None = None
     description: str = ""
     data: dict[str, EnvVarInput] = field(default_factory=dict)
@@ -109,6 +110,8 @@ class EnvironmentInput:
             name=self.name,
             org=self.org,
         )
+        if self.slug:
+            metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
         return api_pb2.Environment(

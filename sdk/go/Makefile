@@ -42,6 +42,18 @@ clean: ## Clean build artifacts and test caches
 	@go clean -testcache
 	@rm -f coverage.out coverage.html
 
+.PHONY: codegen-stubs
+codegen-stubs: ## Generate proto stubs inside the SDK module
+	@echo "Generating proto stubs into proto/..."
+	@rm -rf proto
+	@mkdir -p proto
+	@cd ../../apis && buf generate --template buf.gen.sdk-go.yaml
+	@if [ -d "proto/github.com" ]; then \
+		mv proto/github.com/stigmer/stigmer/sdk/go/proto/* proto/ 2>/dev/null || true; \
+		rm -rf proto/github.com; \
+	fi
+	@echo "Proto stubs generated in proto/"
+
 .PHONY: codegen-schemas
 codegen-schemas: ## Generate JSON schemas from proto files (Stage 1)
 	@echo "Stage 1: Generating JSON schemas from protos..."
@@ -63,10 +75,10 @@ codegen-clients: ## Generate SDK client code from service schemas (Stage 2)
 		--target sdk-client
 
 .PHONY: codegen
-codegen: codegen-schemas codegen-clients ## Run full code generation pipeline
+codegen: codegen-stubs codegen-schemas codegen-clients ## Run full code generation pipeline
 	@echo ""
 	@echo "Full SDK code generation complete!"
-	@echo "Generated files live in internal/gen/"
+	@echo "Generated files live in proto/ and internal/gen/"
 
 .PHONY: codegen-verify
 codegen-verify: codegen build test ## Generate code, build, and test to verify

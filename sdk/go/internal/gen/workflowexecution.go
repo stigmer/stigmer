@@ -6,9 +6,9 @@ import (
 	"context"
 	"io"
 
-	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
-	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
+	workflowexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowexecution/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 )
 
@@ -122,6 +122,7 @@ func (w *WorkflowExecutionClient) Subscribe(ctx context.Context, input *workflow
 // WorkflowExecutionInput holds the fields for creating/updating a WorkflowExecution.
 type WorkflowExecutionInput struct {
 	Name               string
+	Slug               string
 	Org                string
 	Labels             map[string]string
 	WorkflowInstanceId string
@@ -138,6 +139,7 @@ func (i *WorkflowExecutionInput) toProto() *workflowexecutionv1.WorkflowExecutio
 		Kind:       "WorkflowExecution",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name:   i.Name,
+			Slug:   i.Slug,
 			Org:    i.Org,
 			Labels: i.Labels,
 		},

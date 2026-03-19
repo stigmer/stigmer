@@ -5,11 +5,11 @@ package gen
 import (
 	"context"
 
-	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	rpc "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
-	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
+	mcpserverv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 )
 
@@ -91,6 +91,7 @@ func (m *McpServerClient) List(ctx context.Context, params *ListParams) (*ListRe
 // McpServerInput holds the fields for creating/updating a McpServer.
 type McpServerInput struct {
 	Name                 string
+	Slug                 string
 	Org                  string
 	Labels               map[string]string
 	Description          string
@@ -129,6 +130,7 @@ func (i *McpServerInput) toProto() *mcpserverv1.McpServer {
 		Kind:       "McpServer",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name:   i.Name,
+			Slug:   i.Slug,
 			Org:    i.Org,
 			Labels: i.Labels,
 		},

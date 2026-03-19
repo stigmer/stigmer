@@ -5,11 +5,11 @@ package gen
 import (
 	"context"
 
-	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	rpc "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
-	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
+	agentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 )
 
@@ -82,6 +82,7 @@ func (a *AgentClient) List(ctx context.Context, params *ListParams) (*ListResult
 // AgentInput holds the fields for creating/updating a Agent.
 type AgentInput struct {
 	Name            string
+	Slug            string
 	Org             string
 	Labels          map[string]string
 	Description     string
@@ -129,6 +130,7 @@ func (i *AgentInput) toProto() *agentv1.Agent {
 		Kind:       "Agent",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name:   i.Name,
+			Slug:   i.Slug,
 			Org:    i.Org,
 			Labels: i.Labels,
 		},

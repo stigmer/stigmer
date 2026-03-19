@@ -74,6 +74,7 @@ class SessionInput:
 
     name: str
     org: str
+    slug: str | None = None
     labels: dict[str, str] | None = None
     agent_instance_id: str = ""
     subject: str = ""
@@ -103,6 +104,8 @@ class SessionInput:
             name=self.name,
             org=self.org,
         )
+        if self.slug:
+            metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
         return api_pb2.Session(
