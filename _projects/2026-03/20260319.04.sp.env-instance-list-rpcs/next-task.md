@@ -101,8 +101,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 15:01
-**Current Task**: T01 (Proto + SDK + Java cloud handlers complete, Go OSS handlers pending)
-**Status**: In Progress
+**Current Task**: T01 — ALL SUBTASKS COMPLETE
+**Status**: Complete
 
 ## Session Progress (2026-03-19, Session 1)
 
@@ -143,33 +143,58 @@ When starting a new session:
 - **Pagination defaults**: Page size 20, max 100, sort by `status.audit.specAudit.createdAt` DESC
 - **Handler pattern**: Follows `SessionListHandler` pattern exactly — inner `QueryAuthorizedIds` + `LoadFromRepo` static classes with `Context.Key<List<String>>` for passing authorized IDs
 
-### Remaining
+## Session Progress (2026-03-19, Session 3)
+
+### Completed
 - T01.3: Go backend handler for environment list (stigmer OSS)
+  - `list.go` — Pipeline: `ValidateProto` -> `ListByOrgAndLabels` (custom step)
+  - `listByOrgAndLabelsStep`: ListResources + in-memory org/label filter + createdAt DESC sort
+  - `matchesAllLabels()` helper for AND-semantics label matching
 - T01.4: Go backend handler for agent instance list (stigmer OSS)
+  - Same structure as T01.3, reuses existing `AgentInstanceList` response type
+- Regenerated Go stubs via `make go-stubs` (prerequisite for T01.3/T01.4)
+- Committed: `a6b40e9e` on `feat/add-customize-ui` (stigmer OSS)
+- Build verified: `go build ./...` passes cleanly
+
+### Key Decisions (Session 3)
+- **No secret redaction in Go OSS**: Consistent with existing `Get`/`GetByReference` which also return plaintext secrets. OSS is single-user local; redaction is a Cloud concern.
+- **No pagination in Go OSS**: Consistent with all existing Go OSS list handlers (`Session.list`, `AgentExecution.list`, `AgentInstance.getByAgent`). Returns all matching results.
+- **ListResources + in-memory filter**: Follows established OSS pattern. No `FindAllByLabel` optimization — unnecessary for local datasets.
+
+## Sub-Project Completion Summary
+
+All T01 subtasks are complete across both repos:
+
+| Task | Description | Repo | Status |
+|------|-------------|------|--------|
+| T01.1 | Proto: Environment list messages + RPC | stigmer | Done (`965277a0`) |
+| T01.2 | Proto: Agent instance list messages + RPC | stigmer | Done (`965277a0`) |
+| T01.3 | Go: Environment list handler | stigmer | Done (`a6b40e9e`) |
+| T01.4 | Go: Agent instance list handler | stigmer | Done (`a6b40e9e`) |
+| T01.5 | Java: Environment list handler (FGA) | stigmer-cloud | Done (uncommitted) |
+| T01.6 | Java: Agent instance list handler (FGA) | stigmer-cloud | Done (uncommitted) |
+| T01.7 | SDK codegen schemas | — | Cancelled (auto-generated) |
+| T01.8a | React: list hooks | stigmer | Done (`965277a0`) |
+| T01.8b | React: personal convenience hooks | stigmer | Done (`965277a0`) |
 
 ## Next Steps
-1. Implement Go handler for environment list (T01.3) — pipeline: ValidateProto -> ListByOrgAndLabels -> RedactSecretValues
-2. Implement Go handler for agent instance list (T01.4) — pipeline: ValidateProto -> ListByOrgAndLabels
-3. Run `buf generate` (or equivalent) to regenerate TypeScript proto stubs from the new proto definitions
+
+This sub-project is complete. Return to the parent project:
+
+1. Commit stigmer-cloud Java handlers (T01.5, T01.6) — uncommitted on `feat/add-customize-ui`
+2. Regenerate TypeScript proto stubs from the new proto definitions
+3. Continue with parent project Phase 2 tasks
 
 ## Context for Resume
-- The `list` RPCs use `is_skip_authorization = true` — authorization must be handled in-handler via FGA (cloud) or unrestricted (OSS)
-- Environment list MUST apply `RedactSecretValues` to each item (same as get/getByReference)
-- The `AgentInstanceList` response type already existed and is reused; `EnvironmentList` was newly created
-- Existing list RPC patterns to reference: `Session.list` (session query controller), `AgentExecution.list` (agent execution query controller)
-- For Go handler patterns, check existing environment controller at `backend/services/stigmer-server/pkg/domain/environment/controller/`
-- **stigmer-cloud changes**: On branch `feat/add-customize-ui`. The `EnvironmentGetSecretValueHandler.java` is an unrelated untracked file — do NOT include in list handler commits.
-- **Java handlers are ready**: `EnvironmentListHandler` and `AgentInstanceListHandler` follow `SessionListHandler` pattern with FGA `listAuthorizedResourceIds` for `can_view` permission filtering
+- **stigmer-cloud changes** are still uncommitted on branch `feat/add-customize-ui`. The `EnvironmentGetSecretValueHandler.java` is an unrelated untracked file — do NOT include in list handler commits.
+- All Go OSS and Java Cloud handlers follow the same `ListByOrgAndLabels` pattern but differ in auth (FGA vs. none), pagination (offset-based vs. none), and secret redaction (Cloud only for environments).
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.3" - Implement Go environment list handler
-- "Continue with T01.4" - Implement Go agent instance list handler
 - "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
 - "Check parent status" - Review parent project state
+- "Commit stigmer-cloud changes" - Commit the Java handlers
 
 ---
 
