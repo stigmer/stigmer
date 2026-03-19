@@ -80,8 +80,9 @@ export interface UsePersonalAgentInstanceReturn {
  * The `agentId` parameter is optional for read-only use (listing all
  * personal instances) but required for {@link getOrCreate}.
  *
- * This is a **Profile B** hook for direct Stigmer users. Platform
- * builders who pre-provision agent instances should use the Layer 1
+ * This is a Layer 2 **Environment Flow** hook. It provides the managed
+ * "personal agent instance" experience used by the Stigmer Console.
+ * Callers who pre-provision agent instances should use the Layer 1
  * building-block hook {@link useCreateAgentInstance} directly.
  *
  * @example

@@ -24,10 +24,10 @@ export interface UseAgentInstanceReturn {
  * have access to metadata, spec (including `environment_refs` and
  * agent reference), and status without additional calls.
  *
- * This is a Layer 1 building-block hook for platform builders who
- * manage agent instances programmatically. For the "personal agent
- * instance" flow used by the Stigmer Console, see
- * `usePersonalAgentInstance`.
+ * This is a Layer 1 building-block hook for the **Environment Flow**
+ * — agent instances bind Environment resources to Agent blueprints.
+ * For the managed "personal agent instance" convenience, see
+ * {@link usePersonalAgentInstance}.
  *
  * @example
  * ```tsx

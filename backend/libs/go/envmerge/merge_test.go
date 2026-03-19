@@ -51,8 +51,8 @@ func TestMergeEnvironmentLayers(t *testing.T) {
 		{
 			name: "template entries with empty values are skipped",
 			templateData: map[string]*environmentv1.EnvironmentValue{
-				"HAS_VALUE":    envVal("present", false),
-				"SCHEMA_ONLY":  envVal("", false),
+				"HAS_VALUE":     envVal("present", false),
+				"SCHEMA_ONLY":   envVal("", false),
 				"SCHEMA_SECRET": envVal("", true),
 			},
 			wantKeys: map[string]*executioncontextv1.ExecutionValue{
@@ -155,9 +155,9 @@ func TestMergeEnvironmentLayers(t *testing.T) {
 		{
 			name: "full priority chain — template < env < runtime",
 			templateData: map[string]*environmentv1.EnvironmentValue{
-				"TEMPLATE_ONLY":   envVal("from-template", false),
+				"TEMPLATE_ONLY":    envVal("from-template", false),
 				"TEMPLATE_AND_ENV": envVal("t-val", false),
-				"ALL_THREE":       envVal("t-val", false),
+				"ALL_THREE":        envVal("t-val", false),
 			},
 			environments: []*environmentv1.Environment{
 				makeEnv(map[string]*environmentv1.EnvironmentValue{
@@ -171,11 +171,11 @@ func TestMergeEnvironmentLayers(t *testing.T) {
 				"RUNTIME_ONLY": execVal("from-runtime", false),
 			},
 			wantKeys: map[string]*executioncontextv1.ExecutionValue{
-				"TEMPLATE_ONLY":   execVal("from-template", false),
+				"TEMPLATE_ONLY":    execVal("from-template", false),
 				"TEMPLATE_AND_ENV": execVal("e-val", false),
-				"ALL_THREE":       execVal("r-val", false),
-				"ENV_ONLY":        execVal("from-env", false),
-				"RUNTIME_ONLY":    execVal("from-runtime", false),
+				"ALL_THREE":        execVal("r-val", false),
+				"ENV_ONLY":         execVal("from-env", false),
+				"RUNTIME_ONLY":     execVal("from-runtime", false),
 			},
 		},
 	}
@@ -269,10 +269,10 @@ func TestFilterByEnvSpec(t *testing.T) {
 		{
 			name: "excluded keys are sorted alphabetically",
 			merged: map[string]*executioncontextv1.ExecutionValue{
-				"ZEBRA":  execVal("z", false),
-				"APPLE":  execVal("a", false),
-				"MANGO":  execVal("m", false),
-				"KEEP":   execVal("k", false),
+				"ZEBRA": execVal("z", false),
+				"APPLE": execVal("a", false),
+				"MANGO": execVal("m", false),
+				"KEEP":  execVal("k", false),
 			},
 			envSpecData: map[string]*environmentv1.EnvironmentValue{
 				"KEEP": envVal("", false),
@@ -290,8 +290,8 @@ func TestFilterByEnvSpec(t *testing.T) {
 		{
 			name: "runtime overrides for undeclared vars are excluded",
 			merged: map[string]*executioncontextv1.ExecutionValue{
-				"DECLARED":       execVal("from-runtime", false),
-				"RUNTIME_EXTRA":  execVal("injected", true),
+				"DECLARED":      execVal("from-runtime", false),
+				"RUNTIME_EXTRA": execVal("injected", true),
 			},
 			envSpecData: map[string]*environmentv1.EnvironmentValue{
 				"DECLARED": envVal("default", false),

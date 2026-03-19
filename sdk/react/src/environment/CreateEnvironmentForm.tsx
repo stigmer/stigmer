@@ -26,7 +26,8 @@ export interface CreateEnvironmentFormProps {
  * environment via `useCreateEnvironment`. Variables can be added
  * after creation through the {@link EnvironmentVariableEditor}.
  *
- * All visual properties flow through `--stgm-*` design tokens.
+ * Part of the **Environment Flow** — creates persistent credential
+ * stores. All visual properties flow through `--stgm-*` design tokens.
  *
  * @example
  * ```tsx

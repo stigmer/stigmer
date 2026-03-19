@@ -134,7 +134,7 @@ function sumField(usages: UsageMetrics[], field: NumericField): number {
 }
 
 function sumBigIntField(usages: UsageMetrics[]): bigint {
-  let total = 0n;
+  let total = BigInt(0);
   for (const u of usages) {
     total += u.toolResultCharsTruncated;
   }

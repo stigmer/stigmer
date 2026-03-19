@@ -56,6 +56,8 @@ const DEFAULT_AUTO_CLEAR_MS = 30_000;
  * Follows the headless-first pattern: pure behavior, zero rendering.
  * Platform builders compose this hook with their own UI.
  *
+ * This is a Layer 1 building-block hook for the **Environment Flow**.
+ *
  * @example
  * ```tsx
  * function SecretField({ envId, secretKey }: Props) {

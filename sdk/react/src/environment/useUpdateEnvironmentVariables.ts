@@ -43,9 +43,9 @@ export interface UseUpdateEnvironmentVariablesReturn {
  * Returns the full {@link Environment} proto (with secrets redacted)
  * so callers can immediately reference the latest state.
  *
- * This is a Layer 1 building-block hook for platform builders who
- * need incremental variable management without a full-resource
- * update cycle.
+ * This is a Layer 1 building-block hook for the **Environment Flow**
+ * — incremental variable management without a full-resource update
+ * cycle.
  *
  * @example
  * ```tsx
