@@ -172,16 +172,19 @@ export type {
   AgentPickerProps,
 } from "./agent";
 
-// Environment — data hook and behavior hooks
+// Environment — data hook, behavior hooks, and secret reveal
 export {
   useEnvironment,
   useCreateEnvironment,
   useUpdateEnvironment,
+  useRevealSecretValue,
 } from "./environment";
 export type {
   UseEnvironmentReturn,
   UseCreateEnvironmentReturn,
   UseUpdateEnvironmentReturn,
+  UseRevealSecretValueOptions,
+  UseRevealSecretValueReturn,
 } from "./environment";
 
 // Agent Instance — data hook and behavior hook

@@ -10,6 +10,7 @@ import (
 	apiresourceinterceptor "github.com/stigmer/stigmer/backend/libs/go/grpc/interceptors/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/libs/go/store/sqlite"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
 )
 
 // contextWithEnvironmentKind creates a context with the environment resource kind injected
@@ -26,7 +27,8 @@ func setupTestController(t *testing.T) (*EnvironmentController, store.Store) {
 		t.Fatalf("failed to create store: %v", err)
 	}
 
-	controller := NewEnvironmentController(store)
+	secretService, _ := encryption.NewSecretService(nil)
+	controller := NewEnvironmentController(store, secretService)
 
 	return controller, store
 }

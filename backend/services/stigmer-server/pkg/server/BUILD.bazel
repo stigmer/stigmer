@@ -36,6 +36,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/domain/agentinstance/controller",
         "//backend/services/stigmer-server/pkg/domain/artifact/storage",
         "//backend/services/stigmer-server/pkg/domain/environment/controller",
+        "//backend/services/stigmer-server/pkg/encryption",
         "//backend/services/stigmer-server/pkg/domain/executioncontext/controller",
         "//backend/services/stigmer-server/pkg/domain/github/controller",
         "//backend/services/stigmer-server/pkg/domain/mcpserver/controller",

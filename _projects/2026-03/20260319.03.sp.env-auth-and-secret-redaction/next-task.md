@@ -102,8 +102,18 @@ When starting a new session:
 
 **Created**: 2026-03-19 13:12
 **Current Task**: T01 (Environment Authorization & Secret Redaction)
-**Status**: T01.1–T01.5 COMPLETE, T01.6–T01.7 pending
-**Last Session**: 2026-03-19, Session 3
+**Status**: T01.1–T01.7 ALL COMPLETE
+**Last Session**: 2026-03-19, Session 4
+
+## Session Progress (2026-03-19, Session 4)
+
+- Implemented T01.6 and T01.7 (full-stack getSecretValue handler + SDK + React hook)
+- **SDK codegen schema** (stigmer OSS): Added `GetSecretValue` method to `environment.json` — will auto-generate `stigmer.environment.getSecretValue()` in TS/Go/Python clients
+- **T01.6 Go backend** (stigmer OSS): Implemented `GetSecretValue` handler with 3-step pipeline (ValidateProto → LoadEnvironmentByID → ExtractAndDecryptSingleKey). Created `steps/` package under environment controller with two custom steps. Injected `encryption.SecretService` into `EnvironmentController`.
+- **T01.6 Java backend** (stigmer-cloud): Implemented `EnvironmentGetSecretValueHandler` extending `CustomOperationHandlerV2<EnvironmentSecretValueInput, EnvironmentValue>` with pipeline: validateFieldConstraints → authorize (standard, uses `field_path = "environment_id"`) → LoadAndExtractSecret (inner class) → sendResponse
+- **T01.7 React hook** (stigmer OSS): Created `useRevealSecretValue` behavior hook in `@stigmer/react`. Imperative `reveal(environmentId, key)` with auto-clear (30s default), `clearRevealedValue()`, unmount cleanup. Exported from barrel and main index.
+- **Key finding**: Standard `commonSteps.authorize` handles `field_path = "environment_id"` natively via `ApiRequestAuthorizationResourceIdExtractor` — no post-load authorization needed (unlike `GetByReference`)
+- **Design decision**: React hook returns `revealedValue: string | null` (just the decrypted string), not the full `EnvironmentValue` proto — simpler DX for the primary "reveal" use case
 
 ## Session Progress (2026-03-19, Session 3)
 
@@ -140,19 +150,21 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01.6** (stigmer-cloud): Implement `EnvironmentGetSecretValueHandler` (single key decrypt) — depends on T01.4 + T01.5 (both complete)
-2. **T01.7** (stigmer OSS): Verify `getSecretValue` in TypeScript SDK after proto generation — depends on T01.5 (complete)
+All T01 subtasks are complete. Remaining follow-up work:
 
-T01.6 is the next blocker. T01.7 can be done after proto generation.
+1. **Proto regeneration** in stigmer-cloud to pick up `EnvironmentSecretValueInput`, `EnvironmentValue`, and `getSecretValue` RPC stubs — needed before the Java handler compiles
+2. **SDK regeneration** in stigmer OSS to generate `getSecretValue()` on `EnvironmentClient` — then remove the `TODO(codegen)` type cast in `useRevealSecretValue.ts`
+3. **Return to parent project** (`20260319.02.agent-picker-personal-env`) — this sub-project's work unblocks Phase 2 of the personal environment flow
 
 ## Context for Resume
 
-- The `creator` FGA tuple is now written at environment creation via `IamPolicyCreationService.createCreatorRelation()` (config-driven: `requires_creator_tuple: true` in proto)
-- The `getSecretValue` RPC is defined in proto but has no backend handler yet (T01.6)
-- `can_read_secrets` permission is in both the `ApiResourceIamPermission` enum (field 25) and the FGA model (`can_read_secrets: creator`)
-- Proto regeneration is needed in stigmer-cloud before T01.6 implementation (to pick up `EnvironmentSecretValueInput` and `getSecretValue` RPC)
+- All 7 T01 subtasks are implemented across both repos
+- **stigmer OSS uncommitted**: Go handler (`get_secret_value.go`, `steps/`), codegen schema, React hook, controller changes (12 files)
+- **stigmer-cloud uncommitted**: Java handler (`EnvironmentGetSecretValueHandler.java`), auto-controller comment update (2 files)
+- The `creator` FGA tuple is written at environment creation via `IamPolicyCreationService.createCreatorRelation()` (config-driven: `requires_creator_tuple: true` in proto)
+- Authorization for `getSecretValue` uses `field_path = "environment_id"` from proto annotations — standard authorize step handles this (no custom auth needed)
+- `useRevealSecretValue` hook has a temporary type cast (`TODO(codegen)`) that should be removed after SDK regeneration
 - Execution engine reads secrets via `ExecutionContext.getByExecutionId` (internal path with `DecryptSecretValues`), not through user-facing RPCs — unaffected by these changes
-- `IamPolicyCreationService` already has the pattern: see `createDirectOwner()` and `createCreatorRelation()` side by side for reference when implementing T01.6
 
 ## Quick Commands
 
