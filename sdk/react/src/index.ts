@@ -151,3 +151,36 @@ export type {
   UseGitHubReposReturn,
   GitHubRepoPickerProps,
 } from "./github";
+
+// Agent — search hook and picker component
+export {
+  useAgentSearch,
+  AgentPicker,
+} from "./agent";
+export type {
+  UseAgentSearchOptions,
+  UseAgentSearchReturn,
+  AgentPickerProps,
+} from "./agent";
+
+// Environment — data hook and behavior hooks
+export {
+  useEnvironment,
+  useCreateEnvironment,
+  useUpdateEnvironment,
+} from "./environment";
+export type {
+  UseEnvironmentReturn,
+  UseCreateEnvironmentReturn,
+  UseUpdateEnvironmentReturn,
+} from "./environment";
+
+// Agent Instance — data hook and behavior hook
+export {
+  useAgentInstance,
+  useCreateAgentInstance,
+} from "./agent-instance";
+export type {
+  UseAgentInstanceReturn,
+  UseCreateAgentInstanceReturn,
+} from "./agent-instance";

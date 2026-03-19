@@ -68,9 +68,20 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: T01.8 — Barrel exports
+**Current Task**: T01.9 — SessionComposer integration
 **Status**: In Progress (Phase 1)
-**Last Session**: 2026-03-19 — Completed T01.7
+**Last Session**: 2026-03-19 — Completed T01.8
+
+## Session Progress (2026-03-19, Session 8)
+
+- Completed T01.8: Barrel exports — wired agent, environment, and agent-instance modules into main `sdk/react/src/index.ts`
+  - Added 3 new re-export sections following the established pattern (comment header, value exports, type exports)
+  - Agent: `useAgentSearch`, `AgentPicker` + 3 types
+  - Environment: `useEnvironment`, `useCreateEnvironment`, `useUpdateEnvironment` + 3 types
+  - Agent Instance: `useAgentInstance`, `useCreateAgentInstance` + 2 types
+  - TypeScript compiles cleanly, zero linter errors on modified file
+- All Phase 1 building-block hooks and their barrel exports are now complete (T01.1–T01.8). Platform builders can `import { useAgentSearch, AgentPicker, useEnvironment, useCreateEnvironment, useUpdateEnvironment, useAgentInstance, useCreateAgentInstance } from "@stigmer/react"`.
+- Remaining Phase 1 work is pure integration: SessionComposer (T01.9), useCreateSession (T01.10), Console (T01.11).
 
 ## Session Progress (2026-03-19, Session 7)
 
@@ -143,15 +154,14 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01.8** — Barrel exports (agent, environment, agent-instance modules + main index.ts)
-2. **T01.9** — SessionComposer integration
-3. **T01.10** — `useCreateSession` wiring
-4. **T01.11** — Console integration (SessionLauncher)
+1. **T01.9** — SessionComposer integration (add AgentPicker to composer toolbar)
+2. **T01.10** — `useCreateSession` wiring (agentRef + agentInstanceId on CreateSessionInput)
+3. **T01.11** — Console integration (SessionLauncher — wire agent state)
 
 ## Context for Resume
 
+- All Phase 1 building-block hooks AND barrel exports are now complete (T01.1–T01.8). Everything is importable from `@stigmer/react`. The remaining Phase 1 work is pure integration: SessionComposer (T01.9), useCreateSession (T01.10), Console (T01.11)
 - `useCreateAgentInstance` follows the `useCreateEnvironment` pattern exactly — wraps `stigmer.agentInstance.create()` with `{ create, isCreating, error, clearError }`; will be composed by Phase 2 `usePersonalAgentInstance` for get-or-create flow
-- All seven Layer 1 hooks are now complete (T01.1–T01.7). The remaining Phase 1 work is integration/wiring: barrel exports (T01.8), SessionComposer (T01.9), useCreateSession (T01.10), Console (T01.11)
 - The `useAgentSearch` hook wraps `stigmer.agent.list()` via `useResourceSearch`
 - `AgentPicker` is a **single-select** component: `value: ResourceRef | null`, `onChange: (ref: ResourceRef | null) => void`
 - AgentPicker follows the structural pattern of SkillPicker/McpServerPicker but with single-select semantics: clicking a result replaces the current selection, deselect calls `onChange(null)`
@@ -162,7 +172,6 @@ When starting a new session:
 - `useUpdateEnvironment` follows the same pattern as `useCreateEnvironment` — wraps `stigmer.environment.update()` with `{ update, isUpdating, error, clearError }`; will be composed by Phase 2 `usePersonalEnvironment` for `addVariables`
 - `useAgentInstance` follows the `useEnvironment` pattern exactly — fetches by `ResourceRef`, returns `{ agentInstance, isLoading, error, refetch }`, includes `refetch()` for Phase 2 `usePersonalAgentInstance`
 - Return property naming convention: every data hook returns the full domain noun (`session`, `environment`, `agentInstance`) — never abbreviated
-- Barrel exports exist at `sdk/react/src/agent/index.ts`, `sdk/react/src/environment/index.ts`, and `sdk/react/src/agent-instance/index.ts` but are NOT yet added to main `sdk/react/src/index.ts` — deferred to T01.8
 - Pickers are self-contained by design — each will evolve independently (McpServerPicker will add per-tool selection, AgentPicker will add env form transition in Phase 2)
 - Key reference files: `sdk/react/src/skill/SkillPicker.tsx` (multi-select pattern), `sdk/react/src/composer/SessionComposer.tsx` (ContextPopover integration pattern), `sdk/react/src/session/useSession.ts` (single-resource fetch pattern)
 
