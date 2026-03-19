@@ -51,7 +51,7 @@ export default function SessionPage() {
   const [modelId, setModelId] = usePersistedModel();
 
   const deploymentMode = useDeploymentMode();
-  const gitHubConnection = useGitHubConnection();
+  const gitHubConnection = useGitHubConnection(org);
   const workspace = useWorkspaceEntries();
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);

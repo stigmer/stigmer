@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { create } from "@bufbuild/protobuf";
+import { EnvironmentSecretValueInputSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { useStigmer } from "../hooks";
 
 export interface UseRevealSecretValueOptions {
@@ -111,15 +113,9 @@ export function useRevealSecretValue(
       setError(null);
 
       try {
-        // TODO(codegen): Remove cast after SDK regeneration picks up getSecretValue.
-        // The method is defined in the codegen schema (environment.json) but the
-        // TypeScript client hasn't been regenerated yet.
-        const client = stigmer.environment as Record<string, unknown>;
-        const getSecretValue = client.getSecretValue as (input: {
-          environmentId: string;
-          key: string;
-        }) => Promise<{ value: string }>;
-        const result = await getSecretValue({ environmentId, key });
+        const result = await stigmer.environment.getSecretValue(
+          create(EnvironmentSecretValueInputSchema, { environmentId, key }),
+        );
         setRevealedValue(result.value ?? null);
 
         if (autoClearMs > 0) {
