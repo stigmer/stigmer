@@ -220,6 +220,21 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		}
 	}
 
+	// Merge usage (replace with latest cumulative snapshot from request)
+	if requestStatus.Usage != nil {
+		updated.Status.Usage = requestStatus.Usage
+	}
+
+	// Merge context_info (replace with latest from request)
+	if requestStatus.ContextInfo != nil {
+		updated.Status.ContextInfo = requestStatus.ContextInfo
+	}
+
+	// Merge resolved_context (replace with latest from request)
+	if requestStatus.ResolvedContext != nil {
+		updated.Status.ResolvedContext = requestStatus.ResolvedContext
+	}
+
 	log.Debug().
 		Str("execution_id", input.ExecutionId).
 		Str("phase", updated.Status.Phase.String()).
@@ -227,6 +242,9 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		Int("tool_calls_count", len(updated.Status.ToolCalls)).
 		Int("artifacts_count", len(updated.Status.Artifacts)).
 		Int("pending_approvals_count", len(updated.Status.PendingApprovals)).
+		Bool("has_usage", updated.Status.Usage != nil).
+		Bool("has_context_info", updated.Status.ContextInfo != nil).
+		Bool("has_resolved_context", updated.Status.ResolvedContext != nil).
 		Msg("Merged status fields")
 
 	// Store merged execution in context for persist step
