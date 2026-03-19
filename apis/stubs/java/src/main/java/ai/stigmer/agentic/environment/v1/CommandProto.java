@@ -38,41 +38,55 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\n/ai/stigmer/agentic/environment/v1/comm" +
       "and.proto\022!ai.stigmer.agentic.environmen" +
       "t.v1\032+ai/stigmer/agentic/environment/v1/" +
-      "api.proto\032\'ai/stigmer/commons/apiresourc" +
-      "e/io.proto\0328ai/stigmer/commons/apiresour" +
-      "ce/rpc_service_options.proto\032Aai/stigmer" +
-      "/iam/iampolicy/v1/rpcauthorization/metho" +
-      "d_options.proto2\313\004\n\034EnvironmentCommandCo" +
-      "ntroller\022g\n\005apply\022..ai.stigmer.agentic.e" +
-      "nvironment.v1.Environment\032..ai.stigmer.a" +
-      "gentic.environment.v1.Environment\022h\n\006cre" +
-      "ate\022..ai.stigmer.agentic.environment.v1." +
-      "Environment\032..ai.stigmer.agentic.environ" +
-      "ment.v1.Environment\022\243\001\n\006update\022..ai.stig" +
-      "mer.agentic.environment.v1.Environment\032." +
-      ".ai.stigmer.agentic.environment.v1.Envir" +
-      "onment\"9\302\270\0305\010\004\0205\"\013metadata.id*\"unauthori" +
-      "zed to update environment\022\253\001\n\006delete\0226.a" +
-      "i.stigmer.commons.apiresource.ApiResourc" +
-      "eDeleteInput\032..ai.stigmer.agentic.enviro" +
-      "nment.v1.Environment\"9\302\270\0305\010\004\0205\"\013metadata" +
-      ".id*\"unauthorized to delete environment\032" +
-      "\004\240\377+5B\267\001B\014CommandProtoP\001\242\002\004ASAE\252\002!Ai.Sti" +
-      "gmer.Agentic.Environment.V1\312\002!Ai\\Stigmer" +
-      "\\Agentic\\Environment\\V1\342\002-Ai\\Stigmer\\Age" +
-      "ntic\\Environment\\V1\\GPBMetadata\352\002%Ai::St" +
-      "igmer::Agentic::Environment::V1b\006proto3"
+      "api.proto\032*ai/stigmer/agentic/environmen" +
+      "t/v1/io.proto\032\'ai/stigmer/commons/apires" +
+      "ource/io.proto\0328ai/stigmer/commons/apire" +
+      "source/rpc_service_options.proto\032Aai/sti" +
+      "gmer/iam/iampolicy/v1/rpcauthorization/m" +
+      "ethod_options.proto2\357\007\n\034EnvironmentComma" +
+      "ndController\022g\n\005apply\022..ai.stigmer.agent" +
+      "ic.environment.v1.Environment\032..ai.stigm" +
+      "er.agentic.environment.v1.Environment\022h\n" +
+      "\006create\022..ai.stigmer.agentic.environment" +
+      ".v1.Environment\032..ai.stigmer.agentic.env" +
+      "ironment.v1.Environment\022\243\001\n\006update\022..ai." +
+      "stigmer.agentic.environment.v1.Environme" +
+      "nt\032..ai.stigmer.agentic.environment.v1.E" +
+      "nvironment\"9\302\270\0305\010\004\0205\"\013metadata.id*\"unaut" +
+      "horized to update environment\022\253\001\n\006delete" +
+      "\0226.ai.stigmer.commons.apiresource.ApiRes" +
+      "ourceDeleteInput\032..ai.stigmer.agentic.en" +
+      "vironment.v1.Environment\"9\302\270\0305\010\004\0205\"\013meta" +
+      "data.id*\"unauthorized to delete environm" +
+      "ent\022\317\001\n\017updateVariables\022D.ai.stigmer.age" +
+      "ntic.environment.v1.UpdateEnvironmentVar" +
+      "iablesRequest\032..ai.stigmer.agentic.envir" +
+      "onment.v1.Environment\"F\302\270\030B\010\004\0205\"\016environ" +
+      "ment_id*,unauthorized to update environm" +
+      "ent variables\022\317\001\n\017removeVariables\022D.ai.s" +
+      "tigmer.agentic.environment.v1.RemoveEnvi" +
+      "ronmentVariablesRequest\032..ai.stigmer.age" +
+      "ntic.environment.v1.Environment\"F\302\270\030B\010\004\020" +
+      "5\"\016environment_id*,unauthorized to remov" +
+      "e environment variables\032\004\240\377+5B\267\001B\014Comman" +
+      "dProtoP\001\242\002\004ASAE\252\002!Ai.Stigmer.Agentic.Env" +
+      "ironment.V1\312\002!Ai\\Stigmer\\Agentic\\Environ" +
+      "ment\\V1\342\002-Ai\\Stigmer\\Agentic\\Environment" +
+      "\\V1\\GPBMetadata\352\002%Ai::Stigmer::Agentic::" +
+      "Environment::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.environment.v1.ApiProto.getDescriptor(),
+          ai.stigmer.agentic.environment.v1.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.environment.v1.ApiProto.getDescriptor();
+    ai.stigmer.agentic.environment.v1.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();

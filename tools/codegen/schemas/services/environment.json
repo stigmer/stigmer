@@ -38,6 +38,22 @@
           "outputType": "Environment",
           "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
           "description": "Delete an Environment resource."
+        },
+        {
+          "name": "UpdateVariables",
+          "inputType": "UpdateEnvironmentVariablesRequest",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Add or update specific variables in an environment (server-side merge).\n Existing variables not included in the request are preserved unchanged."
+        },
+        {
+          "name": "RemoveVariables",
+          "inputType": "RemoveEnvironmentVariablesRequest",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest",
+          "outputType": "Environment",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
+          "description": "Remove specific variables from an environment by key.\n Keys that don't exist are silently ignored."
         }
       ]
     },
@@ -60,6 +76,22 @@
           "outputType": "Environment",
           "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
           "description": "Custom authorization in handler"
+        },
+        {
+          "name": "GetSecretValue",
+          "inputType": "EnvironmentSecretValueInput",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput",
+          "outputType": "EnvironmentValue",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.EnvironmentValue",
+          "description": "Get the unredacted value of a single secret key in an environment.\n Creator-only: requires can_read_secrets permission (FGA: creator relation).\n Returns the EnvironmentValue with the decrypted value."
+        },
+        {
+          "name": "List",
+          "inputType": "ListEnvironmentsRequest",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest",
+          "outputType": "EnvironmentList",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.EnvironmentList",
+          "description": "List environments with optional label filtering.\n Authorization is handled in-handler via FGA-filtered queries (cloud)\n or unrestricted store queries (OSS). Secret values are redacted."
         }
       ]
     }

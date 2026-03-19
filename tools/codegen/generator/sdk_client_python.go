@@ -809,6 +809,8 @@ func generatePythonInputAndProto(buf *bytes.Buffer, schema *ServiceSchemaFile, c
 	buf.WriteString("    name: str\n")
 	buf.WriteString("    org: str\n")
 	emitPyFields(buf, requiredFields, imports)
+	buf.WriteString("    slug: str | None = None\n")
+	buf.WriteString("    labels: dict[str, str] | None = None\n")
 	emitPyFields(buf, optionalFields, imports)
 
 	// _to_proto method inside the class
@@ -879,13 +881,18 @@ func emitPyMainToProto(buf *bytes.Buffer, cfg sdkResourceConfig, spec *TaskConfi
 		emitPyToProtoFieldAssign(buf, f, "spec", "self", "        ", imports)
 	}
 
+	buf.WriteString("        metadata = metadata_pb2.ApiResourceMetadata(\n")
+	buf.WriteString("            name=self.name,\n")
+	buf.WriteString("            org=self.org,\n")
+	buf.WriteString("        )\n")
+	buf.WriteString("        if self.slug:\n")
+	buf.WriteString("            metadata.slug = self.slug\n")
+	buf.WriteString("        if self.labels:\n")
+	buf.WriteString("            metadata.labels.update(self.labels)\n")
 	fmt.Fprintf(buf, "        return api_pb2.%s(\n", cfg.protoResType)
 	fmt.Fprintf(buf, "            api_version=%q,\n", cfg.apiVersion)
 	fmt.Fprintf(buf, "            kind=%q,\n", cfg.protoResType)
-	buf.WriteString("            metadata=metadata_pb2.ApiResourceMetadata(\n")
-	buf.WriteString("                name=self.name,\n")
-	buf.WriteString("                org=self.org,\n")
-	buf.WriteString("            ),\n")
+	buf.WriteString("            metadata=metadata,\n")
 	buf.WriteString("            spec=spec,\n")
 	buf.WriteString("        )\n\n")
 }

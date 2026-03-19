@@ -972,7 +972,7 @@ func newGenContextForResourceArgs(packageName string, sharedTypes []*TypeSchema)
 }
 
 // protoTypeToGoImportPath converts a proto type namespace to a Go import path
-// Example: "ai.stigmer.agentic.agent.v1.McpServerUsage" -> "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+// Example: "ai.stigmer.agentic.agent.v1.McpServerUsage" -> "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
 func protoTypeToGoImportPath(protoType string) string {
 	// Proto type format: ai.stigmer.<domain>.<subdomain>.<version>.<TypeName>
 	// or: ai.stigmer.commons.<module>.<TypeName>
@@ -985,7 +985,7 @@ func protoTypeToGoImportPath(protoType string) string {
 	pathParts := parts[:len(parts)-1]
 
 	// Build the Go import path
-	return "github.com/stigmer/stigmer/apis/stubs/go/" + strings.Join(pathParts, "/")
+	return "github.com/stigmer/stigmer/sdk/go/proto/" + strings.Join(pathParts, "/")
 }
 
 // protoTypeToPackageAlias returns a Go package alias for a proto type

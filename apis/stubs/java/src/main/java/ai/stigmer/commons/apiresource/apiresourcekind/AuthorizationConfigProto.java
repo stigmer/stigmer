@@ -57,7 +57,7 @@ public final class AuthorizationConfigProto extends com.google.protobuf.Generate
       "ic\030\001 \001(\010R\016supportsPublic\"e\n\024ParentRelati" +
       "onConfig\022\022\n\004kind\030\001 \001(\tR\004kind\022\032\n\010relation" +
       "\030\002 \001(\tR\010relation\022\035\n\nspec_field\030\003 \001(\tR\tsp" +
-      "ecField\"\226\004\n\023AuthorizationConfig\022e\n\nscope" +
+      "ecField\"\314\004\n\023AuthorizationConfig\022e\n\nscope" +
       "_type\030\001 \001(\0162F.ai.stigmer.commons.apireso" +
       "urce.apiresourcekind.AuthorizationScopeT" +
       "ypeR\tscopeType\022c\n\nowner_type\030\002 \001(\0162D.ai." +
@@ -70,25 +70,27 @@ public final class AuthorizationConfigProto extends com.google.protobuf.Generate
       "cekind.ParentRelationConfigR\021additionalP" +
       "arents\022`\n\nvisibility\030\005 \001(\0132@.ai.stigmer." +
       "commons.apiresource.apiresourcekind.Visi" +
-      "bilityConfigR\nvisibility*\205\002\n\026Authorizati" +
-      "onScopeType\022(\n$AUTHORIZATION_SCOPE_TYPE_" +
-      "UNSPECIFIED\020\000\022%\n!AUTHORIZATION_SCOPE_TYP" +
-      "E_PLATFORM\020\001\022)\n%AUTHORIZATION_SCOPE_TYPE" +
-      "_ORGANIZATION\020\002\022#\n\037AUTHORIZATION_SCOPE_T" +
-      "YPE_PARENT\020\003\022\'\n#AUTHORIZATION_SCOPE_TYPE" +
-      "_OWNER_ONLY\020\004\022!\n\035AUTHORIZATION_SCOPE_TYP" +
-      "E_NONE\020\005*\311\001\n\024OwnerAttributionType\022&\n\"OWN" +
-      "ER_ATTRIBUTION_TYPE_UNSPECIFIED\020\000\022!\n\035OWN" +
-      "ER_ATTRIBUTION_TYPE_DIRECT\020\001\022$\n OWNER_AT" +
-      "TRIBUTION_TYPE_INHERITED\020\002\022\037\n\033OWNER_ATTR" +
-      "IBUTION_TYPE_SELF\020\003\022\037\n\033OWNER_ATTRIBUTION" +
-      "_TYPE_NONE\020\004B\370\001B\030AuthorizationConfigProt" +
-      "oP\001\242\002\005ASCAA\252\002.Ai.Stigmer.Commons.Apireso" +
-      "urce.Apiresourcekind\312\002.Ai\\Stigmer\\Common" +
-      "s\\Apiresource\\Apiresourcekind\342\002:Ai\\Stigm" +
-      "er\\Commons\\Apiresource\\Apiresourcekind\\G" +
-      "PBMetadata\352\0022Ai::Stigmer::Commons::Apire" +
-      "source::Apiresourcekindb\006proto3"
+      "bilityConfigR\nvisibility\0224\n\026requires_cre" +
+      "ator_tuple\030\006 \001(\010R\024requiresCreatorTuple*\205" +
+      "\002\n\026AuthorizationScopeType\022(\n$AUTHORIZATI" +
+      "ON_SCOPE_TYPE_UNSPECIFIED\020\000\022%\n!AUTHORIZA" +
+      "TION_SCOPE_TYPE_PLATFORM\020\001\022)\n%AUTHORIZAT" +
+      "ION_SCOPE_TYPE_ORGANIZATION\020\002\022#\n\037AUTHORI" +
+      "ZATION_SCOPE_TYPE_PARENT\020\003\022\'\n#AUTHORIZAT" +
+      "ION_SCOPE_TYPE_OWNER_ONLY\020\004\022!\n\035AUTHORIZA" +
+      "TION_SCOPE_TYPE_NONE\020\005*\311\001\n\024OwnerAttribut" +
+      "ionType\022&\n\"OWNER_ATTRIBUTION_TYPE_UNSPEC" +
+      "IFIED\020\000\022!\n\035OWNER_ATTRIBUTION_TYPE_DIRECT" +
+      "\020\001\022$\n OWNER_ATTRIBUTION_TYPE_INHERITED\020\002" +
+      "\022\037\n\033OWNER_ATTRIBUTION_TYPE_SELF\020\003\022\037\n\033OWN" +
+      "ER_ATTRIBUTION_TYPE_NONE\020\004B\370\001B\030Authoriza" +
+      "tionConfigProtoP\001\242\002\005ASCAA\252\002.Ai.Stigmer.C" +
+      "ommons.Apiresource.Apiresourcekind\312\002.Ai\\" +
+      "Stigmer\\Commons\\Apiresource\\Apiresourcek" +
+      "ind\342\002:Ai\\Stigmer\\Commons\\Apiresource\\Api" +
+      "resourcekind\\GPBMetadata\352\0022Ai::Stigmer::" +
+      "Commons::Apiresource::Apiresourcekindb\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -111,7 +113,7 @@ public final class AuthorizationConfigProto extends com.google.protobuf.Generate
     internal_static_ai_stigmer_commons_apiresource_apiresourcekind_AuthorizationConfig_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_commons_apiresource_apiresourcekind_AuthorizationConfig_descriptor,
-        new java.lang.String[] { "ScopeType", "OwnerType", "Parent", "AdditionalParents", "Visibility", });
+        new java.lang.String[] { "ScopeType", "OwnerType", "Parent", "AdditionalParents", "Visibility", "RequiresCreatorTuple", });
     descriptor.resolveAllFeaturesImmutable();
   }
 

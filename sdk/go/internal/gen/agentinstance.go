@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	agentinstancev1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentinstance/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	agentinstancev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentinstance/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 )
 
@@ -58,10 +58,17 @@ func (a *AgentInstanceClient) GetByReference(ctx context.Context, input *apireso
 	return resp, wrapErr(err)
 }
 
+func (a *AgentInstanceClient) List(ctx context.Context, input *agentinstancev1.ListAgentInstancesRequest) (*agentinstancev1.AgentInstanceList, error) {
+	resp, err := a.query.List(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // AgentInstanceInput holds the fields for creating/updating a AgentInstance.
 type AgentInstanceInput struct {
 	Name            string
+	Slug            string
 	Org             string
+	Labels          map[string]string
 	AgentId         string
 	Description     string
 	EnvironmentRefs []ResourceRef
@@ -72,8 +79,10 @@ func (i *AgentInstanceInput) toProto() *agentinstancev1.AgentInstance {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "AgentInstance",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Slug:   i.Slug,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &agentinstancev1.AgentInstanceSpec{},
 	}

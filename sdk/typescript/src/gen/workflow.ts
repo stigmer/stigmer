@@ -65,7 +65,9 @@ export class WorkflowClient {
 /** Input for creating/updating a Workflow. */
 export interface WorkflowInput {
   name: string;
+  slug?: string;
   org: string;
+  labels?: Record<string, string>;
   description?: string;
   document: WorkflowDocumentInput;
   tasks?: WorkflowTaskInput[];
@@ -149,6 +151,8 @@ function buildWorkflowProto(input: WorkflowInput): Workflow {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.slug && { slug: input.slug }),
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(WorkflowSpecSchema), stripUndefined({
       description: input.description,

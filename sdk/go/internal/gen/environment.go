@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 )
 
@@ -47,6 +47,16 @@ func (e *EnvironmentClient) Delete(ctx context.Context, input *DeleteResourceInp
 	return resp, wrapErr(err)
 }
 
+func (e *EnvironmentClient) UpdateVariables(ctx context.Context, input *environmentv1.UpdateEnvironmentVariablesRequest) (*environmentv1.Environment, error) {
+	resp, err := e.command.UpdateVariables(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (e *EnvironmentClient) RemoveVariables(ctx context.Context, input *environmentv1.RemoveEnvironmentVariablesRequest) (*environmentv1.Environment, error) {
+	resp, err := e.command.RemoveVariables(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (e *EnvironmentClient) Get(ctx context.Context, id string) (*environmentv1.Environment, error) {
 	resp, err := e.query.Get(ctx, &apiresource.ApiResourceId{Value: id})
 	return resp, wrapErr(err)
@@ -57,10 +67,22 @@ func (e *EnvironmentClient) GetByReference(ctx context.Context, input *apiresour
 	return resp, wrapErr(err)
 }
 
+func (e *EnvironmentClient) GetSecretValue(ctx context.Context, input *environmentv1.EnvironmentSecretValueInput) (*environmentv1.EnvironmentValue, error) {
+	resp, err := e.query.GetSecretValue(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (e *EnvironmentClient) List(ctx context.Context, input *environmentv1.ListEnvironmentsRequest) (*environmentv1.EnvironmentList, error) {
+	resp, err := e.query.List(ctx, input)
+	return resp, wrapErr(err)
+}
+
 // EnvironmentInput holds the fields for creating/updating a Environment.
 type EnvironmentInput struct {
 	Name        string
+	Slug        string
 	Org         string
+	Labels      map[string]string
 	Description string
 	Data        map[string]EnvVarInput
 }
@@ -70,8 +92,10 @@ func (i *EnvironmentInput) toProto() *environmentv1.Environment {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Environment",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Slug:   i.Slug,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &environmentv1.EnvironmentSpec{},
 	}

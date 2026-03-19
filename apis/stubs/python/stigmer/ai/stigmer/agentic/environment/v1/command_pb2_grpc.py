@@ -3,6 +3,7 @@
 import grpc
 
 from ai.stigmer.agentic.environment.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2
+from ai.stigmer.agentic.environment.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2
 from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
@@ -34,6 +35,16 @@ class EnvironmentCommandControllerStub(object):
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.FromString,
+                _registered_method=True)
+        self.updateVariables = channel.unary_unary(
+                '/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/updateVariables',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.UpdateEnvironmentVariablesRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.FromString,
+                _registered_method=True)
+        self.removeVariables = channel.unary_unary(
+                '/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/removeVariables',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.RemoveEnvironmentVariablesRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.FromString,
                 _registered_method=True)
 
@@ -72,6 +83,22 @@ class EnvironmentCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def updateVariables(self, request, context):
+        """Add or update specific variables in an environment (server-side merge).
+        Existing variables not included in the request are preserved unchanged.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def removeVariables(self, request, context):
+        """Remove specific variables from an environment by key.
+        Keys that don't exist are silently ignored.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_EnvironmentCommandControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -93,6 +120,16 @@ def add_EnvironmentCommandControllerServicer_to_server(servicer, server):
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.SerializeToString,
+            ),
+            'updateVariables': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateVariables,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.UpdateEnvironmentVariablesRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.SerializeToString,
+            ),
+            'removeVariables': grpc.unary_unary_rpc_method_handler(
+                    servicer.removeVariables,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.RemoveEnvironmentVariablesRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.SerializeToString,
             ),
     }
@@ -204,6 +241,60 @@ class EnvironmentCommandController(object):
             target,
             '/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/delete',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updateVariables(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/updateVariables',
+            ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.UpdateEnvironmentVariablesRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def removeVariables(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.environment.v1.EnvironmentCommandController/removeVariables',
+            ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_io__pb2.RemoveEnvironmentVariablesRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_environment_dot_v1_dot_api__pb2.Environment.FromString,
             options,
             channel_credentials,

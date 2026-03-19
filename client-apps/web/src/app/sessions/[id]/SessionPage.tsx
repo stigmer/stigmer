@@ -17,6 +17,7 @@ import {
   MessageThread,
   SessionComposer,
   ExecutionProgress,
+  ExecutionCostSummary,
 } from "@stigmer/react";
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
@@ -50,7 +51,7 @@ export default function SessionPage() {
   const [modelId, setModelId] = usePersistedModel();
 
   const deploymentMode = useDeploymentMode();
-  const gitHubConnection = useGitHubConnection();
+  const gitHubConnection = useGitHubConnection(org);
   const workspace = useWorkspaceEntries();
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
@@ -106,6 +107,7 @@ export default function SessionPage() {
             onApprovalSubmit={conv.submitApproval}
             submittingApprovalIds={conv.submittingApprovalIds}
             dismissedApprovalIds={conv.dismissedApprovalIds}
+            workspaceEntries={conv.workspaceEntries}
             className="flex-1 lg:pr-[208px]"
           />
           <div className="lg:mr-[208px]">
@@ -145,12 +147,17 @@ export default function SessionPage() {
         </div>
         <aside
           className="hidden w-80 shrink-0 flex-col gap-3 overflow-y-auto py-4 pr-6 lg:flex"
-          aria-label="Execution progress"
+          aria-label="Execution details"
         >
           {displayExecution && (
-            <div className="rounded-lg border border-border bg-card p-3">
-              <ExecutionProgress execution={displayExecution} />
-            </div>
+            <>
+              <div className="rounded-lg border border-border bg-card p-3">
+                <ExecutionProgress execution={displayExecution} />
+              </div>
+              <div className="rounded-lg border border-border bg-card p-3">
+                <ExecutionCostSummary execution={displayExecution} />
+              </div>
+            </>
           )}
         </aside>
       </div>

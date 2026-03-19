@@ -68,6 +68,8 @@ class ProjectInput:
 
     name: str
     org: str
+    slug: str | None = None
+    labels: dict[str, str] | None = None
     entry_point: str = ""
     description: str = ""
     members: list[ResourceRef] = field(default_factory=list)
@@ -79,13 +81,18 @@ class ProjectInput:
         )
         for ref in self.members:
             spec.members.append(ref._to_proto())
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.slug:
+            metadata.slug = self.slug
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.Project(
             api_version="tenancy.stigmer.ai/v1",
             kind="Project",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

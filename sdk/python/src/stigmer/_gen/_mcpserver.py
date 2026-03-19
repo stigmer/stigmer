@@ -101,6 +101,8 @@ class McpServerInput:
 
     name: str
     org: str
+    slug: str | None = None
+    labels: dict[str, str] | None = None
     description: str = ""
     icon_url: str = ""
     stdio: StdioServerConfigInput | None = None
@@ -124,13 +126,18 @@ class McpServerInput:
             spec.env_spec.CopyFrom(self.env_spec._to_proto())
         for item in self.default_tool_approvals:
             spec.default_tool_approvals.append(item._to_proto())
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.slug:
+            metadata.slug = self.slug
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.McpServer(
             api_version="agentic.stigmer.ai/v1",
             kind="McpServer",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

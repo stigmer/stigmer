@@ -125,6 +125,8 @@ class WorkflowExecutionInput:
 
     name: str
     org: str
+    slug: str | None = None
+    labels: dict[str, str] | None = None
     workflow_instance_id: str = ""
     workflow_id: str = ""
     trigger_message: str = ""
@@ -145,13 +147,18 @@ class WorkflowExecutionInput:
             spec.runtime_env[k].CopyFrom(executioncontext_spec_pb2.ExecutionValue(
                 value=v.value, is_secret=v.is_secret,
             ))
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.slug:
+            metadata.slug = self.slug
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.WorkflowExecution(
             api_version="agentic.stigmer.ai/v1",
             kind="WorkflowExecution",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

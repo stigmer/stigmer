@@ -77,6 +77,68 @@ public final class EnvironmentQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput,
+      ai.stigmer.agentic.environment.v1.EnvironmentValue> getGetSecretValueMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getSecretValue",
+      requestType = ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput.class,
+      responseType = ai.stigmer.agentic.environment.v1.EnvironmentValue.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput,
+      ai.stigmer.agentic.environment.v1.EnvironmentValue> getGetSecretValueMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput, ai.stigmer.agentic.environment.v1.EnvironmentValue> getGetSecretValueMethod;
+    if ((getGetSecretValueMethod = EnvironmentQueryControllerGrpc.getGetSecretValueMethod) == null) {
+      synchronized (EnvironmentQueryControllerGrpc.class) {
+        if ((getGetSecretValueMethod = EnvironmentQueryControllerGrpc.getGetSecretValueMethod) == null) {
+          EnvironmentQueryControllerGrpc.getGetSecretValueMethod = getGetSecretValueMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput, ai.stigmer.agentic.environment.v1.EnvironmentValue>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getSecretValue"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.environment.v1.EnvironmentValue.getDefaultInstance()))
+              .setSchemaDescriptor(new EnvironmentQueryControllerMethodDescriptorSupplier("getSecretValue"))
+              .build();
+        }
+      }
+    }
+    return getGetSecretValueMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest,
+      ai.stigmer.agentic.environment.v1.EnvironmentList> getListMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "list",
+      requestType = ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest.class,
+      responseType = ai.stigmer.agentic.environment.v1.EnvironmentList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest,
+      ai.stigmer.agentic.environment.v1.EnvironmentList> getListMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest, ai.stigmer.agentic.environment.v1.EnvironmentList> getListMethod;
+    if ((getListMethod = EnvironmentQueryControllerGrpc.getListMethod) == null) {
+      synchronized (EnvironmentQueryControllerGrpc.class) {
+        if ((getListMethod = EnvironmentQueryControllerGrpc.getListMethod) == null) {
+          EnvironmentQueryControllerGrpc.getListMethod = getListMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest, ai.stigmer.agentic.environment.v1.EnvironmentList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "list"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.environment.v1.EnvironmentList.getDefaultInstance()))
+              .setSchemaDescriptor(new EnvironmentQueryControllerMethodDescriptorSupplier("list"))
+              .build();
+        }
+      }
+    }
+    return getListMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -162,6 +224,30 @@ public final class EnvironmentQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetByReferenceMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * Get the unredacted value of a single secret key in an environment.
+     * Creator-only: requires can_read_secrets permission (FGA: creator relation).
+     * Returns the EnvironmentValue with the decrypted value.
+     * </pre>
+     */
+    default void getSecretValue(ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.EnvironmentValue> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetSecretValueMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List environments with optional label filtering.
+     * Authorization is handled in-handler via FGA-filtered queries (cloud)
+     * or unrestricted store queries (OSS). Secret values are redacted.
+     * </pre>
+     */
+    default void list(ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.EnvironmentList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMethod(), responseObserver);
+    }
   }
 
   /**
@@ -218,6 +304,32 @@ public final class EnvironmentQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetByReferenceMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * Get the unredacted value of a single secret key in an environment.
+     * Creator-only: requires can_read_secrets permission (FGA: creator relation).
+     * Returns the EnvironmentValue with the decrypted value.
+     * </pre>
+     */
+    public void getSecretValue(ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.EnvironmentValue> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetSecretValueMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * List environments with optional label filtering.
+     * Authorization is handled in-handler via FGA-filtered queries (cloud)
+     * or unrestricted store queries (OSS). Secret values are redacted.
+     * </pre>
+     */
+    public void list(ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.EnvironmentList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -258,6 +370,30 @@ public final class EnvironmentQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * Get the unredacted value of a single secret key in an environment.
+     * Creator-only: requires can_read_secrets permission (FGA: creator relation).
+     * Returns the EnvironmentValue with the decrypted value.
+     * </pre>
+     */
+    public ai.stigmer.agentic.environment.v1.EnvironmentValue getSecretValue(ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetSecretValueMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List environments with optional label filtering.
+     * Authorization is handled in-handler via FGA-filtered queries (cloud)
+     * or unrestricted store queries (OSS). Secret values are redacted.
+     * </pre>
+     */
+    public ai.stigmer.agentic.environment.v1.EnvironmentList list(ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -297,6 +433,30 @@ public final class EnvironmentQueryControllerGrpc {
     public ai.stigmer.agentic.environment.v1.Environment getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Get the unredacted value of a single secret key in an environment.
+     * Creator-only: requires can_read_secrets permission (FGA: creator relation).
+     * Returns the EnvironmentValue with the decrypted value.
+     * </pre>
+     */
+    public ai.stigmer.agentic.environment.v1.EnvironmentValue getSecretValue(ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetSecretValueMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List environments with optional label filtering.
+     * Authorization is handled in-handler via FGA-filtered queries (cloud)
+     * or unrestricted store queries (OSS). Secret values are redacted.
+     * </pre>
+     */
+    public ai.stigmer.agentic.environment.v1.EnvironmentList list(ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
   }
 
@@ -340,10 +500,38 @@ public final class EnvironmentQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetByReferenceMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * Get the unredacted value of a single secret key in an environment.
+     * Creator-only: requires can_read_secrets permission (FGA: creator relation).
+     * Returns the EnvironmentValue with the decrypted value.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.EnvironmentValue> getSecretValue(
+        ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetSecretValueMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * List environments with optional label filtering.
+     * Authorization is handled in-handler via FGA-filtered queries (cloud)
+     * or unrestricted store queries (OSS). Secret values are redacted.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.EnvironmentList> list(
+        ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_REFERENCE = 1;
+  private static final int METHODID_GET_SECRET_VALUE = 2;
+  private static final int METHODID_LIST = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -369,6 +557,14 @@ public final class EnvironmentQueryControllerGrpc {
         case METHODID_GET_BY_REFERENCE:
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.Environment>) responseObserver);
+          break;
+        case METHODID_GET_SECRET_VALUE:
+          serviceImpl.getSecretValue((ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.EnvironmentValue>) responseObserver);
+          break;
+        case METHODID_LIST:
+          serviceImpl.list((ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.environment.v1.EnvironmentList>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -402,6 +598,20 @@ public final class EnvironmentQueryControllerGrpc {
               ai.stigmer.commons.apiresource.ApiResourceReference,
               ai.stigmer.agentic.environment.v1.Environment>(
                 service, METHODID_GET_BY_REFERENCE)))
+        .addMethod(
+          getGetSecretValueMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput,
+              ai.stigmer.agentic.environment.v1.EnvironmentValue>(
+                service, METHODID_GET_SECRET_VALUE)))
+        .addMethod(
+          getListMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest,
+              ai.stigmer.agentic.environment.v1.EnvironmentList>(
+                service, METHODID_LIST)))
         .build();
   }
 
@@ -452,6 +662,8 @@ public final class EnvironmentQueryControllerGrpc {
               .setSchemaDescriptor(new EnvironmentQueryControllerFileDescriptorSupplier())
               .addMethod(getGetMethod())
               .addMethod(getGetByReferenceMethod())
+              .addMethod(getGetSecretValueMethod())
+              .addMethod(getListMethod())
               .build();
         }
       }

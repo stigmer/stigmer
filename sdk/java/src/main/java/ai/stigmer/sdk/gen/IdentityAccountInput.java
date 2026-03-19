@@ -11,6 +11,8 @@ import ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec;
 public final class IdentityAccountInput {
     private final String name;
     private final String org;
+    private final String slug;
+    private final java.util.Map<String, String> labels;
     private final String idpId;
     private final String email;
     private final String firstName;
@@ -23,6 +25,8 @@ public final class IdentityAccountInput {
     private IdentityAccountInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.slug = builder.slug;
+        this.labels = builder.labels;
         this.idpId = builder.idpId;
         this.email = builder.email;
         this.firstName = builder.firstName;
@@ -57,13 +61,19 @@ public final class IdentityAccountInput {
         if (this.identityProviderRef != null) {
             spec.setIdentityProviderRef(this.identityProviderRef.toProto());
         }
+        ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
+            .setName(this.name)
+            .setOrg(this.org);
+        if (this.slug != null) {
+            metaBuilder.setSlug(this.slug);
+        }
+        if (this.labels != null) {
+            metaBuilder.putAllLabels(this.labels);
+        }
         return IdentityAccount.newBuilder()
             .setApiVersion("iam.stigmer.ai/v1")
             .setKind("IdentityAccount")
-            .setMetadata(ApiResourceMetadata.newBuilder()
-                .setName(this.name)
-                .setOrg(this.org)
-                .build())
+            .setMetadata(metaBuilder.build())
             .setSpec(spec.build())
             .build();
     }
@@ -73,6 +83,8 @@ public final class IdentityAccountInput {
     public static final class Builder {
         private String name;
         private String org;
+        private String slug;
+        private java.util.Map<String, String> labels;
         private String idpId;
         private String email;
         private String firstName;
@@ -86,6 +98,8 @@ public final class IdentityAccountInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder slug(String slug) { this.slug = slug; return this; }
+        public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder idpId(String idpId) { this.idpId = idpId; return this; }
         public Builder email(String email) { this.email = email; return this; }
         public Builder firstName(String firstName) { this.firstName = firstName; return this; }

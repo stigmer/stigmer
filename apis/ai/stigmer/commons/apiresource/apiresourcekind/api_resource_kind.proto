@@ -343,6 +343,7 @@ enum ApiResourceKind {
     authorization: {
       scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+      requires_creator_tuple: true
     }
   }];
 

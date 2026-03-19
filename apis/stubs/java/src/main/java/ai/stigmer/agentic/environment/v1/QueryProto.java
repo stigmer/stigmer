@@ -38,34 +38,49 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "\n-ai/stigmer/agentic/environment/v1/quer" +
       "y.proto\022!ai.stigmer.agentic.environment." +
       "v1\032+ai/stigmer/agentic/environment/v1/ap" +
-      "i.proto\032\'ai/stigmer/commons/apiresource/" +
-      "io.proto\0328ai/stigmer/commons/apiresource" +
-      "/rpc_service_options.proto\032Aai/stigmer/i" +
-      "am/iampolicy/v1/rpcauthorization/method_" +
-      "options.proto2\263\002\n\032EnvironmentQueryContro" +
-      "ller\022\226\001\n\003get\022-.ai.stigmer.commons.apires" +
-      "ource.ApiResourceId\032..ai.stigmer.agentic" +
-      ".environment.v1.Environment\"0\302\270\030,\010\003\0205\"\005v" +
-      "alue*\037unauthorized to get environment\022v\n" +
-      "\016getByReference\0224.ai.stigmer.commons.api" +
-      "resource.ApiResourceReference\032..ai.stigm" +
-      "er.agentic.environment.v1.Environment\032\004\240" +
-      "\377+5B\265\001B\nQueryProtoP\001\242\002\004ASAE\252\002!Ai.Stigmer" +
-      ".Agentic.Environment.V1\312\002!Ai\\Stigmer\\Age" +
-      "ntic\\Environment\\V1\342\002-Ai\\Stigmer\\Agentic" +
-      "\\Environment\\V1\\GPBMetadata\352\002%Ai::Stigme" +
-      "r::Agentic::Environment::V1b\006proto3"
+      "i.proto\032*ai/stigmer/agentic/environment/" +
+      "v1/io.proto\032,ai/stigmer/agentic/environm" +
+      "ent/v1/spec.proto\032\'ai/stigmer/commons/ap" +
+      "iresource/io.proto\0328ai/stigmer/commons/a" +
+      "piresource/rpc_service_options.proto\032Aai" +
+      "/stigmer/iam/iampolicy/v1/rpcauthorizati" +
+      "on/method_options.proto2\206\005\n\032EnvironmentQ" +
+      "ueryController\022\226\001\n\003get\022-.ai.stigmer.comm" +
+      "ons.apiresource.ApiResourceId\032..ai.stigm" +
+      "er.agentic.environment.v1.Environment\"0\302" +
+      "\270\030,\010\003\0205\"\005value*\037unauthorized to get envi" +
+      "ronment\022v\n\016getByReference\0224.ai.stigmer.c" +
+      "ommons.apiresource.ApiResourceReference\032" +
+      "..ai.stigmer.agentic.environment.v1.Envi" +
+      "ronment\022\322\001\n\016getSecretValue\022>.ai.stigmer." +
+      "agentic.environment.v1.EnvironmentSecret" +
+      "ValueInput\0323.ai.stigmer.agentic.environm" +
+      "ent.v1.EnvironmentValue\"K\302\270\030G\010\031\0205\"\016envir" +
+      "onment_id*1unauthorized to read secret v" +
+      "alues (creator-only)\022|\n\004list\022:.ai.stigme" +
+      "r.agentic.environment.v1.ListEnvironment" +
+      "sRequest\0322.ai.stigmer.agentic.environmen" +
+      "t.v1.EnvironmentList\"\004\320\270\030\001\032\004\240\377+5B\265\001B\nQue" +
+      "ryProtoP\001\242\002\004ASAE\252\002!Ai.Stigmer.Agentic.En" +
+      "vironment.V1\312\002!Ai\\Stigmer\\Agentic\\Enviro" +
+      "nment\\V1\342\002-Ai\\Stigmer\\Agentic\\Environmen" +
+      "t\\V1\\GPBMetadata\352\002%Ai::Stigmer::Agentic:" +
+      ":Environment::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.environment.v1.ApiProto.getDescriptor(),
+          ai.stigmer.agentic.environment.v1.IoProto.getDescriptor(),
+          ai.stigmer.agentic.environment.v1.SpecProto.getDescriptor(),
           ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.environment.v1.ApiProto.getDescriptor();
+    ai.stigmer.agentic.environment.v1.IoProto.getDescriptor();
+    ai.stigmer.agentic.environment.v1.SpecProto.getDescriptor();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
@@ -73,6 +88,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

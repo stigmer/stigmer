@@ -5,11 +5,11 @@ package gen
 import (
 	"context"
 
-	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
-	rpc "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
-	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
+	skillv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/skill/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
+	rpc "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc"
+	searchv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1"
 	"google.golang.org/grpc"
 )
 
@@ -77,7 +77,9 @@ func (s *SkillClient) List(ctx context.Context, params *ListParams) (*ListResult
 // SkillInput holds the fields for creating/updating a Skill.
 type SkillInput struct {
 	Name        string
+	Slug        string
 	Org         string
+	Labels      map[string]string
 	SkillMd     string
 	Tag         string
 	Description string
@@ -88,8 +90,10 @@ func (i *SkillInput) toProto() *skillv1.Skill {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Skill",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Slug:   i.Slug,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &skillv1.SkillSpec{},
 	}

@@ -50,6 +50,18 @@ class EnvironmentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def update_variables(self, input: io_pb2.UpdateEnvironmentVariablesRequest) -> api_pb2.Environment:
+        try:
+            return self._command.updateVariables(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def remove_variables(self, input: io_pb2.RemoveEnvironmentVariablesRequest) -> api_pb2.Environment:
+        try:
+            return self._command.removeVariables(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.Environment:
         try:
             return self._query.get(apiresource_io_pb2.ApiResourceId(value=id))
@@ -62,6 +74,18 @@ class EnvironmentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_secret_value(self, input: io_pb2.EnvironmentSecretValueInput) -> io_pb2.EnvironmentValue:
+        try:
+            return self._query.getSecretValue(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def list(self, input: io_pb2.ListEnvironmentsRequest) -> io_pb2.EnvironmentList:
+        try:
+            return self._query.list(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
 
 @dataclass
 class EnvironmentInput:
@@ -69,6 +93,8 @@ class EnvironmentInput:
 
     name: str
     org: str
+    slug: str | None = None
+    labels: dict[str, str] | None = None
     description: str = ""
     data: dict[str, EnvVarInput] = field(default_factory=dict)
 
@@ -80,13 +106,18 @@ class EnvironmentInput:
             spec.data[k].CopyFrom(environment_spec_pb2.EnvironmentValue(
                 value=v.value, is_secret=v.is_secret, description=v.description,
             ))
+        metadata = metadata_pb2.ApiResourceMetadata(
+            name=self.name,
+            org=self.org,
+        )
+        if self.slug:
+            metadata.slug = self.slug
+        if self.labels:
+            metadata.labels.update(self.labels)
         return api_pb2.Environment(
             api_version="agentic.stigmer.ai/v1",
             kind="Environment",
-            metadata=metadata_pb2.ApiResourceMetadata(
-                name=self.name,
-                org=self.org,
-            ),
+            metadata=metadata,
             spec=spec,
         )
 

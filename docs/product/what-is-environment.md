@@ -285,3 +285,4 @@ stigmer environment delete github-staging-secrets
 - [Environment Resource Guide](../../apis/ai/stigmer/agentic/environment/docs/environment-resource-guide.md) — Complete spec and status schema reference
 - [Environment Examples](../../apis/ai/stigmer/agentic/environment/docs/examples.md) — Complete YAML examples from minimal to full-featured
 - [Environment Binding](../../apis/ai/stigmer/agentic/agentinstance/docs/environment-binding.md) — Layered merging and resolution in depth
+- [How to Provide Secrets](./how-to-provide-secrets.md) — Choosing between the Environment Flow (persistent) and the Execution Flow (ephemeral)

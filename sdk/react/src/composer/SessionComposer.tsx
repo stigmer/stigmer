@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { Popover } from "@base-ui/react/popover";
-import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import { useComposer } from "./useComposer";
 import { ModelSelector } from "../models/ModelSelector";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
+import { AgentPicker } from "../agent/AgentPicker";
+import { AgentEnvForm } from "../agent/AgentEnvForm";
+import { useAgentSetup, type AgentSetupResult } from "../agent/useAgentSetup";
 import { McpServerPicker } from "../mcp-server/McpServerPicker";
 import { SkillPicker } from "../skill/SkillPicker";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries";
@@ -43,10 +46,28 @@ export interface SessionComposerProps {
   readonly enableFolderBrowser?: boolean;
 
   /**
-   * Organization slug for MCP server and skill searches.
-   * Required when MCP or skill pickers are enabled.
+   * Organization slug for agent, MCP server, and skill searches.
+   * Required when agent, MCP, or skill pickers are enabled.
    */
   readonly org?: string;
+
+  /**
+   * Currently selected agent reference, or null if none.
+   * When `onAgentRefChange` is provided, an agent trigger
+   * appears in the toolbar (single-select).
+   */
+  readonly agentRef?: ResourceRef | null;
+  /** Called when the agent selection changes. Providing this enables the agent trigger. */
+  readonly onAgentRefChange?: (ref: ResourceRef | null) => void;
+  /**
+   * Called when the personal environment flow resolves an agent instance ID.
+   *
+   * Set to `null` when the agent is deselected or when the selected agent
+   * does not require a personal instance (i.e. has no `env_spec`).
+   * When provided, the resolved ID takes priority over `agentRef` in
+   * session creation via `useCreateSession`.
+   */
+  readonly onAgentInstanceIdChange?: (instanceId: string | null) => void;
 
   /**
    * Currently selected MCP server usages.
@@ -82,9 +103,9 @@ export interface SessionComposerProps {
  * Unified message composer for Stigmer sessions.
  *
  * Combines a self-resizing textarea, model selector, and context pickers
- * (workspace, MCP servers, skills) into a single input card. Context
- * pickers appear as toolbar triggers that open popovers. Selected items
- * render as removable chips between the textarea and toolbar.
+ * (agent, workspace, MCP servers, skills) into a single input card.
+ * Context pickers appear as toolbar triggers that open popovers. Selected
+ * items render as removable chips between the textarea and toolbar.
  *
  * Used for both new session creation (launcher) and follow-up messages
  * within an existing session. Layout positioning is the consumer's
@@ -101,6 +122,8 @@ export interface SessionComposerProps {
  * <SessionComposer
  *   onSubmit={handleCreate}
  *   org={org}
+ *   agentRef={agentRef}
+ *   onAgentRefChange={setAgentRef}
  *   workspace={workspace}
  *   enableGitHub
  *   mcpServerUsages={mcpUsages}
@@ -134,6 +157,9 @@ export function SessionComposer({
   enableLocal = false,
   enableFolderBrowser = false,
   org,
+  agentRef,
+  onAgentRefChange,
+  onAgentInstanceIdChange,
   mcpServerUsages,
   onMcpServerUsagesChange,
   skillRefs,
@@ -146,7 +172,7 @@ export function SessionComposer({
 }: SessionComposerProps) {
   const [modelId, setModelId] = useState<string | undefined>(defaultModelId);
 
-  // Display name cache for MCP servers and skills (populated by pickers)
+  // Display name cache for agents, MCP servers, and skills (populated by pickers)
   const [displayNames, setDisplayNames] = useState<Map<string, string>>(
     () => new Map(),
   );
@@ -184,14 +210,117 @@ export function SessionComposer({
     [],
   );
 
+  const showAgent = onAgentRefChange != null && org != null;
+
+  // -------------------------------------------------------------------------
+  // Agent setup: controlled popover + personal environment resolution
+  // -------------------------------------------------------------------------
+
+  const agentSetup = useAgentSetup(showAgent ? (org ?? null) : null);
+
+  const [agentPopoverOpen, setAgentPopoverOpen] = useState(false);
+  const [agentPopoverView, setAgentPopoverView] = useState<
+    "picker" | "envForm"
+  >("picker");
+
+  type EnvRequirement = AgentSetupResult & { status: "needsEnvVars" };
+  const pendingEnvRef = useRef<EnvRequirement | null>(null);
+
+  const handleAgentPopoverOpenChange = useCallback(
+    (open: boolean) => {
+      setAgentPopoverOpen(open);
+      if (!open) {
+        setAgentPopoverView("picker");
+        pendingEnvRef.current = null;
+        agentSetup.clearError();
+      }
+    },
+    [agentSetup],
+  );
+
+  const handleAgentSelect = useCallback(
+    async (ref: ResourceRef | null) => {
+      if (!ref) {
+        onAgentRefChange?.(null);
+        onAgentInstanceIdChange?.(null);
+        return;
+      }
+
+      try {
+        const result = await agentSetup.resolveAgent(ref);
+
+        if (result.status === "ready") {
+          onAgentRefChange?.(result.agentRef);
+          onAgentInstanceIdChange?.(result.instanceId);
+          handleDisplayNameResolved(
+            `${result.agentRef.org}/${result.agentRef.slug}`,
+            result.agentName,
+          );
+          setAgentPopoverOpen(false);
+          setAgentPopoverView("picker");
+        } else {
+          pendingEnvRef.current = result;
+          setAgentPopoverView("envForm");
+        }
+      } catch {
+        // Error is captured by agentSetup.error — displayed inline.
+      }
+    },
+    [
+      agentSetup,
+      onAgentRefChange,
+      onAgentInstanceIdChange,
+      handleDisplayNameResolved,
+    ],
+  );
+
+  const handleEnvFormSubmit = useCallback(
+    async (values: Record<string, EnvVarInput>) => {
+      try {
+        const result = await agentSetup.submitEnvVars(values);
+        onAgentRefChange?.(result.agentRef);
+        onAgentInstanceIdChange?.(result.instanceId);
+        handleDisplayNameResolved(
+          `${result.agentRef.org}/${result.agentRef.slug}`,
+          result.agentName,
+        );
+        pendingEnvRef.current = null;
+        setAgentPopoverOpen(false);
+        setAgentPopoverView("picker");
+      } catch {
+        // Error is captured by agentSetup.error — displayed inline.
+      }
+    },
+    [
+      agentSetup,
+      onAgentRefChange,
+      onAgentInstanceIdChange,
+      handleDisplayNameResolved,
+    ],
+  );
+
+  const handleAgentChipRemove = useCallback(() => {
+    onAgentRefChange?.(null);
+    onAgentInstanceIdChange?.(null);
+  }, [onAgentRefChange, onAgentInstanceIdChange]);
   const showWorkspace = workspace != null;
   const showMcp = onMcpServerUsagesChange != null && org != null;
   const showSkills = onSkillRefsChange != null && org != null;
-  const hasContextTriggers = showWorkspace || showMcp || showSkills;
+  const hasContextTriggers = showAgent || showWorkspace || showMcp || showSkills;
 
   // Build chip items from all context sources
   const chips = useMemo(() => {
     const items: ChipItem[] = [];
+
+    if (agentRef) {
+      const refStr = `${agentRef.org}/${agentRef.slug}`;
+      items.push({
+        key: `agent:${refStr}`,
+        label: displayNames.get(refStr) ?? agentRef.slug,
+        type: "agent",
+        onRemove: handleAgentChipRemove,
+      });
+    }
 
     if (workspace) {
       for (const entry of workspace.entries) {
@@ -241,6 +370,8 @@ export function SessionComposer({
 
     return items;
   }, [
+    agentRef,
+    handleAgentChipRemove,
     workspace,
     mcpServerUsages,
     skillRefs,
@@ -296,6 +427,59 @@ export function SessionComposer({
             {/* Context triggers */}
             {hasContextTriggers && (
               <>
+                {showAgent && (
+                  <ContextPopover
+                    icon={<AgentIcon />}
+                    label="Agent"
+                    count={agentRef ? 1 : 0}
+                    disabled={isDisabled}
+                    open={agentPopoverOpen}
+                    onOpenChange={handleAgentPopoverOpenChange}
+                  >
+                    {agentPopoverView === "picker" ? (
+                      <div className="relative">
+                        <AgentPicker
+                          org={org!}
+                          value={agentRef ?? null}
+                          onChange={handleAgentSelect}
+                          onDisplayNameResolved={handleDisplayNameResolved}
+                          disabled={isDisabled || agentSetup.isResolving}
+                        />
+                        {agentSetup.isResolving && (
+                          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-popover/80">
+                            <ResolveSpinner />
+                          </div>
+                        )}
+                        {agentSetup.error && (
+                          <p className="mt-2 text-xs text-destructive">
+                            {agentSetup.error}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <AgentEnvForm
+                          agentName={pendingEnvRef.current?.agentName ?? "Agent"}
+                          variables={pendingEnvRef.current?.missingVariables ?? []}
+                          onSubmit={handleEnvFormSubmit}
+                          onCancel={() => {
+                            setAgentPopoverView("picker");
+                            pendingEnvRef.current = null;
+                            agentSetup.clearError();
+                          }}
+                          isSubmitting={agentSetup.isResolving}
+                          disabled={isDisabled}
+                        />
+                        {agentSetup.error && (
+                          <p className="mt-2 text-xs text-destructive">
+                            {agentSetup.error}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </ContextPopover>
+                )}
+
                 {showWorkspace && (
                   <ContextPopover
                     icon={<WorkspaceIcon />}
@@ -388,15 +572,19 @@ function ContextPopover({
   count,
   children,
   disabled,
+  open,
+  onOpenChange,
 }: {
   icon: React.ReactNode;
   label: string;
   count: number;
   children: React.ReactNode;
   disabled?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   return (
-    <Popover.Root>
+    <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger
         disabled={disabled}
         className={cn(
@@ -436,11 +624,12 @@ function ContextPopover({
 interface ChipItem {
   key: string;
   label: string;
-  type: "workspace" | "mcp" | "skill";
+  type: "agent" | "workspace" | "mcp" | "skill";
   onRemove: () => void;
 }
 
 const CHIP_TYPE_LABELS: Record<ChipItem["type"], string> = {
+  agent: "Agent",
   workspace: "WS",
   mcp: "MCP",
   skill: "Skill",
@@ -534,6 +723,28 @@ function XIcon() {
   );
 }
 
+function AgentIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="5" width="10" height="8" rx="2" />
+      <circle cx="6" cy="9" r="1" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="9" r="1" fill="currentColor" stroke="none" />
+      <path d="M8 1v4" />
+      <circle cx="8" cy="1" r="1" />
+    </svg>
+  );
+}
+
 function WorkspaceIcon() {
   return (
     <svg
@@ -588,5 +799,28 @@ function SkillIcon() {
     >
       <path d="M2 3h12M2 7h8M2 11h10M2 15h6" />
     </svg>
+  );
+}
+
+function ResolveSpinner() {
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        className="animate-spin text-muted-foreground"
+        aria-hidden="true"
+      >
+        <path d="M8 2a6 6 0 1 0 6 6" />
+      </svg>
+      <span className="text-[0.6rem] text-muted-foreground">
+        Checking agent requirements...
+      </span>
+    </div>
   );
 }

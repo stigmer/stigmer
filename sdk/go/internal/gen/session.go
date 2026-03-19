@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	sessionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/session/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 )
 
@@ -61,7 +61,9 @@ func (s *SessionClient) ListByAgent(ctx context.Context, input *sessionv1.ListSe
 // SessionInput holds the fields for creating/updating a Session.
 type SessionInput struct {
 	Name             string
+	Slug             string
 	Org              string
+	Labels           map[string]string
 	AgentInstanceId  string
 	Subject          string
 	ThreadId         string
@@ -102,8 +104,10 @@ func (i *SessionInput) toProto() *sessionv1.Session {
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "Session",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Name: i.Name,
-			Org:  i.Org,
+			Name:   i.Name,
+			Slug:   i.Slug,
+			Org:    i.Org,
+			Labels: i.Labels,
 		},
 		Spec: &sessionv1.SessionSpec{},
 	}

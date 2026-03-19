@@ -77,7 +77,9 @@ export class OrganizationClient {
 /** Input for creating/updating a Organization. */
 export interface OrganizationInput {
   name: string;
+  slug?: string;
   org: string;
+  labels?: Record<string, string>;
   description?: string;
   logoUrl?: string;
   managementMode?: ManagementMode;
@@ -93,6 +95,8 @@ function buildOrganizationProto(input: OrganizationInput): Organization {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.slug && { slug: input.slug }),
+      ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(OrganizationSpecSchema), stripUndefined({
       description: input.description,

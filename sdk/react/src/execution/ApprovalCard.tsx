@@ -8,6 +8,7 @@ import {
   resolveToolCategory,
   extractPrimaryArgFromPreview,
 } from "./tool-categories";
+import { FilePathLink } from "./FilePathLink";
 
 export interface ApprovalCardProps {
   readonly pendingApproval: PendingApproval;
@@ -251,7 +252,7 @@ function FileArgsPreview({
     <div className="space-y-1.5">
       <div className="flex items-center gap-1.5 text-xs">
         <FilePathIcon />
-        <span className="font-mono text-foreground">{path}</span>
+        <FilePathLink path={path} className="text-xs" />
       </div>
       {argsPreview && <GenericArgsPreview content={argsPreview} />}
     </div>

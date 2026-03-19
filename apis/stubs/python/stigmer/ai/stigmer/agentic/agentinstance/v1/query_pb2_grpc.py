@@ -32,6 +32,11 @@ class AgentInstanceQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.FromString,
                 _registered_method=True)
+        self.list = channel.unary_unary(
+                '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/list',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2.ListAgentInstancesRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2.AgentInstanceList.FromString,
+                _registered_method=True)
 
 
 class AgentInstanceQueryControllerServicer(object):
@@ -62,6 +67,15 @@ class AgentInstanceQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def list(self, request, context):
+        """List agent instances with optional label filtering.
+        Authorization is handled in-handler via FGA-filtered queries (cloud)
+        or unrestricted store queries (OSS).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AgentInstanceQueryControllerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -79,6 +93,11 @@ def add_AgentInstanceQueryControllerServicer_to_server(servicer, server):
                     servicer.getByReference,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.SerializeToString,
+            ),
+            'list': grpc.unary_unary_rpc_method_handler(
+                    servicer.list,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2.ListAgentInstancesRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2.AgentInstanceList.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -163,6 +182,33 @@ class AgentInstanceQueryController(object):
             '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/getByReference',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceReference.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_api__pb2.AgentInstance.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def list(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/list',
+            ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2.ListAgentInstancesRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentinstance_dot_v1_dot_io__pb2.AgentInstanceList.FromString,
             options,
             channel_credentials,
             insecure,

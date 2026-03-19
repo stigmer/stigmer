@@ -68,9 +68,12 @@ export {
   isTerminalPhase,
   useCreateAgentExecution,
   useExecutionStream,
+  useExecutionUsage,
+  aggregateUsage,
   useSubmitApproval,
   ExecutionPhaseBadge,
   ExecutionProgress,
+  ExecutionCostSummary,
   ToolCallGroup,
   ToolCallDetail,
   formatDuration,
@@ -80,15 +83,22 @@ export {
   MessageThread,
   FollowUpInput,
   ApprovalCard,
+  FilePathLink,
+  FilePathContext,
+  classifyPath,
+  resolveGitBrowseUrl,
+  resolvePathAction,
 } from "./execution";
 export type {
   CreateAgentExecutionInput,
   CreateAgentExecutionResult,
   UseCreateAgentExecutionReturn,
   UseExecutionStreamReturn,
+  UseExecutionUsageReturn,
   UseSubmitApprovalReturn,
   ExecutionPhaseBadgeProps,
   ExecutionProgressProps,
+  ExecutionCostSummaryProps,
   ToolCallGroupProps,
   ToolCallDetailProps,
   ToolCallItemProps,
@@ -97,6 +107,10 @@ export type {
   MessageThreadProps,
   FollowUpInputProps,
   ApprovalCardProps,
+  FilePathLinkProps,
+  FilePathContextValue,
+  PathClassification,
+  ResolvedPathAction,
 } from "./execution";
 
 // Composer — unified message input with model + workspace attachments
@@ -146,3 +160,66 @@ export type {
   UseGitHubReposReturn,
   GitHubRepoPickerProps,
 } from "./github";
+
+// Agent — search hook, picker, env form, and setup orchestration
+export {
+  useAgentSearch,
+  AgentPicker,
+  AgentEnvForm,
+  useAgentSetup,
+} from "./agent";
+export type {
+  UseAgentSearchOptions,
+  UseAgentSearchReturn,
+  AgentPickerProps,
+  AgentEnvFormProps,
+  AgentEnvFormVariable,
+  AgentSetupResult,
+  UseAgentSetupReturn,
+} from "./agent";
+
+// Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, and styled components
+export {
+  useEnvironment,
+  useEnvironmentList,
+  usePersonalEnvironment,
+  useCreateEnvironment,
+  useUpdateEnvironment,
+  useUpdateEnvironmentVariables,
+  useRemoveEnvironmentVariables,
+  useRevealSecretValue,
+  EnvironmentVariableEditor,
+  EnvironmentListPanel,
+  CreateEnvironmentForm,
+} from "./environment";
+export type {
+  UseEnvironmentReturn,
+  UseEnvironmentListReturn,
+  UsePersonalEnvironmentReturn,
+  UseCreateEnvironmentReturn,
+  UseUpdateEnvironmentReturn,
+  UpdateEnvironmentVariablesInput,
+  UseUpdateEnvironmentVariablesReturn,
+  RemoveEnvironmentVariablesInput,
+  UseRemoveEnvironmentVariablesReturn,
+  UseRevealSecretValueOptions,
+  UseRevealSecretValueReturn,
+  EnvironmentVariableEditorProps,
+  EnvironmentListPanelProps,
+  CreateEnvironmentFormProps,
+} from "./environment";
+
+// Agent Instance — data hooks, list hook, personal convenience hook, and behavior hook
+export {
+  useAgentInstance,
+  useAgentInstanceList,
+  usePersonalAgentInstance,
+  useCreateAgentInstance,
+} from "./agent-instance";
+export type {
+  UseAgentInstanceReturn,
+  UseAgentInstanceListReturn,
+  GetOrCreatePersonalInstanceInput,
+  UsePersonalAgentInstanceReturn,
+  UseCreateAgentInstanceReturn,
+} from "./agent-instance";

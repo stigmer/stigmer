@@ -167,4 +167,20 @@ public interface AuthorizationConfigOrBuilder extends
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfig visibility = 5 [json_name = "visibility"];</code>
    */
   ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfigOrBuilder getVisibilityOrBuilder();
+
+  /**
+   * <pre>
+   * When true, creates an immutable creator relation tuple alongside the owner tuple.
+   * FGA tuple: resource#creator&#64;identity_account:&lt;creator_id&gt;
+   * Used for resources where creator identity drives specific permissions
+   * (e.g., environment: only the creator can read unredacted secret values).
+   * The creator tuple uses the same identity as the owner tuple but serves
+   * a different purpose: owner is mutable (can be transferred), creator is
+   * permanent attribution.
+   * </pre>
+   *
+   * <code>bool requires_creator_tuple = 6 [json_name = "requiresCreatorTuple"];</code>
+   * @return The requiresCreatorTuple.
+   */
+  boolean getRequiresCreatorTuple();
 }

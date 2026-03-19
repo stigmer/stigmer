@@ -29,3 +29,16 @@ message AgentInstanceList {
   // List of instances.
   repeated AgentInstance items = 2;
 }
+
+// ListAgentInstancesRequest specifies parameters for listing agent instances.
+message ListAgentInstancesRequest {
+  // Organization to list agent instances for (required).
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+  // Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
+  map<string, string> labels = 2;
+
+  // Pagination options (optional).
+  ai.stigmer.commons.rpc.PageInfo page_info = 3;
+}

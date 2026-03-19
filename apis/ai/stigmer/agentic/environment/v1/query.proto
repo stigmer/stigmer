@@ -3,6 +3,8 @@ syntax = "proto3";
 package ai.stigmer.agentic.environment.v1;
 
 import "ai/stigmer/agentic/environment/v1/api.proto";
+import "ai/stigmer/agentic/environment/v1/io.proto";
+import "ai/stigmer/agentic/environment/v1/spec.proto";
 import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
@@ -21,4 +23,21 @@ service EnvironmentQueryController {
 
   // Custom authorization in handler
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Environment);
+
+  // Get the unredacted value of a single secret key in an environment.
+  // Creator-only: requires can_read_secrets permission (FGA: creator relation).
+  // Returns the EnvironmentValue with the decrypted value.
+  rpc getSecretValue(EnvironmentSecretValueInput) returns (EnvironmentValue) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = environment;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_read_secrets;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "environment_id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to read secret values (creator-only)";
+  }
+
+  // List environments with optional label filtering.
+  // Authorization is handled in-handler via FGA-filtered queries (cloud)
+  // or unrestricted store queries (OSS). Secret values are redacted.
+  rpc list(ListEnvironmentsRequest) returns (EnvironmentList) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }
