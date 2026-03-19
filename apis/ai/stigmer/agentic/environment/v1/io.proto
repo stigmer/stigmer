@@ -8,3 +8,14 @@ import "buf/validate/validate.proto";
 message EnvironmentId {
   string value = 1 [(buf.validate.field).required = true];
 }
+
+// Input for retrieving a single unredacted secret value from an environment.
+// Returns the decrypted value for exactly one key. Single-key retrieval by design:
+// limits blast radius if intercepted, enables per-key audit trails, and matches
+// the industry-standard "reveal" UX pattern (AWS, GitHub, 1Password).
+message EnvironmentSecretValueInput {
+  // The environment resource ID.
+  string environment_id = 1 [(buf.validate.field).string.min_len = 1];
+  // The key within EnvironmentSpec.data to retrieve the unredacted value for.
+  string key = 2 [(buf.validate.field).string.min_len = 1];
+}

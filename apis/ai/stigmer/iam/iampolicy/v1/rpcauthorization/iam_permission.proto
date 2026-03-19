@@ -44,4 +44,7 @@ enum ApiResourceIamPermission {
 
   // Resource-specific operation permissions
   can_execute = 22; // Permission to execute agent/session operations
+
+  // Secret access permissions
+  can_read_secrets = 25; // Permission to read unredacted secret values (creator-only)
 }
