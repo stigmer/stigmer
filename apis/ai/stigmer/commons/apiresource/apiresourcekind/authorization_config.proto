@@ -145,6 +145,14 @@ message ParentRelationConfig {
 //   -> Creates: agent_instance#organization@organization:<org_id>
 //   -> Creates: agent_instance#agent@agent:<agent_id>
 //   -> Creates: agent_instance#owner@identity_account:<creator_id>
+//
+// Personal resource with creator attribution (environment):
+//   scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+//   owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+//   requires_creator_tuple: true
+//   -> Creates: environment#organization@organization:<org_id>
+//   -> Creates: environment#owner@identity_account:<creator_id>
+//   -> Creates: environment#creator@identity_account:<creator_id>
 message AuthorizationConfig {
   // Primary scope type - determines main linkage for permission inheritance.
   AuthorizationScopeType scope_type = 1;
@@ -166,4 +174,13 @@ message AuthorizationConfig {
   // which creates an identity_account:* wildcard tuple granting viewer access
   // to all authenticated users via FGA.
   VisibilityConfig visibility = 5;
+
+  // When true, creates an immutable creator relation tuple alongside the owner tuple.
+  // FGA tuple: resource#creator@identity_account:<creator_id>
+  // Used for resources where creator identity drives specific permissions
+  // (e.g., environment: only the creator can read unredacted secret values).
+  // The creator tuple uses the same identity as the owner tuple but serves
+  // a different purpose: owner is mutable (can be transferred), creator is
+  // permanent attribution.
+  bool requires_creator_tuple = 6;
 }

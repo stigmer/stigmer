@@ -102,8 +102,18 @@ When starting a new session:
 
 **Created**: 2026-03-19 13:12
 **Current Task**: T01 (Environment Authorization & Secret Redaction)
-**Status**: T01.1–T01.3 COMPLETE, T01.4–T01.7 pending
-**Last Session**: 2026-03-19, Session 2
+**Status**: T01.1–T01.5 COMPLETE, T01.6–T01.7 pending
+**Last Session**: 2026-03-19, Session 3
+
+## Session Progress (2026-03-19, Session 3)
+
+- Implemented T01.4 and T01.5 in parallel (proto + backend changes)
+- **T01.4 proto** (stigmer OSS): Added `requires_creator_tuple` field to `AuthorizationConfig` proto (field 6), set `requires_creator_tuple: true` on environment's `kind_meta`
+- **T01.5 proto** (stigmer OSS): Added `can_read_secrets = 25` to `ApiResourceIamPermission`, added `EnvironmentSecretValueInput` message to `io.proto`, added `getSecretValue` RPC to `query.proto` with `can_read_secrets` authorization
+- **T01.4 backend** (stigmer-cloud): Added `createCreatorRelation()` to `IamPolicyCreationService`, called from `createTuples()` step 4 when `config.getRequiresCreatorTuple()` is true
+- **Design decision**: Chose config-driven approach (Option A) over kind-check or custom pipeline step — aligns with `AuthorizationConfig` proto's stated principle: "Configuration-driven: Service reads config, no hardcoded logic"
+- **Discovery**: `EnvironmentApplyHandler` delegates to `EnvironmentCreateHandler`, so no separate Apply change needed (original plan overestimated scope)
+- **Discovery**: `TupleCreationRequest` already carries `creatorId` and `CreateAuthorizationTuplesStepV2` already passes it — no changes needed in either
 
 ## Session Progress (2026-03-19, Session 2)
 
@@ -130,19 +140,19 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01.4** (stigmer-cloud): Write `creator` FGA tuple on environment creation in `EnvironmentCreateHandler` and `EnvironmentApplyHandler`
-2. **T01.5** (stigmer OSS): Add `getSecretValue` RPC + `EnvironmentSecretValueInput` message to proto
-3. **T01.6** (stigmer-cloud): Implement `EnvironmentGetSecretValueHandler` (single key decrypt)
-4. **T01.7** (stigmer OSS): Verify `getSecretValue` in TypeScript SDK after proto generation
+1. **T01.6** (stigmer-cloud): Implement `EnvironmentGetSecretValueHandler` (single key decrypt) — depends on T01.4 + T01.5 (both complete)
+2. **T01.7** (stigmer OSS): Verify `getSecretValue` in TypeScript SDK after proto generation — depends on T01.5 (complete)
 
-T01.4 and T01.5 can be done in parallel (different repos). T01.6 depends on both.
+T01.6 is the next blocker. T01.7 can be done after proto generation.
 
 ## Context for Resume
 
-- The `creator` relation is in the FGA model but no tuples are written yet (T01.4)
-- The `can_read_secrets` permission exists in FGA but no RPC uses it yet (T01.5/T01.6)
-- `CreateAuthorizationTuplesStepV2` in `grpc-request` lib handles tuple creation via `IamPolicyCreationService.createTuples()` — need to add `creator` tuple alongside the existing `owner` tuple
+- The `creator` FGA tuple is now written at environment creation via `IamPolicyCreationService.createCreatorRelation()` (config-driven: `requires_creator_tuple: true` in proto)
+- The `getSecretValue` RPC is defined in proto but has no backend handler yet (T01.6)
+- `can_read_secrets` permission is in both the `ApiResourceIamPermission` enum (field 25) and the FGA model (`can_read_secrets: creator`)
+- Proto regeneration is needed in stigmer-cloud before T01.6 implementation (to pick up `EnvironmentSecretValueInput` and `getSecretValue` RPC)
 - Execution engine reads secrets via `ExecutionContext.getByExecutionId` (internal path with `DecryptSecretValues`), not through user-facing RPCs — unaffected by these changes
+- `IamPolicyCreationService` already has the pattern: see `createDirectOwner()` and `createCreatorRelation()` side by side for reference when implementing T01.6
 
 ## Quick Commands
 
