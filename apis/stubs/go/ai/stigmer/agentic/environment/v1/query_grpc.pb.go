@@ -22,6 +22,8 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	EnvironmentQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.environment.v1.EnvironmentQueryController/get"
 	EnvironmentQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.environment.v1.EnvironmentQueryController/getByReference"
+	EnvironmentQueryController_GetSecretValue_FullMethodName = "/ai.stigmer.agentic.environment.v1.EnvironmentQueryController/getSecretValue"
+	EnvironmentQueryController_List_FullMethodName           = "/ai.stigmer.agentic.environment.v1.EnvironmentQueryController/list"
 )
 
 // EnvironmentQueryControllerClient is the client API for EnvironmentQueryController service.
@@ -34,6 +36,14 @@ type EnvironmentQueryControllerClient interface {
 	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*Environment, error)
 	// Custom authorization in handler
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Environment, error)
+	// Get the unredacted value of a single secret key in an environment.
+	// Creator-only: requires can_read_secrets permission (FGA: creator relation).
+	// Returns the EnvironmentValue with the decrypted value.
+	GetSecretValue(ctx context.Context, in *EnvironmentSecretValueInput, opts ...grpc.CallOption) (*EnvironmentValue, error)
+	// List environments with optional label filtering.
+	// Authorization is handled in-handler via FGA-filtered queries (cloud)
+	// or unrestricted store queries (OSS). Secret values are redacted.
+	List(ctx context.Context, in *ListEnvironmentsRequest, opts ...grpc.CallOption) (*EnvironmentList, error)
 }
 
 type environmentQueryControllerClient struct {
@@ -64,6 +74,26 @@ func (c *environmentQueryControllerClient) GetByReference(ctx context.Context, i
 	return out, nil
 }
 
+func (c *environmentQueryControllerClient) GetSecretValue(ctx context.Context, in *EnvironmentSecretValueInput, opts ...grpc.CallOption) (*EnvironmentValue, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EnvironmentValue)
+	err := c.cc.Invoke(ctx, EnvironmentQueryController_GetSecretValue_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *environmentQueryControllerClient) List(ctx context.Context, in *ListEnvironmentsRequest, opts ...grpc.CallOption) (*EnvironmentList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EnvironmentList)
+	err := c.cc.Invoke(ctx, EnvironmentQueryController_List_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // EnvironmentQueryControllerServer is the server API for EnvironmentQueryController service.
 // All implementations should embed UnimplementedEnvironmentQueryControllerServer
 // for forward compatibility.
@@ -74,6 +104,14 @@ type EnvironmentQueryControllerServer interface {
 	Get(context.Context, *apiresource.ApiResourceId) (*Environment, error)
 	// Custom authorization in handler
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Environment, error)
+	// Get the unredacted value of a single secret key in an environment.
+	// Creator-only: requires can_read_secrets permission (FGA: creator relation).
+	// Returns the EnvironmentValue with the decrypted value.
+	GetSecretValue(context.Context, *EnvironmentSecretValueInput) (*EnvironmentValue, error)
+	// List environments with optional label filtering.
+	// Authorization is handled in-handler via FGA-filtered queries (cloud)
+	// or unrestricted store queries (OSS). Secret values are redacted.
+	List(context.Context, *ListEnvironmentsRequest) (*EnvironmentList, error)
 }
 
 // UnimplementedEnvironmentQueryControllerServer should be embedded to have
@@ -88,6 +126,12 @@ func (UnimplementedEnvironmentQueryControllerServer) Get(context.Context, *apire
 }
 func (UnimplementedEnvironmentQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*Environment, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
+}
+func (UnimplementedEnvironmentQueryControllerServer) GetSecretValue(context.Context, *EnvironmentSecretValueInput) (*EnvironmentValue, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSecretValue not implemented")
+}
+func (UnimplementedEnvironmentQueryControllerServer) List(context.Context, *ListEnvironmentsRequest) (*EnvironmentList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 func (UnimplementedEnvironmentQueryControllerServer) testEmbeddedByValue() {}
 
@@ -145,6 +189,42 @@ func _EnvironmentQueryController_GetByReference_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EnvironmentQueryController_GetSecretValue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnvironmentSecretValueInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnvironmentQueryControllerServer).GetSecretValue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EnvironmentQueryController_GetSecretValue_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnvironmentQueryControllerServer).GetSecretValue(ctx, req.(*EnvironmentSecretValueInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EnvironmentQueryController_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListEnvironmentsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnvironmentQueryControllerServer).List(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EnvironmentQueryController_List_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnvironmentQueryControllerServer).List(ctx, req.(*ListEnvironmentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // EnvironmentQueryController_ServiceDesc is the grpc.ServiceDesc for EnvironmentQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -159,6 +239,14 @@ var EnvironmentQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByReference",
 			Handler:    _EnvironmentQueryController_GetByReference_Handler,
+		},
+		{
+			MethodName: "getSecretValue",
+			Handler:    _EnvironmentQueryController_GetSecretValue_Handler,
+		},
+		{
+			MethodName: "list",
+			Handler:    _EnvironmentQueryController_List_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

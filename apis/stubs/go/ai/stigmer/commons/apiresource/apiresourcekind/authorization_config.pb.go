@@ -333,6 +333,15 @@ func (x *ParentRelationConfig) GetSpecField() string {
 //	-> Creates: agent_instance#organization@organization:<org_id>
 //	-> Creates: agent_instance#agent@agent:<agent_id>
 //	-> Creates: agent_instance#owner@identity_account:<creator_id>
+//
+// Personal resource with creator attribution (environment):
+//
+//	scope_type: AUTHORIZATION_SCOPE_TYPE_ORGANIZATION
+//	owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
+//	requires_creator_tuple: true
+//	-> Creates: environment#organization@organization:<org_id>
+//	-> Creates: environment#owner@identity_account:<creator_id>
+//	-> Creates: environment#creator@identity_account:<creator_id>
 type AuthorizationConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Primary scope type - determines main linkage for permission inheritance.
@@ -350,9 +359,17 @@ type AuthorizationConfig struct {
 	// When configured with supports_public: true, resources can be made PUBLIC,
 	// which creates an identity_account:* wildcard tuple granting viewer access
 	// to all authenticated users via FGA.
-	Visibility    *VisibilityConfig `protobuf:"bytes,5,opt,name=visibility,proto3" json:"visibility,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Visibility *VisibilityConfig `protobuf:"bytes,5,opt,name=visibility,proto3" json:"visibility,omitempty"`
+	// When true, creates an immutable creator relation tuple alongside the owner tuple.
+	// FGA tuple: resource#creator@identity_account:<creator_id>
+	// Used for resources where creator identity drives specific permissions
+	// (e.g., environment: only the creator can read unredacted secret values).
+	// The creator tuple uses the same identity as the owner tuple but serves
+	// a different purpose: owner is mutable (can be transferred), creator is
+	// permanent attribution.
+	RequiresCreatorTuple bool `protobuf:"varint,6,opt,name=requires_creator_tuple,json=requiresCreatorTuple,proto3" json:"requires_creator_tuple,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *AuthorizationConfig) Reset() {
@@ -420,6 +437,13 @@ func (x *AuthorizationConfig) GetVisibility() *VisibilityConfig {
 	return nil
 }
 
+func (x *AuthorizationConfig) GetRequiresCreatorTuple() bool {
+	if x != nil {
+		return x.RequiresCreatorTuple
+	}
+	return false
+}
+
 var File_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_proto_rawDesc = "" +
@@ -431,7 +455,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_p
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x1a\n" +
 	"\brelation\x18\x02 \x01(\tR\brelation\x12\x1d\n" +
 	"\n" +
-	"spec_field\x18\x03 \x01(\tR\tspecField\"\x96\x04\n" +
+	"spec_field\x18\x03 \x01(\tR\tspecField\"\xcc\x04\n" +
 	"\x13AuthorizationConfig\x12e\n" +
 	"\n" +
 	"scope_type\x18\x01 \x01(\x0e2F.ai.stigmer.commons.apiresource.apiresourcekind.AuthorizationScopeTypeR\tscopeType\x12c\n" +
@@ -441,7 +465,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_authorization_config_p
 	"\x12additional_parents\x18\x04 \x03(\v2D.ai.stigmer.commons.apiresource.apiresourcekind.ParentRelationConfigR\x11additionalParents\x12`\n" +
 	"\n" +
 	"visibility\x18\x05 \x01(\v2@.ai.stigmer.commons.apiresource.apiresourcekind.VisibilityConfigR\n" +
-	"visibility*\x85\x02\n" +
+	"visibility\x124\n" +
+	"\x16requires_creator_tuple\x18\x06 \x01(\bR\x14requiresCreatorTuple*\x85\x02\n" +
 	"\x16AuthorizationScopeType\x12(\n" +
 	"$AUTHORIZATION_SCOPE_TYPE_UNSPECIFIED\x10\x00\x12%\n" +
 	"!AUTHORIZATION_SCOPE_TYPE_PLATFORM\x10\x01\x12)\n" +
