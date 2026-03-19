@@ -68,9 +68,21 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: T01.3 — `useEnvironment` data hook
+**Current Task**: T01.4 — `useCreateEnvironment` behavior hook
 **Status**: In Progress (Phase 1)
-**Last Session**: 2026-03-19 — Completed T01.1 + T01.2
+**Last Session**: 2026-03-19 — Completed T01.1 + T01.2 + T01.3
+
+## Session Progress (2026-03-19, Session 3)
+
+- Implemented T01.3: `useEnvironment` data hook
+  - `sdk/react/src/environment/useEnvironment.ts` — first hook in the SDK that fetches by `ResourceRef` (~87 lines)
+  - `sdk/react/src/environment/index.ts` — barrel export for the environment module
+  - TypeScript compiles cleanly, zero linter errors
+- Key design decisions in this hook:
+  - Accepts `ResourceRef | null` (null skips fetch, consistent with `useSession(null)`)
+  - Destructures `ref` into primitives (`org`, `slug`, `version`) for `useEffect` deps to avoid object identity re-fetch issues
+  - Includes `refetch()` via `fetchKey` increment pattern (from `useSessionList`) — needed by Phase 2 orchestration hook
+  - Error stored as `string | null` (consistent with all existing hooks; Phase 2 orchestration hook will call SDK directly for 404 detection in get-or-create flow)
 
 ## Session Progress (2026-03-19, Session 2)
 
@@ -93,15 +105,14 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01.3** — `useEnvironment` data hook
-2. **T01.4** — `useCreateEnvironment` behavior hook
-3. **T01.5** — `useUpdateEnvironment` behavior hook
-4. **T01.6** — `useAgentInstance` data hook
-5. **T01.7** — `useCreateAgentInstance` behavior hook
-6. **T01.8** — Barrel exports (agent, environment, agent-instance modules + main index.ts)
-7. **T01.9** — SessionComposer integration
-8. **T01.10** — `useCreateSession` wiring
-9. **T01.11** — Console integration (SessionLauncher)
+1. **T01.4** — `useCreateEnvironment` behavior hook
+2. **T01.5** — `useUpdateEnvironment` behavior hook
+3. **T01.6** — `useAgentInstance` data hook
+4. **T01.7** — `useCreateAgentInstance` behavior hook
+5. **T01.8** — Barrel exports (agent, environment, agent-instance modules + main index.ts)
+6. **T01.9** — SessionComposer integration
+7. **T01.10** — `useCreateSession` wiring
+8. **T01.11** — Console integration (SessionLauncher)
 
 ## Context for Resume
 
@@ -109,9 +120,11 @@ When starting a new session:
 - `AgentPicker` is a **single-select** component: `value: ResourceRef | null`, `onChange: (ref: ResourceRef | null) => void`
 - AgentPicker follows the structural pattern of SkillPicker/McpServerPicker but with single-select semantics: clicking a result replaces the current selection, deselect calls `onChange(null)`
 - AgentPicker uses `ApiResourceKind.agent` and its own `AgentIcon` (bot/robot metaphor)
-- Barrel export exists at `sdk/react/src/agent/index.ts` (exports useAgentSearch + AgentPicker) but is NOT yet added to main `sdk/react/src/index.ts` — deferred to T01.8
+- `useEnvironment` is the **first hook that fetches by `ResourceRef`** (not by ID string like `useSession`). It uses `stigmer.environment.getByReference({ org, slug, version })` and destructures the ref into primitives for the dependency array
+- `useEnvironment` includes `refetch()` (unlike `useSession`) — needed by Phase 2 `usePersonalEnvironment` orchestration hook after mutations
+- Barrel exports exist at `sdk/react/src/agent/index.ts` and `sdk/react/src/environment/index.ts` but are NOT yet added to main `sdk/react/src/index.ts` — deferred to T01.8
 - Pickers are self-contained by design — each will evolve independently (McpServerPicker will add per-tool selection, AgentPicker will add env form transition in Phase 2)
-- Key reference files: `sdk/react/src/skill/SkillPicker.tsx` (multi-select pattern), `sdk/react/src/composer/SessionComposer.tsx` (ContextPopover integration pattern)
+- Key reference files: `sdk/react/src/skill/SkillPicker.tsx` (multi-select pattern), `sdk/react/src/composer/SessionComposer.tsx` (ContextPopover integration pattern), `sdk/react/src/session/useSession.ts` (single-resource fetch pattern)
 
 ## Quick Resume
 
