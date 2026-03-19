@@ -68,37 +68,49 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 09:07
-**Current Task**: Task 2 — Create `useExecutionUsage` hook
+**Current Task**: Task 3 — Create `ExecutionCostSummary` component
 **Status**: In Progress
 
-## Session Progress (2026-03-19)
+## Session Progress (2026-03-19, Session 2)
 
 ### Completed
-- **Task 1 (P0): Server-side usage merge fix** — DONE
-  - Fixed in both Go (OSS) and Java (Cloud) servers
-  - 4 files changed across 2 repos: `update_status.go`, `update_status_impl.go`, `AgentExecutionUpdateStatusHandler.java`, `UpdateExecutionStatusActivityImpl.java`
-  - Added merge logic for 3 fields: `usage`, `context_info`, `resolved_context` (replace-if-present semantics)
-  - Updated log statements in all 4 files to include `has_usage`, `has_context_info`, `has_resolved_context`
-  - Go compiles cleanly; Java compiles cleanly (pre-existing errors in unrelated files)
+- **Task 2: Create `useExecutionUsage` hook** — DONE
+  - Created `sdk/react/src/execution/useExecutionUsage.ts`
+  - `aggregateUsage()` pure function: sums UsageMetrics across main agent + sub-agents, merges modelBreakdown by model+provider key, concatenates llmCalls sorted by timestamp
+  - `useExecutionUsage()` hook: thin `useMemo` wrapper returning `UseExecutionUsageReturn`
+  - Uses proto types directly via `create(UsageMetricsSchema)` and `create(ModelUsageSchema)` — zero custom data interfaces, zero field duplication
+  - `UseExecutionUsageReturn` wraps `UsageMetrics | null` with aggregation metadata (`hasSubAgentUsage`, `subAgentUsageCount`)
+  - Short-circuits: returns main agent's UsageMetrics directly when no sub-agents have usage (no allocation)
+  - Handles `toolResultCharsTruncated` as `bigint` (matches `int64` proto field)
+  - Barrel exports added to `sdk/react/src/execution/index.ts` and `sdk/react/src/index.ts`
+  - 19 tests (15 pure function + 4 hook) — all passing
+  - Created `sdk/react/src/execution/__tests__/useExecutionUsage.test.tsx`
 
 ### Decisions Made
-- Scope expanded: fix `context_info` and `resolved_context` alongside `usage` (same gap, same pattern)
-- Java cloud server fixed in same pass as Go OSS server
-- Design decision 001 (usage-merge-gap-root-cause) documented during planning
+- Use proto types directly instead of custom data interfaces (consistent with all existing hooks)
+- Extract `aggregateUsage()` as a standalone pure function for testability and reuse
+- Naming: `UseExecutionUsageReturn` (not `ExecutionUsageSummary` which already exists in `io.proto` for session-level usage reports)
+- `llmCalls` sorted by `timestamp` (not `sequence`) because sequence numbers overlap across agents
+
+### Previous Session (Session 1)
+- **Task 1 (P0): Server-side usage merge fix** — DONE
+  - Fixed in both Go (OSS) and Java (Cloud) servers
+  - 4 files changed across 2 repos
+  - Added merge logic for `usage`, `context_info`, `resolved_context`
 
 ### Pre-existing Inconsistencies Found (Not Fixed)
 - Both gRPC handlers merge `artifacts`, but both Temporal activities skip `artifacts`
 - Both Temporal activities set `StatusAudit.UpdatedAt`, but both gRPC handlers do not
 
 ## Next Steps
-1. **Task 2**: Create `useExecutionUsage` hook in `sdk/react/src/execution/useExecutionUsage.ts`
-2. **Task 3**: Create `ExecutionCostSummary` component in `sdk/react/src/execution/ExecutionCostSummary.tsx`
-3. **Task 4**: Export, Console integration, end-to-end verification
+1. **Task 3**: Create `ExecutionCostSummary` component in `sdk/react/src/execution/ExecutionCostSummary.tsx`
+2. **Task 4**: Export, Console integration, end-to-end verification
 
 ## Context for Resume
 - The 4 open questions from T01_0_plan.md are still unresolved (sub-agent breakdown display, number formatting, per-call metrics exposure)
 - The server-side fix is committed but not yet validated with a live agent execution
-- Tasks 2-4 are purely frontend (TypeScript/React) — no more backend work needed
+- Task 3 is purely frontend — the hook (`useExecutionUsage`) provides the data layer; the component needs to consume it and render a styled widget using `@stigmer/theme` tokens
+- Task 2's plan file at `/Users/suresh/.cursor/plans/useexecutionusage_hook_d5e7d4ac.plan.md` documents the full design including architecture diagrams
 
 ## Quick Commands
 
