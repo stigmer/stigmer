@@ -7,6 +7,7 @@ import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import { useComposer } from "./useComposer";
 import { ModelSelector } from "../models/ModelSelector";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
+import { AgentPicker } from "../agent/AgentPicker";
 import { McpServerPicker } from "../mcp-server/McpServerPicker";
 import { SkillPicker } from "../skill/SkillPicker";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries";
@@ -43,10 +44,19 @@ export interface SessionComposerProps {
   readonly enableFolderBrowser?: boolean;
 
   /**
-   * Organization slug for MCP server and skill searches.
-   * Required when MCP or skill pickers are enabled.
+   * Organization slug for agent, MCP server, and skill searches.
+   * Required when agent, MCP, or skill pickers are enabled.
    */
   readonly org?: string;
+
+  /**
+   * Currently selected agent reference, or null if none.
+   * When `onAgentRefChange` is provided, an agent trigger
+   * appears in the toolbar (single-select).
+   */
+  readonly agentRef?: ResourceRef | null;
+  /** Called when the agent selection changes. Providing this enables the agent trigger. */
+  readonly onAgentRefChange?: (ref: ResourceRef | null) => void;
 
   /**
    * Currently selected MCP server usages.
@@ -82,9 +92,9 @@ export interface SessionComposerProps {
  * Unified message composer for Stigmer sessions.
  *
  * Combines a self-resizing textarea, model selector, and context pickers
- * (workspace, MCP servers, skills) into a single input card. Context
- * pickers appear as toolbar triggers that open popovers. Selected items
- * render as removable chips between the textarea and toolbar.
+ * (agent, workspace, MCP servers, skills) into a single input card.
+ * Context pickers appear as toolbar triggers that open popovers. Selected
+ * items render as removable chips between the textarea and toolbar.
  *
  * Used for both new session creation (launcher) and follow-up messages
  * within an existing session. Layout positioning is the consumer's
@@ -101,6 +111,8 @@ export interface SessionComposerProps {
  * <SessionComposer
  *   onSubmit={handleCreate}
  *   org={org}
+ *   agentRef={agentRef}
+ *   onAgentRefChange={setAgentRef}
  *   workspace={workspace}
  *   enableGitHub
  *   mcpServerUsages={mcpUsages}
@@ -134,6 +146,8 @@ export function SessionComposer({
   enableLocal = false,
   enableFolderBrowser = false,
   org,
+  agentRef,
+  onAgentRefChange,
   mcpServerUsages,
   onMcpServerUsagesChange,
   skillRefs,
@@ -146,7 +160,7 @@ export function SessionComposer({
 }: SessionComposerProps) {
   const [modelId, setModelId] = useState<string | undefined>(defaultModelId);
 
-  // Display name cache for MCP servers and skills (populated by pickers)
+  // Display name cache for agents, MCP servers, and skills (populated by pickers)
   const [displayNames, setDisplayNames] = useState<Map<string, string>>(
     () => new Map(),
   );
@@ -184,14 +198,25 @@ export function SessionComposer({
     [],
   );
 
+  const showAgent = onAgentRefChange != null && org != null;
   const showWorkspace = workspace != null;
   const showMcp = onMcpServerUsagesChange != null && org != null;
   const showSkills = onSkillRefsChange != null && org != null;
-  const hasContextTriggers = showWorkspace || showMcp || showSkills;
+  const hasContextTriggers = showAgent || showWorkspace || showMcp || showSkills;
 
   // Build chip items from all context sources
   const chips = useMemo(() => {
     const items: ChipItem[] = [];
+
+    if (agentRef) {
+      const refStr = `${agentRef.org}/${agentRef.slug}`;
+      items.push({
+        key: `agent:${refStr}`,
+        label: displayNames.get(refStr) ?? agentRef.slug,
+        type: "agent",
+        onRemove: () => onAgentRefChange?.(null),
+      });
+    }
 
     if (workspace) {
       for (const entry of workspace.entries) {
@@ -241,6 +266,8 @@ export function SessionComposer({
 
     return items;
   }, [
+    agentRef,
+    onAgentRefChange,
     workspace,
     mcpServerUsages,
     skillRefs,
@@ -296,6 +323,23 @@ export function SessionComposer({
             {/* Context triggers */}
             {hasContextTriggers && (
               <>
+                {showAgent && (
+                  <ContextPopover
+                    icon={<AgentIcon />}
+                    label="Agent"
+                    count={agentRef ? 1 : 0}
+                    disabled={isDisabled}
+                  >
+                    <AgentPicker
+                      org={org!}
+                      value={agentRef ?? null}
+                      onChange={onAgentRefChange!}
+                      onDisplayNameResolved={handleDisplayNameResolved}
+                      disabled={isDisabled}
+                    />
+                  </ContextPopover>
+                )}
+
                 {showWorkspace && (
                   <ContextPopover
                     icon={<WorkspaceIcon />}
@@ -436,11 +480,12 @@ function ContextPopover({
 interface ChipItem {
   key: string;
   label: string;
-  type: "workspace" | "mcp" | "skill";
+  type: "agent" | "workspace" | "mcp" | "skill";
   onRemove: () => void;
 }
 
 const CHIP_TYPE_LABELS: Record<ChipItem["type"], string> = {
+  agent: "Agent",
   workspace: "WS",
   mcp: "MCP",
   skill: "Skill",
@@ -530,6 +575,28 @@ function XIcon() {
       aria-hidden="true"
     >
       <path d="M4 4L10 10M10 4L4 10" />
+    </svg>
+  );
+}
+
+function AgentIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="5" width="10" height="8" rx="2" />
+      <circle cx="6" cy="9" r="1" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="9" r="1" fill="currentColor" stroke="none" />
+      <path d="M8 1v4" />
+      <circle cx="8" cy="1" r="1" />
     </svg>
   );
 }

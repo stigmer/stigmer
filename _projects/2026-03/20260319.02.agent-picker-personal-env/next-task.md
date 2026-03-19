@@ -68,9 +68,25 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: T01.9 — SessionComposer integration
+**Current Task**: T01.10 — useCreateSession wiring
 **Status**: In Progress (Phase 1)
-**Last Session**: 2026-03-19 — Completed T01.8
+**Last Session**: 2026-03-19 — Completed T01.9
+
+## Session Progress (2026-03-19, Session 9)
+
+- Completed T01.9: SessionComposer integration — wired AgentPicker into the composer toolbar
+  - Modified `sdk/react/src/composer/SessionComposer.tsx` (+83 lines, net change)
+  - Added `agentRef?: ResourceRef | null` and `onAgentRefChange?: (ref: ResourceRef | null) => void` props to `SessionComposerProps`
+  - AgentPicker renders inside a `ContextPopover` as the **first** toolbar trigger (before Workspace, MCP, Skills) — per Design Decision 003
+  - Extended `ChipItem["type"]` union with `"agent"` and `CHIP_TYPE_LABELS` with `agent: "Agent"`
+  - Agent chip renders first in the chip row (highest impact context selection)
+  - Visibility guard: `showAgent = onAgentRefChange != null && org != null` — consistent with MCP/Skills pattern
+  - Added 14x14 `AgentIcon` matching the toolbar icon style (bot/robot metaphor, same as AgentPicker's internal icon)
+  - Updated JSDoc: component description and `@example` block include agent props
+  - Display name cache comment updated to include agents
+  - TypeScript compiles cleanly, zero linter errors on modified file
+- UX note: popover stays open after single-select (ContextPopover is uncontrolled). Acceptable for Phase 1; Phase 2 T02.4 will make it controlled for the picker-to-env-form transition.
+- All Phase 1 integration work on SessionComposer is complete. Remaining Phase 1 tasks: useCreateSession wiring (T01.10), Console integration (T01.11).
 
 ## Session Progress (2026-03-19, Session 8)
 
@@ -154,13 +170,13 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01.9** — SessionComposer integration (add AgentPicker to composer toolbar)
-2. **T01.10** — `useCreateSession` wiring (agentRef + agentInstanceId on CreateSessionInput)
-3. **T01.11** — Console integration (SessionLauncher — wire agent state)
+1. **T01.10** — `useCreateSession` wiring (agentRef + agentInstanceId on CreateSessionInput)
+2. **T01.11** — Console integration (SessionLauncher — wire agent state, pass agentRef to SessionComposer and createSession)
 
 ## Context for Resume
 
-- All Phase 1 building-block hooks AND barrel exports are now complete (T01.1–T01.8). Everything is importable from `@stigmer/react`. The remaining Phase 1 work is pure integration: SessionComposer (T01.9), useCreateSession (T01.10), Console (T01.11)
+- All Phase 1 building-block hooks, barrel exports, AND SessionComposer integration are now complete (T01.1–T01.9). Everything is importable from `@stigmer/react`. The remaining Phase 1 work is two wiring tasks: useCreateSession (T01.10) and Console integration (T01.11)
+- SessionComposer now accepts `agentRef` / `onAgentRefChange` props. The Agent trigger appears first in the toolbar (before Workspace, MCP, Skills). The consumer (SessionLauncher) still needs to add `useState` for `agentRef` and pass it down (T01.11).
 - `useCreateAgentInstance` follows the `useCreateEnvironment` pattern exactly — wraps `stigmer.agentInstance.create()` with `{ create, isCreating, error, clearError }`; will be composed by Phase 2 `usePersonalAgentInstance` for get-or-create flow
 - The `useAgentSearch` hook wraps `stigmer.agent.list()` via `useResourceSearch`
 - `AgentPicker` is a **single-select** component: `value: ResourceRef | null`, `onChange: (ref: ResourceRef | null) => void`
