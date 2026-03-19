@@ -6,3 +6,15 @@ export type {
 
 export { AgentPicker } from "./AgentPicker";
 export type { AgentPickerProps } from "./AgentPicker";
+
+export { AgentEnvForm } from "./AgentEnvForm";
+export type {
+  AgentEnvFormProps,
+  AgentEnvFormVariable,
+} from "./AgentEnvForm";
+
+export { useAgentSetup } from "./useAgentSetup";
+export type {
+  AgentSetupResult,
+  UseAgentSetupReturn,
+} from "./useAgentSetup";
