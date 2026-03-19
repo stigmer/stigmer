@@ -55,6 +55,7 @@ export function SessionLauncher() {
   }, [modelId]);
 
   const workspace = useWorkspaceEntries();
+  const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const { create: createSession } = useCreateSession();
@@ -76,6 +77,7 @@ export function SessionLauncher() {
             : undefined,
           mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
+          agentRef: agentRef ?? undefined,
         });
 
         await createExecution({
@@ -102,6 +104,7 @@ export function SessionLauncher() {
       workspace,
       mcpServerUsages,
       skillRefs,
+      agentRef,
       createSession,
       createExecution,
       router,
@@ -124,6 +127,8 @@ export function SessionLauncher() {
           enableGitHub
           enableLocal={deploymentMode === "local"}
           enableFolderBrowser={deploymentMode === "local"}
+          agentRef={agentRef}
+          onAgentRefChange={setAgentRef}
           mcpServerUsages={mcpServerUsages}
           onMcpServerUsagesChange={setMcpServerUsages}
           skillRefs={skillRefs}
