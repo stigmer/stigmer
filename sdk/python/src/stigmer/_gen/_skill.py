@@ -89,6 +89,7 @@ class SkillInput:
 
     name: str
     org: str
+    slug: str | None = None
     labels: dict[str, str] | None = None
     skill_md: str = ""
     tag: str = ""
@@ -104,6 +105,8 @@ class SkillInput:
             name=self.name,
             org=self.org,
         )
+        if self.slug:
+            metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
         return api_pb2.Skill(

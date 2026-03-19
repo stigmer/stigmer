@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -57,6 +57,7 @@ func (w *WorkflowClient) GetByReference(ctx context.Context, input *apiresource.
 // WorkflowInput holds the fields for creating/updating a Workflow.
 type WorkflowInput struct {
 	Name        string
+	Slug        string
 	Org         string
 	Labels      map[string]string
 	Description string
@@ -99,6 +100,7 @@ func (i *WorkflowInput) toProto() *workflowv1.Workflow {
 		Kind:       "Workflow",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name:   i.Name,
+			Slug:   i.Slug,
 			Org:    i.Org,
 			Labels: i.Labels,
 		},

@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 )
 
@@ -60,6 +60,7 @@ func (e *ExecutionContextClient) GetByExecutionId(ctx context.Context, input *ex
 // ExecutionContextInput holds the fields for creating/updating a ExecutionContext.
 type ExecutionContextInput struct {
 	Name        string
+	Slug        string
 	Org         string
 	Labels      map[string]string
 	ExecutionId string
@@ -72,6 +73,7 @@ func (i *ExecutionContextInput) toProto() *executioncontextv1.ExecutionContext {
 		Kind:       "ExecutionContext",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name:   i.Name,
+			Slug:   i.Slug,
 			Org:    i.Org,
 			Labels: i.Labels,
 		},

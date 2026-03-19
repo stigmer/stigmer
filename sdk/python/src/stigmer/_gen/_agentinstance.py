@@ -80,6 +80,7 @@ class AgentInstanceInput:
 
     name: str
     org: str
+    slug: str | None = None
     labels: dict[str, str] | None = None
     agent_id: str = ""
     description: str = ""
@@ -96,6 +97,8 @@ class AgentInstanceInput:
             name=self.name,
             org=self.org,
         )
+        if self.slug:
+            metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
         return api_pb2.AgentInstance(

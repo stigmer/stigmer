@@ -11,6 +11,7 @@ import ai.stigmer.iam.iampolicy.v1.IamPolicySpec;
 public final class IamPolicyInput {
     private final String name;
     private final String org;
+    private final String slug;
     private final java.util.Map<String, String> labels;
     private final ApiResourceRefInput principal;
     private final ApiResourceRefInput resource;
@@ -19,6 +20,7 @@ public final class IamPolicyInput {
     private IamPolicyInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.slug = builder.slug;
         this.labels = builder.labels;
         this.principal = builder.principal;
         this.resource = builder.resource;
@@ -39,6 +41,9 @@ public final class IamPolicyInput {
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
+        if (this.slug != null) {
+            metaBuilder.setSlug(this.slug);
+        }
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
@@ -55,6 +60,7 @@ public final class IamPolicyInput {
     public static final class Builder {
         private String name;
         private String org;
+        private String slug;
         private java.util.Map<String, String> labels;
         private ApiResourceRefInput principal;
         private ApiResourceRefInput resource;
@@ -64,6 +70,7 @@ public final class IamPolicyInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder principal(ApiResourceRefInput principal) { this.principal = principal; return this; }
         public Builder resource(ApiResourceRefInput resource) { this.resource = resource; return this; }

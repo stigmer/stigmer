@@ -69,6 +69,7 @@ class ExecutionContextInput:
 
     name: str
     org: str
+    slug: str | None = None
     labels: dict[str, str] | None = None
     execution_id: str = ""
     data: dict[str, EnvVarInput] = field(default_factory=dict)
@@ -85,6 +86,8 @@ class ExecutionContextInput:
             name=self.name,
             org=self.org,
         )
+        if self.slug:
+            metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
         return api_pb2.ExecutionContext(

@@ -149,6 +149,7 @@ class AgentExecutionInput:
 
     name: str
     org: str
+    slug: str | None = None
     labels: dict[str, str] | None = None
     session_id: str = ""
     agent_id: str = ""
@@ -184,6 +185,8 @@ class AgentExecutionInput:
             name=self.name,
             org=self.org,
         )
+        if self.slug:
+            metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
         return api_pb2.AgentExecution(

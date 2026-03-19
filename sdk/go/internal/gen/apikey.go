@@ -6,8 +6,8 @@ import (
 	"context"
 	"time"
 
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	apikeyv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/apikey/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apikeyv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/apikey/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -59,6 +59,7 @@ func (a *ApiKeyClient) FindAll(ctx context.Context) (*apikeyv1.ApiKeys, error) {
 // ApiKeyInput holds the fields for creating/updating a ApiKey.
 type ApiKeyInput struct {
 	Name         string
+	Slug         string
 	Org          string
 	Labels       map[string]string
 	KeyHash      string
@@ -73,6 +74,7 @@ func (i *ApiKeyInput) toProto() *apikeyv1.ApiKey {
 		Kind:       "ApiKey",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name:   i.Name,
+			Slug:   i.Slug,
 			Org:    i.Org,
 			Labels: i.Labels,
 		},

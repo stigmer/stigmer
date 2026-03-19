@@ -70,6 +70,7 @@ class WorkflowInput:
     name: str
     org: str
     document: WorkflowDocumentInput | None
+    slug: str | None = None
     labels: dict[str, str] | None = None
     description: str = ""
     tasks: list[WorkflowTaskInput] = field(default_factory=list)
@@ -89,6 +90,8 @@ class WorkflowInput:
             name=self.name,
             org=self.org,
         )
+        if self.slug:
+            metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
         return api_pb2.Workflow(

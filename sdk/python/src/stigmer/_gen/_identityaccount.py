@@ -87,6 +87,7 @@ class IdentityAccountInput:
     name: str
     org: str
     idp_id: str
+    slug: str | None = None
     labels: dict[str, str] | None = None
     email: str = ""
     first_name: str = ""
@@ -112,6 +113,8 @@ class IdentityAccountInput:
             name=self.name,
             org=self.org,
         )
+        if self.slug:
+            metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
         return api_pb2.IdentityAccount(

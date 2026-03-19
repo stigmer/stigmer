@@ -6,9 +6,9 @@ import (
 	"context"
 	"io"
 
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
-	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	agentexecutionv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 )
 
@@ -142,6 +142,7 @@ func (a *AgentExecutionClient) GetOrgUsageReport(ctx context.Context, input *age
 // AgentExecutionInput holds the fields for creating/updating a AgentExecution.
 type AgentExecutionInput struct {
 	Name              string
+	Slug              string
 	Org               string
 	Labels            map[string]string
 	SessionId         string
@@ -188,6 +189,7 @@ func (i *AgentExecutionInput) toProto() *agentexecutionv1.AgentExecution {
 		Kind:       "AgentExecution",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name:   i.Name,
+			Slug:   i.Slug,
 			Org:    i.Org,
 			Labels: i.Labels,
 		},

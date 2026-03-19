@@ -14,6 +14,7 @@ import ai.stigmer.commons.apiresource.ApiResourceMetadata;
 public final class AgentExecutionInput {
     private final String name;
     private final String org;
+    private final String slug;
     private final java.util.Map<String, String> labels;
     private final String sessionId;
     private final String agentId;
@@ -29,6 +30,7 @@ public final class AgentExecutionInput {
     private AgentExecutionInput(Builder builder) {
         this.name = builder.name;
         this.org = builder.org;
+        this.slug = builder.slug;
         this.labels = builder.labels;
         this.sessionId = builder.sessionId;
         this.agentId = builder.agentId;
@@ -82,6 +84,9 @@ public final class AgentExecutionInput {
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
+        if (this.slug != null) {
+            metaBuilder.setSlug(this.slug);
+        }
         if (this.labels != null) {
             metaBuilder.putAllLabels(this.labels);
         }
@@ -98,6 +103,7 @@ public final class AgentExecutionInput {
     public static final class Builder {
         private String name;
         private String org;
+        private String slug;
         private java.util.Map<String, String> labels;
         private String sessionId;
         private String agentId;
@@ -114,6 +120,7 @@ public final class AgentExecutionInput {
 
         public Builder name(String name) { this.name = name; return this; }
         public Builder org(String org) { this.org = org; return this; }
+        public Builder slug(String slug) { this.slug = slug; return this; }
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder sessionId(String sessionId) { this.sessionId = sessionId; return this; }
         public Builder agentId(String agentId) { this.agentId = agentId; return this; }

@@ -5,8 +5,8 @@ package gen
 import (
 	"context"
 
-	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
-	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 )
 
@@ -80,6 +80,7 @@ func (e *EnvironmentClient) List(ctx context.Context, input *environmentv1.ListE
 // EnvironmentInput holds the fields for creating/updating a Environment.
 type EnvironmentInput struct {
 	Name        string
+	Slug        string
 	Org         string
 	Labels      map[string]string
 	Description string
@@ -92,6 +93,7 @@ func (i *EnvironmentInput) toProto() *environmentv1.Environment {
 		Kind:       "Environment",
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name:   i.Name,
+			Slug:   i.Slug,
 			Org:    i.Org,
 			Labels: i.Labels,
 		},

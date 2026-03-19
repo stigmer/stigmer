@@ -87,6 +87,7 @@ class IamPolicyInput:
     principal: ApiResourceRefInput | None
     resource: ApiResourceRefInput | None
     relation: str
+    slug: str | None = None
     labels: dict[str, str] | None = None
 
     def _to_proto(self) -> api_pb2.IamPolicy:
@@ -101,6 +102,8 @@ class IamPolicyInput:
             name=self.name,
             org=self.org,
         )
+        if self.slug:
+            metadata.slug = self.slug
         if self.labels:
             metadata.labels.update(self.labels)
         return api_pb2.IamPolicy(
