@@ -104,13 +104,26 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*workf
 		execution.GetSpec().GetRuntimeEnv(),
 	)
 
+	// 6. Filter merged env vars by workflow env_spec (least-privilege whitelist).
+	// Workflows only receive variables they explicitly declared. If env_spec is
+	// nil or empty, all vars pass through for backward compatibility.
+	filtered, excludedKeys := envmerge.FilterByEnvSpec(merged, workflow.GetSpec().GetEnvSpec().GetData())
+	if len(excludedKeys) > 0 {
+		log.Warn().
+			Str("execution_id", executionID).
+			Str("workflow_id", workflowID).
+			Strs("excluded_keys", excludedKeys).
+			Msg("Filtered env vars not declared in workflow env_spec")
+	}
+
 	log.Info().
 		Str("execution_id", executionID).
 		Int("merged_count", len(merged)).
+		Int("filtered_count", len(filtered)).
 		Int("env_refs_count", len(instance.GetSpec().GetEnvRefs())).
 		Msg("Merged environment layers for execution context")
 
-	// 6. Build and persist ExecutionContext
+	// 7. Build and persist ExecutionContext
 	ec := &executioncontextv1.ExecutionContext{
 		ApiVersion: "agentic.stigmer.ai/v1",
 		Kind:       "ExecutionContext",
@@ -120,7 +133,7 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*workf
 		},
 		Spec: &executioncontextv1.ExecutionContextSpec{
 			ExecutionId: executionID,
-			Data:        merged,
+			Data:        filtered,
 		},
 	}
 
@@ -132,10 +145,10 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*workf
 	log.Info().
 		Str("execution_context_id", created.GetMetadata().GetId()).
 		Str("execution_id", executionID).
-		Int("data_entries", len(merged)).
+		Int("data_entries", len(filtered)).
 		Msg("Successfully created execution context")
 
-	// 7. Clear runtime_env from the execution now that it has been consumed.
+	// 8. Clear runtime_env from the execution now that it has been consumed.
 	// runtime_env is a transient creation-time input; its contents are now
 	// materialized in the ExecutionContext. Clearing it ensures secrets never
 	// appear in the persisted execution or in Temporal workflow history.

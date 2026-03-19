@@ -68,9 +68,25 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: Phase 2 T02.1–T02.4 complete — next is T02.5 (no-op confirmation), then Phase 3 (backend env_spec filter)
-**Status**: Phase 2 In Progress (T02.1–T02.4 done)
-**Last Session**: 2026-03-19 — Completed T02.3 + T02.4 (AgentEnvForm, useAgentSetup, SessionComposer integration)
+**Current Task**: Phase 3 complete — next is T02.5 (manual e2e validation), then Phase 4 (GitHub token migration)
+**Status**: Phase 3 Complete (env_spec whitelist filter shipped in Go + Java)
+**Last Session**: 2026-03-19 — Completed Phase 3: backend env_spec whitelist filter in both Go (stigmer OSS) and Java (stigmer-cloud)
+
+## Session Progress (2026-03-19, Session 14)
+
+- Completed Phase 3: Backend env_spec whitelist filter — both Go (stigmer OSS) and Java (stigmer-cloud)
+- **Go changes (stigmer OSS)**:
+  - Added `FilterByEnvSpec` function to `backend/libs/go/envmerge/merge.go` (~30 lines)
+  - Applied filter in agent + workflow `create_execution_context_step.go` with warn-level logging of excluded keys
+  - Created `backend/libs/go/envmerge/merge_test.go` with 20 table-driven tests (retroactive MergeEnvironmentLayers + new FilterByEnvSpec)
+  - Updated `BUILD.bazel` with `go_test` rule
+- **Java changes (stigmer-cloud)**:
+  - Added `EnvSpecFilterResult` record + `filterByEnvSpec` static method to `EnvironmentMergeService.java`
+  - Applied filter in agent + workflow `CreateExecutionContextStep.java` (between merge and MCP validation)
+  - Added `FilterByEnvSpecTests` nested class to `EnvironmentMergeServiceTest.java` (7 tests)
+- All Go tests pass (20 total), Java service library compiles cleanly via Bazel
+- Key decision: filter placed BEFORE `McpEnvironmentValidator` in Java — missing MCP vars due to env_spec misconfiguration now fail fast with a clear validation error
+- Backward compat: nil/empty env_spec = all vars pass through (no behavior change for legacy agents/workflows)
 
 ## Session Progress (2026-03-19, Session 13)
 
@@ -266,18 +282,19 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T02.5** — No-op confirmation: manual end-to-end walkthrough of agent picker → env form → session creation flow (verify against real backend)
-2. **Phase 3 (T03.1–T03.3)** — Backend env_spec whitelist filter in `envmerge` (security: must ship before personal environments accumulate secrets)
-3. **Phase 4 (T04.1–T04.3)** — GitHub token migration from localStorage to server-side personal env (depends on Phase 2)
+1. **T02.5** — Manual e2e validation: walkthrough of agent picker → env form → session creation flow against real backend
+2. **Phase 4 (T04.1–T04.3)** — GitHub token migration from localStorage to server-side personal env (depends on Phase 2)
+3. **Create PR for stigmer-cloud** — Java env_spec filter changes need to be committed and PRed in the stigmer-cloud repo
 
 ## Context for Resume
 
 - **Phase 1 is fully complete** (T01.1–T01.11). Agent selection is wired end-to-end from the SessionComposer toolbar through SessionLauncher to useCreateSession.
 - **Phase 2 T02.1–T02.4 complete**. AgentEnvForm, useAgentSetup, and full SessionComposer integration are implemented and barrel-exported.
+- **Phase 3 is fully complete** in both Go (stigmer OSS) and Java (stigmer-cloud). `FilterByEnvSpec` / `filterByEnvSpec` added to `envmerge` / `EnvironmentMergeService`, applied in all 4 execution context creation paths (agent + workflow, both services), with comprehensive test coverage.
 - The remaining Phase 2 task (T02.5) is manual e2e validation — no code changes expected.
-- The recommended execution order going forward is: **T02.5 → Phase 3 → Phase 4**
-- Phase 3 is backend-only (Go, `backend/libs/go/envmerge/merge.go`) and independent of frontend work. It adds env_spec whitelist filtering so agents only receive env vars they declared.
+- The recommended execution order going forward is: **T02.5 → Phase 4**
 - Phase 4 migrates the GitHub OAuth token from browser localStorage to the server-side personal Environment, using the infrastructure from Phase 2.
+- **Important**: stigmer-cloud changes (Java env_spec filter) are uncommitted on `feat/add-customize-ui` branch — commit and PR needed.
 - All Layer 1 hooks and components are importable from `@stigmer/react`: `useAgentSearch`, `AgentPicker`, `AgentEnvForm`, `useEnvironment`, `useCreateEnvironment`, `useUpdateEnvironment`, `useAgentInstance`, `useCreateAgentInstance`, `useCreateSession` (with agentRef/agentInstanceId)
 - Layer 2 orchestration: `useAgentSetup(org)` — `resolveAgent(ref)` returns `"ready"` or `"needsEnvVars"`, `submitEnvVars(values)` completes setup
 - `useCreateSession` resolution priority: `agentInstanceId` > `agentRef` > omitted (backend default). Phase 2 flow resolves to `agentInstanceId` via `useAgentSetup` before reaching `createSession`.
