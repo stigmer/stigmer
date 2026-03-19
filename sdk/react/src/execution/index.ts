@@ -10,6 +10,9 @@ export { isTerminalPhase } from "./execution-phases";
 export { useExecutionStream } from "./useExecutionStream";
 export type { UseExecutionStreamReturn } from "./useExecutionStream";
 
+export { useExecutionUsage, aggregateUsage } from "./useExecutionUsage";
+export type { UseExecutionUsageReturn } from "./useExecutionUsage";
+
 export { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 export type { ExecutionPhaseBadgeProps } from "./ExecutionPhaseBadge";
 
