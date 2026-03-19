@@ -24,9 +24,12 @@ export interface UseEnvironmentReturn {
  * have access to metadata, spec (including `data` key-value pairs),
  * and status without additional calls.
  *
- * This is a Layer 1 building-block hook for platform builders who
- * manage environments programmatically. For the "personal environment"
- * flow used by the Stigmer Console, see `usePersonalEnvironment`.
+ * This is a Layer 1 building-block hook for the **Environment Flow**
+ * — persistent credential storage via Environment resources. For the
+ * managed "personal environment" convenience, see
+ * {@link usePersonalEnvironment}. For ephemeral per-execution secrets,
+ * see the Execution Flow via {@link useCreateAgentExecution} with
+ * `runtimeEnv`.
  *
  * @example
  * ```tsx

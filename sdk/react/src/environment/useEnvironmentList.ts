@@ -24,8 +24,9 @@ export interface UseEnvironmentListReturn {
  *
  * Secret values in returned environments are redacted server-side.
  *
- * This is a Layer 1 building-block hook. For the convenience
- * "personal environment" wrapper, see {@link usePersonalEnvironment}.
+ * This is a Layer 1 building-block hook for the **Environment Flow**.
+ * For the managed "personal environment" convenience, see
+ * {@link usePersonalEnvironment}.
  *
  * @example
  * ```tsx

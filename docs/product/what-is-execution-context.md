@@ -247,3 +247,4 @@ This field is populated from the ExecutionContext at execution start and capture
 - [What is an Agent Execution?](./what-is-agent-execution.md) — The execution record that triggers ExecutionContext creation
 - [ExecutionContext Resource Guide](../../apis/ai/stigmer/agentic/executioncontext/docs/execution-context-resource-guide.md) — Complete spec, status, authorization model, and lifecycle
 - [ExecutionContext Examples](../../apis/ai/stigmer/agentic/executioncontext/docs/examples.md) — Example payloads: B2B injection, merged environments, workflow execution contexts
+- [How to Provide Secrets](./how-to-provide-secrets.md) — Choosing between the Environment Flow (persistent) and the Execution Flow (ephemeral)

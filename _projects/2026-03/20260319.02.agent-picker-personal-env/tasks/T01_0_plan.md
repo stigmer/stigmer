@@ -7,41 +7,37 @@
 
 This project adds agent selection to the SessionComposer and builds the "personal environment" flow that lets users seamlessly use agents requiring credentials — without ever seeing the words "AgentInstance" or "Environment."
 
-The SDK hooks are designed in two layers to serve both consumer profiles of the platform.
+The SDK hooks are organized along two orthogonal dimensions: **secret delivery flow** and **orchestration level**. See [Design Decision 005](../design-decisions/005-two-profile-hook-layering.md) for the full rationale.
 
 ---
 
-## Two Consumer Profiles
+## Two Secret Delivery Flows
 
-Every hook and component in this project serves one or both of these profiles. The distinction is a first-class design concern, not an afterthought.
+Stigmer supports two ways to provide secrets to agents. The choice depends on operational needs, not on whether the caller is a platform builder or a direct user.
 
-### Profile A: Platform Builders
+### Environment Flow (persistent credentials)
 
-Platform builders embed Stigmer into their own product. They:
-- Pre-provision agents, environments, and agent instances via API or their own backend
-- Control which agents their end users see
-- Provide credentials server-side (their end users never enter env vars)
-- May or may not use `SessionComposer` — they might build their own UI
-- Need **low-level building-block hooks** that do one thing each, with no magic
+Secrets are stored in **Environment** resources, bound to agents via **AgentInstance** references. Secrets persist across executions — set up once, available for every future run.
 
-**What they use**: `useAgentSearch`, `AgentPicker`, `useCreateEnvironment`, `useCreateAgentInstance`, `useCreateSession` with explicit `agentInstanceId`.
+**When to use**: Stable, reused credentials (API tokens, OAuth secrets, team-shared keys); credential rotation without touching agent configuration; UI-driven credential management.
 
-### Profile B: Direct Stigmer Users
+**SDK hooks**: `useCreateEnvironment`, `useUpdateEnvironmentVariables`, `useCreateAgentInstance`, `usePersonalEnvironment`, `useAgentSetup`, `EnvironmentVariableEditor`, `SessionComposer`.
 
-Users of the Stigmer Console (or any app that wants the full agent-selection experience). They:
-- Pick an agent from a searchable list
-- Get prompted for credentials on first use (inline, contextual)
-- Never see "AgentInstance" or "Environment" as concepts
-- Expect it to "just work" on subsequent uses
-- Need **high-level orchestration hooks** that handle the multi-step provisioning flow
+### Execution Flow (ephemeral credentials)
 
-**What they use**: `usePersonalEnvironment`, `usePersonalAgentInstance`, `AgentEnvForm`, `SessionComposer` with agent props.
+Secrets are passed via `runtimeEnv` at execution creation time. They exist for a single execution and are deleted on completion.
+
+**When to use**: B2B SaaS integrations with per-customer credentials; one-off secrets; programmatic orchestration where the calling system holds the secrets; per-execution overrides.
+
+**SDK hooks**: `useCreateAgentExecution` (with `runtimeEnv`), `useSessionConversation.sendFollowUp` (with `runtimeEnv`).
+
+See [How to Provide Secrets](../../../docs/product/how-to-provide-secrets.md) for the full guide.
 
 ### Hook Layering
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Layer 2: Orchestration Hooks (Profile B — Direct Users)     │
+│  Layer 2: Orchestration Hooks (Environment Flow)             │
 │                                                              │
 │  usePersonalEnvironment(org)                                 │
 │    → get/create personal env, add variables                  │
@@ -49,41 +45,34 @@ Users of the Stigmer Console (or any app that wants the full agent-selection exp
 │  usePersonalAgentInstance(org, agentRef)                      │
 │    → get/create personal instance, link to personal env      │
 │                                                              │
-│  AgentEnvForm                                                │
-│    → inline form rendered from agent env_spec                │
+│  useAgentSetup(org)                                          │
+│    → full agent resolve + env var collection orchestration    │
 │                                                              │
 │  SessionComposer (with agent props)                          │
 │    → full agent picker + env form + session creation          │
 ├─────────────────────────────────────────────────────────────┤
-│  Layer 1: Building-Block Hooks (Profile A — Platform Builders)│
+│  Layer 1: Building-Block Hooks (Both Flows)                  │
 │                                                              │
-│  useAgentSearch(org)                                         │
-│    → search agents, returns SearchResult[]                   │
-│                                                              │
-│  AgentPicker                                                 │
-│    → single-select searchable list in popover                │
-│                                                              │
-│  useCreateEnvironment()                                      │
-│    → create any environment (not just personal)              │
-│                                                              │
-│  useUpdateEnvironment()                                      │
-│    → update any environment                                  │
-│                                                              │
-│  useCreateAgentInstance()                                     │
-│    → create any agent instance                               │
-│                                                              │
-│  useCreateSession()                                          │
-│    → accepts agentInstanceId directly OR agentRef            │
-│                                                              │
-│  useEnvironment(ref)                                         │
-│    → fetch a single environment by reference                 │
-│                                                              │
-│  useAgentInstance(ref)                                        │
-│    → fetch a single agent instance by reference              │
+│  useAgentSearch(org)          → search agents                │
+│  AgentPicker                  → single-select agent picker   │
+│  AgentEnvForm                 → collect env vars from spec   │
+│  useCreateEnvironment()       → create any environment       │
+│  useUpdateEnvironment()       → update any environment       │
+│  useUpdateEnvironmentVariables() → incremental merge         │
+│  useRemoveEnvironmentVariables() → remove by key             │
+│  useRevealSecretValue()       → reveal a secret value        │
+│  useCreateAgentInstance()     → create any agent instance    │
+│  useCreateSession()           → agentInstanceId OR agentRef  │
+│  useCreateAgentExecution()    → with optional runtimeEnv     │
+│  useEnvironment(ref)          → fetch one environment        │
+│  useAgentInstance(ref)        → fetch one agent instance     │
+│  EnvironmentVariableEditor    → self-contained variable CRUD │
+│  EnvironmentListPanel         → accordion list with editors  │
+│  CreateEnvironmentForm        → environment creation form    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Platform builders use Layer 1 directly. The Console composes Layer 2 on top of Layer 1. Both layers are exported from `@stigmer/react`.
+Layer 1 is used by anyone who wants fine-grained control. Layer 2 composes Layer 1 for the Environment Flow's managed experience. Both layers are exported from `@stigmer/react`.
 
 ---
 
@@ -404,9 +393,9 @@ Recommended order: **Phase 1 → Phase 3 → Phase 2 → Phase 4**
 ## SDK Export Documentation
 
 Every exported hook must include JSDoc that clearly states:
-1. Which consumer profile it serves (or both)
+1. Which **flow** it supports (Environment Flow, Execution Flow, or both)
 2. Whether it is a building block (Layer 1) or orchestration (Layer 2)
-3. A usage example for each profile
+3. A usage example for each applicable flow
 
 Example pattern:
 
@@ -434,14 +423,17 @@ Example pattern:
 /**
  * Manages the user's personal Environment for credential storage.
  *
- * This is an orchestration hook for the "direct user" flow (Stigmer
- * Console). It creates and manages a single personal Environment per
- * user per org, identified by slug `personal` and label
- * `stigmer.ai/personal: "true"`.
+ * This is a Layer 2 **Environment Flow** hook. It provides the managed
+ * "personal environment" experience used by the Stigmer Console and any
+ * app that wants automatic credential storage.
  *
- * Platform builders who manage environments programmatically should
- * use {@link useCreateEnvironment} and {@link useUpdateEnvironment}
- * directly.
+ * Callers who manage environments programmatically should use the
+ * Layer 1 building-block hooks instead:
+ * - {@link useCreateEnvironment}
+ * - {@link useUpdateEnvironmentVariables}
+ *
+ * For ephemeral per-execution secrets, see the Execution Flow via
+ * {@link useCreateAgentExecution} with `runtimeEnv`.
  *
  * @example
  * ```tsx
@@ -465,21 +457,21 @@ Example pattern:
 ## Files Summary
 
 ### New files (13)
-| File | Phase | Profile | Layer | Purpose |
-|------|-------|---------|-------|---------|
+| File | Phase | Flow | Layer | Purpose |
+|------|-------|------|-------|---------|
 | `sdk/react/src/agent/useAgentSearch.ts` | 1 | Both | 1 | Data hook for agent search |
 | `sdk/react/src/agent/AgentPicker.tsx` | 1 | Both | 1 | Single-select agent picker |
 | `sdk/react/src/agent/index.ts` | 1 | — | — | Barrel exports |
-| `sdk/react/src/environment/useEnvironment.ts` | 1 | A | 1 | Fetch single environment |
-| `sdk/react/src/environment/useCreateEnvironment.ts` | 1 | A | 1 | Create environment |
-| `sdk/react/src/environment/useUpdateEnvironment.ts` | 1 | A | 1 | Update environment |
+| `sdk/react/src/environment/useEnvironment.ts` | 1 | Env | 1 | Fetch single environment |
+| `sdk/react/src/environment/useCreateEnvironment.ts` | 1 | Env | 1 | Create environment |
+| `sdk/react/src/environment/useUpdateEnvironment.ts` | 1 | Env | 1 | Update environment |
 | `sdk/react/src/environment/index.ts` | 1 | — | — | Barrel exports |
-| `sdk/react/src/agent-instance/useAgentInstance.ts` | 1 | A | 1 | Fetch single agent instance |
-| `sdk/react/src/agent-instance/useCreateAgentInstance.ts` | 1 | A | 1 | Create agent instance |
+| `sdk/react/src/agent-instance/useAgentInstance.ts` | 1 | Env | 1 | Fetch single agent instance |
+| `sdk/react/src/agent-instance/useCreateAgentInstance.ts` | 1 | Env | 1 | Create agent instance |
 | `sdk/react/src/agent-instance/index.ts` | 1 | — | — | Barrel exports |
-| `sdk/react/src/environment/usePersonalEnvironment.ts` | 2 | B | 2 | Personal env orchestration |
-| `sdk/react/src/agent-instance/usePersonalAgentInstance.ts` | 2 | B | 2 | Personal instance orchestration |
-| `sdk/react/src/agent/AgentEnvForm.tsx` | 2 | B | 2 | Inline env var collection form |
+| `sdk/react/src/environment/usePersonalEnvironment.ts` | 2 | Env | 2 | Personal env orchestration |
+| `sdk/react/src/agent-instance/usePersonalAgentInstance.ts` | 2 | Env | 2 | Personal instance orchestration |
+| `sdk/react/src/agent/AgentEnvForm.tsx` | 2 | Both | 1 | Inline env var collection form |
 
 ### Modified files (5)
 | File | Phase | Change |

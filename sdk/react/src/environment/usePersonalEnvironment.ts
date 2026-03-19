@@ -87,9 +87,11 @@ export interface UsePersonalEnvironmentReturn {
  *
  * Pass `null` as `org` to skip all operations (stable no-op).
  *
- * This is a **Profile B** hook for direct Stigmer users. Platform
- * builders who manage environments programmatically should use the
- * Layer 1 building-block hooks instead:
+ * This is a Layer 2 **Environment Flow** hook. It provides the managed
+ * "personal environment" experience used by the Stigmer Console and
+ * any app that wants automatic credential storage. Callers who manage
+ * environments programmatically should use the Layer 1 building-block
+ * hooks instead:
  * - {@link useCreateEnvironment} — create any environment
  * - {@link useUpdateEnvironmentVariables} — incremental variable merge
  * - {@link useRemoveEnvironmentVariables} — remove variables by key

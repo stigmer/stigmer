@@ -25,10 +25,10 @@ export interface UseCreateEnvironmentReturn {
  * server-generated metadata (id, version, timestamps) so callers
  * can immediately reference the created resource.
  *
- * This is a Layer 1 building-block hook for platform builders who
- * provision environments programmatically. For the "personal
- * environment" flow used by the Stigmer Console, see
- * `usePersonalEnvironment` which composes this hook with
+ * This is a Layer 1 building-block hook for the **Environment Flow**
+ * — persistent credential storage via Environment resources. For the
+ * managed "personal environment" convenience, see
+ * {@link usePersonalEnvironment} which composes this hook with
  * deterministic naming and label conventions.
  *
  * @example

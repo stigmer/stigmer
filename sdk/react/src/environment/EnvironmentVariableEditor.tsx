@@ -43,9 +43,12 @@ export interface EnvironmentVariableEditorProps {
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
+ * Part of the **Environment Flow** — manages persistent credentials
+ * stored in Environment resources.
+ *
  * Platform builders who need a fully custom UI should use the Layer 1
- * hooks directly (`useUpdateEnvironmentVariables`,
- * `useRemoveEnvironmentVariables`, `useRevealSecretValue`).
+ * hooks directly ({@link useUpdateEnvironmentVariables},
+ * {@link useRemoveEnvironmentVariables}, {@link useRevealSecretValue}).
  *
  * @example
  * ```tsx

@@ -25,10 +25,10 @@ export interface UseCreateAgentInstanceReturn {
  * server-generated metadata (id, version, timestamps) so callers
  * can immediately reference the created resource.
  *
- * This is a Layer 1 building-block hook for platform builders who
- * provision agent instances programmatically. For the "personal
- * agent instance" flow used by the Stigmer Console, see
- * `usePersonalAgentInstance` which composes this hook with
+ * This is a Layer 1 building-block hook for the **Environment Flow**
+ * — agent instances bind Environment resources to Agent blueprints.
+ * For the managed "personal agent instance" convenience, see
+ * {@link usePersonalAgentInstance} which composes this hook with
  * deterministic naming and label conventions.
  *
  * @example

@@ -68,9 +68,22 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: Settings page with environment management — SDK components and Console integration complete
-**Status**: Phase 5 Complete (Settings page with environment management)
-**Last Session**: 2026-03-19 — Added Settings page with environment management UI (SDK-first: 3 new components in @stigmer/react, Console settings route, UserMenu entry)
+**Current Task**: Two-flow secret delivery reframe — documentation and SDK surface complete
+**Status**: Phase 5 Complete + Secret delivery reframe complete
+**Last Session**: 2026-03-19 Session 17 — Reframed secret delivery from "two profiles" to "two flows" (Environment Flow + Execution Flow), exposed `runtimeEnv` in React SDK, updated JSDoc across 16 files, created `how-to-provide-secrets.md` product guide
+
+## Session Progress (2026-03-19, Session 17)
+
+- **Reframed secret delivery architecture** from "two profiles" (Platform Builders vs Direct Users) to "two flows" (Environment Flow vs Execution Flow) with orthogonal orchestration levels (Layer 1 vs Layer 2)
+- **Updated Design Decision DD-005** (`design-decisions/005-two-profile-hook-layering.md`): Full rewrite to "Two-Flow Secret Delivery and Hook Layering" — documents the two orthogonal dimensions and maps all hooks/components into a flow x layer matrix
+- **Exposed `runtimeEnv` in React SDK** (critical Execution Flow gap):
+  - `useCreateAgentExecution` — added `runtimeEnv?: Record<string, EnvVarInput>` to `CreateAgentExecutionInput`, passes through to SDK client
+  - `useSessionConversation` — added `runtimeEnv` to `SendFollowUpOptions`, forwards to execution creation
+  - Full JSDoc with dual-flow examples on both hooks
+- **Updated JSDoc across 16 hook/component files** — replaced "Profile A/B" language with "Environment Flow" / "Execution Flow" annotations, added cross-references to product docs
+- **Created `docs/product/how-to-provide-secrets.md`** (264 lines) — comprehensive product guide covering both flows with decision table, merge priority, React/TS/CLI code examples, and hook reference tables
+- **Added cross-references** in 4 existing product docs: `what-is-environment.md`, `what-is-execution-context.md`, `what-is-agent-execution.md`, `what-is-agent-instance.md`
+- Files modified: 24 files changed, 1 new file, +276/-144 lines
 
 ## Session Progress (2026-03-19, Session 16)
 
@@ -352,14 +365,21 @@ When starting a new session:
 
 ## Context for Resume
 
-- **All 5 phases are code-complete**:
+- **All 5 phases are code-complete + secret delivery reframe done**:
   - Phase 1 (T01.1–T01.11): Agent picker wired end-to-end
   - Phase 2 (T02.1–T02.4): Personal env flow, AgentEnvForm, useAgentSetup, SessionComposer integration
   - Phase 3: env_spec whitelist filter in Go + Java
   - Phase 4: GitHub token migrated to server-side personal environment
   - Phase 5: Settings page with environment management (SDK components + Console integration)
+  - Session 17: Two-flow secret delivery reframe — DD-005 rewrite, runtimeEnv in React SDK, JSDoc pass, product docs
 - **T02.5 (manual e2e validation)** is the remaining task before shipping
 - **Important**: Both repos have uncommitted work on `feat/add-customize-ui` — commit and PR needed
+- **Session 17 key changes**:
+  - `runtimeEnv` now exposed on `useCreateAgentExecution` and `useSessionConversation.sendFollowUp` — enables Execution Flow from React SDK
+  - DD-005 rewritten: "Two-Flow Secret Delivery and Hook Layering" — orthogonal model (flow x layer)
+  - All hooks/components JSDoc updated from "Profile A/B" to "Environment Flow" / "Execution Flow"
+  - New product doc: `docs/product/how-to-provide-secrets.md` — canonical guide for secret delivery
+  - Cross-references added to `what-is-environment.md`, `what-is-execution-context.md`, `what-is-agent-execution.md`, `what-is-agent-instance.md`
 - **New SDK exports** from `@stigmer/react`: `EnvironmentVariableEditor`, `EnvironmentListPanel`, `CreateEnvironmentForm` + prop types
 - **New Console route**: `/settings` — accessible from UserMenu dropdown (both authenticated + local mode)
 - Settings page auto-creates personal environment on visit via `usePersonalEnvironment.getOrCreate()`
@@ -368,6 +388,7 @@ When starting a new session:
 - `useGitHubConnection(org)` now takes `org: string | null` — breaking change for platform builders (was no-arg). `null` gives localStorage-only fallback.
 - Token stored as `GITHUB_TOKEN` (isSecret: true) in personal environment. Dual-source mount: localStorage fast read → server reconciliation → migration → cleanup.
 - `useRevealSecretValue` TODO(codegen) cast cleaned up — now uses typed SDK client
+- Key reference files for Session 17: `sdk/react/src/execution/useCreateAgentExecution.ts`, `sdk/react/src/session/useSessionConversation.ts`, `docs/product/how-to-provide-secrets.md`, `design-decisions/005-two-profile-hook-layering.md`
 - Key reference files for Phase 4: `sdk/react/src/github/useGitHubConnection.ts`, `sdk/react/src/environment/useRevealSecretValue.ts`, `client-apps/web/src/app/auth/github/callback/page.tsx`
 
 ## Quick Resume

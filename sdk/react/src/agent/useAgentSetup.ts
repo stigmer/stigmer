@@ -93,9 +93,11 @@ interface PendingAgent {
  *
  * Pass `null` as `org` to disable all operations (stable no-op).
  *
- * This is a **Profile B** hook for direct Stigmer users. Platform
- * builders who pre-provision environments and instances should use the
- * Layer 1 building blocks directly.
+ * This is a Layer 2 **Environment Flow** hook. It provides the managed
+ * agent selection + credential collection experience used by the
+ * Stigmer Console. Callers who pre-provision environments and
+ * instances, or who use the Execution Flow (`runtimeEnv`), should use
+ * the Layer 1 building blocks directly.
  *
  * @example
  * ```tsx

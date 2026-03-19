@@ -43,6 +43,9 @@ export interface EnvironmentListPanelProps {
  * `excludeLabels` to remove specific ones from the list (e.g. exclude
  * the personal environment when it is already rendered separately).
  *
+ * Part of the **Environment Flow** — manages persistent credentials
+ * stored in Environment resources.
+ *
  * All visual properties flow through `--stgm-*` design tokens.
  *
  * @example

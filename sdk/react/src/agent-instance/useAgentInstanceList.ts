@@ -22,8 +22,9 @@ export interface UseAgentInstanceListReturn {
  * or labels change, the previous in-flight request is discarded and a
  * fresh fetch begins. Call `refetch()` to re-query after mutations.
  *
- * This is a Layer 1 building-block hook. For the convenience
- * "personal agent instance" wrapper, see {@link usePersonalAgentInstance}.
+ * This is a Layer 1 building-block hook for the **Environment Flow**.
+ * For the managed "personal agent instance" convenience, see
+ * {@link usePersonalAgentInstance}.
  *
  * @example
  * ```tsx
