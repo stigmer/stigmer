@@ -682,6 +682,7 @@ func generateTSInputTypes(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 	fmt.Fprintf(buf, "/** Input for creating/updating a %s. */\n", cfg.protoResType)
 	fmt.Fprintf(buf, "export interface %s {\n", inputName)
 	buf.WriteString("  name: string;\n")
+	buf.WriteString("  slug?: string;\n")
 	buf.WriteString("  org: string;\n")
 	buf.WriteString("  labels?: Record<string, string>;\n")
 	for _, f := range specFields {
@@ -975,6 +976,7 @@ func generateTSBuildProto(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 		fmt.Fprintf(buf, "    metadata: Object.assign(create(ApiResourceMetadataSchema), {\n")
 		fmt.Fprintf(buf, "      name: input.name,\n")
 		fmt.Fprintf(buf, "      org: input.org,\n")
+		buf.WriteString("      ...(input.slug && { slug: input.slug }),\n")
 		buf.WriteString("      ...(input.labels && { labels: input.labels }),\n")
 		fmt.Fprintf(buf, "    }),\n")
 		fmt.Fprintf(buf, "    spec,\n")
@@ -986,6 +988,7 @@ func generateTSBuildProto(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 		fmt.Fprintf(buf, "    metadata: Object.assign(create(ApiResourceMetadataSchema), {\n")
 		fmt.Fprintf(buf, "      name: input.name,\n")
 		fmt.Fprintf(buf, "      org: input.org,\n")
+		buf.WriteString("      ...(input.slug && { slug: input.slug }),\n")
 		buf.WriteString("      ...(input.labels && { labels: input.labels }),\n")
 		fmt.Fprintf(buf, "    }),\n")
 		fmt.Fprintf(buf, "    spec: Object.assign(create(%sSchema), stripUndefined({\n", spec.Name)

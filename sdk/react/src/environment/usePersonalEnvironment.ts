@@ -10,6 +10,7 @@ import {
 } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { useStigmer } from "../hooks";
+import { generateSlugSuffix } from "../internal/slug";
 import { useEnvironmentList } from "./useEnvironmentList";
 
 const PERSONAL_LABELS: Record<string, string> = {
@@ -30,7 +31,7 @@ export interface UsePersonalEnvironmentReturn {
    * Ensure a personal environment exists for this org.
    *
    * If one already exists, returns it immediately without a network call.
-   * Otherwise, creates a new environment with slug `"personal"` and
+   * Otherwise, creates a new environment with a unique slug and
    * label `stigmer.ai/personal: "true"`, optionally seeded with initial data.
    *
    * @param initialData - Key-value pairs to include on creation. Ignored
@@ -80,8 +81,8 @@ export interface UsePersonalEnvironmentReturn {
  * Layer 2 orchestration hook that manages the caller's personal
  * {@link Environment} for a given organization.
  *
- * Encapsulates the "personal environment" convention: deterministic
- * slug (`"personal"`), label (`stigmer.ai/personal: "true"`), and
+ * Encapsulates the "personal environment" convention: label
+ * (`stigmer.ai/personal: "true"`), unique slug per user, and
  * the get-or-create lifecycle. Composes {@link useEnvironmentList}
  * for declarative reading and the SDK client directly for mutations.
  *
@@ -159,7 +160,8 @@ export function usePersonalEnvironment(
         }
 
         const created = await stigmer.environment.create({
-          name: "personal",
+          name: "Personal Environment",
+          slug: `env-personal-${generateSlugSuffix()}`,
           org,
           labels: PERSONAL_LABELS,
           data,

@@ -91,6 +91,7 @@ export class EnvironmentClient {
 /** Input for creating/updating a Environment. */
 export interface EnvironmentInput {
   name: string;
+  slug?: string;
   org: string;
   labels?: Record<string, string>;
   description?: string;
@@ -109,6 +110,7 @@ function buildEnvironmentProto(input: EnvironmentInput): Environment {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(EnvironmentSpecSchema), stripUndefined({

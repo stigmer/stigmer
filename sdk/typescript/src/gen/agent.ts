@@ -87,6 +87,7 @@ export class AgentClient {
 /** Input for creating/updating a Agent. */
 export interface AgentInput {
   name: string;
+  slug?: string;
   org: string;
   labels?: Record<string, string>;
   description?: string;
@@ -180,6 +181,7 @@ function buildAgentProto(input: AgentInput): Agent {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(AgentSpecSchema), stripUndefined({

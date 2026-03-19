@@ -80,6 +80,7 @@ export class SkillClient {
 /** Input for creating/updating a Skill. */
 export interface SkillInput {
   name: string;
+  slug?: string;
   org: string;
   labels?: Record<string, string>;
   skillMd?: string;
@@ -94,6 +95,7 @@ function buildSkillProto(input: SkillInput): Skill {
     metadata: Object.assign(create(ApiResourceMetadataSchema), {
       name: input.name,
       org: input.org,
+      ...(input.slug && { slug: input.slug }),
       ...(input.labels && { labels: input.labels }),
     }),
     spec: Object.assign(create(SkillSpecSchema), stripUndefined({

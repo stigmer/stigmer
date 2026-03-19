@@ -8,6 +8,7 @@ import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agen
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
+import { buildPersonalInstanceInput } from "../agent-instance/buildPersonalInstanceInput";
 import type { AgentEnvFormVariable } from "./AgentEnvForm";
 
 const PERSONAL_LABEL = "stigmer.ai/personal";
@@ -184,20 +185,18 @@ export function useAgentSetup(org: string | null): UseAgentSetupReturn {
           const env = await personalEnv.getOrCreate();
           const envRef: ResourceRef = {
             org,
-            slug: env.metadata!.name,
+            slug: env.metadata!.slug,
             kind: ApiResourceKind.environment,
           };
 
-          const instance = await stigmer.agentInstance.create({
-            name: `${ref.slug}-personal`,
-            org,
-            agentId: agent.metadata!.id,
-            labels: {
-              [PERSONAL_LABEL]: "true",
-              [FOR_AGENT_LABEL]: agentLabel,
-            },
-            environmentRefs: [envRef],
-          });
+          const instance = await stigmer.agentInstance.create(
+            buildPersonalInstanceInput({
+              org,
+              agentId: agent.metadata!.id,
+              agentSlug: ref.slug,
+              environmentRef: envRef,
+            }),
+          );
 
           return {
             status: "ready",
@@ -249,23 +248,20 @@ export function useAgentSetup(org: string | null): UseAgentSetupReturn {
         const env = await personalEnv.getOrCreate();
         await personalEnv.addVariables(values);
 
-        const agentLabel = `${agentRef.org}/${agentRef.slug}`;
         const envRef: ResourceRef = {
           org,
-          slug: env.metadata!.name,
+          slug: env.metadata!.slug,
           kind: ApiResourceKind.environment,
         };
 
-        const instance = await stigmer.agentInstance.create({
-          name: `${agentRef.slug}-personal`,
-          org,
-          agentId: agent.metadata!.id,
-          labels: {
-            [PERSONAL_LABEL]: "true",
-            [FOR_AGENT_LABEL]: agentLabel,
-          },
-          environmentRefs: [envRef],
-        });
+        const instance = await stigmer.agentInstance.create(
+          buildPersonalInstanceInput({
+            org,
+            agentId: agent.metadata!.id,
+            agentSlug: agentRef.slug,
+            environmentRef: envRef,
+          }),
+        );
 
         pendingRef.current = null;
         return {
