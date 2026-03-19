@@ -5,6 +5,7 @@ import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution
 import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { resolveToolCategory, extractPrimaryArg } from "./tool-categories";
+import { FilePathLink } from "./FilePathLink";
 
 export interface ToolCallDetailProps {
   readonly toolCall: ToolCall;
@@ -128,7 +129,16 @@ function ShellToolDetail({ toolCall }: { toolCall: ToolCall }) {
 
 /**
  * File-oriented rendering for read/write/edit/delete tools.
- * Shows file path prominently, then content.
+ *
+ * For **read** mode: shows only the metadata row and a clickable
+ * path. Content is intentionally omitted — the Read tool's purpose
+ * is for the *agent* to consume the file, and the content is either
+ * truncated, omitted, or simply noise for the user. The clickable
+ * path provides direct access to the source file.
+ *
+ * For **write/edit/delete** modes: shows the clickable path followed
+ * by the content block (what was written/edited) and any result
+ * confirmation.
  */
 function FileToolDetail({
   toolCall,
@@ -139,6 +149,20 @@ function FileToolDetail({
 }) {
   const filePath = extractPrimaryArg(toolCall);
   const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
+
+  if (mode === "read") {
+    return (
+      <>
+        <MetadataRow toolCall={toolCall} duration={duration} />
+        {filePath && (
+          <div className="flex items-center gap-1.5">
+            <FilePathIcon />
+            <FilePathLink path={filePath} className="text-xs" />
+          </div>
+        )}
+      </>
+    );
+  }
 
   const contentFromArgs =
     mode === "write" || mode === "edit"
@@ -154,18 +178,17 @@ function FileToolDetail({
       {filePath && (
         <div className="flex items-center gap-1.5">
           <FilePathIcon />
-          <span className="font-mono text-foreground">{filePath}</span>
+          <FilePathLink path={filePath} className="text-xs" />
         </div>
       )}
 
       {displayContent && (
         <CollapsibleCode
-          label={mode === "read" ? "Content" : mode === "delete" ? "Result" : "Content"}
+          label={mode === "delete" ? "Result" : "Content"}
           content={formatResult(displayContent)}
         />
       )}
 
-      {/* For write/edit, show result confirmation if distinct from content */}
       {contentFromArgs && toolCall.result && (
         <CollapsibleCode
           label="Result"

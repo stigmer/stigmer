@@ -12,12 +12,15 @@ import {
   ExecutionPhase,
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { cn } from "@stigmer/theme";
 import { isTerminalPhase } from "./execution-phases";
 import { MessageEntry } from "./MessageEntry";
 import { ToolCallGroup } from "./ToolCallGroup";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 import { ApprovalCard } from "./ApprovalCard";
+import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
+import type { ResolvedPathAction } from "./file-path-resolver";
 
 export interface MessageThreadProps {
   /** Completed executions in chronological order. */
@@ -65,6 +68,24 @@ export interface MessageThreadProps {
    * stream snapshot. Managed by {@link useSessionConversation}.
    */
   readonly dismissedApprovalIds?: ReadonlySet<string>;
+  /**
+   * Workspace entries from the session spec. When provided, file
+   * paths in tool call rendering become interactive — git-sourced
+   * paths open on GitHub, local paths offer copy-to-clipboard.
+   *
+   * Passed to {@link FilePathContext} for consumption by
+   * {@link FilePathLink} components deep in the tree.
+   */
+  readonly workspaceEntries?: readonly WorkspaceEntry[];
+  /**
+   * Optional override for file path click behavior. Platform
+   * builders use this to integrate their own file viewer or
+   * navigation instead of the default open-URL / copy-to-clipboard.
+   */
+  readonly onFilePathClick?: (
+    path: string,
+    resolved: ResolvedPathAction,
+  ) => void;
 }
 
 const AUTO_SCROLL_THRESHOLD_PX = 80;
@@ -218,6 +239,8 @@ export function MessageThread({
   onApprovalSubmit,
   submittingApprovalIds,
   dismissedApprovalIds,
+  workspaceEntries,
+  onFilePathClick,
 }: MessageThreadProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -242,6 +265,14 @@ export function MessageThread({
     el.scrollTop = el.scrollHeight;
   }, [items]);
 
+  const filePathCtx = useMemo<FilePathContextValue>(
+    () => ({
+      workspaceEntries: workspaceEntries ?? [],
+      onFilePathClick,
+    }),
+    [workspaceEntries, onFilePathClick],
+  );
+
   return (
     <div
       ref={scrollRef}
@@ -258,53 +289,55 @@ export function MessageThread({
         className,
       )}
     >
-      {items.map((item) => {
-        switch (item.kind) {
-          case "message":
-            return <MessageEntry key={item.key} message={item.message} />;
-          case "tool-group":
-            return (
-              <ToolCallGroup
-                key={item.key}
-                toolCalls={item.toolCalls}
-                subAgentExecutions={item.subAgentExecutions}
-                formatSummary={formatToolCallSummary}
-                className="mx-4"
-              />
-            );
-          case "phase-badge":
-            return (
-              <div key={item.key} className="flex justify-center py-3">
-                <ExecutionPhaseBadge phase={item.phase} />
-              </div>
-            );
-          case "approval-request":
-            return (
-              <ApprovalCard
-                key={item.key}
-                pendingApproval={item.pendingApproval}
-                onSubmit={(action, comment) =>
-                  onApprovalSubmit!(item.pendingApproval.toolCallId, action, comment)
-                }
-                isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
-                className="mx-4"
-              />
-            );
-          case "pending-message":
-            return (
-              <div
-                key={item.key}
-                role="article"
-                aria-label="Sending message"
-                className="ms-[20%] rounded-lg bg-muted/50 px-4 py-3 opacity-70"
-              >
-                <p className="text-sm text-foreground whitespace-pre-wrap">
-                  {item.content}
-                </p>
-              </div>
-            );
-        }
-      })}
+      <FilePathContext.Provider value={filePathCtx}>
+        {items.map((item) => {
+          switch (item.kind) {
+            case "message":
+              return <MessageEntry key={item.key} message={item.message} />;
+            case "tool-group":
+              return (
+                <ToolCallGroup
+                  key={item.key}
+                  toolCalls={item.toolCalls}
+                  subAgentExecutions={item.subAgentExecutions}
+                  formatSummary={formatToolCallSummary}
+                  className="mx-4"
+                />
+              );
+            case "phase-badge":
+              return (
+                <div key={item.key} className="flex justify-center py-3">
+                  <ExecutionPhaseBadge phase={item.phase} />
+                </div>
+              );
+            case "approval-request":
+              return (
+                <ApprovalCard
+                  key={item.key}
+                  pendingApproval={item.pendingApproval}
+                  onSubmit={(action, comment) =>
+                    onApprovalSubmit!(item.pendingApproval.toolCallId, action, comment)
+                  }
+                  isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
+                  className="mx-4"
+                />
+              );
+            case "pending-message":
+              return (
+                <div
+                  key={item.key}
+                  role="article"
+                  aria-label="Sending message"
+                  className="ms-[20%] rounded-lg bg-muted/50 px-4 py-3 opacity-70"
+                >
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {item.content}
+                  </p>
+                </div>
+              );
+          }
+        })}
+      </FilePathContext.Provider>
     </div>
   );
 }

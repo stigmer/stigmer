@@ -83,6 +83,11 @@ export {
   MessageThread,
   FollowUpInput,
   ApprovalCard,
+  FilePathLink,
+  FilePathContext,
+  classifyPath,
+  resolveGitBrowseUrl,
+  resolvePathAction,
 } from "./execution";
 export type {
   CreateAgentExecutionInput,
@@ -102,6 +107,10 @@ export type {
   MessageThreadProps,
   FollowUpInputProps,
   ApprovalCardProps,
+  FilePathLinkProps,
+  FilePathContextValue,
+  PathClassification,
+  ResolvedPathAction,
 } from "./execution";
 
 // Composer — unified message input with model + workspace attachments

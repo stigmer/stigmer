@@ -107,6 +107,7 @@ export default function SessionPage() {
             onApprovalSubmit={conv.submitApproval}
             submittingApprovalIds={conv.submittingApprovalIds}
             dismissedApprovalIds={conv.dismissedApprovalIds}
+            workspaceEntries={conv.workspaceEntries}
             className="flex-1 lg:pr-[208px]"
           />
           <div className="lg:mr-[208px]">

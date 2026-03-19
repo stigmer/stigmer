@@ -70,6 +70,38 @@ When starting a new session:
 **Created**: 2026-03-19 09:07
 **Current Task**: All tasks complete
 **Status**: Complete
+**Last Session**: 2026-03-19 — Clickable file paths + Read tool simplification (Session 6)
+
+## Session Progress (2026-03-19, Session 6)
+
+### Completed — Clickable File Paths + Read Tool Simplification
+- **`file-path-resolver.ts`** — Pure utility: `classifyPath`, `resolveGitBrowseUrl`, `resolvePathAction`
+- **`FilePathContext.tsx`** — React context for workspace entries and click callback
+- **`FilePathLink.tsx`** — Interactive component: git paths → `<a>` (opens GitHub), local/platform → `<button>` (copies to clipboard)
+- **`MessageThread.tsx`** — Accepts `workspaceEntries` prop, wraps with `FilePathContext.Provider`
+- **`ToolCallItem.tsx`** — Completed/skipped Read items render as non-expandable rows with `FilePathLink`
+- **`ToolCallDetail.tsx`** — Read mode removes content block; write/edit/delete modes use `FilePathLink`
+- **`ApprovalCard.tsx`** — `FileArgsPreview` uses `FilePathLink`
+- **Barrel exports** — `FilePathLink`, `FilePathContext`, `classifyPath`, `resolveGitBrowseUrl`, `resolvePathAction` + types exported from `@stigmer/react`
+- **Console wiring** — `SessionPage.tsx` passes `conv.workspaceEntries` to `MessageThread`
+
+### Decisions Made (Session 6)
+- Non-expandable Read items use `<div>` to avoid nested interactive element violations
+- Git paths resolve to GitHub blob URLs; local/platform paths fall back to copy-to-clipboard
+- Platform `.stigmer/` paths are classified separately for future extensibility
+- `onFilePathClick` callback enables platform builders to override default behavior
+
+## Session Progress (2026-03-19, Session 5)
+
+### Completed
+- **Barrel export promotion** — DONE
+  - Added `formatCost` and `formatTokenCount` to `sdk/react/src/execution/index.ts` barrel exports
+  - Matches existing `formatDuration` co-export pattern from `ToolCallDetail`
+  - Platform builders can now `import { formatCost, formatTokenCount } from '@stigmer/react'`
+  - Commit: `75cf8b05` on `feat/add-customize-ui`
+
+### Decisions Made (Session 5)
+- Promote formatters to barrel exports — consistent with `formatDuration` precedent, enables headless-first usage of `useExecutionUsage` without `ExecutionCostSummary`
 
 ## Session Progress (2026-03-19, Session 4)
 
@@ -109,7 +141,6 @@ All 4 tasks complete across 4 sessions:
 ## Remaining Work
 
 - End-to-end verification: run a full agent execution and confirm live cost updates stream correctly in the Console sidebar
-- Consider promoting `formatCost()` and `formatTokenCount()` to barrel exports if other components need them
 
 ## Quick Commands
 
