@@ -40,6 +40,9 @@ export type { FollowUpInputProps } from "./FollowUpInput";
 export { ExecutionProgress } from "./ExecutionProgress";
 export type { ExecutionProgressProps } from "./ExecutionProgress";
 
+export { ExecutionCostSummary } from "./ExecutionCostSummary";
+export type { ExecutionCostSummaryProps } from "./ExecutionCostSummary";
+
 export { useSubmitApproval } from "./useSubmitApproval";
 export type { UseSubmitApprovalReturn } from "./useSubmitApproval";
 
