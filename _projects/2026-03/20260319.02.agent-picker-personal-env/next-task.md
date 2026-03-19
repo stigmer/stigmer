@@ -68,9 +68,18 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: T01.7 — `useCreateAgentInstance` behavior hook
+**Current Task**: T01.8 — Barrel exports
 **Status**: In Progress (Phase 1)
-**Last Session**: 2026-03-19 — Completed T01.6
+**Last Session**: 2026-03-19 — Completed T01.7
+
+## Session Progress (2026-03-19, Session 7)
+
+- Implemented T01.7: `useCreateAgentInstance` behavior hook
+  - `sdk/react/src/agent-instance/useCreateAgentInstance.ts` — behavior hook wrapping `stigmer.agentInstance.create()` (~80 lines)
+  - Updated `sdk/react/src/agent-instance/index.ts` — added `useCreateAgentInstance` + `UseCreateAgentInstanceReturn` exports
+  - TypeScript compiles cleanly, zero linter errors on new/modified files
+- Pattern: structurally identical to `useCreateEnvironment` — same `AgentInstanceInput` from `@stigmer/sdk`, return shape `{ create, isCreating, error, clearError }`, full `AgentInstance` proto returned
+- This is the last new hook in Phase 1. Remaining tasks (T01.8–T01.11) are all integration/wiring work.
 
 ## Session Progress (2026-03-19, Session 6)
 
@@ -134,14 +143,15 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01.7** — `useCreateAgentInstance` behavior hook
-2. **T01.8** — Barrel exports (agent, environment, agent-instance modules + main index.ts)
-3. **T01.9** — SessionComposer integration
-4. **T01.10** — `useCreateSession` wiring
-5. **T01.11** — Console integration (SessionLauncher)
+1. **T01.8** — Barrel exports (agent, environment, agent-instance modules + main index.ts)
+2. **T01.9** — SessionComposer integration
+3. **T01.10** — `useCreateSession` wiring
+4. **T01.11** — Console integration (SessionLauncher)
 
 ## Context for Resume
 
+- `useCreateAgentInstance` follows the `useCreateEnvironment` pattern exactly — wraps `stigmer.agentInstance.create()` with `{ create, isCreating, error, clearError }`; will be composed by Phase 2 `usePersonalAgentInstance` for get-or-create flow
+- All seven Layer 1 hooks are now complete (T01.1–T01.7). The remaining Phase 1 work is integration/wiring: barrel exports (T01.8), SessionComposer (T01.9), useCreateSession (T01.10), Console (T01.11)
 - The `useAgentSearch` hook wraps `stigmer.agent.list()` via `useResourceSearch`
 - `AgentPicker` is a **single-select** component: `value: ResourceRef | null`, `onChange: (ref: ResourceRef | null) => void`
 - AgentPicker follows the structural pattern of SkillPicker/McpServerPicker but with single-select semantics: clicking a result replaces the current selection, deselect calls `onChange(null)`
