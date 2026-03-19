@@ -68,9 +68,39 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: Phase 3 complete — next is T02.5 (manual e2e validation), then Phase 4 (GitHub token migration)
-**Status**: Phase 3 Complete (env_spec whitelist filter shipped in Go + Java)
-**Last Session**: 2026-03-19 — Completed Phase 3: backend env_spec whitelist filter in both Go (stigmer OSS) and Java (stigmer-cloud)
+**Current Task**: Phase 4 complete — next is T02.5 (manual e2e validation), then commit/PR all uncommitted work
+**Status**: Phase 4 Complete (GitHub token migrated to server-side personal environment)
+**Last Session**: 2026-03-19 — Completed Phase 4: GitHub token migration from localStorage to server-side personal environment
+
+## Session Progress (2026-03-19, Session 15)
+
+- Completed Phase 4: GitHub token migration from localStorage to server-side personal environment
+- **T04.0 — Prerequisite cleanup**: Removed `TODO(codegen)` type cast in `useRevealSecretValue.ts`
+  - Replaced unsafe `Record<string, unknown>` cast with typed `stigmer.environment.getSecretValue()` using `create(EnvironmentSecretValueInputSchema, ...)` from `@bufbuild/protobuf`
+  - SDK was already regenerated with `getSecretValue` on `EnvironmentClient` — cast was stale
+- **T04.1 — Core `useGitHubConnection` rewrite** (`sdk/react/src/github/useGitHubConnection.ts`, +167 lines):
+  - New signature: `useGitHubConnection(org: string | null)` — breaking change (was no-arg)
+  - Composes `usePersonalEnvironment(org)` internally for server-side token storage
+  - **Dual-source mount strategy** with two-phase reconciliation:
+    - Phase 1 (instant): reads localStorage for zero-latency provisional state
+    - Phase 2 (async): reconciles with personal environment when it loads
+  - Four reconciliation cases: A) server + local → clear local, B) server only → reveal + validate, C) local only → migrate to server, D) neither → not connected
+  - Migration uses `getOrCreate(initialData)` for new envs, `addVariables` for existing — avoids ref-timing issue where `environmentRef.current` isn't updated after `getOrCreate`
+  - `disconnect()` now removes from both personal env (fire-and-forget) and localStorage
+  - Helper `personalEnvHasKey()` checks redacted env data for key presence without revealing
+  - Calls SDK `getSecretValue` directly (not `useRevealSecretValue`) — token needs to persist in memory, not auto-clear after 30s
+  - `handleCallback` unchanged — still stages to localStorage, migration happens on next mount
+  - Return type `UseGitHubConnectionReturn` unchanged — zero breaking change for consumers of the return value
+- **T04.2 — Console consumer updates** (3 files, +12/-3 lines):
+  - `SessionLauncher.tsx`: `useGitHubConnection()` → `useGitHubConnection(org)` (org from `useActiveOrgSlug()`)
+  - `SessionPage.tsx`: same one-line change
+  - `callback/page.tsx`: added `useActiveOrgSlug()` import, passes `org || null`, updated JSDoc
+- **Verification**: zero new TypeScript errors in `sdk/react` or `client-apps/web` (pre-existing only)
+- Key design decisions:
+  - localStorage as fast cache (not primary storage) — preserves instant mount UX
+  - `org: string | null` parameter — `null` falls back to localStorage-only mode (backward compat)
+  - Token stored as `GITHUB_TOKEN` with `isSecret: true` in personal env — Phase 3 env_spec filter correctly excludes it from agent executions
+  - Callback page still stages to localStorage — avoids race condition with personal env loading
 
 ## Session Progress (2026-03-19, Session 14)
 
@@ -283,26 +313,22 @@ When starting a new session:
 ## Next Steps
 
 1. **T02.5** — Manual e2e validation: walkthrough of agent picker → env form → session creation flow against real backend
-2. **Phase 4 (T04.1–T04.3)** — GitHub token migration from localStorage to server-side personal env (depends on Phase 2)
-3. **Create PR for stigmer-cloud** — Java env_spec filter changes need to be committed and PRed in the stigmer-cloud repo
+2. **Commit & PR all uncommitted stigmer OSS work** — Phases 1–4 + sub-projects on `feat/add-customize-ui` branch
+3. **Commit & PR stigmer-cloud work** — Java env_spec filter + list handlers uncommitted on `feat/add-customize-ui`
 
 ## Context for Resume
 
-- **Phase 1 is fully complete** (T01.1–T01.11). Agent selection is wired end-to-end from the SessionComposer toolbar through SessionLauncher to useCreateSession.
-- **Phase 2 T02.1–T02.4 complete**. AgentEnvForm, useAgentSetup, and full SessionComposer integration are implemented and barrel-exported.
-- **Phase 3 is fully complete** in both Go (stigmer OSS) and Java (stigmer-cloud). `FilterByEnvSpec` / `filterByEnvSpec` added to `envmerge` / `EnvironmentMergeService`, applied in all 4 execution context creation paths (agent + workflow, both services), with comprehensive test coverage.
-- The remaining Phase 2 task (T02.5) is manual e2e validation — no code changes expected.
-- The recommended execution order going forward is: **T02.5 → Phase 4**
-- Phase 4 migrates the GitHub OAuth token from browser localStorage to the server-side personal Environment, using the infrastructure from Phase 2.
-- **Important**: stigmer-cloud changes (Java env_spec filter) are uncommitted on `feat/add-customize-ui` branch — commit and PR needed.
-- All Layer 1 hooks and components are importable from `@stigmer/react`: `useAgentSearch`, `AgentPicker`, `AgentEnvForm`, `useEnvironment`, `useCreateEnvironment`, `useUpdateEnvironment`, `useAgentInstance`, `useCreateAgentInstance`, `useCreateSession` (with agentRef/agentInstanceId)
-- Layer 2 orchestration: `useAgentSetup(org)` — `resolveAgent(ref)` returns `"ready"` or `"needsEnvVars"`, `submitEnvVars(values)` completes setup
-- `useCreateSession` resolution priority: `agentInstanceId` > `agentRef` > omitted (backend default). Phase 2 flow resolves to `agentInstanceId` via `useAgentSetup` before reaching `createSession`.
-- SessionComposer now has `onAgentInstanceIdChange` prop — bridges `useAgentSetup` resolution to `SessionLauncher` state
-- Agent popover is controlled (others remain uncontrolled) — supports picker → env form → back transitions
-- `AgentEnvForm` is pure presentational (Layer 1): `variables[]` in, `Record<string, EnvVarInput>` out. Width matches AgentPicker for seamless popover transition.
-- `useAgentSetup` composes `usePersonalEnvironment` and uses `useStigmer()` directly for agent/instance queries. Stores pending agent in `useRef` between resolve and submit calls.
-- Key reference files: `sdk/react/src/agent/AgentEnvForm.tsx`, `sdk/react/src/agent/useAgentSetup.ts`, `sdk/react/src/composer/SessionComposer.tsx`, `client-apps/web/src/components/session/SessionLauncher.tsx`
+- **All 4 phases are code-complete**:
+  - Phase 1 (T01.1–T01.11): Agent picker wired end-to-end
+  - Phase 2 (T02.1–T02.4): Personal env flow, AgentEnvForm, useAgentSetup, SessionComposer integration
+  - Phase 3: env_spec whitelist filter in Go + Java
+  - Phase 4: GitHub token migrated to server-side personal environment
+- **T02.5 (manual e2e validation)** is the only remaining task before shipping
+- **Important**: Both repos have uncommitted work on `feat/add-customize-ui` — commit and PR needed
+- `useGitHubConnection(org)` now takes `org: string | null` — breaking change for platform builders (was no-arg). `null` gives localStorage-only fallback.
+- Token stored as `GITHUB_TOKEN` (isSecret: true) in personal environment. Dual-source mount: localStorage fast read → server reconciliation → migration → cleanup.
+- `useRevealSecretValue` TODO(codegen) cast cleaned up — now uses typed SDK client
+- Key reference files for Phase 4: `sdk/react/src/github/useGitHubConnection.ts`, `sdk/react/src/environment/useRevealSecretValue.ts`, `client-apps/web/src/app/auth/github/callback/page.tsx`
 
 ## Quick Resume
 
