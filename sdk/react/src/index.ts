@@ -207,6 +207,7 @@ export {
 export type {
   UseAgentInstanceReturn,
   UseAgentInstanceListReturn,
+  GetOrCreatePersonalInstanceInput,
   UsePersonalAgentInstanceReturn,
   UseCreateAgentInstanceReturn,
 } from "./agent-instance";
