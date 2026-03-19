@@ -34,6 +34,7 @@ import (
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
 	agentinstancecontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentinstance/controller"
 	artifactstorage "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/artifact/storage"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/encryption"
 	environmentcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/environment/controller"
 	executioncontextcontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/executioncontext/controller"
 	mcpservercontroller "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller"
@@ -213,8 +214,15 @@ func Run() error {
 
 	log.Info().Msg("Registered Session controllers")
 
+	// Create encryption service for environment secrets
+	secretService, err := encryption.NewSecretServiceFromEnv()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to initialize encryption - secret values will be stored in plaintext")
+		secretService, _ = encryption.NewSecretService(nil)
+	}
+
 	// Create and register Environment controller
-	environmentController := environmentcontroller.NewEnvironmentController(store)
+	environmentController := environmentcontroller.NewEnvironmentController(store, secretService)
 	environmentv1.RegisterEnvironmentCommandControllerServer(grpcServer, environmentController)
 	environmentv1.RegisterEnvironmentQueryControllerServer(grpcServer, environmentController)
 

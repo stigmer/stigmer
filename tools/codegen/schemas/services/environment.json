@@ -60,6 +60,14 @@
           "outputType": "Environment",
           "outputFullType": "ai.stigmer.agentic.environment.v1.Environment",
           "description": "Custom authorization in handler"
+        },
+        {
+          "name": "GetSecretValue",
+          "inputType": "EnvironmentSecretValueInput",
+          "inputFullType": "ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput",
+          "outputType": "EnvironmentValue",
+          "outputFullType": "ai.stigmer.agentic.environment.v1.EnvironmentValue",
+          "description": "Get the unredacted value of a single secret key in an environment."
         }
       ]
     }
