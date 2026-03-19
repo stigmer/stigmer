@@ -99,3 +99,9 @@ Only task logs (T##_1_feedback.md, T##_2_execution.md) can be updated without pe
 ## Notes
 
 _Add any additional notes, links, or context here as the project evolves._
+
+## Sub-Projects
+
+| Sub-Project | Path | Status | Description |
+|-------------|------|--------|-------------|
+| env-auth-and-secret-redaction | [20260319.03.sp.env-auth-and-secret-redaction](../20260319.03.sp.env-auth-and-secret-redaction/) | Active | Update FGA authorization model to support personal environments (member-level creation permissions) and implement secret value redaction in environment queries with owner-only secret retrieval. |

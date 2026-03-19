@@ -226,3 +226,9 @@ To continue this project, drag this file into chat:
 ---
 
 *This file provides direct paths to all project resources for quick context loading.*
+
+## Sub-Projects
+
+Active sub-projects spawned from this project:
+
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-03/20260319.03.sp.env-auth-and-secret-redaction/next-task.md` - Update FGA authorization model to support personal environments (member-level creation permissions) and implement secret value redaction in environment queries with owner-only secret retrieval.
