@@ -161,15 +161,21 @@ export type {
   GitHubRepoPickerProps,
 } from "./github";
 
-// Agent — search hook and picker component
+// Agent — search hook, picker, env form, and setup orchestration
 export {
   useAgentSearch,
   AgentPicker,
+  AgentEnvForm,
+  useAgentSetup,
 } from "./agent";
 export type {
   UseAgentSearchOptions,
   UseAgentSearchReturn,
   AgentPickerProps,
+  AgentEnvFormProps,
+  AgentEnvFormVariable,
+  AgentSetupResult,
+  UseAgentSetupReturn,
 } from "./agent";
 
 // Environment — data hooks, list hook, personal convenience hook, secret reveal, and variable management

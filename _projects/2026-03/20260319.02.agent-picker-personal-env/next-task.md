@@ -68,9 +68,55 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: Phase 2 T02.1 + T02.2 complete — next is T02.3 (AgentEnvForm) and T02.4 (SessionComposer integration)
-**Status**: Phase 2 In Progress (T02.1–T02.2 done)
-**Last Session**: 2026-03-19 — Completed T02.1 + T02.2 (personal orchestration hooks)
+**Current Task**: Phase 2 T02.1–T02.4 complete — next is T02.5 (no-op confirmation), then Phase 3 (backend env_spec filter)
+**Status**: Phase 2 In Progress (T02.1–T02.4 done)
+**Last Session**: 2026-03-19 — Completed T02.3 + T02.4 (AgentEnvForm, useAgentSetup, SessionComposer integration)
+
+## Session Progress (2026-03-19, Session 13)
+
+- Completed T02.3: `AgentEnvForm` component
+  - `sdk/react/src/agent/AgentEnvForm.tsx` — pure presentational form (~270 lines)
+  - Renders labeled input fields from agent's env_spec (one per variable)
+  - `type="password"` with eye toggle for `isSecret: true` variables
+  - Validation: submit disabled until all fields are non-empty
+  - Props: `agentName`, `variables: AgentEnvFormVariable[]`, `onSubmit`, `onCancel`, `isSubmitting`
+  - Output type: `Record<string, EnvVarInput>` — includes `isSecret` per value for direct `addVariables` passthrough
+  - Width `w-72` matches AgentPicker for seamless popover transition
+  - Pure form: no API calls, no knowledge of personal environments
+  - Exported types: `AgentEnvFormProps`, `AgentEnvFormVariable`
+- Completed T02.3.5: `useAgentSetup` behavior hook (Layer 2)
+  - `sdk/react/src/agent/useAgentSetup.ts` (~240 lines)
+  - Encapsulates the full agent selection + personal environment resolution flow
+  - `resolveAgent(ref)` — fetches full agent, checks env_spec, checks personal instance, diffs env vars, returns `"ready"` or `"needsEnvVars"`
+  - `submitEnvVars(values)` — getOrCreate personal env, addVariables, create personal instance, returns `"ready"` with instanceId
+  - Composes `usePersonalEnvironment(org)` for env operations; uses `useStigmer()` directly for agent + instance queries
+  - Stores pending agent in `useRef` between `resolveAgent` and `submitEnvVars`
+  - Discriminated union return type: `AgentSetupResult = { status: "ready" | "needsEnvVars", ... }`
+- Completed T02.4: SessionComposer integration
+  - Modified `sdk/react/src/composer/SessionComposer.tsx` (+191 lines, net change)
+  - New prop: `onAgentInstanceIdChange?: (instanceId: string | null) => void`
+  - Agent popover now **controlled** (`open`/`onOpenChange` on `Popover.Root`) — other popovers remain uncontrolled
+  - `ContextPopover` extended with optional `open`/`onOpenChange` props
+  - Agent selection intercepted through `useAgentSetup.resolveAgent()`:
+    - If ready → set refs, resolve display name, close popover
+    - If needsEnvVars → transition popover from `AgentPicker` to `AgentEnvForm`
+  - Env form cancel → back to picker view; popover dismiss → reset view
+  - Loading overlay (`ResolveSpinner`) while `resolveAgent` is in-flight
+  - Inline error display for both resolve and submit failures
+  - Agent chip removal clears both `agentRef` and `agentInstanceId`
+- Completed T02.4.5: SessionLauncher update
+  - Modified `client-apps/web/src/components/session/SessionLauncher.tsx` (+4 lines)
+  - Added `agentInstanceId` state, wired to `SessionComposer.onAgentInstanceIdChange`
+  - Passed `agentInstanceId: agentInstanceId ?? undefined` to `createSession()`
+  - `useCreateSession` already handles priority: `agentInstanceId > agentRef > omitted`
+- Updated barrel exports: `agent/index.ts` and `sdk/react/src/index.ts`
+- TypeScript verification: zero new errors (9 pre-existing errors in unrelated files)
+- Key design decisions:
+  - AgentEnvForm is pure presentational (Layer 1) — reusable by platform builders
+  - useAgentSetup is a Layer 2 behavior hook — composes usePersonalEnvironment + direct client calls
+  - Controlled popover only for Agent (others uncontrolled) — minimal change surface
+  - Display name resolved from full agent metadata after `resolveAgent` (not just from picker)
+  - `onAgentInstanceIdChange` is the bridge: SessionComposer resolves, SessionLauncher stores, createSession uses
 
 ## Session Progress (2026-03-19, Session 12)
 
@@ -220,25 +266,26 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Phase 3 (T03.1–T03.3)** — Backend env_spec whitelist filter in `envmerge` (security: must ship before personal environments accumulate secrets)
-2. **Phase 2 (T02.1–T02.5)** — Personal env orchestration, AgentEnvForm, inline env var collection (depends on Phase 1)
+1. **T02.5** — No-op confirmation: manual end-to-end walkthrough of agent picker → env form → session creation flow (verify against real backend)
+2. **Phase 3 (T03.1–T03.3)** — Backend env_spec whitelist filter in `envmerge` (security: must ship before personal environments accumulate secrets)
 3. **Phase 4 (T04.1–T04.3)** — GitHub token migration from localStorage to server-side personal env (depends on Phase 2)
 
 ## Context for Resume
 
 - **Phase 1 is fully complete** (T01.1–T01.11). Agent selection is wired end-to-end from the SessionComposer toolbar through SessionLauncher to useCreateSession.
-- The recommended execution order going forward is: **Phase 3 → Phase 2 → Phase 4**
+- **Phase 2 T02.1–T02.4 complete**. AgentEnvForm, useAgentSetup, and full SessionComposer integration are implemented and barrel-exported.
+- The remaining Phase 2 task (T02.5) is manual e2e validation — no code changes expected.
+- The recommended execution order going forward is: **T02.5 → Phase 3 → Phase 4**
 - Phase 3 is backend-only (Go, `backend/libs/go/envmerge/merge.go`) and independent of frontend work. It adds env_spec whitelist filtering so agents only receive env vars they declared.
-- Phase 2 builds Layer 2 orchestration hooks (`usePersonalEnvironment`, `usePersonalAgentInstance`) on top of the Layer 1 building blocks from Phase 1. It also adds `AgentEnvForm` and the picker-to-env-form transition in SessionComposer.
 - Phase 4 migrates the GitHub OAuth token from browser localStorage to the server-side personal Environment, using the infrastructure from Phase 2.
-- All Layer 1 hooks and components are importable from `@stigmer/react`: `useAgentSearch`, `AgentPicker`, `useEnvironment`, `useCreateEnvironment`, `useUpdateEnvironment`, `useAgentInstance`, `useCreateAgentInstance`, `useCreateSession` (with agentRef/agentInstanceId)
-- `useCreateSession` resolution priority: `agentInstanceId` > `agentRef` (resolved via `agent.getByReference()` → `status.defaultInstanceId`) > omitted (backend default)
-- SessionComposer accepts `agentRef` / `onAgentRefChange` — Agent trigger appears first in toolbar (before Workspace, MCP, Skills)
-- `AgentPicker` is single-select: `value: ResourceRef | null`, `onChange: (ref: ResourceRef | null) => void`
-- Data hooks fetch by `ResourceRef` (not ID string): `useEnvironment`, `useAgentInstance` both include `refetch()` for Phase 2 orchestration
-- Return property naming: full domain noun (`session`, `environment`, `agentInstance`) — never abbreviated
-- Pickers are self-contained by design — each evolves independently
-- Key reference files: `sdk/react/src/skill/SkillPicker.tsx`, `sdk/react/src/composer/SessionComposer.tsx`, `sdk/react/src/session/useSession.ts`
+- All Layer 1 hooks and components are importable from `@stigmer/react`: `useAgentSearch`, `AgentPicker`, `AgentEnvForm`, `useEnvironment`, `useCreateEnvironment`, `useUpdateEnvironment`, `useAgentInstance`, `useCreateAgentInstance`, `useCreateSession` (with agentRef/agentInstanceId)
+- Layer 2 orchestration: `useAgentSetup(org)` — `resolveAgent(ref)` returns `"ready"` or `"needsEnvVars"`, `submitEnvVars(values)` completes setup
+- `useCreateSession` resolution priority: `agentInstanceId` > `agentRef` > omitted (backend default). Phase 2 flow resolves to `agentInstanceId` via `useAgentSetup` before reaching `createSession`.
+- SessionComposer now has `onAgentInstanceIdChange` prop — bridges `useAgentSetup` resolution to `SessionLauncher` state
+- Agent popover is controlled (others remain uncontrolled) — supports picker → env form → back transitions
+- `AgentEnvForm` is pure presentational (Layer 1): `variables[]` in, `Record<string, EnvVarInput>` out. Width matches AgentPicker for seamless popover transition.
+- `useAgentSetup` composes `usePersonalEnvironment` and uses `useStigmer()` directly for agent/instance queries. Stores pending agent in `useRef` between resolve and submit calls.
+- Key reference files: `sdk/react/src/agent/AgentEnvForm.tsx`, `sdk/react/src/agent/useAgentSetup.ts`, `sdk/react/src/composer/SessionComposer.tsx`, `client-apps/web/src/components/session/SessionLauncher.tsx`
 
 ## Quick Resume
 
