@@ -6,6 +6,7 @@
 import { Environment } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceDeleteInput } from "../../../commons/apiresource/io_pb.js";
+import { RemoveEnvironmentVariablesRequest, UpdateEnvironmentVariablesRequest } from "./io_pb.js";
 
 /**
  * EnvironmentCommandController provides write operations for Environment resources.
@@ -58,6 +59,30 @@ export const EnvironmentCommandController = {
     delete: {
       name: "delete",
       I: ApiResourceDeleteInput,
+      O: Environment,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Add or update specific variables in an environment (server-side merge).
+     * Existing variables not included in the request are preserved unchanged.
+     *
+     * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.updateVariables
+     */
+    updateVariables: {
+      name: "updateVariables",
+      I: UpdateEnvironmentVariablesRequest,
+      O: Environment,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Remove specific variables from an environment by key.
+     * Keys that don't exist are silently ignored.
+     *
+     * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.removeVariables
+     */
+    removeVariables: {
+      name: "removeVariables",
+      I: RemoveEnvironmentVariablesRequest,
       O: Environment,
       kind: MethodKind.Unary,
     },

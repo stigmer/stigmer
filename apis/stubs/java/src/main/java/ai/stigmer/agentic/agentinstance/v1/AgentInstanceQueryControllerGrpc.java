@@ -108,6 +108,37 @@ public final class AgentInstanceQueryControllerGrpc {
     return getGetByReferenceMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest,
+      ai.stigmer.agentic.agentinstance.v1.AgentInstanceList> getListMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "list",
+      requestType = ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest.class,
+      responseType = ai.stigmer.agentic.agentinstance.v1.AgentInstanceList.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest,
+      ai.stigmer.agentic.agentinstance.v1.AgentInstanceList> getListMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest, ai.stigmer.agentic.agentinstance.v1.AgentInstanceList> getListMethod;
+    if ((getListMethod = AgentInstanceQueryControllerGrpc.getListMethod) == null) {
+      synchronized (AgentInstanceQueryControllerGrpc.class) {
+        if ((getListMethod = AgentInstanceQueryControllerGrpc.getListMethod) == null) {
+          AgentInstanceQueryControllerGrpc.getListMethod = getListMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest, ai.stigmer.agentic.agentinstance.v1.AgentInstanceList>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "list"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentinstance.v1.AgentInstanceList.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentInstanceQueryControllerMethodDescriptorSupplier("list"))
+              .build();
+        }
+      }
+    }
+    return getListMethod;
+  }
+
   /**
    * Creates a new async stub that supports all call types for the service
    */
@@ -206,6 +237,18 @@ public final class AgentInstanceQueryControllerGrpc {
         io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentinstance.v1.AgentInstance> responseObserver) {
       io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetByReferenceMethod(), responseObserver);
     }
+
+    /**
+     * <pre>
+     * List agent instances with optional label filtering.
+     * Authorization is handled in-handler via FGA-filtered queries (cloud)
+     * or unrestricted store queries (OSS).
+     * </pre>
+     */
+    default void list(ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentinstance.v1.AgentInstanceList> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getListMethod(), responseObserver);
+    }
   }
 
   /**
@@ -276,6 +319,19 @@ public final class AgentInstanceQueryControllerGrpc {
       io.grpc.stub.ClientCalls.asyncUnaryCall(
           getChannel().newCall(getGetByReferenceMethod(), getCallOptions()), request, responseObserver);
     }
+
+    /**
+     * <pre>
+     * List agent instances with optional label filtering.
+     * Authorization is handled in-handler via FGA-filtered queries (cloud)
+     * or unrestricted store queries (OSS).
+     * </pre>
+     */
+    public void list(ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentinstance.v1.AgentInstanceList> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getListMethod(), getCallOptions()), request, responseObserver);
+    }
   }
 
   /**
@@ -329,6 +385,18 @@ public final class AgentInstanceQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
     }
+
+    /**
+     * <pre>
+     * List agent instances with optional label filtering.
+     * Authorization is handled in-handler via FGA-filtered queries (cloud)
+     * or unrestricted store queries (OSS).
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentinstance.v1.AgentInstanceList list(ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getListMethod(), getCallOptions(), request);
+    }
   }
 
   /**
@@ -381,6 +449,18 @@ public final class AgentInstanceQueryControllerGrpc {
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getGetByReferenceMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * List agent instances with optional label filtering.
+     * Authorization is handled in-handler via FGA-filtered queries (cloud)
+     * or unrestricted store queries (OSS).
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentinstance.v1.AgentInstanceList list(ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getListMethod(), getCallOptions(), request);
     }
   }
 
@@ -438,11 +518,25 @@ public final class AgentInstanceQueryControllerGrpc {
       return io.grpc.stub.ClientCalls.futureUnaryCall(
           getChannel().newCall(getGetByReferenceMethod(), getCallOptions()), request);
     }
+
+    /**
+     * <pre>
+     * List agent instances with optional label filtering.
+     * Authorization is handled in-handler via FGA-filtered queries (cloud)
+     * or unrestricted store queries (OSS).
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstanceList> list(
+        ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getListMethod(), getCallOptions()), request);
+    }
   }
 
   private static final int METHODID_GET = 0;
   private static final int METHODID_GET_BY_AGENT = 1;
   private static final int METHODID_GET_BY_REFERENCE = 2;
+  private static final int METHODID_LIST = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -472,6 +566,10 @@ public final class AgentInstanceQueryControllerGrpc {
         case METHODID_GET_BY_REFERENCE:
           serviceImpl.getByReference((ai.stigmer.commons.apiresource.ApiResourceReference) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentinstance.v1.AgentInstance>) responseObserver);
+          break;
+        case METHODID_LIST:
+          serviceImpl.list((ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentinstance.v1.AgentInstanceList>) responseObserver);
           break;
         default:
           throw new AssertionError();
@@ -512,6 +610,13 @@ public final class AgentInstanceQueryControllerGrpc {
               ai.stigmer.commons.apiresource.ApiResourceReference,
               ai.stigmer.agentic.agentinstance.v1.AgentInstance>(
                 service, METHODID_GET_BY_REFERENCE)))
+        .addMethod(
+          getListMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest,
+              ai.stigmer.agentic.agentinstance.v1.AgentInstanceList>(
+                service, METHODID_LIST)))
         .build();
   }
 
@@ -563,6 +668,7 @@ public final class AgentInstanceQueryControllerGrpc {
               .addMethod(getGetMethod())
               .addMethod(getGetByAgentMethod())
               .addMethod(getGetByReferenceMethod())
+              .addMethod(getListMethod())
               .build();
         }
       }

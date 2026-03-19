@@ -47,6 +47,16 @@ func (e *EnvironmentClient) Delete(ctx context.Context, input *DeleteResourceInp
 	return resp, wrapErr(err)
 }
 
+func (e *EnvironmentClient) UpdateVariables(ctx context.Context, input *environmentv1.UpdateEnvironmentVariablesRequest) (*environmentv1.Environment, error) {
+	resp, err := e.command.UpdateVariables(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (e *EnvironmentClient) RemoveVariables(ctx context.Context, input *environmentv1.RemoveEnvironmentVariablesRequest) (*environmentv1.Environment, error) {
+	resp, err := e.command.RemoveVariables(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (e *EnvironmentClient) Get(ctx context.Context, id string) (*environmentv1.Environment, error) {
 	resp, err := e.query.Get(ctx, &apiresource.ApiResourceId{Value: id})
 	return resp, wrapErr(err)

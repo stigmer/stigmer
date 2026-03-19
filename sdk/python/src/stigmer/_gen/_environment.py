@@ -50,6 +50,18 @@ class EnvironmentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def update_variables(self, input: io_pb2.UpdateEnvironmentVariablesRequest) -> api_pb2.Environment:
+        try:
+            return self._command.updateVariables(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def remove_variables(self, input: io_pb2.RemoveEnvironmentVariablesRequest) -> api_pb2.Environment:
+        try:
+            return self._command.removeVariables(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.Environment:
         try:
             return self._query.get(apiresource_io_pb2.ApiResourceId(value=id))

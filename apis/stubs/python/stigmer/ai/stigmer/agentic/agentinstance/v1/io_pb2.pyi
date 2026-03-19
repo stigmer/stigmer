@@ -30,3 +30,20 @@ class AgentInstanceList(_message.Message):
     total_count: int
     items: _containers.RepeatedCompositeFieldContainer[_api_pb2.AgentInstance]
     def __init__(self, total_count: _Optional[int] = ..., items: _Optional[_Iterable[_Union[_api_pb2.AgentInstance, _Mapping]]] = ...) -> None: ...
+
+class ListAgentInstancesRequest(_message.Message):
+    __slots__ = ("org", "labels", "page_info")
+    class LabelsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    LABELS_FIELD_NUMBER: _ClassVar[int]
+    PAGE_INFO_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    labels: _containers.ScalarMap[str, str]
+    page_info: _pagination_pb2.PageInfo
+    def __init__(self, org: _Optional[str] = ..., labels: _Optional[_Mapping[str, str]] = ..., page_info: _Optional[_Union[_pagination_pb2.PageInfo, _Mapping]] = ...) -> None: ...

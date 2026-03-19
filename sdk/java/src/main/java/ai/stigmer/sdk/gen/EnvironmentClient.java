@@ -9,6 +9,8 @@ import ai.stigmer.agentic.environment.v1.EnvironmentQueryControllerGrpc;
 import ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput;
 import ai.stigmer.agentic.environment.v1.EnvironmentValue;
 import ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest;
+import ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest;
+import ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
 import io.grpc.Channel;
@@ -51,6 +53,18 @@ public final class EnvironmentClient {
                 req.setVersionMessage(input.getVersionMessage());
             }
             return command.delete(req.build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Environment updateVariables(UpdateEnvironmentVariablesRequest input) {
+        try {
+            return command.updateVariables(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Environment removeVariables(RemoveEnvironmentVariablesRequest input) {
+        try {
+            return command.removeVariables(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

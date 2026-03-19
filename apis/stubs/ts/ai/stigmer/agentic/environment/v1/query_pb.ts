@@ -6,6 +6,10 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { EnvironmentSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_environment_v1_api } from "./api_pb";
+import type { EnvironmentListSchema, EnvironmentSecretValueInputSchema, ListEnvironmentsRequestSchema } from "./io_pb";
+import { file_ai_stigmer_agentic_environment_v1_io } from "./io_pb";
+import type { EnvironmentValueSchema } from "./spec_pb";
+import { file_ai_stigmer_agentic_environment_v1_spec } from "./spec_pb";
 import type { ApiResourceIdSchema, ApiResourceReferenceSchema } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
@@ -15,7 +19,7 @@ import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from
  * Describes the file ai/stigmer/agentic/environment/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_environment_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvcXVlcnkucHJvdG8SIWFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MTKzAgoaRW52aXJvbm1lbnRRdWVyeUNvbnRyb2xsZXISlgEKA2dldBItLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUlkGi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50IjDCuBgsCAMQNSIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBnZXQgZW52aXJvbm1lbnQSdgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaLi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnQaBKD/KzViBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_api, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvcXVlcnkucHJvdG8SIWFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MTKGBQoaRW52aXJvbm1lbnRRdWVyeUNvbnRyb2xsZXISlgEKA2dldBItLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUlkGi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50IjDCuBgsCAMQNSIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBnZXQgZW52aXJvbm1lbnQSdgoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaLi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnQS0gEKDmdldFNlY3JldFZhbHVlEj4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50U2VjcmV0VmFsdWVJbnB1dBozLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudFZhbHVlIkvCuBhHCBkQNSIOZW52aXJvbm1lbnRfaWQqMXVuYXV0aG9yaXplZCB0byByZWFkIHNlY3JldCB2YWx1ZXMgKGNyZWF0b3Itb25seSkSfAoEbGlzdBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5MaXN0RW52aXJvbm1lbnRzUmVxdWVzdBoyLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudExpc3QiBNC4GAEaBKD/KzViBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_api, file_ai_stigmer_agentic_environment_v1_io, file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
  * EnvironmentQueryController provides read operations for Environment resources.
@@ -42,6 +46,30 @@ export const EnvironmentQueryController: GenService<{
     methodKind: "unary";
     input: typeof ApiResourceReferenceSchema;
     output: typeof EnvironmentSchema;
+  },
+  /**
+   * Get the unredacted value of a single secret key in an environment.
+   * Creator-only: requires can_read_secrets permission (FGA: creator relation).
+   * Returns the EnvironmentValue with the decrypted value.
+   *
+   * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getSecretValue
+   */
+  getSecretValue: {
+    methodKind: "unary";
+    input: typeof EnvironmentSecretValueInputSchema;
+    output: typeof EnvironmentValueSchema;
+  },
+  /**
+   * List environments with optional label filtering.
+   * Authorization is handled in-handler via FGA-filtered queries (cloud)
+   * or unrestricted store queries (OSS). Secret values are redacted.
+   *
+   * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.list
+   */
+  list: {
+    methodKind: "unary";
+    input: typeof ListEnvironmentsRequestSchema;
+    output: typeof EnvironmentListSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_stigmer_agentic_environment_v1_query, 0);

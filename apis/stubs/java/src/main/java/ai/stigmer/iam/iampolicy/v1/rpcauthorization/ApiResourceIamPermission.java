@@ -200,6 +200,14 @@ public enum ApiResourceIamPermission
    * <code>can_execute = 22;</code>
    */
   can_execute(22),
+  /**
+   * <pre>
+   * Secret access permissions
+   * </pre>
+   *
+   * <code>can_read_secrets = 25;</code>
+   */
+  can_read_secrets(25),
   UNRECOGNIZED(-1),
   ;
 
@@ -396,6 +404,14 @@ public enum ApiResourceIamPermission
    * <code>can_execute = 22;</code>
    */
   public static final int can_execute_VALUE = 22;
+  /**
+   * <pre>
+   * Secret access permissions
+   * </pre>
+   *
+   * <code>can_read_secrets = 25;</code>
+   */
+  public static final int can_read_secrets_VALUE = 25;
 
 
   public final int getNumber() {
@@ -447,6 +463,7 @@ public enum ApiResourceIamPermission
       case 23: return can_create_project;
       case 24: return can_create_idp;
       case 22: return can_execute;
+      case 25: return can_read_secrets;
       default: return null;
     }
   }

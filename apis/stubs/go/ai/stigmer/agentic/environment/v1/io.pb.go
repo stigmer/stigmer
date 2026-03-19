@@ -246,11 +246,124 @@ func (x *EnvironmentList) GetItems() []*Environment {
 	return nil
 }
 
+// Request to add or update specific variables in an environment.
+// Server-side merge: existing variables not included in this request are preserved.
+// For secret variables, the new value replaces the old one (re-encrypted server-side).
+type UpdateEnvironmentVariablesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The environment resource ID.
+	EnvironmentId string `protobuf:"bytes,1,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	// Variables to add or update. Keys that already exist are overwritten.
+	// Keys not present in this map are left unchanged.
+	Variables     map[string]*EnvironmentValue `protobuf:"bytes,2,rep,name=variables,proto3" json:"variables,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateEnvironmentVariablesRequest) Reset() {
+	*x = UpdateEnvironmentVariablesRequest{}
+	mi := &file_ai_stigmer_agentic_environment_v1_io_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateEnvironmentVariablesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateEnvironmentVariablesRequest) ProtoMessage() {}
+
+func (x *UpdateEnvironmentVariablesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_environment_v1_io_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateEnvironmentVariablesRequest.ProtoReflect.Descriptor instead.
+func (*UpdateEnvironmentVariablesRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_environment_v1_io_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UpdateEnvironmentVariablesRequest) GetEnvironmentId() string {
+	if x != nil {
+		return x.EnvironmentId
+	}
+	return ""
+}
+
+func (x *UpdateEnvironmentVariablesRequest) GetVariables() map[string]*EnvironmentValue {
+	if x != nil {
+		return x.Variables
+	}
+	return nil
+}
+
+// Request to remove specific variables from an environment by key.
+type RemoveEnvironmentVariablesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The environment resource ID.
+	EnvironmentId string `protobuf:"bytes,1,opt,name=environment_id,json=environmentId,proto3" json:"environment_id,omitempty"`
+	// Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+	Keys          []string `protobuf:"bytes,2,rep,name=keys,proto3" json:"keys,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveEnvironmentVariablesRequest) Reset() {
+	*x = RemoveEnvironmentVariablesRequest{}
+	mi := &file_ai_stigmer_agentic_environment_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveEnvironmentVariablesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveEnvironmentVariablesRequest) ProtoMessage() {}
+
+func (x *RemoveEnvironmentVariablesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_environment_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveEnvironmentVariablesRequest.ProtoReflect.Descriptor instead.
+func (*RemoveEnvironmentVariablesRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_environment_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RemoveEnvironmentVariablesRequest) GetEnvironmentId() string {
+	if x != nil {
+		return x.EnvironmentId
+	}
+	return ""
+}
+
+func (x *RemoveEnvironmentVariablesRequest) GetKeys() []string {
+	if x != nil {
+		return x.Keys
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_environment_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_environment_v1_io_proto_rawDesc = "" +
 	"\n" +
-	"*ai/stigmer/agentic/environment/v1/io.proto\x12!ai.stigmer.agentic.environment.v1\x1a+ai/stigmer/agentic/environment/v1/api.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"-\n" +
+	"*ai/stigmer/agentic/environment/v1/io.proto\x12!ai.stigmer.agentic.environment.v1\x1a+ai/stigmer/agentic/environment/v1/api.proto\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a'ai/stigmer/commons/rpc/pagination.proto\x1a\x1bbuf/validate/validate.proto\"-\n" +
 	"\rEnvironmentId\x12\x1c\n" +
 	"\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"h\n" +
 	"\x1bEnvironmentSecretValueInput\x12.\n" +
@@ -266,7 +379,16 @@ const file_ai_stigmer_agentic_environment_v1_io_proto_rawDesc = "" +
 	"\x0fEnvironmentList\x12\x1f\n" +
 	"\vtotal_count\x18\x01 \x01(\x05R\n" +
 	"totalCount\x12D\n" +
-	"\x05items\x18\x02 \x03(\v2..ai.stigmer.agentic.environment.v1.EnvironmentR\x05itemsB\xb3\x02\n" +
+	"\x05items\x18\x02 \x03(\v2..ai.stigmer.agentic.environment.v1.EnvironmentR\x05items\"\xb9\x02\n" +
+	"!UpdateEnvironmentVariablesRequest\x12.\n" +
+	"\x0eenvironment_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\renvironmentId\x12q\n" +
+	"\tvariables\x18\x02 \x03(\v2S.ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest.VariablesEntryR\tvariables\x1aq\n" +
+	"\x0eVariablesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12I\n" +
+	"\x05value\x18\x02 \x01(\v23.ai.stigmer.agentic.environment.v1.EnvironmentValueR\x05value:\x028\x01\"q\n" +
+	"!RemoveEnvironmentVariablesRequest\x12.\n" +
+	"\x0eenvironment_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\renvironmentId\x12\x1c\n" +
+	"\x04keys\x18\x02 \x03(\tB\b\xbaH\x05\x92\x01\x02\b\x01R\x04keysB\xb3\x02\n" +
 	"%com.ai.stigmer.agentic.environment.v1B\aIoProtoP\x01ZXgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"
 
 var (
@@ -281,25 +403,31 @@ func file_ai_stigmer_agentic_environment_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_environment_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_environment_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_environment_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ai_stigmer_agentic_environment_v1_io_proto_goTypes = []any{
-	(*EnvironmentId)(nil),               // 0: ai.stigmer.agentic.environment.v1.EnvironmentId
-	(*EnvironmentSecretValueInput)(nil), // 1: ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput
-	(*ListEnvironmentsRequest)(nil),     // 2: ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest
-	(*EnvironmentList)(nil),             // 3: ai.stigmer.agentic.environment.v1.EnvironmentList
-	nil,                                 // 4: ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest.LabelsEntry
-	(*rpc.PageInfo)(nil),                // 5: ai.stigmer.commons.rpc.PageInfo
-	(*Environment)(nil),                 // 6: ai.stigmer.agentic.environment.v1.Environment
+	(*EnvironmentId)(nil),                     // 0: ai.stigmer.agentic.environment.v1.EnvironmentId
+	(*EnvironmentSecretValueInput)(nil),       // 1: ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput
+	(*ListEnvironmentsRequest)(nil),           // 2: ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest
+	(*EnvironmentList)(nil),                   // 3: ai.stigmer.agentic.environment.v1.EnvironmentList
+	(*UpdateEnvironmentVariablesRequest)(nil), // 4: ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest
+	(*RemoveEnvironmentVariablesRequest)(nil), // 5: ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest
+	nil,                      // 6: ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest.LabelsEntry
+	nil,                      // 7: ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest.VariablesEntry
+	(*rpc.PageInfo)(nil),     // 8: ai.stigmer.commons.rpc.PageInfo
+	(*Environment)(nil),      // 9: ai.stigmer.agentic.environment.v1.Environment
+	(*EnvironmentValue)(nil), // 10: ai.stigmer.agentic.environment.v1.EnvironmentValue
 }
 var file_ai_stigmer_agentic_environment_v1_io_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest.labels:type_name -> ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest.LabelsEntry
-	5, // 1: ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
-	6, // 2: ai.stigmer.agentic.environment.v1.EnvironmentList.items:type_name -> ai.stigmer.agentic.environment.v1.Environment
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	6,  // 0: ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest.labels:type_name -> ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest.LabelsEntry
+	8,  // 1: ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest.page_info:type_name -> ai.stigmer.commons.rpc.PageInfo
+	9,  // 2: ai.stigmer.agentic.environment.v1.EnvironmentList.items:type_name -> ai.stigmer.agentic.environment.v1.Environment
+	7,  // 3: ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest.variables:type_name -> ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest.VariablesEntry
+	10, // 4: ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest.VariablesEntry.value:type_name -> ai.stigmer.agentic.environment.v1.EnvironmentValue
+	5,  // [5:5] is the sub-list for method output_type
+	5,  // [5:5] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_environment_v1_io_proto_init() }
@@ -308,13 +436,14 @@ func file_ai_stigmer_agentic_environment_v1_io_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_environment_v1_api_proto_init()
+	file_ai_stigmer_agentic_environment_v1_spec_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_environment_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_environment_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

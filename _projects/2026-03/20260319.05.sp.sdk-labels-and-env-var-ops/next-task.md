@@ -101,36 +101,57 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 16:50
-**Current Task**: T01 — Track A complete, Tracks B/C/D pending
+**Current Task**: T01 — Tracks A and B complete, Tracks C and D pending
 **Status**: In Progress
 
-## Session Progress (2026-03-19)
+## Session Progress (2026-03-19 — Session 1)
 
 ### Track A: SDK Labels Codegen Fix — COMPLETE
 
-**What was accomplished:**
 - Modified all 4 codegen generators (Go, TypeScript, Java, Python) to emit `labels` field
 - Added `Labels` to `metaFieldNames` set defensively
 - Regenerated all 17 resource client files across all 4 SDKs (68 files total)
-- Verified: Go compiles, TypeScript has zero errors in generated files, all codegen tests pass
-- All 17 resource input types confirmed to have labels in all 4 languages
+- Verified: Go compiles, TypeScript has zero errors, all codegen tests pass
 
-**Files modified (source changes):**
-- `tools/codegen/generator/sdk_client.go` — metaFieldNames + Go input struct + toProto metadata
-- `tools/codegen/generator/sdk_client_ts.go` — TS input interface + buildProto metadata (both branches)
-- `tools/codegen/generator/sdk_client_java.go` — Java field + builder + conditional putAllLabels
-- `tools/codegen/generator/sdk_client_python.go` — Python dataclass field + conditional metadata.labels.update()
+## Session Progress (2026-03-19 — Session 2)
 
-**Design decisions:**
-- Labels only (not tags/visibility) — scoped to immediate need
-- Conditional wiring: labels are only set in metadata when provided (no behavioral change for existing callers)
-- Java uses separate `metaBuilder` variable for clean conditional `putAllLabels`
-- Python builds metadata separately to allow `ScalarMapContainer.update()`
+### Track B: Environment Variable Management RPCs — COMPLETE
 
-### What's Pending (Tracks B, C, D)
+**What was accomplished (5-phase execution):**
 
-- **Track B**: Environment Variable Management RPCs (`updateVariables`, `removeVariables`)
-  - T01.4–T01.12: Proto messages, stubs, Go OSS handlers, Java Cloud handlers
+1. **Proto definitions** — Added `UpdateEnvironmentVariablesRequest` and `RemoveEnvironmentVariablesRequest` messages to `io.proto`. Added `updateVariables` and `removeVariables` RPCs to `command.proto` with `can_edit` authorization on `field_path = "environment_id"`.
+
+2. **Stub regeneration** — Ran `make protos` in stigmer OSS (Go, Java, Python, TS stubs + SDK clients). Ran `make protos` in stigmer-cloud (Go, Java, Python, TS, Dart stubs).
+
+3. **Go OSS handlers** — Generalized `LoadEnvironmentByIDStep` with `HasEnvironmentId` interface constraint (now supports 3 proto types). Created `MergeVariablesAndPersistStep` and `RemoveVariableKeysAndPersistStep` custom pipeline steps. Created `update_variables.go` and `remove_variables.go` handlers. Updated both BUILD.bazel files. Code compiles cleanly (`go vet` and `go build` pass).
+
+4. **Java Cloud handlers** — Created `EnvironmentUpdateVariablesHandler` (pipeline: validate → authorize → LoadMergeEncryptAndPersist → RedactSecretValues → sendResponse). Created `EnvironmentRemoveVariablesHandler` (same pattern minus encryption). Both reuse existing `RedactSecretValues` step. Both use `@RequestRoute` for automatic gRPC wiring.
+
+5. **SDK codegen** — `proto2schema --comprehensive` auto-regenerated `environment.json` (2 services, 10 methods). SDK clients regenerated for all 4 languages with `updateVariables()` and `removeVariables()` methods.
+
+**Key architectural decisions:**
+- Pipeline type is the request proto (not the resource), consistent with `GetSecretValue` pattern
+- Self-contained custom steps handle domain logic + persistence + context storage
+- `IndexSearchStep` skipped for variable ops (search extractor only indexes metadata, not spec.data)
+- Go OSS does NOT encrypt (consistent with existing create/update); Java Cloud DOES encrypt incoming secrets
+- Java handlers set modified env as `target` in context so existing `RedactSecretValues` step works via wildcard type compatibility
+
+**Files created/modified (source changes, excluding generated stubs):**
+- `apis/ai/stigmer/agentic/environment/v1/io.proto` — 2 new request messages
+- `apis/ai/stigmer/agentic/environment/v1/command.proto` — 2 new RPCs
+- `backend/.../environment/controller/steps/load_environment_by_id.go` — generalized with HasEnvironmentId
+- `backend/.../environment/controller/steps/merge_variables_and_persist.go` — NEW
+- `backend/.../environment/controller/steps/remove_variable_keys_and_persist.go` — NEW
+- `backend/.../environment/controller/update_variables.go` — NEW
+- `backend/.../environment/controller/remove_variables.go` — NEW
+- `backend/.../environment/controller/get_secret_value.go` — updated type param
+- `backend/.../environment/controller/BUILD.bazel` — added new srcs
+- `backend/.../environment/controller/steps/BUILD.bazel` — added new srcs and deps
+- (stigmer-cloud) `EnvironmentUpdateVariablesHandler.java` — NEW
+- (stigmer-cloud) `EnvironmentRemoveVariablesHandler.java` — NEW
+
+### What's Pending (Tracks C, D)
+
 - **Track C**: Backend Sentinel Defense-in-Depth
   - T01.13–T01.14: Redaction marker preservation in update pipelines
 - **Track D**: SDK TypeScript Client + React Hooks
@@ -138,28 +159,26 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Track B — Proto definitions** (T01.4–T01.5): Add `UpdateEnvironmentVariablesRequest` and `RemoveEnvironmentVariablesRequest` messages to `io.proto`, add RPCs to `command.proto`
-2. **Track B — Regenerate stubs** (T01.6): Run proto generation for all languages
-3. **Track B — Go OSS handlers** (T01.7–T01.9): Implement `updateVariables` and `removeVariables` handlers
-4. **Track B — Java Cloud handlers** (T01.10–T01.12): Implement with encryption awareness
-5. **Track C — Sentinel defense** (T01.13–T01.14): After Track B understanding
-6. **Track D — SDK + React** (T01.15–T01.18): After Track B stubs exist
+1. **Track C — Sentinel defense** (T01.13–T01.14): Harden existing `update` RPC to preserve secrets when `***REDACTED***` marker is sent back. Independent from Track B. Protect against the read-modify-write destruction pattern.
+2. **Track D — React Hooks** (T01.15–T01.18): `useUpdateEnvironmentVariables`, `useRemoveEnvironmentVariables` hooks + barrel exports. Now unblocked by Track B completion.
 
 ## Context for Resume
 
-- Track A is fully complete and committed
-- React hooks (`useCreateEnvironment`, `useUpdateEnvironment`) automatically accept labels via TypeScript structural typing — no React code changes needed
-- The `usePersonalEnvironment.getOrCreate()` can now set `labels: { "stigmer.ai/personal": "true" }` at creation time
-- Track B is the critical path — it's sequential (proto → stubs → Go → Java) and has the most open questions (see T01 plan open questions section)
+- Tracks A and B are fully complete
+- Track B changes span both stigmer (OSS) and stigmer-cloud repos
+- SDK clients in all 4 languages now have `updateVariables()` and `removeVariables()` methods
+- Go code compiles cleanly; Java Cloud uses annotation processor so compile verification requires full Gradle build
+- The `HasEnvironmentId` interface in Go is reusable for any future RPC that carries `environment_id`
+- `updateSpecAudit()` helper in the steps package is shared between merge and remove steps
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Track B" - Start proto definitions for variable management RPCs
+- "Continue with Track C" - Start sentinel defense for update RPC
+- "Continue with Track D" - Start React hooks for variable management
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
-- "Check parent status" - Review parent project state
 
 ---
 
