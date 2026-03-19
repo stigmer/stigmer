@@ -26,25 +26,35 @@ var File_ai_stigmer_agentic_environment_v1_query_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_environment_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/environment/v1/query.proto\x12!ai.stigmer.agentic.environment.v1\x1a+ai/stigmer/agentic/environment/v1/api.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xb3\x02\n" +
+	"-ai/stigmer/agentic/environment/v1/query.proto\x12!ai.stigmer.agentic.environment.v1\x1a+ai/stigmer/agentic/environment/v1/api.proto\x1a*ai/stigmer/agentic/environment/v1/io.proto\x1a,ai/stigmer/agentic/environment/v1/spec.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x86\x05\n" +
 	"\x1aEnvironmentQueryController\x12\x96\x01\n" +
 	"\x03get\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a..ai.stigmer.agentic.environment.v1.Environment\"0¸\x18,\b\x03\x105\"\x05value*\x1funauthorized to get environment\x12v\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a..ai.stigmer.agentic.environment.v1.Environment\x1a\x04\xa0\xff+5B\xb6\x02\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a..ai.stigmer.agentic.environment.v1.Environment\x12\xd2\x01\n" +
+	"\x0egetSecretValue\x12>.ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput\x1a3.ai.stigmer.agentic.environment.v1.EnvironmentValue\"K¸\x18G\b\x19\x105\"\x0eenvironment_id*1unauthorized to read secret values (creator-only)\x12|\n" +
+	"\x04list\x12:.ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest\x1a2.ai.stigmer.agentic.environment.v1.EnvironmentList\"\x04и\x18\x01\x1a\x04\xa0\xff+5B\xb6\x02\n" +
 	"%com.ai.stigmer.agentic.environment.v1B\n" +
 	"QueryProtoP\x01ZXgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1;environmentv1\xa2\x02\x04ASAE\xaa\x02!Ai.Stigmer.Agentic.Environment.V1\xca\x02!Ai\\Stigmer\\Agentic\\Environment\\V1\xe2\x02-Ai\\Stigmer\\Agentic\\Environment\\V1\\GPBMetadata\xea\x02%Ai::Stigmer::Agentic::Environment::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_environment_v1_query_proto_goTypes = []any{
 	(*apiresource.ApiResourceId)(nil),        // 0: ai.stigmer.commons.apiresource.ApiResourceId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*Environment)(nil),                      // 2: ai.stigmer.agentic.environment.v1.Environment
+	(*EnvironmentSecretValueInput)(nil),      // 2: ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput
+	(*ListEnvironmentsRequest)(nil),          // 3: ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest
+	(*Environment)(nil),                      // 4: ai.stigmer.agentic.environment.v1.Environment
+	(*EnvironmentValue)(nil),                 // 5: ai.stigmer.agentic.environment.v1.EnvironmentValue
+	(*EnvironmentList)(nil),                  // 6: ai.stigmer.agentic.environment.v1.EnvironmentList
 }
 var file_ai_stigmer_agentic_environment_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.environment.v1.EnvironmentQueryController.get:input_type -> ai.stigmer.commons.apiresource.ApiResourceId
 	1, // 1: ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.agentic.environment.v1.EnvironmentQueryController.get:output_type -> ai.stigmer.agentic.environment.v1.Environment
-	2, // 3: ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getByReference:output_type -> ai.stigmer.agentic.environment.v1.Environment
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	2, // 2: ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getSecretValue:input_type -> ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput
+	3, // 3: ai.stigmer.agentic.environment.v1.EnvironmentQueryController.list:input_type -> ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest
+	4, // 4: ai.stigmer.agentic.environment.v1.EnvironmentQueryController.get:output_type -> ai.stigmer.agentic.environment.v1.Environment
+	4, // 5: ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getByReference:output_type -> ai.stigmer.agentic.environment.v1.Environment
+	5, // 6: ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getSecretValue:output_type -> ai.stigmer.agentic.environment.v1.EnvironmentValue
+	6, // 7: ai.stigmer.agentic.environment.v1.EnvironmentQueryController.list:output_type -> ai.stigmer.agentic.environment.v1.EnvironmentList
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -56,6 +66,8 @@ func file_ai_stigmer_agentic_environment_v1_query_proto_init() {
 		return
 	}
 	file_ai_stigmer_agentic_environment_v1_api_proto_init()
+	file_ai_stigmer_agentic_environment_v1_io_proto_init()
+	file_ai_stigmer_agentic_environment_v1_spec_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

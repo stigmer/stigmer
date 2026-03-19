@@ -437,7 +437,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"cloud_only\x10\x02*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xb2\v\n" +
+	"\astigmer\x10\x01*\xb4\v\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -464,8 +464,8 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\bworkflow\x102\x1a-\xaa\xff+)\b\x01\x10\x01\x1a\bWorkflow\"\bWorkflow*\x03wfl@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12t\n" +
 	"\x11workflow_instance\x103\x1a]\xaa\xff+Y\b\x01\x10\x01\x1a\x10WorkflowInstance\"\x11Workflow Instance*\x03win@\x01J'\b\x02\x10\x01\"!\n" +
 	"\bworkflow\x12\bworkflow\x1a\vworkflow_id\x12T\n" +
-	"\x12workflow_execution\x104\x1a<\xaa\xff+8\b\x01\x10\x01\x1a\x11WorkflowExecution\"\x12Workflow Execution*\x03wex@\x01J\x04\b\x02\x10\x01\x12@\n" +
-	"\venvironment\x105\x1a/\xaa\xff++\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01J\x04\b\x02\x10\x01\x12R\n" +
+	"\x12workflow_execution\x104\x1a<\xaa\xff+8\b\x01\x10\x01\x1a\x11WorkflowExecution\"\x12Workflow Execution*\x03wex@\x01J\x04\b\x02\x10\x01\x12B\n" +
+	"\venvironment\x105\x1a1\xaa\xff+-\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01J\x06\b\x02\x10\x010\x01\x12R\n" +
 	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04exec@\x01J\x04\b\x05\x10\x04\x124\n" +
 	"\aproject\x10<\x1a'\xaa\xff+#\b\x03\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\x04\b\x02\x10\x01:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x81\x03\n" +

@@ -23,6 +23,7 @@ const (
 	AgentInstanceQueryController_Get_FullMethodName            = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/get"
 	AgentInstanceQueryController_GetByAgent_FullMethodName     = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/getByAgent"
 	AgentInstanceQueryController_GetByReference_FullMethodName = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/getByReference"
+	AgentInstanceQueryController_List_FullMethodName           = "/ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController/list"
 )
 
 // AgentInstanceQueryControllerClient is the client API for AgentInstanceQueryController service.
@@ -40,6 +41,10 @@ type AgentInstanceQueryControllerClient interface {
 	GetByAgent(ctx context.Context, in *GetAgentInstancesByAgentRequest, opts ...grpc.CallOption) (*AgentInstanceList, error)
 	// Custom authorization in handler
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*AgentInstance, error)
+	// List agent instances with optional label filtering.
+	// Authorization is handled in-handler via FGA-filtered queries (cloud)
+	// or unrestricted store queries (OSS).
+	List(ctx context.Context, in *ListAgentInstancesRequest, opts ...grpc.CallOption) (*AgentInstanceList, error)
 }
 
 type agentInstanceQueryControllerClient struct {
@@ -80,6 +85,16 @@ func (c *agentInstanceQueryControllerClient) GetByReference(ctx context.Context,
 	return out, nil
 }
 
+func (c *agentInstanceQueryControllerClient) List(ctx context.Context, in *ListAgentInstancesRequest, opts ...grpc.CallOption) (*AgentInstanceList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AgentInstanceList)
+	err := c.cc.Invoke(ctx, AgentInstanceQueryController_List_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AgentInstanceQueryControllerServer is the server API for AgentInstanceQueryController service.
 // All implementations should embed UnimplementedAgentInstanceQueryControllerServer
 // for forward compatibility.
@@ -95,6 +110,10 @@ type AgentInstanceQueryControllerServer interface {
 	GetByAgent(context.Context, *GetAgentInstancesByAgentRequest) (*AgentInstanceList, error)
 	// Custom authorization in handler
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*AgentInstance, error)
+	// List agent instances with optional label filtering.
+	// Authorization is handled in-handler via FGA-filtered queries (cloud)
+	// or unrestricted store queries (OSS).
+	List(context.Context, *ListAgentInstancesRequest) (*AgentInstanceList, error)
 }
 
 // UnimplementedAgentInstanceQueryControllerServer should be embedded to have
@@ -112,6 +131,9 @@ func (UnimplementedAgentInstanceQueryControllerServer) GetByAgent(context.Contex
 }
 func (UnimplementedAgentInstanceQueryControllerServer) GetByReference(context.Context, *apiresource.ApiResourceReference) (*AgentInstance, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetByReference not implemented")
+}
+func (UnimplementedAgentInstanceQueryControllerServer) List(context.Context, *ListAgentInstancesRequest) (*AgentInstanceList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
 }
 func (UnimplementedAgentInstanceQueryControllerServer) testEmbeddedByValue() {}
 
@@ -187,6 +209,24 @@ func _AgentInstanceQueryController_GetByReference_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentInstanceQueryController_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAgentInstancesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentInstanceQueryControllerServer).List(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentInstanceQueryController_List_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentInstanceQueryControllerServer).List(ctx, req.(*ListAgentInstancesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AgentInstanceQueryController_ServiceDesc is the grpc.ServiceDesc for AgentInstanceQueryController service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -205,6 +245,10 @@ var AgentInstanceQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getByReference",
 			Handler:    _AgentInstanceQueryController_GetByReference_Handler,
+		},
+		{
+			MethodName: "list",
+			Handler:    _AgentInstanceQueryController_List_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
