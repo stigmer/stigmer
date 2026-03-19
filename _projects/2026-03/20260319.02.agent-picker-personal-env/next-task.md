@@ -68,9 +68,22 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 10:05
-**Current Task**: T01.10 — useCreateSession wiring
+**Current Task**: T01.11 — Console integration
 **Status**: In Progress (Phase 1)
-**Last Session**: 2026-03-19 — Completed T01.9
+**Last Session**: 2026-03-19 — Completed T01.10
+
+## Session Progress (2026-03-19, Session 10)
+
+- Completed T01.10: useCreateSession agent wiring — added `agentInstanceId` and `agentRef` to `CreateSessionInput`
+  - Modified `sdk/react/src/session/useCreateSession.ts` (+65 lines, net change)
+  - Extended `CreateSessionInput` with two new optional fields: `agentInstanceId?: string` (Profile A — platform builders) and `agentRef?: ResourceRef` (convenience resolution via agent's default instance)
+  - Added agent instance resolution logic inside `create()` with clear priority: explicit `agentInstanceId` > `agentRef` (resolved via `agent.getByReference()` → `status.defaultInstanceId`) > omitted (backend resolves platform default)
+  - Descriptive error when agent has no default instance: `"Agent 'org/slug' does not have a default instance. Pass an explicit agentInstanceId instead."`
+  - Updated JSDoc: documents all three resolution strategies, provides `@example` blocks for each path (platform builder, agent reference, platform default)
+  - Each field on `CreateSessionInput` has inline JSDoc with `{@link}` cross-references
+  - TypeScript compiles cleanly, zero linter errors on modified file
+- Architectural note: adding `agentRef` resolution (a single `agent.getByReference()` lookup) to a Layer 1 hook is a mild departure from "one thing per hook" but justified — it serves both profiles, avoids leaking SDK logic into the Console, and Phase 2 bypasses it entirely (orchestration hooks resolve to `agentInstanceId` before calling `createSession`)
+- All Phase 1 SDK work is now complete (T01.1–T01.10). Remaining Phase 1 task: Console integration (T01.11).
 
 ## Session Progress (2026-03-19, Session 9)
 
@@ -170,12 +183,12 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T01.10** — `useCreateSession` wiring (agentRef + agentInstanceId on CreateSessionInput)
-2. **T01.11** — Console integration (SessionLauncher — wire agent state, pass agentRef to SessionComposer and createSession)
+1. **T01.11** — Console integration (SessionLauncher — wire agentRef state, pass to SessionComposer and createSession)
 
 ## Context for Resume
 
-- All Phase 1 building-block hooks, barrel exports, AND SessionComposer integration are now complete (T01.1–T01.9). Everything is importable from `@stigmer/react`. The remaining Phase 1 work is two wiring tasks: useCreateSession (T01.10) and Console integration (T01.11)
+- All Phase 1 SDK work is now complete (T01.1–T01.10). Everything is importable from `@stigmer/react`. The remaining Phase 1 work is one task: Console integration (T01.11).
+- `useCreateSession` now accepts `agentInstanceId` (direct) and `agentRef` (resolved to default instance) on `CreateSessionInput`. Resolution priority: `agentInstanceId` > `agentRef` > omit. The `agentRef` path calls `agent.getByReference()` and extracts `status.defaultInstanceId`.
 - SessionComposer now accepts `agentRef` / `onAgentRefChange` props. The Agent trigger appears first in the toolbar (before Workspace, MCP, Skills). The consumer (SessionLauncher) still needs to add `useState` for `agentRef` and pass it down (T01.11).
 - `useCreateAgentInstance` follows the `useCreateEnvironment` pattern exactly — wraps `stigmer.agentInstance.create()` with `{ create, isCreating, error, clearError }`; will be composed by Phase 2 `usePersonalAgentInstance` for get-or-create flow
 - The `useAgentSearch` hook wraps `stigmer.agent.list()` via `useResourceSearch`
