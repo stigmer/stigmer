@@ -375,8 +375,29 @@ When starting a new session:
 - **No size guard in the hook**: Server enforces `max_bytes`. The caller decides whether to invoke based on `isTextArtifact()` and size — hook doesn't silently skip.
 
 ### Dependencies
-- **Server implementation needed**: `getArtifactContent` handler in `stigmer-cloud` (fetches from R2, enforces size limit, returns content bytes). React hooks are ready; will work end-to-end once handler is deployed.
-- **Proto regeneration needed**: Run `buf generate` + `stigmer-codegen` to properly regenerate TS stubs from updated protos (manual scaffolding in place for now).
+- ~~**Server implementation needed**: `getArtifactContent` handler~~ — **DONE in Session 14** (Go handler in stigmer OSS, Java handler in stigmer-cloud)
+- ~~**Proto regeneration needed**: Run `buf generate` + `stigmer-codegen`~~ — **DONE** (all language stubs regenerated)
+
+## Session Progress (2026-03-20, Session 14)
+
+### Completed
+- **`getArtifactContent` backend handler (Go, stigmer OSS)**: Implemented `GetArtifactContent` on `AgentExecutionController`
+  - Validates `execution_id`, `storage_key` (non-empty, prefix check for path traversal prevention)
+  - Downloads via `c.artifactStorage.Download()` (works with both `LocalStorage` and `R2Storage`)
+  - Enforces `max_bytes` truncation (default 512 KB), detects content type by extension (17-entry map + `mime.TypeByExtension()` fallback)
+  - New file: `backend/services/stigmer-server/pkg/domain/agentexecution/controller/get_artifact_content.go`
+
+- **`getArtifactContent` backend handler (Java, stigmer-cloud)**: Implemented pipeline handler + R2 range-read method
+  - Added `get(String key, long maxBytes)` to `AgentExecutionArtifactR2Store` — S3 `HEAD` + `Range`-limited `GET` for memory-safe reads
+  - Created `AgentExecutionGetArtifactContentHandler` with pipeline: validate → authorize → validate prefix → load content → send response
+  - `ValidateStorageKeyPrefixStep` duplicated as inner class (Java generics prevent sharing across handler types)
+  - `LoadArtifactContentStep` with identical 17-entry content type map kept in sync with Go
+
+- **Proto stubs regenerated**: All language stubs (Go, Java, Python, TypeScript, Dart) regenerated in both repos
+
+### Commits
+- stigmer OSS: `587e6fb3 feat(backend): implement getArtifactContent handler and regenerate stubs`
+- stigmer-cloud: `0f4e88d7 feat(backend): implement getArtifactContent handler with R2 range reads`
 
 ## Next Steps
 
@@ -392,13 +413,14 @@ When starting a new session:
 
 - **Phase 1 (Library Pages + Navigation) is COMPLETE** — all tasks T01.1–T01.13 done
 - **Phase 2 (Execution Artifacts Widget + Apply Flow) is IN PROGRESS** — T02.1 complete, T02.2–T02.8 remaining
+- **Backend handlers DONE**: `getArtifactContent` implemented in both Go (stigmer OSS) and Java (stigmer-cloud) — frontend hooks now work end-to-end
 - **T02.1 deliverables**: 2 hooks (`useExecutionArtifacts`, `useArtifactContent`), 4 utility functions, proto definition for `getArtifactContent` RPC
 - **New proto types**: `GetArtifactContentRequest` / `GetArtifactContentResponse` in `io.proto`, `getArtifactContent` RPC in `query.proto`
 - **Artifact types from protos**: `ExecutionArtifact` (artifact_pb), `ExecutionArtifactKind` enum (FILE, DIRECTORY) from enum_pb
 - **Field name mapping**: proto `size_bytes` → TS `sizeBytes: bigint`, proto `storage_key` → TS `storageKey`, proto `download_url` → TS `downloadUrl`, proto `expires_at` → TS `expiresAt`
 - **Existing right sidebar**: `SessionPage` renders `ExecutionProgress` and `ExecutionCostSummary` in the aside — `ArtifactsWidget` (T02.6) will be added below these
 - **Error pattern**: `useArtifactContent` uses `error: string | null` (matches `useResourceList` pattern, not `Error | null`)
-- **Branch**: `feat/add-customize-ui-2`
+- **Branch**: `feat/add-customize-ui-2` (stigmer OSS), `feat/add-library-ui` (stigmer-cloud)
 
 ## Quick Commands
 
