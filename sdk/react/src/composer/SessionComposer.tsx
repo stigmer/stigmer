@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
-import { Popover } from "@base-ui/react/popover";
 import { getUserMessage, type AttachmentInput, type EnvVarInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useComposer } from "./useComposer";
-import { ModelSelector } from "../models/ModelSelector";
+import { ComposerToolbar } from "./ComposerToolbar";
+import { type ConfigureMenuItem } from "./ConfigureMenu";
+import { ContextChip, type ChipItem } from "./ContextChip";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
 import { AgentPicker } from "../agent/AgentPicker";
 import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvForm";
@@ -21,6 +22,14 @@ import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { useAttachments } from "../attachment/useAttachments";
 import { AttachmentChipList } from "../attachment/AttachmentChipList";
+import {
+  AgentIcon,
+  McpServerIcon,
+  SkillIcon,
+  SecretsIcon,
+  AlertTriangleIcon,
+  ResolveSpinner,
+} from "./icons";
 
 /**
  * Context provided to `onSubmit` at the moment of submission.
@@ -188,8 +197,12 @@ export interface SessionComposerProps {
  *
  * Combines a self-resizing textarea, model selector, and context pickers
  * (agent, workspace, MCP servers, skills) into a single input card.
- * Context pickers appear as toolbar triggers that open popovers. Selected
- * items render as removable chips between the textarea and toolbar.
+ *
+ * The toolbar uses a two-tier layout:
+ * - **Tier 1** (always visible): Attach, Workspace, Model Selector
+ * - **Tier 2** (behind Configure menu): Agent, MCP, Skills, Secrets
+ *
+ * Selected items render as removable chips between the textarea and toolbar.
  *
  * Used for both new session creation (launcher) and follow-up messages
  * within an existing session. Layout positioning is the consumer's
@@ -268,20 +281,29 @@ export function SessionComposer({
 
   const showAgent = onAgentRefChange != null && org != null;
   const showMcp = onMcpServerUsagesChange != null && org != null;
+  const showWorkspace = workspace != null;
+  const showSkills = onSkillRefsChange != null && org != null;
+  const showSecrets = secrets != null;
+  const showAttach = enableAttachments;
 
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Configure menu state — drives the Tier 2 drill-down popover
+  // ---------------------------------------------------------------------------
+
+  const [configOpen, setConfigOpen] = useState(false);
+  const [configActivePanel, setConfigActivePanel] = useState<string | null>(null);
+
+  // ---------------------------------------------------------------------------
   // Setup hooks — instantiated before handleSubmit so it can read their state
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   const agentSetup = useAgentSetup(showAgent ? (org ?? null) : null);
-  const [agentPopoverOpen, setAgentPopoverOpen] = useState(false);
 
   const mcpSetup = useMcpServerSetup(showMcp ? (org ?? null) : null);
-  const [mcpPopoverOpen, setMcpPopoverOpen] = useState(false);
 
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // Attachments — file upload state machine
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   const attachments = useAttachments(
     enableAttachments
@@ -333,9 +355,9 @@ export function SessionComposer({
     [enableAttachments, isDisabled, attachments],
   );
 
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // Submit — aggregates one-time runtimeEnv from all setup flows
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   const handleSubmit = useCallback(
     (message: string) => {
@@ -406,23 +428,33 @@ export function SessionComposer({
     [],
   );
 
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // Agent setup: state-machine-driven popover + environment resolution
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   const showEnvForm = agentSetup.state.status === "needsEnvVars";
   const isAgentBusy =
     agentSetup.state.status === "resolving" ||
     agentSetup.state.status === "submitting";
 
-  const handleAgentPopoverOpenChange = useCallback(
+  const handleConfigOpenChange = useCallback(
     (open: boolean) => {
-      setAgentPopoverOpen(open);
-      if (!open) {
+      setConfigOpen(open);
+      if (!open && configActivePanel === "agent") {
         agentSetup.reset();
       }
     },
-    [agentSetup],
+    [configActivePanel, agentSetup],
+  );
+
+  const handleConfigActivePanelChange = useCallback(
+    (panel: string | null) => {
+      if (configActivePanel === "agent" && panel !== "agent") {
+        agentSetup.reset();
+      }
+      setConfigActivePanel(panel);
+    },
+    [configActivePanel, agentSetup],
   );
 
   const handleAgentSelect = useCallback(
@@ -443,10 +475,10 @@ export function SessionComposer({
             `${result.agentRef.org}/${result.agentRef.slug}`,
             result.agentName,
           );
-          setAgentPopoverOpen(false);
+          setConfigOpen(false);
         }
         // "needsEnvVars" — state machine transitions automatically,
-        // popover content switches to env form via `showEnvForm`.
+        // panel content switches to env form via `showEnvForm`.
       } catch {
         // Error is captured by agentSetup.state.error — displayed inline.
       }
@@ -472,7 +504,7 @@ export function SessionComposer({
           `${result.agentRef.org}/${result.agentRef.slug}`,
           result.agentName,
         );
-        setAgentPopoverOpen(false);
+        setConfigOpen(false);
       } catch {
         // Error is captured by agentSetup.state.error — displayed inline.
       }
@@ -490,18 +522,18 @@ export function SessionComposer({
     onAgentResolutionChange?.(null);
   }, [onAgentRefChange, onAgentResolutionChange]);
 
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // MCP server setup: sync usageInputs to consumer
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   useEffect(() => {
     if (!showMcp) return;
     onMcpServerUsagesChange?.(mcpSetup.usageInputs);
   }, [showMcp, mcpSetup.usageInputs, onMcpServerUsagesChange]);
 
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // Submission blocking: MCP servers must be fully configured before send
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   const mcpBlocked = showMcp && !mcpSetup.allReady;
   const canSend = composer.canSubmit && !mcpBlocked;
@@ -517,14 +549,10 @@ export function SessionComposer({
     [canSend, composer.textareaProps],
   );
 
-  const showWorkspace = workspace != null;
-  const showSkills = onSkillRefsChange != null && org != null;
-  const showSecrets = secrets != null;
-  const showAttach = enableAttachments;
-  const hasContextTriggers =
-    showAgent || showWorkspace || showMcp || showSkills || showSecrets || showAttach;
+  // ---------------------------------------------------------------------------
+  // Chips — aggregated from all context sources
+  // ---------------------------------------------------------------------------
 
-  // Build chip items from all context sources
   const chips = useMemo(() => {
     const items: ChipItem[] = [];
 
@@ -575,7 +603,10 @@ export function SessionComposer({
           detail,
           onClick:
             entry.status === "needsSetup"
-              ? () => setMcpPopoverOpen(true)
+              ? () => {
+                  setConfigOpen(true);
+                  setConfigActivePanel("mcp");
+                }
               : undefined,
         });
       }
@@ -618,7 +649,6 @@ export function SessionComposer({
     showMcp,
     mcpSetup.entries,
     mcpSetup.removeServer,
-    setMcpPopoverOpen,
     skillRefs,
     secrets,
     displayNames,
@@ -629,6 +659,158 @@ export function SessionComposer({
   const mcpCount = showMcp ? Object.keys(mcpSetup.entries).length : 0;
   const skillCount = skillRefs?.length ?? 0;
   const secretCount = secrets?.entries.length ?? 0;
+
+  // ---------------------------------------------------------------------------
+  // Configure menu — Tier 2 items and panel renderer
+  // ---------------------------------------------------------------------------
+
+  const configureItems = useMemo((): ConfigureMenuItem[] => {
+    const items: ConfigureMenuItem[] = [];
+    if (showAgent) {
+      items.push({
+        id: "agent",
+        icon: <AgentIcon />,
+        label: "Agent",
+        count: agentRef ? 1 : 0,
+      });
+    }
+    if (showMcp) {
+      items.push({
+        id: "mcp",
+        icon: <McpServerIcon />,
+        label: "MCP Servers",
+        count: mcpCount,
+        hasWarning: mcpSetup.needsSetupCount > 0,
+      });
+    }
+    if (showSkills) {
+      items.push({
+        id: "skills",
+        icon: <SkillIcon />,
+        label: "Skills",
+        count: skillCount,
+      });
+    }
+    if (showSecrets) {
+      items.push({
+        id: "secrets",
+        icon: <SecretsIcon />,
+        label: "Secrets",
+        count: secretCount,
+      });
+    }
+    return items;
+  }, [showAgent, agentRef, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showSecrets, secretCount]);
+
+  const renderConfigPanel = useCallback(
+    (panelId: string): React.ReactNode => {
+      switch (panelId) {
+        case "agent":
+          return showEnvForm ? (
+            <div>
+              <AgentEnvForm
+                agentName={
+                  agentSetup.state.status === "needsEnvVars"
+                    ? agentSetup.state.agentName
+                    : "Agent"
+                }
+                variables={
+                  agentSetup.state.status === "needsEnvVars"
+                    ? agentSetup.state.missingVariables
+                    : []
+                }
+                onSubmit={handleEnvFormSubmit}
+                onCancel={() => agentSetup.reset()}
+                isSubmitting={isAgentBusy}
+                disabled={isDisabled}
+              />
+              {agentSetup.state.error && (
+                <AgentSetupError error={agentSetup.state.error} />
+              )}
+            </div>
+          ) : (
+            <div className="relative">
+              <AgentPicker
+                org={org!}
+                value={agentRef ?? null}
+                onChange={handleAgentSelect}
+                onDisplayNameResolved={handleDisplayNameResolved}
+                disabled={isDisabled || isAgentBusy}
+              />
+              {isAgentBusy && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-popover/80">
+                  <ResolveSpinner />
+                </div>
+              )}
+              {agentSetup.state.error && (
+                <AgentSetupError error={agentSetup.state.error} />
+              )}
+            </div>
+          );
+
+        case "mcp":
+          return (
+            <McpServerPicker
+              org={org!}
+              setup={{
+                entries: mcpSetup.entries,
+                onServerAdded: (ref) => mcpSetup.addServer(ref),
+                onServerRemoved: (ref) => mcpSetup.removeServer(ref),
+                onSubmitEnvVars: (ref, values, opts) =>
+                  mcpSetup.submitEnvVars(ref, values, {
+                    saveForFuture: opts.saveForFuture,
+                  }),
+                onEnabledToolsChange: (ref, tools) =>
+                  mcpSetup.setEnabledTools(ref, tools),
+              }}
+              onDisplayNameResolved={handleDisplayNameResolved}
+              disabled={isDisabled}
+            />
+          );
+
+        case "skills":
+          return (
+            <SkillPicker
+              org={org!}
+              value={skillRefs ?? []}
+              onChange={onSkillRefsChange!}
+              onDisplayNameResolved={handleDisplayNameResolved}
+              disabled={isDisabled}
+            />
+          );
+
+        case "secrets":
+          return (
+            <OneTimeSecretsInput
+              secrets={secrets!}
+              disabled={isDisabled}
+            />
+          );
+
+        default:
+          return null;
+      }
+    },
+    [
+      showEnvForm,
+      agentSetup,
+      isAgentBusy,
+      isDisabled,
+      org,
+      agentRef,
+      handleAgentSelect,
+      handleEnvFormSubmit,
+      handleDisplayNameResolved,
+      mcpSetup,
+      skillRefs,
+      onSkillRefsChange,
+      secrets,
+    ],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
 
   return (
     <div
@@ -722,7 +904,10 @@ export function SessionComposer({
             </span>
             <button
               type="button"
-              onClick={() => setMcpPopoverOpen(true)}
+              onClick={() => {
+                setConfigOpen(true);
+                setConfigActivePanel("mcp");
+              }}
               disabled={isDisabled}
               className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[0.6rem] font-medium hover:bg-warning/20 disabled:pointer-events-none disabled:opacity-50"
             >
@@ -732,352 +917,40 @@ export function SessionComposer({
         )}
 
         {/* Zone 3: Toolbar */}
-        <div className="flex items-center justify-between gap-2 border-t border-border/50 px-3 py-2">
-          <div className="flex items-center gap-1.5">
-            {/* Context triggers */}
-            {hasContextTriggers && (
-              <>
-                {showAttach && (
-                  <button
-                    type="button"
-                    disabled={isDisabled}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
-                      "text-muted-foreground hover:text-foreground hover:bg-accent/50",
-                      "disabled:pointer-events-none disabled:opacity-50",
-                    )}
-                    aria-label="Attach files"
-                  >
-                    <PaperclipIcon />
-                    <span>Attach</span>
-                    {attachments.entries.length > 0 && (
-                      <span className="rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-medium text-primary">
-                        {attachments.entries.length}
-                      </span>
-                    )}
-                  </button>
-                )}
-
-                {showAgent && (
-                  <ContextPopover
-                    icon={<AgentIcon />}
-                    label="Agent"
-                    count={agentRef ? 1 : 0}
-                    disabled={isDisabled}
-                    open={agentPopoverOpen}
-                    onOpenChange={handleAgentPopoverOpenChange}
-                  >
-                    {showEnvForm ? (
-                      <div>
-                        <AgentEnvForm
-                          agentName={
-                            agentSetup.state.status === "needsEnvVars"
-                              ? agentSetup.state.agentName
-                              : "Agent"
-                          }
-                          variables={
-                            agentSetup.state.status === "needsEnvVars"
-                              ? agentSetup.state.missingVariables
-                              : []
-                          }
-                          onSubmit={handleEnvFormSubmit}
-                          onCancel={() => agentSetup.reset()}
-                          isSubmitting={isAgentBusy}
-                          disabled={isDisabled}
-                        />
-                        {agentSetup.state.error && (
-                          <AgentSetupError error={agentSetup.state.error} />
-                        )}
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        <AgentPicker
-                          org={org!}
-                          value={agentRef ?? null}
-                          onChange={handleAgentSelect}
-                          onDisplayNameResolved={handleDisplayNameResolved}
-                          disabled={isDisabled || isAgentBusy}
-                        />
-                        {isAgentBusy && (
-                          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-popover/80">
-                            <ResolveSpinner />
-                          </div>
-                        )}
-                        {agentSetup.state.error && (
-                          <AgentSetupError error={agentSetup.state.error} />
-                        )}
-                      </div>
-                    )}
-                  </ContextPopover>
-                )}
-
-                {showWorkspace && (
-                  <ContextPopover
-                    icon={<WorkspaceIcon />}
-                    label="Workspace"
-                    count={workspaceCount}
-                    disabled={isDisabled}
-                  >
-                    <WorkspaceEditor
-                      workspace={workspace}
-                      disabled={isDisabled}
-                      gitHubConnection={gitHubConnection}
-                      enableGitHub={enableGitHub}
-                      enableLocal={enableLocal}
-                      enableFolderBrowser={enableFolderBrowser}
-                    />
-                  </ContextPopover>
-                )}
-
-                {showMcp && (
-                  <ContextPopover
-                    icon={<McpServerIcon />}
-                    label="MCP"
-                    count={mcpCount}
-                    disabled={isDisabled}
-                    open={mcpPopoverOpen}
-                    onOpenChange={setMcpPopoverOpen}
-                  >
-                    <McpServerPicker
-                      org={org!}
-                      setup={{
-                        entries: mcpSetup.entries,
-                        onServerAdded: (ref) => mcpSetup.addServer(ref),
-                        onServerRemoved: (ref) => mcpSetup.removeServer(ref),
-                        onSubmitEnvVars: (ref, values, opts) =>
-                          mcpSetup.submitEnvVars(ref, values, {
-                            saveForFuture: opts.saveForFuture,
-                          }),
-                        onEnabledToolsChange: (ref, tools) =>
-                          mcpSetup.setEnabledTools(ref, tools),
-                      }}
-                      onDisplayNameResolved={handleDisplayNameResolved}
-                      disabled={isDisabled}
-                    />
-                  </ContextPopover>
-                )}
-
-                {showSkills && (
-                  <ContextPopover
-                    icon={<SkillIcon />}
-                    label="Skills"
-                    count={skillCount}
-                    disabled={isDisabled}
-                  >
-                    <SkillPicker
-                      org={org!}
-                      value={skillRefs ?? []}
-                      onChange={onSkillRefsChange!}
-                      onDisplayNameResolved={handleDisplayNameResolved}
-                      disabled={isDisabled}
-                    />
-                  </ContextPopover>
-                )}
-
-                {showSecrets && (
-                  <ContextPopover
-                    icon={<SecretsIcon />}
-                    label="Secrets"
-                    count={secretCount}
-                    disabled={isDisabled}
-                  >
-                    <OneTimeSecretsInput
-                      secrets={secrets}
-                      disabled={isDisabled}
-                    />
-                  </ContextPopover>
-                )}
-
-                {showModelSelector && (
-                  <div className="mx-0.5 h-4 w-px bg-border/50" />
-                )}
-              </>
-            )}
-
-            {showModelSelector && (
-              <ModelSelector
-                value={modelId}
-                onValueChange={handleModelChange}
-                disabled={isDisabled}
-              />
-            )}
-          </div>
-
-          <button
-            type="button"
-            disabled={!canSend}
-            onClick={composer.submit}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-40"
-            aria-label="Send message"
-          >
-            {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
-          </button>
-        </div>
+        <ComposerToolbar
+          disabled={isDisabled}
+          isSubmitting={isSubmitting}
+          canSend={canSend}
+          onSend={composer.submit}
+          showAttach={showAttach}
+          attachmentCount={attachments.entries.length}
+          onAttachClick={() => fileInputRef.current?.click()}
+          showWorkspace={showWorkspace}
+          workspaceCount={workspaceCount}
+          workspaceContent={
+            workspace
+              ? <WorkspaceEditor
+                  workspace={workspace}
+                  disabled={isDisabled}
+                  gitHubConnection={gitHubConnection}
+                  enableGitHub={enableGitHub}
+                  enableLocal={enableLocal}
+                  enableFolderBrowser={enableFolderBrowser}
+                />
+              : null
+          }
+          configureItems={configureItems}
+          configOpen={configOpen}
+          onConfigOpenChange={handleConfigOpenChange}
+          configActivePanel={configActivePanel}
+          onConfigActivePanelChange={handleConfigActivePanelChange}
+          renderConfigPanel={renderConfigPanel}
+          showModelSelector={showModelSelector}
+          modelId={modelId}
+          onModelChange={handleModelChange}
+        />
       </div>
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Context popover wrapper
-// ---------------------------------------------------------------------------
-
-function ContextPopover({
-  icon,
-  label,
-  count,
-  children,
-  disabled,
-  open,
-  onOpenChange,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  count: number;
-  children: React.ReactNode;
-  disabled?: boolean;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-}) {
-  return (
-    <Popover.Root open={open} onOpenChange={onOpenChange}>
-      <Popover.Trigger
-        disabled={disabled}
-        className={cn(
-          "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
-          "text-muted-foreground hover:text-foreground hover:bg-accent/50",
-          "disabled:pointer-events-none disabled:opacity-50",
-        )}
-      >
-        {icon}
-        <span>{label}</span>
-        {count > 0 && (
-          <span className="rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-medium text-primary">
-            {count}
-          </span>
-        )}
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner sideOffset={8} align="start">
-          <Popover.Popup
-            className={[
-              "z-popover overflow-x-hidden overflow-y-auto rounded-lg border border-border",
-              "bg-popover p-3 shadow-md text-popover-foreground",
-              "max-h-[80vh]",
-            ].join(" ")}
-          >
-            {children}
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Context chip
-// ---------------------------------------------------------------------------
-
-interface ChipItem {
-  key: string;
-  label: string;
-  type: "agent" | "workspace" | "mcp" | "skill" | "secret";
-  onRemove: () => void;
-  /** MCP-only: drives visual variant (amber, muted+spinner, default). */
-  status?: "loading" | "needsSetup" | "submitting" | "ready";
-  /** MCP-only: secondary text before the remove button (e.g., "4/12"). */
-  detail?: string;
-  /** MCP-only: makes the label area clickable (e.g., open config popover). */
-  onClick?: () => void;
-}
-
-const CHIP_TYPE_LABELS: Record<ChipItem["type"], string> = {
-  agent: "Agent",
-  workspace: "WS",
-  mcp: "MCP",
-  skill: "Skill",
-  secret: "1-time",
-};
-
-function ContextChip({
-  label,
-  type,
-  onRemove,
-  disabled,
-  status,
-  detail,
-  onClick,
-}: {
-  label: string;
-  type: ChipItem["type"];
-  onRemove: () => void;
-  disabled?: boolean;
-  status?: ChipItem["status"];
-  detail?: string;
-  onClick?: () => void;
-}) {
-  const isTransient = status === "loading" || status === "submitting";
-  const isWarning = status === "needsSetup";
-
-  const labelContent = (
-    <>
-      {isTransient && <ChipSpinner />}
-      {isWarning && (
-        <span
-          className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-warning"
-          aria-hidden="true"
-        />
-      )}
-      <span className="text-[0.55rem] font-medium uppercase tracking-wider text-muted-foreground">
-        {CHIP_TYPE_LABELS[type]}
-      </span>
-      <span className="max-w-[120px] truncate" title={label}>
-        {label}
-      </span>
-      {detail != null && (
-        <span className="shrink-0 text-[0.6rem] font-medium text-muted-foreground">
-          {detail}
-        </span>
-      )}
-    </>
-  );
-
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs text-foreground",
-        isWarning
-          ? "border border-warning/30 bg-warning/10"
-          : "bg-muted/50",
-        isTransient && "opacity-70",
-      )}
-    >
-      {onClick ? (
-        <button
-          type="button"
-          onClick={onClick}
-          disabled={disabled}
-          className="inline-flex items-center gap-1 hover:opacity-80 disabled:pointer-events-none"
-          aria-label={`Configure ${label}`}
-        >
-          {labelContent}
-        </button>
-      ) : (
-        <span className="inline-flex items-center gap-1">
-          {labelContent}
-        </span>
-      )}
-      <button
-        type="button"
-        onClick={onRemove}
-        disabled={disabled}
-        className="ml-0.5 shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
-        aria-label={`Remove ${label}`}
-      >
-        <XIcon />
-      </button>
-    </span>
   );
 }
 
@@ -1107,240 +980,4 @@ function mcpRefFromKey(key: string): ResourceRef {
     slug: key.slice(idx + 1),
     kind: ApiResourceKind.mcp_server,
   };
-}
-
-// ---------------------------------------------------------------------------
-// Icons
-// ---------------------------------------------------------------------------
-
-function ChipSpinner() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      className="shrink-0 animate-spin text-muted-foreground"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}
-
-function AlertTriangleIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M8 1.5 1.5 13.5h13L8 1.5z" />
-      <path d="M8 6v3" />
-      <circle cx="8" cy="11" r="0.5" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function ArrowUpIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M8 12V4M4 7l4-4 4 4" />
-    </svg>
-  );
-}
-
-function SpinnerIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 14 14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M4 4L10 10M10 4L4 10" />
-    </svg>
-  );
-}
-
-function PaperclipIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M12.5 7L7 12.5a3.536 3.536 0 0 1-5-5L7.5 2a2.357 2.357 0 0 1 3.333 3.333L5.5 10.667a1.179 1.179 0 0 1-1.667-1.667L9 3.833" />
-    </svg>
-  );
-}
-
-function AgentIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="5" width="10" height="8" rx="2" />
-      <circle cx="6" cy="9" r="1" fill="currentColor" stroke="none" />
-      <circle cx="10" cy="9" r="1" fill="currentColor" stroke="none" />
-      <path d="M8 1v4" />
-      <circle cx="8" cy="1" r="1" />
-    </svg>
-  );
-}
-
-function WorkspaceIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M1.5 3.5V11a1 1 0 001 1h9a1 1 0 001-1V5.5a1 1 0 00-1-1H7L5.5 3H2.5a1 1 0 00-1 .5z" />
-    </svg>
-  );
-}
-
-function McpServerIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="2" y="2" width="12" height="4" rx="1" />
-      <rect x="2" y="10" width="12" height="4" rx="1" />
-      <circle cx="5" cy="4" r="0.75" fill="currentColor" stroke="none" />
-      <circle cx="5" cy="12" r="0.75" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function SkillIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2 3h12M2 7h8M2 11h10M2 15h6" />
-    </svg>
-  );
-}
-
-function SecretsIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="8" width="10" height="6" rx="1.5" />
-      <path d="M5 8V5.5a3 3 0 0 1 6 0V8" />
-      <circle cx="8" cy="11.5" r="1" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function ResolveSpinner() {
-  return (
-    <div className="flex flex-col items-center gap-1.5">
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        className="animate-spin text-muted-foreground"
-        aria-hidden="true"
-      >
-        <path d="M8 2a6 6 0 1 0 6 6" />
-      </svg>
-      <span className="text-[0.6rem] text-muted-foreground">
-        Checking agent requirements...
-      </span>
-    </div>
-  );
 }

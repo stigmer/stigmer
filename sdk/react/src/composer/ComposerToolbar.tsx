@@ -1,0 +1,169 @@
+"use client";
+
+import { cn } from "@stigmer/theme";
+import { ContextPopover } from "./ContextPopover";
+import { ConfigureMenu, type ConfigureMenuItem } from "./ConfigureMenu";
+import { ModelSelector } from "../models/ModelSelector";
+import {
+  PaperclipIcon,
+  WorkspaceIcon,
+  ArrowUpIcon,
+  SpinnerIcon,
+} from "./icons";
+
+export interface ComposerToolbarProps {
+  readonly disabled: boolean;
+  readonly isSubmitting: boolean;
+  readonly canSend: boolean;
+  readonly onSend: () => void;
+
+  // -- Tier 1: Attach -------------------------------------------------------
+
+  readonly showAttach: boolean;
+  readonly attachmentCount: number;
+  readonly onAttachClick: () => void;
+
+  // -- Tier 1: Workspace ----------------------------------------------------
+
+  readonly showWorkspace: boolean;
+  readonly workspaceCount: number;
+  /** Pre-built workspace editor content for the popover. */
+  readonly workspaceContent: React.ReactNode;
+
+  // -- Tier 2: Configure menu -----------------------------------------------
+
+  readonly configureItems: readonly ConfigureMenuItem[];
+  readonly configOpen: boolean;
+  readonly onConfigOpenChange: (open: boolean) => void;
+  readonly configActivePanel: string | null;
+  readonly onConfigActivePanelChange: (panel: string | null) => void;
+  /** Render the picker content for a given configure panel id. */
+  readonly renderConfigPanel: (itemId: string) => React.ReactNode;
+
+  // -- Model selector -------------------------------------------------------
+
+  readonly showModelSelector: boolean;
+  readonly modelId?: string;
+  readonly onModelChange: (id: string) => void;
+}
+
+/**
+ * Composer toolbar — Zone 3 of the SessionComposer.
+ *
+ * Renders a two-tier toolbar following the frequency-of-interaction principle:
+ *
+ * **Tier 1 (always visible):** Attach, Workspace
+ * **Tier 2 (behind Configure menu):** Agent, MCP, Skills, Secrets
+ * **Right edge:** Model Selector, Send
+ *
+ * Separators are placed between conceptual groups using Gestalt proximity.
+ */
+export function ComposerToolbar({
+  disabled,
+  isSubmitting,
+  canSend,
+  onSend,
+  showAttach,
+  attachmentCount,
+  onAttachClick,
+  showWorkspace,
+  workspaceCount,
+  workspaceContent,
+  configureItems,
+  configOpen,
+  onConfigOpenChange,
+  configActivePanel,
+  onConfigActivePanelChange,
+  renderConfigPanel,
+  showModelSelector,
+  modelId,
+  onModelChange,
+}: ComposerToolbarProps) {
+  const hasTier1 = showAttach || showWorkspace;
+  const hasTier2 = configureItems.length > 0;
+
+  return (
+    <div className="flex items-center justify-between gap-2 border-t border-border/50 px-3 py-2">
+      <div className="flex items-center gap-1.5">
+        {/* ---- Tier 1: Input augmentation ---- */}
+
+        {showAttach && (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onAttachClick}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
+              "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+              "disabled:pointer-events-none disabled:opacity-50",
+            )}
+            aria-label="Attach files"
+          >
+            <PaperclipIcon />
+            <span>Attach</span>
+            {attachmentCount > 0 && (
+              <span className="rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-medium text-primary">
+                {attachmentCount}
+              </span>
+            )}
+          </button>
+        )}
+
+        {showWorkspace && (
+          <ContextPopover
+            icon={<WorkspaceIcon />}
+            label="Workspace"
+            count={workspaceCount}
+            disabled={disabled}
+          >
+            {workspaceContent}
+          </ContextPopover>
+        )}
+
+        {/* ---- Separator between Tier 1 and Tier 2 ---- */}
+
+        {hasTier1 && hasTier2 && (
+          <div className="mx-0.5 h-4 w-px bg-border/50" aria-hidden="true" />
+        )}
+
+        {/* ---- Tier 2: Agent configuration (behind Configure menu) ---- */}
+
+        <ConfigureMenu
+          open={configOpen}
+          onOpenChange={onConfigOpenChange}
+          activePanel={configActivePanel}
+          onActivePanelChange={onConfigActivePanelChange}
+          items={configureItems}
+          renderPanel={renderConfigPanel}
+          disabled={disabled}
+        />
+
+        {/* ---- Separator before model selector ---- */}
+
+        {(hasTier1 || hasTier2) && showModelSelector && (
+          <div className="mx-0.5 h-4 w-px bg-border/50" aria-hidden="true" />
+        )}
+
+        {showModelSelector && (
+          <ModelSelector
+            value={modelId}
+            onValueChange={onModelChange}
+            disabled={disabled}
+          />
+        )}
+      </div>
+
+      {/* ---- Send button ---- */}
+
+      <button
+        type="button"
+        disabled={!canSend}
+        onClick={onSend}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-40"
+        aria-label="Send message"
+      >
+        {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
+      </button>
+    </div>
+  );
+}
