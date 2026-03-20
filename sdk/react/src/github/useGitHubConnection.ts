@@ -10,6 +10,13 @@ const STORAGE_KEY_STATE = "stigmer:github:oauth-state";
 const GITHUB_USER_API = "https://api.github.com/user";
 const GITHUB_TOKEN_KEY = "GITHUB_TOKEN";
 
+/** Message type sent from the OAuth callback popup to the opener. */
+export const GITHUB_CALLBACK_MESSAGE_TYPE = "stigmer:github:callback-success";
+
+const POPUP_WIDTH = 600;
+const POPUP_HEIGHT = 700;
+const POPUP_CLOSE_POLL_MS = 500;
+
 /** Minimal GitHub user profile for display. */
 export interface GitHubUser {
   readonly login: string;
@@ -17,17 +24,43 @@ export interface GitHubUser {
   readonly name: string | null;
 }
 
+export interface GitHubConnectOptions {
+  /**
+   * When `true`, open the OAuth authorization page in a popup window
+   * instead of redirecting the current page. The callback page signals
+   * success via `postMessage` and the hook re-reconciles the token
+   * from the personal environment — keeping the user on the same page.
+   *
+   * Falls back to redirect if the popup is blocked by the browser.
+   *
+   * @default false
+   */
+  readonly popup?: boolean;
+}
+
 export interface UseGitHubConnectionReturn {
   /** Whether a valid GitHub token exists. */
   readonly isConnected: boolean;
   /** Whether the connection state is being validated on mount. */
   readonly isLoading: boolean;
+  /** Whether an OAuth popup is open and the flow is in progress. */
+  readonly isConnecting: boolean;
+  /**
+   * Whether the last popup `connect()` attempt was blocked by the
+   * browser. When `true`, the UI should prompt the user to allow
+   * popups or offer a redirect fallback (call `connect` without
+   * `{ popup: true }`).
+   */
+  readonly popupBlocked: boolean;
   /** The connected GitHub user profile, if connected. */
   readonly user: GitHubUser | null;
   /** The current access token (null if not connected). */
   readonly token: string | null;
-  /** Initiate the OAuth flow by redirecting to GitHub. */
-  readonly connect: (redirectUri: string) => Promise<void>;
+  /** Initiate the OAuth flow — redirect or popup based on options. */
+  readonly connect: (
+    redirectUri: string,
+    options?: GitHubConnectOptions,
+  ) => Promise<void>;
   /** Handle the OAuth callback — exchange code for token. */
   readonly handleCallback: (
     code: string,
@@ -97,6 +130,8 @@ export function useGitHubConnection(
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<GitHubUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [popupBlocked, setPopupBlocked] = useState(false);
 
   const personalEnv = usePersonalEnvironment(org || null);
 
@@ -104,6 +139,8 @@ export function useGitHubConnection(
   personalEnvRef.current = personalEnv;
 
   const reconciled = useRef(false);
+  const popupRef = useRef<Window | null>(null);
+  const popupPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Synchronously reset loading state when org changes so callers
   // (like the callback page) see the correct value in the same
@@ -178,13 +215,88 @@ export function useGitHubConnection(
     };
   }, [org, personalEnv.isLoading, personalEnv.environment, stigmer]);
 
+  // ── Popup OAuth message listener ──────────────────────────────────────
+  // Listens for success signals from the OAuth callback page running
+  // in a popup window. On success, triggers re-reconciliation from the
+  // personal environment (where the popup already persisted the token).
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== GITHUB_CALLBACK_MESSAGE_TYPE) return;
+
+      if (popupPollRef.current) {
+        clearInterval(popupPollRef.current);
+        popupPollRef.current = null;
+      }
+      popupRef.current = null;
+      setIsConnecting(false);
+
+      // Re-reconcile: the popup persisted the token server-side, so
+      // refetch the personal environment and let the reconciliation
+      // effect reveal and validate it.
+      setIsLoading(true);
+      reconciled.current = false;
+      personalEnvRef.current.refetch();
+    }
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  // Clean up popup resources on unmount.
+  useEffect(() => {
+    return () => {
+      if (popupPollRef.current) {
+        clearInterval(popupPollRef.current);
+      }
+    };
+  }, []);
+
   const connect = useCallback(
-    async (redirectUri: string) => {
+    async (redirectUri: string, options?: GitHubConnectOptions) => {
       const { authorizeUrl, state } =
         await stigmer.github.getOAuthAuthorizeUrl({ redirectUri });
 
       sessionStorage.setItem(STORAGE_KEY_STATE, state);
-      window.location.href = authorizeUrl;
+
+      if (!options?.popup) {
+        window.location.href = authorizeUrl;
+        return;
+      }
+
+      // If a popup is already open, bring it to focus.
+      if (popupRef.current && !popupRef.current.closed) {
+        popupRef.current.focus();
+        return;
+      }
+
+      const left = window.screenX + (window.outerWidth - POPUP_WIDTH) / 2;
+      const top = window.screenY + (window.outerHeight - POPUP_HEIGHT) / 2;
+      const popup = window.open(
+        authorizeUrl,
+        "stigmer-github-auth",
+        `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top},popup=yes`,
+      );
+
+      if (!popup || popup.closed) {
+        setPopupBlocked(true);
+        return;
+      }
+      setPopupBlocked(false);
+
+      setIsConnecting(true);
+      popupRef.current = popup;
+
+      const pollId = setInterval(() => {
+        if (!popup.closed) return;
+        clearInterval(pollId);
+        if (popupPollRef.current === pollId) {
+          popupPollRef.current = null;
+          popupRef.current = null;
+          setIsConnecting(false);
+        }
+      }, POPUP_CLOSE_POLL_MS);
+      popupPollRef.current = pollId;
     },
     [stigmer],
   );
@@ -224,6 +336,16 @@ export function useGitHubConnection(
     setToken(null);
     setUser(null);
 
+    if (popupRef.current && !popupRef.current.closed) {
+      popupRef.current.close();
+    }
+    popupRef.current = null;
+    if (popupPollRef.current) {
+      clearInterval(popupPollRef.current);
+      popupPollRef.current = null;
+    }
+    setIsConnecting(false);
+
     const env = personalEnvRef.current.environment;
     if (env && personalEnvHasKey(env, GITHUB_TOKEN_KEY)) {
       personalEnvRef.current
@@ -235,6 +357,8 @@ export function useGitHubConnection(
   return {
     isConnected: token !== null,
     isLoading,
+    isConnecting,
+    popupBlocked,
     user,
     token,
     connect,

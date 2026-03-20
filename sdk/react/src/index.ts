@@ -141,13 +141,14 @@ export type {
   SessionComposerProps,
 } from "./composer";
 
-// MCP Server — count hook, list hook, search hook, picker, tool selector, and setup orchestration
+// MCP Server — count hook, list hook, search hook, picker, config panel, tool selector, and setup orchestration
 export {
   useMcpServerCount,
   useMcpServerList,
   useMcpServerSearch,
   useMcpServerSetup,
   McpServerPicker,
+  McpServerConfigPanel,
   McpToolSelector,
   toServerKey,
 } from "./mcp-server";
@@ -164,6 +165,8 @@ export type {
   McpServerSetupPhase,
   McpServerSetupState,
   McpServerPickerProps,
+  McpServerConfigPanelProps,
+  McpServerCredentialsProps,
   McpToolSelectorProps,
 } from "./mcp-server";
 
@@ -189,9 +192,11 @@ export {
   useGitHubConnection,
   useGitHubRepos,
   GitHubRepoPicker,
+  GITHUB_CALLBACK_MESSAGE_TYPE,
 } from "./github";
 export type {
   GitHubUser,
+  GitHubConnectOptions,
   UseGitHubConnectionReturn,
   GitHubRepo,
   GitHubBranch,
