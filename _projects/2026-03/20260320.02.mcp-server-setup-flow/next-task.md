@@ -14,10 +14,45 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-03-20
-**Current Task**: Phase 2, T02.2 complete. Next: Phase 2, T02.3 — Enhance `McpServerPicker` with setup integration
-**Status**: In progress — Phase 0 done, Phase 1 done, Phase 2 T02.1 done, Phase 2 T02.2 done, ready for T02.3
+**Current Task**: Phase 2 complete. Next: Phase 3, T03.1 — Wire `useMcpServerSetup` into SessionComposer
+**Status**: In progress — Phase 0 done, Phase 1 done, Phase 2 done (T02.1 + T02.2 + T02.3), ready for Phase 3
 
 ## Session Progress (2026-03-20)
+
+### Session 6: Phase 2, T02.3 — McpServerPicker setup integration — COMPLETE
+
+**What was accomplished:**
+- Planned and implemented the full `McpServerPicker` setup integration — two-mode picker with drill-in configuration
+- Seven design decisions made and applied (DD-T3.1 through DD-T3.7):
+  - Grouped `setup?: McpServerSetupIntegration` sub-object (not flat optional props)
+  - `value`/`onChange` become optional (not needed in setup mode)
+  - Drill-in owned by picker via local `useState<PickerView>`
+  - Per-row status indicators (no full overlay — respects multi-select)
+  - Loading errors show retry + remove
+  - `useId()` replaces hardcoded `LIST_ID` (SSR-safe, multi-instance safe)
+  - Keep `w-72` width throughout (no popover resize jitter)
+- Updated barrel exports in `mcp-server/index.ts` and `index.ts`
+- Zero lint errors, zero TypeScript errors
+
+**Files modified:**
+- `sdk/react/src/mcp-server/McpServerPicker.tsx` — Enhanced from 336 to ~530 lines
+- `sdk/react/src/mcp-server/index.ts` — Added `McpServerSetupIntegration` type export
+- `sdk/react/src/index.ts` — Added `McpServerSetupIntegration` re-export
+
+**New types and components:**
+- `McpServerSetupIntegration` interface — grouped props for setup mode
+- `SetupServerRow` — internal component with per-status rendering
+- `SimpleServerRow` — extracted backward-compatible row
+- `StatusIndicator` — spinner/dot per status
+- `SmallSpinner`, `ChevronRightIcon` — new icons
+- `refFromServerKey()`, `slugFromServerKey()` — key-to-ref conversion utilities
+
+**Key decisions:**
+- Grouped sub-object (DD-T3.1) — TypeScript prevents invalid partial states. Matches `credentials?` pattern from McpServerConfigPanel.
+- Optional `value`/`onChange` (DD-T3.2) — Avoids forcing `onChange={() => {}}` in setup mode. Not a breaking change.
+- Picker-owned drill-in (DD-T3.3) — Multi-select navigation is picker-internal. Platform builders get drill-in for free.
+- Per-row indicators (DD-T3.4) — Unlike agent's single-select overlay, MCP multi-select uses per-row indicators so other servers remain interactive.
+- `selectedKeys` derived from `setup.entries` (DD-T3.3 impl) — Loading/needsSetup servers aren't in `usageInputs`, so must derive from entries keys.
 
 ### Session 5: Phase 2, T02.2 — McpServerConfigPanel component — COMPLETE
 
@@ -183,12 +218,14 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 2, T02.3**: Enhance `McpServerPicker` with setup integration
-   - Setup state indicators per server (loading spinner, needs-setup amber badge, ready green badge, error red badge)
-   - Drill-in support: clicking "Configure" transitions popover from picker list to `McpServerConfigPanel`
-   - New additive props: `setupEntries?`, `onServerAdded?`, `onServerRemoved?`, `onSubmitEnvVars?`, `onEnabledToolsChange?`
-   - Backward-compatible: if `setupEntries` not provided, picker behaves exactly as today
-2. **Phase 3**: SessionComposer integration, submission blocking, enhanced chips, runtimeEnv aggregation
+1. **Phase 3, T03.1**: Wire `useMcpServerSetup` into SessionComposer
+   - Instantiate `useMcpServerSetup(org)` alongside existing `useAgentSetup(org)`
+   - Pass `setup` prop to enhanced `McpServerPicker` with all callbacks wired
+   - Make MCP popover controlled (like agent popover) — stays open during configuration
+2. **Phase 3, T03.2**: Submission blocking for unconfigured servers
+3. **Phase 3, T03.3**: Enhanced MCP chips (tool counts, setup status)
+4. **Phase 3, T03.4**: RuntimeEnv aggregation from MCP + agent + one-time secrets
+5. **Phase 3, T03.5**: Barrel exports update
 
 ## Context for Resume
 
@@ -202,18 +239,20 @@ Drop this file into your conversation to quickly resume work on this project.
   - Submission blocking for unconfigured servers
 - Phase 0 is committed and verified
 - Phase 1 is committed and verified (reducer + hook)
-- Phase 2, T02.1 is committed and verified (`McpToolSelector`)
-- Phase 2, T02.2 is implemented and verified (`McpServerConfigPanel`)
-- 16 design refinements from master plan (DD-R1 through DD-R16) — all approved and applied
+- Phase 2 is complete and verified:
+  - T02.1: `McpToolSelector` — committed
+  - T02.2: `McpServerConfigPanel` — committed
+  - T02.3: `McpServerPicker` setup integration — implemented, verified, ready to commit
+- 23 design refinements from master plan (DD-R1 through DD-R16, DD-T3.1 through DD-T3.7) — all approved and applied
 - The full orchestration layer is ready: reducer (state machine) + hook (composition, methods, derived state)
-- Both UI building blocks are ready: `McpToolSelector` (tool checklist) + `McpServerConfigPanel` (config panel composing form + selector)
-- Phase 2 continues — T02.3 enhances `McpServerPicker` with setup indicators and drill-in to `McpServerConfigPanel`
+- All UI building blocks are ready: `McpToolSelector` + `McpServerConfigPanel` + enhanced `McpServerPicker`
+- Phase 3 is next — SessionComposer integration, submission blocking, enhanced chips, runtimeEnv aggregation
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-5.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-6.md
 ```
 
 ### 2. Current Task Plan
