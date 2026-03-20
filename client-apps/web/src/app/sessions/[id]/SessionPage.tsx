@@ -19,6 +19,7 @@ import {
   SessionComposer,
   ExecutionProgress,
   ExecutionCostSummary,
+  ArtifactsWidget,
   SecretFlowErrorGuide,
   isSecretFlowError,
 } from "@stigmer/react";
@@ -166,6 +167,7 @@ export default function SessionPage() {
               <div className="rounded-lg border border-border bg-card p-3">
                 <ExecutionCostSummary execution={displayExecution} />
               </div>
+              <ArtifactsWidget execution={displayExecution} org={org} />
             </>
           )}
         </aside>
