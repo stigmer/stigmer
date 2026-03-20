@@ -223,28 +223,46 @@ When starting a new session:
 - Lint clean on all 3 files (1 new, 2 modified)
 - All existing exports unchanged — no breaking changes
 
+## Session Progress (2026-03-20, Session 7)
+
+### Completed
+- **T01.9 — Sidebar update**: Added "Library" navigation link to Console sidebar
+  - Imported `Library` icon from lucide-react
+  - Added `isLibraryActive` derived from `pathname.startsWith("/library")` for active state on all `/library/*` routes
+  - Library link grouped with "New Session" (Gestalt proximity principle), single separator before Recents
+  - Active state: `bg-sidebar-accent text-sidebar-accent-foreground` with `aria-current="page"`
+  - Updated `<nav>` `aria-label` from `"Sessions"` to `"Main navigation"`
+  - 1 file changed, 20 insertions, 2 deletions
+  - TypeScript check clean, zero lint errors
+
+### Verification
+- TypeScript check passes (zero errors in modified file)
+- Lint clean
+- All existing sidebar behavior preserved — no breaking changes
+
 ## Next Steps
 
-1. **T01.9 — Sidebar update**: Add "Library" link above Recents (T01.8 already complete)
-2. **T01.10 — Library landing page**: Three `ResourceCountCard` cards + "Create New" shortcuts
-3. **T01.11 — Agent list page**: `/library/agents`
-4. **T01.12 — Skill list page**: `/library/skills`
-5. **T01.13 — MCP Server list page**: `/library/mcp-servers`
+1. **T01.10 — Library landing page**: Three `ResourceCountCard` cards + "Create New" shortcuts
+2. **T01.11 — Agent list page**: `/library/agents`
+3. **T01.12 — Skill list page**: `/library/skills`
+4. **T01.13 — MCP Server list page**: `/library/mcp-servers`
 
 ## Context for Resume
 
 - **Data layer complete** (T01.1–T01.4): list hooks + count hooks, all scope-aware
 - **UI components complete** (T01.5–T01.7): `ScopeToggle`, `ResourceListView`, `ResourceCountCard` in `library/` module
-- **T01.8 can be skipped**: barrel exports already done for all three components
+- **Sidebar link complete** (T01.9): "Library" link in sidebar with active state for `/library/*`
+- **T01.8 skipped**: barrel exports already done for all three components
 - The `library/` module now has 3 components + 4 type exports: `ScopeToggle`, `ResourceListView`, `ResourceCountCard`, `ScopeToggleProps`, `ResourceListViewProps`, `ResourceCountCardProps`, `ResourceListScope`
-- **Next work is Console pages** (T01.9–T01.13) — sidebar link, landing page, then three resource list pages
+- **Next work is Console pages** (T01.10–T01.13) — landing page, then three resource list pages
 - Branch: `feat/add-customize-ui-2`
+- Clicking "Library" in sidebar navigates to `/library` which will 404 until T01.10 is implemented
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.9" — Add Library link to sidebar
 - "Continue with T01.10" — Implement Library landing page
+- "Continue with T01.11" — Implement Agent list page
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns

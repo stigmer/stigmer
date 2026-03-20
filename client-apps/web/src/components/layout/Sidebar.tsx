@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus, MessageSquare, PanelLeft } from "lucide-react";
+import { Plus, Library, MessageSquare, PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { useSessionList, groupSessionsByTime } from "@stigmer/react";
 import type { SessionGroup } from "@stigmer/react";
@@ -21,6 +21,7 @@ export function Sidebar() {
 
   const activeSessionId =
     pathname.match(/^\/sessions\/(.+)/)?.[1] ?? null;
+  const isLibraryActive = pathname.startsWith("/library");
 
   useEffect(() => {
     refetch();
@@ -34,7 +35,7 @@ export function Sidebar() {
   return (
     <nav
       id="sidebar"
-      aria-label="Sessions"
+      aria-label="Main navigation"
       className="bg-sidebar text-sidebar-foreground flex h-full flex-col"
     >
       {/* Top row: collapse toggle + org context */}
@@ -62,6 +63,23 @@ export function Sidebar() {
         >
           <Plus className="size-4 shrink-0" />
           New Session
+        </Link>
+      </div>
+
+      {/* Library */}
+      <div className="flex-none px-3 py-1">
+        <Link
+          href="/library"
+          aria-current={isLibraryActive ? "page" : undefined}
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
+            isLibraryActive
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          )}
+        >
+          <Library className="size-4 shrink-0" />
+          Library
         </Link>
       </div>
 
