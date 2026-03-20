@@ -391,11 +391,27 @@ export function SessionComposer({
           entry.status !== "loading"
             ? (entry.mcpServer.metadata?.name ?? displayNames.get(key) ?? slug)
             : (displayNames.get(key) ?? slug);
+
+        let detail: string | undefined;
+        if (
+          entry.status === "ready" &&
+          entry.discoveredTools.length > 0 &&
+          entry.enabledTools.length < entry.discoveredTools.length
+        ) {
+          detail = `${entry.enabledTools.length}/${entry.discoveredTools.length}`;
+        }
+
         items.push({
           key: `mcp:${key}`,
           label: name,
           type: "mcp",
           onRemove: () => mcpSetup.removeServer(mcpRefFromKey(key)),
+          status: entry.status,
+          detail,
+          onClick:
+            entry.status === "needsSetup"
+              ? () => setMcpPopoverOpen(true)
+              : undefined,
         });
       }
     }
@@ -437,6 +453,7 @@ export function SessionComposer({
     showMcp,
     mcpSetup.entries,
     mcpSetup.removeServer,
+    setMcpPopoverOpen,
     skillRefs,
     secrets,
     displayNames,
@@ -481,6 +498,9 @@ export function SessionComposer({
                 type={chip.type}
                 onRemove={chip.onRemove}
                 disabled={isDisabled}
+                status={chip.status}
+                detail={chip.detail}
+                onClick={chip.onClick}
               />
             ))}
           </div>
@@ -740,6 +760,12 @@ interface ChipItem {
   label: string;
   type: "agent" | "workspace" | "mcp" | "skill" | "secret";
   onRemove: () => void;
+  /** MCP-only: drives visual variant (amber, muted+spinner, default). */
+  status?: "loading" | "needsSetup" | "submitting" | "ready";
+  /** MCP-only: secondary text before the remove button (e.g., "4/12"). */
+  detail?: string;
+  /** MCP-only: makes the label area clickable (e.g., open config popover). */
+  onClick?: () => void;
 }
 
 const CHIP_TYPE_LABELS: Record<ChipItem["type"], string> = {
@@ -755,18 +781,67 @@ function ContextChip({
   type,
   onRemove,
   disabled,
+  status,
+  detail,
+  onClick,
 }: {
   label: string;
   type: ChipItem["type"];
   onRemove: () => void;
   disabled?: boolean;
+  status?: ChipItem["status"];
+  detail?: string;
+  onClick?: () => void;
 }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-xs text-foreground">
+  const isTransient = status === "loading" || status === "submitting";
+  const isWarning = status === "needsSetup";
+
+  const labelContent = (
+    <>
+      {isTransient && <ChipSpinner />}
+      {isWarning && (
+        <span
+          className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-warning"
+          aria-hidden="true"
+        />
+      )}
       <span className="text-[0.55rem] font-medium uppercase tracking-wider text-muted-foreground">
         {CHIP_TYPE_LABELS[type]}
       </span>
       <span className="max-w-[120px] truncate">{label}</span>
+      {detail != null && (
+        <span className="shrink-0 text-[0.6rem] font-medium text-muted-foreground">
+          {detail}
+        </span>
+      )}
+    </>
+  );
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs text-foreground",
+        isWarning
+          ? "border border-warning/30 bg-warning/10"
+          : "bg-muted/50",
+        isTransient && "opacity-70",
+      )}
+    >
+      {onClick ? (
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={disabled}
+          className="inline-flex items-center gap-1 hover:opacity-80 disabled:pointer-events-none"
+          aria-label={`Configure ${label}`}
+        >
+          {labelContent}
+        </button>
+      ) : (
+        <span className="inline-flex items-center gap-1">
+          {labelContent}
+        </span>
+      )}
       <button
         type="button"
         onClick={onRemove}
@@ -811,6 +886,24 @@ function mcpRefFromKey(key: string): ResourceRef {
 // ---------------------------------------------------------------------------
 // Icons
 // ---------------------------------------------------------------------------
+
+function ChipSpinner() {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      className="shrink-0 animate-spin text-muted-foreground"
+      aria-hidden="true"
+    >
+      <path d="M8 2a6 6 0 1 0 6 6" />
+    </svg>
+  );
+}
 
 function AlertTriangleIcon() {
   return (
