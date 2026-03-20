@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { Popover } from "@base-ui/react/popover";
 import { getUserMessage, type EnvVarInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
@@ -12,6 +12,8 @@ import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvF
 import { useAgentSetup, type AgentResolution } from "../agent/useAgentSetup";
 import { SecretFlowErrorGuide, isSecretFlowError } from "../error/SecretFlowErrorGuide";
 import { McpServerPicker } from "../mcp-server/McpServerPicker";
+import { useMcpServerSetup } from "../mcp-server/useMcpServerSetup";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SkillPicker } from "../skill/SkillPicker";
 import { OneTimeSecretsInput } from "../execution/OneTimeSecretsInput";
 import type { UseOneTimeSecretsReturn } from "../execution/useOneTimeSecrets";
@@ -230,6 +232,7 @@ export function SessionComposer({
   );
 
   const showAgent = onAgentRefChange != null && org != null;
+  const showMcp = onMcpServerUsagesChange != null && org != null;
 
   // -------------------------------------------------------------------------
   // Agent setup: state-machine-driven popover + environment resolution
@@ -319,8 +322,20 @@ export function SessionComposer({
     onAgentResolutionChange?.(null);
   }, [onAgentRefChange, onAgentResolutionChange]);
 
+  // -------------------------------------------------------------------------
+  // MCP server setup: multi-server credential + tool selection flow
+  // -------------------------------------------------------------------------
+
+  const mcpSetup = useMcpServerSetup(showMcp ? (org ?? null) : null);
+
+  const [mcpPopoverOpen, setMcpPopoverOpen] = useState(false);
+
+  useEffect(() => {
+    if (!showMcp) return;
+    onMcpServerUsagesChange?.(mcpSetup.usageInputs);
+  }, [showMcp, mcpSetup.usageInputs, onMcpServerUsagesChange]);
+
   const showWorkspace = workspace != null;
-  const showMcp = onMcpServerUsagesChange != null && org != null;
   const showSkills = onSkillRefsChange != null && org != null;
   const showSecrets = secrets != null;
   const hasContextTriggers =
@@ -351,21 +366,18 @@ export function SessionComposer({
       }
     }
 
-    if (mcpServerUsages) {
-      for (const usage of mcpServerUsages) {
-        const refStr = `${usage.mcpServerRef.org}/${usage.mcpServerRef.slug}`;
+    if (showMcp) {
+      for (const [key, entry] of Object.entries(mcpSetup.entries)) {
+        const slug = key.slice(key.indexOf("/") + 1);
+        const name =
+          entry.status !== "loading"
+            ? (entry.mcpServer.metadata?.name ?? displayNames.get(key) ?? slug)
+            : (displayNames.get(key) ?? slug);
         items.push({
-          key: `mcp:${refStr}`,
-          label: displayNames.get(refStr) ?? usage.mcpServerRef.slug,
+          key: `mcp:${key}`,
+          label: name,
           type: "mcp",
-          onRemove: () => {
-            onMcpServerUsagesChange?.(
-              mcpServerUsages.filter(
-                (u) =>
-                  `${u.mcpServerRef.org}/${u.mcpServerRef.slug}` !== refStr,
-              ),
-            );
-          },
+          onRemove: () => mcpSetup.removeServer(mcpRefFromKey(key)),
         });
       }
     }
@@ -404,16 +416,17 @@ export function SessionComposer({
     agentRef,
     handleAgentChipRemove,
     workspace,
-    mcpServerUsages,
+    showMcp,
+    mcpSetup.entries,
+    mcpSetup.removeServer,
     skillRefs,
     secrets,
     displayNames,
-    onMcpServerUsagesChange,
     onSkillRefsChange,
   ]);
 
   const workspaceCount = workspace?.entries.length ?? 0;
-  const mcpCount = mcpServerUsages?.length ?? 0;
+  const mcpCount = showMcp ? Object.keys(mcpSetup.entries).length : 0;
   const skillCount = skillRefs?.length ?? 0;
   const secretCount = secrets?.entries.length ?? 0;
 
@@ -537,11 +550,22 @@ export function SessionComposer({
                     label="MCP"
                     count={mcpCount}
                     disabled={isDisabled}
+                    open={mcpPopoverOpen}
+                    onOpenChange={setMcpPopoverOpen}
                   >
                     <McpServerPicker
                       org={org!}
-                      value={mcpServerUsages ?? []}
-                      onChange={onMcpServerUsagesChange!}
+                      setup={{
+                        entries: mcpSetup.entries,
+                        onServerAdded: (ref) => mcpSetup.addServer(ref),
+                        onServerRemoved: (ref) => mcpSetup.removeServer(ref),
+                        onSubmitEnvVars: (ref, values, opts) =>
+                          mcpSetup.submitEnvVars(ref, values, {
+                            saveForFuture: opts.saveForFuture,
+                          }),
+                        onEnabledToolsChange: (ref, tools) =>
+                          mcpSetup.setEnabledTools(ref, tools),
+                      }}
                       onDisplayNameResolved={handleDisplayNameResolved}
                       disabled={isDisabled}
                     />
@@ -727,6 +751,19 @@ function AgentSetupError({ error }: { error: Error }) {
       {getUserMessage(error)}
     </p>
   );
+}
+
+// ---------------------------------------------------------------------------
+// MCP key-to-ref utility
+// ---------------------------------------------------------------------------
+
+function mcpRefFromKey(key: string): ResourceRef {
+  const idx = key.indexOf("/");
+  return {
+    org: key.slice(0, idx),
+    slug: key.slice(idx + 1),
+    kind: ApiResourceKind.mcp_server,
+  };
 }
 
 // ---------------------------------------------------------------------------
