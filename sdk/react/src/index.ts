@@ -208,7 +208,7 @@ export type {
   UseAgentSetupReturn,
 } from "./agent";
 
-// Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, and styled components
+// Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, and styled components
 export {
   useEnvironment,
   useEnvironmentList,
@@ -221,6 +221,7 @@ export {
   EnvironmentVariableEditor,
   EnvironmentListPanel,
   CreateEnvironmentForm,
+  EnvVarForm,
 } from "./environment";
 export type {
   UseEnvironmentReturn,
@@ -237,6 +238,9 @@ export type {
   EnvironmentVariableEditorProps,
   EnvironmentListPanelProps,
   CreateEnvironmentFormProps,
+  EnvVarFormProps,
+  EnvVarFormVariable,
+  EnvVarFormSubmitOptions,
 } from "./environment";
 
 // Organization — behavior hook and styled form for organization creation
