@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 export interface UseAgentInstanceReturn {
   readonly agentInstance: AgentInstance | null;
   readonly isLoading: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly refetch: () => void;
 }
 
@@ -43,7 +44,7 @@ export function useAgentInstance(
   const stigmer = useStigmer();
   const [agentInstance, setAgentInstance] = useState<AgentInstance | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
 
   const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
@@ -72,9 +73,7 @@ export function useAgentInstance(
       },
       (err) => {
         if (cancelled.current) return;
-        setError(
-          err instanceof Error ? err.message : "Failed to load agent instance",
-        );
+        setError(toError(err));
         setIsLoading(false);
       },
     );

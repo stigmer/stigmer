@@ -7,6 +7,7 @@ import type {
   WorkspaceEntryInput,
 } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 interface SharedSessionFields {
   readonly org: string;
@@ -41,7 +42,7 @@ export interface CreateSessionResult {
 export interface UseCreateSessionReturn {
   readonly create: (input: CreateSessionInput) => Promise<CreateSessionResult>;
   readonly isCreating: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly clearError: () => void;
 }
 
@@ -82,7 +83,7 @@ export interface UseCreateSessionReturn {
 export function useCreateSession(): UseCreateSessionReturn {
   const stigmer = useStigmer();
   const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -127,9 +128,7 @@ export function useCreateSession(): UseCreateSessionReturn {
 
         return { sessionId: session.metadata!.id };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to create session";
-        setError(message);
+        setError(toError(err));
         throw err;
       } finally {
         setIsCreating(false);

@@ -8,9 +8,10 @@ import {
   type FormEvent,
 } from "react";
 import { cn } from "@stigmer/theme";
-import type { EnvVarInput } from "@stigmer/sdk";
+import { getUserMessage, type EnvVarInput } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 import { useUpdateEnvironmentVariables } from "./useUpdateEnvironmentVariables";
 import { useRemoveEnvironmentVariables } from "./useRemoveEnvironmentVariables";
 import { useRevealSecretValue } from "./useRevealSecretValue";
@@ -74,7 +75,7 @@ export function EnvironmentVariableEditor({
 
   const [environment, setEnvironment] = useState<Environment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<Error | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
   useEffect(() => {
@@ -90,9 +91,7 @@ export function EnvironmentVariableEditor({
       },
       (err) => {
         if (cancelled.current) return;
-        setLoadError(
-          err instanceof Error ? err.message : "Failed to load environment",
-        );
+        setLoadError(toError(err));
         setIsLoading(false);
       },
     );
@@ -167,7 +166,7 @@ export function EnvironmentVariableEditor({
   if (loadError) {
     return (
       <p className={cn("text-destructive text-xs", className)} role="alert">
-        {loadError}
+        {getUserMessage(loadError)}
       </p>
     );
   }
@@ -256,28 +255,35 @@ function VariableRow({
   const [editValue, setEditValue] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<Error | null>(null);
 
-  const { reveal, revealedValue, isRevealing, clearRevealedValue } =
-    useRevealSecretValue();
+  const {
+    reveal,
+    revealedValue,
+    isRevealing,
+    error: revealError,
+    clearRevealedValue,
+  } = useRevealSecretValue();
+
+  const error = mutationError ?? revealError;
 
   const startEdit = useCallback(() => {
     setEditValue(variable.isSecret ? "" : variable.value);
     setMode("editing");
-    setError(null);
+    setMutationError(null);
   }, [variable.isSecret, variable.value]);
 
   const cancelEdit = useCallback(() => {
     setMode("idle");
     setEditValue("");
-    setError(null);
+    setMutationError(null);
   }, []);
 
   const handleSave = useCallback(async () => {
     if (variable.isSecret && !editValue.trim()) return;
 
     setIsSaving(true);
-    setError(null);
+    setMutationError(null);
     try {
       await onSave(variable.key, {
         value: editValue,
@@ -287,7 +293,7 @@ function VariableRow({
       setMode("idle");
       setEditValue("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save");
+      setMutationError(toError(err));
     } finally {
       setIsSaving(false);
     }
@@ -295,16 +301,16 @@ function VariableRow({
 
   const requestDelete = useCallback(() => {
     setMode("confirming");
-    setError(null);
+    setMutationError(null);
   }, []);
 
   const confirmDelete = useCallback(async () => {
     setIsDeleting(true);
-    setError(null);
+    setMutationError(null);
     try {
       await onDelete(variable.key);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete");
+      setMutationError(toError(err));
       setMode("idle");
     } finally {
       setIsDeleting(false);
@@ -370,7 +376,7 @@ function VariableRow({
           </ActionButton>
         </div>
 
-        <RowError message={error} />
+        <RowError error={error} />
       </div>
     );
   }
@@ -468,7 +474,7 @@ function VariableRow({
         )}
       </div>
 
-      <RowError message={error} />
+      <RowError error={error} />
     </div>
   );
 }
@@ -490,7 +496,7 @@ function AddVariableForm({
   const [value, setValue] = useState("");
   const [isSecret, setIsSecret] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const trimmedKey = key.trim();
   const isDuplicate = existingKeys.includes(trimmedKey);
@@ -506,7 +512,7 @@ function AddVariableForm({
       try {
         await onAdd(trimmedKey, { value, isSecret });
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to add variable");
+        setError(toError(err));
       } finally {
         setIsAdding(false);
       }
@@ -568,7 +574,7 @@ function AddVariableForm({
         </p>
       )}
 
-      <RowError message={error} />
+      <RowError error={error} />
 
       <div className="flex items-center gap-2">
         <button
@@ -640,11 +646,11 @@ function ActionButton({
   );
 }
 
-function RowError({ message }: { message: string | null }) {
-  if (!message) return null;
+function RowError({ error }: { error: Error | null }) {
+  if (!error) return null;
   return (
     <p className="text-destructive pb-1 text-[0.6rem]" role="alert">
-      {message}
+      {getUserMessage(error)}
     </p>
   );
 }

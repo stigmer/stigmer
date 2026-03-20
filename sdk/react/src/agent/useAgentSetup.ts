@@ -6,6 +6,7 @@ import type { EnvVarInput, ResourceRef } from "@stigmer/sdk";
 import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
 import { buildPersonalInstanceInput } from "../agent-instance/buildPersonalInstanceInput";
 import { diffEnvSpec } from "./diffEnvSpec";
@@ -262,9 +263,7 @@ export function useAgentSetup(org: string | null): UseAgentSetupReturn {
           missingVariables,
         };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to resolve agent";
-        dispatch({ type: "ERROR", message });
+        dispatch({ type: "ERROR", error: toError(err) });
         throw err;
       }
     },
@@ -345,11 +344,7 @@ export function useAgentSetup(org: string | null): UseAgentSetupReturn {
         });
         return { status: "ready", agentRef, agentName, resolution };
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to complete agent setup";
-        dispatch({ type: "ERROR", message });
+        dispatch({ type: "ERROR", error: toError(err) });
         throw err;
       }
     },

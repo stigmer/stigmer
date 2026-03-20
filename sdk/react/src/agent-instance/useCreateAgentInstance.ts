@@ -4,11 +4,12 @@ import { useCallback, useState } from "react";
 import type { AgentInstanceInput } from "@stigmer/sdk";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 export interface UseCreateAgentInstanceReturn {
   readonly create: (input: AgentInstanceInput) => Promise<AgentInstance>;
   readonly isCreating: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly clearError: () => void;
 }
 
@@ -49,7 +50,7 @@ export interface UseCreateAgentInstanceReturn {
 export function useCreateAgentInstance(): UseCreateAgentInstanceReturn {
   const stigmer = useStigmer();
   const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -61,11 +62,7 @@ export function useCreateAgentInstance(): UseCreateAgentInstanceReturn {
       try {
         return await stigmer.agentInstance.create(input);
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to create agent instance";
-        setError(message);
+        setError(toError(err));
         throw err;
       } finally {
         setIsCreating(false);

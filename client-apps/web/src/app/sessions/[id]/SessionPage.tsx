@@ -19,8 +19,10 @@ import {
   SessionComposer,
   ExecutionProgress,
   ExecutionCostSummary,
+  SecretFlowErrorGuide,
+  isSecretFlowError,
 } from "@stigmer/react";
-import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDeploymentMode } from "@/hooks/useDeploymentMode";
 import { Button } from "@/components/ui/button";
@@ -102,7 +104,7 @@ export default function SessionPage() {
   }, [conv.activeStreamExecution, conv.completedExecutions]);
 
   if (conv.isLoading) return <SessionSkeleton />;
-  if (conv.loadError) return <SessionError message={conv.loadError} />;
+  if (conv.loadError) return <SessionError error={conv.loadError} />;
   if (!conv.session && !conv.isLoading) return <SessionStarting />;
 
   return (
@@ -122,17 +124,12 @@ export default function SessionPage() {
           <div className="lg:mr-[208px]">
             {conv.streamError && (
               <StreamErrorBanner
-                message={conv.streamError}
+                error={conv.streamError}
                 onReconnect={conv.reconnectStream}
               />
             )}
             {(conv.sendError || conv.approvalError) && (
-              <div
-                role="alert"
-                className="border-border border-t px-4 py-2 text-xs text-destructive"
-              >
-                {conv.sendError || conv.approvalError}
-              </div>
+              <SendErrorBanner error={(conv.sendError ?? conv.approvalError)!} />
             )}
             <SessionComposer
               onSubmit={handleSubmit}
@@ -204,7 +201,7 @@ function SessionSkeleton() {
   );
 }
 
-function SessionError({ message }: { message: string }) {
+function SessionError({ error }: { error: Error }) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6 text-center">
@@ -213,7 +210,7 @@ function SessionError({ message }: { message: string }) {
         </div>
         <div className="space-y-2">
           <h1 className="text-lg font-semibold">Failed to load session</h1>
-          <p className="text-muted-foreground text-sm">{message}</p>
+          <p className="text-muted-foreground text-sm">{getUserMessage(error)}</p>
         </div>
         <div className="flex items-center justify-center gap-3">
           <Button
@@ -246,11 +243,25 @@ function SessionStarting() {
   );
 }
 
+function SendErrorBanner({ error }: { error: Error }) {
+  if (isSecretFlowError(error)) {
+    return <SecretFlowErrorGuide error={error} className="mx-4 my-2" />;
+  }
+  return (
+    <div
+      role="alert"
+      className="border-border border-t px-4 py-2 text-xs text-destructive"
+    >
+      {getUserMessage(error)}
+    </div>
+  );
+}
+
 function StreamErrorBanner({
-  message,
+  error,
   onReconnect,
 }: {
-  message: string;
+  error: Error;
   onReconnect: () => void;
 }) {
   return (
@@ -260,7 +271,7 @@ function StreamErrorBanner({
     >
       <WifiOff className="text-destructive size-4 shrink-0" />
       <p className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
-        {message}
+        {getUserMessage(error)}
       </p>
       <Button variant="outline" size="sm" onClick={onReconnect}>
         <RotateCcw className="mr-1.5 size-3" />

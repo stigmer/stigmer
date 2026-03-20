@@ -4,11 +4,12 @@ import { useCallback, useState } from "react";
 import type { EnvironmentInput } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 export interface UseUpdateEnvironmentReturn {
   readonly update: (input: EnvironmentInput) => Promise<Environment>;
   readonly isUpdating: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly clearError: () => void;
 }
 
@@ -48,7 +49,7 @@ export interface UseUpdateEnvironmentReturn {
 export function useUpdateEnvironment(): UseUpdateEnvironmentReturn {
   const stigmer = useStigmer();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -60,9 +61,7 @@ export function useUpdateEnvironment(): UseUpdateEnvironmentReturn {
       try {
         return await stigmer.environment.update(input);
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to update environment";
-        setError(message);
+        setError(toError(err));
         throw err;
       } finally {
         setIsUpdating(false);

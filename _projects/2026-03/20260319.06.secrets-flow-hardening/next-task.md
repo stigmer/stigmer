@@ -68,8 +68,20 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 20:08
-**Current Task**: T06 (Error Messages Across Secret Flows)
-**Status**: Ready to start
+**Current Task**: All tasks complete (T01–T06)
+**Status**: Complete — pending final commit
+
+## Session Progress (2026-03-20, Session 6)
+
+- **T06 completed**: Improve error messages across secret flows
+  - Phase 1: Changed all 18 React hooks from `error: string | null` to `error: Error | null`, preserving full `StigmerError` metadata. Created `toError.ts` normalizer. Updated all consumers to use `getUserMessage()` at rendering boundary.
+  - Phase 2: Moved `ErrorMessage` component from Console to `sdk/react/src/error/ErrorMessage.tsx`, decoupled from Console dependencies (lucide → inline SVGs, Console Button → plain `<button>`). Console re-exports from SDK.
+  - Phase 3: Built `SecretFlowErrorGuide` in `sdk/react/src/error/SecretFlowErrorGuide.tsx` — detects `FAILED_PRECONDITION` missing env var errors, extracts server/variable names, renders actionable recovery guidance. Wired into SessionComposer and SessionPage.
+  - Phase 4: Surfaced `useRevealSecretValue` errors in `EnvironmentVariableEditor` VariableRow.
+  - Phase 5: 0 new TypeScript errors, 85/85 tests passing, 0 linter errors.
+  - Files: 4 new, 32 modified across `@stigmer/react` and `client-apps/web`
+  - Checkpoint: `checkpoints/2026-03-20-session-6.md`
+  - **Not yet committed** — pending wrap-up commit
 
 ## Session Progress (2026-03-20, Session 5)
 
@@ -103,27 +115,24 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Start T06** — Improve error messages across secret flows (audit + improve at backend, SDK, UI layers)
-2. After T06, the secrets-flow-hardening project is complete
+1. **Commit T05 + T06 changes** — both are implemented and verified but not yet committed
+2. **Project is complete** — all six tasks (T01–T06) are done. Close the project after committing.
 
 ## Context for Resume
 
 - The revised plan (`T01_2_revised_plan.md`) is the authoritative task breakdown
-- Execution order: T01 (done) -> T04 (done) -> T03 (done) -> T02 (done) -> T05 (done) -> T06
-- Checkpoint: `checkpoints/2026-03-20-session-5.md` — covers T05 full implementation
+- Execution order: T01 (done) -> T04 (done) -> T03 (done) -> T02 (done) -> T05 (done) -> T06 (done)
+- Latest checkpoint: `checkpoints/2026-03-20-session-6.md` — covers T06 full implementation
 - Working branch: `feat/add-customize-ui-2` (stigmer)
-- Key new hook: `useOneTimeSecrets` — headless behavior hook for ephemeral execution-scoped secrets
-- Key new component: `OneTimeSecretsInput` — styled key-value editor for the SessionComposer popover
-- Key new types: `OneTimeSecretEntry`, `UseOneTimeSecretsReturn`, `OneTimeSecretsInputProps`
-- SessionComposer gained a `secrets` prop following the same pattern as `workspace`, `mcpServerUsages`, `skillRefs`
-- runtimeEnv flows: useOneTimeSecrets → SessionComposer (UI) → SessionPage.handleSubmit → sendFollowUp → useCreateAgentExecution → agentExecution.create()
+- Key new module: `sdk/react/src/error/` — ErrorMessage, SecretFlowErrorGuide, isSecretFlowError
+- Key pattern change: all hooks expose `error: Error | null` instead of `string | null`
+- Key rendering pattern: `getUserMessage(error)` at JSX boundary — sanitizes infra noise
 
 ## Quick Commands
 
 After loading context:
-- "Start T06" - Begin the error messages improvement task
 - "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
+- "Commit changes" - Commit the T05 + T06 work
 - "Review guidelines" - Check established patterns
 
 ---

@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 export interface UseSessionReturn {
   readonly session: Session | null;
   readonly isLoading: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
 }
 
 /**
@@ -23,7 +24,7 @@ export function useSession(id: string | null): UseSessionReturn {
   const stigmer = useStigmer();
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -45,9 +46,7 @@ export function useSession(id: string | null): UseSessionReturn {
       },
       (err) => {
         if (cancelled.current) return;
-        setError(
-          err instanceof Error ? err.message : "Failed to load session",
-        );
+        setError(toError(err));
         setIsLoading(false);
       },
     );

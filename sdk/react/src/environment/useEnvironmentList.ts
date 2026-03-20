@@ -5,12 +5,13 @@ import { create } from "@bufbuild/protobuf";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { ListEnvironmentsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 export interface UseEnvironmentListReturn {
   readonly environments: readonly Environment[];
   readonly totalCount: number;
   readonly isLoading: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly refetch: () => void;
 }
 
@@ -43,7 +44,7 @@ export function useEnvironmentList(
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
 
   const labelsRef = useRef(labels);
@@ -86,9 +87,7 @@ export function useEnvironmentList(
         },
         (err) => {
           if (cancelled.current) return;
-          setError(
-            err instanceof Error ? err.message : "Failed to load environments",
-          );
+          setError(toError(err));
           setIsLoading(false);
         },
       );

@@ -170,7 +170,7 @@ describe("useExecutionStream", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.error).toBe("connection lost");
+      expect(result.current.error?.message).toBe("connection lost");
       expect(result.current.isConnecting).toBe(false);
       expect(result.current.isStreaming).toBe(false);
     });
@@ -184,7 +184,7 @@ describe("useExecutionStream", () => {
     act(() => stream.fail(new Error("timeout")));
 
     await waitFor(() => {
-      expect(result.current.error).toBe("timeout");
+      expect(result.current.error?.message).toBe("timeout");
     });
 
     const newStream = createControllableStream<AgentExecution>();

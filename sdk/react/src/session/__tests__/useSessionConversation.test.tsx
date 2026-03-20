@@ -169,7 +169,7 @@ describe("useSessionConversation", () => {
     );
 
     await waitFor(() => {
-      expect(result.current.loadError).toBe("session not found");
+      expect(result.current.loadError?.message).toBe("session not found");
     });
   });
 

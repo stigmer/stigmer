@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import type { EnvVarInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 export interface CreateAgentExecutionInput {
   readonly org: string;
@@ -40,7 +41,7 @@ export interface UseCreateAgentExecutionReturn {
     input: CreateAgentExecutionInput,
   ) => Promise<CreateAgentExecutionResult>;
   readonly isCreating: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly clearError: () => void;
 }
 
@@ -85,7 +86,7 @@ export interface UseCreateAgentExecutionReturn {
 export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
   const stigmer = useStigmer();
   const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -114,11 +115,7 @@ export function useCreateAgentExecution(): UseCreateAgentExecutionReturn {
           sessionId: input.sessionId,
         };
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to create agent execution";
-        setError(message);
+        setError(toError(err));
         throw err;
       } finally {
         setIsCreating(false);

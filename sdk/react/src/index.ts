@@ -239,9 +239,17 @@ export type {
   CreateEnvironmentFormProps,
 } from "./environment";
 
+// Error — structured error display with classification, retry, and contextual guidance
+export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error";
+export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error";
+
 // Library — cross-resource UI components for browsing and managing resources
-export { ScopeToggle } from "./library";
-export type { ScopeToggleProps, ResourceListScope } from "./library";
+export { ScopeToggle, ResourceListView } from "./library";
+export type {
+  ScopeToggleProps,
+  ResourceListViewProps,
+  ResourceListScope,
+} from "./library";
 
 // Agent Instance — data hooks, list hook, personal convenience hook, and behavior hook
 export {
