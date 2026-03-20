@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-03-20 10:41
 **Current Task**: T02 — Phase 2: Execution Artifacts Widget + Apply Flow
-**Status**: In Progress (T02.1–T02.3 complete, T02.4–T02.8 remaining)
+**Status**: In Progress (T02.1–T02.4 complete, T02.5–T02.8 remaining)
 
 ## Session Progress (2026-03-20, Session 1)
 
@@ -500,18 +500,42 @@ When starting a new session:
 - Lint clean on all 4 files (2 new, 2 modified)
 - All existing exports unchanged — no breaking changes
 
+## Session Progress (2026-03-20, Session 18)
+
+### Completed
+- **T02.4 — `ArtifactCard` component**: Fully implemented and exported
+  - Created `sdk/react/src/execution/ArtifactCard.tsx` (507 lines)
+  - Self-contained layer 3 styled component — orchestrates 4 hooks internally
+  - Internal hook orchestration: `useArtifactContent` + `useDetectStigmerResource` (FILE) or `useDetectSkillPackage` (DIRECTORY) + `useApplyResource`
+  - Detection badges: "Agent detected", "MCP Server detected", "Skill · N files" with loading skeleton
+  - Apply CTA state machine: idle → applying (spinner) → applied (success) / error (retry)
+  - CTA disabled during streaming, enabled when execution reaches terminal phase
+  - Size guard: 256 KB threshold skips content fetch for large files
+  - 6 inline SVG icons: FileIcon, FolderIcon, DownloadIcon, CheckIcon, SpinnerIcon, AlertIcon
+  - Accessibility: `role="article"`, `aria-label`, `aria-busy`, focus-visible rings, `role="alert"` on error
+  - All styles via `--stgm-*` tokens, zero Console dependencies
+  - Updated barrel exports in `execution/index.ts` and `sdk/react/src/index.ts`
+  - TypeScript check clean, zero lint errors
+  - Committed: `b2f72e34 feat(sdk/react): add ArtifactCard component for execution artifacts`
+
+### Architecture Decisions (from this session)
+- **Self-contained card over presentational-only**: Each artifact needs its own hook state for content fetching and detection. Since `ArtifactsWidget` (T02.6) renders N cards in a list and React hooks cannot be called in loops, each card must be a separate component instance managing its own hooks. Same pattern as `ApprovalCard`.
+- **`onPreview` delegates to parent**: The card does not own the preview modal (T02.5). The parent decides how to render the preview. This keeps the card composable — different consumers may want different preview experiences.
+- **`isTerminal` as prop, not derived internally**: The card receives a single artifact, not the full execution. The parent already knows the execution phase. Passing a boolean is cleaner than passing the whole execution.
+- **Error state replaces CTA button**: When apply fails, the error message + Retry link replaces the Apply button rather than showing both (avoids redundant actions).
+
 ## Next Steps
 
-1. **T02.4 — `ArtifactCard` component**: Single artifact in the widget — must render both file and directory artifacts with skill detection badges
-2. **T02.5 — `ArtifactPreviewModal` component**: Full YAML preview with Apply CTA — must show file listings for directories
-3. **T02.6 — `ArtifactsWidget` component**: Right-sidebar container for artifact cards — must handle both artifact kinds
-4. **T02.7 — Barrel exports** for artifact components
-5. **T02.8 — SessionPage integration**: Wire `ArtifactsWidget` into right sidebar
+1. **T02.5 — `ArtifactPreviewModal` component**: Full YAML preview with Apply CTA — must show file listings for directories
+2. **T02.6 — `ArtifactsWidget` component**: Right-sidebar container for artifact cards — must handle both artifact kinds
+3. **T02.7 — Barrel exports** for artifact components
+4. **T02.8 — SessionPage integration**: Wire `ArtifactsWidget` into right sidebar
 
 ## Context for Resume
 
 - **Phase 1 (Library Pages + Navigation) is COMPLETE** — all tasks T01.1–T01.13 done
-- **Phase 2 (Execution Artifacts Widget + Apply Flow) is IN PROGRESS** — T02.1–T02.3 complete, directory artifact support (D1–D8) complete, T02.4–T02.8 remaining
+- **Phase 2 (Execution Artifacts Widget + Apply Flow) is IN PROGRESS** — T02.1–T02.4 complete, directory artifact support (D1–D8) complete, T02.5–T02.8 remaining
+- **T02.4 deliverables**: 1 styled component (`ArtifactCard`), 1 type (`ArtifactCardProps`). Orchestrates `useArtifactContent` + `useDetectStigmerResource` / `useDetectSkillPackage` + `useApplyResource` internally. Props: `artifact`, `executionId`, `org`, `isTerminal`, `onPreview?`, `onApplied?`, `className?`. 507 lines, 6 inline SVG icons.
 - **Directory artifact support COMPLETE** — full vertical implementation from proto to SDK:
   - Proto: `entries` on `ExecutionArtifact`, `entry_path` on `GetArtifactContentRequest`, `pushFromExecutionArtifact` RPC
   - Agent runner: populates `entries` when creating ZIP from directory
@@ -544,7 +568,7 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Continue Phase 2 with T02.4" — Build ArtifactCard component
+- "Continue Phase 2 with T02.5" — Build ArtifactPreviewModal component
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 
