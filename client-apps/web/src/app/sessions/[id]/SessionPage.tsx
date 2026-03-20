@@ -22,6 +22,7 @@ import {
   SecretFlowErrorGuide,
   isSecretFlowError,
 } from "@stigmer/react";
+import type { SessionComposerSubmitContext } from "@stigmer/react";
 import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDeploymentMode } from "@/hooks/useDeploymentMode";
@@ -77,11 +78,11 @@ export default function SessionPage() {
   }, [conv.session, workspace]);
 
   const handleSubmit = useCallback(
-    (message: string, model?: string) => {
-      const runtimeEnv = secrets.isEmpty
-        ? undefined
-        : secrets.toRuntimeEnv();
-
+    (
+      message: string,
+      model?: string,
+      context?: SessionComposerSubmitContext,
+    ) => {
       conv.sendFollowUp(message, {
         modelName: model ?? modelId,
         workspaceEntries: workspace.hasEntries
@@ -89,7 +90,7 @@ export default function SessionPage() {
           : undefined,
         mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
         skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
-        runtimeEnv,
+        runtimeEnv: context?.runtimeEnv,
       });
 
       secrets.clear();
