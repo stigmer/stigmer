@@ -47,7 +47,7 @@ private static final long serialVersionUID = 0L;
   private WorkflowInstanceSpec() {
     workflowId_ = "";
     description_ = "";
-    envRefs_ = java.util.Collections.emptyList();
+    environmentRefs_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -202,9 +202,9 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int ENV_REFS_FIELD_NUMBER = 3;
+  public static final int ENVIRONMENT_REFS_FIELD_NUMBER = 3;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> envRefs_;
+  private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_;
   /**
    * <pre>
    * References to Environment resources providing configuration and secrets.
@@ -237,11 +237,11 @@ private static final long serialVersionUID = 0L;
    * and provides the combined configuration to all agents in the workflow.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getEnvRefsList() {
-    return envRefs_;
+  public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getEnvironmentRefsList() {
+    return environmentRefs_;
   }
   /**
    * <pre>
@@ -275,12 +275,12 @@ private static final long serialVersionUID = 0L;
    * and provides the combined configuration to all agents in the workflow.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
   public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-      getEnvRefsOrBuilderList() {
-    return envRefs_;
+      getEnvironmentRefsOrBuilderList() {
+    return environmentRefs_;
   }
   /**
    * <pre>
@@ -314,11 +314,11 @@ private static final long serialVersionUID = 0L;
    * and provides the combined configuration to all agents in the workflow.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public int getEnvRefsCount() {
-    return envRefs_.size();
+  public int getEnvironmentRefsCount() {
+    return environmentRefs_.size();
   }
   /**
    * <pre>
@@ -352,11 +352,11 @@ private static final long serialVersionUID = 0L;
    * and provides the combined configuration to all agents in the workflow.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReference getEnvRefs(int index) {
-    return envRefs_.get(index);
+  public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index) {
+    return environmentRefs_.get(index);
   }
   /**
    * <pre>
@@ -390,12 +390,12 @@ private static final long serialVersionUID = 0L;
    * and provides the combined configuration to all agents in the workflow.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
    */
   @java.lang.Override
-  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvRefsOrBuilder(
+  public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
       int index) {
-    return envRefs_.get(index);
+    return environmentRefs_.get(index);
   }
 
   private byte memoizedIsInitialized = -1;
@@ -418,8 +418,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(description_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 2, description_);
     }
-    for (int i = 0; i < envRefs_.size(); i++) {
-      output.writeMessage(3, envRefs_.get(i));
+    for (int i = 0; i < environmentRefs_.size(); i++) {
+      output.writeMessage(3, environmentRefs_.get(i));
     }
     getUnknownFields().writeTo(output);
   }
@@ -438,10 +438,10 @@ private static final long serialVersionUID = 0L;
     }
 
         {
-          final int count = envRefs_.size();
+          final int count = environmentRefs_.size();
           for (int i = 0; i < count; i++) {
             size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(envRefs_.get(i));
+              .computeMessageSizeNoTag(environmentRefs_.get(i));
           }
           size += 1 * count;
         }
@@ -464,8 +464,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getWorkflowId())) return false;
     if (!getDescription()
         .equals(other.getDescription())) return false;
-    if (!getEnvRefsList()
-        .equals(other.getEnvRefsList())) return false;
+    if (!getEnvironmentRefsList()
+        .equals(other.getEnvironmentRefsList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -481,9 +481,9 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getWorkflowId().hashCode();
     hash = (37 * hash) + DESCRIPTION_FIELD_NUMBER;
     hash = (53 * hash) + getDescription().hashCode();
-    if (getEnvRefsCount() > 0) {
-      hash = (37 * hash) + ENV_REFS_FIELD_NUMBER;
-      hash = (53 * hash) + getEnvRefsList().hashCode();
+    if (getEnvironmentRefsCount() > 0) {
+      hash = (37 * hash) + ENVIRONMENT_REFS_FIELD_NUMBER;
+      hash = (53 * hash) + getEnvironmentRefsList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -635,11 +635,11 @@ private static final long serialVersionUID = 0L;
       bitField0_ = 0;
       workflowId_ = "";
       description_ = "";
-      if (envRefsBuilder_ == null) {
-        envRefs_ = java.util.Collections.emptyList();
+      if (environmentRefsBuilder_ == null) {
+        environmentRefs_ = java.util.Collections.emptyList();
       } else {
-        envRefs_ = null;
-        envRefsBuilder_.clear();
+        environmentRefs_ = null;
+        environmentRefsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000004);
       return this;
@@ -675,14 +675,14 @@ private static final long serialVersionUID = 0L;
     }
 
     private void buildPartialRepeatedFields(ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec result) {
-      if (envRefsBuilder_ == null) {
+      if (environmentRefsBuilder_ == null) {
         if (((bitField0_ & 0x00000004) != 0)) {
-          envRefs_ = java.util.Collections.unmodifiableList(envRefs_);
+          environmentRefs_ = java.util.Collections.unmodifiableList(environmentRefs_);
           bitField0_ = (bitField0_ & ~0x00000004);
         }
-        result.envRefs_ = envRefs_;
+        result.environmentRefs_ = environmentRefs_;
       } else {
-        result.envRefs_ = envRefsBuilder_.build();
+        result.environmentRefs_ = environmentRefsBuilder_.build();
       }
     }
 
@@ -718,29 +718,29 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000002;
         onChanged();
       }
-      if (envRefsBuilder_ == null) {
-        if (!other.envRefs_.isEmpty()) {
-          if (envRefs_.isEmpty()) {
-            envRefs_ = other.envRefs_;
+      if (environmentRefsBuilder_ == null) {
+        if (!other.environmentRefs_.isEmpty()) {
+          if (environmentRefs_.isEmpty()) {
+            environmentRefs_ = other.environmentRefs_;
             bitField0_ = (bitField0_ & ~0x00000004);
           } else {
-            ensureEnvRefsIsMutable();
-            envRefs_.addAll(other.envRefs_);
+            ensureEnvironmentRefsIsMutable();
+            environmentRefs_.addAll(other.environmentRefs_);
           }
           onChanged();
         }
       } else {
-        if (!other.envRefs_.isEmpty()) {
-          if (envRefsBuilder_.isEmpty()) {
-            envRefsBuilder_.dispose();
-            envRefsBuilder_ = null;
-            envRefs_ = other.envRefs_;
+        if (!other.environmentRefs_.isEmpty()) {
+          if (environmentRefsBuilder_.isEmpty()) {
+            environmentRefsBuilder_.dispose();
+            environmentRefsBuilder_ = null;
+            environmentRefs_ = other.environmentRefs_;
             bitField0_ = (bitField0_ & ~0x00000004);
-            envRefsBuilder_ = 
+            environmentRefsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetEnvRefsFieldBuilder() : null;
+                 internalGetEnvironmentRefsFieldBuilder() : null;
           } else {
-            envRefsBuilder_.addAllMessages(other.envRefs_);
+            environmentRefsBuilder_.addAllMessages(other.environmentRefs_);
           }
         }
       }
@@ -785,11 +785,11 @@ private static final long serialVersionUID = 0L;
                   input.readMessage(
                       ai.stigmer.commons.apiresource.ApiResourceReference.parser(),
                       extensionRegistry);
-              if (envRefsBuilder_ == null) {
-                ensureEnvRefsIsMutable();
-                envRefs_.add(m);
+              if (environmentRefsBuilder_ == null) {
+                ensureEnvironmentRefsIsMutable();
+                environmentRefs_.add(m);
               } else {
-                envRefsBuilder_.addMessage(m);
+                environmentRefsBuilder_.addMessage(m);
               }
               break;
             } // case 26
@@ -1094,17 +1094,17 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> envRefs_ =
+    private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_ =
       java.util.Collections.emptyList();
-    private void ensureEnvRefsIsMutable() {
+    private void ensureEnvironmentRefsIsMutable() {
       if (!((bitField0_ & 0x00000004) != 0)) {
-        envRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(envRefs_);
+        environmentRefs_ = new java.util.ArrayList<ai.stigmer.commons.apiresource.ApiResourceReference>(environmentRefs_);
         bitField0_ |= 0x00000004;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> envRefsBuilder_;
+        ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> environmentRefsBuilder_;
 
     /**
      * <pre>
@@ -1138,13 +1138,13 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getEnvRefsList() {
-      if (envRefsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(envRefs_);
+    public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> getEnvironmentRefsList() {
+      if (environmentRefsBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(environmentRefs_);
       } else {
-        return envRefsBuilder_.getMessageList();
+        return environmentRefsBuilder_.getMessageList();
       }
     }
     /**
@@ -1179,13 +1179,13 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public int getEnvRefsCount() {
-      if (envRefsBuilder_ == null) {
-        return envRefs_.size();
+    public int getEnvironmentRefsCount() {
+      if (environmentRefsBuilder_ == null) {
+        return environmentRefs_.size();
       } else {
-        return envRefsBuilder_.getCount();
+        return environmentRefsBuilder_.getCount();
       }
     }
     /**
@@ -1220,13 +1220,13 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference getEnvRefs(int index) {
-      if (envRefsBuilder_ == null) {
-        return envRefs_.get(index);
+    public ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index) {
+      if (environmentRefsBuilder_ == null) {
+        return environmentRefs_.get(index);
       } else {
-        return envRefsBuilder_.getMessage(index);
+        return environmentRefsBuilder_.getMessage(index);
       }
     }
     /**
@@ -1261,19 +1261,19 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public Builder setEnvRefs(
+    public Builder setEnvironmentRefs(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (envRefsBuilder_ == null) {
+      if (environmentRefsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureEnvRefsIsMutable();
-        envRefs_.set(index, value);
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.set(index, value);
         onChanged();
       } else {
-        envRefsBuilder_.setMessage(index, value);
+        environmentRefsBuilder_.setMessage(index, value);
       }
       return this;
     }
@@ -1309,16 +1309,16 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public Builder setEnvRefs(
+    public Builder setEnvironmentRefs(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (envRefsBuilder_ == null) {
-        ensureEnvRefsIsMutable();
-        envRefs_.set(index, builderForValue.build());
+      if (environmentRefsBuilder_ == null) {
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.set(index, builderForValue.build());
         onChanged();
       } else {
-        envRefsBuilder_.setMessage(index, builderForValue.build());
+        environmentRefsBuilder_.setMessage(index, builderForValue.build());
       }
       return this;
     }
@@ -1354,18 +1354,18 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvRefs(ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (envRefsBuilder_ == null) {
+    public Builder addEnvironmentRefs(ai.stigmer.commons.apiresource.ApiResourceReference value) {
+      if (environmentRefsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureEnvRefsIsMutable();
-        envRefs_.add(value);
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.add(value);
         onChanged();
       } else {
-        envRefsBuilder_.addMessage(value);
+        environmentRefsBuilder_.addMessage(value);
       }
       return this;
     }
@@ -1401,19 +1401,19 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvRefs(
+    public Builder addEnvironmentRefs(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference value) {
-      if (envRefsBuilder_ == null) {
+      if (environmentRefsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
         }
-        ensureEnvRefsIsMutable();
-        envRefs_.add(index, value);
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.add(index, value);
         onChanged();
       } else {
-        envRefsBuilder_.addMessage(index, value);
+        environmentRefsBuilder_.addMessage(index, value);
       }
       return this;
     }
@@ -1449,16 +1449,16 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvRefs(
+    public Builder addEnvironmentRefs(
         ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (envRefsBuilder_ == null) {
-        ensureEnvRefsIsMutable();
-        envRefs_.add(builderForValue.build());
+      if (environmentRefsBuilder_ == null) {
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.add(builderForValue.build());
         onChanged();
       } else {
-        envRefsBuilder_.addMessage(builderForValue.build());
+        environmentRefsBuilder_.addMessage(builderForValue.build());
       }
       return this;
     }
@@ -1494,16 +1494,16 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addEnvRefs(
+    public Builder addEnvironmentRefs(
         int index, ai.stigmer.commons.apiresource.ApiResourceReference.Builder builderForValue) {
-      if (envRefsBuilder_ == null) {
-        ensureEnvRefsIsMutable();
-        envRefs_.add(index, builderForValue.build());
+      if (environmentRefsBuilder_ == null) {
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.add(index, builderForValue.build());
         onChanged();
       } else {
-        envRefsBuilder_.addMessage(index, builderForValue.build());
+        environmentRefsBuilder_.addMessage(index, builderForValue.build());
       }
       return this;
     }
@@ -1539,17 +1539,17 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public Builder addAllEnvRefs(
+    public Builder addAllEnvironmentRefs(
         java.lang.Iterable<? extends ai.stigmer.commons.apiresource.ApiResourceReference> values) {
-      if (envRefsBuilder_ == null) {
-        ensureEnvRefsIsMutable();
+      if (environmentRefsBuilder_ == null) {
+        ensureEnvironmentRefsIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, envRefs_);
+            values, environmentRefs_);
         onChanged();
       } else {
-        envRefsBuilder_.addAllMessages(values);
+        environmentRefsBuilder_.addAllMessages(values);
       }
       return this;
     }
@@ -1585,15 +1585,15 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public Builder clearEnvRefs() {
-      if (envRefsBuilder_ == null) {
-        envRefs_ = java.util.Collections.emptyList();
+    public Builder clearEnvironmentRefs() {
+      if (environmentRefsBuilder_ == null) {
+        environmentRefs_ = java.util.Collections.emptyList();
         bitField0_ = (bitField0_ & ~0x00000004);
         onChanged();
       } else {
-        envRefsBuilder_.clear();
+        environmentRefsBuilder_.clear();
       }
       return this;
     }
@@ -1629,15 +1629,15 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public Builder removeEnvRefs(int index) {
-      if (envRefsBuilder_ == null) {
-        ensureEnvRefsIsMutable();
-        envRefs_.remove(index);
+    public Builder removeEnvironmentRefs(int index) {
+      if (environmentRefsBuilder_ == null) {
+        ensureEnvironmentRefsIsMutable();
+        environmentRefs_.remove(index);
         onChanged();
       } else {
-        envRefsBuilder_.remove(index);
+        environmentRefsBuilder_.remove(index);
       }
       return this;
     }
@@ -1673,11 +1673,11 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getEnvRefsBuilder(
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder getEnvironmentRefsBuilder(
         int index) {
-      return internalGetEnvRefsFieldBuilder().getBuilder(index);
+      return internalGetEnvironmentRefsFieldBuilder().getBuilder(index);
     }
     /**
      * <pre>
@@ -1711,13 +1711,13 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvRefsOrBuilder(
+    public ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
         int index) {
-      if (envRefsBuilder_ == null) {
-        return envRefs_.get(index);  } else {
-        return envRefsBuilder_.getMessageOrBuilder(index);
+      if (environmentRefsBuilder_ == null) {
+        return environmentRefs_.get(index);  } else {
+        return environmentRefsBuilder_.getMessageOrBuilder(index);
       }
     }
     /**
@@ -1752,14 +1752,14 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
     public java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-         getEnvRefsOrBuilderList() {
-      if (envRefsBuilder_ != null) {
-        return envRefsBuilder_.getMessageOrBuilderList();
+         getEnvironmentRefsOrBuilderList() {
+      if (environmentRefsBuilder_ != null) {
+        return environmentRefsBuilder_.getMessageOrBuilderList();
       } else {
-        return java.util.Collections.unmodifiableList(envRefs_);
+        return java.util.Collections.unmodifiableList(environmentRefs_);
       }
     }
     /**
@@ -1794,10 +1794,10 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addEnvRefsBuilder() {
-      return internalGetEnvRefsFieldBuilder().addBuilder(
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addEnvironmentRefsBuilder() {
+      return internalGetEnvironmentRefsFieldBuilder().addBuilder(
           ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
     }
     /**
@@ -1832,11 +1832,11 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
-    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addEnvRefsBuilder(
+    public ai.stigmer.commons.apiresource.ApiResourceReference.Builder addEnvironmentRefsBuilder(
         int index) {
-      return internalGetEnvRefsFieldBuilder().addBuilder(
+      return internalGetEnvironmentRefsFieldBuilder().addBuilder(
           index, ai.stigmer.commons.apiresource.ApiResourceReference.getDefaultInstance());
     }
     /**
@@ -1871,25 +1871,25 @@ private static final long serialVersionUID = 0L;
      * and provides the combined configuration to all agents in the workflow.
      * </pre>
      *
-     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+     * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
      */
     public java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference.Builder> 
-         getEnvRefsBuilderList() {
-      return internalGetEnvRefsFieldBuilder().getBuilderList();
+         getEnvironmentRefsBuilderList() {
+      return internalGetEnvironmentRefsFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
         ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-        internalGetEnvRefsFieldBuilder() {
-      if (envRefsBuilder_ == null) {
-        envRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+        internalGetEnvironmentRefsFieldBuilder() {
+      if (environmentRefsBuilder_ == null) {
+        environmentRefsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.commons.apiresource.ApiResourceReference, ai.stigmer.commons.apiresource.ApiResourceReference.Builder, ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder>(
-                envRefs_,
+                environmentRefs_,
                 ((bitField0_ & 0x00000004) != 0),
                 getParentForChildren(),
                 isClean());
-        envRefs_ = null;
+        environmentRefs_ = null;
       }
-      return envRefsBuilder_;
+      return environmentRefsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec)

@@ -14,7 +14,7 @@ public final class WorkflowInstanceInput {
     private final java.util.Map<String, String> labels;
     private final String workflowId;
     private final String description;
-    private final java.util.List<ResourceRef> envRefs;
+    private final java.util.List<ResourceRef> environmentRefs;
 
     private WorkflowInstanceInput(Builder builder) {
         this.name = builder.name;
@@ -23,7 +23,7 @@ public final class WorkflowInstanceInput {
         this.labels = builder.labels;
         this.workflowId = builder.workflowId;
         this.description = builder.description;
-        this.envRefs = builder.envRefs;
+        this.environmentRefs = builder.environmentRefs;
     }
 
     WorkflowInstance toProto() {
@@ -34,9 +34,9 @@ public final class WorkflowInstanceInput {
         if (this.description != null) {
             spec.setDescription(this.description);
         }
-        if (this.envRefs != null) {
-            for (ResourceRef item : this.envRefs) {
-                spec.addEnvRefs(item.toProto());
+        if (this.environmentRefs != null) {
+            for (ResourceRef item : this.environmentRefs) {
+                spec.addEnvironmentRefs(item.toProto());
             }
         }
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
@@ -65,7 +65,7 @@ public final class WorkflowInstanceInput {
         private java.util.Map<String, String> labels;
         private String workflowId;
         private String description;
-        private java.util.List<ResourceRef> envRefs;
+        private java.util.List<ResourceRef> environmentRefs;
 
         private Builder() {}
 
@@ -75,7 +75,7 @@ public final class WorkflowInstanceInput {
         public Builder labels(java.util.Map<String, String> labels) { this.labels = labels; return this; }
         public Builder workflowId(String workflowId) { this.workflowId = workflowId; return this; }
         public Builder description(String description) { this.description = description; return this; }
-        public Builder envRefs(java.util.List<ResourceRef> envRefs) { this.envRefs = envRefs; return this; }
+        public Builder environmentRefs(java.util.List<ResourceRef> environmentRefs) { this.environmentRefs = environmentRefs; return this; }
 
         public WorkflowInstanceInput build() { return new WorkflowInstanceInput(this); }
     }

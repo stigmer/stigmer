@@ -26,7 +26,7 @@ export const file_ai_stigmer_agentic_workflowinstance_v1_command: GenFile = /*@_
  * Command-Query Separation pattern. All RPCs that modify state go through this controller.
  *
  * Authorization:
- * - create: Custom authorization logic (validates workflow_id access, env_refs access)
+ * - create: Custom authorization logic (validates workflow_id access, environment_refs access)
  * - update: Standard authorization (requires update permission on the instance)
  * - delete: Standard authorization (requires delete permission on the instance)
  *
@@ -55,7 +55,7 @@ export const WorkflowInstanceCommandController: GenService<{
    * Input validation:
    * - metadata.org must be specified
    * - spec.workflow_id must be a valid Workflow resource ID
-   * - spec.env_refs must reference valid Environment resources
+   * - spec.environment_refs must reference valid Environment resources
    *
    * Authorization:
    * Uses custom authorization logic to verify:
@@ -70,7 +70,7 @@ export const WorkflowInstanceCommandController: GenService<{
    * - Initial version (status.audit.version = 1)
    *
    * Example:
-   * Input: WorkflowInstance with workflow_id="wfl-123", env_refs=["env-prod"]
+   * Input: WorkflowInstance with workflow_id="wfl-123", environment_refs=["env-prod"]
    * Output: WorkflowInstance with id="wfi-abc456", created_at="2025-01-11T10:00:00Z"
    *
    * @generated from rpc ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandController.create
@@ -86,7 +86,7 @@ export const WorkflowInstanceCommandController: GenService<{
    * Modifies the configuration of an existing WorkflowInstance.
    * You can update:
    * - spec.description (change descriptive text)
-   * - spec.env_refs (add/remove/reorder environment bindings)
+   * - spec.environment_refs (add/remove/reorder environment bindings)
    * - metadata.labels, metadata.tags, metadata.annotations
    *
    * You cannot update:

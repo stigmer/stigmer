@@ -39,7 +39,7 @@ export const WorkflowInstanceQueryController = {
      * Returns:
      * Complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information: created_at, updated_at, version)
      *
      * Authorization:
