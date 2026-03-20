@@ -13,6 +13,19 @@ export type { UseExecutionStreamReturn } from "./useExecutionStream";
 export { useExecutionUsage, aggregateUsage } from "./useExecutionUsage";
 export type { UseExecutionUsageReturn } from "./useExecutionUsage";
 
+export { useExecutionArtifacts } from "./useExecutionArtifacts";
+export type { UseExecutionArtifactsReturn } from "./useExecutionArtifacts";
+
+export { useArtifactContent } from "./useArtifactContent";
+export type { UseArtifactContentReturn } from "./useArtifactContent";
+
+export {
+  isTextArtifact,
+  isArtifactExpired,
+  formatArtifactSize,
+  getArtifactExtension,
+} from "./artifact-utils";
+
 export { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 export type { ExecutionPhaseBadgeProps } from "./ExecutionPhaseBadge";
 

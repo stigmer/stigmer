@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AgentExecutionId, AgentExecutionList, GetAgentUsageReportInput, GetAgentUsageReportOutput, GetArtifactDownloadUrlRequest, GetArtifactDownloadUrlResponse, GetOrgUsageReportInput, GetOrgUsageReportOutput, GetSessionUsageReportInput, GetSessionUsageReportOutput, ListAgentExecutionsBySessionRequest, ListAgentExecutionsRequest } from "./io_pb.js";
+import { AgentExecutionId, AgentExecutionList, GetAgentUsageReportInput, GetAgentUsageReportOutput, GetArtifactContentRequest, GetArtifactContentResponse, GetArtifactDownloadUrlRequest, GetArtifactDownloadUrlResponse, GetOrgUsageReportInput, GetOrgUsageReportOutput, GetSessionUsageReportInput, GetSessionUsageReportOutput, ListAgentExecutionsBySessionRequest, ListAgentExecutionsRequest } from "./io_pb.js";
 import { AgentExecution } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -106,6 +106,22 @@ export const AgentExecutionQueryController = {
       name: "getArtifactDownloadUrl",
       I: GetArtifactDownloadUrlRequest,
       O: GetArtifactDownloadUrlResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Read the raw content of an execution artifact.
+     *
+     * Returns artifact bytes through the Stigmer API, eliminating CORS
+     * concerns for SDK consumers who need to read content programmatically.
+     *
+     * @since Artifact Lifecycle (Attachments & Artifacts)
+     *
+     * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getArtifactContent
+     */
+    getArtifactContent: {
+      name: "getArtifactContent",
+      I: GetArtifactContentRequest,
+      O: GetArtifactContentResponse,
       kind: MethodKind.Unary,
     },
     /**

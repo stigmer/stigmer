@@ -916,6 +916,96 @@ export const GetArtifactDownloadUrlResponseSchema: GenMessage<GetArtifactDownloa
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 16);
 
 /**
+ * GetArtifactContentRequest reads the raw content of an execution artifact.
+ *
+ * Unlike getArtifactDownloadUrl (which returns a presigned URL for direct
+ * browser download), this endpoint returns the artifact bytes through the
+ * Stigmer API. This eliminates CORS concerns for SDK consumers who need to
+ * read artifact content programmatically.
+ *
+ * @since Artifact Lifecycle (Attachments & Artifacts)
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest
+ */
+export type GetArtifactContentRequest = Message<"ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest"> & {
+  /**
+   * ID of the agent execution that produced the artifact.
+   *
+   * Format: "aex_{ulid}"
+   *
+   * @generated from field: string execution_id = 1;
+   */
+  executionId: string;
+
+  /**
+   * Storage key of the artifact to read.
+   *
+   * Must start with "artifacts/{execution_id}/" to prevent path traversal.
+   *
+   * @generated from field: string storage_key = 2;
+   */
+  storageKey: string;
+
+  /**
+   * Maximum number of bytes to return. Server default: 524288 (512 KB).
+   *
+   * @generated from field: int64 max_bytes = 3;
+   */
+  maxBytes: bigint;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest.
+ * Use `create(GetArtifactContentRequestSchema)` to create a new message.
+ */
+export const GetArtifactContentRequestSchema: GenMessage<GetArtifactContentRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 17);
+
+/**
+ * GetArtifactContentResponse returns the raw content of an execution artifact.
+ *
+ * @since Artifact Lifecycle (Attachments & Artifacts)
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse
+ */
+export type GetArtifactContentResponse = Message<"ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse"> & {
+  /**
+   * Raw artifact content (up to max_bytes). Decode as UTF-8 for text artifacts.
+   *
+   * @generated from field: bytes content = 1;
+   */
+  content: Uint8Array;
+
+  /**
+   * Detected content type based on file extension.
+   *
+   * @generated from field: string content_type = 2;
+   */
+  contentType: string;
+
+  /**
+   * Actual total size of the artifact in bytes.
+   *
+   * @generated from field: int64 total_size_bytes = 3;
+   */
+  totalSizeBytes: bigint;
+
+  /**
+   * Whether the content was truncated to fit within max_bytes.
+   *
+   * @generated from field: bool truncated = 4;
+   */
+  truncated: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse.
+ * Use `create(GetArtifactContentResponseSchema)` to create a new message.
+ */
+export const GetArtifactContentResponseSchema: GenMessage<GetArtifactContentResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 18);
+
+/**
  * GetSessionUsageReportInput requests a usage report for a single session.
  * Aggregates cost and token data across all executions in the session.
  *
@@ -935,7 +1025,7 @@ export type GetSessionUsageReportInput = Message<"ai.stigmer.agentic.agentexecut
  * Use `create(GetSessionUsageReportInputSchema)` to create a new message.
  */
 export const GetSessionUsageReportInputSchema: GenMessage<GetSessionUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 17);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 19);
 
 /**
  * GetSessionUsageReportOutput returns aggregated usage for a session.
@@ -1009,7 +1099,7 @@ export type GetSessionUsageReportOutput = Message<"ai.stigmer.agentic.agentexecu
  * Use `create(GetSessionUsageReportOutputSchema)` to create a new message.
  */
 export const GetSessionUsageReportOutputSchema: GenMessage<GetSessionUsageReportOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 18);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 20);
 
 /**
  * GetAgentUsageReportInput requests a usage report for a specific agent.
@@ -1062,7 +1152,7 @@ export type GetAgentUsageReportInput = Message<"ai.stigmer.agentic.agentexecutio
  * Use `create(GetAgentUsageReportInputSchema)` to create a new message.
  */
 export const GetAgentUsageReportInputSchema: GenMessage<GetAgentUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 19);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 21);
 
 /**
  * GetAgentUsageReportOutput returns aggregated usage for an agent.
@@ -1142,7 +1232,7 @@ export type GetAgentUsageReportOutput = Message<"ai.stigmer.agentic.agentexecuti
  * Use `create(GetAgentUsageReportOutputSchema)` to create a new message.
  */
 export const GetAgentUsageReportOutputSchema: GenMessage<GetAgentUsageReportOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 20);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 22);
 
 /**
  * GetOrgUsageReportInput requests a usage report for an entire organization.
@@ -1181,7 +1271,7 @@ export type GetOrgUsageReportInput = Message<"ai.stigmer.agentic.agentexecution.
  * Use `create(GetOrgUsageReportInputSchema)` to create a new message.
  */
 export const GetOrgUsageReportInputSchema: GenMessage<GetOrgUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 21);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 23);
 
 /**
  * GetOrgUsageReportOutput returns aggregated usage for an organization.
@@ -1254,7 +1344,7 @@ export type GetOrgUsageReportOutput = Message<"ai.stigmer.agentic.agentexecution
  * Use `create(GetOrgUsageReportOutputSchema)` to create a new message.
  */
 export const GetOrgUsageReportOutputSchema: GenMessage<GetOrgUsageReportOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 22);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 24);
 
 /**
  * ExecutionUsageSummary is a lightweight view of a single execution's usage.
@@ -1340,7 +1430,7 @@ export type ExecutionUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v
  * Use `create(ExecutionUsageSummarySchema)` to create a new message.
  */
 export const ExecutionUsageSummarySchema: GenMessage<ExecutionUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 23);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 25);
 
 /**
  * SessionUsageSummary is a lightweight view of a session's usage.
@@ -1397,7 +1487,7 @@ export type SessionUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v1.
  * Use `create(SessionUsageSummarySchema)` to create a new message.
  */
 export const SessionUsageSummarySchema: GenMessage<SessionUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 24);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 26);
 
 /**
  * AgentUsageSummary is a lightweight view of an agent's usage.
@@ -1447,7 +1537,7 @@ export type AgentUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v1.Ag
  * Use `create(AgentUsageSummarySchema)` to create a new message.
  */
 export const AgentUsageSummarySchema: GenMessage<AgentUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 25);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 27);
 
 /**
  * DailyCostEntry represents cost and usage for a single day.
@@ -1490,5 +1580,5 @@ export type DailyCostEntry = Message<"ai.stigmer.agentic.agentexecution.v1.Daily
  * Use `create(DailyCostEntrySchema)` to create a new message.
  */
 export const DailyCostEntrySchema: GenMessage<DailyCostEntry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 26);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 28);
 
