@@ -14,10 +14,44 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-03-20
-**Current Task**: Phase 1 complete. Next: Phase 2, T02.1 — `McpToolSelector` component
-**Status**: In progress — Phase 0 done, Phase 1 done (reducer + hook), ready for Phase 2
+**Current Task**: Phase 2, T02.1 complete. Next: Phase 2, T02.2 — `McpServerConfigPanel` component
+**Status**: In progress — Phase 0 done, Phase 1 done, Phase 2 T02.1 done, ready for T02.2
 
 ## Session Progress (2026-03-20)
+
+### Session 4: Phase 2, T02.1 — McpToolSelector component — COMPLETE
+
+**What was accomplished:**
+- Planned and implemented `McpToolSelector.tsx` — pure presentational tool checklist component
+- Two design decisions made during planning (both approved):
+  - Empty state: clean default only (no CLI hint — SDK-appropriate for platform builders)
+  - Width: no hardcoded width (fills container, parent controls layout)
+- Updated barrel exports in `mcp-server/index.ts` and `index.ts`
+- Zero lint errors, zero TypeScript errors
+- Committed: `05ea4318`
+
+**File created:**
+- `sdk/react/src/mcp-server/McpToolSelector.tsx` — 243 lines, pure presentational component
+
+**Component API:**
+- Props: `tools`, `toolApprovals`, `enabledTools`, `onChange`, `disabled`, `className`
+- Controlled component — parent owns all state
+- Approval badge with shield icon + `title` tooltip for approval message template
+- Bulk selection via "All" / "None" compact text buttons
+- Scrollable list via `useScrollShadows` + `ScrollFade` with `max-h-52`
+- Empty state for undiscovered tools
+- `useId()` for SSR-safe unique IDs per checkbox
+
+**Files modified:**
+- `sdk/react/src/mcp-server/index.ts` — Added `McpToolSelector` + `McpToolSelectorProps` exports
+- `sdk/react/src/index.ts` — Added re-exports in MCP Server section
+
+**Key decisions:**
+- Native `<input type="checkbox">` with `accent-primary size-3` — inherently keyboard-accessible, matches `EnvironmentVariableEditor` pattern
+- Approval lookup via `useMemo` Map for O(1) per-row lookups
+- No hardcoded width — component is a building block that fills its container
+- Clean empty state without CLI hint — platform builders embedding in their own products don't need Stigmer CLI references
+- Approval badge uses `bg-warning/15 text-warning` with shield icon (matches existing badge patterns from `ToolCallItem`)
 
 ### Session 3: Phase 1, T01.2 — useMcpServerSetup orchestration hook — COMPLETE
 
@@ -109,17 +143,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 2, T02.1**: Create `McpToolSelector` component
-   - Renders checklist of discovered tools with approval badges
-   - "Select all" / "Deselect all" shortcuts
-   - Scrollable when many tools, empty state for undiscovered tools
-   - Styled with `--stgm-*` tokens, keyboard navigable
-2. **Phase 2, T02.2**: Create `McpServerConfigPanel` component
-   - Per-server drill-in config: credentials form (EnvVarForm) + tool selector
+1. **Phase 2, T02.2**: Create `McpServerConfigPanel` component
+   - Per-server drill-in config: credentials form (EnvVarForm) + tool selector (McpToolSelector)
    - Header with server name/icon + "Back" button
-3. **Phase 2, T02.3**: Enhance `McpServerPicker` with setup integration
+   - State-driven layout: needsSetup shows credentials first, ready shows both sections
+2. **Phase 2, T02.3**: Enhance `McpServerPicker` with setup integration
    - Setup state indicators, drill-in to config panel
-4. **Phase 3**: SessionComposer integration, submission blocking, enhanced chips
+3. **Phase 3**: SessionComposer integration, submission blocking, enhanced chips
 
 ## Context for Resume
 
@@ -132,16 +162,18 @@ Drop this file into your conversation to quickly resume work on this project.
   - Shared EnvVarForm extraction from AgentEnvForm
   - Submission blocking for unconfigured servers
 - Phase 0 is committed and verified
-- Phase 1 is complete (reducer + hook) — T01.2 needs commit
+- Phase 1 is committed and verified (reducer + hook)
+- Phase 2, T02.1 is committed and verified (`McpToolSelector`)
 - 9 design refinements from master plan (DD-R1 through DD-R9) — all approved and applied
 - The full orchestration layer is ready: reducer (state machine) + hook (composition, methods, derived state)
-- Phase 2 can begin — UI components consume the hook's `entries`, methods, and derived values
+- `McpToolSelector` is the first UI component — pure presentational, controlled via props
+- Phase 2 continues — T02.2 (`McpServerConfigPanel`) composes `EnvVarForm` + `McpToolSelector`
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-3.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-4.md
 ```
 
 ### 2. Current Task Plan
@@ -168,7 +200,8 @@ These projects established patterns and infrastructure this project builds on:
 
 | File | Purpose |
 |------|---------|
-| `sdk/react/src/mcp-server/useMcpServerSetup.ts` | **NEW** — Multi-server setup orchestration hook |
+| `sdk/react/src/mcp-server/McpToolSelector.tsx` | **NEW** — Tool checklist with approval badges |
+| `sdk/react/src/mcp-server/useMcpServerSetup.ts` | Multi-server setup orchestration hook |
 | `sdk/react/src/mcp-server/mcpServerSetupReducer.ts` | Per-server setup state machine |
 | `sdk/react/src/environment/EnvVarForm.tsx` | Shared env var collection form |
 | `sdk/react/src/environment/diffEnvSpec.ts` | Env spec diffing (shared) |
@@ -205,7 +238,7 @@ These projects established patterns and infrastructure this project builds on:
 
 After loading context:
 - "Show project status" - Get overview of progress
-- "Continue with next task" - Start T01.2 (useMcpServerSetup hook)
+- "Continue with next task" - Start T02.2 (McpServerConfigPanel)
 - "Review guidelines" - Check established patterns
 
 ---
