@@ -310,10 +310,28 @@ When starting a new session:
 - Lint clean on both files
 - Landing page card link to `/library/agents` now resolves
 
+## Session Progress (2026-03-20, Session 11)
+
+### Completed
+- **T01.12 — Skill list page**: Created `/library/skills` route in the Console
+  - `client-apps/web/src/app/library/skills/page.tsx` — thin server component entry point
+  - `client-apps/web/src/app/library/skills/SkillListPage.tsx` — client component composing `useSkillList` + `ResourceListView`
+  - Same pattern as T01.11: three pieces of local state (`scope`, `query`, `page`), scope persisted to localStorage
+  - Scope persistence key: `stigmer:library:skills:scope`
+  - Page header: "Skills" h1 + "Create Skill" ghost link (navigates to `/` for Phase 1)
+  - Skill-specific customizations: `searchPlaceholder="Search skills…"`, `emptyIcon=<Sparkles>`, `emptyTitle="No skills found"`, `aria-label="Skill list"`
+  - Default row renderer — no custom `renderItem` (same Phase 1 trade-off as T01.11)
+  - Breadcrumb "Library / Skills" handled automatically by `LibraryBreadcrumb` in layout
+  - Committed: `0403fe3c feat(web): add Skill list page at /library/skills`
+
+### Verification
+- TypeScript check passes (zero errors in new files)
+- Lint clean on both files
+- Landing page card link to `/library/skills` now resolves
+
 ## Next Steps
 
-1. **T01.12 — Skill list page**: `/library/skills`
-2. **T01.13 — MCP Server list page**: `/library/mcp-servers`
+1. **T01.13 — MCP Server list page**: `/library/mcp-servers`
 
 ## Context for Resume
 
@@ -322,20 +340,21 @@ When starting a new session:
 - **Sidebar link complete** (T01.9): "Library" link in sidebar with active state for `/library/*`
 - **Landing page complete** (T01.10): `/library` shows three `ResourceCountCard` cards with live counts, breadcrumb nav, and "Create New" shortcuts
 - **Agent list page complete** (T01.11): `/library/agents` composes `useAgentList` + `ResourceListView` with localStorage scope persistence
+- **Skill list page complete** (T01.12): `/library/skills` composes `useSkillList` + `ResourceListView` with localStorage scope persistence
 - **T01.8 skipped**: barrel exports already done for all three components
 - The `library/` module has 3 components + 4 type exports: `ScopeToggle`, `ResourceListView`, `ResourceCountCard`, `ScopeToggleProps`, `ResourceListViewProps`, `ResourceCountCardProps`, `ResourceListScope`
 - Count hooks return `count: number | undefined` — `undefined` = not yet loaded, `0` = loaded with zero results
 - Breadcrumb component in layout — sub-pages get breadcrumbs automatically
-- "Create New" shortcuts and "Create Agent" link all go to `/` for now — Phase 3 adds pre-fill via query params
-- T01.12 and T01.13 follow the exact same pattern as T01.11 — near-copies with resource-type-specific substitutions
-- When T01.12/T01.13 are implemented, consider extracting localStorage scope persistence into a shared `usePersistedScope` utility if duplication feels excessive
+- "Create New" shortcuts, "Create Agent" link, and "Create Skill" link all go to `/` for now — Phase 3 adds pre-fill via query params
+- T01.13 follows the exact same pattern as T01.11/T01.12 — near-copy with MCP Server-specific substitutions (`useMcpServerList`, `Server` icon, `/library/mcp-servers`, `stigmer:library:mcp-servers:scope`)
+- When T01.13 is done, consider extracting localStorage scope persistence into a shared `usePersistedScope` utility if the three-way duplication feels excessive
 - Branch: `feat/add-customize-ui-2`
-- Card links to `/library/skills` and `/library/mcp-servers` will 404 until T01.12–T01.13 are implemented
+- Card link to `/library/mcp-servers` will 404 until T01.13 is implemented
+- After T01.13, Phase 1 (Library Pages + Navigation) is complete — next is Phase 2 (Execution Artifacts Widget + Apply Flow)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.12" — Implement Skill list page
 - "Continue with T01.13" — Implement MCP Server list page
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
