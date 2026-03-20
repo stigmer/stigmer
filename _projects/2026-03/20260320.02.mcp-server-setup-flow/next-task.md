@@ -14,10 +14,42 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-03-20
-**Current Task**: Phase 3, T03.1 complete. Next: Phase 3, T03.2 — Submission blocking for unconfigured servers
-**Status**: In progress — Phase 0 done, Phase 1 done, Phase 2 done, Phase 3 T03.1 done, ready for T03.2
+**Current Task**: Phase 3, T03.2 complete. Next: Phase 3, T03.3 — Enhanced MCP chips
+**Status**: In progress — Phase 0 done, Phase 1 done, Phase 2 done, Phase 3 T03.1 done, T03.2 done, ready for T03.3
 
 ## Session Progress (2026-03-20)
+
+### Session 8: Phase 3, T03.2 — Submission blocking for unconfigured MCP servers — COMPLETE
+
+**What was accomplished:**
+- Planned and implemented submission blocking in SessionComposer for unconfigured MCP servers
+- Three design decisions made and applied (DD-T03.4 through DD-T03.6):
+  - DD-T03.4: Two-signal blocking — `allReady` for button (all non-ready states), `needsSetupCount` for warning (user-actionable only)
+  - DD-T03.5: `onKeyDown` override in SessionComposer — no changes to `useComposer` public API
+  - DD-T03.6: Warning placement in Zone 2.5 between chips and toolbar
+- Zero lint errors, zero TypeScript errors
+- No prop contract changes on `SessionComposerProps`, no changes to `useComposer`
+
+**File modified:**
+- `sdk/react/src/composer/SessionComposer.tsx` — +64/-2 lines (net +62)
+
+**Key changes:**
+- Added `mcpBlocked` and `canSend` derived booleans for submission gating
+- Added `handleTextareaKeyDown` to intercept Enter-to-submit when blocked
+- Changed send button from `disabled={!composer.canSubmit}` to `disabled={!canSend}`
+- Added amber warning banner (Zone 2.5) with pluralized message and "Configure" action
+- Added `AlertTriangleIcon` SVG component matching existing icon conventions
+
+**Behavioral changes:**
+- Send button disabled when any MCP server is not in `ready` status
+- Enter-to-submit prevented when `canSend` is false (message preserved, not cleared)
+- Warning banner shows count of servers needing configuration with one-click navigation to MCP popover
+- Transient states (`loading`, `submitting`) block silently; only `needsSetup` shows warning
+
+**Key decisions:**
+- Two-signal blocking (DD-T03.4) — separates button gating (all non-ready) from warning visibility (user-actionable only). Prevents alarm during brief loading states.
+- `onKeyDown` override (DD-T03.5) — `useComposer` stays single-responsibility. Blocking logic stays in the component that has domain knowledge.
+- Zone 2.5 placement (DD-T03.6) — warning contextualizes between cause (chips) and effect (send button).
 
 ### Session 7: Phase 3, T03.1 — Wire `useMcpServerSetup` into SessionComposer — COMPLETE
 
@@ -250,12 +282,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 3, T03.2**: Submission blocking for unconfigured servers
-   - Disable send button when `!mcpSetup.allReady`
-   - Show inline warning: "Configure MCP servers to continue"
-2. **Phase 3, T03.3**: Enhanced MCP chips (tool counts, setup status)
-3. **Phase 3, T03.4**: RuntimeEnv aggregation from MCP + agent + one-time secrets
-4. **Phase 3, T03.5**: Barrel exports update
+1. **Phase 3, T03.3**: Enhanced MCP chips (tool counts, setup status)
+   - Ready (all tools): `github (MCP)`
+   - Ready (custom tools): `github (MCP) 4/12`
+   - Needs setup: `github (MCP)` with amber indicator, clickable to open MCP popover
+2. **Phase 3, T03.4**: RuntimeEnv aggregation from MCP + agent + one-time secrets
+3. **Phase 3, T03.5**: Barrel exports update
 
 ## Context for Resume
 
@@ -271,15 +303,16 @@ Drop this file into your conversation to quickly resume work on this project.
 - Phase 1 is committed and verified (reducer + hook)
 - Phase 2 is committed and verified (T02.1 + T02.2 + T02.3)
 - Phase 3, T03.1 is complete and verified — SessionComposer wired with setup hook
-- 26 design refinements from master plan (DD-R1 through DD-R16, DD-T3.1 through DD-T3.7, DD-T03.1 through DD-T03.3) — all approved and applied
-- The full orchestration layer is wired: reducer → hook → picker → composer
-- Remaining Phase 3 tasks: submission blocking (T03.2), enhanced chips (T03.3), runtimeEnv aggregation (T03.4), barrel exports (T03.5)
+- Phase 3, T03.2 is complete and verified — submission blocking with warning banner
+- 29 design refinements from master plan (DD-R1 through DD-R16, DD-T3.1 through DD-T3.7, DD-T03.1 through DD-T03.3, DD-T03.4 through DD-T03.6) — all approved and applied
+- The full orchestration layer is wired: reducer → hook → picker → composer → submission gate
+- Remaining Phase 3 tasks: enhanced chips (T03.3), runtimeEnv aggregation (T03.4), barrel exports (T03.5)
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-7.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-8.md
 ```
 
 ### 2. Current Task Plan
