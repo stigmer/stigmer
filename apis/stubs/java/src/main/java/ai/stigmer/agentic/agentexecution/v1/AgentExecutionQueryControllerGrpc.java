@@ -170,6 +170,37 @@ public final class AgentExecutionQueryControllerGrpc {
     return getGetArtifactDownloadUrlMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest,
+      ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse> getGetArtifactContentMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "getArtifactContent",
+      requestType = ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest.class,
+      responseType = ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest,
+      ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse> getGetArtifactContentMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest, ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse> getGetArtifactContentMethod;
+    if ((getGetArtifactContentMethod = AgentExecutionQueryControllerGrpc.getGetArtifactContentMethod) == null) {
+      synchronized (AgentExecutionQueryControllerGrpc.class) {
+        if ((getGetArtifactContentMethod = AgentExecutionQueryControllerGrpc.getGetArtifactContentMethod) == null) {
+          AgentExecutionQueryControllerGrpc.getGetArtifactContentMethod = getGetArtifactContentMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest, ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getArtifactContent"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentExecutionQueryControllerMethodDescriptorSupplier("getArtifactContent"))
+              .build();
+        }
+      }
+    }
+    return getGetArtifactContentMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput,
       ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportOutput> getGetSessionUsageReportMethod;
 
@@ -407,6 +438,39 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
+     * Read the raw content of an execution artifact.
+     * Returns artifact bytes through the Stigmer API, eliminating CORS
+     * concerns for SDK consumers who need to read content programmatically
+     * (e.g., YAML parsing for resource detection, in-app preview rendering).
+     * For direct file downloads, use getArtifactDownloadUrl instead — it
+     * returns a presigned R2 URL that avoids proxying bytes through the server.
+     * ## Authorization
+     * Requires can_view permission on the execution. This ensures users can
+     * only read artifacts from executions they have access to.
+     * ## Security
+     * The storage_key is validated to ensure it belongs to the specified
+     * execution. Keys must start with "artifacts/{execution_id}/" to prevent
+     * path traversal attacks.
+     * ## Size Limit
+     * Content is truncated to max_bytes (default: 512 KB). The response
+     * includes total_size_bytes and a truncated flag so callers can decide
+     * whether to offer a full download via getArtifactDownloadUrl.
+     * ## Example Flow
+     * 1. Get execution via AgentExecutionQueryController.get
+     * 2. Find artifact in status.artifacts[]
+     * 3. Call getArtifactContent with execution_id and storage_key
+     * 4. Decode content bytes as UTF-8 for text artifacts
+     * 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
+     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
+     * </pre>
+     */
+    default void getArtifactContent(ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getGetArtifactContentMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Get usage report for a session (all executions in a session).
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
      * Authorization is handled in handler — caller must have can_view on
@@ -559,6 +623,40 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
+     * Read the raw content of an execution artifact.
+     * Returns artifact bytes through the Stigmer API, eliminating CORS
+     * concerns for SDK consumers who need to read content programmatically
+     * (e.g., YAML parsing for resource detection, in-app preview rendering).
+     * For direct file downloads, use getArtifactDownloadUrl instead — it
+     * returns a presigned R2 URL that avoids proxying bytes through the server.
+     * ## Authorization
+     * Requires can_view permission on the execution. This ensures users can
+     * only read artifacts from executions they have access to.
+     * ## Security
+     * The storage_key is validated to ensure it belongs to the specified
+     * execution. Keys must start with "artifacts/{execution_id}/" to prevent
+     * path traversal attacks.
+     * ## Size Limit
+     * Content is truncated to max_bytes (default: 512 KB). The response
+     * includes total_size_bytes and a truncated flag so callers can decide
+     * whether to offer a full download via getArtifactDownloadUrl.
+     * ## Example Flow
+     * 1. Get execution via AgentExecutionQueryController.get
+     * 2. Find artifact in status.artifacts[]
+     * 3. Call getArtifactContent with execution_id and storage_key
+     * 4. Decode content bytes as UTF-8 for text artifacts
+     * 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
+     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
+     * </pre>
+     */
+    public void getArtifactContent(ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getGetArtifactContentMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Get usage report for a session (all executions in a session).
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
      * Authorization is handled in handler — caller must have can_view on
@@ -697,6 +795,39 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
+     * Read the raw content of an execution artifact.
+     * Returns artifact bytes through the Stigmer API, eliminating CORS
+     * concerns for SDK consumers who need to read content programmatically
+     * (e.g., YAML parsing for resource detection, in-app preview rendering).
+     * For direct file downloads, use getArtifactDownloadUrl instead — it
+     * returns a presigned R2 URL that avoids proxying bytes through the server.
+     * ## Authorization
+     * Requires can_view permission on the execution. This ensures users can
+     * only read artifacts from executions they have access to.
+     * ## Security
+     * The storage_key is validated to ensure it belongs to the specified
+     * execution. Keys must start with "artifacts/{execution_id}/" to prevent
+     * path traversal attacks.
+     * ## Size Limit
+     * Content is truncated to max_bytes (default: 512 KB). The response
+     * includes total_size_bytes and a truncated flag so callers can decide
+     * whether to offer a full download via getArtifactDownloadUrl.
+     * ## Example Flow
+     * 1. Get execution via AgentExecutionQueryController.get
+     * 2. Find artifact in status.artifacts[]
+     * 3. Call getArtifactContent with execution_id and storage_key
+     * 4. Decode content bytes as UTF-8 for text artifacts
+     * 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
+     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse getArtifactContent(ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getGetArtifactContentMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Get usage report for a session (all executions in a session).
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
      * Authorization is handled in handler — caller must have can_view on
@@ -831,6 +962,39 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
+     * Read the raw content of an execution artifact.
+     * Returns artifact bytes through the Stigmer API, eliminating CORS
+     * concerns for SDK consumers who need to read content programmatically
+     * (e.g., YAML parsing for resource detection, in-app preview rendering).
+     * For direct file downloads, use getArtifactDownloadUrl instead — it
+     * returns a presigned R2 URL that avoids proxying bytes through the server.
+     * ## Authorization
+     * Requires can_view permission on the execution. This ensures users can
+     * only read artifacts from executions they have access to.
+     * ## Security
+     * The storage_key is validated to ensure it belongs to the specified
+     * execution. Keys must start with "artifacts/{execution_id}/" to prevent
+     * path traversal attacks.
+     * ## Size Limit
+     * Content is truncated to max_bytes (default: 512 KB). The response
+     * includes total_size_bytes and a truncated flag so callers can decide
+     * whether to offer a full download via getArtifactDownloadUrl.
+     * ## Example Flow
+     * 1. Get execution via AgentExecutionQueryController.get
+     * 2. Find artifact in status.artifacts[]
+     * 3. Call getArtifactContent with execution_id and storage_key
+     * 4. Decode content bytes as UTF-8 for text artifacts
+     * 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
+     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
+     * </pre>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse getArtifactContent(ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getGetArtifactContentMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Get usage report for a session (all executions in a session).
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
      * Authorization is handled in handler — caller must have can_view on
@@ -957,6 +1121,40 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
+     * Read the raw content of an execution artifact.
+     * Returns artifact bytes through the Stigmer API, eliminating CORS
+     * concerns for SDK consumers who need to read content programmatically
+     * (e.g., YAML parsing for resource detection, in-app preview rendering).
+     * For direct file downloads, use getArtifactDownloadUrl instead — it
+     * returns a presigned R2 URL that avoids proxying bytes through the server.
+     * ## Authorization
+     * Requires can_view permission on the execution. This ensures users can
+     * only read artifacts from executions they have access to.
+     * ## Security
+     * The storage_key is validated to ensure it belongs to the specified
+     * execution. Keys must start with "artifacts/{execution_id}/" to prevent
+     * path traversal attacks.
+     * ## Size Limit
+     * Content is truncated to max_bytes (default: 512 KB). The response
+     * includes total_size_bytes and a truncated flag so callers can decide
+     * whether to offer a full download via getArtifactDownloadUrl.
+     * ## Example Flow
+     * 1. Get execution via AgentExecutionQueryController.get
+     * 2. Find artifact in status.artifacts[]
+     * 3. Call getArtifactContent with execution_id and storage_key
+     * 4. Decode content bytes as UTF-8 for text artifacts
+     * 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
+     * &#64;since Artifact Lifecycle (Attachments &amp; Artifacts)
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse> getArtifactContent(
+        ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getGetArtifactContentMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Get usage report for a session (all executions in a session).
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
      * Authorization is handled in handler — caller must have can_view on
@@ -1001,9 +1199,10 @@ public final class AgentExecutionQueryControllerGrpc {
   private static final int METHODID_LIST_BY_SESSION = 2;
   private static final int METHODID_SUBSCRIBE = 3;
   private static final int METHODID_GET_ARTIFACT_DOWNLOAD_URL = 4;
-  private static final int METHODID_GET_SESSION_USAGE_REPORT = 5;
-  private static final int METHODID_GET_AGENT_USAGE_REPORT = 6;
-  private static final int METHODID_GET_ORG_USAGE_REPORT = 7;
+  private static final int METHODID_GET_ARTIFACT_CONTENT = 5;
+  private static final int METHODID_GET_SESSION_USAGE_REPORT = 6;
+  private static final int METHODID_GET_AGENT_USAGE_REPORT = 7;
+  private static final int METHODID_GET_ORG_USAGE_REPORT = 8;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1041,6 +1240,10 @@ public final class AgentExecutionQueryControllerGrpc {
         case METHODID_GET_ARTIFACT_DOWNLOAD_URL:
           serviceImpl.getArtifactDownloadUrl((ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse>) responseObserver);
+          break;
+        case METHODID_GET_ARTIFACT_CONTENT:
+          serviceImpl.getArtifactContent((ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse>) responseObserver);
           break;
         case METHODID_GET_SESSION_USAGE_REPORT:
           serviceImpl.getSessionUsageReport((ai.stigmer.agentic.agentexecution.v1.GetSessionUsageReportInput) request,
@@ -1107,6 +1310,13 @@ public final class AgentExecutionQueryControllerGrpc {
               ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlRequest,
               ai.stigmer.agentic.agentexecution.v1.GetArtifactDownloadUrlResponse>(
                 service, METHODID_GET_ARTIFACT_DOWNLOAD_URL)))
+        .addMethod(
+          getGetArtifactContentMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest,
+              ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse>(
+                service, METHODID_GET_ARTIFACT_CONTENT)))
         .addMethod(
           getGetSessionUsageReportMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1181,6 +1391,7 @@ public final class AgentExecutionQueryControllerGrpc {
               .addMethod(getListBySessionMethod())
               .addMethod(getSubscribeMethod())
               .addMethod(getGetArtifactDownloadUrlMethod())
+              .addMethod(getGetArtifactContentMethod())
               .addMethod(getGetSessionUsageReportMethod())
               .addMethod(getGetAgentUsageReportMethod())
               .addMethod(getGetOrgUsageReportMethod())

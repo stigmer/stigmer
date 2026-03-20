@@ -124,6 +124,11 @@ func (a *AgentExecutionClient) GetArtifactDownloadUrl(ctx context.Context, input
 	return resp, wrapErr(err)
 }
 
+func (a *AgentExecutionClient) GetArtifactContent(ctx context.Context, input *agentexecutionv1.GetArtifactContentRequest) (*agentexecutionv1.GetArtifactContentResponse, error) {
+	resp, err := a.query.GetArtifactContent(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (a *AgentExecutionClient) GetSessionUsageReport(ctx context.Context, input *agentexecutionv1.GetSessionUsageReportInput) (*agentexecutionv1.GetSessionUsageReportOutput, error) {
 	resp, err := a.query.GetSessionUsageReport(ctx, input)
 	return resp, wrapErr(err)
