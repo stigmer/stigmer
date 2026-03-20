@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bot, Plus, Sparkles, Server } from "lucide-react";
+import { Popover } from "@base-ui/react/popover";
+import { cn } from "@stigmer/theme";
 import { getDraftSessionUrl } from "@/utils/draft-session";
+import type { DraftResourceType } from "@/utils/draft-session";
 import {
   useAgentCount,
   useSkillCount,
@@ -33,11 +37,27 @@ const RESOURCE_CARDS = [
   },
 ] as const;
 
-const CREATE_SHORTCUTS = [
-  { label: "Create Agent", href: getDraftSessionUrl("agent") },
-  { label: "Create Skill", href: getDraftSessionUrl("skill") },
-  { label: "Create MCP Server", href: getDraftSessionUrl("mcp-server") },
-] as const;
+const CREATE_MENU_ITEMS: readonly {
+  readonly type: DraftResourceType;
+  readonly label: string;
+  readonly icon: React.ReactNode;
+}[] = [
+  {
+    type: "agent",
+    label: "Agent",
+    icon: <Bot className="size-4" aria-hidden="true" />,
+  },
+  {
+    type: "skill",
+    label: "Skill",
+    icon: <Sparkles className="size-4" aria-hidden="true" />,
+  },
+  {
+    type: "mcp-server",
+    label: "MCP Server",
+    icon: <Server className="size-4" aria-hidden="true" />,
+  },
+];
 
 function useResourceCounts(org: string | null) {
   const agents = useAgentCount(org);
@@ -80,18 +100,65 @@ export function LibraryLanding() {
         })}
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-3">
-        {CREATE_SHORTCUTS.map((shortcut) => (
-          <Link
-            key={shortcut.label}
-            href={shortcut.href}
-            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Plus className="size-3.5" aria-hidden="true" />
-            {shortcut.label}
-          </Link>
-        ))}
+      <div className="mt-6">
+        <CreateResourceMenu />
       </div>
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CreateResourceMenu — single "+ Create" button with a dropdown of
+// resource types, each linking to the corresponding draft session.
+// ---------------------------------------------------------------------------
+
+function CreateResourceMenu() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm",
+          "text-muted-foreground transition-colors",
+          "hover:bg-accent hover:text-accent-foreground",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+        aria-label="Create a new resource"
+      >
+        <Plus className="size-3.5" aria-hidden="true" />
+        Create
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner sideOffset={4} align="start">
+          <Popover.Popup
+            className={cn(
+              "z-popover min-w-[10rem] overflow-hidden rounded-lg",
+              "border border-border bg-popover shadow-md text-popover-foreground",
+            )}
+          >
+            <div className="py-1" role="menu">
+              {CREATE_MENU_ITEMS.map((item) => (
+                <Link
+                  key={item.type}
+                  href={getDraftSessionUrl(item.type)}
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 px-3 py-2 text-sm",
+                    "text-foreground transition-colors hover:bg-accent/50",
+                  )}
+                >
+                  <span className="shrink-0 text-muted-foreground">
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
