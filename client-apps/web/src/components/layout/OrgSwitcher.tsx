@@ -1,22 +1,44 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import {
   Building2,
   AlertCircle,
   RefreshCw,
   ChevronsUpDown,
+  Plus,
 } from "lucide-react";
+import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
+import { CreateOrganizationForm } from "@stigmer/react";
 import { useOrg } from "@/contexts/org-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export function OrgSwitcher() {
-  const { orgs, activeOrg, setActiveOrg, isLoading, error, retry } = useOrg();
+  const { orgs, activeOrg, setActiveOrg, isLoading, error, retry, refresh } =
+    useOrg();
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const handleCreated = useCallback(
+    (org: Organization) => {
+      setCreateOpen(false);
+      refresh(org.metadata?.slug);
+    },
+    [refresh],
+  );
 
   if (isLoading) {
     return <OrgSwitcherSkeleton />;
@@ -38,56 +60,68 @@ export function OrgSwitcher() {
     );
   }
 
-  if (orgs.length === 0 || !activeOrg) {
-    return (
-      <div className="text-muted-foreground flex items-center gap-2 px-2 py-1.5 text-sm">
-        <Building2 className="size-4 shrink-0" />
-        <span>No organizations</span>
-      </div>
-    );
-  }
-
-  const orgLabel = activeOrg.metadata?.name || activeOrg.metadata?.slug;
-
-  if (orgs.length === 1) {
-    return (
-      <div className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium">
-        <Building2 className="text-muted-foreground size-4 shrink-0" />
-        <span className="truncate">{orgLabel}</span>
-      </div>
-    );
-  }
+  const hasOrgs = orgs.length > 0 && activeOrg;
+  const orgLabel = hasOrgs
+    ? activeOrg.metadata?.name || activeOrg.metadata?.slug
+    : "No organizations";
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label="Switch organization"
-        className="hover:bg-sidebar-accent flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors focus:outline-none"
-      >
-        <Building2 className="text-muted-foreground size-4 shrink-0" />
-        <span className="truncate">{orgLabel}</span>
-        <ChevronsUpDown className="text-muted-foreground ml-auto size-3.5 shrink-0" />
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align="start" side="bottom" sideOffset={4}>
-        <DropdownMenuRadioGroup
-          value={activeOrg.metadata?.slug ?? ""}
-          onValueChange={(val) => {
-            const org = orgs.find((o) => o.metadata?.slug === val);
-            if (org) setActiveOrg(org);
-          }}
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          aria-label="Organization menu"
+          className="hover:bg-sidebar-accent flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors focus:outline-none"
         >
-          {orgs.map((org) => (
-            <DropdownMenuRadioItem
-              key={org.metadata?.slug}
-              value={org.metadata?.slug ?? ""}
+          <Building2 className="text-muted-foreground size-4 shrink-0" />
+          <span className={hasOrgs ? "truncate" : "text-muted-foreground truncate"}>
+            {orgLabel}
+          </span>
+          <ChevronsUpDown className="text-muted-foreground ml-auto size-3.5 shrink-0" />
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent align="start" side="bottom" sideOffset={4}>
+          {hasOrgs && (
+            <DropdownMenuRadioGroup
+              value={activeOrg.metadata?.slug ?? ""}
+              onValueChange={(val) => {
+                const org = orgs.find((o) => o.metadata?.slug === val);
+                if (org) setActiveOrg(org);
+              }}
             >
-              {org.metadata?.name || org.metadata?.slug}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+              {orgs.map((org) => (
+                <DropdownMenuRadioItem
+                  key={org.metadata?.slug}
+                  value={org.metadata?.slug ?? ""}
+                >
+                  {org.metadata?.name || org.metadata?.slug}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          )}
+
+          {hasOrgs && <DropdownMenuSeparator />}
+
+          <DropdownMenuItem onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4" />
+            Create organization
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={createOpen} onOpenChange={(open) => setCreateOpen(open)}>
+        <DialogContent>
+          <DialogTitle>Create organization</DialogTitle>
+          <DialogDescription className="mt-1 mb-4">
+            Organizations are tenancy boundaries that own agents, environments,
+            and other resources.
+          </DialogDescription>
+          <CreateOrganizationForm
+            onCreated={handleCreated}
+            onCancel={() => setCreateOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
