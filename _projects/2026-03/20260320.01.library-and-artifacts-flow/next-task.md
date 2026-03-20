@@ -240,29 +240,81 @@ When starting a new session:
 - Lint clean
 - All existing sidebar behavior preserved — no breaking changes
 
+## Session Progress (2026-03-20, Session 8)
+
+### Completed
+- **T01.10 — Library landing page**: Created `/library` route in the Console
+  - `client-apps/web/src/app/library/layout.tsx` — shared `max-w-4xl` container layout for all `/library/*` routes
+  - `client-apps/web/src/app/library/page.tsx` — thin server component entry point
+  - `client-apps/web/src/app/library/LibraryLanding.tsx` — client component composing three `ResourceCountCard` cards
+  - Data-driven card config via `RESOURCE_CARDS` constant, SPA navigation via `href + onClick(preventDefault)`
+  - Responsive grid: single column mobile, 3 columns `sm`+
+  - "Create New" shortcuts deferred to Phase 3 (T03.3) — pre-fill infrastructure doesn't exist yet
+
+- **Count hook initial state fix**: Changed `useResourceCount` and all public count hooks to return `count: number | undefined` (was `number`)
+  - `useState(0)` → `useState<number | undefined>(undefined)` — "not yet loaded" vs "loaded, zero"
+  - Enables `ResourceCountCard` skeleton display on first render
+  - 4 SDK files modified
+
+### Gap Discovered & Fixed
+- **Count hook / card integration gap**: Hooks initialized `count: 0` but `ResourceCountCard` expected `undefined` for skeleton. Fixed at the hook level (correct semantic) rather than working around in consumer.
+
+### Verification
+- TypeScript check passes (zero errors in new/modified files)
+- Lint clean on all 7 files (3 new, 4 modified)
+- Committed: `7eb73af3 feat(sdk/react,web): add Library landing page and fix count hook initial state`
+
+## Session Progress (2026-03-20, Session 9)
+
+### Completed
+- **T01.10 enhancements — Breadcrumbs + "Create New" shortcuts**: Enhanced the Library landing page
+  - Created `client-apps/web/src/app/library/LibraryBreadcrumb.tsx` — pathname-based breadcrumb component
+    - WAI-ARIA Breadcrumb pattern (`nav[aria-label="Breadcrumb"]` > `ol` > `li` > `aria-current="page"`)
+    - Segment-to-label lookup: `agents` → "Agents", `skills` → "Skills", `mcp-servers` → "MCP Servers"
+    - Returns `null` on `/library` (landing page), renders "Library / Agents" etc. on sub-pages
+    - Supports arbitrary depth for future nested routes
+  - Updated `client-apps/web/src/app/library/layout.tsx` — renders `<LibraryBreadcrumb />` above children, added `"use client"` directive
+  - Added "Create New" shortcuts to `LibraryLanding.tsx`
+    - Three ghost-style links below the cards grid: "Create Agent", "Create Skill", "Create MCP Server"
+    - Data-driven via `CREATE_SHORTCUTS` constant, `Plus` icon from lucide-react
+    - All navigate to `/` (home/SessionLauncher) for Phase 1 — Phase 3 (T03.3) will add query-param pre-fill
+    - Uses Next.js `<Link>` for proper SPA navigation
+    - Visually secondary to cards: `text-muted-foreground`, smaller text, ghost hover state
+
+### Decision
+- **"Create New" shortcuts navigate to `/` for Phase 1**: Pre-fill infrastructure (auto-selecting system agent) is Phase 3 scope. Adding non-functional buttons or buttons that navigate to non-existent list pages would be confusing UX. Navigating to the generic SessionLauncher is honest — user can start a session and manually pick the right system agent.
+
+### Verification
+- TypeScript check passes (zero errors in new/modified files)
+- Lint clean on all 4 files (1 new, 3 modified)
+
 ## Next Steps
 
-1. **T01.10 — Library landing page**: Three `ResourceCountCard` cards + "Create New" shortcuts
-2. **T01.11 — Agent list page**: `/library/agents`
-3. **T01.12 — Skill list page**: `/library/skills`
-4. **T01.13 — MCP Server list page**: `/library/mcp-servers`
+1. **T01.11 — Agent list page**: `/library/agents`
+2. **T01.12 — Skill list page**: `/library/skills`
+3. **T01.13 — MCP Server list page**: `/library/mcp-servers`
 
 ## Context for Resume
 
 - **Data layer complete** (T01.1–T01.4): list hooks + count hooks, all scope-aware
 - **UI components complete** (T01.5–T01.7): `ScopeToggle`, `ResourceListView`, `ResourceCountCard` in `library/` module
 - **Sidebar link complete** (T01.9): "Library" link in sidebar with active state for `/library/*`
+- **Landing page complete** (T01.10): `/library` shows three `ResourceCountCard` cards with live counts, breadcrumb nav, and "Create New" shortcuts
 - **T01.8 skipped**: barrel exports already done for all three components
-- The `library/` module now has 3 components + 4 type exports: `ScopeToggle`, `ResourceListView`, `ResourceCountCard`, `ScopeToggleProps`, `ResourceListViewProps`, `ResourceCountCardProps`, `ResourceListScope`
-- **Next work is Console pages** (T01.10–T01.13) — landing page, then three resource list pages
+- The `library/` module has 3 components + 4 type exports: `ScopeToggle`, `ResourceListView`, `ResourceCountCard`, `ScopeToggleProps`, `ResourceListViewProps`, `ResourceCountCardProps`, `ResourceListScope`
+- Count hooks return `count: number | undefined` — `undefined` = not yet loaded, `0` = loaded with zero results
+- Breadcrumb component in layout — sub-pages (T01.11–T01.13) get breadcrumbs automatically
+- "Create New" shortcuts all go to `/` for now — Phase 3 adds pre-fill via query params
+- **Next work is Console list pages** (T01.11–T01.13) — each page composes `ResourceListView` with the corresponding list hook
 - Branch: `feat/add-customize-ui-2`
-- Clicking "Library" in sidebar navigates to `/library` which will 404 until T01.10 is implemented
+- Card links go to `/library/agents`, `/library/skills`, `/library/mcp-servers` — will 404 until T01.11–T01.13 are implemented
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.10" — Implement Library landing page
 - "Continue with T01.11" — Implement Agent list page
+- "Continue with T01.12" — Implement Skill list page
+- "Continue with T01.13" — Implement MCP Server list page
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns
