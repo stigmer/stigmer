@@ -88,7 +88,7 @@ private static final long serialVersionUID = 0L;
    *
    * Each entry is a complete WorkflowInstance resource with:
    * - api_version, kind, metadata
-   * - spec (workflow_id, description, env_refs)
+   * - spec (workflow_id, description, environment_refs)
    * - status (audit information)
    * </pre>
    *
@@ -107,7 +107,7 @@ private static final long serialVersionUID = 0L;
    *
    * Each entry is a complete WorkflowInstance resource with:
    * - api_version, kind, metadata
-   * - spec (workflow_id, description, env_refs)
+   * - spec (workflow_id, description, environment_refs)
    * - status (audit information)
    * </pre>
    *
@@ -127,7 +127,7 @@ private static final long serialVersionUID = 0L;
    *
    * Each entry is a complete WorkflowInstance resource with:
    * - api_version, kind, metadata
-   * - spec (workflow_id, description, env_refs)
+   * - spec (workflow_id, description, environment_refs)
    * - status (audit information)
    * </pre>
    *
@@ -146,7 +146,7 @@ private static final long serialVersionUID = 0L;
    *
    * Each entry is a complete WorkflowInstance resource with:
    * - api_version, kind, metadata
-   * - spec (workflow_id, description, env_refs)
+   * - spec (workflow_id, description, environment_refs)
    * - status (audit information)
    * </pre>
    *
@@ -165,7 +165,7 @@ private static final long serialVersionUID = 0L;
    *
    * Each entry is a complete WorkflowInstance resource with:
    * - api_version, kind, metadata
-   * - spec (workflow_id, description, env_refs)
+   * - spec (workflow_id, description, environment_refs)
    * - status (audit information)
    * </pre>
    *
@@ -634,7 +634,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -656,7 +656,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -678,7 +678,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -700,7 +700,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -729,7 +729,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -755,7 +755,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -783,7 +783,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -812,7 +812,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -838,7 +838,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -864,7 +864,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -891,7 +891,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -916,7 +916,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -941,7 +941,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -960,7 +960,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -982,7 +982,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -1005,7 +1005,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -1024,7 +1024,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *
@@ -1044,7 +1044,7 @@ private static final long serialVersionUID = 0L;
      *
      * Each entry is a complete WorkflowInstance resource with:
      * - api_version, kind, metadata
-     * - spec (workflow_id, description, env_refs)
+     * - spec (workflow_id, description, environment_refs)
      * - status (audit information)
      * </pre>
      *

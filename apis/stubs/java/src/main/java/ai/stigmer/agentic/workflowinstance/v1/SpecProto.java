@@ -44,16 +44,20 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "/spec.proto\022&ai.stigmer.agentic.workflow" +
       "instance.v1\032\'ai/stigmer/commons/apiresou" +
       "rce/io.proto\032\033buf/validate/validate.prot" +
-      "o\"\263\001\n\024WorkflowInstanceSpec\022(\n\013workflow_i" +
+      "o\"\272\002\n\024WorkflowInstanceSpec\022(\n\013workflow_i" +
       "d\030\001 \001(\tB\007\272H\004r\002\020\001R\nworkflowId\022 \n\013descript" +
-      "ion\030\002 \001(\tR\013description\022O\n\010env_refs\030\003 \003(\013" +
-      "24.ai.stigmer.commons.apiresource.ApiRes" +
-      "ourceReferenceR\007envRefsB\310\001B\tSpecProtoP\001\242" +
-      "\002\004ASAW\252\002&Ai.Stigmer.Agentic.Workflowinst" +
-      "ance.V1\312\002&Ai\\Stigmer\\Agentic\\Workflowins" +
-      "tance\\V1\342\0022Ai\\Stigmer\\Agentic\\Workflowin" +
-      "stance\\V1\\GPBMetadata\352\002*Ai::Stigmer::Age" +
-      "ntic::Workflowinstance::V1b\006proto3"
+      "ion\030\002 \001(\tR\013description\022\325\001\n\020environment_r" +
+      "efs\030\003 \003(\01324.ai.stigmer.commons.apiresour" +
+      "ce.ApiResourceReferenceBt\272Hq\222\001n\"l\272\001i\n\025en" +
+      "vironment_refs.kind\022?environment_refs mu" +
+      "st reference resources with kind=environ" +
+      "ment\032\017this.kind == 52R\017environmentRefsB\310" +
+      "\001B\tSpecProtoP\001\242\002\004ASAW\252\002&Ai.Stigmer.Agent" +
+      "ic.Workflowinstance.V1\312\002&Ai\\Stigmer\\Agen" +
+      "tic\\Workflowinstance\\V1\342\0022Ai\\Stigmer\\Age" +
+      "ntic\\Workflowinstance\\V1\\GPBMetadata\352\002*A" +
+      "i::Stigmer::Agentic::Workflowinstance::V" +
+      "1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -66,7 +70,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_workflowinstance_v1_WorkflowInstanceSpec_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_workflowinstance_v1_WorkflowInstanceSpec_descriptor,
-        new java.lang.String[] { "WorkflowId", "Description", "EnvRefs", });
+        new java.lang.String[] { "WorkflowId", "Description", "EnvironmentRefs", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
