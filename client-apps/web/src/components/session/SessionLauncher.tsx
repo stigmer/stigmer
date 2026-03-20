@@ -70,7 +70,11 @@ export function SessionLauncher() {
       setSubmitError(null);
 
       try {
-        const { sessionId } = await createSession({
+        if (!agentInstanceId && !agentRef) {
+          throw new Error("Select an agent before starting a session.");
+        }
+
+        const sessionFields = {
           org,
           subject: message.slice(0, 120),
           workspaceEntries: workspace.hasEntries
@@ -78,9 +82,12 @@ export function SessionLauncher() {
             : undefined,
           mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
-          agentInstanceId: agentInstanceId ?? undefined,
-          agentRef: agentRef ?? undefined,
-        });
+        };
+
+        // Guard above ensures agentRef is non-null when agentInstanceId is null.
+        const { sessionId } = agentInstanceId
+          ? await createSession({ ...sessionFields, agentInstanceId })
+          : await createSession({ ...sessionFields, agentRef: agentRef! });
 
         await createExecution({
           org,
