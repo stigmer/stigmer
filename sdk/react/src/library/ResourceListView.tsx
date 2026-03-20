@@ -311,7 +311,7 @@ export function ResourceListView({
                     onClick={() => onItemClick!(item)}
                     onKeyDown={(e) => handleItemKeyDown(e, index, item)}
                     className={cn(
-                      "rounded-lg px-3 py-2.5 transition-colors",
+                      "group rounded-lg px-3 py-2.5 transition-colors",
                       "cursor-pointer hover:bg-accent/50",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                     )}
@@ -360,12 +360,16 @@ function DefaultResourceRow({ item }: { readonly item: SearchResult }) {
             </span>
           )}
         </div>
-        <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="mt-0.5 flex items-start gap-1.5 text-xs text-muted-foreground">
           <span className="shrink-0">{item.org}</span>
           {item.description && (
             <>
-              <span aria-hidden="true">{"\u00B7"}</span>
-              <span className="truncate">{item.description}</span>
+              <span className="shrink-0" aria-hidden="true">
+                {"\u00B7"}
+              </span>
+              <span className="line-clamp-2 group-hover:line-clamp-none">
+                {item.description}
+              </span>
             </>
           )}
         </div>

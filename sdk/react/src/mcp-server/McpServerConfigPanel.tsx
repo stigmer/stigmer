@@ -192,7 +192,7 @@ export function McpServerConfigPanel({
               {serverName}
             </h3>
             {description && (
-              <p className="line-clamp-1 text-[0.65rem] leading-relaxed text-muted-foreground">
+              <p className="line-clamp-2 text-[0.65rem] leading-relaxed text-muted-foreground">
                 {description}
               </p>
             )}
