@@ -29,6 +29,12 @@ interface OrgContextValue {
   error: string | null;
   /** Re-attempt the organization fetch after a failure. */
   retry: () => void;
+  /**
+   * Refetch the organization list. If `targetSlug` is provided, the
+   * org matching that slug will be auto-selected after the fetch
+   * completes (useful after creating a new organization).
+   */
+  refresh: (targetSlug?: string) => void;
 }
 
 const OrgContext = createContext<OrgContextValue | null>(null);
@@ -68,7 +74,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
   const fetchIdRef = useRef(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (targetSlug?: string) => {
     const fetchId = ++fetchIdRef.current;
     setIsLoading(true);
     setError(null);
@@ -86,9 +92,9 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const persisted = readPersistedSlug();
-      const restored = persisted
-        ? entries.find((o) => o.metadata?.slug === persisted)
+      const preferred = targetSlug ?? readPersistedSlug();
+      const restored = preferred
+        ? entries.find((o) => o.metadata?.slug === preferred)
         : undefined;
 
       const selected = restored ?? entries[0];
@@ -130,6 +136,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       error,
       retry: load,
+      refresh: load,
     }),
     [orgs, activeOrg, setActiveOrg, isLoading, error, load],
   );

@@ -239,6 +239,16 @@ export type {
   CreateEnvironmentFormProps,
 } from "./environment";
 
+// Organization — behavior hook and styled form for organization creation
+export {
+  useCreateOrganization,
+  CreateOrganizationForm,
+} from "./organization";
+export type {
+  UseCreateOrganizationReturn,
+  CreateOrganizationFormProps,
+} from "./organization";
+
 // Error — structured error display with classification, retry, and contextual guidance
 export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error";
 export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error";
