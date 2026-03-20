@@ -39,5 +39,8 @@ export type {
   UseAgentSetupReturn,
 } from "./useAgentSetup";
 
+export { useAgent } from "./useAgent";
+export type { UseAgentReturn } from "./useAgent";
+
 export { useDefaultAgent } from "./useDefaultAgent";
 export type { UseDefaultAgentReturn } from "./useDefaultAgent";
