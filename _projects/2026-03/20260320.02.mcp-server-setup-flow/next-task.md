@@ -14,10 +14,44 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-03-20
-**Current Task**: Phase 3, T03.3 complete. Next: Phase 3, T03.4 — RuntimeEnv aggregation
-**Status**: In progress — Phase 0 done, Phase 1 done, Phase 2 done, Phase 3 T03.1 done, T03.2 done, T03.3 done, ready for T03.4
+**Current Task**: All phases complete. Project is feature-complete.
+**Status**: Complete — Phase 0 done, Phase 1 done, Phase 2 done, Phase 3 done (T03.1–T03.5 all complete)
 
 ## Session Progress (2026-03-20)
+
+### Session 10: Phase 3, T03.4 + T03.5 — RuntimeEnv aggregation + barrel exports — COMPLETE
+
+**What was accomplished:**
+- Planned and implemented runtimeEnv aggregation in SessionComposer
+- Design decision DD-T03.10: Expand `onSubmit` with `SessionComposerSubmitContext` parameter carrying merged runtimeEnv
+- Verified barrel exports are complete (T03.5 reduced to exporting the new type)
+- **All four phases are now complete. Project is feature-complete.**
+
+**Files modified:**
+- `sdk/react/src/composer/SessionComposer.tsx` — +92/-14 lines (net +78)
+- `sdk/react/src/composer/index.ts` — +4/-1 lines
+- `sdk/react/src/index.ts` — +1 line
+- `client-apps/web/src/components/session/SessionLauncher.tsx` — +55/-57 lines (net -2)
+- `client-apps/web/src/app/sessions/[id]/SessionPage.tsx` — +8/-5 lines (net +3)
+
+**Key changes:**
+- Added `SessionComposerSubmitContext` type with JSDoc documenting merge order
+- Updated `onSubmit` from `(message, modelName?) => void` to `(message, modelName?, context?) => void`
+- Restructured hook call order: `useAgentSetup` and `useMcpServerSetup` now above `handleSubmit`
+- `handleSubmit` aggregates runtimeEnv from three sources (agent → MCP → manual) using `Object.assign`
+- SessionLauncher: three-branch `switch` collapsed to two-branch `if`, `runtimeEnv: context?.runtimeEnv` applied uniformly
+- SessionPage: uses `context?.runtimeEnv` instead of manual `secrets.toRuntimeEnv()`
+
+**Behavioral changes:**
+- `onSubmit` now receives aggregated runtimeEnv from all one-time credential sources at submit time
+- Consumers no longer need to independently read `resolution.runtimeEnv` or `secrets.toRuntimeEnv()`
+- Merge precedence: agent one-time → MCP one-time → manual one-time (last-write-wins)
+- Non-breaking: existing `(message, model) => void` handlers ignore the third parameter
+
+**Verification:**
+- Zero lint errors across all five files
+- `@stigmer/react` TypeScript clean (pre-existing test file errors unrelated)
+- `client-apps/web` TypeScript clean (zero errors)
 
 ### Session 9: Phase 3, T03.3 — Enhanced MCP chips (tool counts, setup status) — COMPLETE
 
@@ -315,8 +349,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 3, T03.4**: RuntimeEnv aggregation from MCP + agent + one-time secrets
-2. **Phase 3, T03.5**: Barrel exports update
+All phases and tasks are complete. The MCP Server Setup Flow project is feature-complete.
+
+Potential follow-up work (not part of this project):
+- End-to-end testing of the full MCP setup flow in the Console
+- Documentation updates for platform builders on the new `SessionComposerSubmitContext` type
+- Visual QA of the enhanced MCP chips, submission blocking warning, and config panel
 
 ## Context for Resume
 
@@ -334,9 +372,11 @@ Drop this file into your conversation to quickly resume work on this project.
 - Phase 3, T03.1 is complete and verified — SessionComposer wired with setup hook
 - Phase 3, T03.2 is complete and verified — submission blocking with warning banner
 - Phase 3, T03.3 is complete and verified — enhanced MCP chips with status indicators and tool counts
-- 32 design refinements from master plan (DD-R1 through DD-R16, DD-T3.1 through DD-T3.7, DD-T03.1 through DD-T03.3, DD-T03.4 through DD-T03.6, DD-T03.7 through DD-T03.9) — all approved and applied
-- The full orchestration layer is wired: reducer → hook → picker → composer → submission gate → enhanced chips
-- Remaining Phase 3 tasks: runtimeEnv aggregation (T03.4), barrel exports (T03.5)
+- Phase 3, T03.4 is complete and verified — runtimeEnv aggregation via `SessionComposerSubmitContext`
+- Phase 3, T03.5 is complete and verified — barrel exports (new type exported, MCP exports confirmed complete)
+- 33 design refinements from master plan (DD-R1 through DD-R16, DD-T3.1 through DD-T3.7, DD-T03.1 through DD-T03.3, DD-T03.4 through DD-T03.6, DD-T03.7 through DD-T03.9, DD-T03.10) — all approved and applied
+- The full orchestration layer is wired: reducer → hook → picker → composer → submission gate → enhanced chips → runtimeEnv aggregation
+- **All Phase 3 tasks complete. Project is feature-complete.**
 
 ## Essential Files to Review
 

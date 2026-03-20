@@ -11,7 +11,7 @@ import {
   useCreateAgentExecution,
   useGitHubConnection,
 } from "@stigmer/react";
-import type { AgentResolution } from "@stigmer/react";
+import type { AgentResolution, SessionComposerSubmitContext } from "@stigmer/react";
 import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDeploymentMode } from "@/hooks/useDeploymentMode";
@@ -64,7 +64,11 @@ export function SessionLauncher() {
   const { create: createExecution } = useCreateAgentExecution();
 
   const handleSubmit = useCallback(
-    async (message: string, selectedModel?: string) => {
+    async (
+      message: string,
+      selectedModel?: string,
+      context?: SessionComposerSubmitContext,
+    ) => {
       if (isSubmitting) return;
 
       setIsSubmitting(true);
@@ -89,40 +93,23 @@ export function SessionLauncher() {
           org,
           message,
           modelName: selectedModel ?? validModelId,
+          runtimeEnv: context?.runtimeEnv,
         };
 
-        switch (resolution.mode) {
-          case "saved": {
-            const { sessionId } = await createSession({
-              ...sessionFields,
-              agentInstanceId: resolution.instanceId,
-            });
-            await createExecution({ ...executionFields, sessionId });
-            router.push(`/sessions/${sessionId}`);
-            break;
-          }
-          case "oneTime": {
-            const { sessionId } = await createSession({
-              ...sessionFields,
-              agentRef,
-            });
-            await createExecution({
-              ...executionFields,
-              sessionId,
-              runtimeEnv: resolution.runtimeEnv,
-            });
-            router.push(`/sessions/${sessionId}`);
-            break;
-          }
-          case "direct": {
-            const { sessionId } = await createSession({
-              ...sessionFields,
-              agentRef,
-            });
-            await createExecution({ ...executionFields, sessionId });
-            router.push(`/sessions/${sessionId}`);
-            break;
-          }
+        if (resolution.mode === "saved") {
+          const { sessionId } = await createSession({
+            ...sessionFields,
+            agentInstanceId: resolution.instanceId,
+          });
+          await createExecution({ ...executionFields, sessionId });
+          router.push(`/sessions/${sessionId}`);
+        } else {
+          const { sessionId } = await createSession({
+            ...sessionFields,
+            agentRef,
+          });
+          await createExecution({ ...executionFields, sessionId });
+          router.push(`/sessions/${sessionId}`);
         }
       } catch (err) {
         const detail = getUserMessage(err, "Failed to start session");

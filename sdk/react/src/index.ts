@@ -139,6 +139,7 @@ export type {
   UseComposerOptions,
   UseComposerReturn,
   SessionComposerProps,
+  SessionComposerSubmitContext,
 } from "./composer";
 
 // MCP Server — count hook, list hook, search hook, picker, config panel, tool selector, and setup orchestration

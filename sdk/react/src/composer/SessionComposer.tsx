@@ -20,9 +20,42 @@ import type { UseOneTimeSecretsReturn } from "../execution/useOneTimeSecrets";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 
+/**
+ * Context provided to `onSubmit` at the moment of submission.
+ *
+ * Contains aggregated one-time environment variables from all setup
+ * flows managed by the composer (agent, MCP servers, manual secrets).
+ * The consumer passes `context.runtimeEnv` directly to execution
+ * creation without needing to understand the individual sources.
+ */
+export interface SessionComposerSubmitContext {
+  /**
+   * Aggregated one-time environment variables from all setup flows.
+   *
+   * Merged from (in precedence order, last-write-wins):
+   * 1. Agent one-time secrets (when agent resolution mode is `"oneTime"`)
+   * 2. MCP server one-time secrets (collected with `saveForFuture: false`)
+   * 3. Manual one-time secrets (from {@link OneTimeSecretsInput})
+   *
+   * `undefined` when no one-time secrets were collected from any source.
+   * Pass directly to execution creation as `runtimeEnv`.
+   */
+  readonly runtimeEnv?: Record<string, EnvVarInput>;
+}
+
 export interface SessionComposerProps {
-  /** Called when the user submits a message. */
-  readonly onSubmit: (message: string, modelName?: string) => void;
+  /**
+   * Called when the user submits a message.
+   *
+   * The optional `context` parameter carries aggregated runtime data
+   * collected by the composer's setup flows. When present,
+   * `context.runtimeEnv` should be passed to execution creation.
+   */
+  readonly onSubmit: (
+    message: string,
+    modelName?: string,
+    context?: SessionComposerSubmitContext,
+  ) => void;
   /** Shows loading indicator on the send button. */
   readonly isSubmitting?: boolean;
   /** Disables the entire composer (e.g., while an execution streams). */
@@ -200,11 +233,49 @@ export function SessionComposer({
 
   const isDisabled = disabled || isSubmitting;
 
+  const showAgent = onAgentRefChange != null && org != null;
+  const showMcp = onMcpServerUsagesChange != null && org != null;
+
+  // -------------------------------------------------------------------------
+  // Setup hooks — instantiated before handleSubmit so it can read their state
+  // -------------------------------------------------------------------------
+
+  const agentSetup = useAgentSetup(showAgent ? (org ?? null) : null);
+  const [agentPopoverOpen, setAgentPopoverOpen] = useState(false);
+
+  const mcpSetup = useMcpServerSetup(showMcp ? (org ?? null) : null);
+  const [mcpPopoverOpen, setMcpPopoverOpen] = useState(false);
+
+  // -------------------------------------------------------------------------
+  // Submit — aggregates one-time runtimeEnv from all setup flows
+  // -------------------------------------------------------------------------
+
   const handleSubmit = useCallback(
     (message: string) => {
-      onSubmit(message, modelId);
+      const env: Record<string, EnvVarInput> = {};
+
+      if (
+        agentSetup.state.status === "ready" &&
+        agentSetup.state.resolution.mode === "oneTime"
+      ) {
+        Object.assign(env, agentSetup.state.resolution.runtimeEnv);
+      }
+
+      const mcpEnv = mcpSetup.pendingRuntimeEnv;
+      if (Object.keys(mcpEnv).length > 0) {
+        Object.assign(env, mcpEnv);
+      }
+
+      if (secrets && secrets.hasValidEntries) {
+        Object.assign(env, secrets.toRuntimeEnv());
+      }
+
+      const context: SessionComposerSubmitContext | undefined =
+        Object.keys(env).length > 0 ? { runtimeEnv: env } : undefined;
+
+      onSubmit(message, modelId, context);
     },
-    [onSubmit, modelId],
+    [onSubmit, modelId, agentSetup.state, mcpSetup.pendingRuntimeEnv, secrets],
   );
 
   const composer = useComposer({
@@ -231,16 +302,9 @@ export function SessionComposer({
     [],
   );
 
-  const showAgent = onAgentRefChange != null && org != null;
-  const showMcp = onMcpServerUsagesChange != null && org != null;
-
   // -------------------------------------------------------------------------
   // Agent setup: state-machine-driven popover + environment resolution
   // -------------------------------------------------------------------------
-
-  const agentSetup = useAgentSetup(showAgent ? (org ?? null) : null);
-
-  const [agentPopoverOpen, setAgentPopoverOpen] = useState(false);
 
   const showEnvForm = agentSetup.state.status === "needsEnvVars";
   const isAgentBusy =
@@ -323,12 +387,8 @@ export function SessionComposer({
   }, [onAgentRefChange, onAgentResolutionChange]);
 
   // -------------------------------------------------------------------------
-  // MCP server setup: multi-server credential + tool selection flow
+  // MCP server setup: sync usageInputs to consumer
   // -------------------------------------------------------------------------
-
-  const mcpSetup = useMcpServerSetup(showMcp ? (org ?? null) : null);
-
-  const [mcpPopoverOpen, setMcpPopoverOpen] = useState(false);
 
   useEffect(() => {
     if (!showMcp) return;
