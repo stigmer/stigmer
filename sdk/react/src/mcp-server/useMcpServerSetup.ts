@@ -359,7 +359,7 @@ export function useMcpServerSetup(
         await personalEnv.addVariables(values);
         dispatch({ type: "SUBMIT_DONE", key, enabledTools });
       } catch (err) {
-        dispatch({ type: "SET_ERROR", key, error: toError(err) });
+        dispatch({ type: "SUBMIT_FAIL", key, error: toError(err) });
       }
     },
     [org, entries, personalEnv],
