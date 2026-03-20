@@ -165,6 +165,7 @@ export type {
   McpServerSetupPhase,
   McpServerSetupState,
   McpServerPickerProps,
+  McpServerSetupIntegration,
   McpServerConfigPanelProps,
   McpServerCredentialsProps,
   McpToolSelectorProps,

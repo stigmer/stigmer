@@ -17,7 +17,10 @@ export type {
 } from "./useMcpServerSearch";
 
 export { McpServerPicker } from "./McpServerPicker";
-export type { McpServerPickerProps } from "./McpServerPicker";
+export type {
+  McpServerPickerProps,
+  McpServerSetupIntegration,
+} from "./McpServerPicker";
 
 export { McpToolSelector } from "./McpToolSelector";
 export type { McpToolSelectorProps } from "./McpToolSelector";
