@@ -1470,7 +1470,18 @@ type GetArtifactContentRequest struct {
 	// The server may also enforce a hard upper bound regardless of this value.
 	//
 	// Example: 524288 (512 KB)
-	MaxBytes      int64 `protobuf:"varint,3,opt,name=max_bytes,json=maxBytes,proto3" json:"max_bytes,omitempty"`
+	MaxBytes int64 `protobuf:"varint,3,opt,name=max_bytes,json=maxBytes,proto3" json:"max_bytes,omitempty"`
+	// For directory artifacts (ZIPs): extract a specific file by its
+	// path within the archive instead of returning the raw ZIP bytes.
+	//
+	// When empty, returns the full artifact content (existing behavior).
+	// When set for a FILE artifact, this field is ignored.
+	//
+	// The path must match an entry in the archive exactly (case-sensitive).
+	// Use the paths from ExecutionArtifact.entries to discover valid values.
+	//
+	// Example: "SKILL.md", "scripts/init_skill.py"
+	EntryPath     string `protobuf:"bytes,4,opt,name=entry_path,json=entryPath,proto3" json:"entry_path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1524,6 +1535,13 @@ func (x *GetArtifactContentRequest) GetMaxBytes() int64 {
 		return x.MaxBytes
 	}
 	return 0
+}
+
+func (x *GetArtifactContentRequest) GetEntryPath() string {
+	if x != nil {
+		return x.EntryPath
+	}
+	return ""
 }
 
 // GetArtifactContentResponse returns the raw content of an execution artifact.
@@ -2610,12 +2628,14 @@ const file_ai_stigmer_agentic_agentexecution_v1_io_proto_rawDesc = "" +
 	"\x1eGetArtifactDownloadUrlResponse\x12!\n" +
 	"\fdownload_url\x18\x01 \x01(\tR\vdownloadUrl\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x02 \x01(\tR\texpiresAt\"\x8e\x01\n" +
+	"expires_at\x18\x02 \x01(\tR\texpiresAt\"\xad\x01\n" +
 	"\x19GetArtifactContentRequest\x12*\n" +
 	"\fexecution_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vexecutionId\x12(\n" +
 	"\vstorage_key\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"storageKey\x12\x1b\n" +
-	"\tmax_bytes\x18\x03 \x01(\x03R\bmaxBytes\"\xa1\x01\n" +
+	"\tmax_bytes\x18\x03 \x01(\x03R\bmaxBytes\x12\x1d\n" +
+	"\n" +
+	"entry_path\x18\x04 \x01(\tR\tentryPath\"\xa1\x01\n" +
 	"\x1aGetArtifactContentResponse\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\fR\acontent\x12!\n" +
 	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12(\n" +

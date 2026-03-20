@@ -1,16 +1,19 @@
 import { parse as parseYaml } from "yaml";
 
 /**
- * Resource kinds that the detection logic recognizes.
+ * Resource kinds that the YAML detection logic recognizes.
  *
  * These correspond to the Stigmer resource types that can appear as
- * execution artifacts and be applied to an organization:
+ * YAML file artifacts and be applied to an organization via `apply()`:
  *
  * - `"Agent"` — agent blueprint (`apiVersion: agentic.stigmer.ai/v1`, `kind: Agent`)
  * - `"McpServer"` — MCP server definition (`kind: McpServer`)
- * - `"Skill"` — skill definition (`kind: Skill`)
+ *
+ * Skills are **not** included here — they are package-based (directory
+ * artifacts with SKILL.md) and use a separate detection path via
+ * {@link isSkillPackage} / {@link detectSkillPackage}.
  */
-export type StigmerResourceKind = "Agent" | "McpServer" | "Skill";
+export type StigmerResourceKind = "Agent" | "McpServer";
 
 /**
  * Result of detecting a Stigmer resource in a YAML content string.
@@ -40,7 +43,6 @@ const NOT_DETECTED: StigmerResourceDetection = { detected: false } as const;
 const KIND_DISPLAY_NAMES: Record<StigmerResourceKind, string> = {
   Agent: "Agent",
   McpServer: "MCP Server",
-  Skill: "Skill",
 };
 
 const KNOWN_KINDS = new Set<string>(Object.keys(KIND_DISPLAY_NAMES));

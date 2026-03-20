@@ -133,6 +133,9 @@ async def _publish_from_sandbox(
         if result.exit_code != 0:
             raise OSError(f"Failed to zip directory: {result.stderr}")
         
+        # Collect file entries from the archive for the proto entries field
+        entries = _list_zip_entries_sandbox(sandbox, zip_path)
+        
         # Download zip from sandbox
         content = sandbox.fs.download_file(zip_path)
         
@@ -174,12 +177,32 @@ async def _publish_from_sandbox(
         expires_at=expires_at.isoformat(),
     )
     
+    if file_info.is_dir:
+        artifact.entries.extend(entries)
+    
     logger.info(
         f"Published artifact: name={name}, kind={ExecutionArtifactKind.Name(kind)}, "
         f"size={len(content)} bytes, expires={expires_at.isoformat()}"
     )
     
     return artifact
+
+
+def _list_zip_entries_sandbox(sandbox, zip_path: str) -> list[str]:
+    """List regular file entries in a ZIP archive inside a sandbox.
+    
+    Uses ``zipinfo -1`` which lists one entry per line. Directory entries
+    (paths ending with ``/``) are excluded — only regular files are returned.
+    """
+    result = sandbox.process.exec(f"zipinfo -1 {zip_path}", timeout=10)
+    if result.exit_code != 0:
+        logger.warning(f"zipinfo failed (exit={result.exit_code}), entries will be empty")
+        return []
+    
+    return [
+        line for line in result.stdout.strip().splitlines()
+        if line and not line.endswith("/")
+    ]
 
 
 async def _publish_from_local(
@@ -204,6 +227,9 @@ async def _publish_from_local(
         raise FileNotFoundError(f"Path not found: {full_path}")
     
     if full_path.is_dir():
+        # Collect file entries before archiving
+        entries = _list_dir_entries(full_path)
+        
         # ZIP directory
         logger.info(f"Zipping directory {full_path}")
         
@@ -260,12 +286,29 @@ async def _publish_from_local(
         expires_at=expires_at.isoformat(),
     )
     
+    if full_path.is_dir():
+        artifact.entries.extend(entries)
+    
     logger.info(
         f"Published artifact: name={name}, kind={ExecutionArtifactKind.Name(kind)}, "
         f"size={len(content)} bytes, expires={expires_at.isoformat()}"
     )
     
     return artifact
+
+
+def _list_dir_entries(directory: Path) -> list[str]:
+    """List regular file paths relative to a directory root.
+    
+    Uses forward slashes for cross-platform consistency in the proto field.
+    Directory entries are excluded — only regular files are returned.
+    """
+    entries = []
+    for file_path in sorted(directory.rglob("*")):
+        if file_path.is_file():
+            relative = file_path.relative_to(directory)
+            entries.append(relative.as_posix())
+    return entries
 
 
 class PublishArtifactTool:

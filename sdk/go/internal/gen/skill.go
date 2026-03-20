@@ -33,6 +33,11 @@ func (s *SkillClient) Push(ctx context.Context, input *skillv1.PushSkillRequest)
 	return resp, wrapErr(err)
 }
 
+func (s *SkillClient) PushFromExecutionArtifact(ctx context.Context, input *skillv1.PushSkillFromExecutionArtifactRequest) (*skillv1.Skill, error) {
+	resp, err := s.command.PushFromExecutionArtifact(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (s *SkillClient) Delete(ctx context.Context, id string) (*skillv1.Skill, error) {
 	resp, err := s.command.Delete(ctx, &skillv1.SkillId{Value: id})
 	return resp, wrapErr(err)

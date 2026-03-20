@@ -41,20 +41,25 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "mer/agentic/skill/v1/io.proto\0328ai/stigme" +
       "r/commons/apiresource/rpc_service_option" +
       "s.proto\032Aai/stigmer/iam/iampolicy/v1/rpc" +
-      "authorization/method_options.proto2\276\002\n\026S" +
+      "authorization/method_options.proto2\204\004\n\026S" +
       "killCommandController\022\231\001\n\004push\022-.ai.stig" +
       "mer.agentic.skill.v1.PushSkillRequest\032\"." +
       "ai.stigmer.agentic.skill.v1.Skill\">\302\270\030:\010" +
       "\025\020\036\"\003org*/unauthorized to push skill in " +
-      "this organization\022\201\001\n\006delete\022$.ai.stigme" +
-      "r.agentic.skill.v1.SkillId\032\".ai.stigmer." +
-      "agentic.skill.v1.Skill\"-\302\270\030)\010\002\020+\"\005value*" +
-      "\034unauthorized to delete skill\032\004\240\377++B\237\001B\014" +
-      "CommandProtoP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agent" +
-      "ic.Skill.V1\312\002\033Ai\\Stigmer\\Agentic\\Skill\\V" +
-      "1\342\002\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetad" +
-      "ata\352\002\037Ai::Stigmer::Agentic::Skill::V1b\006p" +
-      "roto3"
+      "this organization\022\303\001\n\031pushFromExecutionA" +
+      "rtifact\022B.ai.stigmer.agentic.skill.v1.Pu" +
+      "shSkillFromExecutionArtifactRequest\032\".ai" +
+      ".stigmer.agentic.skill.v1.Skill\">\302\270\030:\010\025\020" +
+      "\036\"\003org*/unauthorized to push skill in th" +
+      "is organization\022\201\001\n\006delete\022$.ai.stigmer." +
+      "agentic.skill.v1.SkillId\032\".ai.stigmer.ag" +
+      "entic.skill.v1.Skill\"-\302\270\030)\010\002\020+\"\005value*\034u" +
+      "nauthorized to delete skill\032\004\240\377++B\237\001B\014Co" +
+      "mmandProtoP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic" +
+      ".Skill.V1\312\002\033Ai\\Stigmer\\Agentic\\Skill\\V1\342" +
+      "\002\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadat" +
+      "a\352\002\037Ai::Stigmer::Agentic::Skill::V1b\006pro" +
+      "to3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

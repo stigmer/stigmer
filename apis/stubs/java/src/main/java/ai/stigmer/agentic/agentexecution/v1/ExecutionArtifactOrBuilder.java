@@ -173,4 +173,89 @@ public interface ExecutionArtifactOrBuilder extends
    */
   com.google.protobuf.ByteString
       getExpiresAtBytes();
+
+  /**
+   * <pre>
+   * Relative file paths within a directory artifact's archive.
+   *
+   * Populated at creation time by the agent runner when archiving a
+   * directory. Empty for FILE artifacts and for older DIRECTORY
+   * artifacts created before this field was added.
+   *
+   * Clients use this for instant skill package detection (check for
+   * "SKILL.md") and for rendering file listings without additional RPCs.
+   *
+   * Paths use forward slashes and are relative to the archive root.
+   * Directory entries are excluded — only regular files are listed.
+   * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+   * </pre>
+   *
+   * <code>repeated string entries = 9 [json_name = "entries"];</code>
+   * @return A list containing the entries.
+   */
+  java.util.List<java.lang.String>
+      getEntriesList();
+  /**
+   * <pre>
+   * Relative file paths within a directory artifact's archive.
+   *
+   * Populated at creation time by the agent runner when archiving a
+   * directory. Empty for FILE artifacts and for older DIRECTORY
+   * artifacts created before this field was added.
+   *
+   * Clients use this for instant skill package detection (check for
+   * "SKILL.md") and for rendering file listings without additional RPCs.
+   *
+   * Paths use forward slashes and are relative to the archive root.
+   * Directory entries are excluded — only regular files are listed.
+   * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+   * </pre>
+   *
+   * <code>repeated string entries = 9 [json_name = "entries"];</code>
+   * @return The count of entries.
+   */
+  int getEntriesCount();
+  /**
+   * <pre>
+   * Relative file paths within a directory artifact's archive.
+   *
+   * Populated at creation time by the agent runner when archiving a
+   * directory. Empty for FILE artifacts and for older DIRECTORY
+   * artifacts created before this field was added.
+   *
+   * Clients use this for instant skill package detection (check for
+   * "SKILL.md") and for rendering file listings without additional RPCs.
+   *
+   * Paths use forward slashes and are relative to the archive root.
+   * Directory entries are excluded — only regular files are listed.
+   * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+   * </pre>
+   *
+   * <code>repeated string entries = 9 [json_name = "entries"];</code>
+   * @param index The index of the element to return.
+   * @return The entries at the given index.
+   */
+  java.lang.String getEntries(int index);
+  /**
+   * <pre>
+   * Relative file paths within a directory artifact's archive.
+   *
+   * Populated at creation time by the agent runner when archiving a
+   * directory. Empty for FILE artifacts and for older DIRECTORY
+   * artifacts created before this field was added.
+   *
+   * Clients use this for instant skill package detection (check for
+   * "SKILL.md") and for rendering file listings without additional RPCs.
+   *
+   * Paths use forward slashes and are relative to the archive root.
+   * Directory entries are excluded — only regular files are listed.
+   * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+   * </pre>
+   *
+   * <code>repeated string entries = 9 [json_name = "entries"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the entries at the given index.
+   */
+  com.google.protobuf.ByteString
+      getEntriesBytes(int index);
 }
