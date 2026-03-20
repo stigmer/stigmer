@@ -92,7 +92,7 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*workf
 	}
 
 	// 4. Resolve environments from instance env_refs
-	environments, err := s.resolveEnvironments(ctx, instance.GetSpec().GetEnvRefs())
+	environments, err := s.resolveEnvironments(ctx, instance.GetSpec().GetEnvironmentRefs())
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*workf
 		Str("execution_id", executionID).
 		Int("merged_count", len(merged)).
 		Int("filtered_count", len(filtered)).
-		Int("env_refs_count", len(instance.GetSpec().GetEnvRefs())).
+		Int("env_refs_count", len(instance.GetSpec().GetEnvironmentRefs())).
 		Msg("Merged environment layers for execution context")
 
 	// 7. Build and persist ExecutionContext
