@@ -68,45 +68,58 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 20:08
-**Current Task**: T03 (Naming Consistency)
+**Current Task**: T02 (useAgentSetup Hardening)
 **Status**: Ready to start
 
-## Session Progress (2026-03-20)
+## Session Progress (2026-03-20, Session 3)
+
+- **T03 completed**: Renamed `env_refs` to `environment_refs` in WorkflowInstanceSpec
+  - Renamed proto field in `spec.proto` (field number 3 unchanged — binary wire compatible)
+  - Added CEL validation rule enforcing `kind=environment` (parity with AgentInstanceSpec)
+  - Updated all comments in `command.proto`, `query.proto`, `io.proto`
+  - Regenerated all stubs: Go, Java, TS, Python proto stubs + SDK gen files (Go, TS, Java, Python) + MCP server gen
+  - Updated 3 hand-written Java files in stigmer-cloud backend:
+    - `WorkflowInstanceCreateHandler.java` — accessor and variable names
+    - `CreateExecutionContextStep.java` — accessor, variable names, comments, log messages
+    - `EnvironmentMergeServiceTest.java` — test method name and @DisplayName
+  - Verified builds: stigmer Go SDK clean, stigmer-cloud Bazel backend (307 source files) clean
+  - Committed: `bd1fca76` on `feat/add-customize-ui-2` (stigmer), `a307f32c` on `main` (stigmer-cloud)
+- **Surprise finding during T03**: WorkflowInstanceSpec had no CEL validation on `env_refs`, while AgentInstanceSpec had one on `environment_refs`. Added the validation rule during rename to achieve full parity. User approved.
+
+## Earlier Session Progress (2026-03-20, Sessions 1-2)
 
 - **T01 completed**: Fixed incorrect CLI commands in `docs/product/how-to-provide-secrets.md`
-  - Replaced three non-existent Environment Flow CLI commands with a planned-support note
-  - Fixed Execution Flow CLI example: added missing `-m` flag (surprise finding — the "correct" example was also wrong)
   - Committed: `6c941c85` on `feat/add-customize-ui-2`
 - **T04 completed**: Enforced mutual-exclusion on `CreateSessionInput` agent fields
-  - Refactored from flat `interface` (both fields optional, implicit priority) to discriminated union (`agentInstanceId` XOR `agentRef`)
-  - Dropped the "neither agent" path (backend default) from the React hook — platform builders who need it can use `@stigmer/sdk` directly
-  - Updated `SessionLauncher` with explicit path selection and agent-selection guard
   - Committed: `5636cf5a` on `feat/add-customize-ui-2`
-- **Design decision during T04**: Removed the "backend default agent" path from `useCreateSession`. The React hook now requires explicit agent selection. Rationale: implicit defaults violate visibility-of-system-status for platform builders; the proto-level optionality is preserved in `@stigmer/sdk` for power users.
+- **Design decision during T04**: Removed the "backend default agent" path from `useCreateSession`. The React hook now requires explicit agent selection.
 - **Decision on Change 3 (--env-file / --secret-file)**: Not yet decided — deferred for user input
 
 ## Next Steps
 
-1. **Start T03** — Fix naming inconsistency (`env_refs` → `environment_refs`)
-   - Identify all proto files with `env_refs`
-   - Identify Java backend and frontend code referencing `env_refs`
-   - Rename proto → regenerate → update backend → update frontend
-   - Read `T01_2_revised_plan.md` for full T03 spec
-2. Then T02 — `useAgentSetup` hardening with unified save-or-use-once model (largest task, depends on T04)
-3. Then T05 — Follow-up message one-time secrets input
-4. Then T06 — Error messages across secret flows
+1. **Start T02** — `useAgentSetup` hardening with unified save-or-use-once model (largest task)
+   - Replace ref-based pending state with `useReducer` state machine
+   - Compose `usePersonalAgentInstance` instead of duplicating instance creation
+   - Extract `diffEnvSpec` as a pure function
+   - Add `saveForFuture` flag with dual-path routing (saved vs one-time)
+   - Update `AgentEnvForm` with "Save for future runs" toggle
+   - Update `SessionComposer` to consume the new `ReadyResult` shape
+   - Read `T01_2_revised_plan.md` for full T02 spec
+2. Then T05 — Follow-up message one-time secrets input
+3. Then T06 — Error messages across secret flows
 
 ## Context for Resume
 
 - The revised plan (`T01_2_revised_plan.md`) is the authoritative task breakdown — all decisions resolved, all tasks approved
-- Execution order: T01 (done) -> T04 (done) -> T03 -> T02 -> T05 -> T06
-- Checkpoint: `checkpoints/2026-03-20-session-2.md` — covers T04 decisions and learnings
-- Working branch: `feat/add-customize-ui-2`
+- Execution order: T01 (done) -> T04 (done) -> T03 (done) -> T02 -> T05 -> T06
+- Checkpoint: `checkpoints/2026-03-20-session-3.md` — covers T03 execution and validation parity decision
+- Working branch: `feat/add-customize-ui-2` (stigmer)
+- stigmer-cloud T03 committed directly to `main`
 
 ## Quick Commands
 
 After loading context:
-- "Start T03" - Begin the naming consistency task
+- "Start T02" - Begin the useAgentSetup hardening task
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
