@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { Popover } from "@base-ui/react/popover";
 import { getUserMessage, type EnvVarInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
@@ -335,6 +335,24 @@ export function SessionComposer({
     onMcpServerUsagesChange?.(mcpSetup.usageInputs);
   }, [showMcp, mcpSetup.usageInputs, onMcpServerUsagesChange]);
 
+  // -------------------------------------------------------------------------
+  // Submission blocking: MCP servers must be fully configured before send
+  // -------------------------------------------------------------------------
+
+  const mcpBlocked = showMcp && !mcpSetup.allReady;
+  const canSend = composer.canSubmit && !mcpBlocked;
+
+  const handleTextareaKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (!canSend && e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        return;
+      }
+      composer.textareaProps.onKeyDown(e);
+    },
+    [canSend, composer.textareaProps],
+  );
+
   const showWorkspace = workspace != null;
   const showSkills = onSkillRefsChange != null && org != null;
   const showSecrets = secrets != null;
@@ -446,6 +464,7 @@ export function SessionComposer({
         {/* Zone 1: Textarea */}
         <textarea
           {...composer.textareaProps}
+          onKeyDown={handleTextareaKeyDown}
           placeholder={placeholder}
           rows={initialRows}
           autoFocus={autoFocus}
@@ -464,6 +483,29 @@ export function SessionComposer({
                 disabled={isDisabled}
               />
             ))}
+          </div>
+        )}
+
+        {/* Zone 2.5: MCP setup warning */}
+        {showMcp && mcpSetup.needsSetupCount > 0 && (
+          <div
+            role="status"
+            className="mx-3 mb-2 flex items-center gap-2 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning"
+          >
+            <AlertTriangleIcon />
+            <span>
+              {mcpSetup.needsSetupCount === 1
+                ? "1 MCP server needs configuration"
+                : `${mcpSetup.needsSetupCount} MCP servers need configuration`}
+            </span>
+            <button
+              type="button"
+              onClick={() => setMcpPopoverOpen(true)}
+              disabled={isDisabled}
+              className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[0.6rem] font-medium hover:bg-warning/20 disabled:pointer-events-none disabled:opacity-50"
+            >
+              Configure
+            </button>
           </div>
         )}
 
@@ -620,7 +662,7 @@ export function SessionComposer({
 
           <button
             type="button"
-            disabled={!composer.canSubmit}
+            disabled={!canSend}
             onClick={composer.submit}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-40"
             aria-label="Send message"
@@ -769,6 +811,26 @@ function mcpRefFromKey(key: string): ResourceRef {
 // ---------------------------------------------------------------------------
 // Icons
 // ---------------------------------------------------------------------------
+
+function AlertTriangleIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M8 1.5 1.5 13.5h13L8 1.5z" />
+      <path d="M8 6v3" />
+      <circle cx="8" cy="11" r="0.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
 
 function ArrowUpIcon() {
   return (
