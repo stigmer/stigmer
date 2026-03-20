@@ -1,3 +1,9 @@
+export { useAgentList } from "./useAgentList";
+export type {
+  UseAgentListOptions,
+  UseAgentListReturn,
+} from "./useAgentList";
+
 export { useAgentSearch } from "./useAgentSearch";
 export type {
   UseAgentSearchOptions,
