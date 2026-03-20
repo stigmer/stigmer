@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-03-20 10:41
 **Current Task**: T01 — Phase 1: Library Pages + Navigation (Foundation)
-**Status**: In Progress
+**Status**: Complete
 
 ## Session Progress (2026-03-20, Session 1)
 
@@ -329,33 +329,60 @@ When starting a new session:
 - Lint clean on both files
 - Landing page card link to `/library/skills` now resolves
 
+## Session Progress (2026-03-20, Session 12)
+
+### Completed
+- **T01.13 — MCP Server list page**: Created `/library/mcp-servers` route in the Console
+  - `client-apps/web/src/app/library/mcp-servers/page.tsx` — thin server component entry point
+  - `client-apps/web/src/app/library/mcp-servers/McpServerListPage.tsx` — client component composing `useMcpServerList` + `ResourceListView`
+  - Same pattern as T01.11/T01.12: three pieces of local state (`scope`, `query`, `page`), scope persisted to localStorage
+  - Scope persistence key: `stigmer:library:mcp-servers:scope`
+  - Page header: "MCP Servers" h1 + "Create MCP Server" ghost link (navigates to `/` for Phase 1)
+  - MCP Server-specific customizations: `searchPlaceholder="Search MCP servers…"`, `emptyIcon=<Server>`, `emptyTitle="No MCP servers found"`, `aria-label="MCP server list"`
+  - Breadcrumb "Library / MCP Servers" handled automatically by `LibraryBreadcrumb` in layout (`mcp-servers` segment already mapped)
+
+### Verification
+- TypeScript check passes (zero errors in new files)
+- Lint clean on both files
+- Landing page card link to `/library/mcp-servers` now resolves
+
+### Phase 1 Complete
+- All tasks T01.1–T01.13 are done
+- 3 SDK data hooks (`useAgentList`, `useSkillList`, `useMcpServerList`)
+- 3 SDK count hooks (`useAgentCount`, `useSkillCount`, `useMcpServerCount`)
+- 3 SDK UI components (`ScopeToggle`, `ResourceListView`, `ResourceCountCard`)
+- 1 sidebar link with active state
+- 1 landing page with count cards + breadcrumbs + create shortcuts
+- 3 resource list pages with search, scope toggle, pagination
+
 ## Next Steps
 
-1. **T01.13 — MCP Server list page**: `/library/mcp-servers`
+1. **Phase 1 cleanup (optional)**: Extract `readPersistedScope` / `handleScopeChange` into shared `usePersistedScope(storageKey)` hook in `client-apps/web` to eliminate triple duplication across `AgentListPage`, `SkillListPage`, `McpServerListPage`
+2. **Phase 2 — Execution Artifacts Widget + Apply Flow**: Next major phase of the project
 
 ## Context for Resume
 
-- **Data layer complete** (T01.1–T01.4): list hooks + count hooks, all scope-aware
-- **UI components complete** (T01.5–T01.7): `ScopeToggle`, `ResourceListView`, `ResourceCountCard` in `library/` module
-- **Sidebar link complete** (T01.9): "Library" link in sidebar with active state for `/library/*`
-- **Landing page complete** (T01.10): `/library` shows three `ResourceCountCard` cards with live counts, breadcrumb nav, and "Create New" shortcuts
-- **Agent list page complete** (T01.11): `/library/agents` composes `useAgentList` + `ResourceListView` with localStorage scope persistence
-- **Skill list page complete** (T01.12): `/library/skills` composes `useSkillList` + `ResourceListView` with localStorage scope persistence
+- **Phase 1 (Library Pages + Navigation) is COMPLETE** — all tasks T01.1–T01.13 done
+- **Data layer** (T01.1–T01.4): list hooks + count hooks, all scope-aware
+- **UI components** (T01.5–T01.7): `ScopeToggle`, `ResourceListView`, `ResourceCountCard` in `library/` module
+- **Sidebar link** (T01.9): "Library" link in sidebar with active state for `/library/*`
+- **Landing page** (T01.10): `/library` shows three `ResourceCountCard` cards with live counts, breadcrumb nav, and "Create New" shortcuts
+- **Agent list page** (T01.11): `/library/agents` composes `useAgentList` + `ResourceListView` with localStorage scope persistence
+- **Skill list page** (T01.12): `/library/skills` composes `useSkillList` + `ResourceListView` with localStorage scope persistence
+- **MCP Server list page** (T01.13): `/library/mcp-servers` composes `useMcpServerList` + `ResourceListView` with localStorage scope persistence
 - **T01.8 skipped**: barrel exports already done for all three components
 - The `library/` module has 3 components + 4 type exports: `ScopeToggle`, `ResourceListView`, `ResourceCountCard`, `ScopeToggleProps`, `ResourceListViewProps`, `ResourceCountCardProps`, `ResourceListScope`
 - Count hooks return `count: number | undefined` — `undefined` = not yet loaded, `0` = loaded with zero results
 - Breadcrumb component in layout — sub-pages get breadcrumbs automatically
-- "Create New" shortcuts, "Create Agent" link, and "Create Skill" link all go to `/` for now — Phase 3 adds pre-fill via query params
-- T01.13 follows the exact same pattern as T01.11/T01.12 — near-copy with MCP Server-specific substitutions (`useMcpServerList`, `Server` icon, `/library/mcp-servers`, `stigmer:library:mcp-servers:scope`)
-- When T01.13 is done, consider extracting localStorage scope persistence into a shared `usePersistedScope` utility if the three-way duplication feels excessive
+- "Create New" shortcuts and all "Create" links go to `/` for now — Phase 3 adds pre-fill via query params
+- Three list pages have duplicated `readPersistedScope` / `handleScopeChange` pattern — consider extracting a shared `usePersistedScope` hook before Phase 2
 - Branch: `feat/add-customize-ui-2`
-- Card link to `/library/mcp-servers` will 404 until T01.13 is implemented
-- After T01.13, Phase 1 (Library Pages + Navigation) is complete — next is Phase 2 (Execution Artifacts Widget + Apply Flow)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.13" — Implement MCP Server list page
+- "Start Phase 2" — Begin Execution Artifacts Widget + Apply Flow
+- "Extract usePersistedScope" — DRY up scope persistence across list pages
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns
