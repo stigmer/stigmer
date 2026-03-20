@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import { cn } from "@stigmer/theme";
 import type { UseOneTimeSecretsReturn } from "./useOneTimeSecrets";
+import { useScrollShadows } from "../internal/useScrollShadows";
+import { ScrollFade } from "../internal/ScrollFade";
 
 export interface OneTimeSecretsInputProps {
   /** Hook instance returned by {@link useOneTimeSecrets}. */
@@ -36,6 +38,8 @@ export function OneTimeSecretsInput({
   disabled = false,
   className,
 }: OneTimeSecretsInputProps) {
+  const entries = useScrollShadows();
+
   const duplicateKeys = useMemo(() => {
     const seen = new Set<string>();
     const dupes = new Set<string>();
@@ -65,24 +69,30 @@ export function OneTimeSecretsInput({
 
       {/* Entries */}
       {secrets.entries.length > 0 ? (
-        <div className="space-y-2.5">
-          {secrets.entries.map((entry) => {
-            const isDuplicate = duplicateKeys.has(entry.key.trim());
+        <div className="relative">
+          {entries.canScrollUp && <ScrollFade position="top" />}
 
-            return (
-              <SecretEntryRow
-                key={entry.id}
-                id={entry.id}
-                entryKey={entry.key}
-                value={entry.value}
-                isSecret={entry.isSecret}
-                isDuplicate={isDuplicate}
-                disabled={disabled}
-                onUpdate={secrets.updateEntry}
-                onRemove={secrets.removeEntry}
-              />
-            );
-          })}
+          <div ref={entries.scrollRef} className="max-h-64 space-y-2.5 overflow-y-auto">
+            {secrets.entries.map((entry) => {
+              const isDuplicate = duplicateKeys.has(entry.key.trim());
+
+              return (
+                <SecretEntryRow
+                  key={entry.id}
+                  id={entry.id}
+                  entryKey={entry.key}
+                  value={entry.value}
+                  isSecret={entry.isSecret}
+                  isDuplicate={isDuplicate}
+                  disabled={disabled}
+                  onUpdate={secrets.updateEntry}
+                  onRemove={secrets.removeEntry}
+                />
+              );
+            })}
+          </div>
+
+          {entries.canScrollDown && <ScrollFade position="bottom" />}
         </div>
       ) : (
         <p className="py-2 text-center text-[0.65rem] text-muted-foreground/70">

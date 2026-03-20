@@ -652,8 +652,9 @@ function ContextPopover({
         <Popover.Positioner sideOffset={8} align="start">
           <Popover.Popup
             className={[
-              "z-popover overflow-hidden rounded-lg border border-border",
+              "z-popover overflow-x-hidden overflow-y-auto rounded-lg border border-border",
               "bg-popover p-3 shadow-md text-popover-foreground",
+              "max-h-[80vh]",
             ].join(" ")}
           >
             {children}

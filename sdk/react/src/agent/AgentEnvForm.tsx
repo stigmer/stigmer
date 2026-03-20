@@ -3,6 +3,8 @@
 import { useState, useCallback, useRef, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
 import type { EnvVarInput } from "@stigmer/sdk";
+import { useScrollShadows } from "../internal/useScrollShadows";
+import { ScrollFade } from "../internal/ScrollFade";
 
 /**
  * Describes a single environment variable that the form should collect.
@@ -118,6 +120,7 @@ export function AgentEnvForm({
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
   const [saveForFuture, setSaveForFuture] = useState(defaultSaveForFuture);
   const firstInputRef = useRef<HTMLInputElement>(null);
+  const fields = useScrollShadows();
 
   const isDisabled = disabled || isSubmitting;
 
@@ -174,83 +177,89 @@ export function AgentEnvForm({
       </div>
 
       {/* Fields */}
-      <div className="space-y-2.5">
-        {variables.map((variable, idx) => {
-          const inputId = `stgm-env-${variable.key}`;
-          const descId = variable.description
-            ? `${inputId}-desc`
-            : undefined;
-          const isRevealed = revealedKeys.has(variable.key);
+      <div className="relative">
+        {fields.canScrollUp && <ScrollFade position="top" />}
 
-          return (
-            <div key={variable.key} className="space-y-1">
-              <label
-                htmlFor={inputId}
-                className="flex items-baseline gap-1.5 text-[0.65rem] font-medium text-muted-foreground"
-              >
-                <span className="font-mono">{variable.key}</span>
-                {variable.isSecret && (
-                  <span className="text-[0.55rem] uppercase tracking-wider text-muted-foreground/70">
-                    secret
-                  </span>
-                )}
-              </label>
+        <div ref={fields.scrollRef} className="max-h-64 space-y-2.5 overflow-y-auto">
+          {variables.map((variable, idx) => {
+            const inputId = `stgm-env-${variable.key}`;
+            const descId = variable.description
+              ? `${inputId}-desc`
+              : undefined;
+            const isRevealed = revealedKeys.has(variable.key);
 
-              <div className="relative">
-                <input
-                  ref={idx === 0 ? firstInputRef : undefined}
-                  id={inputId}
-                  type={
-                    variable.isSecret && !isRevealed ? "password" : "text"
-                  }
-                  value={values[variable.key]}
-                  onChange={(e) => handleChange(variable.key, e.target.value)}
-                  disabled={isDisabled}
-                  required
-                  aria-required
-                  aria-describedby={descId}
-                  autoComplete="off"
-                  autoFocus={idx === 0}
-                  className={cn(
-                    "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
-                    "placeholder:text-muted-foreground",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    "disabled:pointer-events-none disabled:opacity-50",
-                    variable.isSecret && "pr-8",
+            return (
+              <div key={variable.key} className="space-y-1">
+                <label
+                  htmlFor={inputId}
+                  className="flex items-baseline gap-1.5 text-[0.65rem] font-medium text-muted-foreground"
+                >
+                  <span className="font-mono">{variable.key}</span>
+                  {variable.isSecret && (
+                    <span className="text-[0.55rem] uppercase tracking-wider text-muted-foreground/70">
+                      secret
+                    </span>
                   )}
-                />
+                </label>
 
-                {variable.isSecret && (
-                  <button
-                    type="button"
-                    onClick={() => toggleReveal(variable.key)}
-                    disabled={isDisabled}
-                    className={cn(
-                      "absolute right-2 top-1/2 -translate-y-1/2",
-                      "text-muted-foreground hover:text-foreground",
-                      "disabled:pointer-events-none disabled:opacity-50",
-                    )}
-                    aria-label={
-                      isRevealed ? `Hide ${variable.key}` : `Show ${variable.key}`
+                <div className="relative">
+                  <input
+                    ref={idx === 0 ? firstInputRef : undefined}
+                    id={inputId}
+                    type={
+                      variable.isSecret && !isRevealed ? "password" : "text"
                     }
-                    tabIndex={-1}
+                    value={values[variable.key]}
+                    onChange={(e) => handleChange(variable.key, e.target.value)}
+                    disabled={isDisabled}
+                    required
+                    aria-required
+                    aria-describedby={descId}
+                    autoComplete="off"
+                    autoFocus={idx === 0}
+                    className={cn(
+                      "w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground",
+                      "placeholder:text-muted-foreground",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      "disabled:pointer-events-none disabled:opacity-50",
+                      variable.isSecret && "pr-8",
+                    )}
+                  />
+
+                  {variable.isSecret && (
+                    <button
+                      type="button"
+                      onClick={() => toggleReveal(variable.key)}
+                      disabled={isDisabled}
+                      className={cn(
+                        "absolute right-2 top-1/2 -translate-y-1/2",
+                        "text-muted-foreground hover:text-foreground",
+                        "disabled:pointer-events-none disabled:opacity-50",
+                      )}
+                      aria-label={
+                        isRevealed ? `Hide ${variable.key}` : `Show ${variable.key}`
+                      }
+                      tabIndex={-1}
+                    >
+                      {isRevealed ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  )}
+                </div>
+
+                {variable.description && (
+                  <p
+                    id={descId}
+                    className="text-[0.6rem] leading-relaxed text-muted-foreground/80"
                   >
-                    {isRevealed ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
+                    {variable.description}
+                  </p>
                 )}
               </div>
+            );
+          })}
+        </div>
 
-              {variable.description && (
-                <p
-                  id={descId}
-                  className="text-[0.6rem] leading-relaxed text-muted-foreground/80"
-                >
-                  {variable.description}
-                </p>
-              )}
-            </div>
-          );
-        })}
+        {fields.canScrollDown && <ScrollFade position="bottom" />}
       </div>
 
       {/* Save toggle */}
