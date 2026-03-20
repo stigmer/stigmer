@@ -114,28 +114,62 @@ When starting a new session:
 - Lint clean on all 5 files (2 new, 3 modified)
 - All existing exports unchanged — no breaking changes
 
+## Session Progress (2026-03-20, Session 3)
+
+### Completed
+- **T01.4 — Individual resource count hooks**: Fully implemented and exported
+  - Created internal `useResourceCount` hook in `sdk/react/src/search/useResourceCount.ts`
+    - Same `useState`/`useEffect`/`cancelled.current`/`fetchKey` pattern as `useResourceList`
+    - Calls `list()` with `page: { num: 1, size: 1 }` for minimal payload — only reads `totalCount`
+    - Does not store entries in state — simpler state footprint than `useResourceList`
+  - Created three public wrapper hooks:
+    - `sdk/react/src/agent/useAgentCount.ts` — wraps `stigmer.agent.list`
+    - `sdk/react/src/skill/useSkillCount.ts` — wraps `stigmer.skill.list`
+    - `sdk/react/src/mcp-server/useMcpServerCount.ts` — wraps `stigmer.mcpServer.list`
+  - All return `{ count, isLoading, error, refetch }`
+  - Full JSDoc with `@link` cross-references to corresponding list hooks, usage examples
+  - Updated barrel exports in 5 files: `search/index.ts`, `agent/index.ts`, `skill/index.ts`, `mcp-server/index.ts`, `sdk/react/src/index.ts`
+  - TypeScript check clean, zero lint errors
+
+### Key Design Decision (from this session)
+- **Individual count hooks over combined hook**: The original plan called for a single `useResourceCount` in `library/` returning `{ agentCount, skillCount, mcpServerCount }`. After analysis, individual hooks (`useAgentCount`, `useSkillCount`, `useMcpServerCount`) were chosen because:
+  - Follows the exact same pattern as the list hooks (internal shared hook + thin wrappers)
+  - More composable — platform builders who only need one count don't trigger unnecessary fetches
+  - Independent loading/error states — one failing API doesn't block the others
+  - Adding a 4th resource type is additive (new hook), not a breaking change
+  - No new `library/` module needed for data hooks — data hooks stay in resource domains
+  - The `library/` module (T01.5+) is reserved for cross-resource UI components
+
+### Verification
+- TypeScript check passes (8 pre-existing errors in unrelated test file, zero in new/modified files)
+- Lint clean on all 9 files (4 new, 5 modified)
+- All existing exports unchanged — no breaking changes
+
 ## Next Steps
 
-1. **T01.4 — `useResourceCount` data hook**: Fetches counts for landing page cards
-2. **T01.5 — `ScopeToggle` component**: Segmented control UI (first UI component in Library module)
-3. **T01.6 — `ResourceListView` component**: Generic list with search + scope
-4. **T01.7 — `ResourceCountCard` component**: Landing page card with count
-5. **T01.8 — Barrel exports for library module**
-6. Continue through T01.9–T01.13 (sidebar, pages)
+1. **T01.5 — `ScopeToggle` component**: Segmented control UI `[Org] [All]` (first UI component in Library module)
+2. **T01.6 — `ResourceListView` component**: Generic list with search + scope
+3. **T01.7 — `ResourceCountCard` component**: Landing page card with count
+4. **T01.8 — Barrel exports for library module**
+5. Continue through T01.9–T01.13 (sidebar, pages)
 
 ## Context for Resume
 
-- All three resource list hooks are now complete (`useAgentList`, `useSkillList`, `useMcpServerList`)
-- All three follow the identical pattern: thin wrapper over `useResourceList`, domain-named entries field
-- The `search/` module exports both `useResourceSearch` (for pickers) and `useResourceList` (for Library)
-- Next work shifts from data hooks to UI components — T01.4 is the last data hook, T01.5 starts the component layer
+- **All data hooks for Phase 1 Library are now complete** — the data layer is fully built
+  - List hooks: `useAgentList`, `useSkillList`, `useMcpServerList` (T01.1–T01.3)
+  - Count hooks: `useAgentCount`, `useSkillCount`, `useMcpServerCount` (T01.4)
+- All follow the identical architecture: internal shared hook in `search/` + thin domain wrappers
+  - `useResourceList` → list hooks (pagination, entries, scope)
+  - `useResourceCount` → count hooks (scalar count only, `page: { num: 1, size: 1 }`)
+- **Next work is purely UI components** — T01.5 (`ScopeToggle`) starts the component layer in the new `library/` module
+- The `library/` module in `@stigmer/react` does not exist yet — it will be created for cross-resource UI components
 - Branch: `feat/add-customize-ui-2`
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.4" — Implement useResourceCount (landing page card counts)
-- "Continue with T01.5" — Implement ScopeToggle component (first UI work)
+- "Continue with T01.5" — Implement ScopeToggle component (first UI work, creates `library/` module)
+- "Continue with T01.6" — Implement ResourceListView component (generic list with search + scope)
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns
