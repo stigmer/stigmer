@@ -24,4 +24,14 @@ export type { SkillPackageDetection } from "./detect-skill-package";
 export { useDetectSkillPackage } from "./useDetectSkillPackage";
 export type { UseDetectSkillPackageReturn } from "./useDetectSkillPackage";
 
+export { parseResourceYaml } from "./parse-resource-yaml";
+export type { ParsedResource } from "./parse-resource-yaml";
+
+export { useApplyResource } from "./useApplyResource";
+export type {
+  UseApplyResourceReturn,
+  ApplyResourceResult,
+  PushSkillParams,
+} from "./useApplyResource";
+
 export type { ResourceListScope } from "../search";

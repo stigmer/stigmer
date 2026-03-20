@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-03-20 10:41
 **Current Task**: T02 — Phase 2: Execution Artifacts Widget + Apply Flow
-**Status**: In Progress (T02.1–T02.2 complete, T02.3–T02.8 remaining)
+**Status**: In Progress (T02.1–T02.3 complete, T02.4–T02.8 remaining)
 
 ## Session Progress (2026-03-20, Session 1)
 
@@ -470,26 +470,55 @@ When starting a new session:
 ### Files Changed (stigmer-cloud)
 - 2 files changed (1 new handler, 1 modified handler)
 
+## Session Progress (2026-03-20, Session 17)
+
+### Completed
+- **T02.3 — `useApplyResource` behavior hook**: Full implementation complete
+  - Created `sdk/react/src/library/parse-resource-yaml.ts` — pure `parseResourceYaml(content, org)` function
+    - Explicit per-field converters for Agent and McpServer YAML → SDK input types
+    - Handles all nested structures: `mcp_server_usages`, `sub_agents`, `env_spec`, `stdio`/`http`, resource refs, tool approval overrides
+    - Proto `env_spec.data` → SDK `envSpec.variables` naming mismatch handled explicitly
+    - Accepts both snake_case (proto) and camelCase (SDK) field names in YAML
+    - Descriptive, user-facing error messages for all validation failures
+    - McpServer `tags` field intentionally dropped (not in `McpServerInput`)
+    - `org` parameter always overrides `metadata.org` (matches "Apply to [my-org]" UX)
+  - Created `sdk/react/src/library/useApplyResource.ts` — behavior hook
+    - Two action methods: `applyYamlResource(content, org)` and `pushSkillPackage(params)`
+    - Follows established mutation pattern: `isApplying`, `error`, `clearError` (same as `useCreateOrganization`)
+    - No stored result — promise returns `ApplyResourceResult`, consistent with all SDK mutation hooks
+    - Returns `{ kind, name, org, slug }` from response metadata for Library linking
+    - Incorporates deferred D7 (skill push via `pushFromExecutionArtifact` RPC)
+  - Updated barrel exports: `library/index.ts` and `sdk/react/src/index.ts`
+  - Also elevated skill detection exports (`isSkillPackage`, `detectSkillPackage`, `useDetectSkillPackage`, `SkillPackageDetection`, `UseDetectSkillPackageReturn`) to top-level barrel — previously only in `library/index.ts`
+
+### Key Design Decisions (from this session)
+- **Explicit per-field converters over generic snake-to-camel**: Map fields (labels, env vars, headers) preserve their keys. The `env_spec.data` → `envSpec.variables` rename is handled naturally. Type-safe at compile time.
+- **Conditional spread pattern**: Used `...optionalField("key", value)` throughout to construct typed objects with optional fields without mutation — avoids TypeScript index signature issues with readonly interfaces.
+
+### Verification
+- TypeScript check passes (8 pre-existing errors in unrelated test file, zero in new/modified files)
+- Lint clean on all 4 files (2 new, 2 modified)
+- All existing exports unchanged — no breaking changes
+
 ## Next Steps
 
-1. **T02.3 — `useApplyResource` behavior hook**: Apply detected resource to org — **build with skill push support from the start** (incorporates deferred D7)
-2. **T02.4 — `ArtifactCard` component**: Single artifact in the widget — must render both file and directory artifacts with skill detection badges
-3. **T02.5 — `ArtifactPreviewModal` component**: Full YAML preview with Apply CTA — must show file listings for directories
-4. **T02.6 — `ArtifactsWidget` component**: Right-sidebar container for artifact cards — must handle both artifact kinds
-5. **T02.7 — Barrel exports** for artifact components
-6. **T02.8 — SessionPage integration**: Wire `ArtifactsWidget` into right sidebar
+1. **T02.4 — `ArtifactCard` component**: Single artifact in the widget — must render both file and directory artifacts with skill detection badges
+2. **T02.5 — `ArtifactPreviewModal` component**: Full YAML preview with Apply CTA — must show file listings for directories
+3. **T02.6 — `ArtifactsWidget` component**: Right-sidebar container for artifact cards — must handle both artifact kinds
+4. **T02.7 — Barrel exports** for artifact components
+5. **T02.8 — SessionPage integration**: Wire `ArtifactsWidget` into right sidebar
 
 ## Context for Resume
 
 - **Phase 1 (Library Pages + Navigation) is COMPLETE** — all tasks T01.1–T01.13 done
-- **Phase 2 (Execution Artifacts Widget + Apply Flow) is IN PROGRESS** — T02.1–T02.2 complete, directory artifact support (D1–D6, D8) complete, T02.3–T02.8 remaining
+- **Phase 2 (Execution Artifacts Widget + Apply Flow) is IN PROGRESS** — T02.1–T02.3 complete, directory artifact support (D1–D8) complete, T02.4–T02.8 remaining
 - **Directory artifact support COMPLETE** — full vertical implementation from proto to SDK:
   - Proto: `entries` on `ExecutionArtifact`, `entry_path` on `GetArtifactContentRequest`, `pushFromExecutionArtifact` RPC
   - Agent runner: populates `entries` when creating ZIP from directory
   - Backend (Go + Java): ZIP entry extraction, server-side skill push
   - SDK: `isSkillPackage()`, `detectSkillPackage()`, `useDetectSkillPackage()`, `useArtifactContent` with `entryPath`
   - Cleanup: removed `"Skill"` from `StigmerResourceKind` (skills use package detection, not YAML detection)
-  - **D7 deferred**: skill push integration into `useApplyResource` — will be built into T02.3 from the start
+  - **D7 complete**: skill push integration built into `useApplyResource` (T02.3)
 - **Two parallel detection paths**:
   - YAML detection: `detectStigmerResource(content)` → `Agent` | `McpServer` → `apply()`
   - Package detection: `isSkillPackage(artifact)` / `detectSkillPackage(artifact, content)` → Skill → `pushFromExecutionArtifact()`
@@ -497,6 +526,10 @@ When starting a new session:
 - **T02.1 deliverables**: 2 hooks (`useExecutionArtifacts`, `useArtifactContent`), 4 utility functions, proto definition for `getArtifactContent` RPC
 - **T02.2 deliverables**: 1 pure function (`detectStigmerResource`), 1 hook (`useDetectStigmerResource`), 2 types (`StigmerResourceDetection`, `StigmerResourceKind`)
 - **Directory artifact deliverables**: 2 pure functions (`isSkillPackage`, `detectSkillPackage`), 1 hook (`useDetectSkillPackage`), 1 type (`SkillPackageDetection`), `useArtifactContent` extended with `entryPath`
+- **T02.3 deliverables**: 1 pure function (`parseResourceYaml`), 1 hook (`useApplyResource`), 3 types (`ParsedResource`, `ApplyResourceResult`, `PushSkillParams`)
+- **Apply flow (YAML resources)**: `useArtifactContent` → content → `useDetectStigmerResource` → detection → `useApplyResource().applyYamlResource(content, org)` → `parseResourceYaml` → `stigmer.agent.apply()` or `stigmer.mcpServer.apply()`
+- **Apply flow (skill packages)**: `useDetectSkillPackage` → detection → `useApplyResource().pushSkillPackage({ org, executionId, storageKey })` → `stigmer.skill.pushFromExecutionArtifact()`
+- **YAML → SDK input conversion**: `parseResourceYaml` handles proto snake_case → SDK camelCase for Agent (`mcpServerUsages`, `subAgents`, `envSpec`) and McpServer (`stdio`, `http`, `defaultToolApprovals`). Proto `env_spec.data` maps to SDK `envSpec.variables`. `org` parameter always overrides `metadata.org`.
 - **New dependency**: `yaml` ^2.8.2 added to `@stigmer/react` for YAML/frontmatter parsing in detection
 - **Detection flow (file artifacts)**: `useArtifactContent` → content string → `useDetectStigmerResource` → `StigmerResourceDetection`
 - **Detection flow (directory artifacts)**: `useDetectSkillPackage(artifact, executionId)` → fetches SKILL.md via `entry_path` → `SkillPackageDetection`
@@ -511,7 +544,7 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Continue Phase 2 with T02.3" — Build useApplyResource hook
+- "Continue Phase 2 with T02.4" — Build ArtifactCard component
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 
