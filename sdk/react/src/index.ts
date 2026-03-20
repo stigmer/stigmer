@@ -90,6 +90,12 @@ export {
   resolvePathAction,
   useOneTimeSecrets,
   OneTimeSecretsInput,
+  useExecutionArtifacts,
+  useArtifactContent,
+  isTextArtifact,
+  isArtifactExpired,
+  formatArtifactSize,
+  getArtifactExtension,
 } from "./execution";
 export type {
   CreateAgentExecutionInput,
@@ -116,7 +122,13 @@ export type {
   OneTimeSecretEntry,
   UseOneTimeSecretsReturn,
   OneTimeSecretsInputProps,
+  UseExecutionArtifactsReturn,
+  UseArtifactContentReturn,
 } from "./execution";
+
+// Execution — proto type re-exports for artifact consumers
+export type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+export { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
 // Composer — unified message input with model + workspace attachments
 export {

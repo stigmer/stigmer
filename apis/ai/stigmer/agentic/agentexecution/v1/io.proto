@@ -601,6 +601,130 @@ message GetArtifactDownloadUrlResponse {
   string expires_at = 2;
 }
 
+// GetArtifactContentRequest reads the raw content of an execution artifact.
+//
+// Unlike getArtifactDownloadUrl (which returns a presigned URL for direct
+// browser download), this endpoint returns the artifact bytes through the
+// Stigmer API. This eliminates CORS concerns for SDK consumers who need to
+// read artifact content programmatically — e.g., for YAML parsing, resource
+// detection, or in-app preview rendering.
+//
+// ## Authorization
+//
+// Requires can_view permission on the execution. This ensures users can only
+// read artifacts from executions they have access to.
+//
+// ## Security
+//
+// The storage_key is validated to ensure it belongs to the specified execution.
+// Storage keys must start with "artifacts/{execution_id}/" to prevent path
+// traversal attacks where a user could request content from other executions'
+// artifacts.
+//
+// ## Size Limit
+//
+// The server enforces a maximum content size (default: 512 KB). If the
+// artifact exceeds max_bytes, the response contains the first max_bytes of
+// content with truncated=true. Callers can use total_size_bytes to decide
+// whether to offer a full download via getArtifactDownloadUrl instead.
+//
+// ## Use Cases
+//
+// - Web UI reading YAML artifacts for Stigmer resource detection
+// - SDK consumers rendering artifact previews in embedded components
+// - CLI inspecting artifact content without a separate HTTP download
+//
+// ## Example
+//
+// Request:
+// {
+//   "execution_id": "aex_abc123xyz456",
+//   "storage_key": "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
+// }
+//
+// Response:
+// {
+//   "content": <bytes>,
+//   "content_type": "text/yaml",
+//   "total_size_bytes": 1842,
+//   "truncated": false
+// }
+//
+// @since Artifact Lifecycle (Attachments & Artifacts)
+message GetArtifactContentRequest {
+  // ID of the agent execution that produced the artifact.
+  //
+  // Used for authorization (can_view check) and storage_key validation.
+  //
+  // Format: "aex_{ulid}"
+  // Example: "aex_abc123xyz456"
+  //
+  // Validation: Required, minimum 1 character
+  string execution_id = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Storage key of the artifact to read.
+  //
+  // Must be an artifact from the specified execution. The storage_key
+  // is validated to start with "artifacts/{execution_id}/" to prevent
+  // access to other executions' artifacts.
+  //
+  // Obtain this value from ExecutionArtifact.storage_key in the execution status.
+  //
+  // Format: "artifacts/{execution_id}/{filename}"
+  // Example: "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
+  //
+  // Validation: Required, minimum 1 character
+  string storage_key = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Maximum number of bytes to return.
+  //
+  // If the artifact is larger than this limit, the response will contain
+  // the first max_bytes of content with truncated=true.
+  //
+  // When 0 or unset, the server applies a default limit (512 KB).
+  // The server may also enforce a hard upper bound regardless of this value.
+  //
+  // Example: 524288 (512 KB)
+  int64 max_bytes = 3;
+}
+
+// GetArtifactContentResponse returns the raw content of an execution artifact.
+//
+// The content field contains the artifact bytes (up to max_bytes). For text
+// artifacts, clients decode via TextDecoder or equivalent. The content_type
+// field provides a hint for rendering (detected by file extension).
+//
+// @since Artifact Lifecycle (Attachments & Artifacts)
+message GetArtifactContentResponse {
+  // Raw artifact content (up to max_bytes).
+  //
+  // For text artifacts (YAML, JSON, Markdown, etc.), decode as UTF-8.
+  // For binary artifacts, this contains raw bytes — but callers should
+  // generally use getArtifactDownloadUrl for binary downloads instead.
+  bytes content = 1;
+
+  // Detected content type based on file extension.
+  //
+  // Examples: "text/yaml", "text/plain", "application/json",
+  // "application/zip" (for directory artifacts).
+  //
+  // This is a best-effort detection — not based on content inspection.
+  string content_type = 2;
+
+  // Actual total size of the artifact in bytes.
+  //
+  // May be larger than len(content) when truncated=true.
+  // Callers can use this to show "showing 512 KB of 2.1 MB" messages
+  // or to decide whether to offer a full download link.
+  int64 total_size_bytes = 3;
+
+  // Whether the content was truncated to fit within max_bytes.
+  //
+  // When true, content contains only the first max_bytes of the artifact.
+  // The full artifact can be downloaded via getArtifactDownloadUrl.
+  bool truncated = 4;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Usage Report Types
 //

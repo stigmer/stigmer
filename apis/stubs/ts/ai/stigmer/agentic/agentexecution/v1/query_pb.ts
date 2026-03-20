@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { AgentExecutionSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_api } from "./api_pb";
-import type { AgentExecutionIdSchema, AgentExecutionListSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, ListAgentExecutionsBySessionRequestSchema, ListAgentExecutionsRequestSchema } from "./io_pb";
+import type { AgentExecutionIdSchema, AgentExecutionListSchema, GetAgentUsageReportInputSchema, GetAgentUsageReportOutputSchema, GetArtifactContentRequestSchema, GetArtifactContentResponseSchema, GetArtifactDownloadUrlRequestSchema, GetArtifactDownloadUrlResponseSchema, GetOrgUsageReportInputSchema, GetOrgUsageReportOutputSchema, GetSessionUsageReportInputSchema, GetSessionUsageReportOutputSchema, ListAgentExecutionsBySessionRequestSchema, ListAgentExecutionsRequestSchema } from "./io_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_io } from "./io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
 import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../../iam/iampolicy/v1/rpcauthorization/method_options_pb";
@@ -110,6 +110,21 @@ export const AgentExecutionQueryController: GenService<{
     methodKind: "unary";
     input: typeof GetArtifactDownloadUrlRequestSchema;
     output: typeof GetArtifactDownloadUrlResponseSchema;
+  },
+  /**
+   * Read the raw content of an execution artifact.
+   *
+   * Returns artifact bytes through the Stigmer API, eliminating CORS
+   * concerns for SDK consumers who need to read content programmatically.
+   *
+   * @since Artifact Lifecycle (Attachments & Artifacts)
+   *
+   * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getArtifactContent
+   */
+  getArtifactContent: {
+    methodKind: "unary";
+    input: typeof GetArtifactContentRequestSchema;
+    output: typeof GetArtifactContentResponseSchema;
   },
   /**
    * Get usage report for a session (all executions in a session).
