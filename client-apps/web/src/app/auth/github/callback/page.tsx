@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGitHubConnection } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
@@ -10,17 +10,18 @@ import { useActiveOrgSlug } from "@/contexts/org-context";
  *
  * GitHub redirects here after the user authorizes. The page reads the
  * `code` and `state` query params, exchanges the code for a token via
- * the Stigmer backend, and redirects to the home page on success.
+ * the Stigmer backend, persists it in the personal environment, and
+ * redirects to the home page on success.
  *
- * The token is staged in localStorage by `handleCallback` and migrated
- * to the server-side personal environment on the next page mount
- * (see {@link useGitHubConnection} reconciliation logic).
+ * The effect waits for both org context and the personal environment
+ * to be ready before calling `handleCallback`, which writes the token
+ * directly to the server-side personal environment.
  */
 export default function GitHubCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const org = useActiveOrgSlug();
-  const { handleCallback } = useGitHubConnection(org || null);
+  const { handleCallback, isLoading } = useGitHubConnection(org || null);
 
   const code = searchParams.get("code");
   const state = searchParams.get("state");
@@ -29,11 +30,11 @@ export default function GitHubCallbackPage() {
   const [error, setError] = useState<string | null>(
     missingParams ? "Missing authorization code or state parameter" : null,
   );
-  const attempted = useRef(false);
+  const [exchanged, setExchanged] = useState(false);
 
   useEffect(() => {
-    if (missingParams || attempted.current) return;
-    attempted.current = true;
+    if (missingParams || exchanged || !org || isLoading) return;
+    setExchanged(true);
 
     const redirectUri = `${window.location.origin}/auth/github/callback`;
 
@@ -48,7 +49,7 @@ export default function GitHubCallbackPage() {
             : "Failed to connect GitHub account",
         );
       });
-  }, [code, state, missingParams, handleCallback, router]);
+  }, [code, state, missingParams, exchanged, org, isLoading, handleCallback, router]);
 
   if (error) {
     return (

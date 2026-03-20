@@ -6,7 +6,6 @@ import { EnvironmentSecretValueInputSchema } from "@stigmer/protos/ai/stigmer/ag
 import { useStigmer } from "../hooks";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
 
-const STORAGE_KEY_TOKEN = "stigmer:github:token";
 const STORAGE_KEY_STATE = "stigmer:github:oauth-state";
 const GITHUB_USER_API = "https://api.github.com/user";
 const GITHUB_TOKEN_KEY = "GITHUB_TOKEN";
@@ -76,20 +75,20 @@ function personalEnvHasKey(
  * {@link Environment}.
  *
  * **Storage strategy:** The token is stored encrypted in the personal
- * environment (server-side). On mount the hook reads from localStorage
- * first for instant UX, then reconciles with the server. Tokens found
- * only in localStorage are migrated to the personal environment and
- * removed from localStorage.
+ * environment (server-side). On OAuth callback the token is written
+ * directly to the personal environment via `getOrCreate` /
+ * `addVariables`. On subsequent mounts the token is revealed from the
+ * personal environment and validated against the GitHub API.
  *
- * Pass `null` as `org` to fall back to localStorage-only behavior
- * (useful during initial app load before org context is available).
+ * Pass `null` as `org` to disable server-side storage (the hook will
+ * report as not connected until org context is available).
  *
  * Platform builders who need custom GitHub integration UI use this
  * hook directly. The styled `WorkspaceEditor` component accepts the
  * return value as a prop.
  *
  * @param org - The active organization slug. Required for server-side
- *   token storage. Pass `null` to use localStorage-only mode.
+ *   token storage. Pass `null` to skip all server operations.
  */
 export function useGitHubConnection(
   org: string | null,
@@ -101,130 +100,74 @@ export function useGitHubConnection(
 
   const personalEnv = usePersonalEnvironment(org || null);
 
-  // Ref to the personal env hook so async callbacks always see the latest
-  // state without being recreated on every render.
   const personalEnvRef = useRef(personalEnv);
   personalEnvRef.current = personalEnv;
 
-  // Track whether the reconciliation effect has run to avoid double-migration.
   const reconciled = useRef(false);
 
-  // ── Phase 1: Instant localStorage read ──────────────────────────────
-  // Provides zero-latency provisional state while the personal env loads.
+  // When org is null there is no server to check — mark loading done.
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY_TOKEN);
-    if (!stored) {
-      // No localStorage token. If there's no org (so no server check
-      // will happen), we're done loading.
-      if (!org) setIsLoading(false);
-      return;
-    }
+    if (!org) setIsLoading(false);
+  }, [org]);
 
-    let cancelled = false;
-    fetchGitHubUser(stored).then((u) => {
-      if (cancelled) return;
-      if (u) {
-        setToken(stored);
-        setUser(u);
-      } else {
-        localStorage.removeItem(STORAGE_KEY_TOKEN);
-      }
-      // If no org, this is the only source — mark loading done.
-      // With org, Phase 2 will finalize loading after reconciliation.
-      if (!org) setIsLoading(false);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-    // Only on mount (org is captured but we don't re-run on org change;
-    // the reconciliation effect handles that).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Phase 2: Server reconciliation ──────────────────────────────────
-  // Runs when the personal environment finishes loading. Handles:
-  //   Case A: Token in server + localStorage → clear localStorage
-  //   Case B: Token in server only → reveal and use it
-  //   Case C: Token in localStorage only → migrate to server
-  //   Case D: Neither → not connected
+  // ── Server reconciliation ────────────────────────────────────────────
+  // Runs once after the personal environment finishes loading.
+  // If GITHUB_TOKEN exists in the personal env, reveals it and sets
+  // React state. If the revealed token is invalid, cleans it up.
+  // If no token exists, marks the hook as not connected.
   useEffect(() => {
     if (!org || personalEnv.isLoading) return;
 
-    // Prevent re-running if we've already reconciled for this org.
     if (reconciled.current) return;
     reconciled.current = true;
 
     const env = personalEnv.environment;
     const hasServerToken = personalEnvHasKey(env, GITHUB_TOKEN_KEY);
-    const localToken = localStorage.getItem(STORAGE_KEY_TOKEN);
+
+    if (!hasServerToken || !env) {
+      setIsLoading(false);
+      return;
+    }
 
     let cancelled = false;
 
-    async function reconcile() {
-      if (hasServerToken && env) {
-        // Cases A & B: Server has the token. Reveal it.
-        localStorage.removeItem(STORAGE_KEY_TOKEN);
-        try {
-          const result = await stigmer.environment.getSecretValue(
-            create(EnvironmentSecretValueInputSchema, {
-              environmentId: env.metadata!.id,
-              key: GITHUB_TOKEN_KEY,
-            }),
-          );
-          if (cancelled) return;
+    async function reveal() {
+      try {
+        const result = await stigmer.environment.getSecretValue(
+          create(EnvironmentSecretValueInputSchema, {
+            environmentId: env!.metadata!.id,
+            key: GITHUB_TOKEN_KEY,
+          }),
+        );
+        if (cancelled) return;
 
-          const serverToken = result.value;
-          if (serverToken) {
-            const u = await fetchGitHubUser(serverToken);
-            if (cancelled) return;
-            if (u) {
-              setToken(serverToken);
-              setUser(u);
-            } else {
-              // Server token is invalid — clean it up.
-              try {
-                await personalEnvRef.current.removeVariables([
-                  GITHUB_TOKEN_KEY,
-                ]);
-              } catch {
-                // Best-effort cleanup; don't block the user.
-              }
-              setToken(null);
-              setUser(null);
-            }
-          }
-        } catch {
-          // getSecretValue failed (permissions, network, etc.).
-          // Fall through — Phase 1 may have set a provisional token.
-        }
-      } else if (localToken) {
-        // Case C: Token in localStorage only → migrate to server.
-        // Pass the token as initialData so a newly created env includes it
-        // in a single call. If the env already existed, getOrCreate returns
-        // it unchanged and we add the variable explicitly.
-        try {
-          const tokenVar = {
-            [GITHUB_TOKEN_KEY]: { value: localToken, isSecret: true },
-          };
-          const created = await personalEnvRef.current.getOrCreate(tokenVar);
+        const serverToken = result.value;
+        if (serverToken) {
+          const u = await fetchGitHubUser(serverToken);
           if (cancelled) return;
-          if (!personalEnvHasKey(created, GITHUB_TOKEN_KEY)) {
-            await personalEnvRef.current.addVariables(tokenVar);
-            if (cancelled) return;
+          if (u) {
+            setToken(serverToken);
+            setUser(u);
+          } else {
+            try {
+              await personalEnvRef.current.removeVariables([
+                GITHUB_TOKEN_KEY,
+              ]);
+            } catch {
+              // Best-effort cleanup.
+            }
+            setToken(null);
+            setUser(null);
           }
-          localStorage.removeItem(STORAGE_KEY_TOKEN);
-        } catch {
-          // Migration failed — keep localStorage token as fallback.
-          // It will be retried on next mount.
         }
+      } catch {
+        // getSecretValue failed — leave state as-is.
       }
-      // Case D: Neither source → no action needed.
 
       if (!cancelled) setIsLoading(false);
     }
 
-    reconcile();
+    reveal();
     return () => {
       cancelled = true;
     };
@@ -260,9 +203,14 @@ export function useGitHubConnection(
         redirectUri,
       });
 
-      // Stage in localStorage. The next page mount will migrate it to
-      // the personal environment during reconciliation (Phase 2).
-      localStorage.setItem(STORAGE_KEY_TOKEN, accessToken);
+      const tokenVar = {
+        [GITHUB_TOKEN_KEY]: { value: accessToken, isSecret: true },
+      };
+      const env = await personalEnvRef.current.getOrCreate(tokenVar);
+      if (!personalEnvHasKey(env, GITHUB_TOKEN_KEY)) {
+        await personalEnvRef.current.addVariables(tokenVar);
+      }
+
       setToken(accessToken);
 
       const u = await fetchGitHubUser(accessToken);
@@ -272,20 +220,15 @@ export function useGitHubConnection(
   );
 
   const disconnect = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY_TOKEN);
     sessionStorage.removeItem(STORAGE_KEY_STATE);
     setToken(null);
     setUser(null);
 
-    // Remove from personal environment (fire-and-forget).
     const env = personalEnvRef.current.environment;
     if (env && personalEnvHasKey(env, GITHUB_TOKEN_KEY)) {
       personalEnvRef.current
         .removeVariables([GITHUB_TOKEN_KEY])
-        .catch(() => {
-          // Best-effort server cleanup. localStorage is already cleared,
-          // so next mount won't find the token in either source.
-        });
+        .catch(() => {});
     }
   }, []);
 
