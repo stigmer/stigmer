@@ -67,7 +67,7 @@ export type AgentSetupPhase =
  * error messages without losing the current phase context.
  */
 export type AgentSetupState = AgentSetupPhase & {
-  readonly error: string | null;
+  readonly error: Error | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -124,7 +124,7 @@ export type AgentSetupAction =
       readonly agentName: string;
       readonly resolution: AgentResolution;
     }
-  | { readonly type: "ERROR"; readonly message: string }
+  | { readonly type: "ERROR"; readonly error: Error }
   | { readonly type: "CLEAR_ERROR" }
   | { readonly type: "RESET" };
 
@@ -185,7 +185,7 @@ export function agentSetupReducer(
       };
 
     case "ERROR":
-      return { ...state, error: action.message };
+      return { ...state, error: action.error };
 
     case "CLEAR_ERROR":
       return { ...state, error: null };

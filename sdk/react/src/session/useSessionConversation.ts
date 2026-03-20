@@ -79,7 +79,7 @@ export interface UseSessionConversationReturn {
   /** True during the create RPC call (between submit and execution ID). */
   readonly isSending: boolean;
   /** Error from the last sendFollowUp attempt, or null. */
-  readonly sendError: string | null;
+  readonly sendError: Error | null;
   readonly clearSendError: () => void;
 
   /** The user's message text, shown in the thread before the stream delivers it. */
@@ -108,13 +108,13 @@ export interface UseSessionConversationReturn {
    * for optimistic removal.
    */
   readonly dismissedApprovalIds: ReadonlySet<string>;
-  readonly approvalError: string | null;
+  readonly approvalError: Error | null;
   readonly clearApprovalError: () => void;
 
   readonly isLoading: boolean;
-  readonly loadError: string | null;
+  readonly loadError: Error | null;
 
-  readonly streamError: string | null;
+  readonly streamError: Error | null;
   readonly reconnectStream: () => void;
 }
 

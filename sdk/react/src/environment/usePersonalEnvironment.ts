@@ -11,6 +11,7 @@ import {
 import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { useStigmer } from "../hooks";
 import { generateSlugSuffix } from "../internal/slug";
+import { toError } from "../internal/toError";
 import { useEnvironmentList } from "./useEnvironmentList";
 
 const PERSONAL_LABELS: Record<string, string> = {
@@ -23,7 +24,7 @@ export interface UsePersonalEnvironmentReturn {
   /** `true` while the initial list query is in-flight. */
   readonly isLoading: boolean;
   /** Error message from the most recent failed operation (fetch or mutation), or `null`. */
-  readonly error: string | null;
+  readonly error: Error | null;
   /** Re-query the personal environment from the server. */
   readonly refetch: () => void;
 
@@ -129,7 +130,7 @@ export function usePersonalEnvironment(
   );
 
   const [isMutating, setIsMutating] = useState(false);
-  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<Error | null>(null);
 
   // Stable ref to environment so mutation callbacks always see the latest
   // without being recreated on every list response.
@@ -170,11 +171,7 @@ export function usePersonalEnvironment(
         refetch();
         return created;
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to create personal environment";
-        setMutationError(message);
+        setMutationError(toError(err));
         throw err;
       } finally {
         setIsMutating(false);
@@ -219,11 +216,7 @@ export function usePersonalEnvironment(
         refetch();
         return updated;
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to add variables to personal environment";
-        setMutationError(message);
+        setMutationError(toError(err));
         throw err;
       } finally {
         setIsMutating(false);
@@ -255,11 +248,7 @@ export function usePersonalEnvironment(
         refetch();
         return updated;
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to remove variables from personal environment";
-        setMutationError(message);
+        setMutationError(toError(err));
         throw err;
       } finally {
         setIsMutating(false);

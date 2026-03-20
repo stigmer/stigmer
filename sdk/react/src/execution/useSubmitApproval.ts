@@ -5,6 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SubmitApprovalInputSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 export interface UseSubmitApprovalReturn {
   /**
@@ -24,7 +25,7 @@ export interface UseSubmitApprovalReturn {
    * approve one tool while another decision is still in flight.
    */
   readonly submittingToolCallIds: ReadonlySet<string>;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly clearError: () => void;
 }
 
@@ -53,7 +54,7 @@ export function useSubmitApproval(): UseSubmitApprovalReturn {
   const [submittingIds, setSubmittingIds] = useState<ReadonlySet<string>>(
     new Set(),
   );
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -80,11 +81,7 @@ export function useSubmitApproval(): UseSubmitApprovalReturn {
         });
         await stigmer.agentExecution.submitApproval(input);
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to submit approval decision";
-        setError(message);
+        setError(toError(err));
         throw err;
       } finally {
         setSubmittingIds((prev) => {

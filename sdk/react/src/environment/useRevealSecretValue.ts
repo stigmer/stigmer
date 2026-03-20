@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { create } from "@bufbuild/protobuf";
 import { EnvironmentSecretValueInputSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 export interface UseRevealSecretValueOptions {
   /**
@@ -33,7 +34,7 @@ export interface UseRevealSecretValueReturn {
   readonly isRevealing: boolean;
 
   /** Error message from the last failed reveal attempt, or `null`. */
-  readonly error: string | null;
+  readonly error: Error | null;
 
   /** Immediately clear the revealed value and cancel any pending auto-clear timer. */
   readonly clearRevealedValue: () => void;
@@ -83,7 +84,7 @@ export function useRevealSecretValue(
   const stigmer = useStigmer();
   const [revealedValue, setRevealedValue] = useState<string | null>(null);
   const [isRevealing, setIsRevealing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const autoClearMs = options?.autoClearMs ?? DEFAULT_AUTO_CLEAR_MS;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,11 +128,7 @@ export function useRevealSecretValue(
           }, autoClearMs);
         }
       } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to reveal secret value",
-        );
+        setError(toError(err));
         setRevealedValue(null);
       } finally {
         setIsRevealing(false);

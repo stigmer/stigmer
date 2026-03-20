@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 import { isTerminalPhase } from "./execution-phases";
 
 export interface UseExecutionStreamReturn {
@@ -21,8 +22,8 @@ export interface UseExecutionStreamReturn {
   readonly isStreaming: boolean;
   /** `true` after subscription starts but before the first snapshot arrives. */
   readonly isConnecting: boolean;
-  /** Human-readable error message, or `null` when healthy. */
-  readonly error: string | null;
+  /** Error from the last failed stream attempt, or `null` when healthy. */
+  readonly error: Error | null;
   /**
    * Reset error state and re-establish the stream subscription.
    *
@@ -51,7 +52,7 @@ export interface UseExecutionStreamReturn {
  *   const { execution, isStreaming, error, reconnect } =
  *     useExecutionStream(id);
  *
- *   if (error) return <p>{error} <button onClick={reconnect}>Retry</button></p>;
+ *   if (error) return <p>{error.message} <button onClick={reconnect}>Retry</button></p>;
  *   if (!execution) return <p>Connecting…</p>;
  *
  *   return (
@@ -73,7 +74,7 @@ export function useExecutionStream(
   const [execution, setExecution] = useState<AgentExecution | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [connectKey, setConnectKey] = useState(0);
 
   const abortRef = useRef<AbortController | null>(null);
@@ -127,9 +128,7 @@ export function useExecutionStream(
       } catch (err) {
         if (controller.signal.aborted) return;
 
-        setError(
-          err instanceof Error ? err.message : "Stream connection failed",
-        );
+        setError(toError(err));
         setIsConnecting(false);
         setIsStreaming(false);
       }

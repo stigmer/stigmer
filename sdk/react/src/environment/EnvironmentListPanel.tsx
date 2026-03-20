@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { getUserMessage } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { useEnvironmentList } from "./useEnvironmentList";
 import { EnvironmentVariableEditor } from "./EnvironmentVariableEditor";
@@ -124,7 +125,7 @@ export function EnvironmentListPanel({
   if (error) {
     return (
       <p className={cn("text-destructive text-xs", className)} role="alert">
-        {error}
+        {getUserMessage(error)}
       </p>
     );
   }

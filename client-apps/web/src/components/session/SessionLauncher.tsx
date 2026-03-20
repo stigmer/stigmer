@@ -12,7 +12,7 @@ import {
   useGitHubConnection,
 } from "@stigmer/react";
 import type { AgentResolution } from "@stigmer/react";
-import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDeploymentMode } from "@/hooks/useDeploymentMode";
 
@@ -125,8 +125,7 @@ export function SessionLauncher() {
           }
         }
       } catch (err) {
-        const detail =
-          err instanceof Error ? err.message : "Failed to start session";
+        const detail = getUserMessage(err, "Failed to start session");
         setSubmitError(detail);
         toast.error(detail);
       } finally {

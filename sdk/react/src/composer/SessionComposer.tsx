@@ -3,13 +3,14 @@
 import { useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { Popover } from "@base-ui/react/popover";
-import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import { getUserMessage, type EnvVarInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useComposer } from "./useComposer";
 import { ModelSelector } from "../models/ModelSelector";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
 import { AgentPicker } from "../agent/AgentPicker";
 import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvForm";
 import { useAgentSetup, type AgentResolution } from "../agent/useAgentSetup";
+import { SecretFlowErrorGuide, isSecretFlowError } from "../error/SecretFlowErrorGuide";
 import { McpServerPicker } from "../mcp-server/McpServerPicker";
 import { SkillPicker } from "../skill/SkillPicker";
 import { OneTimeSecretsInput } from "../execution/OneTimeSecretsInput";
@@ -487,9 +488,7 @@ export function SessionComposer({
                           disabled={isDisabled}
                         />
                         {agentSetup.state.error && (
-                          <p className="mt-2 text-xs text-destructive">
-                            {agentSetup.state.error}
-                          </p>
+                          <AgentSetupError error={agentSetup.state.error} />
                         )}
                       </div>
                     ) : (
@@ -507,9 +506,7 @@ export function SessionComposer({
                           </div>
                         )}
                         {agentSetup.state.error && (
-                          <p className="mt-2 text-xs text-destructive">
-                            {agentSetup.state.error}
-                          </p>
+                          <AgentSetupError error={agentSetup.state.error} />
                         )}
                       </div>
                     )}
@@ -713,6 +710,21 @@ function ContextChip({
         <XIcon />
       </button>
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Agent setup error — secret-flow guidance or generic fallback
+// ---------------------------------------------------------------------------
+
+function AgentSetupError({ error }: { error: Error }) {
+  if (isSecretFlowError(error)) {
+    return <SecretFlowErrorGuide error={error} className="mt-2" />;
+  }
+  return (
+    <p className="mt-2 text-xs text-destructive">
+      {getUserMessage(error)}
+    </p>
   );
 }
 

@@ -7,6 +7,7 @@ import {
   EnvironmentListPanel,
   CreateEnvironmentForm,
 } from "@stigmer/react";
+import { getUserMessage } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 
 const PERSONAL_EXCLUDE_LABELS = { "stigmer.ai/personal": "true" } as const;
@@ -70,7 +71,7 @@ function PersonalEnvironmentCard({ org }: { org: string }) {
         <SkeletonRows count={3} />
       ) : error ? (
         <p className="text-destructive text-xs" role="alert">
-          {error}
+          {getUserMessage(error)}
         </p>
       ) : environmentId ? (
         <EnvironmentVariableEditor environmentId={environmentId} />

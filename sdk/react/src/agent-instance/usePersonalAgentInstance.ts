@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import type { ResourceRef } from "@stigmer/sdk";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 import { useAgentInstanceList } from "./useAgentInstanceList";
 import { buildPersonalInstanceInput } from "./buildPersonalInstanceInput";
 
@@ -37,8 +38,8 @@ export interface UsePersonalAgentInstanceReturn {
   readonly agentInstance: AgentInstance | null;
   /** `true` while the initial list query is in-flight. */
   readonly isLoading: boolean;
-  /** Error message from the most recent failed operation (fetch or mutation), or `null`. */
-  readonly error: string | null;
+  /** Error from the most recent failed operation (fetch or mutation), or `null`. */
+  readonly error: Error | null;
   /** Re-query personal agent instances from the server. */
   readonly refetch: () => void;
 
@@ -123,7 +124,7 @@ export function usePersonalAgentInstance(
   }, [agentInstances, agentId]);
 
   const [isMutating, setIsMutating] = useState(false);
-  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<Error | null>(null);
 
   const agentInstanceRef = useRef(agentInstance);
   agentInstanceRef.current = agentInstance;
@@ -164,11 +165,7 @@ export function usePersonalAgentInstance(
         refetch();
         return created;
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to create personal agent instance";
-        setMutationError(message);
+        setMutationError(toError(err));
         throw err;
       } finally {
         setIsMutating(false);

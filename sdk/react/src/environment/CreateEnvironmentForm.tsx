@@ -2,6 +2,7 @@
 
 import { useCallback, useState, type FormEvent } from "react";
 import { cn } from "@stigmer/theme";
+import { getUserMessage } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { useCreateEnvironment } from "./useCreateEnvironment";
 
@@ -127,7 +128,7 @@ export function CreateEnvironmentForm({
 
       {error && (
         <p className="text-destructive text-[0.65rem]" role="alert">
-          {error}
+          {getUserMessage(error)}
         </p>
       )}
 
