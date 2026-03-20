@@ -129,12 +129,14 @@ export type {
   SessionComposerProps,
 } from "./composer";
 
-// MCP Server — count hook, list hook, search hook, and picker component
+// MCP Server — count hook, list hook, search hook, picker, and setup orchestration
 export {
   useMcpServerCount,
   useMcpServerList,
   useMcpServerSearch,
+  useMcpServerSetup,
   McpServerPicker,
+  toServerKey,
 } from "./mcp-server";
 export type {
   UseMcpServerCountOptions,
@@ -143,6 +145,11 @@ export type {
   UseMcpServerListReturn,
   UseMcpServerSearchOptions,
   UseMcpServerSearchReturn,
+  UseMcpServerSetupReturn,
+  SubmitMcpEnvVarsOptions,
+  McpServerSetupEntry,
+  McpServerSetupPhase,
+  McpServerSetupState,
   McpServerPickerProps,
 } from "./mcp-server";
 

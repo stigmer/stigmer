@@ -14,10 +14,42 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-03-20
-**Current Task**: Phase 1, T01.1 complete. Next: Phase 1, T01.2 — `useMcpServerSetup` orchestration hook
-**Status**: In progress — Phase 0 done, Phase 1 T01.1 done, ready for T01.2
+**Current Task**: Phase 1 complete. Next: Phase 2, T02.1 — `McpToolSelector` component
+**Status**: In progress — Phase 0 done, Phase 1 done (reducer + hook), ready for Phase 2
 
 ## Session Progress (2026-03-20)
+
+### Session 3: Phase 1, T01.2 — useMcpServerSetup orchestration hook — COMPLETE
+
+**What was accomplished:**
+- Planned and implemented `useMcpServerSetup.ts` — the Layer 2 orchestration hook for multi-server MCP setup
+- Made five design refinements from the master plan (all approved during planning):
+  - DD-R5: `entries` as `Record` (not `Map`) — matches reducer, avoids conversion cost
+  - DD-R6: `usageInputs` as derived `useMemo` value (not `toUsageInputs()` function)
+  - DD-R7: `pendingRuntimeEnv` via flat `useRef` accumulation, cleared on reset
+  - DD-R8: Error handling — dispatch `SET_ERROR` without re-throwing (multi-server: callers read entries reactively)
+  - DD-R9: `clearError(ref)` per-server (not global like agent flow)
+- Updated barrel exports in `mcp-server/index.ts` and `index.ts`
+- Zero lint errors, zero TypeScript errors
+
+**File created:**
+- `sdk/react/src/mcp-server/useMcpServerSetup.ts` — Orchestration hook composing `useReducer(mcpServerSetupReducer)`, `usePersonalEnvironment`, `diffEnvSpec`, `useStigmer().mcpServer`
+
+**Hook API:**
+- Methods: `addServer`, `removeServer`, `submitEnvVars`, `setEnabledTools`, `clearError`, `reset`
+- Derived: `allReady`, `needsSetupCount`, `pendingRuntimeEnv`, `usageInputs`
+- Supports saved (personal environment) and one-time (runtimeEnv) credential paths
+
+**Files modified:**
+- `sdk/react/src/mcp-server/index.ts` — Added hook, types, and reducer type exports
+- `sdk/react/src/index.ts` — Added re-exports in MCP Server section
+
+**Key decisions:**
+- No re-throw on error (DD-R8) — unlike `useAgentSetup`, errors are only dispatched to reducer for reactive reading via `entries[key].error`
+- `usageInputs` derived via `useMemo` — when enabledTools matches all discovered tools, passes `undefined` (API convention for "all tools")
+- `pendingRuntimeEnv` tracked in `useRef` — consumed imperatively at session creation, not reactive
+- `computeDefaultEnabledTools` helper — uses `spec.defaultEnabledTools` if non-empty, otherwise all discovered tool names
+- Known edge case accepted: personal environment loading race (same as agent flow)
 
 ### Session 2: Phase 1, T01.1 — mcpServerSetupReducer — COMPLETE
 
@@ -77,14 +109,17 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 1, T01.2**: Create `useMcpServerSetup.ts` orchestration hook
-   - Composes `usePersonalEnvironment`, `diffEnvSpec`, MCP SDK client
-   - `addServer`, `removeServer`, `submitEnvVars`, `setEnabledTools`, `toUsageInputs`
-   - Uses `mcpServerSetupReducer` via `useReducer`
-   - Handles save vs one-time path for credentials
-   - Derives `allReady`, `needsSetupCount`, `pendingRuntimeEnv`
-2. **Phase 2**: UI components — `McpToolSelector`, `McpServerConfigPanel`, enhanced `McpServerPicker`
-3. **Phase 3**: SessionComposer integration, submission blocking, enhanced chips
+1. **Phase 2, T02.1**: Create `McpToolSelector` component
+   - Renders checklist of discovered tools with approval badges
+   - "Select all" / "Deselect all" shortcuts
+   - Scrollable when many tools, empty state for undiscovered tools
+   - Styled with `--stgm-*` tokens, keyboard navigable
+2. **Phase 2, T02.2**: Create `McpServerConfigPanel` component
+   - Per-server drill-in config: credentials form (EnvVarForm) + tool selector
+   - Header with server name/icon + "Back" button
+3. **Phase 2, T02.3**: Enhance `McpServerPicker` with setup integration
+   - Setup state indicators, drill-in to config panel
+4. **Phase 3**: SessionComposer integration, submission blocking, enhanced chips
 
 ## Context for Resume
 
@@ -96,16 +131,17 @@ Drop this file into your conversation to quickly resume work on this project.
   - Show already-discovered tools only (no backend changes)
   - Shared EnvVarForm extraction from AgentEnvForm
   - Submission blocking for unconfigured servers
-- Phase 0 is committed and verified — no lint errors, all exports work
-- Phase 1 T01.1 (reducer) is complete — needs commit
-- The reducer refined the master plan's state model (4 statuses instead of 6, error orthogonal)
-- T01.2 (hook) will compose: `useReducer(mcpServerSetupReducer)`, `usePersonalEnvironment`, `diffEnvSpec`, `useStigmer().mcpServer`
+- Phase 0 is committed and verified
+- Phase 1 is complete (reducer + hook) — T01.2 needs commit
+- 9 design refinements from master plan (DD-R1 through DD-R9) — all approved and applied
+- The full orchestration layer is ready: reducer (state machine) + hook (composition, methods, derived state)
+- Phase 2 can begin — UI components consume the hook's `entries`, methods, and derived values
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-2.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-3.md
 ```
 
 ### 2. Current Task Plan
@@ -132,7 +168,8 @@ These projects established patterns and infrastructure this project builds on:
 
 | File | Purpose |
 |------|---------|
-| `sdk/react/src/mcp-server/mcpServerSetupReducer.ts` | **NEW** — Per-server setup state machine |
+| `sdk/react/src/mcp-server/useMcpServerSetup.ts` | **NEW** — Multi-server setup orchestration hook |
+| `sdk/react/src/mcp-server/mcpServerSetupReducer.ts` | Per-server setup state machine |
 | `sdk/react/src/environment/EnvVarForm.tsx` | Shared env var collection form |
 | `sdk/react/src/environment/diffEnvSpec.ts` | Env spec diffing (shared) |
 | `sdk/react/src/agent/AgentEnvForm.tsx` | Thin wrapper over EnvVarForm |
