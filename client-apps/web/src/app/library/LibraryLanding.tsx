@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bot, Plus, Sparkles, Server } from "lucide-react";
+import { getDraftSessionUrl } from "@/utils/draft-session";
 import {
   useAgentCount,
   useSkillCount,
@@ -33,9 +34,9 @@ const RESOURCE_CARDS = [
 ] as const;
 
 const CREATE_SHORTCUTS = [
-  { label: "Create Agent", href: "/" },
-  { label: "Create Skill", href: "/" },
-  { label: "Create MCP Server", href: "/" },
+  { label: "Create Agent", href: getDraftSessionUrl("agent") },
+  { label: "Create Skill", href: getDraftSessionUrl("skill") },
+  { label: "Create MCP Server", href: getDraftSessionUrl("mcp-server") },
 ] as const;
 
 function useResourceCounts(org: string | null) {
