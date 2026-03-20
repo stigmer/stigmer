@@ -19,7 +19,12 @@ export interface UseResourceCountOptions {
 }
 
 export interface UseResourceCountReturn {
-  readonly count: number;
+  /**
+   * Total count of matching resources. `undefined` until the first
+   * successful fetch completes — distinguishes "not yet loaded" from
+   * "loaded, count is zero."
+   */
+  readonly count: number | undefined;
   readonly isLoading: boolean;
   readonly error: string | null;
   readonly refetch: () => void;
@@ -44,7 +49,7 @@ export function useResourceCount(
   org: string | null,
   options?: UseResourceCountOptions,
 ): UseResourceCountReturn {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState<number | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
@@ -56,7 +61,7 @@ export function useResourceCount(
 
   useEffect(() => {
     if (!org) {
-      setCount(0);
+      setCount(undefined);
       setIsLoading(false);
       setError(null);
       return;

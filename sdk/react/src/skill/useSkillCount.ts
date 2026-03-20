@@ -19,8 +19,11 @@ export interface UseSkillCountOptions {
 }
 
 export interface UseSkillCountReturn {
-  /** Total number of skills matching the current filters. */
-  readonly count: number;
+  /**
+   * Total number of skills matching the current filters. `undefined`
+   * until the first successful fetch completes.
+   */
+  readonly count: number | undefined;
   readonly isLoading: boolean;
   readonly error: string | null;
   /** Re-fetch the count with the same parameters. */
