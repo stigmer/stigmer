@@ -229,7 +229,7 @@ export type {
   GitHubRepoPickerProps,
 } from "./github";
 
-// Agent — count hook, list hook, search hook, picker, env form, setup orchestration, and env_spec diffing
+// Agent — count hook, list hook, search hook, picker, env form, setup orchestration, env_spec diffing, and default agent
 export {
   useAgentCount,
   useAgentList,
@@ -238,6 +238,7 @@ export {
   AgentEnvForm,
   diffEnvSpec,
   useAgentSetup,
+  useDefaultAgent,
 } from "./agent";
 export type {
   UseAgentCountOptions,
@@ -257,6 +258,7 @@ export type {
   AgentResolution,
   SubmitEnvVarsOptions,
   UseAgentSetupReturn,
+  UseDefaultAgentReturn,
 } from "./agent";
 
 // Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, and styled components

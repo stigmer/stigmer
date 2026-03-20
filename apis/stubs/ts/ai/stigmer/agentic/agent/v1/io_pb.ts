@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agent/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agent_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQFiBnByb3RvMw", [file_buf_validate_validate]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MSIgCgdBZ2VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiLgoWR2V0RGVmYXVsdEFnZW50UmVxdWVzdBIUCgNvcmcYASABKAlCB7pIBHICEAFiBnByb3RvMw", [file_buf_validate_validate]);
 
 /**
  * AgentId wraps an agent identifier.
@@ -31,4 +31,26 @@ export type AgentId = Message<"ai.stigmer.agentic.agent.v1.AgentId"> & {
  */
 export const AgentIdSchema: GenMessage<AgentId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agent_v1_io, 0);
+
+/**
+ * GetDefaultAgentRequest provides org context for fetching the platform default agent.
+ *
+ * The handler resolves the default agent globally (by label stigmer.ai/default-agent: "true"
+ * with visibility_public), but the org is needed for authorization scoping.
+ *
+ * @generated from message ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest
+ */
+export type GetDefaultAgentRequest = Message<"ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest"> & {
+  /**
+   * @generated from field: string org = 1;
+   */
+  org: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest.
+ * Use `create(GetDefaultAgentRequestSchema)` to create a new message.
+ */
+export const GetDefaultAgentRequestSchema: GenMessage<GetDefaultAgentRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agent_v1_io, 1);
 

@@ -10,6 +10,7 @@ import {
   useCreateSession,
   useCreateAgentExecution,
   useGitHubConnection,
+  useDefaultAgent,
 } from "@stigmer/react";
 import type { AgentResolution, SessionComposerSubmitContext } from "@stigmer/react";
 import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
@@ -62,6 +63,7 @@ export function SessionLauncher() {
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const { create: createSession } = useCreateSession();
   const { create: createExecution } = useCreateAgentExecution();
+  const { agent: defaultAgent } = useDefaultAgent(org);
 
   const handleSubmit = useCallback(
     async (
@@ -75,10 +77,6 @@ export function SessionLauncher() {
       setSubmitError(null);
 
       try {
-        if (!agentRef || !resolution) {
-          throw new Error("Select an agent before starting a session.");
-        }
-
         const sessionFields = {
           org,
           subject: message.slice(0, 120),
@@ -97,21 +95,37 @@ export function SessionLauncher() {
           attachments: context?.attachments,
         };
 
-        if (resolution.mode === "saved") {
-          const { sessionId } = await createSession({
-            ...sessionFields,
-            agentInstanceId: resolution.instanceId,
-          });
-          await createExecution({ ...executionFields, sessionId });
-          router.push(`/sessions/${sessionId}`);
+        let sessionId: string;
+
+        if (agentRef && resolution) {
+          // User explicitly selected an agent — use their choice
+          if (resolution.mode === "saved") {
+            ({ sessionId } = await createSession({
+              ...sessionFields,
+              agentInstanceId: resolution.instanceId,
+            }));
+          } else {
+            ({ sessionId } = await createSession({
+              ...sessionFields,
+              agentRef,
+            }));
+          }
         } else {
-          const { sessionId } = await createSession({
+          // No agent selected — use platform default agent silently
+          const defaultInstanceId = defaultAgent?.status?.defaultInstanceId;
+          if (!defaultInstanceId) {
+            throw new Error(
+              "No default agent available. Select an agent to start a session.",
+            );
+          }
+          ({ sessionId } = await createSession({
             ...sessionFields,
-            agentRef,
-          });
-          await createExecution({ ...executionFields, sessionId });
-          router.push(`/sessions/${sessionId}`);
+            agentInstanceId: defaultInstanceId,
+          }));
         }
+
+        await createExecution({ ...executionFields, sessionId });
+        router.push(`/sessions/${sessionId}`);
       } catch (err) {
         const detail = getUserMessage(err, "Failed to start session");
         setSubmitError(detail);
@@ -129,6 +143,7 @@ export function SessionLauncher() {
       skillRefs,
       agentRef,
       resolution,
+      defaultAgent,
       createSession,
       createExecution,
       router,

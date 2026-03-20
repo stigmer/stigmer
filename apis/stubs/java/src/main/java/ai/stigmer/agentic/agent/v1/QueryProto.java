@@ -42,18 +42,21 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "commons/apiresource/io.proto\0328ai/stigmer" +
       "/commons/apiresource/rpc_service_options" +
       ".proto\032Aai/stigmer/iam/iampolicy/v1/rpca" +
-      "uthorization/method_options.proto2\205\002\n\024Ag" +
+      "uthorization/method_options.proto2\354\002\n\024Ag" +
       "entQueryController\022{\n\003get\022$.ai.stigmer.a" +
       "gentic.agent.v1.AgentId\032\".ai.stigmer.age" +
       "ntic.agent.v1.Agent\"*\302\270\030&\010\003\020(\"\005value*\031un" +
       "authorized to get agent\022j\n\016getByReferenc" +
       "e\0224.ai.stigmer.commons.apiresource.ApiRe" +
       "sourceReference\032\".ai.stigmer.agentic.age" +
-      "nt.v1.Agent\032\004\240\377+(B\235\001B\nQueryProtoP\001\242\002\004ASA" +
-      "A\252\002\033Ai.Stigmer.Agentic.Agent.V1\312\002\033Ai\\Sti" +
-      "gmer\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agent" +
-      "ic\\Agent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::A" +
-      "gentic::Agent::V1b\006proto3"
+      "nt.v1.Agent\022e\n\ngetDefault\0223.ai.stigmer.a" +
+      "gentic.agent.v1.GetDefaultAgentRequest\032\"" +
+      ".ai.stigmer.agentic.agent.v1.Agent\032\004\240\377+(" +
+      "B\235\001B\nQueryProtoP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Ag" +
+      "entic.Agent.V1\312\002\033Ai\\Stigmer\\Agentic\\Agen" +
+      "t\\V1\342\002\'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMe" +
+      "tadata\352\002\037Ai::Stigmer::Agentic::Agent::V1" +
+      "b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

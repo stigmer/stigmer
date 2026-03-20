@@ -31,6 +31,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agent_v1_AgentId_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agent_v1_GetDefaultAgentRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agent_v1_GetDefaultAgentRequest_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -43,11 +48,12 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n$ai/stigmer/agentic/agent/v1/io.proto\022\033" +
       "ai.stigmer.agentic.agent.v1\032\033buf/validat" +
       "e/validate.proto\"\'\n\007AgentId\022\034\n\005value\030\001 \001" +
-      "(\tB\006\272H\003\310\001\001R\005valueB\232\001B\007IoProtoP\001\242\002\004ASAA\252\002" +
-      "\033Ai.Stigmer.Agentic.Agent.V1\312\002\033Ai\\Stigme" +
-      "r\\Agentic\\Agent\\V1\342\002\'Ai\\Stigmer\\Agentic\\" +
-      "Agent\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agen" +
-      "tic::Agent::V1b\006proto3"
+      "(\tB\006\272H\003\310\001\001R\005value\"3\n\026GetDefaultAgentRequ" +
+      "est\022\031\n\003org\030\001 \001(\tB\007\272H\004r\002\020\001R\003orgB\232\001B\007IoPro" +
+      "toP\001\242\002\004ASAA\252\002\033Ai.Stigmer.Agentic.Agent.V" +
+      "1\312\002\033Ai\\Stigmer\\Agentic\\Agent\\V1\342\002\'Ai\\Sti" +
+      "gmer\\Agentic\\Agent\\V1\\GPBMetadata\352\002\037Ai::" +
+      "Stigmer::Agentic::Agent::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -60,6 +66,12 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agent_v1_AgentId_descriptor,
         new java.lang.String[] { "Value", });
+    internal_static_ai_stigmer_agentic_agent_v1_GetDefaultAgentRequest_descriptor =
+      getDescriptor().getMessageType(1);
+    internal_static_ai_stigmer_agentic_agent_v1_GetDefaultAgentRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agent_v1_GetDefaultAgentRequest_descriptor,
+        new java.lang.String[] { "Org", });
     descriptor.resolveAllFeaturesImmutable();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
