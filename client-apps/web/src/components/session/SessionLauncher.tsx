@@ -94,6 +94,7 @@ export function SessionLauncher() {
           message,
           modelName: selectedModel ?? validModelId,
           runtimeEnv: context?.runtimeEnv,
+          attachments: context?.attachments,
         };
 
         if (resolution.mode === "saved") {

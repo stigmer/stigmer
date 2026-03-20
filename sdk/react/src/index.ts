@@ -132,7 +132,24 @@ export type {
 export type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 export { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 
-// Composer — unified message input with model + workspace attachments
+// Attachment — file upload behavior hook and styled chip list
+export {
+  useAttachments,
+  AttachmentChipList,
+  MAX_ATTACHMENT_BYTES,
+  detectContentType,
+  formatFileSize,
+  validateAttachmentSize,
+} from "./attachment";
+export type {
+  AttachmentPhase,
+  AttachmentEntry,
+  UseAttachmentsOptions,
+  UseAttachmentsReturn,
+  AttachmentChipListProps,
+} from "./attachment";
+
+// Composer — unified message input with model, workspace, and file attachments
 export {
   useComposer,
   SessionComposer,

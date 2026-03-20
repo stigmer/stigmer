@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
 import { Popover } from "@base-ui/react/popover";
-import { getUserMessage, type EnvVarInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
+import { getUserMessage, type AttachmentInput, type EnvVarInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useComposer } from "./useComposer";
 import { ModelSelector } from "../models/ModelSelector";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
@@ -19,6 +19,8 @@ import { OneTimeSecretsInput } from "../execution/OneTimeSecretsInput";
 import type { UseOneTimeSecretsReturn } from "../execution/useOneTimeSecrets";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
+import { useAttachments } from "../attachment/useAttachments";
+import { AttachmentChipList } from "../attachment/AttachmentChipList";
 
 /**
  * Context provided to `onSubmit` at the moment of submission.
@@ -41,6 +43,17 @@ export interface SessionComposerSubmitContext {
    * Pass directly to execution creation as `runtimeEnv`.
    */
   readonly runtimeEnv?: Record<string, EnvVarInput>;
+  /**
+   * Pre-uploaded file attachments for the execution.
+   *
+   * Each entry contains a `storageKey` obtained from
+   * `agentExecution.uploadAttachment()`. Only successfully uploaded
+   * attachments are included. Pass directly to execution creation
+   * as `attachments`.
+   *
+   * `undefined` when no files were attached.
+   */
+  readonly attachments?: AttachmentInput[];
 }
 
 export interface SessionComposerProps {
@@ -140,6 +153,24 @@ export interface SessionComposerProps {
    */
   readonly secrets?: UseOneTimeSecretsReturn;
 
+  /**
+   * Enable file attachment support in the composer.
+   *
+   * When `true`, renders an attach button in the toolbar and enables
+   * drag-and-drop file upload on the textarea. Attachments are uploaded
+   * immediately via `agentExecution.uploadAttachment()` and included
+   * in `context.attachments` on submit.
+   *
+   * @default true
+   */
+  readonly enableAttachments?: boolean;
+
+  /**
+   * Called when a file is rejected (e.g., exceeds the 10 MB limit).
+   * Consumers can use this for toast notifications.
+   */
+  readonly onAttachmentValidationError?: (message: string) => void;
+
   /** Placeholder text for the textarea. @default "Reply\u2026" */
   readonly placeholder?: string;
   /** Initial number of visible rows. @default 1 */
@@ -219,6 +250,8 @@ export function SessionComposer({
   skillRefs,
   onSkillRefsChange,
   secrets,
+  enableAttachments = true,
+  onAttachmentValidationError,
   placeholder = "Reply\u2026",
   initialRows = 1,
   autoFocus = false,
@@ -247,6 +280,60 @@ export function SessionComposer({
   const [mcpPopoverOpen, setMcpPopoverOpen] = useState(false);
 
   // -------------------------------------------------------------------------
+  // Attachments — file upload state machine
+  // -------------------------------------------------------------------------
+
+  const attachments = useAttachments(
+    enableAttachments
+      ? { onValidationError: onAttachmentValidationError }
+      : undefined,
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+        attachments.addFiles(e.target.files);
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+    [attachments],
+  );
+
+  const handleDragOver = useCallback(
+    (e: DragEvent) => {
+      if (!enableAttachments || isDisabled) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(true);
+    },
+    [enableAttachments, isDisabled],
+  );
+
+  const handleDragLeave = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+    },
+    [],
+  );
+
+  const handleDrop = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+      if (!enableAttachments || isDisabled) return;
+      if (e.dataTransfer.files.length > 0) {
+        attachments.addFiles(e.dataTransfer.files);
+      }
+    },
+    [enableAttachments, isDisabled, attachments],
+  );
+
+  // -------------------------------------------------------------------------
   // Submit — aggregates one-time runtimeEnv from all setup flows
   // -------------------------------------------------------------------------
 
@@ -270,12 +357,29 @@ export function SessionComposer({
         Object.assign(env, secrets.toRuntimeEnv());
       }
 
+      const attachmentInputs = enableAttachments
+        ? attachments.toAttachmentInputs()
+        : undefined;
+
+      const hasEnv = Object.keys(env).length > 0;
+      const hasAttachments =
+        attachmentInputs !== undefined && attachmentInputs.length > 0;
+
       const context: SessionComposerSubmitContext | undefined =
-        Object.keys(env).length > 0 ? { runtimeEnv: env } : undefined;
+        hasEnv || hasAttachments
+          ? {
+              runtimeEnv: hasEnv ? env : undefined,
+              attachments: hasAttachments ? attachmentInputs : undefined,
+            }
+          : undefined;
 
       onSubmit(message, modelId, context);
+
+      if (enableAttachments) {
+        attachments.clear();
+      }
     },
-    [onSubmit, modelId, agentSetup.state, mcpSetup.pendingRuntimeEnv, secrets],
+    [onSubmit, modelId, agentSetup.state, mcpSetup.pendingRuntimeEnv, secrets, enableAttachments, attachments],
   );
 
   const composer = useComposer({
@@ -416,8 +520,9 @@ export function SessionComposer({
   const showWorkspace = workspace != null;
   const showSkills = onSkillRefsChange != null && org != null;
   const showSecrets = secrets != null;
+  const showAttach = enableAttachments;
   const hasContextTriggers =
-    showAgent || showWorkspace || showMcp || showSkills || showSecrets;
+    showAgent || showWorkspace || showMcp || showSkills || showSecrets || showAttach;
 
   // Build chip items from all context sources
   const chips = useMemo(() => {
@@ -536,17 +641,43 @@ export function SessionComposer({
           "rounded-xl border border-border bg-card shadow-sm",
           "focus-within:ring-2 focus-within:ring-ring",
           isDisabled && "opacity-50",
+          isDragOver && "ring-2 ring-primary/50",
         )}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         {/* Zone 1: Textarea */}
-        <textarea
-          {...composer.textareaProps}
-          onKeyDown={handleTextareaKeyDown}
-          placeholder={placeholder}
-          rows={initialRows}
-          autoFocus={autoFocus}
-          className="block w-full resize-none bg-transparent px-4 pt-3 pb-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
-        />
+        <div className="relative">
+          <textarea
+            {...composer.textareaProps}
+            onKeyDown={handleTextareaKeyDown}
+            placeholder={placeholder}
+            rows={initialRows}
+            autoFocus={autoFocus}
+            className="block w-full resize-none bg-transparent px-4 pt-3 pb-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
+          />
+          {isDragOver && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-t-xl bg-primary/5">
+              <span className="text-xs font-medium text-primary">
+                Drop files to attach
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Hidden file input for the attach button */}
+        {showAttach && (
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleFileInputChange}
+            className="hidden"
+            aria-hidden="true"
+            tabIndex={-1}
+          />
+        )}
 
         {/* Zone 2: Context chips */}
         {chips.length > 0 && (
@@ -566,7 +697,18 @@ export function SessionComposer({
           </div>
         )}
 
-        {/* Zone 2.5: MCP setup warning */}
+        {/* Zone 2.5: Attachment chips */}
+        {showAttach && attachments.hasEntries && (
+          <AttachmentChipList
+            entries={attachments.entries}
+            onRemove={attachments.removeEntry}
+            onRetry={attachments.retryEntry}
+            disabled={isDisabled}
+            className="px-3 pb-2"
+          />
+        )}
+
+        {/* Zone 2.75: MCP setup warning */}
         {showMcp && mcpSetup.needsSetupCount > 0 && (
           <div
             role="status"
@@ -595,6 +737,28 @@ export function SessionComposer({
             {/* Context triggers */}
             {hasContextTriggers && (
               <>
+                {showAttach && (
+                  <button
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
+                      "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                      "disabled:pointer-events-none disabled:opacity-50",
+                    )}
+                    aria-label="Attach files"
+                  >
+                    <PaperclipIcon />
+                    <span>Attach</span>
+                    {attachments.entries.length > 0 && (
+                      <span className="rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-medium text-primary">
+                        {attachments.entries.length}
+                      </span>
+                    )}
+                  </button>
+                )}
+
                 {showAgent && (
                   <ContextPopover
                     icon={<AgentIcon />}
@@ -868,7 +1032,9 @@ function ContextChip({
       <span className="text-[0.55rem] font-medium uppercase tracking-wider text-muted-foreground">
         {CHIP_TYPE_LABELS[type]}
       </span>
-      <span className="max-w-[120px] truncate">{label}</span>
+      <span className="max-w-[120px] truncate" title={label}>
+        {label}
+      </span>
       {detail != null && (
         <span className="shrink-0 text-[0.6rem] font-medium text-muted-foreground">
           {detail}
@@ -1035,6 +1201,24 @@ function XIcon() {
       aria-hidden="true"
     >
       <path d="M4 4L10 10M10 4L4 10" />
+    </svg>
+  );
+}
+
+function PaperclipIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12.5 7L7 12.5a3.536 3.536 0 0 1-5-5L7.5 2a2.357 2.357 0 0 1 3.333 3.333L5.5 10.667a1.179 1.179 0 0 1-1.667-1.667L9 3.833" />
     </svg>
   );
 }
