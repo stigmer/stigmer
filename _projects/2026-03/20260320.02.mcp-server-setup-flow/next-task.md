@@ -14,12 +14,40 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-03-20
-**Current Task**: Phase 0 complete. Next: Phase 1 (T01.1 — mcpServerSetupReducer)
-**Status**: In progress — Phase 0 done, ready for Phase 1
+**Current Task**: Phase 1, T01.1 complete. Next: Phase 1, T01.2 — `useMcpServerSetup` orchestration hook
+**Status**: In progress — Phase 0 done, Phase 1 T01.1 done, ready for T01.2
 
 ## Session Progress (2026-03-20)
 
-### Phase 0: Extract EnvVarForm + Move diffEnvSpec — COMPLETE
+### Session 2: Phase 1, T01.1 — mcpServerSetupReducer — COMPLETE
+
+**What was accomplished:**
+- Planned and implemented `mcpServerSetupReducer.ts` — the pure state machine for per-server MCP setup
+- Made four design refinements from the master plan (all approved during planning):
+  - DD-R1: Merged `ready` and `ready-default` into single `ready` status
+  - DD-R2: Removed `configuring` from reducer (UI navigation state, not data state)
+  - DD-R3: Added `submitting` status for UX feedback on credential form
+  - DD-R4: Error orthogonal to phase (matching `agentSetupReducer` pattern)
+- Zero lint errors, zero TypeScript errors
+
+**File created:**
+- `sdk/react/src/mcp-server/mcpServerSetupReducer.ts` — Pure reducer with 4 statuses (`loading`, `needsSetup`, `submitting`, `ready`), 10-action union, `Record<string, Entry>` state keyed by `org/slug`, orthogonal error per entry
+
+**Exports:**
+- Types: `McpServerSetupPhase`, `McpServerSetupEntry`, `McpServerSetupState`, `McpServerSetupAction`
+- Constants: `INITIAL_MCP_SETUP_STATE`
+- Functions: `mcpServerSetupReducer`, `toServerKey`
+
+**Key decisions:**
+- `Record<string, Entry>` over `Map` for idiomatic React reducer spreading
+- Error orthogonal to phase (matches `AgentSetupState` pattern) — preserves form context on submission failure
+- No `configuring` status — picker owns drill-in navigation via local `useState`
+- No `McpServerUsageInput` in reducer state — derived by hook in `toUsageInputs()`
+- `SUBMIT_START` guards from `needsSetup` only; `SUBMIT_DONE` guards from `submitting` only
+- `SET_ENABLED_TOOLS` guards from `ready` only
+- `ADD_SERVER` always resets to `loading` (hook prevents misuse)
+
+### Session 1: Phase 0 — Extract EnvVarForm + Move diffEnvSpec — COMPLETE
 
 **What was accomplished:**
 - Reviewed and approved the master plan (T01_0_plan.md)
@@ -49,15 +77,14 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 1, T01.1**: Create `mcpServerSetupReducer.ts` in `sdk/react/src/mcp-server/`
-   - State machine for per-server setup: `loading → needs-setup → configuring → ready → error`
-   - Map-based state keyed by `org/slug`
-   - Pure reducer, independently testable
-2. **Phase 1, T01.2**: Create `useMcpServerSetup.ts` orchestration hook
+1. **Phase 1, T01.2**: Create `useMcpServerSetup.ts` orchestration hook
    - Composes `usePersonalEnvironment`, `diffEnvSpec`, MCP SDK client
    - `addServer`, `removeServer`, `submitEnvVars`, `setEnabledTools`, `toUsageInputs`
-3. **Phase 2**: UI components — `McpToolSelector`, `McpServerConfigPanel`, enhanced `McpServerPicker`
-4. **Phase 3**: SessionComposer integration, submission blocking, enhanced chips
+   - Uses `mcpServerSetupReducer` via `useReducer`
+   - Handles save vs one-time path for credentials
+   - Derives `allReady`, `needsSetupCount`, `pendingRuntimeEnv`
+2. **Phase 2**: UI components — `McpToolSelector`, `McpServerConfigPanel`, enhanced `McpServerPicker`
+3. **Phase 3**: SessionComposer integration, submission blocking, enhanced chips
 
 ## Context for Resume
 
@@ -70,12 +97,15 @@ Drop this file into your conversation to quickly resume work on this project.
   - Shared EnvVarForm extraction from AgentEnvForm
   - Submission blocking for unconfigured servers
 - Phase 0 is committed and verified — no lint errors, all exports work
+- Phase 1 T01.1 (reducer) is complete — needs commit
+- The reducer refined the master plan's state model (4 statuses instead of 6, error orthogonal)
+- T01.2 (hook) will compose: `useReducer(mcpServerSetupReducer)`, `usePersonalEnvironment`, `diffEnvSpec`, `useStigmer().mcpServer`
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-1.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-2.md
 ```
 
 ### 2. Current Task Plan
@@ -102,11 +132,12 @@ These projects established patterns and infrastructure this project builds on:
 
 | File | Purpose |
 |------|---------|
-| `sdk/react/src/environment/EnvVarForm.tsx` | **NEW** — Shared env var collection form |
-| `sdk/react/src/environment/diffEnvSpec.ts` | **MOVED** — Env spec diffing (shared) |
+| `sdk/react/src/mcp-server/mcpServerSetupReducer.ts` | **NEW** — Per-server setup state machine |
+| `sdk/react/src/environment/EnvVarForm.tsx` | Shared env var collection form |
+| `sdk/react/src/environment/diffEnvSpec.ts` | Env spec diffing (shared) |
 | `sdk/react/src/agent/AgentEnvForm.tsx` | Thin wrapper over EnvVarForm |
 | `sdk/react/src/agent/useAgentSetup.ts` | Agent setup orchestration (pattern to mirror) |
-| `sdk/react/src/agent/agentSetupReducer.ts` | Agent setup state machine (pattern to mirror) |
+| `sdk/react/src/agent/agentSetupReducer.ts` | Agent setup state machine (pattern mirrored) |
 | `sdk/react/src/mcp-server/McpServerPicker.tsx` | Current MCP picker (enhance in Phase 2) |
 | `sdk/react/src/composer/SessionComposer.tsx` | Composer (wire setup hook in Phase 3) |
 | `sdk/react/src/environment/usePersonalEnvironment.ts` | Personal env hook (reused by MCP setup) |
@@ -137,7 +168,7 @@ These projects established patterns and infrastructure this project builds on:
 
 After loading context:
 - "Show project status" - Get overview of progress
-- "Continue with next task" - Start Phase 1 (mcpServerSetupReducer)
+- "Continue with next task" - Start T01.2 (useMcpServerSetup hook)
 - "Review guidelines" - Check established patterns
 
 ---
