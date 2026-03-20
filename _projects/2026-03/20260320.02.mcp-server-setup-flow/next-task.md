@@ -14,10 +14,43 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-03-20
-**Current Task**: Phase 3, T03.2 complete. Next: Phase 3, T03.3 — Enhanced MCP chips
-**Status**: In progress — Phase 0 done, Phase 1 done, Phase 2 done, Phase 3 T03.1 done, T03.2 done, ready for T03.3
+**Current Task**: Phase 3, T03.3 complete. Next: Phase 3, T03.4 — RuntimeEnv aggregation
+**Status**: In progress — Phase 0 done, Phase 1 done, Phase 2 done, Phase 3 T03.1 done, T03.2 done, T03.3 done, ready for T03.4
 
 ## Session Progress (2026-03-20)
+
+### Session 9: Phase 3, T03.3 — Enhanced MCP chips (tool counts, setup status) — COMPLETE
+
+**What was accomplished:**
+- Planned and implemented enhanced MCP chips in SessionComposer showing per-server status
+- Three design decisions made and applied (DD-T03.7 through DD-T03.9):
+  - DD-T03.7: Extend `ContextChip` (not separate component) — internal type, small additions, unified rendering
+  - DD-T03.8: Error state on chips deferred — keep T03.3 scoped to plan spec, errors surfaced in popover only
+  - DD-T03.9: `submitting` treated identically to `loading` — spinner + muted, consistent with two-signal philosophy
+- Zero lint errors, zero TypeScript errors
+- No prop contract changes on `SessionComposerProps`, no new files, no exported API changes
+
+**File modified:**
+- `sdk/react/src/composer/SessionComposer.tsx` — +95/-2 lines (net +93)
+
+**Key changes:**
+- Extended `ChipItem` (internal type) with optional `status`, `detail`, `onClick` fields
+- MCP chip building populates `status` from entry, `detail` as tool fraction for custom selections, `onClick` for needsSetup chips
+- `ContextChip` now renders status-driven variants: amber bg + dot for needsSetup, spinner + muted for loading/submitting, tool count badge for custom tool selection
+- Clickable label area for needsSetup chips (opens MCP popover), separate remove button preserved
+- Added `ChipSpinner` SVG icon (10x10, matches SpinnerIcon proportions)
+- Added `setMcpPopoverOpen` to `chips` useMemo dependency array
+
+**Behavioral changes:**
+- `loading` / `submitting` chips: show spinner indicator, muted at 70% opacity
+- `needsSetup` chips: amber background + border, amber dot indicator, clickable label opens MCP popover
+- `ready` (all tools) chips: unchanged from before
+- `ready` (custom tools) chips: show tool fraction badge (e.g., "4/12") before remove button
+
+**Accessibility:**
+- Clickable needsSetup chips get `aria-label="Configure {name}"`
+- ChipSpinner and amber dot are `aria-hidden="true"` (warning banner is the primary announcement)
+- Remove button `aria-label="Remove {label}"` unchanged
 
 ### Session 8: Phase 3, T03.2 — Submission blocking for unconfigured MCP servers — COMPLETE
 
@@ -282,12 +315,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 3, T03.3**: Enhanced MCP chips (tool counts, setup status)
-   - Ready (all tools): `github (MCP)`
-   - Ready (custom tools): `github (MCP) 4/12`
-   - Needs setup: `github (MCP)` with amber indicator, clickable to open MCP popover
-2. **Phase 3, T03.4**: RuntimeEnv aggregation from MCP + agent + one-time secrets
-3. **Phase 3, T03.5**: Barrel exports update
+1. **Phase 3, T03.4**: RuntimeEnv aggregation from MCP + agent + one-time secrets
+2. **Phase 3, T03.5**: Barrel exports update
 
 ## Context for Resume
 
@@ -304,15 +333,16 @@ Drop this file into your conversation to quickly resume work on this project.
 - Phase 2 is committed and verified (T02.1 + T02.2 + T02.3)
 - Phase 3, T03.1 is complete and verified — SessionComposer wired with setup hook
 - Phase 3, T03.2 is complete and verified — submission blocking with warning banner
-- 29 design refinements from master plan (DD-R1 through DD-R16, DD-T3.1 through DD-T3.7, DD-T03.1 through DD-T03.3, DD-T03.4 through DD-T03.6) — all approved and applied
-- The full orchestration layer is wired: reducer → hook → picker → composer → submission gate
-- Remaining Phase 3 tasks: enhanced chips (T03.3), runtimeEnv aggregation (T03.4), barrel exports (T03.5)
+- Phase 3, T03.3 is complete and verified — enhanced MCP chips with status indicators and tool counts
+- 32 design refinements from master plan (DD-R1 through DD-R16, DD-T3.1 through DD-T3.7, DD-T03.1 through DD-T03.3, DD-T03.4 through DD-T03.6, DD-T03.7 through DD-T03.9) — all approved and applied
+- The full orchestration layer is wired: reducer → hook → picker → composer → submission gate → enhanced chips
+- Remaining Phase 3 tasks: runtimeEnv aggregation (T03.4), barrel exports (T03.5)
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-8.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-9.md
 ```
 
 ### 2. Current Task Plan
