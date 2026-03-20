@@ -18,3 +18,12 @@ export type {
 
 export { McpServerPicker } from "./McpServerPicker";
 export type { McpServerPickerProps } from "./McpServerPicker";
+
+export { useMcpServerSetup, toServerKey } from "./useMcpServerSetup";
+export type {
+  UseMcpServerSetupReturn,
+  SubmitMcpEnvVarsOptions,
+  McpServerSetupEntry,
+  McpServerSetupPhase,
+  McpServerSetupState,
+} from "./useMcpServerSetup";
