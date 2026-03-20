@@ -68,13 +68,37 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 20:08
-**Current Task**: T01 (Initial Setup)
-**Status**: Planning
+**Current Task**: T04 (Session API Cleanup)
+**Status**: Ready to start
+
+## Session Progress (2026-03-20)
+
+- **T01 completed**: Fixed incorrect CLI commands in `docs/product/how-to-provide-secrets.md`
+  - Replaced three non-existent Environment Flow CLI commands with a planned-support note
+  - Fixed Execution Flow CLI example: added missing `-m` flag (surprise finding — the "correct" example was also wrong)
+  - Committed: `6c941c85` on `feat/add-customize-ui-2`
+- **Surprise finding during T01**: The planning phase marked `stigmer run my-agent "..."` as correct, but the message was a positional arg, not using `-m`. Fixed in the same change.
+- **Decision on Change 3 (--env-file / --secret-file)**: Not yet decided — deferred for user input
+
+## Next Steps
+
+1. **Start T04** — Clean up dual-path session creation API (`useCreateSession`)
+   - Refactor input to mutual-exclusion TypeScript pattern (`agentInstanceId` XOR `agentRef`)
+   - Read `T01_2_revised_plan.md` for full T04 spec
+2. Then T03 — Naming consistency (`env_refs` -> `environment_refs`)
+3. Then T02 — `useAgentSetup` hardening (largest task)
+
+## Context for Resume
+
+- The revised plan (`T01_2_revised_plan.md`) is the authoritative task breakdown — all decisions resolved, all tasks approved
+- Execution order: T01 (done) -> T04 -> T03 -> T02 -> T05 -> T06
+- No checkpoints, design decisions, coding guidelines, wrong assumptions, or don't-dos created yet
+- Working branch: `feat/add-customize-ui-2`
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01" - Resume the current task
+- "Start T04" - Begin the Session API cleanup task
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
