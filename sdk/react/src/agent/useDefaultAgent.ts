@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { create } from "@bufbuild/protobuf";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
+import { GetDefaultAgentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/io_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
@@ -53,7 +55,7 @@ export function useDefaultAgent(org: string | null): UseDefaultAgentReturn {
     setIsLoading(true);
     setError(null);
 
-    stigmer.agent.getDefault({ org }).then(
+    stigmer.agent.getDefault(create(GetDefaultAgentRequestSchema, { org })).then(
       (result) => {
         if (cancelled.current) return;
         setAgent(result);
