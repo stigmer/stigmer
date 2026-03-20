@@ -209,6 +209,33 @@ export interface SessionComposerProps {
    */
   readonly onAttachmentValidationError?: (message: string) => void;
 
+  /**
+   * Files to attach programmatically when the composer mounts.
+   *
+   * When provided, the composer uploads these files via the same
+   * attachment pipeline as user-selected files. Attachment chips
+   * appear in the UI so the user sees what is attached.
+   *
+   * One-time: consumed when the value first becomes truthy.
+   * Subsequent changes are ignored. This allows async resource
+   * fetching — the effect waits for the files to be ready.
+   *
+   * Requires `enableAttachments` to be `true` (default).
+   *
+   * @example
+   * ```tsx
+   * const yaml = serializeAgentYaml(agent);
+   * const file = new File([yaml], "my-agent.yaml", { type: "text/yaml" });
+   *
+   * <SessionComposer
+   *   onSubmit={handleSubmit}
+   *   initialAttachments={[file]}
+   *   initialAgentRef={{ org: "stigmer", slug: "agent-creator" }}
+   * />
+   * ```
+   */
+  readonly initialAttachments?: File[];
+
   /** Placeholder text for the textarea. @default "Reply\u2026" */
   readonly placeholder?: string;
   /** Initial number of visible rows. @default 1 */
@@ -308,6 +335,7 @@ export function SessionComposer({
   secrets,
   enableAttachments = true,
   onAttachmentValidationError,
+  initialAttachments,
   placeholder = "Reply\u2026",
   initialRows = 1,
   autoFocus = false,
@@ -580,6 +608,24 @@ export function SessionComposer({
       handleAgentSelectRef.current(initialAgentRef);
     }
   }, [initialAgentRef, showAgent]);
+
+  // ---------------------------------------------------------------------------
+  // Initial attachments: upload files on mount when provided
+  // ---------------------------------------------------------------------------
+
+  const initialAttachmentsHandled = useRef(false);
+
+  useEffect(() => {
+    if (
+      initialAttachments &&
+      initialAttachments.length > 0 &&
+      enableAttachments &&
+      !initialAttachmentsHandled.current
+    ) {
+      initialAttachmentsHandled.current = true;
+      attachments.addFiles(initialAttachments);
+    }
+  }, [initialAttachments, enableAttachments, attachments]);
 
   // ---------------------------------------------------------------------------
   // MCP server setup: sync usageInputs to consumer

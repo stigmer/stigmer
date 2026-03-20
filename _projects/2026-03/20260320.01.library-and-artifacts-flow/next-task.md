@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-20 10:41
-**Current Task**: Phase 3 Complete — all tasks T03.1–T03.3 done
-**Status**: Phase 3 Complete (T03.1–T03.3 done; Phases 4–5 are future scope)
+**Current Task**: Phase 4 Complete — all tasks T04.1–T04.6 done
+**Status**: Phase 4 Complete (T04.1–T04.6 done; Phase 5 is future scope via sub-project)
 
 ## Session Progress (2026-03-20, Session 1)
 
@@ -658,16 +658,83 @@ When starting a new session:
 - 4 Library pages updated with draft session URLs
 - Full flow: Library "Create New" → `/?draft=type` → SessionLauncher reads param → SessionComposer auto-resolves agent → user types description → session created → artifacts widget shows Apply CTA
 
+## Session Progress (2026-03-20, Session 23)
+
+### Completed
+- **Phase 4: Edit Flow** — all 6 tasks T04.1–T04.6 done
+
+- **T04.1 — Resource YAML serialization**: Created `sdk/react/src/library/serialize-resource-yaml.ts`
+  - Two pure functions: `serializeAgentYaml(agent)` and `serializeMcpServerYaml(mcpServer)`
+  - Inverse of `parseResourceYaml` — converts proto objects to canonical snake_case YAML
+  - Handles all nested structures: mcp_server_usages, sub_agents, env_spec, stdio/http, resource refs, tool approvals
+  - Skips `status` field (system-managed)
+  - Exported from `library/index.ts` and top-level barrel
+
+- **T04.2 — `initialAttachments` prop on SessionComposer (SDK)**:
+  - New `initialAttachments?: File[]` prop with full JSDoc
+  - Mount-time effect following the `initialAgentRef` pattern — one-shot, async-safe
+  - Calls `attachments.addFiles()` when files first become available
+
+- **T04.3 — Edit session URL utilities (Console)**:
+  - `DraftParams` interface with optional `editRef: { org, slug }`
+  - `getEditSessionUrl(resourceType, org, slug)` → `/?draft=agent&editOrg=acme&editSlug=my-agent`
+  - `parseDraftParams(searchParams)` returning full `DraftParams | null`
+  - Backward-compatible: `parseDraftParam` (singular) still works
+
+- **T04.4 — SessionLauncher edit mode (Console)**:
+  - Rewired to use `parseDraftParams` for richer URL parsing
+  - Conditionally fetches resource via `useAgent`/`useMcpServer`/`useSkill` hooks
+  - Serializes Agent/McpServer to YAML `File`, downloads Skill package as ZIP `File`
+  - Passes `initialAttachments` to `SessionComposer`
+  - Edit-mode placeholders ("Describe how you'd like to modify...") and heading ("What would you like to change?")
+  - Error handling: toast on failure, graceful fallback
+  - Proto message construction via `create(GetArtifactRequestSchema, ...)` for skill artifact download
+
+- **T04.5 — Edit buttons on Library pages (Console)**:
+  - AgentDetailPage: Added "Edit" link button in header (navigates to edit session URL)
+  - SkillListPage: Added `onItemClick` → edit session URL (interim until detail pages ready)
+  - McpServerListPage: Same interim `onItemClick` → edit session URL
+
+- **T04.6 — Creator agent instruction updates (Seedpack)**:
+  - agent-creator.yaml: "Modification Mode" section — check `/inputs/` for attached YAML, produce complete updated Agent YAML
+  - skill-creator.yaml: "Modification Mode" section — check `/inputs/` for attached ZIP, extract, rewrite all files, skip scaffolding
+  - mcp-server-creator.yaml: Same pattern for McpServer YAML modification
+
+### Architecture Decisions
+- **Client-side YAML serialization**: No backend changes needed — `yaml` package already a dependency, `serializeResourceYaml` is the inverse of `parseResourceYaml`
+- **Uniform edit pattern across all three types**: Agent/McpServer as YAML, Skill as ZIP — creator agent handles editing via instructions, output flows through existing Phase 2 artifact detection + apply/push pipeline
+- **`initialAttachments` as an SDK prop**: Platform builders embedding Stigmer need the same capability, not Console-only
+- **No `initialMessage` needed**: Attachment chips + placeholder text + agent instructions provide sufficient context
+
+### Files Changed
+- 12 files modified/created, ~390 insertions, ~20 deletions
+- 1 new SDK file (`serialize-resource-yaml.ts`)
+- 1 SDK component modified (`SessionComposer.tsx` — new prop + effect)
+- 3 Console files modified (draft-session.ts, SessionLauncher.tsx, AgentDetailPage.tsx)
+- 2 Console list pages modified (SkillListPage, McpServerListPage)
+- 3 seedpack YAML files updated (all three creator agents)
+
+### Phase 4 Complete
+- All tasks T04.1–T04.6 done
+- 2 SDK pure functions (`serializeAgentYaml`, `serializeMcpServerYaml`)
+- 1 SDK prop addition (`initialAttachments` on `SessionComposer`)
+- 3 Console utility functions (`getEditSessionUrl`, `parseDraftParams`, `DraftParams`)
+- Full SessionLauncher edit mode (fetch + serialize + attach)
+- Edit buttons on 3 Library pages
+- Creator agent instruction updates for modification mode
+- Zero backend changes, zero proto changes
+
 ## Next Steps
 
-1. **Phase 4: Edit Flow + Attachments** (future)
-2. **Phase 5: Resource Detail View** (future — sub-project started at `20260320.03.sp.resource-detail-views`)
+1. **Phase 5: Resource Detail View** (in progress via sub-project `20260320.03.sp.resource-detail-views`)
 
 ## Context for Resume
 
 - **Phase 1 (Library Pages + Navigation) is COMPLETE** — all tasks T01.1–T01.13 done
 - **Phase 2 (Execution Artifacts Widget + Apply Flow) is COMPLETE** — all tasks T02.1–T02.8 done
 - **Phase 3 (Create New Draft Flow) is COMPLETE** — all tasks T03.1–T03.3 done
+- **Phase 4 (Edit Flow) is COMPLETE** — all tasks T04.1–T04.6 done
+- **Phase 5 (Resource Detail Views)** — in progress via sub-project
 - **Branch**: `feat/add-customize-ui-2` (stigmer OSS), `feat/add-library-ui` (stigmer-cloud)
 
 ## Quick Commands

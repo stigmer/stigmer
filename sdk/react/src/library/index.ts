@@ -27,6 +27,11 @@ export type { UseDetectSkillPackageReturn } from "./useDetectSkillPackage";
 export { parseResourceYaml } from "./parse-resource-yaml";
 export type { ParsedResource } from "./parse-resource-yaml";
 
+export {
+  serializeAgentYaml,
+  serializeMcpServerYaml,
+} from "./serialize-resource-yaml";
+
 export { useApplyResource } from "./useApplyResource";
 export type {
   UseApplyResourceReturn,
