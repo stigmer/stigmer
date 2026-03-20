@@ -288,11 +288,32 @@ When starting a new session:
 - TypeScript check passes (zero errors in new/modified files)
 - Lint clean on all 4 files (1 new, 3 modified)
 
+## Session Progress (2026-03-20, Session 10)
+
+### Completed
+- **T01.11 — Agent list page**: Created `/library/agents` route in the Console
+  - `client-apps/web/src/app/library/agents/page.tsx` — thin server component entry point
+  - `client-apps/web/src/app/library/agents/AgentListPage.tsx` — client component composing `useAgentList` + `ResourceListView`
+  - Manages three pieces of local state: `scope` (persisted to localStorage), `query`, `page`
+  - Scope persisted to localStorage per DD-003 key `stigmer:library:agents:scope`, defensive read (validates stored value, SSR-safe)
+  - Page header: "Agents" h1 + "Create Agent" ghost link (navigates to `/` for Phase 1)
+  - Agent-specific customizations: `searchPlaceholder="Search agents…"`, `emptyIcon=<Bot>`, `emptyTitle="No agents found"`, `aria-label="Agent list"`
+  - No custom row renderer — `DefaultResourceRow` in `ResourceListView` handles rendering with correct `AgentIcon` via `KindIcon`
+  - No `onItemClick` — rows are informational for Phase 1 (detail pages are Phase 5)
+  - Breadcrumb "Library / Agents" handled automatically by `LibraryBreadcrumb` in layout
+
+### Architecture Decision
+- **Console composition over SDK wrapper**: Chose to compose `useAgentList` + `ResourceListView` at the Console level rather than building an `AgentListView` SDK component. The building blocks are already in the SDK; a pre-composed wrapper would be speculative without platform builder usage evidence. Extraction is trivially easy later.
+
+### Verification
+- TypeScript check passes (zero errors in new files)
+- Lint clean on both files
+- Landing page card link to `/library/agents` now resolves
+
 ## Next Steps
 
-1. **T01.11 — Agent list page**: `/library/agents`
-2. **T01.12 — Skill list page**: `/library/skills`
-3. **T01.13 — MCP Server list page**: `/library/mcp-servers`
+1. **T01.12 — Skill list page**: `/library/skills`
+2. **T01.13 — MCP Server list page**: `/library/mcp-servers`
 
 ## Context for Resume
 
@@ -300,19 +321,20 @@ When starting a new session:
 - **UI components complete** (T01.5–T01.7): `ScopeToggle`, `ResourceListView`, `ResourceCountCard` in `library/` module
 - **Sidebar link complete** (T01.9): "Library" link in sidebar with active state for `/library/*`
 - **Landing page complete** (T01.10): `/library` shows three `ResourceCountCard` cards with live counts, breadcrumb nav, and "Create New" shortcuts
+- **Agent list page complete** (T01.11): `/library/agents` composes `useAgentList` + `ResourceListView` with localStorage scope persistence
 - **T01.8 skipped**: barrel exports already done for all three components
 - The `library/` module has 3 components + 4 type exports: `ScopeToggle`, `ResourceListView`, `ResourceCountCard`, `ScopeToggleProps`, `ResourceListViewProps`, `ResourceCountCardProps`, `ResourceListScope`
 - Count hooks return `count: number | undefined` — `undefined` = not yet loaded, `0` = loaded with zero results
-- Breadcrumb component in layout — sub-pages (T01.11–T01.13) get breadcrumbs automatically
-- "Create New" shortcuts all go to `/` for now — Phase 3 adds pre-fill via query params
-- **Next work is Console list pages** (T01.11–T01.13) — each page composes `ResourceListView` with the corresponding list hook
+- Breadcrumb component in layout — sub-pages get breadcrumbs automatically
+- "Create New" shortcuts and "Create Agent" link all go to `/` for now — Phase 3 adds pre-fill via query params
+- T01.12 and T01.13 follow the exact same pattern as T01.11 — near-copies with resource-type-specific substitutions
+- When T01.12/T01.13 are implemented, consider extracting localStorage scope persistence into a shared `usePersistedScope` utility if duplication feels excessive
 - Branch: `feat/add-customize-ui-2`
-- Card links go to `/library/agents`, `/library/skills`, `/library/mcp-servers` — will 404 until T01.11–T01.13 are implemented
+- Card links to `/library/skills` and `/library/mcp-servers` will 404 until T01.12–T01.13 are implemented
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.11" — Implement Agent list page
 - "Continue with T01.12" — Implement Skill list page
 - "Continue with T01.13" — Implement MCP Server list page
 - "Show project status" — Get overview of progress
