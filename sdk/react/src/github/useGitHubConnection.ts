@@ -105,10 +105,15 @@ export function useGitHubConnection(
 
   const reconciled = useRef(false);
 
-  // When org is null there is no server to check — mark loading done.
-  useEffect(() => {
-    if (!org) setIsLoading(false);
-  }, [org]);
+  // Synchronously reset loading state when org changes so callers
+  // (like the callback page) see the correct value in the same
+  // render — not deferred to the next render via an effect.
+  const [prevOrg, setPrevOrg] = useState(org);
+  if (org !== prevOrg) {
+    setPrevOrg(org);
+    setIsLoading(!!org);
+    reconciled.current = false;
+  }
 
   // ── Server reconciliation ────────────────────────────────────────────
   // Runs once after the personal environment finishes loading.
@@ -172,11 +177,6 @@ export function useGitHubConnection(
       cancelled = true;
     };
   }, [org, personalEnv.isLoading, personalEnv.environment, stigmer]);
-
-  // Reset reconciliation flag when org changes so we re-reconcile.
-  useEffect(() => {
-    reconciled.current = false;
-  }, [org]);
 
   const connect = useCallback(
     async (redirectUri: string) => {

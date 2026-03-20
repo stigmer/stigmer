@@ -43,9 +43,28 @@ export function useEnvironmentList(
   const stigmer = useStigmer();
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [totalCount, setTotalCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!org);
   const [error, setError] = useState<Error | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
+
+  // Synchronously reset loading state when org changes so that
+  // downstream hooks see isLoading=true in the SAME render —
+  // not deferred to the next render via an effect.
+  const [prevOrg, setPrevOrg] = useState(org);
+  if (org !== prevOrg) {
+    setPrevOrg(org);
+    if (org) {
+      setIsLoading(true);
+      setEnvironments([]);
+      setTotalCount(0);
+      setError(null);
+    } else {
+      setIsLoading(false);
+      setEnvironments([]);
+      setTotalCount(0);
+      setError(null);
+    }
+  }
 
   const labelsRef = useRef(labels);
   if (
@@ -59,17 +78,9 @@ export function useEnvironmentList(
   const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
 
   useEffect(() => {
-    if (!org) {
-      setEnvironments([]);
-      setTotalCount(0);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
+    if (!org) return;
 
     const cancelled = { current: false };
-    setIsLoading(true);
-    setError(null);
 
     stigmer.environment
       .list(
