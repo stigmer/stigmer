@@ -101,76 +101,75 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-20 18:23
-**Current Task**: T01 — Phase 2, Round 2 (SkillDetailView + McpServerDetailView)
-**Status**: In Progress
+**Current Task**: T01 — All phases complete
+**Status**: Complete
 
-## Session Progress (2026-03-20, Session 2)
+## Session Progress (2026-03-20, Session 3 — Round 2)
 
-### Completed This Session (Round 1 — AgentDetailView vertical slice)
-- **T01.4 `AgentDetailView`** — Full SDK component in `sdk/react/src/agent/AgentDetailView.tsx` (476 lines)
-  - 6 sections: Header, Instructions (collapsible), MCP Server Usages (cross-linked), Skills (cross-linked), Sub-Agents (expandable with nested details), Environment Variables
-  - Empty-section omission — sections with no data are not rendered
-  - Loading skeleton, error state (via `ErrorMessage`), not-found state
-  - Cross-resource linking via `onMcpServerClick` / `onSkillClick` callback props (routing-agnostic)
-  - Same-org references show slug only; cross-org references show `org/slug` (smart label display)
-  - Sub-agent details: expandable with border-left indent, shows instructions, MCP access, skills, model override
-  - Zero Console dependencies, fully themed via `--stgm-*` tokens, inline SVG icons
-- **T01.7 Agent detail Console page** — `client-apps/web/src/app/library/agents/[slug]/page.tsx` + `AgentDetailPage.tsx`
-  - Thin client wrapper: `useParams` for slug, `useActiveOrgSlug` for org, `useRouter` for navigation callbacks
-  - `generateStaticParams` placeholder for static export compatibility
-- **T01.10 (partial) Agent list wiring** — Added `onItemClick` to `AgentListPage.tsx`
-  - `onItemClick={(item) => router.push(`/library/agents/${item.slug}`)}`
-- **T01.11 (partial) Barrel exports** — `AgentDetailView` + `AgentDetailViewProps` exported from `agent/index.ts` and root `index.ts`
+### Completed This Session (Round 2 — SkillDetailView + McpServerDetailView)
+
+- **Shared markdown extraction** — `MARKDOWN_COMPONENTS` + `REMARK_PLUGINS` extracted from `MessageEntry.tsx` to `sdk/react/src/internal/markdown-components.tsx`. Both `MessageEntry` and `SkillDetailView` import from the shared module. Internal only — not part of public barrel exports.
+- **T01.5 `SkillDetailView`** — SDK component in `sdk/react/src/skill/SkillDetailView.tsx`
+  - 3 sections: Header (name, tag badge, state badge, visibility, timestamps, description), Skill Content (SKILL.md rendered via `react-markdown`), Version Info (truncated hash with full on hover, git provenance with linkified repo URL)
+  - State badge color mapping: Ready = emerald, Failed = destructive, Uploading = amber
+  - Git provenance: normalizes SSH/HTTPS URLs, formats repo name, short commit hash, subdirectory display
+  - `stgm-prose` finding: not defined in `@stigmer/theme` — styling handled entirely by `MARKDOWN_COMPONENTS` inline overrides (no CSS class needed)
+- **T01.6 `McpServerDetailView`** — SDK component in `sdk/react/src/mcp-server/McpServerDetailView.tsx`
+  - 7 sections: Validation Banner (conditional, destructive alert), Header (icon/name, validation badge, last discovered timestamp), Server Configuration (stdio/http type-specific), Discovered Tools (name + description, count in title), Resource Templates (name + URI template + description), Environment Variables (alphabetical, secret/config badge), Tags (pill badges)
+  - Headers/query params intentionally hidden from Server Configuration (may contain `${API_TOKEN}` placeholders)
+  - Tool `input_schema` intentionally not shown (name + description sufficient for initial ship)
+- **T01.8 Skill detail Console page** — `client-apps/web/src/app/library/skills/[slug]/page.tsx` + `SkillDetailPage.tsx`
+- **T01.9 MCP Server detail Console page** — `client-apps/web/src/app/library/mcp-servers/[slug]/page.tsx` + `McpServerDetailPage.tsx`
+- **T01.10 (complete) List wiring** — `SkillListPage.tsx` and `McpServerListPage.tsx` updated with `onItemClick` navigating to detail routes (changed from edit session to detail page)
+- **T01.11 (complete) Barrel exports** — `SkillDetailView` + `SkillDetailViewProps` and `McpServerDetailView` + `McpServerDetailViewProps` exported from module barrels and root `index.ts`
+
+### Previously Completed (Session 2 — Round 1)
+- **T01.4 `AgentDetailView`** — 476 lines, 6 sections, cross-resource linking
+- **T01.7 Agent detail Console page**
+- **T01.10 (partial) Agent list wiring**
+- **T01.11 (partial) Agent barrel exports**
 
 ### Previously Completed (Session 1)
 - **Phase 1: SDK Data Hooks** — all 3 hooks (`useAgent`, `useSkill`, `useMcpServer`) implemented and exported
 - **Plan reviewed and approved** — T01_0_plan.md with 4 phases
 
 ### Key Decisions This Session
-- Decided on 2-round approach: Agent first (establishes patterns), then Skill + McpServer together
-- No shared `ResourceDetailHeader` extraction yet — will evaluate when building Skill + McpServer views (>80% overlap threshold)
-- Instructions collapsible uses line-count approach: split by `\n`, show first 8 lines, "Show more" button
-- Sub-agent expansion via `useState<Set<number>>` with `aria-expanded`, border-left indentation for nesting
-- Cross-resource link org fallback: when `ref.org` is empty, uses the agent's own org as fallback for click handler
-- Removed `onSubAgentMcpServerClick` from plan — sub-agent MCP access is informational (slug-only reference back to parent), not navigational
-- Section wrapper: `<section>` with uppercase tracking title + bordered rounded card container with `overflow-hidden`
-- Env spec entries sorted alphabetically, show "secret" or "config" badge
+- Extracted `MARKDOWN_COMPONENTS` to shared internal module rather than duplicating — DRY, same styling works for both chat messages and skill documents
+- `stgm-prose` wrapper class in `MessageEntry.tsx` has no definition in `@stigmer/theme` — confirmed it's a no-op; all styling comes from `MARKDOWN_COMPONENTS` element overrides. Left as-is in `MessageEntry` (harmless), not used in `SkillDetailView`.
+- Deferred `ResourceDetailHeader` extraction — overlap is ~70-75% (below 80% threshold). Type-specific badges create enough variation that a shared component would need render-prop slots, adding more complexity than the duplication it saves.
+- List pages (`SkillListPage`, `McpServerListPage`) changed from navigating to edit sessions to navigating to detail pages — consistent with `AgentListPage` pattern
+- Neither `SkillDetailView` nor `McpServerDetailView` needs cross-resource click callbacks (unlike `AgentDetailView`) — simpler props interface
+- `T01.12 Breadcrumb polish` left as optional — slug is already human-readable in the breadcrumb
+
+### Files Created This Session
+- `sdk/react/src/internal/markdown-components.tsx` (shared markdown rendering)
+- `sdk/react/src/skill/SkillDetailView.tsx` (SDK component)
+- `sdk/react/src/mcp-server/McpServerDetailView.tsx` (SDK component)
+- `client-apps/web/src/app/library/skills/[slug]/SkillDetailPage.tsx` (Console page)
+- `client-apps/web/src/app/library/skills/[slug]/page.tsx` (Next.js route)
+- `client-apps/web/src/app/library/mcp-servers/[slug]/McpServerDetailPage.tsx` (Console page)
+- `client-apps/web/src/app/library/mcp-servers/[slug]/page.tsx` (Next.js route)
 
 ### Files Modified This Session
-- `sdk/react/src/agent/AgentDetailView.tsx` (new — 476 lines)
-- `client-apps/web/src/app/library/agents/[slug]/page.tsx` (new)
-- `client-apps/web/src/app/library/agents/[slug]/AgentDetailPage.tsx` (new)
-- `client-apps/web/src/app/library/agents/AgentListPage.tsx` (modified — added onItemClick + useRouter)
-- `sdk/react/src/agent/index.ts` (modified — added AgentDetailView export)
-- `sdk/react/src/index.ts` (modified — added AgentDetailView to root barrel)
+- `sdk/react/src/execution/MessageEntry.tsx` (extracted MARKDOWN_COMPONENTS to shared module)
+- `sdk/react/src/skill/index.ts` (added SkillDetailView export)
+- `sdk/react/src/mcp-server/index.ts` (added McpServerDetailView export)
+- `sdk/react/src/index.ts` (added both to root barrel)
+- `client-apps/web/src/app/library/skills/SkillListPage.tsx` (onItemClick → detail route)
+- `client-apps/web/src/app/library/mcp-servers/McpServerListPage.tsx` (onItemClick → detail route)
 
-## Next Steps (Round 2)
+## Remaining Work
 
-1. **T01.5 `SkillDetailView`** — Header + Skill Content (rendered markdown via `react-markdown` + `remark-gfm`, already dependencies) + Version Info (hash + git provenance)
-   - Check if `stgm-prose` markdown styles exist in `@stigmer/theme` or need to be defined
-   - Reference existing `MessageEntry.tsx` markdown rendering pattern (uses `MARKDOWN_COMPONENTS` + `stgm-prose` wrapper)
-2. **T01.6 `McpServerDetailView`** — Header + Validation banner (INVALID state) + Server Config (stdio vs HTTP conditional) + Discovered Tools list + Resource Templates (if present) + Env Spec + Tags (pill badges)
-3. **T01.8 Skill detail Console page** + **T01.9 MCP Server detail Console page**
-4. **T01.10 (remaining) Wire Skill + MCP Server list pages** with `onItemClick`
-5. **T01.11 (remaining) Barrel exports** for SkillDetailView + McpServerDetailView
-6. **T01.12 Breadcrumb polish** (optional — slug is already human-readable)
-7. Evaluate shared `ResourceDetailHeader` extraction based on Round 1 evidence
-
-## Context for Resume
-
-- `AgentDetailView` establishes patterns: Section wrapper, Header layout, loading/error/not-found states, cross-linking callbacks, empty-section omission, icon reuse, env spec table
-- `react-markdown` v10.1.0 is already in `sdk/react/package.json` — used in `MessageEntry.tsx` with `remarkGfm` and custom `MARKDOWN_COMPONENTS`
-- The `stgm-prose` CSS class used in `MessageEntry.tsx` needs verification — may not be defined in `@stigmer/theme` (could be a placeholder or app-provided class)
-- Skill proto: `SkillSpec` has `skillMd`, `tag`, `name`, `description`; `SkillStatus` has `state` (enum: UPLOADING/READY/FAILED), `versionHash`, `gitProvenance` (remoteUrl, ref, commit, subdir)
-- McpServer proto: `McpServerSpec` has `serverType` (oneof: stdio with command/args/workingDir, http with url/headers/queryParams/timeout), `envSpec`, `tags`, `defaultEnabledTools`; `McpServerStatus` has `validationState` (enum: VALID/INVALID), `validationMessage`, `discoveredCapabilities` (tools array with name/desc/inputSchema, resourceTemplates, lastDiscoveredAt)
+- **T01.12 Breadcrumb polish** (optional) — display resource display name instead of raw slug. Deferred: slug is already human-readable.
+- **Visual QA** — test all 3 detail views with real data in the Console
+- **`stgm-prose` cleanup** — consider removing the unused class from `MessageEntry.tsx` or defining it in `@stigmer/theme`
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Round 2" - Build SkillDetailView + McpServerDetailView
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review AgentDetailView patterns" - Check established patterns before building Skill + McpServer
+- "Visual QA" - Test detail views with real data
 
 ---
 

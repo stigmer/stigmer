@@ -42,3 +42,6 @@ export type {
   McpServerSetupPhase,
   McpServerSetupState,
 } from "./useMcpServerSetup";
+
+export { McpServerDetailView } from "./McpServerDetailView";
+export type { McpServerDetailViewProps } from "./McpServerDetailView";
