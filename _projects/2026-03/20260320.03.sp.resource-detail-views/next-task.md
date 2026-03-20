@@ -101,58 +101,76 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-20 18:23
-**Current Task**: T01 — Phase 2 (SDK Detail View Components)
+**Current Task**: T01 — Phase 2, Round 2 (SkillDetailView + McpServerDetailView)
 **Status**: In Progress
 
-## Session Progress (2026-03-20)
+## Session Progress (2026-03-20, Session 2)
 
-### Completed
-- **Phase 1: SDK Data Hooks** — all 3 hooks implemented, exported, zero linter errors
-  - `useAgent(org, slug)` → `sdk/react/src/agent/useAgent.ts`
-  - `useSkill(org, slug, version?)` → `sdk/react/src/skill/useSkill.ts`
-  - `useMcpServer(org, slug)` → `sdk/react/src/mcp-server/useMcpServer.ts`
-  - Barrel exports updated in `agent/index.ts`, `skill/index.ts`, `mcp-server/index.ts`, `index.ts`
-- **Plan reviewed and approved** — T01_0_plan.md covers all 4 phases (hooks, components, pages, exports)
+### Completed This Session (Round 1 — AgentDetailView vertical slice)
+- **T01.4 `AgentDetailView`** — Full SDK component in `sdk/react/src/agent/AgentDetailView.tsx` (476 lines)
+  - 6 sections: Header, Instructions (collapsible), MCP Server Usages (cross-linked), Skills (cross-linked), Sub-Agents (expandable with nested details), Environment Variables
+  - Empty-section omission — sections with no data are not rendered
+  - Loading skeleton, error state (via `ErrorMessage`), not-found state
+  - Cross-resource linking via `onMcpServerClick` / `onSkillClick` callback props (routing-agnostic)
+  - Same-org references show slug only; cross-org references show `org/slug` (smart label display)
+  - Sub-agent details: expandable with border-left indent, shows instructions, MCP access, skills, model override
+  - Zero Console dependencies, fully themed via `--stgm-*` tokens, inline SVG icons
+- **T01.7 Agent detail Console page** — `client-apps/web/src/app/library/agents/[slug]/page.tsx` + `AgentDetailPage.tsx`
+  - Thin client wrapper: `useParams` for slug, `useActiveOrgSlug` for org, `useRouter` for navigation callbacks
+  - `generateStaticParams` placeholder for static export compatibility
+- **T01.10 (partial) Agent list wiring** — Added `onItemClick` to `AgentListPage.tsx`
+  - `onItemClick={(item) => router.push(`/library/agents/${item.slug}`)}`
+- **T01.11 (partial) Barrel exports** — `AgentDetailView` + `AgentDetailViewProps` exported from `agent/index.ts` and root `index.ts`
 
-### Key Decisions
-- All hooks follow the `useDefaultAgent`/`useAgentInstance` pattern (`useState` + `useEffect` + `fetchKey` refetch)
-- 404 (NOT_FOUND) is mapped to `null` resource without error via `isNotFound()` from `@stigmer/sdk`
-- State machine: `isLoading` → fetching; `resource !== null` → found; `resource === null && !isLoading && !error` → not found
-- `useSkill` accepts optional `version` parameter (tag or hash) in addition to `org`/`slug`
+### Previously Completed (Session 1)
+- **Phase 1: SDK Data Hooks** — all 3 hooks (`useAgent`, `useSkill`, `useMcpServer`) implemented and exported
+- **Plan reviewed and approved** — T01_0_plan.md with 4 phases
 
-### Files Modified
-- `sdk/react/src/agent/useAgent.ts` (new)
-- `sdk/react/src/skill/useSkill.ts` (new)
-- `sdk/react/src/mcp-server/useMcpServer.ts` (new)
-- `sdk/react/src/agent/index.ts` (modified)
-- `sdk/react/src/skill/index.ts` (modified)
-- `sdk/react/src/mcp-server/index.ts` (modified)
-- `sdk/react/src/index.ts` (modified)
+### Key Decisions This Session
+- Decided on 2-round approach: Agent first (establishes patterns), then Skill + McpServer together
+- No shared `ResourceDetailHeader` extraction yet — will evaluate when building Skill + McpServer views (>80% overlap threshold)
+- Instructions collapsible uses line-count approach: split by `\n`, show first 8 lines, "Show more" button
+- Sub-agent expansion via `useState<Set<number>>` with `aria-expanded`, border-left indentation for nesting
+- Cross-resource link org fallback: when `ref.org` is empty, uses the agent's own org as fallback for click handler
+- Removed `onSubAgentMcpServerClick` from plan — sub-agent MCP access is informational (slug-only reference back to parent), not navigational
+- Section wrapper: `<section>` with uppercase tracking title + bordered rounded card container with `overflow-hidden`
+- Env spec entries sorted alphabetically, show "secret" or "config" badge
 
-## Next Steps
+### Files Modified This Session
+- `sdk/react/src/agent/AgentDetailView.tsx` (new — 476 lines)
+- `client-apps/web/src/app/library/agents/[slug]/page.tsx` (new)
+- `client-apps/web/src/app/library/agents/[slug]/AgentDetailPage.tsx` (new)
+- `client-apps/web/src/app/library/agents/AgentListPage.tsx` (modified — added onItemClick + useRouter)
+- `sdk/react/src/agent/index.ts` (modified — added AgentDetailView export)
+- `sdk/react/src/index.ts` (modified — added AgentDetailView to root barrel)
 
-1. **Phase 2: SDK Detail View Components** — `AgentDetailView`, `SkillDetailView`, `McpServerDetailView`
-   - Start with `AgentDetailView` (most complex — establishes the pattern)
-   - Need to examine Agent proto spec/status shapes before implementing
-   - Need to decide on markdown renderer for `SkillDetailView` (check existing deps)
-2. **Phase 3: Console Pages + Wiring** — detail route pages + `onItemClick` on list pages
-3. **Phase 4: Exports + Polish** — barrel exports + breadcrumb resource name
+## Next Steps (Round 2)
+
+1. **T01.5 `SkillDetailView`** — Header + Skill Content (rendered markdown via `react-markdown` + `remark-gfm`, already dependencies) + Version Info (hash + git provenance)
+   - Check if `stgm-prose` markdown styles exist in `@stigmer/theme` or need to be defined
+   - Reference existing `MessageEntry.tsx` markdown rendering pattern (uses `MARKDOWN_COMPONENTS` + `stgm-prose` wrapper)
+2. **T01.6 `McpServerDetailView`** — Header + Validation banner (INVALID state) + Server Config (stdio vs HTTP conditional) + Discovered Tools list + Resource Templates (if present) + Env Spec + Tags (pill badges)
+3. **T01.8 Skill detail Console page** + **T01.9 MCP Server detail Console page**
+4. **T01.10 (remaining) Wire Skill + MCP Server list pages** with `onItemClick`
+5. **T01.11 (remaining) Barrel exports** for SkillDetailView + McpServerDetailView
+6. **T01.12 Breadcrumb polish** (optional — slug is already human-readable)
+7. Evaluate shared `ResourceDetailHeader` extraction based on Round 1 evidence
 
 ## Context for Resume
 
-- The plan is in `tasks/T01_0_plan.md` — has full design mockups for all 3 detail views
-- Open question from plan: markdown renderer choice for SKILL.md content (evaluate during T01.5)
-- Open question from plan: tool input schema display for MCP Server tools (name+desc first, schema later)
-- Parent project design decisions folder has 5 decisions — review for inherited patterns
+- `AgentDetailView` establishes patterns: Section wrapper, Header layout, loading/error/not-found states, cross-linking callbacks, empty-section omission, icon reuse, env spec table
+- `react-markdown` v10.1.0 is already in `sdk/react/package.json` — used in `MessageEntry.tsx` with `remarkGfm` and custom `MARKDOWN_COMPONENTS`
+- The `stgm-prose` CSS class used in `MessageEntry.tsx` needs verification — may not be defined in `@stigmer/theme` (could be a placeholder or app-provided class)
+- Skill proto: `SkillSpec` has `skillMd`, `tag`, `name`, `description`; `SkillStatus` has `state` (enum: UPLOADING/READY/FAILED), `versionHash`, `gitProvenance` (remoteUrl, ref, commit, subdir)
+- McpServer proto: `McpServerSpec` has `serverType` (oneof: stdio with command/args/workingDir, http with url/headers/queryParams/timeout), `envSpec`, `tags`, `defaultEnabledTools`; `McpServerStatus` has `validationState` (enum: VALID/INVALID), `validationMessage`, `discoveredCapabilities` (tools array with name/desc/inputSchema, resourceTemplates, lastDiscoveredAt)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 2" - Start the detail view components
+- "Continue with Round 2" - Build SkillDetailView + McpServerDetailView
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
-- "Check parent status" - Review parent project state
+- "Review AgentDetailView patterns" - Check established patterns before building Skill + McpServer
 
 ---
 

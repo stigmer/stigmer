@@ -42,5 +42,8 @@ export type {
 export { useAgent } from "./useAgent";
 export type { UseAgentReturn } from "./useAgent";
 
+export { AgentDetailView } from "./AgentDetailView";
+export type { AgentDetailViewProps } from "./AgentDetailView";
+
 export { useDefaultAgent } from "./useDefaultAgent";
 export type { UseDefaultAgentReturn } from "./useDefaultAgent";
