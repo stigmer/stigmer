@@ -18,7 +18,7 @@ export interface EnvironmentListPanelProps {
   /**
    * Exclude environments whose labels contain all key-value pairs in this
    * record. Useful for filtering the personal environment out of the
-   * shared list: `excludeLabels={{ "stigmer.ai/personal": "true" }}`.
+   * organization list: `excludeLabels={{ "stigmer.ai/personal": "true" }}`.
    */
   readonly excludeLabels?: Record<string, string>;
   /** Fired when a user selects (expands) an environment. */
