@@ -68,6 +68,9 @@ export type { ArtifactCardProps } from "./ArtifactCard";
 export { ArtifactPreviewModal } from "./ArtifactPreviewModal";
 export type { ArtifactPreviewModalProps } from "./ArtifactPreviewModal";
 
+export { ArtifactsWidget } from "./ArtifactsWidget";
+export type { ArtifactsWidgetProps } from "./ArtifactsWidget";
+
 export {
   resolveToolCategory,
   extractPrimaryArg,

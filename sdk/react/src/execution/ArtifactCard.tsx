@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
@@ -8,10 +7,6 @@ import { useArtifactContent } from "./useArtifactContent";
 import { isTextArtifact, formatArtifactSize } from "./artifact-utils";
 import { useDetectStigmerResource } from "../library/useDetectStigmerResource";
 import { useDetectSkillPackage } from "../library/useDetectSkillPackage";
-import {
-  useApplyResource,
-  type ApplyResourceResult,
-} from "../library/useApplyResource";
 
 /**
  * Artifacts larger than this threshold skip the content fetch used for
@@ -24,20 +19,13 @@ const MAX_DETECTION_SIZE = 256 * 1024;
 export interface ArtifactCardProps {
   /** The execution artifact to render. */
   readonly artifact: ExecutionArtifact;
-  /** ID of the execution that produced this artifact. */
+  /** ID of the execution that produced this artifact — used for content fetching. */
   readonly executionId: string;
-  /** Organization slug for the "Apply to [org]" CTA. */
-  readonly org: string;
   /**
-   * Whether the execution is in a terminal phase (completed, failed,
-   * cancelled, terminated). Controls Apply CTA prominence:
-   *
-   * - `true` — Apply renders as an enabled primary button
-   * - `false` — Apply renders as a disabled secondary button,
-   *   signaling the action will become available when the execution
-   *   completes
+   * Organization slug — used for skill package detection which fetches
+   * `SKILL.md` frontmatter via the artifact content RPC.
    */
-  readonly isTerminal: boolean;
+  readonly org: string;
   /**
    * Called when the user clicks "Preview". The consumer is responsible
    * for rendering a preview UI (e.g., {@link ArtifactPreviewModal}).
@@ -45,20 +33,19 @@ export interface ArtifactCardProps {
    * When omitted, the Preview action is not rendered.
    */
   readonly onPreview?: (artifact: ExecutionArtifact) => void;
-  /**
-   * Called after a Stigmer resource is successfully applied or a skill
-   * package is pushed. The consumer can use this for post-apply behavior
-   * such as showing a toast notification or navigating to the Library.
-   */
-  readonly onApplied?: (result: ApplyResourceResult) => void;
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }
 
 /**
- * Renders a single execution artifact as a compact card with automatic
- * Stigmer resource detection, download action, and an "Apply to [org]"
- * CTA for detected resources.
+ * Renders a single execution artifact as a compact summary card with
+ * automatic Stigmer resource detection and a download link.
+ *
+ * The card's role is **signal and navigate**: it tells the user what
+ * the artifact is (file/directory, size, detected resource type) and
+ * provides two actions — Preview and Download. The Apply/Push CTA
+ * lives exclusively in {@link ArtifactPreviewModal} so the user must
+ * review content before acting (review-before-apply pattern).
  *
  * Internally orchestrates the detection pipeline:
  *
@@ -70,46 +57,38 @@ export interface ArtifactCardProps {
  *   {@link useDetectSkillPackage} (checks for `SKILL.md` in the ZIP
  *   archive entries).
  *
- * Detection results are surfaced as a type badge. When a Stigmer resource
- * is detected, the card renders an "Apply to [org]" primary CTA that
- * calls the appropriate SDK method via {@link useApplyResource}.
- *
- * Non-Stigmer artifacts render with file info and a download link only —
- * no error messages or "not detected" indicators (detection is silent).
+ * Detection results are surfaced as a type badge ("Agent detected",
+ * "Skill · N files"). Non-Stigmer artifacts render with file info
+ * and a download link only — no error messages or "not detected"
+ * indicators (detection is silent).
  *
  * @example
  * ```tsx
  * const { artifacts } = useExecutionArtifacts(execution);
- * const isTerminal = execution?.status?.phase
- *   ? isTerminalPhase(execution.status.phase)
- *   : false;
  *
  * {artifacts.map((artifact) => (
  *   <ArtifactCard
  *     key={artifact.storageKey}
  *     artifact={artifact}
- *     executionId={execution.id}
+ *     executionId={execution.metadata!.id}
  *     org={activeOrg}
- *     isTerminal={isTerminal}
  *     onPreview={(a) => setPreviewArtifact(a)}
- *     onApplied={(result) => toast(`${result.kind} applied`)}
  *   />
  * ))}
  * ```
  *
+ * @see {@link ArtifactPreviewModal} — full preview with Apply/Push CTA
+ * @see {@link ArtifactsWidget} — container that composes cards + modal
  * @see {@link useExecutionArtifacts} — extracts artifact metadata from an execution
  * @see {@link useArtifactContent} — content-fetching hook (headless alternative)
  * @see {@link useDetectStigmerResource} — YAML resource detection (headless)
  * @see {@link useDetectSkillPackage} — skill package detection (headless)
- * @see {@link useApplyResource} — apply/push behavior hook (headless)
  */
 export function ArtifactCard({
   artifact,
   executionId,
   org,
-  isTerminal,
   onPreview,
-  onApplied,
   className,
 }: ArtifactCardProps) {
   // ---------------------------------------------------------------------------
@@ -151,66 +130,6 @@ export function ArtifactCard({
   } else if (skillDetection.detected) {
     const count = skillDetection.fileCount;
     detectionLabel = `Skill \u00B7 ${count} ${count === 1 ? "file" : "files"}`;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Apply state
-  // ---------------------------------------------------------------------------
-
-  const {
-    applyYamlResource,
-    pushSkillPackage,
-    isApplying,
-    error: applyError,
-    clearError,
-  } = useApplyResource();
-
-  const [applyResult, setApplyResult] = useState<ApplyResourceResult | null>(
-    null,
-  );
-
-  const handleApply = useCallback(async () => {
-    clearError();
-    try {
-      let result: ApplyResourceResult;
-      if (yamlDetection.detected && content) {
-        result = await applyYamlResource(content, org);
-      } else if (skillDetection.detected) {
-        result = await pushSkillPackage({
-          org,
-          executionId,
-          storageKey: artifact.storageKey,
-        });
-      } else {
-        return;
-      }
-      setApplyResult(result);
-      onApplied?.(result);
-    } catch {
-      // error state is managed by useApplyResource
-    }
-  }, [
-    yamlDetection.detected,
-    skillDetection.detected,
-    content,
-    org,
-    executionId,
-    artifact.storageKey,
-    applyYamlResource,
-    pushSkillPackage,
-    clearError,
-    onApplied,
-  ]);
-
-  // ---------------------------------------------------------------------------
-  // CTA label
-  // ---------------------------------------------------------------------------
-
-  let ctaLabel: string | null = null;
-  if (yamlDetection.detected) {
-    ctaLabel = `Apply to ${org}`;
-  } else if (skillDetection.detected) {
-    ctaLabel = `Push Skill to ${org}`;
   }
 
   const canPreview = !!onPreview && (isTextArtifact(artifact) || isDirectory);
@@ -281,22 +200,6 @@ export function ArtifactCard({
         </a>
       </div>
 
-      {/* Apply CTA / Applied / Error */}
-      {isDetected && !applyResult && (
-        <ApplyCtaArea
-          label={ctaLabel!}
-          isTerminal={isTerminal}
-          isApplying={isApplying}
-          error={applyError}
-          onApply={handleApply}
-        />
-      )}
-      {applyResult && (
-        <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-success">
-          <CheckIcon />
-          <span>Applied \u00B7 {applyResult.name || applyResult.kind}</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -307,85 +210,6 @@ export function ArtifactCard({
 
 const FOCUS_RING_CLASSES =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm";
-
-// ---------------------------------------------------------------------------
-// Apply CTA area (internal)
-// ---------------------------------------------------------------------------
-
-/**
- * Renders the Apply CTA with a three-state machine:
- *
- * 1. **Error** — error message + retry link (replaces button)
- * 2. **Applying** — disabled button with spinner
- * 3. **Idle** — enabled (terminal) or disabled (streaming) button
- */
-function ApplyCtaArea({
-  label,
-  isTerminal,
-  isApplying,
-  error,
-  onApply,
-}: {
-  readonly label: string;
-  readonly isTerminal: boolean;
-  readonly isApplying: boolean;
-  readonly error: Error | null;
-  readonly onApply: () => void;
-}) {
-  if (error) {
-    return (
-      <div className="mt-2" role="alert">
-        <div className="flex items-start gap-1.5 text-xs text-destructive">
-          <AlertIcon />
-          <div className="min-w-0 flex-1">
-            <p>{error.message}</p>
-            <button
-              type="button"
-              onClick={onApply}
-              className={cn(
-                "mt-0.5 font-medium underline transition-colors hover:text-destructive/80",
-                FOCUS_RING_CLASSES,
-              )}
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const canApply = isTerminal && !isApplying;
-
-  return (
-    <div className="mt-2">
-      <button
-        type="button"
-        onClick={canApply ? onApply : undefined}
-        disabled={!canApply}
-        aria-busy={isApplying}
-        aria-label={label}
-        className={cn(
-          "w-full rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-          "disabled:cursor-not-allowed",
-          canApply
-            ? "bg-primary text-primary-foreground hover:bg-primary/90"
-            : "bg-muted text-muted-foreground",
-        )}
-      >
-        {isApplying ? (
-          <span className="inline-flex items-center justify-center gap-1.5">
-            <SpinnerIcon />
-            Applying\u2026
-          </span>
-        ) : (
-          label
-        )}
-      </button>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Inline SVG icons
@@ -449,59 +273,3 @@ function DownloadIcon() {
   );
 }
 
-function CheckIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="shrink-0"
-      aria-hidden="true"
-    >
-      <path d="M2 6.5L4.5 9L10 3" />
-    </svg>
-  );
-}
-
-function SpinnerIcon() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      className="animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M6 1.5A4.5 4.5 0 1 1 1.5 6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function AlertIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="mt-0.5 shrink-0"
-      aria-hidden="true"
-    >
-      <circle cx="6" cy="6" r="5" />
-      <path d="M6 4V6.5" />
-      <circle cx="6" cy="8.5" r="0.5" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
