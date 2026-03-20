@@ -62,6 +62,9 @@ export type { UseSubmitApprovalReturn } from "./useSubmitApproval";
 export { ApprovalCard } from "./ApprovalCard";
 export type { ApprovalCardProps } from "./ApprovalCard";
 
+export { ArtifactCard } from "./ArtifactCard";
+export type { ArtifactCardProps } from "./ArtifactCard";
+
 export {
   resolveToolCategory,
   extractPrimaryArg,
