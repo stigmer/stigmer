@@ -57,6 +57,7 @@ export type McpServerSetupPhase =
   | {
       readonly status: "submitting";
       readonly mcpServer: McpServer;
+      readonly missingVariables: EnvVarFormVariable[];
       readonly discoveredTools: DiscoveredTool[];
       readonly toolApprovals: ToolApprovalPolicy[];
     }
@@ -134,6 +135,7 @@ export type McpServerSetupAction =
       readonly key: string;
       readonly enabledTools: string[];
     }
+  | { readonly type: "SUBMIT_FAIL"; readonly key: string; readonly error: Error }
   | { readonly type: "SET_ERROR"; readonly key: string; readonly error: Error }
   | { readonly type: "CLEAR_ERROR"; readonly key: string }
   | { readonly type: "REMOVE_SERVER"; readonly key: string }
@@ -197,6 +199,7 @@ export function mcpServerSetupReducer(
         [action.key]: {
           status: "submitting",
           mcpServer: entry.mcpServer,
+          missingVariables: entry.missingVariables,
           discoveredTools: entry.discoveredTools,
           toolApprovals: entry.toolApprovals,
           error: null,
@@ -216,6 +219,22 @@ export function mcpServerSetupReducer(
           toolApprovals: entry.toolApprovals,
           enabledTools: action.enabledTools,
           error: null,
+        },
+      };
+    }
+
+    case "SUBMIT_FAIL": {
+      const entry = state[action.key];
+      if (entry?.status !== "submitting") return state;
+      return {
+        ...state,
+        [action.key]: {
+          status: "needsSetup",
+          mcpServer: entry.mcpServer,
+          missingVariables: entry.missingVariables,
+          discoveredTools: entry.discoveredTools,
+          toolApprovals: entry.toolApprovals,
+          error: action.error,
         },
       };
     }

@@ -22,6 +22,12 @@ export type { McpServerPickerProps } from "./McpServerPicker";
 export { McpToolSelector } from "./McpToolSelector";
 export type { McpToolSelectorProps } from "./McpToolSelector";
 
+export { McpServerConfigPanel } from "./McpServerConfigPanel";
+export type {
+  McpServerConfigPanelProps,
+  McpServerCredentialsProps,
+} from "./McpServerConfigPanel";
+
 export { useMcpServerSetup, toServerKey } from "./useMcpServerSetup";
 export type {
   UseMcpServerSetupReturn,

@@ -14,10 +14,50 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-03-20
-**Current Task**: Phase 2, T02.1 complete. Next: Phase 2, T02.2 — `McpServerConfigPanel` component
-**Status**: In progress — Phase 0 done, Phase 1 done, Phase 2 T02.1 done, ready for T02.2
+**Current Task**: Phase 2, T02.2 complete. Next: Phase 2, T02.3 — Enhance `McpServerPicker` with setup integration
+**Status**: In progress — Phase 0 done, Phase 1 done, Phase 2 T02.1 done, Phase 2 T02.2 done, ready for T02.3
 
 ## Session Progress (2026-03-20)
+
+### Session 5: Phase 2, T02.2 — McpServerConfigPanel component — COMPLETE
+
+**What was accomplished:**
+- Planned and implemented `McpServerConfigPanel.tsx` — per-server drill-in configuration panel composing `EnvVarForm` + `McpToolSelector`
+- Discovered and fixed two issues in the reducer/hook:
+  - DD-R10: `submitting` variant was missing `missingVariables` → added to prevent form flash-unmount during credential submission
+  - DD-R11: No error recovery path on submission failure → added `SUBMIT_FAIL` action for `submitting → needsSetup` transition
+- Five design decisions made (DD-R12 through DD-R16):
+  - No "Apply" button — EnvVarForm owns credential submission, tool toggles apply immediately
+  - Decomposed props with grouped `credentials?` sub-object for SDK-first reusability
+  - Tool selector disabled while credentials are pending (progressive disclosure)
+  - No separate `onCancel` for EnvVarForm (panel header Back button suffices)
+  - EnvVarForm width override via `className="w-full"` (tailwind-merge)
+- Updated barrel exports in `mcp-server/index.ts` and `index.ts`
+- Zero lint errors, zero TypeScript errors
+
+**File created:**
+- `sdk/react/src/mcp-server/McpServerConfigPanel.tsx` — 260 lines, pure presentational component
+
+**Component API:**
+- Props: `mcpServer`, `credentials?`, `discoveredTools`, `toolApprovals`, `enabledTools`, `onEnabledToolsChange`, `onBack`, `error?`, `disabled?`, `className?`
+- Exported types: `McpServerConfigPanelProps`, `McpServerCredentialsProps`
+- `credentials?` sub-object controls form visibility — present = credentials form + disabled tool selector, absent = tool-selector only
+- Header with back button, optional server icon, name, truncated description
+- `EnvVarForm` composition with no `onCancel` and `className="w-full"` override
+- `McpToolSelector` always rendered; disabled while credentials are pending
+- Inline error display with `role="alert"`
+
+**Files modified:**
+- `sdk/react/src/mcp-server/mcpServerSetupReducer.ts` — Added `missingVariables` to `submitting` variant, added `SUBMIT_FAIL` action + case
+- `sdk/react/src/mcp-server/useMcpServerSetup.ts` — Changed catch block from `SET_ERROR` to `SUBMIT_FAIL`
+- `sdk/react/src/mcp-server/index.ts` — Added `McpServerConfigPanel` + types exports
+- `sdk/react/src/index.ts` — Added re-exports in MCP Server section
+
+**Key decisions:**
+- No "Apply" button (DD-R12) — EnvVarForm already has "Save"/"Use once" submit; tool changes are immediate local state. Batch "Apply" would fight component contract.
+- Decomposed props (DD-R13) — Platform builders can use any state management, not just our reducer. `credentials?` presence controls form rendering.
+- `SUBMIT_FAIL` action (DD-R11) — Enables retry on credential submission failure. Entry transitions `submitting → needsSetup` with error preserved.
+- `submitting` carries `missingVariables` (DD-R10) — Prevents form flash-unmount during async credential save.
 
 ### Session 4: Phase 2, T02.1 — McpToolSelector component — COMPLETE
 
@@ -97,7 +137,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - Zero lint errors, zero TypeScript errors
 
 **File created:**
-- `sdk/react/src/mcp-server/mcpServerSetupReducer.ts` — Pure reducer with 4 statuses (`loading`, `needsSetup`, `submitting`, `ready`), 10-action union, `Record<string, Entry>` state keyed by `org/slug`, orthogonal error per entry
+- `sdk/react/src/mcp-server/mcpServerSetupReducer.ts` — Pure reducer with 4 statuses (`loading`, `needsSetup`, `submitting`, `ready`), 11-action union (including `SUBMIT_FAIL`), `Record<string, Entry>` state keyed by `org/slug`, orthogonal error per entry
 
 **Exports:**
 - Types: `McpServerSetupPhase`, `McpServerSetupEntry`, `McpServerSetupState`, `McpServerSetupAction`
@@ -108,7 +148,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - `Record<string, Entry>` over `Map` for idiomatic React reducer spreading
 - Error orthogonal to phase (matches `AgentSetupState` pattern) — preserves form context on submission failure
 - No `configuring` status — picker owns drill-in navigation via local `useState`
-- No `McpServerUsageInput` in reducer state — derived by hook in `toUsageInputs()`
+- No `McpServerUsageInput` in reducer state — derived by hook in `usageInputs`
 - `SUBMIT_START` guards from `needsSetup` only; `SUBMIT_DONE` guards from `submitting` only
 - `SET_ENABLED_TOOLS` guards from `ready` only
 - `ADD_SERVER` always resets to `loading` (hook prevents misuse)
@@ -143,13 +183,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 2, T02.2**: Create `McpServerConfigPanel` component
-   - Per-server drill-in config: credentials form (EnvVarForm) + tool selector (McpToolSelector)
-   - Header with server name/icon + "Back" button
-   - State-driven layout: needsSetup shows credentials first, ready shows both sections
-2. **Phase 2, T02.3**: Enhance `McpServerPicker` with setup integration
-   - Setup state indicators, drill-in to config panel
-3. **Phase 3**: SessionComposer integration, submission blocking, enhanced chips
+1. **Phase 2, T02.3**: Enhance `McpServerPicker` with setup integration
+   - Setup state indicators per server (loading spinner, needs-setup amber badge, ready green badge, error red badge)
+   - Drill-in support: clicking "Configure" transitions popover from picker list to `McpServerConfigPanel`
+   - New additive props: `setupEntries?`, `onServerAdded?`, `onServerRemoved?`, `onSubmitEnvVars?`, `onEnabledToolsChange?`
+   - Backward-compatible: if `setupEntries` not provided, picker behaves exactly as today
+2. **Phase 3**: SessionComposer integration, submission blocking, enhanced chips, runtimeEnv aggregation
 
 ## Context for Resume
 
@@ -164,16 +203,17 @@ Drop this file into your conversation to quickly resume work on this project.
 - Phase 0 is committed and verified
 - Phase 1 is committed and verified (reducer + hook)
 - Phase 2, T02.1 is committed and verified (`McpToolSelector`)
-- 9 design refinements from master plan (DD-R1 through DD-R9) — all approved and applied
+- Phase 2, T02.2 is implemented and verified (`McpServerConfigPanel`)
+- 16 design refinements from master plan (DD-R1 through DD-R16) — all approved and applied
 - The full orchestration layer is ready: reducer (state machine) + hook (composition, methods, derived state)
-- `McpToolSelector` is the first UI component — pure presentational, controlled via props
-- Phase 2 continues — T02.2 (`McpServerConfigPanel`) composes `EnvVarForm` + `McpToolSelector`
+- Both UI building blocks are ready: `McpToolSelector` (tool checklist) + `McpServerConfigPanel` (config panel composing form + selector)
+- Phase 2 continues — T02.3 enhances `McpServerPicker` with setup indicators and drill-in to `McpServerConfigPanel`
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-4.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-5.md
 ```
 
 ### 2. Current Task Plan
@@ -200,7 +240,8 @@ These projects established patterns and infrastructure this project builds on:
 
 | File | Purpose |
 |------|---------|
-| `sdk/react/src/mcp-server/McpToolSelector.tsx` | **NEW** — Tool checklist with approval badges |
+| `sdk/react/src/mcp-server/McpServerConfigPanel.tsx` | **NEW** — Per-server config: credentials + tools |
+| `sdk/react/src/mcp-server/McpToolSelector.tsx` | Tool checklist with approval badges |
 | `sdk/react/src/mcp-server/useMcpServerSetup.ts` | Multi-server setup orchestration hook |
 | `sdk/react/src/mcp-server/mcpServerSetupReducer.ts` | Per-server setup state machine |
 | `sdk/react/src/environment/EnvVarForm.tsx` | Shared env var collection form |
@@ -238,7 +279,7 @@ These projects established patterns and infrastructure this project builds on:
 
 After loading context:
 - "Show project status" - Get overview of progress
-- "Continue with next task" - Start T02.2 (McpServerConfigPanel)
+- "Continue with next task" - Start T02.3 (Enhance McpServerPicker)
 - "Review guidelines" - Check established patterns
 
 ---
