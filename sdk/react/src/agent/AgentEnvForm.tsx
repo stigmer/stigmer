@@ -20,6 +20,12 @@ export interface AgentEnvFormVariable {
   readonly description?: string;
 }
 
+/** Options reported by the form alongside the collected values. */
+export interface AgentEnvFormSubmitOptions {
+  /** Whether the user chose to save these values for future runs. */
+  readonly saveForFuture: boolean;
+}
+
 export interface AgentEnvFormProps {
   /** Agent display name shown in the form header. */
   readonly agentName: string;
@@ -29,16 +35,32 @@ export interface AgentEnvFormProps {
    */
   readonly variables: AgentEnvFormVariable[];
   /**
-   * Called with the collected values when the user submits the form.
-   * Each value includes `isSecret` from the variable spec so the caller
-   * can pass the result directly to environment mutation APIs.
+   * Called with the collected values and the save toggle state when
+   * the user submits the form.
    */
-  readonly onSubmit: (values: Record<string, EnvVarInput>) => void;
+  readonly onSubmit: (
+    values: Record<string, EnvVarInput>,
+    options: AgentEnvFormSubmitOptions,
+  ) => void;
   /** Called when the user clicks the back/cancel button. */
   readonly onCancel?: () => void;
   /** When true, the submit button shows a spinner and inputs are disabled. */
   readonly isSubmitting?: boolean;
   readonly disabled?: boolean;
+  /**
+   * Initial state of the "Save for future runs" toggle.
+   * Platform builders can override this to match their default
+   * secret-persistence policy.
+   * @default true
+   */
+  readonly defaultSaveForFuture?: boolean;
+  /**
+   * When `true`, the save toggle is hidden and the form always uses
+   * `defaultSaveForFuture` as the submit value. Useful for platform
+   * builders who want to enforce a single persistence policy.
+   * @default false
+   */
+  readonly hideSaveToggle?: boolean;
   readonly className?: string;
 }
 
@@ -49,6 +71,11 @@ export interface AgentEnvFormProps {
  * Secret variables use a password field with a visibility toggle.
  * The form validates that all fields are non-empty before allowing
  * submission.
+ *
+ * A "Save for future runs" toggle (on by default) lets the user choose
+ * between persisting secrets to their personal environment or using
+ * them for a single execution only. The toggle state is reported via
+ * `onSubmit` so the caller can route to the appropriate codepath.
  *
  * This is a **pure presentational component** with no knowledge of
  * personal environments, agent instances, or orchestration. It can
@@ -66,7 +93,10 @@ export interface AgentEnvFormProps {
  *     { key: "GITHUB_TOKEN", isSecret: true, description: "Personal access token" },
  *     { key: "REPO_OWNER", isSecret: false },
  *   ]}
- *   onSubmit={(values) => console.log(values)}
+ *   onSubmit={(values, { saveForFuture }) => {
+ *     if (saveForFuture) saveToEnvironment(values);
+ *     else useAsRuntimeEnv(values);
+ *   }}
  *   onCancel={() => console.log("cancelled")}
  * />
  * ```
@@ -78,12 +108,15 @@ export function AgentEnvForm({
   onCancel,
   isSubmitting,
   disabled,
+  defaultSaveForFuture = true,
+  hideSaveToggle = false,
   className,
 }: AgentEnvFormProps) {
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(variables.map((v) => [v.key, ""])),
   );
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
+  const [saveForFuture, setSaveForFuture] = useState(defaultSaveForFuture);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
   const isDisabled = disabled || isSubmitting;
@@ -119,10 +152,12 @@ export function AgentEnvForm({
           ...(variable.description && { description: variable.description }),
         };
       }
-      onSubmit(result);
+      onSubmit(result, { saveForFuture });
     },
-    [allFilled, isDisabled, values, variables, onSubmit],
+    [allFilled, isDisabled, values, variables, onSubmit, saveForFuture],
   );
+
+  const toggleId = "stgm-env-save-toggle";
 
   return (
     <form
@@ -218,6 +253,46 @@ export function AgentEnvForm({
         })}
       </div>
 
+      {/* Save toggle */}
+      {!hideSaveToggle && (
+        <div className="flex items-start gap-2 pt-0.5">
+          <button
+            id={toggleId}
+            type="button"
+            role="switch"
+            aria-checked={saveForFuture}
+            onClick={() => setSaveForFuture((prev) => !prev)}
+            disabled={isDisabled}
+            className={cn(
+              "relative mt-0.5 inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              "disabled:pointer-events-none disabled:opacity-50",
+              saveForFuture ? "bg-primary" : "bg-input",
+            )}
+          >
+            <span
+              className={cn(
+                "pointer-events-none block h-3 w-3 translate-y-0.5 rounded-full bg-background shadow-sm ring-0 transition-transform",
+                saveForFuture ? "translate-x-3.5" : "translate-x-0.5",
+              )}
+            />
+          </button>
+          <label
+            htmlFor={toggleId}
+            className="cursor-pointer select-none space-y-0.5"
+          >
+            <span className="block text-[0.65rem] font-medium text-muted-foreground">
+              Save for future runs
+            </span>
+            {!saveForFuture && (
+              <span className="block text-[0.6rem] leading-relaxed text-muted-foreground/70">
+                These values will only be used for this run.
+              </span>
+            )}
+          </label>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="flex items-center justify-end gap-2 pt-1">
         {onCancel && (
@@ -246,7 +321,7 @@ export function AgentEnvForm({
           )}
         >
           {isSubmitting && <SpinnerIcon />}
-          Save
+          {saveForFuture ? "Save" : "Use once"}
         </button>
       </div>
     </form>

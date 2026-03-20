@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { Popover } from "@base-ui/react/popover";
 import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
@@ -8,8 +8,8 @@ import { useComposer } from "./useComposer";
 import { ModelSelector } from "../models/ModelSelector";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
 import { AgentPicker } from "../agent/AgentPicker";
-import { AgentEnvForm } from "../agent/AgentEnvForm";
-import { useAgentSetup, type AgentSetupResult } from "../agent/useAgentSetup";
+import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvForm";
+import { useAgentSetup, type AgentResolution } from "../agent/useAgentSetup";
 import { McpServerPicker } from "../mcp-server/McpServerPicker";
 import { SkillPicker } from "../skill/SkillPicker";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries";
@@ -60,14 +60,18 @@ export interface SessionComposerProps {
   /** Called when the agent selection changes. Providing this enables the agent trigger. */
   readonly onAgentRefChange?: (ref: ResourceRef | null) => void;
   /**
-   * Called when the personal environment flow resolves an agent instance ID.
+   * Called when the agent setup flow resolves how the agent should
+   * be used for session creation.
    *
-   * Set to `null` when the agent is deselected or when the selected agent
-   * does not require a personal instance (i.e. has no `env_spec`).
-   * When provided, the resolved ID takes priority over `agentRef` in
-   * session creation via `useCreateSession`.
+   * The {@link AgentResolution} discriminated union tells the caller
+   * which session creation path to use:
+   * - `"saved"` — use `agentInstanceId`
+   * - `"oneTime"` — use `agentRef` + pass `runtimeEnv` to execution
+   * - `"direct"` — use `agentRef` (no secrets needed)
+   *
+   * Set to `null` when the agent is deselected.
    */
-  readonly onAgentInstanceIdChange?: (instanceId: string | null) => void;
+  readonly onAgentResolutionChange?: (resolution: AgentResolution | null) => void;
 
   /**
    * Currently selected MCP server usages.
@@ -124,6 +128,7 @@ export interface SessionComposerProps {
  *   org={org}
  *   agentRef={agentRef}
  *   onAgentRefChange={setAgentRef}
+ *   onAgentResolutionChange={setResolution}
  *   workspace={workspace}
  *   enableGitHub
  *   mcpServerUsages={mcpUsages}
@@ -159,7 +164,7 @@ export function SessionComposer({
   org,
   agentRef,
   onAgentRefChange,
-  onAgentInstanceIdChange,
+  onAgentResolutionChange,
   mcpServerUsages,
   onMcpServerUsagesChange,
   skillRefs,
@@ -172,7 +177,6 @@ export function SessionComposer({
 }: SessionComposerProps) {
   const [modelId, setModelId] = useState<string | undefined>(defaultModelId);
 
-  // Display name cache for agents, MCP servers, and skills (populated by pickers)
   const [displayNames, setDisplayNames] = useState<Map<string, string>>(
     () => new Map(),
   );
@@ -213,26 +217,23 @@ export function SessionComposer({
   const showAgent = onAgentRefChange != null && org != null;
 
   // -------------------------------------------------------------------------
-  // Agent setup: controlled popover + personal environment resolution
+  // Agent setup: state-machine-driven popover + environment resolution
   // -------------------------------------------------------------------------
 
   const agentSetup = useAgentSetup(showAgent ? (org ?? null) : null);
 
   const [agentPopoverOpen, setAgentPopoverOpen] = useState(false);
-  const [agentPopoverView, setAgentPopoverView] = useState<
-    "picker" | "envForm"
-  >("picker");
 
-  type EnvRequirement = AgentSetupResult & { status: "needsEnvVars" };
-  const pendingEnvRef = useRef<EnvRequirement | null>(null);
+  const showEnvForm = agentSetup.state.status === "needsEnvVars";
+  const isAgentBusy =
+    agentSetup.state.status === "resolving" ||
+    agentSetup.state.status === "submitting";
 
   const handleAgentPopoverOpenChange = useCallback(
     (open: boolean) => {
       setAgentPopoverOpen(open);
       if (!open) {
-        setAgentPopoverView("picker");
-        pendingEnvRef.current = null;
-        agentSetup.clearError();
+        agentSetup.reset();
       }
     },
     [agentSetup],
@@ -242,7 +243,7 @@ export function SessionComposer({
     async (ref: ResourceRef | null) => {
       if (!ref) {
         onAgentRefChange?.(null);
-        onAgentInstanceIdChange?.(null);
+        onAgentResolutionChange?.(null);
         return;
       }
 
@@ -251,58 +252,58 @@ export function SessionComposer({
 
         if (result.status === "ready") {
           onAgentRefChange?.(result.agentRef);
-          onAgentInstanceIdChange?.(result.instanceId);
+          onAgentResolutionChange?.(result.resolution);
           handleDisplayNameResolved(
             `${result.agentRef.org}/${result.agentRef.slug}`,
             result.agentName,
           );
           setAgentPopoverOpen(false);
-          setAgentPopoverView("picker");
-        } else {
-          pendingEnvRef.current = result;
-          setAgentPopoverView("envForm");
         }
+        // "needsEnvVars" — state machine transitions automatically,
+        // popover content switches to env form via `showEnvForm`.
       } catch {
-        // Error is captured by agentSetup.error — displayed inline.
+        // Error is captured by agentSetup.state.error — displayed inline.
       }
     },
     [
       agentSetup,
       onAgentRefChange,
-      onAgentInstanceIdChange,
+      onAgentResolutionChange,
       handleDisplayNameResolved,
     ],
   );
 
   const handleEnvFormSubmit = useCallback(
-    async (values: Record<string, EnvVarInput>) => {
+    async (
+      values: Record<string, EnvVarInput>,
+      { saveForFuture }: AgentEnvFormSubmitOptions,
+    ) => {
       try {
-        const result = await agentSetup.submitEnvVars(values);
+        const result = await agentSetup.submitEnvVars(values, { saveForFuture });
         onAgentRefChange?.(result.agentRef);
-        onAgentInstanceIdChange?.(result.instanceId);
+        onAgentResolutionChange?.(result.resolution);
         handleDisplayNameResolved(
           `${result.agentRef.org}/${result.agentRef.slug}`,
           result.agentName,
         );
-        pendingEnvRef.current = null;
         setAgentPopoverOpen(false);
-        setAgentPopoverView("picker");
       } catch {
-        // Error is captured by agentSetup.error — displayed inline.
+        // Error is captured by agentSetup.state.error — displayed inline.
       }
     },
     [
       agentSetup,
       onAgentRefChange,
-      onAgentInstanceIdChange,
+      onAgentResolutionChange,
       handleDisplayNameResolved,
     ],
   );
 
   const handleAgentChipRemove = useCallback(() => {
     onAgentRefChange?.(null);
-    onAgentInstanceIdChange?.(null);
-  }, [onAgentRefChange, onAgentInstanceIdChange]);
+    onAgentResolutionChange?.(null);
+  }, [onAgentRefChange, onAgentResolutionChange]);
+
   const showWorkspace = workspace != null;
   const showMcp = onMcpServerUsagesChange != null && org != null;
   const showSkills = onSkillRefsChange != null && org != null;
@@ -436,43 +437,47 @@ export function SessionComposer({
                     open={agentPopoverOpen}
                     onOpenChange={handleAgentPopoverOpenChange}
                   >
-                    {agentPopoverView === "picker" ? (
+                    {showEnvForm ? (
+                      <div>
+                        <AgentEnvForm
+                          agentName={
+                            agentSetup.state.status === "needsEnvVars"
+                              ? agentSetup.state.agentName
+                              : "Agent"
+                          }
+                          variables={
+                            agentSetup.state.status === "needsEnvVars"
+                              ? agentSetup.state.missingVariables
+                              : []
+                          }
+                          onSubmit={handleEnvFormSubmit}
+                          onCancel={() => agentSetup.reset()}
+                          isSubmitting={isAgentBusy}
+                          disabled={isDisabled}
+                        />
+                        {agentSetup.state.error && (
+                          <p className="mt-2 text-xs text-destructive">
+                            {agentSetup.state.error}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
                       <div className="relative">
                         <AgentPicker
                           org={org!}
                           value={agentRef ?? null}
                           onChange={handleAgentSelect}
                           onDisplayNameResolved={handleDisplayNameResolved}
-                          disabled={isDisabled || agentSetup.isResolving}
+                          disabled={isDisabled || isAgentBusy}
                         />
-                        {agentSetup.isResolving && (
+                        {isAgentBusy && (
                           <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-popover/80">
                             <ResolveSpinner />
                           </div>
                         )}
-                        {agentSetup.error && (
+                        {agentSetup.state.error && (
                           <p className="mt-2 text-xs text-destructive">
-                            {agentSetup.error}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div>
-                        <AgentEnvForm
-                          agentName={pendingEnvRef.current?.agentName ?? "Agent"}
-                          variables={pendingEnvRef.current?.missingVariables ?? []}
-                          onSubmit={handleEnvFormSubmit}
-                          onCancel={() => {
-                            setAgentPopoverView("picker");
-                            pendingEnvRef.current = null;
-                            agentSetup.clearError();
-                          }}
-                          isSubmitting={agentSetup.isResolving}
-                          disabled={isDisabled}
-                        />
-                        {agentSetup.error && (
-                          <p className="mt-2 text-xs text-destructive">
-                            {agentSetup.error}
+                            {agentSetup.state.error}
                           </p>
                         )}
                       </div>

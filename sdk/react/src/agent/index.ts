@@ -4,6 +4,12 @@ export type {
   UseAgentListReturn,
 } from "./useAgentList";
 
+export { useAgentCount } from "./useAgentCount";
+export type {
+  UseAgentCountOptions,
+  UseAgentCountReturn,
+} from "./useAgentCount";
+
 export { useAgentSearch } from "./useAgentSearch";
 export type {
   UseAgentSearchOptions,
@@ -16,11 +22,19 @@ export type { AgentPickerProps } from "./AgentPicker";
 export { AgentEnvForm } from "./AgentEnvForm";
 export type {
   AgentEnvFormProps,
+  AgentEnvFormSubmitOptions,
   AgentEnvFormVariable,
 } from "./AgentEnvForm";
+
+export { diffEnvSpec } from "./diffEnvSpec";
 
 export { useAgentSetup } from "./useAgentSetup";
 export type {
   AgentSetupResult,
+  AgentSetupReadyResult,
+  AgentSetupState,
+  AgentSetupPhase,
+  AgentResolution,
+  SubmitEnvVarsOptions,
   UseAgentSetupReturn,
 } from "./useAgentSetup";
