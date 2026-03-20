@@ -91,6 +91,7 @@ export default function SessionPage() {
         mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
         skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
         runtimeEnv: context?.runtimeEnv,
+        attachments: context?.attachments,
       });
 
       secrets.clear();

@@ -9,6 +9,7 @@ import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/s
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type {
+  AttachmentInput,
   EnvVarInput,
   McpServerUsageInput,
   ResourceRef,
@@ -48,6 +49,16 @@ export interface SendFollowUpOptions {
    * @see {@link CreateAgentExecutionInput.runtimeEnv}
    */
   readonly runtimeEnv?: Record<string, EnvVarInput>;
+  /**
+   * Pre-uploaded file attachments for this execution.
+   *
+   * Each entry must include a `storageKey` from
+   * `agentExecution.uploadAttachment()`. Forwarded directly to
+   * execution creation.
+   *
+   * @see {@link CreateAgentExecutionInput.attachments}
+   */
+  readonly attachments?: AttachmentInput[];
 }
 
 export interface UseSessionConversationReturn {
@@ -308,6 +319,7 @@ export function useSessionConversation(
           message,
           modelName: options?.modelName,
           runtimeEnv: options?.runtimeEnv,
+          attachments: options?.attachments,
         });
         setPendingExecutionId(result.executionId);
         refetch();
