@@ -24,6 +24,7 @@ const (
 	AgentExecutionQueryController_ListBySession_FullMethodName          = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/listBySession"
 	AgentExecutionQueryController_Subscribe_FullMethodName              = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/subscribe"
 	AgentExecutionQueryController_GetArtifactDownloadUrl_FullMethodName = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getArtifactDownloadUrl"
+	AgentExecutionQueryController_GetArtifactContent_FullMethodName     = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getArtifactContent"
 	AgentExecutionQueryController_GetSessionUsageReport_FullMethodName  = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getSessionUsageReport"
 	AgentExecutionQueryController_GetAgentUsageReport_FullMethodName    = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getAgentUsageReport"
 	AgentExecutionQueryController_GetOrgUsageReport_FullMethodName      = "/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getOrgUsageReport"
@@ -83,6 +84,42 @@ type AgentExecutionQueryControllerClient interface {
 	//
 	// @since Artifact Lifecycle (Attachments & Artifacts)
 	GetArtifactDownloadUrl(ctx context.Context, in *GetArtifactDownloadUrlRequest, opts ...grpc.CallOption) (*GetArtifactDownloadUrlResponse, error)
+	// Read the raw content of an execution artifact.
+	//
+	// Returns artifact bytes through the Stigmer API, eliminating CORS
+	// concerns for SDK consumers who need to read content programmatically
+	// (e.g., YAML parsing for resource detection, in-app preview rendering).
+	//
+	// For direct file downloads, use getArtifactDownloadUrl instead — it
+	// returns a presigned R2 URL that avoids proxying bytes through the server.
+	//
+	// ## Authorization
+	//
+	// Requires can_view permission on the execution. This ensures users can
+	// only read artifacts from executions they have access to.
+	//
+	// ## Security
+	//
+	// The storage_key is validated to ensure it belongs to the specified
+	// execution. Keys must start with "artifacts/{execution_id}/" to prevent
+	// path traversal attacks.
+	//
+	// ## Size Limit
+	//
+	// Content is truncated to max_bytes (default: 512 KB). The response
+	// includes total_size_bytes and a truncated flag so callers can decide
+	// whether to offer a full download via getArtifactDownloadUrl.
+	//
+	// ## Example Flow
+	//
+	// 1. Get execution via AgentExecutionQueryController.get
+	// 2. Find artifact in status.artifacts[]
+	// 3. Call getArtifactContent with execution_id and storage_key
+	// 4. Decode content bytes as UTF-8 for text artifacts
+	// 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
+	//
+	// @since Artifact Lifecycle (Attachments & Artifacts)
+	GetArtifactContent(ctx context.Context, in *GetArtifactContentRequest, opts ...grpc.CallOption) (*GetArtifactContentResponse, error)
 	// Get usage report for a session (all executions in a session).
 	// Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
 	//
@@ -162,6 +199,16 @@ func (c *agentExecutionQueryControllerClient) GetArtifactDownloadUrl(ctx context
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetArtifactDownloadUrlResponse)
 	err := c.cc.Invoke(ctx, AgentExecutionQueryController_GetArtifactDownloadUrl_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentExecutionQueryControllerClient) GetArtifactContent(ctx context.Context, in *GetArtifactContentRequest, opts ...grpc.CallOption) (*GetArtifactContentResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetArtifactContentResponse)
+	err := c.cc.Invoke(ctx, AgentExecutionQueryController_GetArtifactContent_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -252,6 +299,42 @@ type AgentExecutionQueryControllerServer interface {
 	//
 	// @since Artifact Lifecycle (Attachments & Artifacts)
 	GetArtifactDownloadUrl(context.Context, *GetArtifactDownloadUrlRequest) (*GetArtifactDownloadUrlResponse, error)
+	// Read the raw content of an execution artifact.
+	//
+	// Returns artifact bytes through the Stigmer API, eliminating CORS
+	// concerns for SDK consumers who need to read content programmatically
+	// (e.g., YAML parsing for resource detection, in-app preview rendering).
+	//
+	// For direct file downloads, use getArtifactDownloadUrl instead — it
+	// returns a presigned R2 URL that avoids proxying bytes through the server.
+	//
+	// ## Authorization
+	//
+	// Requires can_view permission on the execution. This ensures users can
+	// only read artifacts from executions they have access to.
+	//
+	// ## Security
+	//
+	// The storage_key is validated to ensure it belongs to the specified
+	// execution. Keys must start with "artifacts/{execution_id}/" to prevent
+	// path traversal attacks.
+	//
+	// ## Size Limit
+	//
+	// Content is truncated to max_bytes (default: 512 KB). The response
+	// includes total_size_bytes and a truncated flag so callers can decide
+	// whether to offer a full download via getArtifactDownloadUrl.
+	//
+	// ## Example Flow
+	//
+	// 1. Get execution via AgentExecutionQueryController.get
+	// 2. Find artifact in status.artifacts[]
+	// 3. Call getArtifactContent with execution_id and storage_key
+	// 4. Decode content bytes as UTF-8 for text artifacts
+	// 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
+	//
+	// @since Artifact Lifecycle (Attachments & Artifacts)
+	GetArtifactContent(context.Context, *GetArtifactContentRequest) (*GetArtifactContentResponse, error)
 	// Get usage report for a session (all executions in a session).
 	// Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
 	//
@@ -291,6 +374,9 @@ func (UnimplementedAgentExecutionQueryControllerServer) Subscribe(*AgentExecutio
 }
 func (UnimplementedAgentExecutionQueryControllerServer) GetArtifactDownloadUrl(context.Context, *GetArtifactDownloadUrlRequest) (*GetArtifactDownloadUrlResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactDownloadUrl not implemented")
+}
+func (UnimplementedAgentExecutionQueryControllerServer) GetArtifactContent(context.Context, *GetArtifactContentRequest) (*GetArtifactContentResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetArtifactContent not implemented")
 }
 func (UnimplementedAgentExecutionQueryControllerServer) GetSessionUsageReport(context.Context, *GetSessionUsageReportInput) (*GetSessionUsageReportOutput, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSessionUsageReport not implemented")
@@ -404,6 +490,24 @@ func _AgentExecutionQueryController_GetArtifactDownloadUrl_Handler(srv interface
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentExecutionQueryController_GetArtifactContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArtifactContentRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentExecutionQueryControllerServer).GetArtifactContent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentExecutionQueryController_GetArtifactContent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentExecutionQueryControllerServer).GetArtifactContent(ctx, req.(*GetArtifactContentRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AgentExecutionQueryController_GetSessionUsageReport_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetSessionUsageReportInput)
 	if err := dec(in); err != nil {
@@ -480,6 +584,10 @@ var AgentExecutionQueryController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "getArtifactDownloadUrl",
 			Handler:    _AgentExecutionQueryController_GetArtifactDownloadUrl_Handler,
+		},
+		{
+			MethodName: "getArtifactContent",
+			Handler:    _AgentExecutionQueryController_GetArtifactContent_Handler,
 		},
 		{
 			MethodName: "getSessionUsageReport",
