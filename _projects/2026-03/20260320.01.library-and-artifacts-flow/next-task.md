@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-03-20 10:41
 **Current Task**: T03 — Phase 3: "Create New" Draft Flow
-**Status**: Not Started (Phase 1 complete, Phase 2 complete)
+**Status**: In Progress (T03.1 complete, T03.2–T03.3 remaining)
 
 ## Session Progress (2026-03-20, Session 1)
 
@@ -595,29 +595,47 @@ When starting a new session:
 - Backend handlers: Go (stigmer OSS) + Java (stigmer-cloud) for both RPCs
 - SessionPage integration: ArtifactsWidget in right sidebar
 
+## Session Progress (2026-03-20, Session 21)
+
+### Completed
+- **T03.1 — Pre-filled session navigation helper**: Created `client-apps/web/src/utils/draft-session.ts`
+  - `DraftResourceType` union: `"agent" | "skill" | "mcp-server"`
+  - `CREATOR_AGENTS` record: maps each type to its system agent `ResourceRef` (`stigmer/agent-creator`, `stigmer/skill-creator`, `stigmer/mcp-server-creator`)
+  - `getDraftSessionUrl(resourceType)` → returns `/?draft=<type>` for `<Link>` href values
+  - `parseDraftParam(searchParams)` → validates `?draft=` param, returns `DraftResourceType | null`
+  - Single source of truth for the draft session URL contract
+  - TypeScript check clean, zero lint errors
+
+### Discovery: `lib/` gitignore collision
+- Originally planned for `src/lib/` (Next.js convention) but `.gitignore` line 35 (`lib/`) — a Python build artifact pattern — silently ignores any `lib/` directory at any depth
+- Relocated to `src/utils/` — works naturally, no gitignore modification needed
+
+### Architectural Concern Flagged for T03.2
+- `SessionComposer` has no mechanism to auto-resolve an externally-provided agent ref
+- Resolution flow (fetching agent, checking env spec, creating instances) is triggered only by `AgentPicker` user interaction
+- T03.2 will likely need an `initialAgentRef` prop on `SessionComposer` — an SDK-level change
+- Needs design discussion before T03.2 implementation
+
 ## Next Steps
 
-1. **Phase 3: "Create New" Draft Flow** — T03.1–T03.3
-   - T03.1: Pre-filled session navigation helper (`getDraftSessionUrl`)
-   - T03.2: SessionLauncher pre-fill support (read query params, auto-select system agent)
-   - T03.3: Wire "Create New" buttons in Library pages to use `getDraftSessionUrl`
-2. **Phase 4: Edit Flow + Attachments** (future)
-3. **Phase 5: Resource Detail View** (future)
+1. **T03.2: SessionLauncher pre-fill support** — read `?draft=` query params, auto-select system agent. Requires `initialAgentRef` prop on `SessionComposer` (SDK change).
+2. **T03.3: Wire "Create New" buttons** in Library pages to use `getDraftSessionUrl`
+3. **Phase 4: Edit Flow + Attachments** (future)
+4. **Phase 5: Resource Detail View** (future)
 
 ## Context for Resume
 
 - **Phase 1 (Library Pages + Navigation) is COMPLETE** — all tasks T01.1–T01.13 done
 - **Phase 2 (Execution Artifacts Widget + Apply Flow) is COMPLETE** — all tasks T02.1–T02.8 done
-- **ArtifactCard** is now a simplified signal-and-navigate component (detection badges + Preview + Download). No Apply CTA. Props: `artifact`, `executionId`, `org`, `onPreview?`, `className?`. 276 lines.
-- **ArtifactPreviewModal** is the sole location for Apply/Push actions. Props: `artifact`, `executionId`, `org`, `isTerminal`, `open`, `onClose`, `onApplied?`, `className?`. ~677 lines.
-- **ArtifactsWidget** is the container that composes cards + modal. Props: `execution`, `org`, `onApplied?`, `className?`. 128 lines. Manages `previewArtifact` state for modal orchestration.
-- **Apply architecture**: Card detects resource type (badge), user clicks Preview, modal shows full content + Apply CTA, Apply calls `useApplyResource` internally.
+- **Phase 3 (Create New Draft Flow) is IN PROGRESS** — T03.1 done, T03.2–T03.3 remaining
+- **Draft session URL contract**: `/?draft=agent`, `/?draft=skill`, `/?draft=mcp-server`
+- **Draft session utility**: `client-apps/web/src/utils/draft-session.ts` — 4 exports, ~70 lines
 - **Branch**: `feat/add-customize-ui-2` (stigmer OSS), `feat/add-library-ui` (stigmer-cloud)
 
 ## Quick Commands
 
 After loading context:
-- "Continue Phase 3 with T03.1" — Build pre-filled session navigation helper
+- "Continue Phase 3 with T03.2" — SessionLauncher pre-fill support
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 
