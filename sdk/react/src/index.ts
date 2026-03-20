@@ -165,7 +165,7 @@ export type {
   SessionComposerSubmitContext,
 } from "./composer";
 
-// MCP Server — data hook, count hook, list hook, search hook, picker, config panel, tool selector, and setup orchestration
+// MCP Server — data hook, count hook, list hook, search hook, picker, config panel, tool selector, detail view, and setup orchestration
 export {
   useMcpServer,
   useMcpServerCount,
@@ -174,6 +174,7 @@ export {
   useMcpServerSetup,
   McpServerPicker,
   McpServerConfigPanel,
+  McpServerDetailView,
   McpToolSelector,
   toServerKey,
 } from "./mcp-server";
@@ -194,16 +195,18 @@ export type {
   McpServerSetupIntegration,
   McpServerConfigPanelProps,
   McpServerCredentialsProps,
+  McpServerDetailViewProps,
   McpToolSelectorProps,
 } from "./mcp-server";
 
-// Skill — data hook, count hook, list hook, search hook, and picker component
+// Skill — data hook, count hook, list hook, search hook, picker, and detail view component
 export {
   useSkill,
   useSkillCount,
   useSkillList,
   useSkillSearch,
   SkillPicker,
+  SkillDetailView,
 } from "./skill";
 export type {
   UseSkillReturn,
@@ -214,6 +217,7 @@ export type {
   UseSkillSearchOptions,
   UseSkillSearchReturn,
   SkillPickerProps,
+  SkillDetailViewProps,
 } from "./skill";
 
 // GitHub — OAuth connection, repo picker, and hooks
@@ -329,6 +333,8 @@ export {
   detectSkillPackage,
   useDetectSkillPackage,
   parseResourceYaml,
+  serializeAgentYaml,
+  serializeMcpServerYaml,
   useApplyResource,
 } from "./library";
 export type {

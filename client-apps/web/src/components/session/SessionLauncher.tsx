@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   SessionComposer,
@@ -11,18 +11,36 @@ import {
   useCreateAgentExecution,
   useGitHubConnection,
   useDefaultAgent,
+  useAgent,
+  useMcpServer,
+  useSkill,
+  useStigmer,
+  serializeAgentYaml,
+  serializeMcpServerYaml,
 } from "@stigmer/react";
 import type { AgentResolution, SessionComposerSubmitContext } from "@stigmer/react";
 import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
+import { create } from "@bufbuild/protobuf";
+import { GetArtifactRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/io_pb";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDeploymentMode } from "@/hooks/useDeploymentMode";
-import { CREATOR_AGENTS, type DraftResourceType } from "@/utils/draft-session";
+import {
+  CREATOR_AGENTS,
+  parseDraftParams,
+  type DraftResourceType,
+} from "@/utils/draft-session";
 
 /**
  * Console-specific session launcher — the landing page widget that
  * composes SDK hooks and components into the "new session" experience.
  *
  * Flow: create session -> create first execution -> navigate.
+ *
+ * Supports two modes:
+ * - **Create mode**: `/?draft=agent` — pre-selects the creator agent
+ * - **Edit mode**: `/?draft=agent&editOrg=acme&editSlug=my-agent` —
+ *   fetches the existing resource, serializes it to a file, and attaches
+ *   it to the composer so the creator agent can modify it
  *
  * Adds org context, Next.js routing, Console layout, GitHub connection,
  * and deployment mode detection that would not belong in an embeddable
@@ -36,26 +54,128 @@ const DRAFT_PLACEHOLDERS: Record<DraftResourceType, string> = {
   "mcp-server": "Describe the MCP server you want to create\u2026",
 };
 
-interface SessionLauncherProps {
-  draftType?: DraftResourceType | null;
-}
+const EDIT_PLACEHOLDERS: Record<DraftResourceType, string> = {
+  agent: "Describe how you\u2019d like to modify this agent\u2026",
+  skill: "Describe how you\u2019d like to modify this skill\u2026",
+  "mcp-server": "Describe how you\u2019d like to modify this MCP server\u2026",
+};
 
-export function SessionLauncher({ draftType }: SessionLauncherProps) {
+export function SessionLauncher() {
   const router = useRouter();
+  const rawSearchParams = useSearchParams();
+  const draftParams = parseDraftParams(rawSearchParams);
   const org = useActiveOrgSlug();
   const deploymentMode = useDeploymentMode();
   const gitHubConnection = useGitHubConnection(org);
+  const stigmer = useStigmer();
+
+  const draftType = draftParams?.draftType ?? null;
+  const editRef = draftParams?.editRef ?? null;
+  const isEditMode = editRef !== null;
 
   const initialAgentRef = draftType ? CREATOR_AGENTS[draftType] : undefined;
   const placeholder = draftType
-    ? DRAFT_PLACEHOLDERS[draftType]
+    ? isEditMode
+      ? EDIT_PLACEHOLDERS[draftType]
+      : DRAFT_PLACEHOLDERS[draftType]
     : "Describe what you need help with\u2026";
 
+  const heading = isEditMode
+    ? "What would you like to change?"
+    : "What would you like to work on?";
+
+  // Clean URL params after reading
   useEffect(() => {
     if (draftType) {
       window.history.replaceState({}, "", "/");
     }
   }, [draftType]);
+
+  // ---------------------------------------------------------------------------
+  // Edit mode: fetch resource and build initial attachment files
+  // ---------------------------------------------------------------------------
+
+  const editOrg = editRef?.org ?? null;
+  const editSlug = editRef?.slug ?? null;
+
+  const { agent: editAgent } = useAgent(
+    draftType === "agent" ? editOrg : null,
+    draftType === "agent" ? editSlug : null,
+  );
+
+  const { mcpServer: editMcpServer } = useMcpServer(
+    draftType === "mcp-server" ? editOrg : null,
+    draftType === "mcp-server" ? editSlug : null,
+  );
+
+  const { skill: editSkill } = useSkill(
+    draftType === "skill" ? editOrg : null,
+    draftType === "skill" ? editSlug : null,
+  );
+
+  const [editFiles, setEditFiles] = useState<File[] | undefined>(undefined);
+  const editFilesBuilt = useRef(false);
+
+  // Agent / McpServer: serialize to YAML file
+  useEffect(() => {
+    if (editFilesBuilt.current) return;
+
+    if (draftType === "agent" && editAgent) {
+      editFilesBuilt.current = true;
+      try {
+        const yaml = serializeAgentYaml(editAgent);
+        const slug = editAgent.metadata?.slug ?? "agent";
+        setEditFiles([
+          new File([yaml], `${slug}.yaml`, { type: "text/yaml" }),
+        ]);
+      } catch {
+        toast.error("Failed to serialize agent for editing");
+      }
+    }
+
+    if (draftType === "mcp-server" && editMcpServer) {
+      editFilesBuilt.current = true;
+      try {
+        const yaml = serializeMcpServerYaml(editMcpServer);
+        const slug = editMcpServer.metadata?.slug ?? "mcp-server";
+        setEditFiles([
+          new File([yaml], `${slug}.yaml`, { type: "text/yaml" }),
+        ]);
+      } catch {
+        toast.error("Failed to serialize MCP server for editing");
+      }
+    }
+  }, [draftType, editAgent, editMcpServer]);
+
+  // Skill: download the package ZIP
+  useEffect(() => {
+    if (editFilesBuilt.current) return;
+    if (draftType !== "skill" || !editSkill) return;
+
+    const storageKey = editSkill.status?.artifactStorageKey;
+    if (!storageKey) return;
+
+    editFilesBuilt.current = true;
+    const slug = editSkill.metadata?.slug ?? "skill";
+
+    stigmer.skill
+      .getArtifact(create(GetArtifactRequestSchema, { artifactStorageKey: storageKey }))
+      .then((resp) => {
+        const buf = new ArrayBuffer(resp.artifact.byteLength);
+        new Uint8Array(buf).set(resp.artifact);
+        const blob = new Blob([buf], { type: "application/zip" });
+        setEditFiles([
+          new File([blob], `${slug}.zip`, { type: "application/zip" }),
+        ]);
+      })
+      .catch(() => {
+        toast.error("Failed to download skill package for editing");
+      });
+  }, [draftType, editSkill, stigmer]);
+
+  // ---------------------------------------------------------------------------
+  // Model persistence
+  // ---------------------------------------------------------------------------
 
   const { getModel } = useModelRegistry();
 
@@ -77,6 +197,10 @@ export function SessionLauncher({ draftType }: SessionLauncherProps) {
       localStorage.setItem(STORAGE_KEY_MODEL, modelId);
     }
   }, [modelId]);
+
+  // ---------------------------------------------------------------------------
+  // Session state
+  // ---------------------------------------------------------------------------
 
   const workspace = useWorkspaceEntries();
   const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
@@ -120,7 +244,6 @@ export function SessionLauncher({ draftType }: SessionLauncherProps) {
         let sessionId: string;
 
         if (agentRef && resolution) {
-          // User explicitly selected an agent — use their choice
           if (resolution.mode === "saved") {
             ({ sessionId } = await createSession({
               ...sessionFields,
@@ -133,7 +256,6 @@ export function SessionLauncher({ draftType }: SessionLauncherProps) {
             }));
           }
         } else {
-          // No agent selected — use platform default agent silently
           const defaultInstanceId = defaultAgent?.status?.defaultInstanceId;
           if (!defaultInstanceId) {
             throw new Error(
@@ -176,7 +298,7 @@ export function SessionLauncher({ draftType }: SessionLauncherProps) {
     <div className="flex h-full flex-col items-center overflow-y-auto px-4">
       <div className="my-auto w-full max-w-2xl space-y-6">
         <h1 className="text-center text-lg font-medium text-foreground">
-          What would you like to work on?
+          {heading}
         </h1>
 
         <SessionComposer
@@ -192,6 +314,7 @@ export function SessionLauncher({ draftType }: SessionLauncherProps) {
           onAgentRefChange={setAgentRef}
           onAgentResolutionChange={setResolution}
           initialAgentRef={initialAgentRef}
+          initialAttachments={editFiles}
           mcpServerUsages={mcpServerUsages}
           onMcpServerUsagesChange={setMcpServerUsages}
           skillRefs={skillRefs}

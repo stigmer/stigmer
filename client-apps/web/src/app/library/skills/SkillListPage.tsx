@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Plus, Sparkles } from "lucide-react";
 import { getDraftSessionUrl } from "@/utils/draft-session";
 import {
@@ -21,6 +22,7 @@ function readPersistedScope(): ResourceListScope {
 
 export function SkillListPage() {
   const org = useActiveOrgSlug();
+  const router = useRouter();
 
   const [scope, setScope] = useState<ResourceListScope>(readPersistedScope);
   const [query, setQuery] = useState("");
@@ -64,6 +66,7 @@ export function SkillListPage() {
         scope={scope}
         onScopeChange={handleScopeChange}
         onPageChange={setPage}
+        onItemClick={(item) => router.push(`/library/skills/${item.slug}`)}
         emptyIcon={<Sparkles className="size-10" aria-hidden="true" />}
         emptyTitle="No skills found"
         onRetry={refetch}
