@@ -9,7 +9,7 @@ import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
 import { buildPersonalInstanceInput } from "../agent-instance/buildPersonalInstanceInput";
-import { diffEnvSpec } from "./diffEnvSpec";
+import { diffEnvSpec } from "../environment/diffEnvSpec";
 import {
   agentSetupReducer,
   INITIAL_STATE,
