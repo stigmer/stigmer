@@ -686,6 +686,18 @@ message GetArtifactContentRequest {
   //
   // Example: 524288 (512 KB)
   int64 max_bytes = 3;
+
+  // For directory artifacts (ZIPs): extract a specific file by its
+  // path within the archive instead of returning the raw ZIP bytes.
+  //
+  // When empty, returns the full artifact content (existing behavior).
+  // When set for a FILE artifact, this field is ignored.
+  //
+  // The path must match an entry in the archive exactly (case-sensitive).
+  // Use the paths from ExecutionArtifact.entries to discover valid values.
+  //
+  // Example: "SKILL.md", "scripts/init_skill.py"
+  string entry_path = 4;
 }
 
 // GetArtifactContentResponse returns the raw content of an execution artifact.

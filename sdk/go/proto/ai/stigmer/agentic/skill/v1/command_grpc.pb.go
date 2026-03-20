@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SkillCommandController_Push_FullMethodName   = "/ai.stigmer.agentic.skill.v1.SkillCommandController/push"
-	SkillCommandController_Delete_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillCommandController/delete"
+	SkillCommandController_Push_FullMethodName                      = "/ai.stigmer.agentic.skill.v1.SkillCommandController/push"
+	SkillCommandController_PushFromExecutionArtifact_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromExecutionArtifact"
+	SkillCommandController_Delete_FullMethodName                    = "/ai.stigmer.agentic.skill.v1.SkillCommandController/delete"
 )
 
 // SkillCommandControllerClient is the client API for SkillCommandController service.
@@ -48,6 +49,19 @@ type SkillCommandControllerClient interface {
 	//
 	// Returns: The created or updated Skill resource (consistent with other CRUD operations)
 	Push(ctx context.Context, in *PushSkillRequest, opts ...grpc.CallOption) (*Skill, error)
+	// Push a skill directly from an execution artifact already in storage.
+	//
+	// This is the server-side equivalent of push() — instead of receiving
+	// ZIP bytes from the client, it reads an existing directory artifact
+	// (produced by an agent execution) from artifact storage and pushes
+	// it as a skill. This avoids downloading the ZIP to the browser and
+	// re-uploading it, and eliminates CORS concerns for SDK consumers.
+	//
+	// The caller must have can_view on the referenced execution AND
+	// can_create_skill in the target organization.
+	//
+	// Returns: The created or updated Skill resource
+	PushFromExecutionArtifact(ctx context.Context, in *PushSkillFromExecutionArtifactRequest, opts ...grpc.CallOption) (*Skill, error)
 	// Delete a skill and all its versions.
 	// This removes the skill from the main collection but preserves audit history.
 	Delete(ctx context.Context, in *SkillId, opts ...grpc.CallOption) (*Skill, error)
@@ -65,6 +79,16 @@ func (c *skillCommandControllerClient) Push(ctx context.Context, in *PushSkillRe
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Skill)
 	err := c.cc.Invoke(ctx, SkillCommandController_Push_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *skillCommandControllerClient) PushFromExecutionArtifact(ctx context.Context, in *PushSkillFromExecutionArtifactRequest, opts ...grpc.CallOption) (*Skill, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Skill)
+	err := c.cc.Invoke(ctx, SkillCommandController_PushFromExecutionArtifact_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +130,19 @@ type SkillCommandControllerServer interface {
 	//
 	// Returns: The created or updated Skill resource (consistent with other CRUD operations)
 	Push(context.Context, *PushSkillRequest) (*Skill, error)
+	// Push a skill directly from an execution artifact already in storage.
+	//
+	// This is the server-side equivalent of push() — instead of receiving
+	// ZIP bytes from the client, it reads an existing directory artifact
+	// (produced by an agent execution) from artifact storage and pushes
+	// it as a skill. This avoids downloading the ZIP to the browser and
+	// re-uploading it, and eliminates CORS concerns for SDK consumers.
+	//
+	// The caller must have can_view on the referenced execution AND
+	// can_create_skill in the target organization.
+	//
+	// Returns: The created or updated Skill resource
+	PushFromExecutionArtifact(context.Context, *PushSkillFromExecutionArtifactRequest) (*Skill, error)
 	// Delete a skill and all its versions.
 	// This removes the skill from the main collection but preserves audit history.
 	Delete(context.Context, *SkillId) (*Skill, error)
@@ -120,6 +157,9 @@ type UnimplementedSkillCommandControllerServer struct{}
 
 func (UnimplementedSkillCommandControllerServer) Push(context.Context, *PushSkillRequest) (*Skill, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Push not implemented")
+}
+func (UnimplementedSkillCommandControllerServer) PushFromExecutionArtifact(context.Context, *PushSkillFromExecutionArtifactRequest) (*Skill, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PushFromExecutionArtifact not implemented")
 }
 func (UnimplementedSkillCommandControllerServer) Delete(context.Context, *SkillId) (*Skill, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -162,6 +202,24 @@ func _SkillCommandController_Push_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SkillCommandController_PushFromExecutionArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PushSkillFromExecutionArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SkillCommandControllerServer).PushFromExecutionArtifact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SkillCommandController_PushFromExecutionArtifact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SkillCommandControllerServer).PushFromExecutionArtifact(ctx, req.(*PushSkillFromExecutionArtifactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SkillCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SkillId)
 	if err := dec(in); err != nil {
@@ -190,6 +248,10 @@ var SkillCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "push",
 			Handler:    _SkillCommandController_Push_Handler,
+		},
+		{
+			MethodName: "pushFromExecutionArtifact",
+			Handler:    _SkillCommandController_PushFromExecutionArtifact_Handler,
 		},
 		{
 			MethodName: "delete",

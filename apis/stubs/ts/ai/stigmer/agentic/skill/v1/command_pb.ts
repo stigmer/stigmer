@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { SkillSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_skill_v1_api } from "./api_pb";
-import type { PushSkillRequestSchema, SkillIdSchema } from "./io_pb";
+import type { PushSkillFromExecutionArtifactRequestSchema, PushSkillRequestSchema, SkillIdSchema } from "./io_pb";
 import { file_ai_stigmer_agentic_skill_v1_io } from "./io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
 import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../../iam/iampolicy/v1/rpcauthorization/method_options_pb";
@@ -15,7 +15,7 @@ import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from
  * Describes the file ai/stigmer/agentic/skill/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxMr4CChZTa2lsbENvbW1hbmRDb250cm9sbGVyEpkBCgRwdXNoEi0uYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoIFRAeIgNvcmcqL3VuYXV0aG9yaXplZCB0byBwdXNoIHNraWxsIGluIHRoaXMgb3JnYW5pemF0aW9uEoEBCgZkZWxldGUSJC5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGxJZBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCItwrgYKQgCECsiBXZhbHVlKhx1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHNraWxsGgSg/ysrYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxMoQEChZTa2lsbENvbW1hbmRDb250cm9sbGVyEpkBCgRwdXNoEi0uYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoIFRAeIgNvcmcqL3VuYXV0aG9yaXplZCB0byBwdXNoIHNraWxsIGluIHRoaXMgb3JnYW5pemF0aW9uEsMBChlwdXNoRnJvbUV4ZWN1dGlvbkFydGlmYWN0EkIuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbEZyb21FeGVjdXRpb25BcnRpZmFjdFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoIFRAeIgNvcmcqL3VuYXV0aG9yaXplZCB0byBwdXNoIHNraWxsIGluIHRoaXMgb3JnYW5pemF0aW9uEoEBCgZkZWxldGUSJC5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGxJZBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCItwrgYKQgCECsiBXZhbHVlKhx1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHNraWxsGgSg/ysrYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
  * SkillCommandController handles write operations for skills.
@@ -48,6 +48,27 @@ export const SkillCommandController: GenService<{
   push: {
     methodKind: "unary";
     input: typeof PushSkillRequestSchema;
+    output: typeof SkillSchema;
+  },
+  /**
+   * Push a skill directly from an execution artifact already in storage.
+   *
+   * This is the server-side equivalent of push() — instead of receiving
+   * ZIP bytes from the client, it reads an existing directory artifact
+   * (produced by an agent execution) from artifact storage and pushes
+   * it as a skill. This avoids downloading the ZIP to the browser and
+   * re-uploading it, and eliminates CORS concerns for SDK consumers.
+   *
+   * The caller must have can_view on the referenced execution AND
+   * can_create_skill in the target organization.
+   *
+   * Returns: The created or updated Skill resource
+   *
+   * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromExecutionArtifact
+   */
+  pushFromExecutionArtifact: {
+    methodKind: "unary";
+    input: typeof PushSkillFromExecutionArtifactRequestSchema;
     output: typeof SkillSchema;
   },
   /**

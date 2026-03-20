@@ -15,4 +15,13 @@ export type {
 
 export { useDetectStigmerResource } from "./useDetectStigmerResource";
 
+export {
+  isSkillPackage,
+  detectSkillPackage,
+} from "./detect-skill-package";
+export type { SkillPackageDetection } from "./detect-skill-package";
+
+export { useDetectSkillPackage } from "./useDetectSkillPackage";
+export type { UseDetectSkillPackageReturn } from "./useDetectSkillPackage";
+
 export type { ResourceListScope } from "../search";

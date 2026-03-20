@@ -4,6 +4,7 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.agentic.skill.v1.GetArtifactRequest;
 import ai.stigmer.agentic.skill.v1.GetArtifactResponse;
+import ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest;
 import ai.stigmer.agentic.skill.v1.PushSkillRequest;
 import ai.stigmer.agentic.skill.v1.Skill;
 import ai.stigmer.agentic.skill.v1.SkillCommandControllerGrpc;
@@ -32,6 +33,12 @@ public final class SkillClient {
     public Skill push(PushSkillRequest input) {
         try {
             return command.push(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Skill pushFromExecutionArtifact(PushSkillFromExecutionArtifactRequest input) {
+        try {
+            return command.pushFromExecutionArtifact(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

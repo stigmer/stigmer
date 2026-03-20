@@ -6,9 +6,10 @@ go_library(
     importpath = "github.com/stigmer/stigmer/mcp-server/gen/agentic/workflowinstance",
     visibility = ["//visibility:public"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
-        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
         "//mcp-server/internal/convert",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/agentic/workflowinstance/v1:workflowinstance",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/commons/apiresource",
+        "@com_github_stigmer_stigmer_sdk_go//proto/ai/stigmer/commons/apiresource/apiresourcekind",
     ],
 )

@@ -55,6 +55,8 @@ private static final long serialVersionUID = 0L;
     downloadUrl_ = "";
     createdAt_ = "";
     expiresAt_ = "";
+    entries_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -413,6 +415,103 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int ENTRIES_FIELD_NUMBER = 9;
+  @SuppressWarnings("serial")
+  private com.google.protobuf.LazyStringArrayList entries_ =
+      com.google.protobuf.LazyStringArrayList.emptyList();
+  /**
+   * <pre>
+   * Relative file paths within a directory artifact's archive.
+   *
+   * Populated at creation time by the agent runner when archiving a
+   * directory. Empty for FILE artifacts and for older DIRECTORY
+   * artifacts created before this field was added.
+   *
+   * Clients use this for instant skill package detection (check for
+   * "SKILL.md") and for rendering file listings without additional RPCs.
+   *
+   * Paths use forward slashes and are relative to the archive root.
+   * Directory entries are excluded — only regular files are listed.
+   * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+   * </pre>
+   *
+   * <code>repeated string entries = 9 [json_name = "entries"];</code>
+   * @return A list containing the entries.
+   */
+  public com.google.protobuf.ProtocolStringList
+      getEntriesList() {
+    return entries_;
+  }
+  /**
+   * <pre>
+   * Relative file paths within a directory artifact's archive.
+   *
+   * Populated at creation time by the agent runner when archiving a
+   * directory. Empty for FILE artifacts and for older DIRECTORY
+   * artifacts created before this field was added.
+   *
+   * Clients use this for instant skill package detection (check for
+   * "SKILL.md") and for rendering file listings without additional RPCs.
+   *
+   * Paths use forward slashes and are relative to the archive root.
+   * Directory entries are excluded — only regular files are listed.
+   * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+   * </pre>
+   *
+   * <code>repeated string entries = 9 [json_name = "entries"];</code>
+   * @return The count of entries.
+   */
+  public int getEntriesCount() {
+    return entries_.size();
+  }
+  /**
+   * <pre>
+   * Relative file paths within a directory artifact's archive.
+   *
+   * Populated at creation time by the agent runner when archiving a
+   * directory. Empty for FILE artifacts and for older DIRECTORY
+   * artifacts created before this field was added.
+   *
+   * Clients use this for instant skill package detection (check for
+   * "SKILL.md") and for rendering file listings without additional RPCs.
+   *
+   * Paths use forward slashes and are relative to the archive root.
+   * Directory entries are excluded — only regular files are listed.
+   * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+   * </pre>
+   *
+   * <code>repeated string entries = 9 [json_name = "entries"];</code>
+   * @param index The index of the element to return.
+   * @return The entries at the given index.
+   */
+  public java.lang.String getEntries(int index) {
+    return entries_.get(index);
+  }
+  /**
+   * <pre>
+   * Relative file paths within a directory artifact's archive.
+   *
+   * Populated at creation time by the agent runner when archiving a
+   * directory. Empty for FILE artifacts and for older DIRECTORY
+   * artifacts created before this field was added.
+   *
+   * Clients use this for instant skill package detection (check for
+   * "SKILL.md") and for rendering file listings without additional RPCs.
+   *
+   * Paths use forward slashes and are relative to the archive root.
+   * Directory entries are excluded — only regular files are listed.
+   * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+   * </pre>
+   *
+   * <code>repeated string entries = 9 [json_name = "entries"];</code>
+   * @param index The index of the value to return.
+   * @return The bytes of the entries at the given index.
+   */
+  public com.google.protobuf.ByteString
+      getEntriesBytes(int index) {
+    return entries_.getByteString(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -451,6 +550,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(expiresAt_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 8, expiresAt_);
     }
+    for (int i = 0; i < entries_.size(); i++) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 9, entries_.getRaw(i));
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -486,6 +588,14 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(expiresAt_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(8, expiresAt_);
     }
+    {
+      int dataSize = 0;
+      for (int i = 0; i < entries_.size(); i++) {
+        dataSize += computeStringSizeNoTag(entries_.getRaw(i));
+      }
+      size += dataSize;
+      size += 1 * getEntriesList().size();
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -516,6 +626,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getCreatedAt())) return false;
     if (!getExpiresAt()
         .equals(other.getExpiresAt())) return false;
+    if (!getEntriesList()
+        .equals(other.getEntriesList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -544,6 +656,10 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getCreatedAt().hashCode();
     hash = (37 * hash) + EXPIRES_AT_FIELD_NUMBER;
     hash = (53 * hash) + getExpiresAt().hashCode();
+    if (getEntriesCount() > 0) {
+      hash = (37 * hash) + ENTRIES_FIELD_NUMBER;
+      hash = (53 * hash) + getEntriesList().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -703,6 +819,8 @@ private static final long serialVersionUID = 0L;
       downloadUrl_ = "";
       createdAt_ = "";
       expiresAt_ = "";
+      entries_ =
+          com.google.protobuf.LazyStringArrayList.emptyList();
       return this;
     }
 
@@ -760,6 +878,10 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.expiresAt_ = expiresAt_;
       }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        entries_.makeImmutable();
+        result.entries_ = entries_;
+      }
     }
 
     @java.lang.Override
@@ -808,6 +930,16 @@ private static final long serialVersionUID = 0L;
       if (!other.getExpiresAt().isEmpty()) {
         expiresAt_ = other.expiresAt_;
         bitField0_ |= 0x00000080;
+        onChanged();
+      }
+      if (!other.entries_.isEmpty()) {
+        if (entries_.isEmpty()) {
+          entries_ = other.entries_;
+          bitField0_ |= 0x00000100;
+        } else {
+          ensureEntriesIsMutable();
+          entries_.addAll(other.entries_);
+        }
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -876,6 +1008,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000080;
               break;
             } // case 66
+            case 74: {
+              ensureEntriesIsMutable();
+              entries_.add(input.readStringRequireUtf8());
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1595,6 +1732,252 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       expiresAt_ = value;
       bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+
+    private com.google.protobuf.LazyStringArrayList entries_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+    private void ensureEntriesIsMutable() {
+      if (!entries_.isModifiable()) {
+        entries_ = new com.google.protobuf.LazyStringArrayList(entries_);
+      }
+      bitField0_ |= 0x00000100;
+    }
+    /**
+     * <pre>
+     * Relative file paths within a directory artifact's archive.
+     *
+     * Populated at creation time by the agent runner when archiving a
+     * directory. Empty for FILE artifacts and for older DIRECTORY
+     * artifacts created before this field was added.
+     *
+     * Clients use this for instant skill package detection (check for
+     * "SKILL.md") and for rendering file listings without additional RPCs.
+     *
+     * Paths use forward slashes and are relative to the archive root.
+     * Directory entries are excluded — only regular files are listed.
+     * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+     * </pre>
+     *
+     * <code>repeated string entries = 9 [json_name = "entries"];</code>
+     * @return A list containing the entries.
+     */
+    public com.google.protobuf.ProtocolStringList
+        getEntriesList() {
+      entries_.makeImmutable();
+      return entries_;
+    }
+    /**
+     * <pre>
+     * Relative file paths within a directory artifact's archive.
+     *
+     * Populated at creation time by the agent runner when archiving a
+     * directory. Empty for FILE artifacts and for older DIRECTORY
+     * artifacts created before this field was added.
+     *
+     * Clients use this for instant skill package detection (check for
+     * "SKILL.md") and for rendering file listings without additional RPCs.
+     *
+     * Paths use forward slashes and are relative to the archive root.
+     * Directory entries are excluded — only regular files are listed.
+     * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+     * </pre>
+     *
+     * <code>repeated string entries = 9 [json_name = "entries"];</code>
+     * @return The count of entries.
+     */
+    public int getEntriesCount() {
+      return entries_.size();
+    }
+    /**
+     * <pre>
+     * Relative file paths within a directory artifact's archive.
+     *
+     * Populated at creation time by the agent runner when archiving a
+     * directory. Empty for FILE artifacts and for older DIRECTORY
+     * artifacts created before this field was added.
+     *
+     * Clients use this for instant skill package detection (check for
+     * "SKILL.md") and for rendering file listings without additional RPCs.
+     *
+     * Paths use forward slashes and are relative to the archive root.
+     * Directory entries are excluded — only regular files are listed.
+     * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+     * </pre>
+     *
+     * <code>repeated string entries = 9 [json_name = "entries"];</code>
+     * @param index The index of the element to return.
+     * @return The entries at the given index.
+     */
+    public java.lang.String getEntries(int index) {
+      return entries_.get(index);
+    }
+    /**
+     * <pre>
+     * Relative file paths within a directory artifact's archive.
+     *
+     * Populated at creation time by the agent runner when archiving a
+     * directory. Empty for FILE artifacts and for older DIRECTORY
+     * artifacts created before this field was added.
+     *
+     * Clients use this for instant skill package detection (check for
+     * "SKILL.md") and for rendering file listings without additional RPCs.
+     *
+     * Paths use forward slashes and are relative to the archive root.
+     * Directory entries are excluded — only regular files are listed.
+     * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+     * </pre>
+     *
+     * <code>repeated string entries = 9 [json_name = "entries"];</code>
+     * @param index The index of the value to return.
+     * @return The bytes of the entries at the given index.
+     */
+    public com.google.protobuf.ByteString
+        getEntriesBytes(int index) {
+      return entries_.getByteString(index);
+    }
+    /**
+     * <pre>
+     * Relative file paths within a directory artifact's archive.
+     *
+     * Populated at creation time by the agent runner when archiving a
+     * directory. Empty for FILE artifacts and for older DIRECTORY
+     * artifacts created before this field was added.
+     *
+     * Clients use this for instant skill package detection (check for
+     * "SKILL.md") and for rendering file listings without additional RPCs.
+     *
+     * Paths use forward slashes and are relative to the archive root.
+     * Directory entries are excluded — only regular files are listed.
+     * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+     * </pre>
+     *
+     * <code>repeated string entries = 9 [json_name = "entries"];</code>
+     * @param index The index to set the value at.
+     * @param value The entries to set.
+     * @return This builder for chaining.
+     */
+    public Builder setEntries(
+        int index, java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureEntriesIsMutable();
+      entries_.set(index, value);
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Relative file paths within a directory artifact's archive.
+     *
+     * Populated at creation time by the agent runner when archiving a
+     * directory. Empty for FILE artifacts and for older DIRECTORY
+     * artifacts created before this field was added.
+     *
+     * Clients use this for instant skill package detection (check for
+     * "SKILL.md") and for rendering file listings without additional RPCs.
+     *
+     * Paths use forward slashes and are relative to the archive root.
+     * Directory entries are excluded — only regular files are listed.
+     * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+     * </pre>
+     *
+     * <code>repeated string entries = 9 [json_name = "entries"];</code>
+     * @param value The entries to add.
+     * @return This builder for chaining.
+     */
+    public Builder addEntries(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      ensureEntriesIsMutable();
+      entries_.add(value);
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Relative file paths within a directory artifact's archive.
+     *
+     * Populated at creation time by the agent runner when archiving a
+     * directory. Empty for FILE artifacts and for older DIRECTORY
+     * artifacts created before this field was added.
+     *
+     * Clients use this for instant skill package detection (check for
+     * "SKILL.md") and for rendering file listings without additional RPCs.
+     *
+     * Paths use forward slashes and are relative to the archive root.
+     * Directory entries are excluded — only regular files are listed.
+     * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+     * </pre>
+     *
+     * <code>repeated string entries = 9 [json_name = "entries"];</code>
+     * @param values The entries to add.
+     * @return This builder for chaining.
+     */
+    public Builder addAllEntries(
+        java.lang.Iterable<java.lang.String> values) {
+      ensureEntriesIsMutable();
+      com.google.protobuf.AbstractMessageLite.Builder.addAll(
+          values, entries_);
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Relative file paths within a directory artifact's archive.
+     *
+     * Populated at creation time by the agent runner when archiving a
+     * directory. Empty for FILE artifacts and for older DIRECTORY
+     * artifacts created before this field was added.
+     *
+     * Clients use this for instant skill package detection (check for
+     * "SKILL.md") and for rendering file listings without additional RPCs.
+     *
+     * Paths use forward slashes and are relative to the archive root.
+     * Directory entries are excluded — only regular files are listed.
+     * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+     * </pre>
+     *
+     * <code>repeated string entries = 9 [json_name = "entries"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearEntries() {
+      entries_ =
+        com.google.protobuf.LazyStringArrayList.emptyList();
+      bitField0_ = (bitField0_ & ~0x00000100);;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Relative file paths within a directory artifact's archive.
+     *
+     * Populated at creation time by the agent runner when archiving a
+     * directory. Empty for FILE artifacts and for older DIRECTORY
+     * artifacts created before this field was added.
+     *
+     * Clients use this for instant skill package detection (check for
+     * "SKILL.md") and for rendering file listings without additional RPCs.
+     *
+     * Paths use forward slashes and are relative to the archive root.
+     * Directory entries are excluded — only regular files are listed.
+     * Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+     * </pre>
+     *
+     * <code>repeated string entries = 9 [json_name = "entries"];</code>
+     * @param value The bytes of the entries to add.
+     * @return This builder for chaining.
+     */
+    public Builder addEntriesBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      ensureEntriesIsMutable();
+      entries_.add(value);
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }

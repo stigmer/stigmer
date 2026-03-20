@@ -425,30 +425,88 @@ When starting a new session:
 - **Only 3 kinds for now**: Agent, McpServer, Skill. Adding Workflow/Environment later is trivial (add to `KIND_DISPLAY_NAMES` map + `StigmerResourceKind` union).
 - **Directory artifact detection deferred**: ZIP inspection for skill packages is not in scope — only text file artifacts are handled.
 
+## Session Progress (2026-03-20, Session 16)
+
+### Completed
+- **Directory Artifact Support (D1–D8)**: Full vertical implementation enabling directory artifact detection, content preview, and server-side skill push
+
+#### Proto Layer (D1)
+- Added `repeated string entries = 9` to `ExecutionArtifact` — self-describing directory artifacts
+- Added `string entry_path = 4` to `GetArtifactContentRequest` — ZIP entry extraction
+- Added `PushSkillFromExecutionArtifactRequest` + `pushFromExecutionArtifact` RPC on `SkillCommandController`
+- Regenerated all language stubs (Go, Java, Python, TypeScript) and SDK clients
+- Updated `tools/codegen/schemas/services/skill.json` for SDK client generation
+
+#### Agent Runner (D2)
+- Updated `publish_artifact.py` to populate `entries` from ZIP listing (sandbox: `zipinfo -1`, local: `Path.rglob()`)
+
+#### Backend — Go + Java (D3–D4)
+- Go: `getArtifactContent` ZIP entry extraction + `extractZipEntry()` helper
+- Go: `push_from_execution_artifact.go` — downloads from execution storage, delegates to `Push()` pipeline
+- Go: Added `executionArtifactStorage` to `SkillController`, wired in `server.go`
+- Java: `LoadArtifactContentStep` ZIP entry extraction via `ZipInputStream`
+- Java: `SkillPushFromExecutionArtifactHandler` — full pipeline handler (11 steps)
+
+#### SDK Detection (D5–D6)
+- `detect-skill-package.ts`: `isSkillPackage()` (sync entries check), `detectSkillPackage()` (frontmatter parsing)
+- `useDetectSkillPackage` hook: combines entries check with lazy SKILL.md fetch via `entry_path`
+- `useArtifactContent` extended with optional `entryPath` parameter
+
+#### Cleanup (D8)
+- Removed `"Skill"` from `StigmerResourceKind` — skills use package detection path, not YAML detection
+
+### Architecture Decisions
+- **Self-describing artifacts**: `entries` field on `ExecutionArtifact` eliminates detection RPCs
+- **Server-side skill push**: `pushFromExecutionArtifact` avoids CORS/bandwidth/size issues
+- **Two parallel detection paths**: YAML detection (Agent, McpServer) vs package detection (Skill)
+
+### Blocked
+- **D7**: Skill push integration into `useApplyResource` — blocked on T02.3 (hook doesn't exist yet). Will be incorporated when T02.3 is built.
+
+### Files Changed (stigmer OSS)
+- 50 files changed, ~2050 insertions, ~240 deletions
+- 6 new files (Java proto stubs, Go handler, SDK detection modules)
+
+### Files Changed (stigmer-cloud)
+- 2 files changed (1 new handler, 1 modified handler)
+
 ## Next Steps
 
-1. **T02.3 — `useApplyResource` behavior hook**: Apply detected resource to org
-2. **T02.4 — `ArtifactCard` component**: Single artifact in the widget
-3. **T02.5 — `ArtifactPreviewModal` component**: Full YAML preview with Apply CTA
-4. **T02.6 — `ArtifactsWidget` component**: Right-sidebar container for artifact cards
+1. **T02.3 — `useApplyResource` behavior hook**: Apply detected resource to org — **build with skill push support from the start** (incorporates deferred D7)
+2. **T02.4 — `ArtifactCard` component**: Single artifact in the widget — must render both file and directory artifacts with skill detection badges
+3. **T02.5 — `ArtifactPreviewModal` component**: Full YAML preview with Apply CTA — must show file listings for directories
+4. **T02.6 — `ArtifactsWidget` component**: Right-sidebar container for artifact cards — must handle both artifact kinds
 5. **T02.7 — Barrel exports** for artifact components
 6. **T02.8 — SessionPage integration**: Wire `ArtifactsWidget` into right sidebar
 
 ## Context for Resume
 
 - **Phase 1 (Library Pages + Navigation) is COMPLETE** — all tasks T01.1–T01.13 done
-- **Phase 2 (Execution Artifacts Widget + Apply Flow) is IN PROGRESS** — T02.1–T02.2 complete, T02.3–T02.8 remaining
-- **Backend handlers DONE**: `getArtifactContent` implemented in both Go (stigmer OSS) and Java (stigmer-cloud) — frontend hooks now work end-to-end
+- **Phase 2 (Execution Artifacts Widget + Apply Flow) is IN PROGRESS** — T02.1–T02.2 complete, directory artifact support (D1–D6, D8) complete, T02.3–T02.8 remaining
+- **Directory artifact support COMPLETE** — full vertical implementation from proto to SDK:
+  - Proto: `entries` on `ExecutionArtifact`, `entry_path` on `GetArtifactContentRequest`, `pushFromExecutionArtifact` RPC
+  - Agent runner: populates `entries` when creating ZIP from directory
+  - Backend (Go + Java): ZIP entry extraction, server-side skill push
+  - SDK: `isSkillPackage()`, `detectSkillPackage()`, `useDetectSkillPackage()`, `useArtifactContent` with `entryPath`
+  - Cleanup: removed `"Skill"` from `StigmerResourceKind` (skills use package detection, not YAML detection)
+  - **D7 deferred**: skill push integration into `useApplyResource` — will be built into T02.3 from the start
+- **Two parallel detection paths**:
+  - YAML detection: `detectStigmerResource(content)` → `Agent` | `McpServer` → `apply()`
+  - Package detection: `isSkillPackage(artifact)` / `detectSkillPackage(artifact, content)` → Skill → `pushFromExecutionArtifact()`
+- **Backend handlers DONE**: `getArtifactContent` (with `entry_path` support) and `pushFromExecutionArtifact` implemented in both Go (stigmer OSS) and Java (stigmer-cloud)
 - **T02.1 deliverables**: 2 hooks (`useExecutionArtifacts`, `useArtifactContent`), 4 utility functions, proto definition for `getArtifactContent` RPC
-- **T02.2 deliverables**: 1 pure function (`detectStigmerResource`), 1 hook (`useDetectStigmerResource`), 3 types (`StigmerResourceDetection`, `StigmerResourceKind`, display name map)
-- **New dependency**: `yaml` ^2.8.2 added to `@stigmer/react` for YAML parsing in detection
-- **Detection flow**: `useArtifactContent` → content string → `useDetectStigmerResource` → `StigmerResourceDetection` discriminated union
-- **Supported kinds**: `Agent`, `McpServer`, `Skill` — validated against `apiVersion: *.stigmer.ai/*` pattern
-- **Artifact types from protos**: `ExecutionArtifact` (artifact_pb), `ExecutionArtifactKind` enum (FILE, DIRECTORY) from enum_pb
+- **T02.2 deliverables**: 1 pure function (`detectStigmerResource`), 1 hook (`useDetectStigmerResource`), 2 types (`StigmerResourceDetection`, `StigmerResourceKind`)
+- **Directory artifact deliverables**: 2 pure functions (`isSkillPackage`, `detectSkillPackage`), 1 hook (`useDetectSkillPackage`), 1 type (`SkillPackageDetection`), `useArtifactContent` extended with `entryPath`
+- **New dependency**: `yaml` ^2.8.2 added to `@stigmer/react` for YAML/frontmatter parsing in detection
+- **Detection flow (file artifacts)**: `useArtifactContent` → content string → `useDetectStigmerResource` → `StigmerResourceDetection`
+- **Detection flow (directory artifacts)**: `useDetectSkillPackage(artifact, executionId)` → fetches SKILL.md via `entry_path` → `SkillPackageDetection`
+- **Supported YAML kinds**: `Agent`, `McpServer` — validated against `apiVersion: *.stigmer.ai/*` pattern
+- **Artifact types from protos**: `ExecutionArtifact` (artifact_pb) with `entries` field, `ExecutionArtifactKind` enum (FILE, DIRECTORY) from enum_pb
 - **Field name mapping**: proto `size_bytes` → TS `sizeBytes: bigint`, proto `storage_key` → TS `storageKey`, proto `download_url` → TS `downloadUrl`, proto `expires_at` → TS `expiresAt`
 - **Existing right sidebar**: `SessionPage` renders `ExecutionProgress` and `ExecutionCostSummary` in the aside — `ArtifactsWidget` (T02.6) will be added below these
 - **Error pattern**: `useArtifactContent` uses `error: string | null` (matches `useResourceList` pattern, not `Error | null`)
 - **Branch**: `feat/add-customize-ui-2` (stigmer OSS), `feat/add-library-ui` (stigmer-cloud)
+- **Plan reference**: `/Users/suresh/.cursor/plans/directory_artifact_support_c403095b.plan.md`
 
 ## Quick Commands
 

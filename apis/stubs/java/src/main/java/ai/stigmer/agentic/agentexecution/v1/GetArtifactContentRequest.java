@@ -83,6 +83,7 @@ private static final long serialVersionUID = 0L;
   private GetArtifactContentRequest() {
     executionId_ = "";
     storageKey_ = "";
+    entryPath_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -256,6 +257,71 @@ private static final long serialVersionUID = 0L;
     return maxBytes_;
   }
 
+  public static final int ENTRY_PATH_FIELD_NUMBER = 4;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object entryPath_ = "";
+  /**
+   * <pre>
+   * For directory artifacts (ZIPs): extract a specific file by its
+   * path within the archive instead of returning the raw ZIP bytes.
+   *
+   * When empty, returns the full artifact content (existing behavior).
+   * When set for a FILE artifact, this field is ignored.
+   *
+   * The path must match an entry in the archive exactly (case-sensitive).
+   * Use the paths from ExecutionArtifact.entries to discover valid values.
+   *
+   * Example: "SKILL.md", "scripts/init_skill.py"
+   * </pre>
+   *
+   * <code>string entry_path = 4 [json_name = "entryPath"];</code>
+   * @return The entryPath.
+   */
+  @java.lang.Override
+  public java.lang.String getEntryPath() {
+    java.lang.Object ref = entryPath_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      entryPath_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * For directory artifacts (ZIPs): extract a specific file by its
+   * path within the archive instead of returning the raw ZIP bytes.
+   *
+   * When empty, returns the full artifact content (existing behavior).
+   * When set for a FILE artifact, this field is ignored.
+   *
+   * The path must match an entry in the archive exactly (case-sensitive).
+   * Use the paths from ExecutionArtifact.entries to discover valid values.
+   *
+   * Example: "SKILL.md", "scripts/init_skill.py"
+   * </pre>
+   *
+   * <code>string entry_path = 4 [json_name = "entryPath"];</code>
+   * @return The bytes for entryPath.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getEntryPathBytes() {
+    java.lang.Object ref = entryPath_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      entryPath_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -279,6 +345,9 @@ private static final long serialVersionUID = 0L;
     if (maxBytes_ != 0L) {
       output.writeInt64(3, maxBytes_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(entryPath_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 4, entryPath_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -297,6 +366,9 @@ private static final long serialVersionUID = 0L;
     if (maxBytes_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt64Size(3, maxBytes_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(entryPath_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(4, entryPath_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -319,6 +391,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getStorageKey())) return false;
     if (getMaxBytes()
         != other.getMaxBytes()) return false;
+    if (!getEntryPath()
+        .equals(other.getEntryPath())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -337,6 +411,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + MAX_BYTES_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
         getMaxBytes());
+    hash = (37 * hash) + ENTRY_PATH_FIELD_NUMBER;
+    hash = (53 * hash) + getEntryPath().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -524,6 +600,7 @@ private static final long serialVersionUID = 0L;
       executionId_ = "";
       storageKey_ = "";
       maxBytes_ = 0L;
+      entryPath_ = "";
       return this;
     }
 
@@ -566,6 +643,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.maxBytes_ = maxBytes_;
       }
+      if (((from_bitField0_ & 0x00000008) != 0)) {
+        result.entryPath_ = entryPath_;
+      }
     }
 
     @java.lang.Override
@@ -592,6 +672,11 @@ private static final long serialVersionUID = 0L;
       }
       if (other.getMaxBytes() != 0L) {
         setMaxBytes(other.getMaxBytes());
+      }
+      if (!other.getEntryPath().isEmpty()) {
+        entryPath_ = other.entryPath_;
+        bitField0_ |= 0x00000008;
+        onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -634,6 +719,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000004;
               break;
             } // case 24
+            case 34: {
+              entryPath_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000008;
+              break;
+            } // case 34
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -989,6 +1079,143 @@ private static final long serialVersionUID = 0L;
     public Builder clearMaxBytes() {
       bitField0_ = (bitField0_ & ~0x00000004);
       maxBytes_ = 0L;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object entryPath_ = "";
+    /**
+     * <pre>
+     * For directory artifacts (ZIPs): extract a specific file by its
+     * path within the archive instead of returning the raw ZIP bytes.
+     *
+     * When empty, returns the full artifact content (existing behavior).
+     * When set for a FILE artifact, this field is ignored.
+     *
+     * The path must match an entry in the archive exactly (case-sensitive).
+     * Use the paths from ExecutionArtifact.entries to discover valid values.
+     *
+     * Example: "SKILL.md", "scripts/init_skill.py"
+     * </pre>
+     *
+     * <code>string entry_path = 4 [json_name = "entryPath"];</code>
+     * @return The entryPath.
+     */
+    public java.lang.String getEntryPath() {
+      java.lang.Object ref = entryPath_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        entryPath_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * For directory artifacts (ZIPs): extract a specific file by its
+     * path within the archive instead of returning the raw ZIP bytes.
+     *
+     * When empty, returns the full artifact content (existing behavior).
+     * When set for a FILE artifact, this field is ignored.
+     *
+     * The path must match an entry in the archive exactly (case-sensitive).
+     * Use the paths from ExecutionArtifact.entries to discover valid values.
+     *
+     * Example: "SKILL.md", "scripts/init_skill.py"
+     * </pre>
+     *
+     * <code>string entry_path = 4 [json_name = "entryPath"];</code>
+     * @return The bytes for entryPath.
+     */
+    public com.google.protobuf.ByteString
+        getEntryPathBytes() {
+      java.lang.Object ref = entryPath_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        entryPath_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * For directory artifacts (ZIPs): extract a specific file by its
+     * path within the archive instead of returning the raw ZIP bytes.
+     *
+     * When empty, returns the full artifact content (existing behavior).
+     * When set for a FILE artifact, this field is ignored.
+     *
+     * The path must match an entry in the archive exactly (case-sensitive).
+     * Use the paths from ExecutionArtifact.entries to discover valid values.
+     *
+     * Example: "SKILL.md", "scripts/init_skill.py"
+     * </pre>
+     *
+     * <code>string entry_path = 4 [json_name = "entryPath"];</code>
+     * @param value The entryPath to set.
+     * @return This builder for chaining.
+     */
+    public Builder setEntryPath(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      entryPath_ = value;
+      bitField0_ |= 0x00000008;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * For directory artifacts (ZIPs): extract a specific file by its
+     * path within the archive instead of returning the raw ZIP bytes.
+     *
+     * When empty, returns the full artifact content (existing behavior).
+     * When set for a FILE artifact, this field is ignored.
+     *
+     * The path must match an entry in the archive exactly (case-sensitive).
+     * Use the paths from ExecutionArtifact.entries to discover valid values.
+     *
+     * Example: "SKILL.md", "scripts/init_skill.py"
+     * </pre>
+     *
+     * <code>string entry_path = 4 [json_name = "entryPath"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearEntryPath() {
+      entryPath_ = getDefaultInstance().getEntryPath();
+      bitField0_ = (bitField0_ & ~0x00000008);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * For directory artifacts (ZIPs): extract a specific file by its
+     * path within the archive instead of returning the raw ZIP bytes.
+     *
+     * When empty, returns the full artifact content (existing behavior).
+     * When set for a FILE artifact, this field is ignored.
+     *
+     * The path must match an entry in the archive exactly (case-sensitive).
+     * Use the paths from ExecutionArtifact.entries to discover valid values.
+     *
+     * Example: "SKILL.md", "scripts/init_skill.py"
+     * </pre>
+     *
+     * <code>string entry_path = 4 [json_name = "entryPath"];</code>
+     * @param value The bytes for entryPath to set.
+     * @return This builder for chaining.
+     */
+    public Builder setEntryPathBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      entryPath_ = value;
+      bitField0_ |= 0x00000008;
       onChanged();
       return this;
     }

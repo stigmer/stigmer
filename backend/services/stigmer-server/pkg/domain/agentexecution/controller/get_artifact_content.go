@@ -1,7 +1,10 @@
 package agentexecution
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
+	"io"
 	"mime"
 	"path/filepath"
 	"strings"
@@ -124,6 +127,24 @@ func (c *AgentExecutionController) GetArtifactContent(
 		return nil, status.Errorf(codes.Internal, "failed to read artifact content: %v", err)
 	}
 
+	// When entry_path is set, extract a single file from the ZIP archive
+	// instead of returning the raw ZIP bytes. This enables previewing
+	// individual files inside directory artifacts without downloading the
+	// entire archive.
+	if req.EntryPath != "" {
+		entryData, err := extractZipEntry(data, req.EntryPath)
+		if err != nil {
+			log.Warn().
+				Err(err).
+				Str("execution_id", req.ExecutionId).
+				Str("storage_key", req.StorageKey).
+				Str("entry_path", req.EntryPath).
+				Msg("Failed to extract entry from ZIP artifact")
+			return nil, status.Errorf(codes.NotFound, "entry %q not found in archive", req.EntryPath)
+		}
+		data = entryData
+	}
+
 	totalSize := int64(len(data))
 	truncated := false
 	if totalSize > maxBytes {
@@ -131,11 +152,18 @@ func (c *AgentExecutionController) GetArtifactContent(
 		truncated = true
 	}
 
-	contentType := detectContentType(req.StorageKey)
+	// Detect content type from the entry path when extracting a single
+	// file, otherwise from the storage key (which may end in .zip).
+	contentKey := req.StorageKey
+	if req.EntryPath != "" {
+		contentKey = req.EntryPath
+	}
+	contentType := detectContentType(contentKey)
 
 	log.Info().
 		Str("execution_id", req.ExecutionId).
 		Str("storage_key", req.StorageKey).
+		Str("entry_path", req.EntryPath).
 		Int64("total_size_bytes", totalSize).
 		Int("returned_bytes", len(data)).
 		Bool("truncated", truncated).
@@ -148,6 +176,29 @@ func (c *AgentExecutionController) GetArtifactContent(
 		TotalSizeBytes: totalSize,
 		Truncated:      truncated,
 	}, nil
+}
+
+// extractZipEntry reads a single file from an in-memory ZIP archive.
+// Returns the file's uncompressed content, or an error if the entry is
+// not found or cannot be read.
+func extractZipEntry(zipData []byte, entryPath string) ([]byte, error) {
+	reader, err := zip.NewReader(bytes.NewReader(zipData), int64(len(zipData)))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, f := range reader.File {
+		if f.Name == entryPath {
+			rc, err := f.Open()
+			if err != nil {
+				return nil, err
+			}
+			defer rc.Close()
+			return io.ReadAll(rc)
+		}
+	}
+
+	return nil, status.Errorf(codes.NotFound, "entry %q not found in archive", entryPath)
 }
 
 // detectContentType determines a MIME type from the file extension in a

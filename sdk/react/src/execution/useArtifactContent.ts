@@ -62,6 +62,13 @@ export interface UseArtifactContentReturn {
  * );
  * ```
  *
+ * For directory artifacts (ZIPs), pass `entryPath` to extract a specific
+ * file from the archive instead of returning the raw ZIP bytes:
+ *
+ * ```tsx
+ * const { content } = useArtifactContent(executionId, storageKey, "SKILL.md");
+ * ```
+ *
  * The server enforces a content size limit (default 512 KB). Content
  * exceeding this limit is truncated — check `isTruncated` and offer
  * a full download via the pre-signed URL for large artifacts.
@@ -71,6 +78,8 @@ export interface UseArtifactContentReturn {
  *
  * @param executionId - Execution that produced the artifact, or `null` to skip.
  * @param storageKey - Storage key from `ExecutionArtifact.storageKey`, or `null` to skip.
+ * @param entryPath - For directory artifacts: relative path of a file within
+ *   the archive to extract. `null` returns the full artifact (existing behavior).
  *
  * @see useExecutionArtifacts — extracts artifact metadata from an execution
  * @see isTextArtifact — heuristic for whether content is fetchable as text
@@ -78,6 +87,7 @@ export interface UseArtifactContentReturn {
 export function useArtifactContent(
   executionId: string | null,
   storageKey: string | null,
+  entryPath?: string | null,
 ): UseArtifactContentReturn {
   const stigmer = useStigmer();
 
@@ -109,6 +119,7 @@ export function useArtifactContent(
         create(GetArtifactContentRequestSchema, {
           executionId,
           storageKey,
+          ...(entryPath ? { entryPath } : {}),
         }),
       )
       .then(
@@ -139,7 +150,7 @@ export function useArtifactContent(
     return () => {
       cancelled.current = true;
     };
-  }, [executionId, storageKey, stigmer, fetchKey]);
+  }, [executionId, storageKey, entryPath, stigmer, fetchKey]);
 
   return { content, contentType, isTruncated, isLoading, error, refetch };
 }

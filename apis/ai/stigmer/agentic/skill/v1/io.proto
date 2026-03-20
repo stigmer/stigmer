@@ -49,6 +49,51 @@ message PushSkillRequest {
   reserved 5;
 }
 
+// PushSkillFromExecutionArtifactRequest pushes a skill from an execution
+// artifact that is already stored in artifact storage.
+//
+// This enables a server-side push flow where the ZIP artifact produced by
+// an agent execution (e.g., skill-creator) is pushed as a skill without
+// downloading it to the client first. The server reads the ZIP directly
+// from artifact storage and delegates to the standard push logic.
+//
+// ## Authorization
+//
+// Requires both:
+// - can_view on the agent execution (to read the artifact)
+// - can_create_skill in the target organization (to push the skill)
+//
+// ## Security
+//
+// The storage_key is validated to start with "artifacts/{execution_id}/"
+// to prevent access to other executions' artifacts (same validation as
+// getArtifactContent).
+message PushSkillFromExecutionArtifactRequest {
+  // Organization that will own the skill.
+  string org = 1 [(buf.validate.field).required = true];
+
+  // ID of the agent execution that produced the artifact.
+  // Used for authorization (can_view check) and storage_key validation.
+  //
+  // Format: "aex_{ulid}"
+  // Example: "aex_abc123xyz456"
+  string execution_id = 2 [(buf.validate.field).string.min_len = 1];
+
+  // Storage key of the directory artifact (ZIP) to push as a skill.
+  // Must start with "artifacts/{execution_id}/" for security.
+  //
+  // Obtain this value from ExecutionArtifact.storage_key in the
+  // execution status for a DIRECTORY artifact.
+  //
+  // Format: "artifacts/{execution_id}/{filename}.zip"
+  // Example: "artifacts/aex_abc123xyz456/my-skill.zip"
+  string storage_key = 3 [(buf.validate.field).string.min_len = 1];
+
+  // Optional version tag (same semantics as PushSkillRequest.tag).
+  // Examples: "stable", "v1.0", "latest"
+  string tag = 4 [(buf.validate.field).string.pattern = "^$|^[a-zA-Z0-9._-]+$"];
+}
+
 // GetArtifactRequest requests download of a skill artifact by storage key.
 message GetArtifactRequest {
   // The artifact storage key from skill.status.artifact_storage_key.

@@ -60,4 +60,18 @@ message ExecutionArtifact {
   // ISO 8601 timestamp when the download URL expires.
   // Example: "2026-02-20T10:30:00Z"
   string expires_at = 8;
+
+  // Relative file paths within a directory artifact's archive.
+  //
+  // Populated at creation time by the agent runner when archiving a
+  // directory. Empty for FILE artifacts and for older DIRECTORY
+  // artifacts created before this field was added.
+  //
+  // Clients use this for instant skill package detection (check for
+  // "SKILL.md") and for rendering file listings without additional RPCs.
+  //
+  // Paths use forward slashes and are relative to the archive root.
+  // Directory entries are excluded — only regular files are listed.
+  // Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
+  repeated string entries = 9;
 }
