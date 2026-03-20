@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bot, Sparkles, Server } from "lucide-react";
+import { Bot, Plus, Sparkles, Server } from "lucide-react";
 import {
   useAgentCount,
   useSkillCount,
@@ -29,6 +30,12 @@ const RESOURCE_CARDS = [
     href: "/library/mcp-servers",
     icon: <Server className="size-5" aria-hidden="true" />,
   },
+] as const;
+
+const CREATE_SHORTCUTS = [
+  { label: "Create Agent", href: "/" },
+  { label: "Create Skill", href: "/" },
+  { label: "Create MCP Server", href: "/" },
 ] as const;
 
 function useResourceCounts(org: string | null) {
@@ -70,6 +77,19 @@ export function LibraryLanding() {
             />
           );
         })}
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        {CREATE_SHORTCUTS.map((shortcut) => (
+          <Link
+            key={shortcut.label}
+            href={shortcut.href}
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Plus className="size-3.5" aria-hidden="true" />
+            {shortcut.label}
+          </Link>
+        ))}
       </div>
     </>
   );
