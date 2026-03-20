@@ -16,5 +16,8 @@ export type {
   UseSkillSearchReturn,
 } from "./useSkillSearch";
 
+export { useSkill } from "./useSkill";
+export type { UseSkillReturn } from "./useSkill";
+
 export { SkillPicker } from "./SkillPicker";
 export type { SkillPickerProps } from "./SkillPicker";

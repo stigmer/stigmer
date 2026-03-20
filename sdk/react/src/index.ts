@@ -165,8 +165,9 @@ export type {
   SessionComposerSubmitContext,
 } from "./composer";
 
-// MCP Server — count hook, list hook, search hook, picker, config panel, tool selector, and setup orchestration
+// MCP Server — data hook, count hook, list hook, search hook, picker, config panel, tool selector, and setup orchestration
 export {
+  useMcpServer,
   useMcpServerCount,
   useMcpServerList,
   useMcpServerSearch,
@@ -177,6 +178,7 @@ export {
   toServerKey,
 } from "./mcp-server";
 export type {
+  UseMcpServerReturn,
   UseMcpServerCountOptions,
   UseMcpServerCountReturn,
   UseMcpServerListOptions,
@@ -195,14 +197,16 @@ export type {
   McpToolSelectorProps,
 } from "./mcp-server";
 
-// Skill — count hook, list hook, search hook, and picker component
+// Skill — data hook, count hook, list hook, search hook, and picker component
 export {
+  useSkill,
   useSkillCount,
   useSkillList,
   useSkillSearch,
   SkillPicker,
 } from "./skill";
 export type {
+  UseSkillReturn,
   UseSkillCountOptions,
   UseSkillCountReturn,
   UseSkillListOptions,
@@ -229,8 +233,9 @@ export type {
   GitHubRepoPickerProps,
 } from "./github";
 
-// Agent — count hook, list hook, search hook, picker, env form, setup orchestration, env_spec diffing, and default agent
+// Agent — data hook, count hook, list hook, search hook, picker, env form, setup orchestration, env_spec diffing, and default agent
 export {
+  useAgent,
   useAgentCount,
   useAgentList,
   useAgentSearch,
@@ -241,6 +246,7 @@ export {
   useDefaultAgent,
 } from "./agent";
 export type {
+  UseAgentReturn,
   UseAgentCountOptions,
   UseAgentCountReturn,
   UseAgentListOptions,

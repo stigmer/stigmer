@@ -16,6 +16,9 @@ export type {
   UseMcpServerSearchReturn,
 } from "./useMcpServerSearch";
 
+export { useMcpServer } from "./useMcpServer";
+export type { UseMcpServerReturn } from "./useMcpServer";
+
 export { McpServerPicker } from "./McpServerPicker";
 export type {
   McpServerPickerProps,
