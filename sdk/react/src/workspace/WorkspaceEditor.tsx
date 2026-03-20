@@ -5,6 +5,8 @@ import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { GitHubRepoPicker } from "../github/GitHubRepoPicker";
 import { FolderBrowser } from "./FolderBrowser";
+import { useScrollShadows } from "../internal/useScrollShadows";
+import { ScrollFade } from "../internal/ScrollFade";
 
 export interface WorkspaceEditorProps {
   readonly workspace: UseWorkspaceEntriesReturn;
@@ -54,6 +56,7 @@ export function WorkspaceEditor({
   const [activePanel, setActivePanel] = useState<ActivePanel>("none");
   const [manualUrl, setManualUrl] = useState("");
   const [manualBranch, setManualBranch] = useState("");
+  const entryList = useScrollShadows();
   const [localPath, setLocalPath] = useState("");
   const [lastFolderPath, setLastFolderPath] = useState<string | undefined>(
     () => {
@@ -113,34 +116,44 @@ export function WorkspaceEditor({
   return (
     <div className={["space-y-2", className].filter(Boolean).join(" ")}>
       {/* Entry list */}
-      {workspace.entries.map((entry) => (
-        <div
-          key={entry.id}
-          className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs"
-        >
-          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
-            {TYPE_LABELS[entry.type] ?? entry.type}
-          </span>
-          <span
-            className={[
-              "min-w-0 flex-1 truncate text-foreground",
-              entry.type === "local" ? "[direction:rtl] text-left" : "",
-            ].join(" ")}
-            title={entry.name}
-          >
-            <bdi>{entry.name}</bdi>
-          </span>
-          <button
-            type="button"
-            onClick={() => workspace.remove(entry.id)}
-            disabled={disabled}
-            className="shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
-            aria-label={`Remove ${entry.name}`}
-          >
-            <XIcon />
-          </button>
+      {workspace.entries.length > 0 && (
+        <div className="relative">
+          {entryList.canScrollUp && <ScrollFade position="top" />}
+
+          <div ref={entryList.scrollRef} className="max-h-28 space-y-2 overflow-y-auto">
+            {workspace.entries.map((entry) => (
+              <div
+                key={entry.id}
+                className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs"
+              >
+                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
+                  {TYPE_LABELS[entry.type] ?? entry.type}
+                </span>
+                <span
+                  className={[
+                    "min-w-0 flex-1 truncate text-foreground",
+                    entry.type === "local" ? "[direction:rtl] text-left" : "",
+                  ].join(" ")}
+                  title={entry.name}
+                >
+                  <bdi>{entry.name}</bdi>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => workspace.remove(entry.id)}
+                  disabled={disabled}
+                  className="shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
+                  aria-label={`Remove ${entry.name}`}
+                >
+                  <XIcon />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {entryList.canScrollDown && <ScrollFade position="bottom" />}
         </div>
-      ))}
+      )}
 
       {/* Source buttons */}
       <div className="flex items-center gap-2">
