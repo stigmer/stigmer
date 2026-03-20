@@ -69,7 +69,7 @@ When starting a new session:
 
 **Created**: 2026-03-20 10:41
 **Current Task**: T02 — Phase 2: Execution Artifacts Widget + Apply Flow
-**Status**: In Progress (T02.1–T02.4 complete, T02.5–T02.8 remaining)
+**Status**: In Progress (T02.1–T02.5 complete, T02.6–T02.8 remaining)
 
 ## Session Progress (2026-03-20, Session 1)
 
@@ -524,17 +524,39 @@ When starting a new session:
 - **`isTerminal` as prop, not derived internally**: The card receives a single artifact, not the full execution. The parent already knows the execution phase. Passing a boolean is cleaner than passing the whole execution.
 - **Error state replaces CTA button**: When apply fails, the error message + Retry link replaces the Apply button rather than showing both (avoids redundant actions).
 
+## Session Progress (2026-03-20, Session 19)
+
+### Completed
+- **T02.5 — `ArtifactPreviewModal` component**: Fully implemented and exported
+  - Created `sdk/react/src/execution/ArtifactPreviewModal.tsx` (~590 lines)
+  - Full-screen preview modal using native `<dialog>` element — zero dependencies for modal behavior
+  - Two content modes:
+    - **FILE artifacts**: Scrollable `<pre><code>` with CSS-only YAML highlighting via `highlightYaml()`, truncation notice, loading skeleton, error state
+    - **DIRECTORY artifacts**: Skill metadata card (name + description from `useDetectSkillPackage`) + flat file listing from `artifact.entries`
+  - Action bar: Copy (file only, Clipboard API + 2s ARIA feedback), Download (`<a download>`), Apply/Push (idle → applying → applied → error state machine)
+  - Self-contained hook orchestration: `useArtifactContent` + `useDetectStigmerResource` (FILE) or `useDetectSkillPackage` (DIRECTORY) + `useApplyResource`, gated on `open` prop
+  - Internal sub-components: `ModalHeader`, `FileContentView`, `DirectoryContentView`, `ActionBar`, `ApplyButton` + `highlightYaml`/`highlightYamlLine`/`highlightYamlValue` pure functions + 10 inline SVG icons
+  - Accessibility: native `showModal()` focus trap, Escape via `onCancel`, `aria-label` on dialog, `aria-busy` on loading, `role="alert"` on errors, `role="status"` for copy feedback, `focus-visible` rings
+  - Updated barrel exports in `execution/index.ts` and `sdk/react/src/index.ts`
+  - TypeScript check clean, zero lint errors
+
+### Architecture Decisions (from this session)
+- **Native `<dialog>` over `@base-ui/react/dialog`**: Zero dependency, built-in focus trap / top-layer / Escape handling. No z-index conflicts with host apps. `@base-ui/react` is an optional peer dep — cannot require it for SDK components.
+- **CSS-only YAML highlighting over `react-syntax-highlighter`**: Keys via `text-primary`, comments via `text-muted-foreground italic`. ~50 lines vs 50KB+ bundle cost. Covers 90% of YAML readability.
+- **Deterministic skeleton widths**: Replaced `Math.random()` with predefined width array to avoid hydration mismatches.
+- **Self-contained modal**: Manages its own apply state. Exposes `onApplied` callback for parent orchestration. `ArtifactsWidget` (T02.6) will coordinate state between `ArtifactCard` and `ArtifactPreviewModal`.
+
 ## Next Steps
 
-1. **T02.5 — `ArtifactPreviewModal` component**: Full YAML preview with Apply CTA — must show file listings for directories
-2. **T02.6 — `ArtifactsWidget` component**: Right-sidebar container for artifact cards — must handle both artifact kinds
-3. **T02.7 — Barrel exports** for artifact components
-4. **T02.8 — SessionPage integration**: Wire `ArtifactsWidget` into right sidebar
+1. **T02.6 — `ArtifactsWidget` component**: Right-sidebar container for artifact cards — must handle both artifact kinds, orchestrate preview modal open/close, propagate applied state
+2. **T02.7 — Barrel exports** for artifact components
+3. **T02.8 — SessionPage integration**: Wire `ArtifactsWidget` into right sidebar
 
 ## Context for Resume
 
 - **Phase 1 (Library Pages + Navigation) is COMPLETE** — all tasks T01.1–T01.13 done
-- **Phase 2 (Execution Artifacts Widget + Apply Flow) is IN PROGRESS** — T02.1–T02.4 complete, directory artifact support (D1–D8) complete, T02.5–T02.8 remaining
+- **Phase 2 (Execution Artifacts Widget + Apply Flow) is IN PROGRESS** — T02.1–T02.5 complete, T02.6–T02.8 remaining
+- **T02.5 deliverables**: 1 styled component (`ArtifactPreviewModal`), 1 type (`ArtifactPreviewModalProps`). Props: `artifact`, `executionId`, `org`, `isTerminal`, `open`, `onClose`, `onApplied?`, `className?`. ~590 lines, 10 inline SVG icons, CSS-only YAML highlighting, native `<dialog>`.
 - **T02.4 deliverables**: 1 styled component (`ArtifactCard`), 1 type (`ArtifactCardProps`). Orchestrates `useArtifactContent` + `useDetectStigmerResource` / `useDetectSkillPackage` + `useApplyResource` internally. Props: `artifact`, `executionId`, `org`, `isTerminal`, `onPreview?`, `onApplied?`, `className?`. 507 lines, 6 inline SVG icons.
 - **Directory artifact support COMPLETE** — full vertical implementation from proto to SDK:
   - Proto: `entries` on `ExecutionArtifact`, `entry_path` on `GetArtifactContentRequest`, `pushFromExecutionArtifact` RPC
@@ -555,20 +577,13 @@ When starting a new session:
 - **Apply flow (skill packages)**: `useDetectSkillPackage` → detection → `useApplyResource().pushSkillPackage({ org, executionId, storageKey })` → `stigmer.skill.pushFromExecutionArtifact()`
 - **YAML → SDK input conversion**: `parseResourceYaml` handles proto snake_case → SDK camelCase for Agent (`mcpServerUsages`, `subAgents`, `envSpec`) and McpServer (`stdio`, `http`, `defaultToolApprovals`). Proto `env_spec.data` maps to SDK `envSpec.variables`. `org` parameter always overrides `metadata.org`.
 - **New dependency**: `yaml` ^2.8.2 added to `@stigmer/react` for YAML/frontmatter parsing in detection
-- **Detection flow (file artifacts)**: `useArtifactContent` → content string → `useDetectStigmerResource` → `StigmerResourceDetection`
-- **Detection flow (directory artifacts)**: `useDetectSkillPackage(artifact, executionId)` → fetches SKILL.md via `entry_path` → `SkillPackageDetection`
-- **Supported YAML kinds**: `Agent`, `McpServer` — validated against `apiVersion: *.stigmer.ai/*` pattern
-- **Artifact types from protos**: `ExecutionArtifact` (artifact_pb) with `entries` field, `ExecutionArtifactKind` enum (FILE, DIRECTORY) from enum_pb
-- **Field name mapping**: proto `size_bytes` → TS `sizeBytes: bigint`, proto `storage_key` → TS `storageKey`, proto `download_url` → TS `downloadUrl`, proto `expires_at` → TS `expiresAt`
 - **Existing right sidebar**: `SessionPage` renders `ExecutionProgress` and `ExecutionCostSummary` in the aside — `ArtifactsWidget` (T02.6) will be added below these
-- **Error pattern**: `useArtifactContent` uses `error: string | null` (matches `useResourceList` pattern, not `Error | null`)
 - **Branch**: `feat/add-customize-ui-2` (stigmer OSS), `feat/add-library-ui` (stigmer-cloud)
-- **Plan reference**: `/Users/suresh/.cursor/plans/directory_artifact_support_c403095b.plan.md`
 
 ## Quick Commands
 
 After loading context:
-- "Continue Phase 2 with T02.5" — Build ArtifactPreviewModal component
+- "Continue Phase 2 with T02.6" — Build ArtifactsWidget container component
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 

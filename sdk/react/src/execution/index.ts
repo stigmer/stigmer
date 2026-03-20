@@ -65,6 +65,9 @@ export type { ApprovalCardProps } from "./ApprovalCard";
 export { ArtifactCard } from "./ArtifactCard";
 export type { ArtifactCardProps } from "./ArtifactCard";
 
+export { ArtifactPreviewModal } from "./ArtifactPreviewModal";
+export type { ArtifactPreviewModalProps } from "./ArtifactPreviewModal";
+
 export {
   resolveToolCategory,
   extractPrimaryArg,
