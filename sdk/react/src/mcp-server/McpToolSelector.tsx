@@ -159,7 +159,7 @@ export function McpToolSelector({
               <div
                 key={tool.name}
                 className={cn(
-                  "rounded-md px-2 py-1.5 transition-colors",
+                  "group rounded-md px-2 py-1.5 transition-colors",
                   isEnabled ? "bg-accent/30" : "hover:bg-accent/20",
                 )}
               >
@@ -188,7 +188,7 @@ export function McpToolSelector({
                     {tool.description && (
                       <span
                         id={descId}
-                        className="line-clamp-1 text-[0.65rem] leading-relaxed text-muted-foreground"
+                        className="line-clamp-2 group-hover:line-clamp-none group-focus-within:line-clamp-none text-[0.65rem] leading-relaxed text-muted-foreground"
                       >
                         {tool.description}
                       </span>

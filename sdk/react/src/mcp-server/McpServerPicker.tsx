@@ -481,7 +481,7 @@ export function McpServerPicker({
                 onClick={() => handleSelect(result)}
                 disabled={disabled}
                 className={cn(
-                  "flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+                  "group flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
                   "disabled:pointer-events-none disabled:opacity-50",
                   idx === focusIndex
                     ? "bg-accent text-foreground"
@@ -500,7 +500,13 @@ export function McpServerPicker({
                   </span>
                 </span>
                 {result.description && (
-                  <span className="line-clamp-1 pl-5 text-[0.65rem] text-muted-foreground">
+                  <span
+                    className={cn(
+                      "pl-5 text-[0.65rem] text-muted-foreground",
+                      idx !== focusIndex &&
+                        "line-clamp-2 group-hover:line-clamp-none",
+                    )}
+                  >
                     {result.description}
                   </span>
                 )}
