@@ -124,13 +124,16 @@ export type {
   SessionComposerProps,
 } from "./composer";
 
-// MCP Server — list hook, search hook, and picker component
+// MCP Server — count hook, list hook, search hook, and picker component
 export {
+  useMcpServerCount,
   useMcpServerList,
   useMcpServerSearch,
   McpServerPicker,
 } from "./mcp-server";
 export type {
+  UseMcpServerCountOptions,
+  UseMcpServerCountReturn,
   UseMcpServerListOptions,
   UseMcpServerListReturn,
   UseMcpServerSearchOptions,
@@ -138,13 +141,16 @@ export type {
   McpServerPickerProps,
 } from "./mcp-server";
 
-// Skill — list hook, search hook, and picker component
+// Skill — count hook, list hook, search hook, and picker component
 export {
+  useSkillCount,
   useSkillList,
   useSkillSearch,
   SkillPicker,
 } from "./skill";
 export type {
+  UseSkillCountOptions,
+  UseSkillCountReturn,
   UseSkillListOptions,
   UseSkillListReturn,
   UseSkillSearchOptions,
@@ -167,23 +173,33 @@ export type {
   GitHubRepoPickerProps,
 } from "./github";
 
-// Agent — list hook, search hook, picker, env form, and setup orchestration
+// Agent — count hook, list hook, search hook, picker, env form, setup orchestration, and env_spec diffing
 export {
+  useAgentCount,
   useAgentList,
   useAgentSearch,
   AgentPicker,
   AgentEnvForm,
+  diffEnvSpec,
   useAgentSetup,
 } from "./agent";
 export type {
+  UseAgentCountOptions,
+  UseAgentCountReturn,
   UseAgentListOptions,
   UseAgentListReturn,
   UseAgentSearchOptions,
   UseAgentSearchReturn,
   AgentPickerProps,
   AgentEnvFormProps,
+  AgentEnvFormSubmitOptions,
   AgentEnvFormVariable,
   AgentSetupResult,
+  AgentSetupReadyResult,
+  AgentSetupState,
+  AgentSetupPhase,
+  AgentResolution,
+  SubmitEnvVarsOptions,
   UseAgentSetupReturn,
 } from "./agent";
 

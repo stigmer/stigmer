@@ -4,6 +4,12 @@ export type {
   UseMcpServerListReturn,
 } from "./useMcpServerList";
 
+export { useMcpServerCount } from "./useMcpServerCount";
+export type {
+  UseMcpServerCountOptions,
+  UseMcpServerCountReturn,
+} from "./useMcpServerCount";
+
 export { useMcpServerSearch } from "./useMcpServerSearch";
 export type {
   UseMcpServerSearchOptions,

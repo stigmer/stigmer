@@ -10,3 +10,9 @@ export type {
   UseResourceListOptions,
   UseResourceListReturn,
 } from "./useResourceList";
+
+export { useResourceCount } from "./useResourceCount";
+export type {
+  UseResourceCountOptions,
+  UseResourceCountReturn,
+} from "./useResourceCount";

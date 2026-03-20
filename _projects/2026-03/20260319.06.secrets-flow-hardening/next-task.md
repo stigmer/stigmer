@@ -68,23 +68,29 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 20:08
-**Current Task**: T02 (useAgentSetup Hardening)
+**Current Task**: T05 (Follow-up One-Time Secrets)
 **Status**: Ready to start
 
-## Session Progress (2026-03-20, Session 3)
+## Session Progress (2026-03-20, Session 4)
+
+- **T02 completed**: Hardened useAgentSetup with state machine and save-or-use-once model
+  - Replaced fragile `useRef(pendingRef)` + `useState(isResolving/error)` with `useReducer` state machine (5 phases: idle → resolving → needsEnvVars → submitting → ready)
+  - Extracted `diffEnvSpec` as a pure, testable function
+  - Designed `AgentResolution` discriminated union: `saved` | `oneTime` | `direct`
+  - Added `saveForFuture` dual-path to `submitEnvVars` — persist (default) or one-time (instant, zero network calls)
+  - Updated `AgentEnvForm` with "Save for future runs" toggle
+  - Replaced `onAgentInstanceIdChange` with `onAgentResolutionChange` in `SessionComposer`
+  - Eliminated derived state (`pendingEnvRef`, `agentPopoverView`) — now driven by hook state
+  - Updated `SessionLauncher` with exhaustive `switch (resolution.mode)` routing
+  - Updated barrel exports for all new types
+  - Verified: zero new TS errors, zero lint errors
+  - Files: 2 new (`diffEnvSpec.ts`, `agentSetupReducer.ts`), 6 modified (useAgentSetup, AgentEnvForm, SessionComposer, SessionLauncher, agent/index, react/index)
+  - **Not yet committed** — pending wrap-up commit
+
+## Earlier Session Progress (2026-03-20, Session 3)
 
 - **T03 completed**: Renamed `env_refs` to `environment_refs` in WorkflowInstanceSpec
-  - Renamed proto field in `spec.proto` (field number 3 unchanged — binary wire compatible)
-  - Added CEL validation rule enforcing `kind=environment` (parity with AgentInstanceSpec)
-  - Updated all comments in `command.proto`, `query.proto`, `io.proto`
-  - Regenerated all stubs: Go, Java, TS, Python proto stubs + SDK gen files (Go, TS, Java, Python) + MCP server gen
-  - Updated 3 hand-written Java files in stigmer-cloud backend:
-    - `WorkflowInstanceCreateHandler.java` — accessor and variable names
-    - `CreateExecutionContextStep.java` — accessor, variable names, comments, log messages
-    - `EnvironmentMergeServiceTest.java` — test method name and @DisplayName
-  - Verified builds: stigmer Go SDK clean, stigmer-cloud Bazel backend (307 source files) clean
   - Committed: `bd1fca76` on `feat/add-customize-ui-2` (stigmer), `a307f32c` on `main` (stigmer-cloud)
-- **Surprise finding during T03**: WorkflowInstanceSpec had no CEL validation on `env_refs`, while AgentInstanceSpec had one on `environment_refs`. Added the validation rule during rename to achieve full parity. User approved.
 
 ## Earlier Session Progress (2026-03-20, Sessions 1-2)
 
@@ -92,34 +98,27 @@ When starting a new session:
   - Committed: `6c941c85` on `feat/add-customize-ui-2`
 - **T04 completed**: Enforced mutual-exclusion on `CreateSessionInput` agent fields
   - Committed: `5636cf5a` on `feat/add-customize-ui-2`
-- **Design decision during T04**: Removed the "backend default agent" path from `useCreateSession`. The React hook now requires explicit agent selection.
-- **Decision on Change 3 (--env-file / --secret-file)**: Not yet decided — deferred for user input
 
 ## Next Steps
 
-1. **Start T02** — `useAgentSetup` hardening with unified save-or-use-once model (largest task)
-   - Replace ref-based pending state with `useReducer` state machine
-   - Compose `usePersonalAgentInstance` instead of duplicating instance creation
-   - Extract `diffEnvSpec` as a pure function
-   - Add `saveForFuture` flag with dual-path routing (saved vs one-time)
-   - Update `AgentEnvForm` with "Save for future runs" toggle
-   - Update `SessionComposer` to consume the new `ReadyResult` shape
-   - Read `T01_2_revised_plan.md` for full T02 spec
-2. Then T05 — Follow-up message one-time secrets input
-3. Then T06 — Error messages across secret flows
+1. **Start T05** — Follow-up message one-time secrets input
+2. Then T06 — Error messages across secret flows
 
 ## Context for Resume
 
-- The revised plan (`T01_2_revised_plan.md`) is the authoritative task breakdown — all decisions resolved, all tasks approved
-- Execution order: T01 (done) -> T04 (done) -> T03 (done) -> T02 -> T05 -> T06
-- Checkpoint: `checkpoints/2026-03-20-session-3.md` — covers T03 execution and validation parity decision
+- The revised plan (`T01_2_revised_plan.md`) is the authoritative task breakdown
+- Execution order: T01 (done) -> T04 (done) -> T03 (done) -> T02 (done) -> T05 -> T06
+- Checkpoint: `checkpoints/2026-03-20-session-4.md` — covers T02 full implementation
 - Working branch: `feat/add-customize-ui-2` (stigmer)
-- stigmer-cloud T03 committed directly to `main`
+- Key new types: `AgentResolution` (3 modes), `AgentSetupPhase` (5 statuses), `AgentSetupState`
+- Key new file: `sdk/react/src/agent/agentSetupReducer.ts` — the state machine
+- Key new file: `sdk/react/src/agent/diffEnvSpec.ts` — pure env_spec diffing
+- Breaking changes in this commit: `onAgentInstanceIdChange` → `onAgentResolutionChange`, `AgentEnvForm.onSubmit` signature, `useAgentSetup` return shape
 
 ## Quick Commands
 
 After loading context:
-- "Start T02" - Begin the useAgentSetup hardening task
+- "Start T05" - Begin the follow-up one-time secrets task
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

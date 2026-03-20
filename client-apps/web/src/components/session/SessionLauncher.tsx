@@ -11,6 +11,7 @@ import {
   useCreateAgentExecution,
   useGitHubConnection,
 } from "@stigmer/react";
+import type { AgentResolution } from "@stigmer/react";
 import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDeploymentMode } from "@/hooks/useDeploymentMode";
@@ -56,7 +57,7 @@ export function SessionLauncher() {
 
   const workspace = useWorkspaceEntries();
   const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
-  const [agentInstanceId, setAgentInstanceId] = useState<string | null>(null);
+  const [resolution, setResolution] = useState<AgentResolution | null>(null);
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const { create: createSession } = useCreateSession();
@@ -70,7 +71,7 @@ export function SessionLauncher() {
       setSubmitError(null);
 
       try {
-        if (!agentInstanceId && !agentRef) {
+        if (!agentRef || !resolution) {
           throw new Error("Select an agent before starting a session.");
         }
 
@@ -84,19 +85,45 @@ export function SessionLauncher() {
           skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
         };
 
-        // Guard above ensures agentRef is non-null when agentInstanceId is null.
-        const { sessionId } = agentInstanceId
-          ? await createSession({ ...sessionFields, agentInstanceId })
-          : await createSession({ ...sessionFields, agentRef: agentRef! });
-
-        await createExecution({
+        const executionFields = {
           org,
-          sessionId,
           message,
           modelName: selectedModel ?? validModelId,
-        });
+        };
 
-        router.push(`/sessions/${sessionId}`);
+        switch (resolution.mode) {
+          case "saved": {
+            const { sessionId } = await createSession({
+              ...sessionFields,
+              agentInstanceId: resolution.instanceId,
+            });
+            await createExecution({ ...executionFields, sessionId });
+            router.push(`/sessions/${sessionId}`);
+            break;
+          }
+          case "oneTime": {
+            const { sessionId } = await createSession({
+              ...sessionFields,
+              agentRef,
+            });
+            await createExecution({
+              ...executionFields,
+              sessionId,
+              runtimeEnv: resolution.runtimeEnv,
+            });
+            router.push(`/sessions/${sessionId}`);
+            break;
+          }
+          case "direct": {
+            const { sessionId } = await createSession({
+              ...sessionFields,
+              agentRef,
+            });
+            await createExecution({ ...executionFields, sessionId });
+            router.push(`/sessions/${sessionId}`);
+            break;
+          }
+        }
       } catch (err) {
         const detail =
           err instanceof Error ? err.message : "Failed to start session";
@@ -114,7 +141,7 @@ export function SessionLauncher() {
       mcpServerUsages,
       skillRefs,
       agentRef,
-      agentInstanceId,
+      resolution,
       createSession,
       createExecution,
       router,
@@ -139,7 +166,7 @@ export function SessionLauncher() {
           enableFolderBrowser={deploymentMode === "local"}
           agentRef={agentRef}
           onAgentRefChange={setAgentRef}
-          onAgentInstanceIdChange={setAgentInstanceId}
+          onAgentResolutionChange={setResolution}
           mcpServerUsages={mcpServerUsages}
           onMcpServerUsagesChange={setMcpServerUsages}
           skillRefs={skillRefs}
