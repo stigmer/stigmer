@@ -21,3 +21,6 @@ export type { UseSkillReturn } from "./useSkill";
 
 export { SkillPicker } from "./SkillPicker";
 export type { SkillPickerProps } from "./SkillPicker";
+
+export { SkillDetailView } from "./SkillDetailView";
+export type { SkillDetailViewProps } from "./SkillDetailView";
