@@ -99,3 +99,9 @@ Only task logs (T##_1_feedback.md, T##_2_execution.md) can be updated without pe
 ## Notes
 
 _Add any additional notes, links, or context here as the project evolves._
+
+## Sub-Projects
+
+| Sub-Project | Path | Status | Description |
+|-------------|------|--------|-------------|
+| resource-detail-views | [20260320.03.sp.resource-detail-views](../20260320.03.sp.resource-detail-views/) | Active | Three resource detail view pages for the Library — Agent, Skill, and MCP Server — with single-resource data hooks in the SDK and structured read-only detail view components. |

@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-20 10:41
-**Current Task**: T03 — Phase 3: "Create New" Draft Flow
-**Status**: In Progress (T03.1 complete, T03.2–T03.3 remaining)
+**Current Task**: Phase 3 Complete — all tasks T03.1–T03.3 done
+**Status**: Phase 3 Complete (T03.1–T03.3 done; Phases 4–5 are future scope)
 
 ## Session Progress (2026-03-20, Session 1)
 
@@ -616,29 +616,72 @@ When starting a new session:
 - T03.2 will likely need an `initialAgentRef` prop on `SessionComposer` — an SDK-level change
 - Needs design discussion before T03.2 implementation
 
+## Session Progress (2026-03-20, Session 22)
+
+### Completed
+- **T03.2 — SessionLauncher pre-fill support**: Full implementation across SDK and Console
+  - **SDK change**: Added `initialAgentRef?: ResourceRef` prop to `SessionComposerProps` in `sdk/react/src/composer/SessionComposer.tsx`
+    - Full JSDoc with `@example` and cross-references to `AgentPicker`
+    - Mount-time auto-resolution effect using ref-guarded `useEffect` + stable callback ref pattern
+    - Fires once when `initialAgentRef` is truthy and `showAgent` is true
+    - Runs the full resolution flow (fetch agent → env spec check → personal instance lookup/creation)
+    - If agent needs env vars, `AgentEnvForm` appears naturally via existing state machine
+    - Handles StrictMode double-fire via `initialAgentHandled` ref guard
+    - Matches the `defaultModelId` "initial hint" pattern already on the component
+  - **Console change**: `page.tsx` reads `searchParams.draft` as server component prop (no `useSearchParams()` needed)
+    - Validates via `parseDraftParam`, passes `draftType` to `SessionLauncher`
+  - **Console change**: `SessionLauncher` accepts `draftType?: DraftResourceType` prop
+    - Derives `initialAgentRef` from `CREATOR_AGENTS[draftType]`
+    - Derives contextual placeholder per draft type ("Describe the agent you want to create…")
+    - Clears `?draft=` from URL on mount via `window.history.replaceState`
+    - Passes `initialAgentRef` and dynamic `placeholder` to `SessionComposer`
+
+- **T03.3 — Wire "Create New" buttons**: All Library pages updated to use `getDraftSessionUrl()`
+  - `LibraryLanding.tsx`: `CREATE_SHORTCUTS` now use `getDraftSessionUrl("agent")` etc.
+  - `AgentListPage.tsx`: "Create Agent" link → `getDraftSessionUrl("agent")`
+  - `SkillListPage.tsx`: "Create Skill" link → `getDraftSessionUrl("skill")`
+  - `McpServerListPage.tsx`: "Create MCP Server" link → `getDraftSessionUrl("mcp-server")`
+
+### Architecture Decision
+- **`initialAgentRef` lives in the SDK (SessionComposer), not the Console**: The agent resolution flow is a multi-step state machine managed by `useAgentSetup` inside `SessionComposer`. The `AgentEnvForm` that appears when an agent needs env vars is rendered by `SessionComposer`. Handling initial resolution at the Console level would duplicate the resolution flow and break the `needsEnvVars` path. Platform builders have the same need (pre-selecting an agent for specific workflows), making this a genuine SDK use case.
+
+### Verification
+- TypeScript check passes (zero new errors in modified files; only pre-existing errors in unrelated files)
+- Lint clean on all 7 modified files
+- No new SDK exports, no new dependencies, no breaking changes
+
+### Phase 3 Complete
+- All tasks T03.1–T03.3 are done
+- 1 Console utility (`draft-session.ts` with 4 exports)
+- 1 SDK prop addition (`initialAgentRef` on `SessionComposer`)
+- 1 Console prop addition (`draftType` on `SessionLauncher`)
+- 4 Library pages updated with draft session URLs
+- Full flow: Library "Create New" → `/?draft=type` → SessionLauncher reads param → SessionComposer auto-resolves agent → user types description → session created → artifacts widget shows Apply CTA
+
 ## Next Steps
 
-1. **T03.2: SessionLauncher pre-fill support** — read `?draft=` query params, auto-select system agent. Requires `initialAgentRef` prop on `SessionComposer` (SDK change).
-2. **T03.3: Wire "Create New" buttons** in Library pages to use `getDraftSessionUrl`
-3. **Phase 4: Edit Flow + Attachments** (future)
-4. **Phase 5: Resource Detail View** (future)
+1. **Phase 4: Edit Flow + Attachments** (future)
+2. **Phase 5: Resource Detail View** (future — sub-project started at `20260320.03.sp.resource-detail-views`)
 
 ## Context for Resume
 
 - **Phase 1 (Library Pages + Navigation) is COMPLETE** — all tasks T01.1–T01.13 done
 - **Phase 2 (Execution Artifacts Widget + Apply Flow) is COMPLETE** — all tasks T02.1–T02.8 done
-- **Phase 3 (Create New Draft Flow) is IN PROGRESS** — T03.1 done, T03.2–T03.3 remaining
-- **Draft session URL contract**: `/?draft=agent`, `/?draft=skill`, `/?draft=mcp-server`
-- **Draft session utility**: `client-apps/web/src/utils/draft-session.ts` — 4 exports, ~70 lines
+- **Phase 3 (Create New Draft Flow) is COMPLETE** — all tasks T03.1–T03.3 done
 - **Branch**: `feat/add-customize-ui-2` (stigmer OSS), `feat/add-library-ui` (stigmer-cloud)
 
 ## Quick Commands
 
 After loading context:
-- "Continue Phase 3 with T03.2" — SessionLauncher pre-fill support
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 
 ---
 
 *This file provides direct paths to all project resources for quick context loading.*
+
+## Sub-Projects
+
+Active sub-projects spawned from this project:
+
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.03.sp.resource-detail-views/next-task.md` - Three resource detail view pages for the Library — Agent, Skill, and MCP Server — with single-resource data hooks in the SDK and structured read-only detail view components.

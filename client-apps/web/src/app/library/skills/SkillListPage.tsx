@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Plus, Sparkles } from "lucide-react";
+import { getDraftSessionUrl } from "@/utils/draft-session";
 import {
   useSkillList,
   ResourceListView,
@@ -43,7 +44,7 @@ export function SkillListPage() {
           </p>
         </div>
         <Link
-          href="/"
+          href={getDraftSessionUrl("skill")}
           className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Plus className="size-3.5" aria-hidden="true" />

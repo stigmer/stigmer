@@ -134,6 +134,35 @@ export interface SessionComposerProps {
   readonly onAgentResolutionChange?: (resolution: AgentResolution | null) => void;
 
   /**
+   * Agent to auto-select when the composer mounts.
+   *
+   * When provided, the composer runs the full agent resolution flow
+   * on mount — exactly as if the user had picked this agent in the
+   * {@link AgentPicker}. If the agent requires credentials, the
+   * environment form appears automatically.
+   *
+   * One-time: consumed on mount; subsequent changes are ignored.
+   * To change the agent after mount, use the picker or
+   * `onAgentRefChange` externally.
+   *
+   * Requires `org` and `onAgentRefChange` to be set (same
+   * prerequisites as the agent picker).
+   *
+   * @example
+   * ```tsx
+   * <SessionComposer
+   *   onSubmit={handleCreate}
+   *   org="acme"
+   *   agentRef={agentRef}
+   *   onAgentRefChange={setAgentRef}
+   *   onAgentResolutionChange={setResolution}
+   *   initialAgentRef={{ org: "stigmer", slug: "agent-creator" }}
+   * />
+   * ```
+   */
+  readonly initialAgentRef?: ResourceRef;
+
+  /**
    * Currently selected MCP server usages.
    * When `onMcpServerUsagesChange` is provided, a MCP server trigger
    * appears in the toolbar.
@@ -233,6 +262,19 @@ export interface SessionComposerProps {
  *   autoFocus
  * />
  *
+ * // Pre-filled launcher (auto-selects agent on mount)
+ * <SessionComposer
+ *   onSubmit={handleCreate}
+ *   org={org}
+ *   agentRef={agentRef}
+ *   onAgentRefChange={setAgentRef}
+ *   onAgentResolutionChange={setResolution}
+ *   initialAgentRef={{ org: "stigmer", slug: "agent-creator" }}
+ *   placeholder="Describe the agent you want to create..."
+ *   initialRows={3}
+ *   autoFocus
+ * />
+ *
  * // Follow-up (compact, workspace only)
  * <SessionComposer
  *   onSubmit={(msg, model) => conv.sendFollowUp(msg, { modelName: model })}
@@ -258,6 +300,7 @@ export function SessionComposer({
   agentRef,
   onAgentRefChange,
   onAgentResolutionChange,
+  initialAgentRef,
   mcpServerUsages,
   onMcpServerUsagesChange,
   skillRefs,
@@ -521,6 +564,22 @@ export function SessionComposer({
     onAgentRefChange?.(null);
     onAgentResolutionChange?.(null);
   }, [onAgentRefChange, onAgentResolutionChange]);
+
+  // ---------------------------------------------------------------------------
+  // Initial agent: auto-resolve on mount when initialAgentRef is provided
+  // ---------------------------------------------------------------------------
+
+  const handleAgentSelectRef = useRef(handleAgentSelect);
+  handleAgentSelectRef.current = handleAgentSelect;
+
+  const initialAgentHandled = useRef(false);
+
+  useEffect(() => {
+    if (initialAgentRef && showAgent && !initialAgentHandled.current) {
+      initialAgentHandled.current = true;
+      handleAgentSelectRef.current(initialAgentRef);
+    }
+  }, [initialAgentRef, showAgent]);
 
   // ---------------------------------------------------------------------------
   // MCP server setup: sync usageInputs to consumer

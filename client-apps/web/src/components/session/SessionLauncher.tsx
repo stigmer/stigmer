@@ -16,6 +16,7 @@ import type { AgentResolution, SessionComposerSubmitContext } from "@stigmer/rea
 import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDeploymentMode } from "@/hooks/useDeploymentMode";
+import { CREATOR_AGENTS, type DraftResourceType } from "@/utils/draft-session";
 
 /**
  * Console-specific session launcher — the landing page widget that
@@ -29,11 +30,32 @@ import { useDeploymentMode } from "@/hooks/useDeploymentMode";
  */
 const STORAGE_KEY_MODEL = "stigmer:session:model";
 
-export function SessionLauncher() {
+const DRAFT_PLACEHOLDERS: Record<DraftResourceType, string> = {
+  agent: "Describe the agent you want to create\u2026",
+  skill: "Describe the skill you want to create\u2026",
+  "mcp-server": "Describe the MCP server you want to create\u2026",
+};
+
+interface SessionLauncherProps {
+  draftType?: DraftResourceType | null;
+}
+
+export function SessionLauncher({ draftType }: SessionLauncherProps) {
   const router = useRouter();
   const org = useActiveOrgSlug();
   const deploymentMode = useDeploymentMode();
   const gitHubConnection = useGitHubConnection(org);
+
+  const initialAgentRef = draftType ? CREATOR_AGENTS[draftType] : undefined;
+  const placeholder = draftType
+    ? DRAFT_PLACEHOLDERS[draftType]
+    : "Describe what you need help with\u2026";
+
+  useEffect(() => {
+    if (draftType) {
+      window.history.replaceState({}, "", "/");
+    }
+  }, [draftType]);
 
   const { getModel } = useModelRegistry();
 
@@ -169,13 +191,14 @@ export function SessionLauncher() {
           agentRef={agentRef}
           onAgentRefChange={setAgentRef}
           onAgentResolutionChange={setResolution}
+          initialAgentRef={initialAgentRef}
           mcpServerUsages={mcpServerUsages}
           onMcpServerUsagesChange={setMcpServerUsages}
           skillRefs={skillRefs}
           onSkillRefsChange={setSkillRefs}
           defaultModelId={validModelId}
           onModelChange={setModelId}
-          placeholder="Describe what you need help with..."
+          placeholder={placeholder}
           initialRows={3}
           autoFocus
           ariaLabel="Start a new session"
