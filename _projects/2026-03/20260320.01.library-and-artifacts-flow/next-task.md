@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-20 10:41
-**Current Task**: T01 — Phase 1: Library Pages + Navigation (Foundation)
-**Status**: Complete
+**Current Task**: T02 — Phase 2: Execution Artifacts Widget + Apply Flow
+**Status**: In Progress (T02.1–T02.2 complete, T02.3–T02.8 remaining)
 
 ## Session Progress (2026-03-20, Session 1)
 
@@ -399,23 +399,51 @@ When starting a new session:
 - stigmer OSS: `587e6fb3 feat(backend): implement getArtifactContent handler and regenerate stubs`
 - stigmer-cloud: `0f4e88d7 feat(backend): implement getArtifactContent handler with R2 range reads`
 
+## Session Progress (2026-03-20, Session 15)
+
+### Completed
+- **T02.2 — `useDetectStigmerResource` behavior hook**: Fully implemented and exported
+  - Created `sdk/react/src/library/detect-stigmer-resource.ts` — pure `detectStigmerResource(content)` function
+    - Parses YAML using the `yaml` npm package (new dependency, ~50KB gzipped)
+    - Validates `apiVersion` against `*.stigmer.ai/*` pattern (regex: `/^[a-z]+\.stigmer\.ai\/v\d+$/`)
+    - Checks `kind` against known set: `Agent`, `McpServer`, `Skill`
+    - Verifies `metadata` is an object with a non-empty `name` string
+    - Extracts `metadata.org` when present
+    - Returns discriminated union: `{ detected: false }` or `{ detected: true, apiVersion, kind, displayName, resourceName, resourceOrg }`
+    - Resilient by design — never throws, any failure returns `{ detected: false }`
+    - Includes `displayName` mapping (e.g., `McpServer` → `"MCP Server"`) so UI layer doesn't need its own map
+  - Created `sdk/react/src/library/useDetectStigmerResource.ts` — thin `useMemo` hook wrapper
+    - Accepts `string | null` — safe to call while `useArtifactContent` is still loading
+    - Memoized — detection only re-runs when `content` changes by reference
+  - Updated barrel exports in `library/index.ts` and `sdk/react/src/index.ts`
+  - TypeScript check clean, zero lint errors
+  - Committed: `1aa998b8 feat(sdk/react): add Stigmer resource detection for execution artifacts`
+
+### Architecture Decision
+- **Pure function + hook wrapper**: Core detection logic is a pure function (`detectStigmerResource`) independently testable and usable outside React. The hook (`useDetectStigmerResource`) is a thin `useMemo` wrapper. This matches the `aggregateUsage` / `useExecutionUsage` pattern and the headless-first SDK architecture.
+- **Lean return type**: The full parsed YAML is NOT returned — the apply hook (T02.3) will re-parse from the raw content string. Parsing is cheap (~1ms) and keeping the return type lean avoids exposing an untyped `Record<string, unknown>` in the public API.
+- **Only 3 kinds for now**: Agent, McpServer, Skill. Adding Workflow/Environment later is trivial (add to `KIND_DISPLAY_NAMES` map + `StigmerResourceKind` union).
+- **Directory artifact detection deferred**: ZIP inspection for skill packages is not in scope — only text file artifacts are handled.
+
 ## Next Steps
 
-1. **T02.2 — `useDetectStigmerResource` behavior hook**: YAML parsing + Stigmer resource detection from content string
-2. **T02.3 — `useApplyResource` behavior hook**: Apply detected resource to org
-3. **T02.4 — `ArtifactCard` component**: Single artifact in the widget
-4. **T02.5 — `ArtifactPreviewModal` component**: Full YAML preview with Apply CTA
-5. **T02.6 — `ArtifactsWidget` component**: Right-sidebar container for artifact cards
-6. **T02.7 — Barrel exports** for artifact components
-7. **T02.8 — SessionPage integration**: Wire `ArtifactsWidget` into right sidebar
+1. **T02.3 — `useApplyResource` behavior hook**: Apply detected resource to org
+2. **T02.4 — `ArtifactCard` component**: Single artifact in the widget
+3. **T02.5 — `ArtifactPreviewModal` component**: Full YAML preview with Apply CTA
+4. **T02.6 — `ArtifactsWidget` component**: Right-sidebar container for artifact cards
+5. **T02.7 — Barrel exports** for artifact components
+6. **T02.8 — SessionPage integration**: Wire `ArtifactsWidget` into right sidebar
 
 ## Context for Resume
 
 - **Phase 1 (Library Pages + Navigation) is COMPLETE** — all tasks T01.1–T01.13 done
-- **Phase 2 (Execution Artifacts Widget + Apply Flow) is IN PROGRESS** — T02.1 complete, T02.2–T02.8 remaining
+- **Phase 2 (Execution Artifacts Widget + Apply Flow) is IN PROGRESS** — T02.1–T02.2 complete, T02.3–T02.8 remaining
 - **Backend handlers DONE**: `getArtifactContent` implemented in both Go (stigmer OSS) and Java (stigmer-cloud) — frontend hooks now work end-to-end
 - **T02.1 deliverables**: 2 hooks (`useExecutionArtifacts`, `useArtifactContent`), 4 utility functions, proto definition for `getArtifactContent` RPC
-- **New proto types**: `GetArtifactContentRequest` / `GetArtifactContentResponse` in `io.proto`, `getArtifactContent` RPC in `query.proto`
+- **T02.2 deliverables**: 1 pure function (`detectStigmerResource`), 1 hook (`useDetectStigmerResource`), 3 types (`StigmerResourceDetection`, `StigmerResourceKind`, display name map)
+- **New dependency**: `yaml` ^2.8.2 added to `@stigmer/react` for YAML parsing in detection
+- **Detection flow**: `useArtifactContent` → content string → `useDetectStigmerResource` → `StigmerResourceDetection` discriminated union
+- **Supported kinds**: `Agent`, `McpServer`, `Skill` — validated against `apiVersion: *.stigmer.ai/*` pattern
 - **Artifact types from protos**: `ExecutionArtifact` (artifact_pb), `ExecutionArtifactKind` enum (FILE, DIRECTORY) from enum_pb
 - **Field name mapping**: proto `size_bytes` → TS `sizeBytes: bigint`, proto `storage_key` → TS `storageKey`, proto `download_url` → TS `downloadUrl`, proto `expires_at` → TS `expiresAt`
 - **Existing right sidebar**: `SessionPage` renders `ExecutionProgress` and `ExecutionCostSummary` in the aside — `ArtifactsWidget` (T02.6) will be added below these
@@ -425,7 +453,7 @@ When starting a new session:
 ## Quick Commands
 
 After loading context:
-- "Continue Phase 2 with T02.2" — Build useDetectStigmerResource hook
+- "Continue Phase 2 with T02.3" — Build useApplyResource hook
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 
