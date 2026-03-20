@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-20 10:41
-**Current Task**: T02 — Phase 2: Execution Artifacts Widget + Apply Flow
-**Status**: In Progress (T02.1–T02.5 complete, T02.6–T02.8 remaining)
+**Current Task**: T03 — Phase 3: "Create New" Draft Flow
+**Status**: Not Started (Phase 1 complete, Phase 2 complete)
 
 ## Session Progress (2026-03-20, Session 1)
 
@@ -546,44 +546,78 @@ When starting a new session:
 - **Deterministic skeleton widths**: Replaced `Math.random()` with predefined width array to avoid hydration mismatches.
 - **Self-contained modal**: Manages its own apply state. Exposes `onApplied` callback for parent orchestration. `ArtifactsWidget` (T02.6) will coordinate state between `ArtifactCard` and `ArtifactPreviewModal`.
 
+## Session Progress (2026-03-20, Session 20)
+
+### Completed
+- **T02.6 — `ArtifactsWidget` component**: Fully implemented and exported
+  - Created `sdk/react/src/execution/ArtifactsWidget.tsx` (128 lines)
+  - Container component composing `ArtifactCard` list + `ArtifactPreviewModal` orchestration
+  - Props: `execution: AgentExecution | null`, `org`, `onApplied?`, `className?`
+  - Follows the `ExecutionProgress`/`ExecutionCostSummary` prop pattern — takes `execution` directly
+  - Derives artifacts via `useExecutionArtifacts`, terminal phase via `isTerminalPhase`, execution ID from metadata
+  - Single piece of local state: `previewArtifact` for modal open/close
+  - Returns `null` when no artifacts (conditional-render pattern)
+  - Section header "Artifacts" with count badge + `role="list"` card stack
+  - Full JSDoc with `@example` and `@see` cross-references
+
+- **ArtifactCard simplified (modal-only Apply)**: Major design decision — Apply/Push CTA removed from card
+  - **Rationale**: Eliminates applied-state sync problem between card and modal, enforces review-before-apply (consequential action requires seeing content), simplifies card to signal-and-navigate role
+  - Removed: `useApplyResource` hook, `isTerminal` prop, `onApplied` prop, Apply button state machine, `ApplyCtaArea` internal component, 3 SVG icons (CheckIcon, SpinnerIcon, AlertIcon)
+  - Kept: detection badges, Preview action, Download link, file info
+  - Card reduced from 508 lines to 276 lines
+  - Card props simplified: `artifact`, `executionId`, `org`, `onPreview?`, `className?`
+
+- **T02.7 — Barrel exports**: Updated `execution/index.ts` and `sdk/react/src/index.ts` with `ArtifactsWidget` + `ArtifactsWidgetProps`
+
+- **T02.8 — SessionPage integration**: Wired `ArtifactsWidget` into right sidebar
+  - Added below `ExecutionCostSummary` in the `<aside>`
+  - No wrapper `div` — each `ArtifactCard` has its own chrome
+  - Sidebar `gap-3` handles spacing
+
+### Design Decision
+- **DD-008: Modal-only Apply (review-before-apply)**: The Apply/Push CTA lives exclusively in `ArtifactPreviewModal`. `ArtifactCard` is a compact summary that signals detection and navigates to the modal. This eliminates the applied-state sync problem (card and modal had independent `useApplyResource` hooks with no shared state), enforces review-before-apply (user must see YAML content before applying), simplifies the card (fewer hooks = fewer side effects = better for platform builders), and follows progressive disclosure (summary in card, action in modal).
+
+### Verification
+- TypeScript check passes (8 pre-existing errors in unrelated test file, zero in new/modified files)
+- Lint clean on all 5 files (1 new, 4 modified)
+- Committed: `451496ff feat(sdk/react,web): add ArtifactsWidget and simplify ArtifactCard to modal-only Apply`
+
+### Phase 2 Complete
+- All tasks T02.1–T02.8 are done
+- 2 SDK data hooks (`useExecutionArtifacts`, `useArtifactContent`)
+- 4 SDK utility functions (`isTextArtifact`, `isArtifactExpired`, `formatArtifactSize`, `getArtifactExtension`)
+- 2 SDK detection hooks (`useDetectStigmerResource`, `useDetectSkillPackage`)
+- 1 SDK behavior hook (`useApplyResource`)
+- 3 SDK styled components (`ArtifactCard`, `ArtifactPreviewModal`, `ArtifactsWidget`)
+- 2 pure detection functions (`detectStigmerResource`, `detectSkillPackage`)
+- 1 pure parsing function (`parseResourceYaml`)
+- Proto changes: `getArtifactContent` RPC, `pushFromExecutionArtifact` RPC, `entries` on `ExecutionArtifact`
+- Backend handlers: Go (stigmer OSS) + Java (stigmer-cloud) for both RPCs
+- SessionPage integration: ArtifactsWidget in right sidebar
+
 ## Next Steps
 
-1. **T02.6 — `ArtifactsWidget` component**: Right-sidebar container for artifact cards — must handle both artifact kinds, orchestrate preview modal open/close, propagate applied state
-2. **T02.7 — Barrel exports** for artifact components
-3. **T02.8 — SessionPage integration**: Wire `ArtifactsWidget` into right sidebar
+1. **Phase 3: "Create New" Draft Flow** — T03.1–T03.3
+   - T03.1: Pre-filled session navigation helper (`getDraftSessionUrl`)
+   - T03.2: SessionLauncher pre-fill support (read query params, auto-select system agent)
+   - T03.3: Wire "Create New" buttons in Library pages to use `getDraftSessionUrl`
+2. **Phase 4: Edit Flow + Attachments** (future)
+3. **Phase 5: Resource Detail View** (future)
 
 ## Context for Resume
 
 - **Phase 1 (Library Pages + Navigation) is COMPLETE** — all tasks T01.1–T01.13 done
-- **Phase 2 (Execution Artifacts Widget + Apply Flow) is IN PROGRESS** — T02.1–T02.5 complete, T02.6–T02.8 remaining
-- **T02.5 deliverables**: 1 styled component (`ArtifactPreviewModal`), 1 type (`ArtifactPreviewModalProps`). Props: `artifact`, `executionId`, `org`, `isTerminal`, `open`, `onClose`, `onApplied?`, `className?`. ~590 lines, 10 inline SVG icons, CSS-only YAML highlighting, native `<dialog>`.
-- **T02.4 deliverables**: 1 styled component (`ArtifactCard`), 1 type (`ArtifactCardProps`). Orchestrates `useArtifactContent` + `useDetectStigmerResource` / `useDetectSkillPackage` + `useApplyResource` internally. Props: `artifact`, `executionId`, `org`, `isTerminal`, `onPreview?`, `onApplied?`, `className?`. 507 lines, 6 inline SVG icons.
-- **Directory artifact support COMPLETE** — full vertical implementation from proto to SDK:
-  - Proto: `entries` on `ExecutionArtifact`, `entry_path` on `GetArtifactContentRequest`, `pushFromExecutionArtifact` RPC
-  - Agent runner: populates `entries` when creating ZIP from directory
-  - Backend (Go + Java): ZIP entry extraction, server-side skill push
-  - SDK: `isSkillPackage()`, `detectSkillPackage()`, `useDetectSkillPackage()`, `useArtifactContent` with `entryPath`
-  - Cleanup: removed `"Skill"` from `StigmerResourceKind` (skills use package detection, not YAML detection)
-  - **D7 complete**: skill push integration built into `useApplyResource` (T02.3)
-- **Two parallel detection paths**:
-  - YAML detection: `detectStigmerResource(content)` → `Agent` | `McpServer` → `apply()`
-  - Package detection: `isSkillPackage(artifact)` / `detectSkillPackage(artifact, content)` → Skill → `pushFromExecutionArtifact()`
-- **Backend handlers DONE**: `getArtifactContent` (with `entry_path` support) and `pushFromExecutionArtifact` implemented in both Go (stigmer OSS) and Java (stigmer-cloud)
-- **T02.1 deliverables**: 2 hooks (`useExecutionArtifacts`, `useArtifactContent`), 4 utility functions, proto definition for `getArtifactContent` RPC
-- **T02.2 deliverables**: 1 pure function (`detectStigmerResource`), 1 hook (`useDetectStigmerResource`), 2 types (`StigmerResourceDetection`, `StigmerResourceKind`)
-- **Directory artifact deliverables**: 2 pure functions (`isSkillPackage`, `detectSkillPackage`), 1 hook (`useDetectSkillPackage`), 1 type (`SkillPackageDetection`), `useArtifactContent` extended with `entryPath`
-- **T02.3 deliverables**: 1 pure function (`parseResourceYaml`), 1 hook (`useApplyResource`), 3 types (`ParsedResource`, `ApplyResourceResult`, `PushSkillParams`)
-- **Apply flow (YAML resources)**: `useArtifactContent` → content → `useDetectStigmerResource` → detection → `useApplyResource().applyYamlResource(content, org)` → `parseResourceYaml` → `stigmer.agent.apply()` or `stigmer.mcpServer.apply()`
-- **Apply flow (skill packages)**: `useDetectSkillPackage` → detection → `useApplyResource().pushSkillPackage({ org, executionId, storageKey })` → `stigmer.skill.pushFromExecutionArtifact()`
-- **YAML → SDK input conversion**: `parseResourceYaml` handles proto snake_case → SDK camelCase for Agent (`mcpServerUsages`, `subAgents`, `envSpec`) and McpServer (`stdio`, `http`, `defaultToolApprovals`). Proto `env_spec.data` maps to SDK `envSpec.variables`. `org` parameter always overrides `metadata.org`.
-- **New dependency**: `yaml` ^2.8.2 added to `@stigmer/react` for YAML/frontmatter parsing in detection
-- **Existing right sidebar**: `SessionPage` renders `ExecutionProgress` and `ExecutionCostSummary` in the aside — `ArtifactsWidget` (T02.6) will be added below these
+- **Phase 2 (Execution Artifacts Widget + Apply Flow) is COMPLETE** — all tasks T02.1–T02.8 done
+- **ArtifactCard** is now a simplified signal-and-navigate component (detection badges + Preview + Download). No Apply CTA. Props: `artifact`, `executionId`, `org`, `onPreview?`, `className?`. 276 lines.
+- **ArtifactPreviewModal** is the sole location for Apply/Push actions. Props: `artifact`, `executionId`, `org`, `isTerminal`, `open`, `onClose`, `onApplied?`, `className?`. ~677 lines.
+- **ArtifactsWidget** is the container that composes cards + modal. Props: `execution`, `org`, `onApplied?`, `className?`. 128 lines. Manages `previewArtifact` state for modal orchestration.
+- **Apply architecture**: Card detects resource type (badge), user clicks Preview, modal shows full content + Apply CTA, Apply calls `useApplyResource` internally.
 - **Branch**: `feat/add-customize-ui-2` (stigmer OSS), `feat/add-library-ui` (stigmer-cloud)
 
 ## Quick Commands
 
 After loading context:
-- "Continue Phase 2 with T02.6" — Build ArtifactsWidget container component
+- "Continue Phase 3 with T03.1" — Build pre-filled session navigation helper
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 
