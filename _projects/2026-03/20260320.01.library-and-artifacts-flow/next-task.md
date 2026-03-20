@@ -168,28 +168,83 @@ When starting a new session:
 ### Architecture Decision (from this session)
 - **Domain-specific `ScopeToggle` over generic `SegmentedControl<T>`**: A segmented control is a general UI primitive, but `ScopeToggle` is about the domain concept of resource scope. Building a generic `SegmentedControl` would be premature abstraction — adds API surface and maintenance cost without a concrete second use case. If needed later, extraction is straightforward.
 
+## Session Progress (2026-03-20, Session 5)
+
+### Completed
+- **T01.6 — `ResourceListView` component**: Fully implemented and exported
+  - Created `sdk/react/src/library/ResourceListView.tsx` (~430 lines, single file)
+  - Paginated, searchable list view for browsing `SearchResult[]` resources
+  - Progressive enhancement: only `items` + `isLoading` required; search, scope, pagination activate via optional props
+  - Composes `ScopeToggle` in a search toolbar alongside a debounced search input (300ms)
+  - Automatic page reset on search/scope changes to prevent stale pagination
+  - Built-in default row renderer: kind icon, name, org, description, visibility badge ("Public"), tags (capped at 3 + "+N more")
+  - 6 internal sub-components: SearchToolbar, DefaultResourceRow, SkeletonRows, EmptyState, ErrorState, PaginationBar
+  - 8 inline SVG icons: Agent, Skill, MCP Server, Workflow, Document, Search, ChevronLeft, ChevronRight
+  - Full accessibility: `role="list"` + roving tabindex + Arrow Up/Down keyboard nav + screen reader support
+  - All styles via `--stgm-*` tokens, zero Console dependencies
+  - Updated barrel exports in `library/index.ts`
+  - TypeScript check clean, zero lint errors
+
+### Key Design Decisions (from this session)
+- **SearchResult-typed over generic `<T>`**: All three resource types return `SearchResult[]` — typing to this enables a useful default row renderer and avoids unnecessary abstraction
+- **Component-managed debouncing**: The search input's raw value lives inside the component; parent only sees debounced values via `onSearchChange`. Uses stable callback refs so the timer doesn't reset on parent re-renders
+- **Simple rows for Phase 1**: `SearchResult` lacks resource-type-specific metadata (version, dependency counts). Accepted simpler rows using available fields — enriched rows deferred to Phase 5
+- **Pagination as Previous/Next**: No numbered page buttons (YAGNI for Phase 1)
+- **Error/empty/skeleton states as siblings of list**: `role="list"` only wraps actual list items; states render as separate blocks for correct ARIA semantics
+
+### Verification
+- TypeScript check passes (8 pre-existing errors in unrelated test file, zero in new/modified files)
+- Lint clean on all 3 files (1 new, 2 modified)
+- All existing exports unchanged — no breaking changes
+- Committed: `6fa4e8ff feat(sdk/react): add ResourceListView component for Library browsing`
+
+## Session Progress (2026-03-20, Session 6)
+
+### Completed
+- **T01.7 — `ResourceCountCard` component**: Fully implemented and exported
+  - Created `sdk/react/src/library/ResourceCountCard.tsx` (~160 lines, single file)
+  - Card displaying resource type icon, count, and label for Library landing pages and dashboards
+  - Purely presentational — data decoupled, consumer provides count via hooks
+  - Polymorphic root element: `<a>` with `href`, `<button>` with `onClick`, `<div>` when static
+  - Progressive loading: icon + label visible immediately, skeleton pulse for count only
+  - `tabular-nums` on count for stable digit widths during live updates
+  - `aria-label` on interactive variants for screen reader context
+  - All styles via `--stgm-*` tokens, zero Console dependencies
+  - Updated barrel exports in `library/index.ts` and `sdk/react/src/index.ts`
+  - TypeScript check clean, zero lint errors
+
+### Key Design Decisions (from this session)
+- **Self-contained card over content-only**: Card chrome included because the card surface IS the interaction unit (unlike `ExecutionCostSummary` which is content-only). Matches `ApprovalCard` precedent.
+- **Polymorphic root over single element type**: `<a>` for links (accessible: right-click, new tab), `<button>` for actions, `<div>` for static. Console wires SPA routing via `href + onClick(preventDefault)`.
+- **Icons as `ReactNode`**: Consumer provides icons — component doesn't know which resource type it represents. Correct level of abstraction for platform builders.
+
+### Verification
+- TypeScript check passes (8 pre-existing errors in unrelated test file, zero in new/modified files)
+- Lint clean on all 3 files (1 new, 2 modified)
+- All existing exports unchanged — no breaking changes
+
 ## Next Steps
 
-1. **T01.6 — `ResourceListView` component**: Generic list with search + scope (next up)
-2. **T01.7 — `ResourceCountCard` component**: Landing page card with count
-3. **T01.8 — Barrel exports for library module** (partial — `ScopeToggle` already exported)
-4. Continue through T01.9–T01.13 (sidebar, pages)
+1. **T01.9 — Sidebar update**: Add "Library" link above Recents (T01.8 already complete)
+2. **T01.10 — Library landing page**: Three `ResourceCountCard` cards + "Create New" shortcuts
+3. **T01.11 — Agent list page**: `/library/agents`
+4. **T01.12 — Skill list page**: `/library/skills`
+5. **T01.13 — MCP Server list page**: `/library/mcp-servers`
 
 ## Context for Resume
 
 - **Data layer complete** (T01.1–T01.4): list hooks + count hooks, all scope-aware
-- **First UI component complete** (T01.5): `ScopeToggle` in the new `library/` module
-- The `library/` module now exists at `sdk/react/src/library/` with barrel exports
-- `ResourceListScope` type flows cleanly: `ScopeToggle` → data hooks → SDK client
-- **Next work is `ResourceListView`** — the generic list component that composes `ScopeToggle` + search input + paginated list rendering
+- **UI components complete** (T01.5–T01.7): `ScopeToggle`, `ResourceListView`, `ResourceCountCard` in `library/` module
+- **T01.8 can be skipped**: barrel exports already done for all three components
+- The `library/` module now has 3 components + 4 type exports: `ScopeToggle`, `ResourceListView`, `ResourceCountCard`, `ScopeToggleProps`, `ResourceListViewProps`, `ResourceCountCardProps`, `ResourceListScope`
+- **Next work is Console pages** (T01.9–T01.13) — sidebar link, landing page, then three resource list pages
 - Branch: `feat/add-customize-ui-2`
-- Note: Working directory has uncommitted changes from the secrets-flow-hardening project (OneTimeSecrets) alongside the Library changes
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.6" — Implement ResourceListView component (generic list with search + scope)
-- "Continue with T01.7" — Implement ResourceCountCard component
+- "Continue with T01.9" — Add Library link to sidebar
+- "Continue with T01.10" — Implement Library landing page
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns
