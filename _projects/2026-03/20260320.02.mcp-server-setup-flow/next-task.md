@@ -14,10 +14,42 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 **Created**: 2026-03-20
-**Current Task**: Phase 2 complete. Next: Phase 3, T03.1 — Wire `useMcpServerSetup` into SessionComposer
-**Status**: In progress — Phase 0 done, Phase 1 done, Phase 2 done (T02.1 + T02.2 + T02.3), ready for Phase 3
+**Current Task**: Phase 3, T03.1 complete. Next: Phase 3, T03.2 — Submission blocking for unconfigured servers
+**Status**: In progress — Phase 0 done, Phase 1 done, Phase 2 done, Phase 3 T03.1 done, ready for T03.2
 
 ## Session Progress (2026-03-20)
+
+### Session 7: Phase 3, T03.1 — Wire `useMcpServerSetup` into SessionComposer — COMPLETE
+
+**What was accomplished:**
+- Planned and implemented the full SessionComposer integration for the MCP server setup flow
+- Three design decisions made and applied (DD-T03.1 through DD-T03.3):
+  - DD-T03.1: Always-on setup mode (not opt-in) — setup flow activates whenever `showMcp` is true
+  - DD-T03.2: Popover close does NOT reset entries — multi-select state persists across open/close
+  - DD-T03.3: `useEffect` sync for `usageInputs` to consumer — derived state pushed via callback
+- Zero lint errors, zero TypeScript errors
+- No prop contract changes on `SessionComposerProps`
+
+**File modified:**
+- `sdk/react/src/composer/SessionComposer.tsx` — +77/-34 lines (net +43)
+
+**Key changes:**
+- Added `useMcpServerSetup` hook instantiation alongside `useAgentSetup`
+- Made MCP popover controlled (`open`/`onOpenChange`) — stays open during configuration
+- Replaced `value`/`onChange` wiring with `setup` prop connecting all hook callbacks
+- Added `useEffect` to sync `usageInputs` to consumer via `onMcpServerUsagesChange`
+- Chips now derive from `mcpSetup.entries` (showing all servers including loading/needsSetup)
+- `mcpCount` badge reflects all entries, not just ready servers
+- Added `mcpRefFromKey()` utility for chip remove handler
+
+**Behavioral changes to existing props:**
+- `mcpServerUsages` — becomes output-only (updated via callback, not read for rendering)
+- `onMcpServerUsagesChange` — now called via useEffect when `usageInputs` changes (was called by picker on toggle)
+
+**Key decisions:**
+- Always-on setup (DD-T03.1) — setup flow is strictly better UX, catches missing credentials proactively. Simple mode available via `McpServerPicker` directly.
+- No reset on popover close (DD-T03.2) — unlike agent (single-select, reset on close), MCP entries represent committed multi-select state that persists.
+- `useEffect` sync (DD-T03.3) — MCP `usageInputs` is derived from all entries, changes asynchronously. Imperative push (like agent) doesn't work for multi-entry derived state.
 
 ### Session 6: Phase 2, T02.3 — McpServerPicker setup integration — COMPLETE
 
@@ -218,14 +250,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 3, T03.1**: Wire `useMcpServerSetup` into SessionComposer
-   - Instantiate `useMcpServerSetup(org)` alongside existing `useAgentSetup(org)`
-   - Pass `setup` prop to enhanced `McpServerPicker` with all callbacks wired
-   - Make MCP popover controlled (like agent popover) — stays open during configuration
-2. **Phase 3, T03.2**: Submission blocking for unconfigured servers
-3. **Phase 3, T03.3**: Enhanced MCP chips (tool counts, setup status)
-4. **Phase 3, T03.4**: RuntimeEnv aggregation from MCP + agent + one-time secrets
-5. **Phase 3, T03.5**: Barrel exports update
+1. **Phase 3, T03.2**: Submission blocking for unconfigured servers
+   - Disable send button when `!mcpSetup.allReady`
+   - Show inline warning: "Configure MCP servers to continue"
+2. **Phase 3, T03.3**: Enhanced MCP chips (tool counts, setup status)
+3. **Phase 3, T03.4**: RuntimeEnv aggregation from MCP + agent + one-time secrets
+4. **Phase 3, T03.5**: Barrel exports update
 
 ## Context for Resume
 
@@ -239,20 +269,17 @@ Drop this file into your conversation to quickly resume work on this project.
   - Submission blocking for unconfigured servers
 - Phase 0 is committed and verified
 - Phase 1 is committed and verified (reducer + hook)
-- Phase 2 is complete and verified:
-  - T02.1: `McpToolSelector` — committed
-  - T02.2: `McpServerConfigPanel` — committed
-  - T02.3: `McpServerPicker` setup integration — implemented, verified, ready to commit
-- 23 design refinements from master plan (DD-R1 through DD-R16, DD-T3.1 through DD-T3.7) — all approved and applied
-- The full orchestration layer is ready: reducer (state machine) + hook (composition, methods, derived state)
-- All UI building blocks are ready: `McpToolSelector` + `McpServerConfigPanel` + enhanced `McpServerPicker`
-- Phase 3 is next — SessionComposer integration, submission blocking, enhanced chips, runtimeEnv aggregation
+- Phase 2 is committed and verified (T02.1 + T02.2 + T02.3)
+- Phase 3, T03.1 is complete and verified — SessionComposer wired with setup hook
+- 26 design refinements from master plan (DD-R1 through DD-R16, DD-T3.1 through DD-T3.7, DD-T03.1 through DD-T03.3) — all approved and applied
+- The full orchestration layer is wired: reducer → hook → picker → composer
+- Remaining Phase 3 tasks: submission blocking (T03.2), enhanced chips (T03.3), runtimeEnv aggregation (T03.4), barrel exports (T03.5)
 
 ## Essential Files to Review
 
 ### 1. Latest Checkpoint
 ```
-/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-6.md
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260320.02.mcp-server-setup-flow/checkpoints/2026-03-20-session-7.md
 ```
 
 ### 2. Current Task Plan
@@ -318,7 +345,7 @@ These projects established patterns and infrastructure this project builds on:
 
 After loading context:
 - "Show project status" - Get overview of progress
-- "Continue with next task" - Start T02.3 (Enhance McpServerPicker)
+- "Continue with next task" - Start T03.2 (Submission blocking)
 - "Review guidelines" - Check established patterns
 
 ---
