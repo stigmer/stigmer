@@ -38,3 +38,6 @@ export type {
   SubmitEnvVarsOptions,
   UseAgentSetupReturn,
 } from "./useAgentSetup";
+
+export { useDefaultAgent } from "./useDefaultAgent";
+export type { UseDefaultAgentReturn } from "./useDefaultAgent";

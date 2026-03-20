@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AgentId } from "./io_pb.js";
+import { AgentId, GetDefaultAgentRequest } from "./io_pb.js";
 import { Agent } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
@@ -35,6 +35,27 @@ export const AgentQueryController = {
     getByReference: {
       name: "getByReference",
       I: ApiResourceReference,
+      O: Agent,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get the platform default agent.
+     *
+     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
+     * visibility_public. Returns the full Agent resource including
+     * status.default_instance_id for session creation.
+     *
+     * Used by frontends to enable session-first UX where users start
+     * a conversation without explicitly selecting an agent.
+     *
+     * Error: NOT_FOUND if no default agent is configured.
+     * Custom authorization in handler.
+     *
+     * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getDefault
+     */
+    getDefault: {
+      name: "getDefault",
+      I: GetDefaultAgentRequest,
       O: Agent,
       kind: MethodKind.Unary,
     },

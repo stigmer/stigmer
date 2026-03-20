@@ -10,3 +10,9 @@ class AgentId(_message.Message):
     VALUE_FIELD_NUMBER: _ClassVar[int]
     value: str
     def __init__(self, value: _Optional[str] = ...) -> None: ...
+
+class GetDefaultAgentRequest(_message.Message):
+    __slots__ = ("org",)
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    def __init__(self, org: _Optional[str] = ...) -> None: ...
