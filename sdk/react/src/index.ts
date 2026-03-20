@@ -88,6 +88,8 @@ export {
   classifyPath,
   resolveGitBrowseUrl,
   resolvePathAction,
+  useOneTimeSecrets,
+  OneTimeSecretsInput,
 } from "./execution";
 export type {
   CreateAgentExecutionInput,
@@ -111,6 +113,9 @@ export type {
   FilePathContextValue,
   PathClassification,
   ResolvedPathAction,
+  OneTimeSecretEntry,
+  UseOneTimeSecretsReturn,
+  OneTimeSecretsInputProps,
 } from "./execution";
 
 // Composer — unified message input with model + workspace attachments
@@ -233,6 +238,10 @@ export type {
   EnvironmentListPanelProps,
   CreateEnvironmentFormProps,
 } from "./environment";
+
+// Library — cross-resource UI components for browsing and managing resources
+export { ScopeToggle } from "./library";
+export type { ScopeToggleProps, ResourceListScope } from "./library";
 
 // Agent Instance — data hooks, list hook, personal convenience hook, and behavior hook
 export {

@@ -68,24 +68,26 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-19 20:08
-**Current Task**: T05 (Follow-up One-Time Secrets)
+**Current Task**: T06 (Error Messages Across Secret Flows)
 **Status**: Ready to start
 
-## Session Progress (2026-03-20, Session 4)
+## Session Progress (2026-03-20, Session 5)
+
+- **T05 completed**: Follow-up message one-time secrets input
+  - Created `useOneTimeSecrets` headless behavior hook — manages ephemeral key-value entries with add/remove/update/clear operations and `toRuntimeEnv()` conversion to SDK input shape
+  - Created `OneTimeSecretsInput` styled component — freeform key-value editor with monospace key input, password/text value input, secret/plain toggle, duplicate key detection, and "Add variable" button
+  - Integrated into `SessionComposer` as a new "Secrets" context popover trigger (lock icon, count badge, "1-time" chips showing key names only)
+  - Wired Console `SessionPage` to use `useOneTimeSecrets()`, pass to composer, and pipe `runtimeEnv` through `sendFollowUp` with auto-clear after submission
+  - Updated barrel exports in `execution/index.ts` and root `index.ts`
+  - Design decisions: placement in `execution/` (runtimeEnv is execution-scoped), controlled-prop pattern (same as workspace/MCP/skills), `isSecret: true` default (safer for credentials), no `onSubmit` signature change
+  - Files: 2 new (`useOneTimeSecrets.ts`, `OneTimeSecretsInput.tsx`), 4 modified (SessionComposer, SessionPage, execution/index, react/index)
+  - Verified: zero new TS errors, zero lint errors
+  - **Not yet committed** — pending wrap-up commit
+
+## Earlier Session Progress (2026-03-20, Session 4)
 
 - **T02 completed**: Hardened useAgentSetup with state machine and save-or-use-once model
-  - Replaced fragile `useRef(pendingRef)` + `useState(isResolving/error)` with `useReducer` state machine (5 phases: idle → resolving → needsEnvVars → submitting → ready)
-  - Extracted `diffEnvSpec` as a pure, testable function
-  - Designed `AgentResolution` discriminated union: `saved` | `oneTime` | `direct`
-  - Added `saveForFuture` dual-path to `submitEnvVars` — persist (default) or one-time (instant, zero network calls)
-  - Updated `AgentEnvForm` with "Save for future runs" toggle
-  - Replaced `onAgentInstanceIdChange` with `onAgentResolutionChange` in `SessionComposer`
-  - Eliminated derived state (`pendingEnvRef`, `agentPopoverView`) — now driven by hook state
-  - Updated `SessionLauncher` with exhaustive `switch (resolution.mode)` routing
-  - Updated barrel exports for all new types
-  - Verified: zero new TS errors, zero lint errors
-  - Files: 2 new (`diffEnvSpec.ts`, `agentSetupReducer.ts`), 6 modified (useAgentSetup, AgentEnvForm, SessionComposer, SessionLauncher, agent/index, react/index)
-  - **Not yet committed** — pending wrap-up commit
+  - Committed: `cc467df4` on `feat/add-customize-ui-2`
 
 ## Earlier Session Progress (2026-03-20, Session 3)
 
@@ -101,24 +103,25 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Start T05** — Follow-up message one-time secrets input
-2. Then T06 — Error messages across secret flows
+1. **Start T06** — Improve error messages across secret flows (audit + improve at backend, SDK, UI layers)
+2. After T06, the secrets-flow-hardening project is complete
 
 ## Context for Resume
 
 - The revised plan (`T01_2_revised_plan.md`) is the authoritative task breakdown
-- Execution order: T01 (done) -> T04 (done) -> T03 (done) -> T02 (done) -> T05 -> T06
-- Checkpoint: `checkpoints/2026-03-20-session-4.md` — covers T02 full implementation
+- Execution order: T01 (done) -> T04 (done) -> T03 (done) -> T02 (done) -> T05 (done) -> T06
+- Checkpoint: `checkpoints/2026-03-20-session-5.md` — covers T05 full implementation
 - Working branch: `feat/add-customize-ui-2` (stigmer)
-- Key new types: `AgentResolution` (3 modes), `AgentSetupPhase` (5 statuses), `AgentSetupState`
-- Key new file: `sdk/react/src/agent/agentSetupReducer.ts` — the state machine
-- Key new file: `sdk/react/src/agent/diffEnvSpec.ts` — pure env_spec diffing
-- Breaking changes in this commit: `onAgentInstanceIdChange` → `onAgentResolutionChange`, `AgentEnvForm.onSubmit` signature, `useAgentSetup` return shape
+- Key new hook: `useOneTimeSecrets` — headless behavior hook for ephemeral execution-scoped secrets
+- Key new component: `OneTimeSecretsInput` — styled key-value editor for the SessionComposer popover
+- Key new types: `OneTimeSecretEntry`, `UseOneTimeSecretsReturn`, `OneTimeSecretsInputProps`
+- SessionComposer gained a `secrets` prop following the same pattern as `workspace`, `mcpServerUsages`, `skillRefs`
+- runtimeEnv flows: useOneTimeSecrets → SessionComposer (UI) → SessionPage.handleSubmit → sendFollowUp → useCreateAgentExecution → agentExecution.create()
 
 ## Quick Commands
 
 After loading context:
-- "Start T05" - Begin the follow-up one-time secrets task
+- "Start T06" - Begin the error messages improvement task
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns

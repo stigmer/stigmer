@@ -14,6 +14,7 @@ import {
   useModelRegistry,
   useWorkspaceEntries,
   useGitHubConnection,
+  useOneTimeSecrets,
   MessageThread,
   SessionComposer,
   ExecutionProgress,
@@ -53,6 +54,7 @@ export default function SessionPage() {
   const deploymentMode = useDeploymentMode();
   const gitHubConnection = useGitHubConnection(org);
   const workspace = useWorkspaceEntries();
+  const secrets = useOneTimeSecrets();
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const initialSyncDone = useRef(false);
@@ -74,6 +76,10 @@ export default function SessionPage() {
 
   const handleSubmit = useCallback(
     (message: string, model?: string) => {
+      const runtimeEnv = secrets.isEmpty
+        ? undefined
+        : secrets.toRuntimeEnv();
+
       conv.sendFollowUp(message, {
         modelName: model ?? modelId,
         workspaceEntries: workspace.hasEntries
@@ -81,9 +87,12 @@ export default function SessionPage() {
           : undefined,
         mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
         skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
+        runtimeEnv,
       });
+
+      secrets.clear();
     },
-    [conv, modelId, workspace, mcpServerUsages, skillRefs],
+    [conv, modelId, workspace, mcpServerUsages, skillRefs, secrets],
   );
 
   const displayExecution = useMemo(() => {
@@ -141,6 +150,7 @@ export default function SessionPage() {
               onMcpServerUsagesChange={setMcpServerUsages}
               skillRefs={skillRefs}
               onSkillRefsChange={setSkillRefs}
+              secrets={secrets}
               className="px-4 py-3"
             />
           </div>

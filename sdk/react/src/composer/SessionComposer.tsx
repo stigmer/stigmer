@@ -12,6 +12,8 @@ import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvF
 import { useAgentSetup, type AgentResolution } from "../agent/useAgentSetup";
 import { McpServerPicker } from "../mcp-server/McpServerPicker";
 import { SkillPicker } from "../skill/SkillPicker";
+import { OneTimeSecretsInput } from "../execution/OneTimeSecretsInput";
+import type { UseOneTimeSecretsReturn } from "../execution/useOneTimeSecrets";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 
@@ -91,6 +93,17 @@ export interface SessionComposerProps {
   /** Called when the skill selection changes. Providing this enables the skill trigger. */
   readonly onSkillRefsChange?: (refs: ResourceRef[]) => void;
 
+  /**
+   * One-time secrets state managed by {@link useOneTimeSecrets}.
+   * When provided, renders a "Secrets" trigger in the toolbar that
+   * opens a key-value editor for execution-scoped environment variables.
+   *
+   * Unlike workspace, MCP, and skill context (which are session-level),
+   * one-time secrets are ephemeral — the consumer should call
+   * `secrets.clear()` after submission.
+   */
+  readonly secrets?: UseOneTimeSecretsReturn;
+
   /** Placeholder text for the textarea. @default "Reply\u2026" */
   readonly placeholder?: string;
   /** Initial number of visible rows. @default 1 */
@@ -169,6 +182,7 @@ export function SessionComposer({
   onMcpServerUsagesChange,
   skillRefs,
   onSkillRefsChange,
+  secrets,
   placeholder = "Reply\u2026",
   initialRows = 1,
   autoFocus = false,
@@ -307,7 +321,9 @@ export function SessionComposer({
   const showWorkspace = workspace != null;
   const showMcp = onMcpServerUsagesChange != null && org != null;
   const showSkills = onSkillRefsChange != null && org != null;
-  const hasContextTriggers = showAgent || showWorkspace || showMcp || showSkills;
+  const showSecrets = secrets != null;
+  const hasContextTriggers =
+    showAgent || showWorkspace || showMcp || showSkills || showSecrets;
 
   // Build chip items from all context sources
   const chips = useMemo(() => {
@@ -369,6 +385,19 @@ export function SessionComposer({
       }
     }
 
+    if (secrets) {
+      for (const entry of secrets.entries) {
+        const k = entry.key.trim();
+        if (k === "") continue;
+        items.push({
+          key: `secret:${entry.id}`,
+          label: k,
+          type: "secret",
+          onRemove: () => secrets.removeEntry(entry.id),
+        });
+      }
+    }
+
     return items;
   }, [
     agentRef,
@@ -376,6 +405,7 @@ export function SessionComposer({
     workspace,
     mcpServerUsages,
     skillRefs,
+    secrets,
     displayNames,
     onMcpServerUsagesChange,
     onSkillRefsChange,
@@ -384,6 +414,7 @@ export function SessionComposer({
   const workspaceCount = workspace?.entries.length ?? 0;
   const mcpCount = mcpServerUsages?.length ?? 0;
   const skillCount = skillRefs?.length ?? 0;
+  const secretCount = secrets?.entries.length ?? 0;
 
   return (
     <div
@@ -537,6 +568,20 @@ export function SessionComposer({
                   </ContextPopover>
                 )}
 
+                {showSecrets && (
+                  <ContextPopover
+                    icon={<SecretsIcon />}
+                    label="Secrets"
+                    count={secretCount}
+                    disabled={isDisabled}
+                  >
+                    <OneTimeSecretsInput
+                      secrets={secrets}
+                      disabled={isDisabled}
+                    />
+                  </ContextPopover>
+                )}
+
                 {showModelSelector && (
                   <div className="mx-0.5 h-4 w-px bg-border/50" />
                 )}
@@ -629,7 +674,7 @@ function ContextPopover({
 interface ChipItem {
   key: string;
   label: string;
-  type: "agent" | "workspace" | "mcp" | "skill";
+  type: "agent" | "workspace" | "mcp" | "skill" | "secret";
   onRemove: () => void;
 }
 
@@ -638,6 +683,7 @@ const CHIP_TYPE_LABELS: Record<ChipItem["type"], string> = {
   workspace: "WS",
   mcp: "MCP",
   skill: "Skill",
+  secret: "1-time",
 };
 
 function ContextChip({
@@ -803,6 +849,26 @@ function SkillIcon() {
       aria-hidden="true"
     >
       <path d="M2 3h12M2 7h8M2 11h10M2 15h6" />
+    </svg>
+  );
+}
+
+function SecretsIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="8" width="10" height="6" rx="1.5" />
+      <path d="M5 8V5.5a3 3 0 0 1 6 0V8" />
+      <circle cx="8" cy="11.5" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }

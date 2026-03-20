@@ -64,3 +64,12 @@ export type { FilePathContextValue } from "./FilePathContext";
 
 export { classifyPath, resolveGitBrowseUrl, resolvePathAction } from "./file-path-resolver";
 export type { PathClassification, ResolvedPathAction } from "./file-path-resolver";
+
+export { useOneTimeSecrets } from "./useOneTimeSecrets";
+export type {
+  OneTimeSecretEntry,
+  UseOneTimeSecretsReturn,
+} from "./useOneTimeSecrets";
+
+export { OneTimeSecretsInput } from "./OneTimeSecretsInput";
+export type { OneTimeSecretsInputProps } from "./OneTimeSecretsInput";
