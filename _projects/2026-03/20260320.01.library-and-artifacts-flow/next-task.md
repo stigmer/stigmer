@@ -71,7 +71,7 @@ When starting a new session:
 **Current Task**: T01 — Phase 1: Library Pages + Navigation (Foundation)
 **Status**: In Progress
 
-## Session Progress (2026-03-20)
+## Session Progress (2026-03-20, Session 1)
 
 ### Completed
 - **T01.1 — `useAgentList` data hook**: Fully implemented and exported
@@ -92,29 +92,53 @@ When starting a new session:
 ### Design Decisions (recorded in `design-decisions/`)
 - DD-001 through DD-005 were recorded during planning (pre-existing)
 
+## Session Progress (2026-03-20, Session 2)
+
+### Completed
+- **T01.2 — `useSkillList` data hook**: Fully implemented and exported
+  - Created `sdk/react/src/skill/useSkillList.ts` — thin wrapper over `useResourceList`
+  - Returns `{ skills, totalCount, totalPages, currentPage, isLoading, error, refetch }`
+  - Full JSDoc with `@link` cross-reference to `useSkillSearch`, usage examples
+  - Updated barrel exports in `skill/index.ts`
+
+- **T01.3 — `useMcpServerList` data hook**: Fully implemented and exported
+  - Created `sdk/react/src/mcp-server/useMcpServerList.ts` — thin wrapper over `useResourceList`
+  - Returns `{ mcpServers, totalCount, totalPages, currentPage, isLoading, error, refetch }`
+  - Full JSDoc with `@link` cross-reference to `useMcpServerSearch`, usage examples
+  - Updated barrel exports in `mcp-server/index.ts`
+
+- **Barrel exports updated**: Both module-level and top-level `sdk/react/src/index.ts` barrel exports updated with new hooks and types
+
+### Verification
+- TypeScript check passes (8 pre-existing errors in unrelated test file, zero in new/modified files)
+- Lint clean on all 5 files (2 new, 3 modified)
+- All existing exports unchanged — no breaking changes
+
 ## Next Steps
 
-1. **T01.2 — `useSkillList` data hook**: Thin wrapper over `useResourceList` (trivial — same pattern as `useAgentList`)
-2. **T01.3 — `useMcpServerList` data hook**: Same pattern
-3. **T01.4 — `useResourceCount` data hook**: Fetches counts for landing page cards
-4. **T01.5 — `ScopeToggle` component**: Segmented control UI
-5. Continue through T01.6–T01.13 (components, pages, sidebar)
+1. **T01.4 — `useResourceCount` data hook**: Fetches counts for landing page cards
+2. **T01.5 — `ScopeToggle` component**: Segmented control UI (first UI component in Library module)
+3. **T01.6 — `ResourceListView` component**: Generic list with search + scope
+4. **T01.7 — `ResourceCountCard` component**: Landing page card with count
+5. **T01.8 — Barrel exports for library module**
+6. Continue through T01.9–T01.13 (sidebar, pages)
 
 ## Context for Resume
 
-- The `useResourceList` internal hook is the shared foundation for T01.2 and T01.3 — those tasks become one-line wrappers identical to `useAgentList`
-- The `search/` module now exports both `useResourceSearch` (for pickers) and `useResourceList` (for Library)
+- All three resource list hooks are now complete (`useAgentList`, `useSkillList`, `useMcpServerList`)
+- All three follow the identical pattern: thin wrapper over `useResourceList`, domain-named entries field
+- The `search/` module exports both `useResourceSearch` (for pickers) and `useResourceList` (for Library)
+- Next work shifts from data hooks to UI components — T01.4 is the last data hook, T01.5 starts the component layer
 - Branch: `feat/add-customize-ui-2`
-- All project scaffold files (`_projects/2026-03/20260320.01.library-and-artifacts-flow/`) are untracked and will be committed with this session
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01.2" - Implement useSkillList (trivial wrapper)
-- "Continue with T01.3" - Implement useMcpServerList (trivial wrapper)
-- "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
+- "Continue with T01.4" — Implement useResourceCount (landing page card counts)
+- "Continue with T01.5" — Implement ScopeToggle component (first UI work)
+- "Show project status" — Get overview of progress
+- "Create checkpoint" — Save current progress
+- "Review guidelines" — Check established patterns
 
 ---
 

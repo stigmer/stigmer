@@ -1,3 +1,9 @@
+export { useMcpServerList } from "./useMcpServerList";
+export type {
+  UseMcpServerListOptions,
+  UseMcpServerListReturn,
+} from "./useMcpServerList";
+
 export { useMcpServerSearch } from "./useMcpServerSearch";
 export type {
   UseMcpServerSearchOptions,
