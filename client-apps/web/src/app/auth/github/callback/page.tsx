@@ -1,9 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useGitHubConnection } from "@stigmer/react";
+import {
+  useGitHubConnection,
+  GITHUB_CALLBACK_MESSAGE_TYPE,
+} from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
+
+/**
+ * Whether this page is running inside a popup window opened by the
+ * OAuth flow (as opposed to a full-page redirect). Determined once on
+ * mount — `window.opener` is non-null when opened via `window.open`.
+ */
+function isPopupWindow(): boolean {
+  try {
+    return window.opener != null && !window.opener.closed;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Signal the opener window that the OAuth flow completed successfully
+ * and close this popup. The opener's `useGitHubConnection` hook
+ * listens for this message and re-reconciles the token from the
+ * personal environment.
+ */
+function signalOpenerAndClose(): void {
+  try {
+    window.opener?.postMessage(
+      { type: GITHUB_CALLBACK_MESSAGE_TYPE },
+      window.location.origin,
+    );
+  } catch {
+    // Cross-origin or closed opener — fall through.
+  }
+  window.close();
+}
 
 /**
  * OAuth callback page for GitHub.
@@ -11,7 +45,12 @@ import { useActiveOrgSlug } from "@/contexts/org-context";
  * GitHub redirects here after the user authorizes. The page reads the
  * `code` and `state` query params, exchanges the code for a token via
  * the Stigmer backend, persists it in the personal environment, and
- * redirects to the home page on success.
+ * either signals the opener popup or redirects to the home page.
+ *
+ * When running inside a popup (opened by the `connect({ popup: true })`
+ * flow), the page sends a `postMessage` to the opener and closes
+ * itself instead of navigating. This keeps the user on the original
+ * page without context loss.
  *
  * The effect waits for both org context and the personal environment
  * to be ready before calling `handleCallback`, which writes the token
@@ -31,6 +70,23 @@ export default function GitHubCallbackPage() {
     missingParams ? "Missing authorization code or state parameter" : null,
   );
   const [exchanged, setExchanged] = useState(false);
+  const [isPopup] = useState(isPopupWindow);
+
+  const handleSuccess = useCallback(() => {
+    if (isPopup) {
+      signalOpenerAndClose();
+    } else {
+      router.replace("/");
+    }
+  }, [isPopup, router]);
+
+  const handleError = useCallback((err: unknown) => {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Failed to connect GitHub account",
+    );
+  }, []);
 
   useEffect(() => {
     if (missingParams || exchanged || !org || isLoading) return;
@@ -39,29 +95,37 @@ export default function GitHubCallbackPage() {
     const redirectUri = `${window.location.origin}/auth/github/callback`;
 
     handleCallback(code, state, redirectUri)
-      .then(() => {
-        router.replace("/");
-      })
-      .catch((err) => {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to connect GitHub account",
-        );
-      });
-  }, [code, state, missingParams, exchanged, org, isLoading, handleCallback, router]);
+      .then(handleSuccess)
+      .catch(handleError);
+  }, [
+    code,
+    state,
+    missingParams,
+    exchanged,
+    org,
+    isLoading,
+    handleCallback,
+    handleSuccess,
+    handleError,
+  ]);
 
   if (error) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="max-w-md space-y-4 text-center">
           <p className="text-sm text-destructive">{error}</p>
-          <button
-            onClick={() => router.replace("/")}
-            className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
-          >
-            Back to Home
-          </button>
+          {isPopup ? (
+            <p className="text-xs text-muted-foreground">
+              You can close this window and try again.
+            </p>
+          ) : (
+            <button
+              onClick={() => router.replace("/")}
+              className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
+            >
+              Back to Home
+            </button>
+          )}
         </div>
       </div>
     );

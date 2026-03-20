@@ -53,7 +53,9 @@ export function WorkspaceEditor({
   enableLocal = false,
   enableFolderBrowser = false,
 }: WorkspaceEditorProps) {
-  const [activePanel, setActivePanel] = useState<ActivePanel>("none");
+  const [activePanel, setActivePanel] = useState<ActivePanel>(
+    enableGitHub ? "github" : "none",
+  );
   const [manualUrl, setManualUrl] = useState("");
   const [manualBranch, setManualBranch] = useState("");
   const entryList = useScrollShadows();
@@ -283,6 +285,19 @@ function GitHubPanel({
   }
 
   if (!connection.isConnected) {
+    if (connection.isConnecting) {
+      return (
+        <div className="space-y-3 py-4 text-center">
+          <div className="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-foreground" />
+          <p className="text-xs text-muted-foreground">
+            Connecting to GitHub...
+          </p>
+        </div>
+      );
+    }
+
+    const redirectUri = `${window.location.origin}/auth/github/callback`;
+
     return (
       <div className="space-y-3 text-center">
         <div className="flex justify-end">
@@ -303,17 +318,39 @@ function GitHubPanel({
             Connect your GitHub account so the agent can access your repos
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            const redirectUri = `${window.location.origin}/auth/github/callback`;
-            connection.connect(redirectUri);
-          }}
-          className="inline-flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-xs text-background hover:bg-foreground/90 transition-colors"
-        >
-          <GitHubIcon />
-          <span>Connect GitHub</span>
-        </button>
+        {connection.popupBlocked ? (
+          <div className="space-y-2">
+            <p className="text-[0.65rem] text-destructive">
+              Popup was blocked by your browser.
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => connection.connect(redirectUri, { popup: true })}
+                className="rounded-md px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Try again
+              </button>
+              <button
+                type="button"
+                onClick={() => connection.connect(redirectUri)}
+                className="inline-flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-xs text-background hover:bg-foreground/90 transition-colors"
+              >
+                <GitHubIcon />
+                <span>Continue with redirect</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => connection.connect(redirectUri, { popup: true })}
+            className="inline-flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-xs text-background hover:bg-foreground/90 transition-colors"
+          >
+            <GitHubIcon />
+            <span>Connect GitHub</span>
+          </button>
+        )}
       </div>
     );
   }
