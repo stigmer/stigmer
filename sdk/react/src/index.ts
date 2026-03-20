@@ -284,13 +284,21 @@ export type {
 export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error";
 export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error";
 
-// Library — cross-resource UI components for browsing and managing resources
-export { ScopeToggle, ResourceListView, ResourceCountCard } from "./library";
+// Library — cross-resource UI components, resource detection, and browsing
+export {
+  ScopeToggle,
+  ResourceListView,
+  ResourceCountCard,
+  detectStigmerResource,
+  useDetectStigmerResource,
+} from "./library";
 export type {
   ScopeToggleProps,
   ResourceListViewProps,
   ResourceCountCardProps,
   ResourceListScope,
+  StigmerResourceKind,
+  StigmerResourceDetection,
 } from "./library";
 
 // Agent Instance — data hooks, list hook, personal convenience hook, and behavior hook
