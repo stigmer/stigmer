@@ -20,9 +20,10 @@
     ],
     "baseUrl": ".",
     "paths": {
+      "@/.source": ["./.source"],
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".source/**/*.ts"],
   "exclude": ["node_modules"]
 }
