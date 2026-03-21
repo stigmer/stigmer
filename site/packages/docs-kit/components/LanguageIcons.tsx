@@ -1,34 +1,36 @@
 export function LanguageIcons() {
   const languages = [
-    { name: 'Go', svg: <GoSvg /> },
-    { name: 'Java', svg: <JavaSvg /> },
-    { name: 'Python', svg: <PythonSvg /> },
-    { name: 'React', svg: <ReactSvg /> },
-    { name: 'TypeScript', svg: <TypeScriptSvg /> },
+    { name: "Go", svg: <GoSvg /> },
+    { name: "Java", svg: <JavaSvg /> },
+    { name: "Python", svg: <PythonSvg /> },
+    { name: "React", svg: <ReactSvg /> },
+    { name: "TypeScript", svg: <TypeScriptSvg /> },
   ];
 
   return (
     <div
       style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '2rem',
-        justifyContent: 'center',
-        padding: '1.5rem 0 2rem',
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "2rem",
+        justifyContent: "center",
+        padding: "1.5rem 0 2rem",
       }}
     >
       {languages.map(({ name, svg }) => (
         <div
           key={name}
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '0.5rem',
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "0.5rem",
           }}
         >
           <div style={{ width: 44, height: 44 }}>{svg}</div>
-          <span style={{ fontSize: '0.75rem', fontWeight: 500, opacity: 0.6 }}>
+          <span
+            style={{ fontSize: "0.75rem", fontWeight: 500, opacity: 0.6 }}
+          >
             {name}
           </span>
         </div>
@@ -58,10 +60,29 @@ function GoSvg() {
 
 function JavaSvg() {
   return (
-    <svg width="44" height="44" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-      <path d="M18 13c0-3 4-4 4-7" stroke="#E76F00" strokeWidth="2" strokeLinecap="round" />
-      <path d="M25 13c0-3 4-4 4-7" stroke="#E76F00" strokeWidth="2" strokeLinecap="round" />
-      <path d="M10 16h22v14c0 6-5 10-11 10s-11-4-11-10z" fill="#E76F00" />
+    <svg
+      width="44"
+      height="44"
+      viewBox="0 0 48 48"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M18 13c0-3 4-4 4-7"
+        stroke="#E76F00"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M25 13c0-3 4-4 4-7"
+        stroke="#E76F00"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10 16h22v14c0 6-5 10-11 10s-11-4-11-10z"
+        fill="#E76F00"
+      />
       <path
         d="M32 20a5 5 0 0 1 0 10"
         stroke="#E76F00"
@@ -89,7 +110,12 @@ function PythonSvg() {
 
 function ReactSvg() {
   return (
-    <svg width="44" height="44" viewBox="-50 -50 100 100" aria-hidden="true">
+    <svg
+      width="44"
+      height="44"
+      viewBox="-50 -50 100 100"
+      aria-hidden="true"
+    >
       <circle r="8" fill="#61DAFB" />
       <g stroke="#61DAFB" strokeWidth="2.5" fill="none">
         <ellipse rx="44" ry="16" />
