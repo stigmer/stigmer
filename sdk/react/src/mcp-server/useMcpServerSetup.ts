@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useReducer, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import type { DiscoveredTool } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
@@ -193,6 +193,14 @@ function computeDefaultEnabledTools(
  *
  * Pass `null` as `org` to disable all operations (stable no-op).
  *
+ * @param org - Organization slug. Pass `null` to disable.
+ * @param poolKeys - Optional set of env-var keys already available
+ *   from the session env pool (manual secrets, one-time env vars from
+ *   other components). When provided, servers whose `env_spec` keys
+ *   are fully covered by `poolKeys` + personal env auto-resolve to
+ *   `ready` without prompting. Reactive — when `poolKeys` changes,
+ *   `needsSetup` entries are re-evaluated.
+ *
  * @example
  * ```tsx
  * const {
@@ -202,7 +210,7 @@ function computeDefaultEnabledTools(
  *   setEnabledTools,
  *   allReady,
  *   usageInputs,
- * } = useMcpServerSetup("acme");
+ * } = useMcpServerSetup("acme", pool.availableKeys);
  *
  * // When user toggles a server ON in the picker:
  * await addServer({ org: "acme", slug: "github", kind: ApiResourceKind.mcp_server });
@@ -219,6 +227,7 @@ function computeDefaultEnabledTools(
  */
 export function useMcpServerSetup(
   org: string | null,
+  poolKeys?: Set<string>,
 ): UseMcpServerSetupReturn {
   const stigmer = useStigmer();
   const personalEnv = usePersonalEnvironment(org);
@@ -229,6 +238,8 @@ export function useMcpServerSetup(
   );
 
   const runtimeEnvRef = useRef<Record<string, EnvVarInput>>({});
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
 
   // -------------------------------------------------------------------------
   // addServer
@@ -271,7 +282,7 @@ export function useMcpServerSetup(
         const existingKeys = new Set(
           Object.keys(personalEnv.environment?.spec?.data ?? {}),
         );
-        const missingVariables = diffEnvSpec(envSpecData, existingKeys);
+        const missingVariables = diffEnvSpec(envSpecData, existingKeys, poolKeys);
 
         if (missingVariables.length === 0) {
           dispatch({
@@ -300,7 +311,7 @@ export function useMcpServerSetup(
         dispatch({ type: "SET_ERROR", key, error: toError(err) });
       }
     },
-    [org, stigmer, personalEnv],
+    [org, stigmer, personalEnv, poolKeys],
   );
 
   // -------------------------------------------------------------------------
@@ -392,6 +403,32 @@ export function useMcpServerSetup(
     dispatch({ type: "RESET" });
     runtimeEnvRef.current = {};
   }, []);
+
+  // -------------------------------------------------------------------------
+  // Pool re-evaluation — auto-resolve needsSetup entries when pool changes
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!poolKeys || poolKeys.size === 0) return;
+
+    const personalKeys = new Set(
+      Object.keys(personalEnv.environment?.spec?.data ?? {}),
+    );
+
+    for (const [key, entry] of Object.entries(entriesRef.current)) {
+      if (entry.status !== "needsSetup") continue;
+
+      const envSpecData = entry.mcpServer.spec?.envSpec?.data;
+      if (!envSpecData) continue;
+
+      const missingVariables = diffEnvSpec(envSpecData, personalKeys, poolKeys);
+      const enabledTools = computeDefaultEnabledTools(
+        entry.mcpServer,
+        entry.discoveredTools,
+      );
+      dispatch({ type: "POOL_RESOLVE", key, missingVariables, enabledTools });
+    }
+  }, [poolKeys, personalEnv.environment]);
 
   // -------------------------------------------------------------------------
   // Derived state

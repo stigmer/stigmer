@@ -15,7 +15,7 @@ import {
   useModelRegistry,
   useWorkspaceEntries,
   useGitHubConnection,
-  useOneTimeSecrets,
+  useSessionVariables,
   useStigmer,
   MessageThread,
   SessionComposer,
@@ -61,7 +61,7 @@ export default function SessionPage() {
   const deploymentMode = useDeploymentMode();
   const gitHubConnection = useGitHubConnection(org);
   const workspace = useWorkspaceEntries();
-  const secrets = useOneTimeSecrets();
+  const sessionVariables = useSessionVariables();
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const initialSyncDone = useRef(false);
@@ -134,9 +134,9 @@ export default function SessionPage() {
         attachments: context?.attachments,
       });
 
-      secrets.clear();
+      sessionVariables.clear();
     },
-    [conv, modelId, workspace, mcpServerUsages, skillRefs, secrets, resolution, agentRef, sessionInstanceId, stigmer],
+    [conv, modelId, workspace, mcpServerUsages, skillRefs, sessionVariables, resolution, agentRef, sessionInstanceId, stigmer],
   );
 
   const displayExecution = useMemo(() => {
@@ -192,7 +192,7 @@ export default function SessionPage() {
               onMcpServerUsagesChange={setMcpServerUsages}
               skillRefs={skillRefs}
               onSkillRefsChange={setSkillRefs}
-              secrets={secrets}
+              sessionVariables={sessionVariables}
               className="px-4 py-3"
             />
           </div>

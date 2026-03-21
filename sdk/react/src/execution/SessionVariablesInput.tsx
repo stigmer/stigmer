@@ -2,91 +2,116 @@
 
 import { useMemo } from "react";
 import { cn } from "@stigmer/theme";
-import type { UseOneTimeSecretsReturn } from "./useOneTimeSecrets";
+import type { UseSessionVariablesReturn } from "./useSessionVariables";
 import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
 
-export interface OneTimeSecretsInputProps {
-  /** Hook instance returned by {@link useOneTimeSecrets}. */
-  readonly secrets: UseOneTimeSecretsReturn;
+export interface SessionVariablesInputProps {
+  /** Hook instance returned by {@link useSessionVariables}. */
+  readonly sessionVariables: UseSessionVariablesReturn;
   readonly disabled?: boolean;
   readonly className?: string;
+  /**
+   * Map of env-var keys to the names of resources that require them.
+   *
+   * When a session variable's key matches a required key, a subtle
+   * "Used by: X" indicator is shown, confirming the cross-link
+   * between the variable and the agent/MCP server that needs it.
+   *
+   * Built by `SessionComposer` from the selected agent's and MCP
+   * servers' `env_spec` declarations.
+   *
+   * @example
+   * ```ts
+   * { "GITHUB_TOKEN": ["GitHub MCP Server", "Code Reviewer Agent"] }
+   * ```
+   */
+  readonly requiredByMap?: Readonly<Record<string, readonly string[]>>;
 }
 
 /**
- * Compact key-value editor for one-time execution-scoped secrets.
+ * Compact key-value editor for session-scoped environment variables.
  *
  * Designed to render inside a popover within {@link SessionComposer}.
- * Each entry collects a variable name, value, and secret toggle.
- * Values are never persisted — they exist for a single execution only.
+ * Each entry collects a variable name, value, secret toggle, and an
+ * optional "save for future" toggle. By default values are ephemeral
+ * (single execution); toggling "save for future" persists them to the
+ * user's personal environment.
  *
  * This is a **pure presentational component** with no knowledge of
  * sessions, executions, or orchestration. Platform builders can use
- * it standalone with {@link useOneTimeSecrets} for custom UIs.
+ * it standalone with {@link useSessionVariables} for custom UIs.
  *
  * All visual properties flow through `--stgm-*` design tokens.
  *
  * @example
  * ```tsx
- * const secrets = useOneTimeSecrets();
+ * const sessionVariables = useSessionVariables();
  *
- * <OneTimeSecretsInput secrets={secrets} />
+ * <SessionVariablesInput sessionVariables={sessionVariables} />
  * ```
  */
-export function OneTimeSecretsInput({
-  secrets,
+export function SessionVariablesInput({
+  sessionVariables,
   disabled = false,
   className,
-}: OneTimeSecretsInputProps) {
+  requiredByMap,
+}: SessionVariablesInputProps) {
   const entries = useScrollShadows();
 
   const duplicateKeys = useMemo(() => {
     const seen = new Set<string>();
     const dupes = new Set<string>();
-    for (const entry of secrets.entries) {
+    for (const entry of sessionVariables.entries) {
       const k = entry.key.trim();
       if (k === "") continue;
       if (seen.has(k)) dupes.add(k);
       seen.add(k);
     }
     return dupes;
-  }, [secrets.entries]);
+  }, [sessionVariables.entries]);
 
   return (
     <div
       className={cn("w-80 space-y-3", className)}
-      aria-label="One-time execution secrets"
+      aria-label="Session variables"
     >
       {/* Header */}
       <div className="space-y-0.5">
         <h3 className="text-xs font-medium text-foreground">
-          One-time secrets
+          Session variables
         </h3>
         <p className="text-[0.65rem] text-muted-foreground">
-          These values exist for this execution only.
+          Additional environment variables for this session.
         </p>
       </div>
 
       {/* Entries */}
-      {secrets.entries.length > 0 ? (
+      {sessionVariables.entries.length > 0 ? (
         <div className="relative">
           {entries.canScrollUp && <ScrollFade position="top" />}
 
           <div ref={entries.scrollRef} className="max-h-64 space-y-2.5 overflow-y-auto">
-            {secrets.entries.map((entry) => {
+            {sessionVariables.entries.map((entry) => {
               const isDuplicate = duplicateKeys.has(entry.key.trim());
 
               return (
-                <SecretEntryRow
+                <VariableEntryRow
                   key={entry.id}
                   id={entry.id}
                   entryKey={entry.key}
                   value={entry.value}
                   isSecret={entry.isSecret}
+                  saveForFuture={entry.saveForFuture}
                   isDuplicate={isDuplicate}
                   disabled={disabled}
-                  onUpdate={secrets.updateEntry}
-                  onRemove={secrets.removeEntry}
+                  onUpdate={sessionVariables.updateEntry}
+                  onRemove={sessionVariables.removeEntry}
+                  requiredBy={
+                    entry.key.trim()
+                      ? requiredByMap?.[entry.key.trim()]
+                      : undefined
+                  }
                 />
               );
             })}
@@ -96,14 +121,14 @@ export function OneTimeSecretsInput({
         </div>
       ) : (
         <p className="py-2 text-center text-[0.65rem] text-muted-foreground/70">
-          No secrets attached.
+          No variables added.
         </p>
       )}
 
       {/* Add button */}
       <button
         type="button"
-        onClick={secrets.addEntry}
+        onClick={sessionVariables.addEntry}
         disabled={disabled}
         className={cn(
           "inline-flex w-full items-center justify-center gap-1 rounded-md py-1.5 text-xs",
@@ -123,27 +148,31 @@ export function OneTimeSecretsInput({
 // Entry row
 // ---------------------------------------------------------------------------
 
-function SecretEntryRow({
+function VariableEntryRow({
   id,
   entryKey,
   value,
   isSecret,
+  saveForFuture,
   isDuplicate,
   disabled,
   onUpdate,
   onRemove,
+  requiredBy,
 }: {
   id: string;
   entryKey: string;
   value: string;
   isSecret: boolean;
+  saveForFuture: boolean;
   isDuplicate: boolean;
   disabled: boolean;
-  onUpdate: UseOneTimeSecretsReturn["updateEntry"];
-  onRemove: UseOneTimeSecretsReturn["removeEntry"];
+  onUpdate: UseSessionVariablesReturn["updateEntry"];
+  onRemove: UseSessionVariablesReturn["removeEntry"];
+  requiredBy?: readonly string[];
 }) {
-  const keyInputId = `stgm-ots-key-${id}`;
-  const valInputId = `stgm-ots-val-${id}`;
+  const keyInputId = `stgm-sv-key-${id}`;
+  const valInputId = `stgm-sv-val-${id}`;
   const removeLabel = entryKey.trim() || "entry";
 
   return (
@@ -205,6 +234,41 @@ function SecretEntryRow({
           )}
         />
       </div>
+
+      {/* Save-for-future toggle */}
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={saveForFuture}
+          aria-label={saveForFuture ? "Saved for future runs" : "Used once only"}
+          disabled={disabled}
+          onClick={() => onUpdate(id, { saveForFuture: !saveForFuture })}
+          className={cn(
+            "relative inline-flex h-3.5 w-6 shrink-0 cursor-pointer rounded-full transition-colors",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+            "disabled:pointer-events-none disabled:opacity-50",
+            saveForFuture ? "bg-primary" : "bg-input",
+          )}
+        >
+          <span
+            className={cn(
+              "pointer-events-none block h-2.5 w-2.5 translate-y-0.5 rounded-full bg-background shadow-sm ring-0 transition-transform",
+              saveForFuture ? "translate-x-3" : "translate-x-0.5",
+            )}
+          />
+        </button>
+        <span className="text-[0.6rem] text-muted-foreground">
+          {saveForFuture ? "Save for future runs" : "This run only"}
+        </span>
+      </div>
+
+      {/* Required-by indicator */}
+      {requiredBy && requiredBy.length > 0 && (
+        <p className="text-[0.55rem] text-primary/70">
+          Used by: {requiredBy.join(", ")}
+        </p>
+      )}
 
       {/* Duplicate warning */}
       {isDuplicate && (

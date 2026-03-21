@@ -124,6 +124,12 @@ export type McpServerSetupAction =
       readonly toolApprovals: ToolApprovalPolicy[];
       readonly enabledTools: string[];
     }
+  | {
+      readonly type: "POOL_RESOLVE";
+      readonly key: string;
+      readonly missingVariables: EnvVarFormVariable[];
+      readonly enabledTools: string[];
+    }
   | { readonly type: "SUBMIT_START"; readonly key: string }
   | {
       readonly type: "SUBMIT_DONE";
@@ -187,6 +193,33 @@ export function mcpServerSetupReducer(
           toolApprovals: action.toolApprovals,
           enabledTools: action.enabledTools,
           error: null,
+        },
+      };
+    }
+
+    case "POOL_RESOLVE": {
+      const entry = state[action.key];
+      if (entry?.status !== "needsSetup") return state;
+
+      if (action.missingVariables.length === 0) {
+        return {
+          ...state,
+          [action.key]: {
+            status: "ready",
+            mcpServer: entry.mcpServer,
+            discoveredTools: entry.discoveredTools,
+            toolApprovals: entry.toolApprovals,
+            enabledTools: action.enabledTools,
+            error: null,
+          },
+        };
+      }
+
+      return {
+        ...state,
+        [action.key]: {
+          ...entry,
+          missingVariables: action.missingVariables,
         },
       };
     }

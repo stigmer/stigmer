@@ -117,6 +117,10 @@ export type AgentSetupAction =
       readonly agentName: string;
       readonly resolution: AgentResolution;
     }
+  | {
+      readonly type: "POOL_RESOLVE";
+      readonly missingVariables: AgentEnvFormVariable[];
+    }
   | { readonly type: "SUBMIT_START" }
   | {
       readonly type: "SUBMIT_READY";
@@ -163,6 +167,25 @@ export function agentSetupReducer(
         resolution: action.resolution,
         error: null,
       };
+
+    case "POOL_RESOLVE": {
+      if (state.status !== "needsEnvVars") return state;
+
+      if (action.missingVariables.length === 0) {
+        return {
+          status: "ready",
+          agentRef: state.agentRef,
+          agentName: state.agentName,
+          resolution: { mode: "direct" },
+          error: null,
+        };
+      }
+
+      return {
+        ...state,
+        missingVariables: action.missingVariables,
+      };
+    }
 
     case "SUBMIT_START": {
       if (state.status !== "needsEnvVars") return state;

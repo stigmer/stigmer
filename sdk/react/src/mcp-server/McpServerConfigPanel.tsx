@@ -47,6 +47,11 @@ export interface McpServerCredentialsProps {
    * @default false
    */
   readonly hideSaveToggle?: boolean;
+  /**
+   * Lookup function for pre-filling fields from the session env pool.
+   * When provided, fields whose keys return a value are pre-populated.
+   */
+  readonly poolValues?: (key: string) => EnvVarInput | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -210,6 +215,7 @@ export function McpServerConfigPanel({
           title="Credentials required"
           defaultSaveForFuture={credentials.defaultSaveForFuture}
           hideSaveToggle={credentials.hideSaveToggle}
+          poolValues={credentials.poolValues}
           className="w-full"
         />
       )}

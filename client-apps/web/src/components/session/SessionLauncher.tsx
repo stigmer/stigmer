@@ -15,7 +15,7 @@ import {
   useMcpServer,
   useSkill,
   useStigmer,
-  useOneTimeSecrets,
+  useSessionVariables,
   serializeAgentYaml,
   serializeMcpServerYaml,
 } from "@stigmer/react";
@@ -204,7 +204,7 @@ export function SessionLauncher() {
   // ---------------------------------------------------------------------------
 
   const workspace = useWorkspaceEntries();
-  const secrets = useOneTimeSecrets();
+  const sessionVariables = useSessionVariables();
   const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
   const [resolution, setResolution] = useState<AgentResolution | null>(null);
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
@@ -271,7 +271,7 @@ export function SessionLauncher() {
         }
 
         await createExecution({ ...executionFields, sessionId });
-        secrets.clear();
+        sessionVariables.clear();
         router.push(`/sessions/${sessionId}`);
       } catch (err) {
         const detail = getUserMessage(err, "Failed to start session");
@@ -293,7 +293,7 @@ export function SessionLauncher() {
       defaultAgent,
       createSession,
       createExecution,
-      secrets,
+      sessionVariables,
       router,
     ],
   );
@@ -323,7 +323,7 @@ export function SessionLauncher() {
           onMcpServerUsagesChange={setMcpServerUsages}
           skillRefs={skillRefs}
           onSkillRefsChange={setSkillRefs}
-          secrets={secrets}
+          sessionVariables={sessionVariables}
           defaultModelId={validModelId}
           onModelChange={setModelId}
           placeholder={placeholder}

@@ -87,11 +87,11 @@ export type { FilePathContextValue } from "./FilePathContext";
 export { classifyPath, resolveGitBrowseUrl, resolvePathAction } from "./file-path-resolver";
 export type { PathClassification, ResolvedPathAction } from "./file-path-resolver";
 
-export { useOneTimeSecrets } from "./useOneTimeSecrets";
+export { useSessionVariables } from "./useSessionVariables";
 export type {
-  OneTimeSecretEntry,
-  UseOneTimeSecretsReturn,
-} from "./useOneTimeSecrets";
+  SessionVariableEntry,
+  UseSessionVariablesReturn,
+} from "./useSessionVariables";
 
-export { OneTimeSecretsInput } from "./OneTimeSecretsInput";
-export type { OneTimeSecretsInputProps } from "./OneTimeSecretsInput";
+export { SessionVariablesInput } from "./SessionVariablesInput";
+export type { SessionVariablesInputProps } from "./SessionVariablesInput";

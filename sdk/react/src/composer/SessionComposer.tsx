@@ -16,12 +16,14 @@ import { McpServerPicker } from "../mcp-server/McpServerPicker";
 import { useMcpServerSetup } from "../mcp-server/useMcpServerSetup";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SkillPicker } from "../skill/SkillPicker";
-import { OneTimeSecretsInput } from "../execution/OneTimeSecretsInput";
-import type { UseOneTimeSecretsReturn } from "../execution/useOneTimeSecrets";
+import { SessionVariablesInput } from "../execution/SessionVariablesInput";
+import type { UseSessionVariablesReturn } from "../execution/useSessionVariables";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { useAttachments } from "../attachment/useAttachments";
 import { AttachmentChipList } from "../attachment/AttachmentChipList";
+import { useSessionEnvPool } from "../environment/useSessionEnvPool";
+import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
 import {
   AgentIcon,
   McpServerIcon,
@@ -44,11 +46,11 @@ export interface SessionComposerSubmitContext {
    * Aggregated one-time environment variables from all setup flows.
    *
    * Merged from (in precedence order, last-write-wins):
-   * 1. Agent one-time secrets (when agent resolution mode is `"oneTime"`)
-   * 2. MCP server one-time secrets (collected with `saveForFuture: false`)
-   * 3. Manual one-time secrets (from {@link OneTimeSecretsInput})
+   * 1. Agent one-time env vars (when agent resolution mode is `"oneTime"`)
+   * 2. MCP server one-time env vars (collected with `saveForFuture: false`)
+   * 3. Manual session variables (from {@link SessionVariablesInput})
    *
-   * `undefined` when no one-time secrets were collected from any source.
+   * `undefined` when no runtime env vars were collected from any source.
    * Pass directly to execution creation as `runtimeEnv`.
    */
   readonly runtimeEnv?: Record<string, EnvVarInput>;
@@ -181,15 +183,16 @@ export interface SessionComposerProps {
   readonly onSkillRefsChange?: (refs: ResourceRef[]) => void;
 
   /**
-   * One-time secrets state managed by {@link useOneTimeSecrets}.
-   * When provided, renders a "Secrets" trigger in the toolbar that
-   * opens a key-value editor for execution-scoped environment variables.
+   * Session variables state managed by {@link useSessionVariables}.
+   * When provided, renders a "Session Variables" trigger in the toolbar
+   * that opens a key-value editor for environment variables.
    *
-   * Unlike workspace, MCP, and skill context (which are session-level),
-   * one-time secrets are ephemeral — the consumer should call
-   * `secrets.clear()` after submission.
+   * Variables are ephemeral by default (single execution). Individual
+   * entries can be marked `saveForFuture: true` to persist them to
+   * the user's personal environment. The consumer should call
+   * `sessionVariables.clear()` after submission.
    */
-  readonly secrets?: UseOneTimeSecretsReturn;
+  readonly sessionVariables?: UseSessionVariablesReturn;
 
   /**
    * Enable file attachment support in the composer.
@@ -332,7 +335,7 @@ export function SessionComposer({
   onMcpServerUsagesChange,
   skillRefs,
   onSkillRefsChange,
-  secrets,
+  sessionVariables,
   enableAttachments = true,
   onAttachmentValidationError,
   initialAttachments,
@@ -354,7 +357,7 @@ export function SessionComposer({
   const showMcp = onMcpServerUsagesChange != null && org != null;
   const showWorkspace = workspace != null;
   const showSkills = onSkillRefsChange != null && org != null;
-  const showSecrets = secrets != null;
+  const showSessionVars = sessionVariables != null;
   const showAttach = enableAttachments;
 
   // ---------------------------------------------------------------------------
@@ -366,12 +369,36 @@ export function SessionComposer({
   const configMcpInitialServerKeyRef = useRef<string | undefined>(undefined);
 
   // ---------------------------------------------------------------------------
+  // Session env pool — cross-references secrets across all sources
+  // ---------------------------------------------------------------------------
+
+  const personalEnv = usePersonalEnvironment(
+    (showAgent || showMcp) ? (org ?? null) : null,
+  );
+
+  const personalEnvKeys = useMemo(
+    () => new Set(Object.keys(personalEnv.environment?.spec?.data ?? {})),
+    [personalEnv.environment],
+  );
+
+  const pool = useSessionEnvPool({
+    personalEnvKeys,
+    manualSecrets: sessionVariables?.entries,
+  });
+
+  // ---------------------------------------------------------------------------
   // Setup hooks — instantiated before handleSubmit so it can read their state
   // ---------------------------------------------------------------------------
 
-  const agentSetup = useAgentSetup(showAgent ? (org ?? null) : null);
+  const agentSetup = useAgentSetup(
+    showAgent ? (org ?? null) : null,
+    pool.availableKeys,
+  );
 
-  const mcpSetup = useMcpServerSetup(showMcp ? (org ?? null) : null);
+  const mcpSetup = useMcpServerSetup(
+    showMcp ? (org ?? null) : null,
+    pool.availableKeys,
+  );
 
   // ---------------------------------------------------------------------------
   // Attachments — file upload state machine
@@ -432,7 +459,21 @@ export function SessionComposer({
   // ---------------------------------------------------------------------------
 
   const handleSubmit = useCallback(
-    (message: string) => {
+    async (message: string) => {
+      // Persist save-for-future manual secrets before building runtimeEnv
+      if (sessionVariables?.hasSaveForFutureEntries) {
+        const saveVars = sessionVariables.toSaveForFutureEnv();
+        if (Object.keys(saveVars).length > 0) {
+          try {
+            await personalEnv.getOrCreate();
+            await personalEnv.addVariables(saveVars);
+          } catch {
+            // Best-effort: if persistence fails, the values still flow
+            // into runtimeEnv for this execution via the one-time path.
+          }
+        }
+      }
+
       const env: Record<string, EnvVarInput> = {};
 
       if (
@@ -447,8 +488,8 @@ export function SessionComposer({
         Object.assign(env, mcpEnv);
       }
 
-      if (secrets && secrets.hasValidEntries) {
-        Object.assign(env, secrets.toRuntimeEnv());
+      if (sessionVariables && sessionVariables.hasValidEntries) {
+        Object.assign(env, sessionVariables.toRuntimeEnv());
       }
 
       const attachmentInputs = enableAttachments
@@ -473,7 +514,7 @@ export function SessionComposer({
         attachments.clear();
       }
     },
-    [onSubmit, modelId, agentSetup.state, mcpSetup.pendingRuntimeEnv, secrets, enableAttachments, attachments],
+    [onSubmit, modelId, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv],
   );
 
   const composer = useComposer({
@@ -738,15 +779,15 @@ export function SessionComposer({
       }
     }
 
-    if (secrets) {
-      for (const entry of secrets.entries) {
+    if (sessionVariables) {
+      for (const entry of sessionVariables.entries) {
         const k = entry.key.trim();
         if (k === "") continue;
         items.push({
           key: `secret:${entry.id}`,
           label: k,
           type: "secret",
-          onRemove: () => secrets.removeEntry(entry.id),
+          onRemove: () => sessionVariables.removeEntry(entry.id),
         });
       }
     }
@@ -760,7 +801,7 @@ export function SessionComposer({
     mcpSetup.entries,
     mcpSetup.removeServer,
     skillRefs,
-    secrets,
+    sessionVariables,
     displayNames,
     onSkillRefsChange,
   ]);
@@ -768,7 +809,34 @@ export function SessionComposer({
   const workspaceCount = workspace?.entries.length ?? 0;
   const mcpCount = showMcp ? Object.keys(mcpSetup.entries).length : 0;
   const skillCount = skillRefs?.length ?? 0;
-  const secretCount = secrets?.entries.length ?? 0;
+  const sessionVarCount = sessionVariables?.entries.length ?? 0;
+
+  // ---------------------------------------------------------------------------
+  // Required-by map — tracks which keys are needed by which resources
+  // ---------------------------------------------------------------------------
+
+  const requiredByMap = useMemo((): Record<string, string[]> => {
+    const map: Record<string, string[]> = {};
+
+    if (agentSetup.state.status === "needsEnvVars") {
+      const agentName = agentSetup.state.agentName;
+      for (const v of agentSetup.state.missingVariables) {
+        (map[v.key] ??= []).push(agentName);
+      }
+    }
+
+    if (showMcp) {
+      for (const entry of Object.values(mcpSetup.entries)) {
+        if (entry.status !== "needsSetup") continue;
+        const serverName = entry.mcpServer.metadata?.name ?? "MCP Server";
+        for (const v of entry.missingVariables) {
+          (map[v.key] ??= []).push(serverName);
+        }
+      }
+    }
+
+    return map;
+  }, [agentSetup.state, showMcp, mcpSetup.entries]);
 
   // ---------------------------------------------------------------------------
   // Configure menu — Tier 2 items and panel renderer
@@ -801,16 +869,16 @@ export function SessionComposer({
         count: skillCount,
       });
     }
-    if (showSecrets) {
+    if (showSessionVars) {
       items.push({
-        id: "secrets",
+        id: "sessionVars",
         icon: <SecretsIcon />,
-        label: "Secrets",
-        count: secretCount,
+        label: "Session Variables",
+        count: sessionVarCount,
       });
     }
     return items;
-  }, [showAgent, agentRef, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showSecrets, secretCount]);
+  }, [showAgent, agentRef, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showSessionVars, sessionVarCount]);
 
   const renderConfigPanel = useCallback(
     (panelId: string): React.ReactNode => {
@@ -833,6 +901,7 @@ export function SessionComposer({
                 onCancel={() => agentSetup.reset()}
                 isSubmitting={isAgentBusy}
                 disabled={isDisabled}
+                poolValues={pool.getAvailableValue}
               />
               {agentSetup.state.error && (
                 <AgentSetupError error={agentSetup.state.error} />
@@ -876,6 +945,7 @@ export function SessionComposer({
               initialServerKey={configMcpInitialServerKeyRef.current}
               onDisplayNameResolved={handleDisplayNameResolved}
               disabled={isDisabled}
+              poolValues={pool.getAvailableValue}
             />
           );
 
@@ -890,11 +960,12 @@ export function SessionComposer({
             />
           );
 
-        case "secrets":
+        case "sessionVars":
           return (
-            <OneTimeSecretsInput
-              secrets={secrets!}
+            <SessionVariablesInput
+              sessionVariables={sessionVariables!}
               disabled={isDisabled}
+              requiredByMap={requiredByMap}
             />
           );
 
@@ -915,7 +986,9 @@ export function SessionComposer({
       mcpSetup,
       skillRefs,
       onSkillRefsChange,
-      secrets,
+      sessionVariables,
+      pool,
+      requiredByMap,
     ],
   );
 
