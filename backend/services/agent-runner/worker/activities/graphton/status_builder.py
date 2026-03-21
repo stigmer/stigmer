@@ -1393,6 +1393,30 @@ class StatusBuilder:
                 del self._message_start_times[ai_message_index]
         
         # ─────────────────────────────────────────────────────────────────────────
+        # Diagnostic: capture output_data shape for zero-usage debugging.
+        # Log the concrete type, usage_metadata value, and whether
+        # response_metadata carries a raw ``usage`` dict (Anthropic always
+        # populates this even during streaming).
+        # ─────────────────────────────────────────────────────────────────────────
+        _rm = getattr(output_data, "response_metadata", None)
+        _rm_usage = _rm.get("usage") if isinstance(_rm, dict) else None
+        self.logger.info(
+            "[USAGE_DIAG] execution=%s run_id=%s "
+            "output_data_type=%s "
+            "has_usage_metadata=%s usage_metadata=%r "
+            "response_metadata_keys=%s "
+            "response_metadata_usage=%r",
+            self.execution_id,
+            run_id,
+            type(output_data).__name__,
+            hasattr(output_data, "usage_metadata"),
+            getattr(output_data, "usage_metadata", "N/A"),
+            list(_rm.keys()) if isinstance(_rm, dict) else "N/A",
+            _rm_usage,
+        )
+        del _rm, _rm_usage
+
+        # ─────────────────────────────────────────────────────────────────────────
         # Extract usage metadata from LangChain response (Phase 3)
         #
         # LangChain normalises provider token counts into a unified
