@@ -142,6 +142,67 @@
 }
 
 /* =============================================================================
+ * DOCS TYPOGRAPHY
+ * Scoped to the Fumadocs article area (#nd-page .prose) so these overrides
+ * do not affect the marketing site. Target: reading comfort on par with
+ * docs.temporal.io — generous line-height, breathing room between elements.
+ * ============================================================================= */
+
+#nd-page .prose {
+  line-height: 1.75;
+}
+
+#nd-page .prose p {
+  margin-bottom: 1.25em;
+}
+
+#nd-page .prose h2 {
+  margin-top: 2.5em;
+  margin-bottom: 1em;
+}
+
+#nd-page .prose h3 {
+  margin-top: 2em;
+  margin-bottom: 0.75em;
+}
+
+#nd-page .prose h4 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+#nd-page .prose ul,
+#nd-page .prose ol {
+  margin-top: 1em;
+  margin-bottom: 1.25em;
+}
+
+#nd-page .prose li {
+  margin-top: 0.35em;
+  margin-bottom: 0.35em;
+}
+
+#nd-page .prose pre {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+#nd-page .prose table {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+#nd-page .prose blockquote {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+#nd-page .prose hr {
+  margin-top: 2.5em;
+  margin-bottom: 2.5em;
+}
+
+/* =============================================================================
  * REDUCED MOTION SUPPORT
  * Respects user's motion preferences for accessibility
  * ============================================================================= */
