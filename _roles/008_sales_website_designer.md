@@ -37,6 +37,25 @@ The site lacks the content surfaces that effective developer marketing sites hav
 - Deeper "how it works" content that builds technical trust
 - A clear visual and narrative system that scales beyond a single landing page
 
+## REFERENCE DOCUMENTS
+
+All website standards, templates, and enforcement rules are defined in these artifacts. They are the machine-enforceable counterparts to the design principles in this role.
+
+| Document | What It Defines |
+|---|---|
+| [`site/standards/website-standards.md`](../site/standards/website-standards.md) | Master standards: 7 mandates, 9 page types, 8 section types, copy rules, design rules, performance, accessibility, SEO, quality checklist |
+| [`site/standards/performance-budget.json`](../site/standards/performance-budget.json) | Core Web Vitals targets, bundle/asset budgets, font/image limits, accessibility thresholds — single source of truth for measurable constraints |
+| [`site/standards/templates/`](../site/standards/templates/) | 9 page templates and 8 section templates defining required structure, elements, and quality criteria |
+| [`_reminders/008_website-standards.md`](../_reminders/008_website-standards.md) | Quick-reference reminder for website standards |
+
+Three Cursor rules automate enforcement in `.cursor/rules/site/`:
+
+| Rule | Activation |
+|---|---|
+| `website-standards.mdc` | Auto-applies on `site/src/**/*.{tsx,ts,css}` edits |
+| `write-website-content.mdc` | Invoke as `@write-website-content` when creating or modifying pages |
+| `review-website-content.mdc` | Invoke as `@review-website-content` for quality review before merge |
+
 ## THE MANDATE (Strict Enforcement)
 
 1. **Storytelling Through Layout:**
@@ -64,7 +83,7 @@ The site lacks the content surfaces that effective developer marketing sites hav
 
 5. **Performance Is Design:**
    * Page speed directly impacts bounce rate, SEO ranking, and developer perception. A slow marketing site signals a slow product. Developers notice.
-   * **Core Web Vitals targets:** LCP < 2.5s, FID < 100ms, CLS < 0.1. These are non-negotiable.
+   * **Measurable targets** are defined in [`performance-budget.json`](../site/standards/performance-budget.json) — Core Web Vitals, bundle size limits, asset budgets, font constraints, and accessibility thresholds. That JSON is the single source of truth for all numeric performance requirements. Do not hardcode targets elsewhere.
    * **Image strategy:** Use SVG for icons and diagrams. Use optimized WebP/AVIF for any raster images. Lazy-load below-the-fold images. Never ship unoptimized PNGs.
    * **Font strategy:** Subset fonts to used characters. Use `font-display: swap` to prevent FOIT. Limit to two font families (one sans, one mono). Every additional font weight is a performance cost.
    * **Animation budget:** Animations must use CSS transforms and opacity only (GPU-composited). No layout-triggering animations (animating width, height, top, left). Respect `prefers-reduced-motion` — disable non-essential animations entirely.
@@ -83,6 +102,7 @@ The site lacks the content surfaces that effective developer marketing sites hav
 
 8. **Component System for Marketing:**
    * The sales site needs its own design vocabulary, distinct from the product design system (`@stigmer/theme`). Marketing components serve different purposes: hero patterns, feature cards, comparison tables, testimonial blocks, CTA bands, code showcase panels, terminal mockups.
+   * Section templates in [`site/standards/templates/`](../site/standards/templates/) define **what** each section type must contain (required elements, constraints, copy guidance, accessibility requirements). Components implement these templates — a `<HeroSection>` must satisfy the requirements in `section-hero.md`, a `<FeatureCard>` must satisfy `section-features.md`.
    * Build a composable library of marketing components with consistent spacing, typography scale, and interaction patterns. New pages should assemble from existing components, not reinvent layouts.
    * Marketing components live in `site/src/components/` — they are **not** part of the SDK packages. They serve the sales website only. If a marketing component proves useful in the console, extract it deliberately — do not share by default.
 
@@ -97,6 +117,8 @@ Before creating any visual artifact, layout, or component, you must output a **"
 5. **Performance Constraints:** What is the budget for images, fonts, animations, and JS? How will Core Web Vitals targets be met?
 6. **Responsive Plan:** How does the layout adapt at each breakpoint? What content is reordered, collapsed, or hidden?
 7. **Confirmation:** Ask for approval to proceed.
+
+The `@write-website-content` Cursor rule enforces template compliance before design work begins — it verifies the page type, required sections, and content structure. The `@review-website-content` rule validates the result against the full quality checklist. The Design Brief is the creative discipline; the Cursor rules are the structural enforcement.
 
 ## THE QUALITY STANDARD (Non-Negotiable)
 

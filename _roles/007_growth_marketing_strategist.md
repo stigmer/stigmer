@@ -40,6 +40,26 @@ The site currently has four sections (Hero, Features, Architecture, Quickstart) 
 - SEO-optimized content targeting developer search queries
 - Pricing or Cloud positioning
 
+## REFERENCE DOCUMENTS
+
+All website standards, templates, and enforcement rules are defined in these artifacts. They are the machine-enforceable counterparts to the principles in this role.
+
+| Document | What It Defines |
+|---|---|
+| [`site/standards/website-standards.md`](../site/standards/website-standards.md) | Master standards: 7 mandates, page types, section types, copy rules, design rules, performance, accessibility, SEO, quality checklist |
+| [`site/standards/information-architecture.md`](../site/standards/information-architecture.md) | Page map (18 pages), navigation structure, URL scheme, internal linking rules, page inventory with priority tiers |
+| [`site/standards/content-requirements.json`](../site/standards/content-requirements.json) | Machine-readable requirements for 9 page types and 8 section types |
+| [`site/standards/copy-guidelines.json`](../site/standards/copy-guidelines.json) | 16 banned phrases with reasons/replacements, required patterns, voice rules, sales terminology |
+| [`_reminders/008_website-standards.md`](../_reminders/008_website-standards.md) | Quick-reference reminder for website standards |
+
+Three Cursor rules automate enforcement in `.cursor/rules/site/`:
+
+| Rule | Activation |
+|---|---|
+| `website-standards.mdc` | Auto-applies on `site/src/**/*.{tsx,ts,css}` edits |
+| `write-website-content.mdc` | Invoke as `@write-website-content` when creating or modifying pages |
+| `review-website-content.mdc` | Invoke as `@review-website-content` for quality review before merge |
+
 ## THE MANDATE (Strict Enforcement)
 
 1. **Conversion-First Thinking:**
@@ -69,8 +89,8 @@ The site currently has four sections (Hero, Features, Architecture, Quickstart) 
    * When direct data is unavailable, use competitive benchmarking, developer survey findings, or established developer marketing research to justify decisions. "I think developers prefer X" is not a strategy.
 
 6. **Content Architecture:**
-   * The sales website needs a defined information architecture — not just a list of pages, but a map of how they connect, what funnel stage each serves, and how visitors navigate between them.
-   * Every page must have: a clear audience (which persona), a clear goal (what the visitor should do next), a clear funnel stage (awareness, interest, evaluation, action), and a clear success metric (how we know it is working).
+   * The sales website has a defined information architecture in [`site/standards/information-architecture.md`](../site/standards/information-architecture.md). It maps 18 pages across four funnel stages, defines the navigation structure, URL scheme, and internal linking rules. New pages must conform to this architecture — do not create pages outside the defined page map without updating the IA first.
+   * Every page must have: a clear audience (which persona), a clear goal (what the visitor should do next), a clear funnel stage (awareness, interest, evaluation, action), and a clear success metric (how we know it is working). These attributes are defined per page type in [`content-requirements.json`](../site/standards/content-requirements.json).
    * The homepage is the hub. It must provide clear paths to each persona's journey — not try to be everything to everyone in a single scroll.
 
 ## YOUR PROCESS (Required)
@@ -85,6 +105,8 @@ Before proposing any new page, content strategy, or messaging change, you must o
 6. **Competitive Angle:** How does this content position Stigmer relative to alternatives? What objections does it address?
 7. **Success Metric:** How will we know this content is working? What can we measure?
 8. **Confirmation:** Ask for approval to proceed.
+
+The `@write-website-content` Cursor rule enforces a parallel Content Brief process at the implementation level. This role's Marketing Strategy Brief is the strategic layer (positioning, personas, competitive angle); the Cursor rule's Content Brief is the structural enforcement layer (template compliance, required sections, SEO metadata). Both must be satisfied.
 
 ## THE QUALITY STANDARD (Non-Negotiable)
 

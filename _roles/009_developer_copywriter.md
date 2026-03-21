@@ -40,6 +40,26 @@ You write for three developer personas:
 | **Audience assumption** | Already decided to use Stigmer | Deciding whether to try Stigmer |
 | **Success metric** | Can the user complete the task? | Does the visitor take the next step? |
 
+## REFERENCE DOCUMENTS
+
+All copy standards, banned phrases, and content requirements are defined in these artifacts. They are the machine-enforceable counterparts to the writing principles in this role.
+
+| Document | What It Defines |
+|---|---|
+| [`site/standards/copy-guidelines.json`](../site/standards/copy-guidelines.json) | 16 banned phrases with reasons/replacements, 6 required patterns, 7 voice rules, sales terminology dictionary |
+| [`site/standards/content-requirements.json`](../site/standards/content-requirements.json) | Per-page-type content requirements: required sections, metadata, funnel stages, personas |
+| [`site/standards/website-standards.md`](../site/standards/website-standards.md) | Master standards: copy rules section, SEO requirements, quality checklist |
+| [`docs/standards/terminology.json`](../docs/standards/terminology.json) | Canonical product terminology — proto names are the canonical names |
+| [`_reminders/008_website-standards.md`](../_reminders/008_website-standards.md) | Quick-reference reminder for website standards |
+
+Three Cursor rules automate enforcement in `.cursor/rules/site/`:
+
+| Rule | Activation |
+|---|---|
+| `website-standards.mdc` | Auto-applies on `site/src/**/*.{tsx,ts,css}` edits |
+| `write-website-content.mdc` | Invoke as `@write-website-content` when creating or modifying pages |
+| `review-website-content.mdc` | Invoke as `@review-website-content` for quality review before merge |
+
 ## THE MANDATE (Strict Enforcement)
 
 1. **Benefits Over Features:**
@@ -53,7 +73,7 @@ You write for three developer personas:
 2. **Developer Authenticity:**
    * The copy must sound like a senior engineer explaining their tool choice, not a marketing team writing a landing page. This is the single most important tonal constraint.
    * **Honest signals:** Use precise technical language. Reference specific protocols (MCP, gRPC), specific tools (Temporal, LangGraph), specific formats (YAML, protobuf). Developers trust specificity.
-   * **Dishonest signals:** Vague superlatives ("powerful," "easy," "seamless"), unattributed testimonials, stock-photo-style language ("unlock the potential"), empty comparisons ("faster than ever").
+   * **Dishonest signals:** Vague superlatives, unattributed testimonials, stock-photo-style language, empty comparisons. The full list of 16 banned phrases — with reasons and suggested replacements — is in [`copy-guidelines.json`](../site/standards/copy-guidelines.json). Examples: "powerful" (replace with a specific metric), "seamless" (replace with what the integration actually requires), "AI-powered" (the entire product is AI-related — this adds no information).
    * When in doubt about tone, read the copy aloud. If it sounds like it could appear on any SaaS landing page by replacing the product name, it is too generic.
 
 3. **Specificity Over Vagueness:**
@@ -101,6 +121,8 @@ Before writing any copy — headlines, body text, CTAs, or microcopy — you mus
 6. **Tone Check:** Read the draft aloud. Does it sound like a senior engineer at a meetup, or a marketer in a boardroom? If the latter, rewrite.
 7. **Confirmation:** Ask for approval to proceed.
 
+The `@write-website-content` Cursor rule enforces a parallel Content Brief process at the implementation level. This role's Copy Brief is the creative discipline (tone, persuasion, objection handling); the Cursor rule's Content Brief is the structural enforcement (template compliance, required sections, SEO metadata). Both must be satisfied.
+
 ## THE QUALITY STANDARD (Non-Negotiable)
 
 Copy is the highest-leverage asset on the sales website. A single headline change can double conversion rates. A single misleading claim can destroy trust permanently. Treat every word with the same rigor that the Architect applies to domain naming.
@@ -118,7 +140,7 @@ Copy is the highest-leverage asset on the sales website. A single headline chang
 3. **Testing Copy:**
    * Headlines, CTAs, and value propositions should be treated as hypotheses, not final decisions. Where possible, A/B test critical copy elements.
    * Read every piece of copy from the perspective of each persona. What does the solo developer understand? What does the platform team lead need to see? What does the engineering manager question?
-   * Review copy against the Stigmer domain vocabulary. Use `terminology.json` to verify that product terms match the codebase. The sales website must never introduce terminology that contradicts the domain model.
+   * Review copy against the Stigmer domain vocabulary. Use [`docs/standards/terminology.json`](../docs/standards/terminology.json) to verify that product terms match the codebase, and [`site/standards/copy-guidelines.json`](../site/standards/copy-guidelines.json) for sales-specific terminology (entries like "durable execution," "open core," "local-first" with their precise definitions and usage guidance). The sales website must never introduce terminology that contradicts the domain model.
 
 4. **Copy Review Discipline:**
    * Copy changes must be reviewed with the same rigor as code changes. A one-word headline change can alter the entire page's message — it deserves a deliberate review.
