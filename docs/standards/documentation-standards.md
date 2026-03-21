@@ -10,6 +10,44 @@ For the navigation hierarchy and URL scheme, see [`information-architecture.md`]
 
 ---
 
+## Audience & Purpose
+
+### Who the documentation is for
+
+**Primary audience**: Platform builders who want to embed Stigmer's AI agent execution into their products. They are technically skilled, new to Stigmer, evaluating alternatives, and time-constrained. Every page must serve their needs first.
+
+**Secondary audiences**: Individual developers exploring Stigmer for personal projects. Contributors to the OSS project who need to understand the architecture.
+
+The primary audience drives every structural and editorial decision. When in doubt, optimize for the platform builder.
+
+### What the documentation must accomplish
+
+Bridge the gap from **"What is this?"** to **"I have agents running in my platform."** Every page must move the reader closer to that outcome.
+
+### Organizing framework — Diataxis
+
+Stigmer documentation follows the [Diataxis framework](https://diataxis.fr/). Every document belongs to exactly one quadrant:
+
+| Quadrant | Reader need | Our content type | Directory |
+|---|---|---|---|
+| **Tutorials** | "Help me learn" (learning-oriented) | Quickstarts | `docs/quickstarts/` |
+| **How-to Guides** | "Help me solve a problem" (task-oriented) | Guides | `docs/guides/` |
+| **Reference** | "Give me the facts" (information-oriented) | CLI Reference, SDK Reference | `docs/cli/`, `docs/sdk/` |
+| **Explanation** | "Help me understand" (understanding-oriented) | Concepts | `docs/concepts/` |
+
+Content that mixes quadrants confuses the reader. A concept doc that drifts into step-by-step instructions is neither a good explanation nor a good guide.
+
+### Content validation
+
+Every factual claim must be validated against the current codebase. Stale documentation is worse than no documentation.
+
+- Proto definitions in `apis/ai/stigmer/` are the source of truth for domain concepts.
+- CLI examples must be tested — run every command, verify every output.
+- YAML examples must be valid and complete enough to use.
+- Do not trust legacy documentation or AI-generated content without verification.
+
+---
+
 ## Mandate
 
 These five rules are non-negotiable. They apply to every document in `docs/`.
@@ -217,9 +255,9 @@ Quickstart and how-to guide code blocks must be runnable end-to-end. If an examp
 
 ## Diagrams
 
-- Use **Mermaid** for flowcharts, sequence diagrams, and architecture diagrams. Mermaid renders natively in Fumadocs.
-- Use **ASCII art** only for simple inline diagrams (resource hierarchies, pipelines) that do not benefit from Mermaid rendering.
-- Every diagram must have a text description or surrounding context that conveys the same information. Diagrams supplement text; they do not replace it.
+- Use **Mermaid** fenced code blocks for all diagrams — flowcharts, sequence diagrams, architecture diagrams, resource hierarchies, and pipelines. Mermaid renders natively in Fumadocs.
+- Never use `text` code blocks for visual structures like resource trees, architecture flows, or pipelines. If it has a visual structure, it belongs in a Mermaid diagram.
+- Every diagram must have surrounding text that conveys the same information. Diagrams supplement text; they do not replace it.
 
 ---
 
