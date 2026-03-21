@@ -1,5 +1,0 @@
-name: basic-agent-test
-runtime: go
-main: main.go
-version: 0.1.0
-description: Basic agent test for E2E testing

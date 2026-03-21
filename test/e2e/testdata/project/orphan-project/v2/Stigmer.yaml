@@ -1,5 +1,0 @@
-name: orphan-project
-runtime: go
-main: main.go
-version: 0.2.0
-description: Project for testing orphan pruning - v2 (2 agents, 1 removed)

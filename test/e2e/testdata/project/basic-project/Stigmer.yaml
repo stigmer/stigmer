@@ -1,5 +1,0 @@
-name: basic-project
-runtime: go
-main: main.go
-version: 0.1.0
-description: Basic project with a single agent for E2E testing

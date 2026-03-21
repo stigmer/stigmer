@@ -1,5 +1,0 @@
-name: hitl-approval-test
-runtime: go
-main: main.go
-version: 0.1.0
-description: HITL approval flow test fixtures for E2E testing
