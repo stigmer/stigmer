@@ -1400,7 +1400,7 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────────
         _rm = getattr(output_data, "response_metadata", None)
         _rm_usage = _rm.get("usage") if isinstance(_rm, dict) else None
-        self.logger.info(
+        self.logger.debug(
             "[USAGE_DIAG] execution=%s run_id=%s "
             "output_data_type=%s "
             "has_usage_metadata=%s usage_metadata=%r "
@@ -1435,24 +1435,21 @@ class StatusBuilder:
         cache_read_tokens = 0
         model_name = ""
         
+        # Resolve usage_metadata from AIMessage attribute or raw dict.
+        usage: dict | None = None
         if hasattr(output_data, "usage_metadata") and output_data.usage_metadata:
             usage = output_data.usage_metadata
-            total_input_tokens = getattr(usage, "input_tokens", 0) or 0
-            output_tokens = getattr(usage, "output_tokens", 0) or 0
-            details = getattr(usage, "input_token_details", None)
-            if details is not None:
-                if isinstance(details, dict):
-                    cache_creation_tokens = details.get("cache_creation", 0) or 0
-                    cache_read_tokens = details.get("cache_read", 0) or 0
-                else:
-                    cache_creation_tokens = getattr(details, "cache_creation", 0) or 0
-                    cache_read_tokens = getattr(details, "cache_read", 0) or 0
         elif isinstance(output_data, dict):
-            usage = output_data.get("usage_metadata") or output_data.get("usage", {})
-            if usage:
-                total_input_tokens = usage.get("input_tokens", 0) or usage.get("prompt_tokens", 0) or 0
-                output_tokens = usage.get("output_tokens", 0) or usage.get("completion_tokens", 0) or 0
-                details = usage.get("input_token_details") or {}
+            usage = output_data.get("usage_metadata") or output_data.get("usage")
+
+        # UsageMetadata is a TypedDict (plain dict at runtime) in all
+        # langchain-core versions.  Use dict .get() for key access;
+        # getattr() silently returns the default on dicts.
+        if usage and isinstance(usage, dict):
+            total_input_tokens = usage.get("input_tokens", 0) or usage.get("prompt_tokens", 0) or 0
+            output_tokens = usage.get("output_tokens", 0) or usage.get("completion_tokens", 0) or 0
+            details = usage.get("input_token_details") or {}
+            if isinstance(details, dict):
                 cache_creation_tokens = details.get("cache_creation", 0) or 0
                 cache_read_tokens = details.get("cache_read", 0) or 0
         

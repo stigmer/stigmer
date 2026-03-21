@@ -184,10 +184,12 @@ class TestChatModelEndEvent:
         
         # Now process the end event with usage metadata
         output = MagicMock()
-        output.usage_metadata = MagicMock(input_token_details=None)
-        output.usage_metadata.input_tokens = 100
-        output.usage_metadata.output_tokens = 50
-        output.usage_metadata.total_tokens = 150
+        output.usage_metadata = {
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "total_tokens": 150,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output.response_metadata = {"model": "claude-3-opus"}
         
         end_event = {
@@ -283,10 +285,12 @@ class TestChatModelEndEvent:
         })
         
         output1 = MagicMock()
-        output1.usage_metadata = MagicMock(input_token_details=None)
-        output1.usage_metadata.input_tokens = 100
-        output1.usage_metadata.output_tokens = 50
-        output1.usage_metadata.total_tokens = 150
+        output1.usage_metadata = {
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "total_tokens": 150,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output1.response_metadata = {}
         
         await status_builder.process_event({
@@ -305,10 +309,12 @@ class TestChatModelEndEvent:
         })
         
         output2 = MagicMock()
-        output2.usage_metadata = MagicMock(input_token_details=None)
-        output2.usage_metadata.input_tokens = 200
-        output2.usage_metadata.output_tokens = 100
-        output2.usage_metadata.total_tokens = 300
+        output2.usage_metadata = {
+            "input_tokens": 200,
+            "output_tokens": 100,
+            "total_tokens": 300,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output2.response_metadata = {}
         
         await status_builder.process_event({
@@ -326,10 +332,12 @@ class TestChatModelEndEvent:
         """Test that on_chat_model_end handles missing AI message."""
         # Process end event without any prior stream event
         output = MagicMock()
-        output.usage_metadata = MagicMock(input_token_details=None)
-        output.usage_metadata.input_tokens = 100
-        output.usage_metadata.output_tokens = 50
-        output.usage_metadata.total_tokens = 150
+        output.usage_metadata = {
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "total_tokens": 150,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         
         end_event = {
             "event": "on_chat_model_end",
@@ -401,10 +409,12 @@ class TestEventRouting:
         
         # Verify on_chat_model_end is handled
         output = MagicMock()
-        output.usage_metadata = MagicMock(input_token_details=None)
-        output.usage_metadata.input_tokens = 10
-        output.usage_metadata.output_tokens = 5
-        output.usage_metadata.total_tokens = 15
+        output.usage_metadata = {
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "total_tokens": 15,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output.response_metadata = {}
         
         await status_builder.process_event({
@@ -523,10 +533,12 @@ class TestAgentMessageStreamingFields:
         
         # End event should finalize to is_streaming=False
         output = MagicMock()
-        output.usage_metadata = MagicMock(input_token_details=None)
-        output.usage_metadata.input_tokens = 100
-        output.usage_metadata.output_tokens = 50
-        output.usage_metadata.total_tokens = 150
+        output.usage_metadata = {
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "total_tokens": 150,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output.response_metadata = {}
         
         await status_builder.process_event({
@@ -552,10 +564,12 @@ class TestAgentMessageStreamingFields:
         
         # End event with usage metadata
         output = MagicMock()
-        output.usage_metadata = MagicMock(input_token_details=None)
-        output.usage_metadata.input_tokens = 100  # prompt tokens
-        output.usage_metadata.output_tokens = 50   # completion tokens
-        output.usage_metadata.total_tokens = 150
+        output.usage_metadata = {
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "total_tokens": 150,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output.response_metadata = {}
         
         await status_builder.process_event({
@@ -586,10 +600,12 @@ class TestAgentMessageStreamingFields:
         
         # End event
         output = MagicMock()
-        output.usage_metadata = MagicMock(input_token_details=None)
-        output.usage_metadata.input_tokens = 10
-        output.usage_metadata.output_tokens = 5
-        output.usage_metadata.total_tokens = 15
+        output.usage_metadata = {
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "total_tokens": 15,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output.response_metadata = {}
         
         await status_builder.process_event({
@@ -1590,10 +1606,12 @@ class TestSubAgentInternals:
         
         # Finalize AI message
         output = MagicMock()
-        output.usage_metadata = MagicMock(input_token_details=None)
-        output.usage_metadata.input_tokens = 50
-        output.usage_metadata.output_tokens = 25
-        output.usage_metadata.total_tokens = 75
+        output.usage_metadata = {
+            "input_tokens": 50,
+            "output_tokens": 25,
+            "total_tokens": 75,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output.response_metadata = {"model": "claude-3"}
         
         await status_builder.process_event({
@@ -2952,10 +2970,12 @@ class TestUsageMetrics:
         
         # End with usage metadata
         output = MagicMock()
-        output.usage_metadata = MagicMock(input_token_details=None)
-        output.usage_metadata.input_tokens = 100
-        output.usage_metadata.output_tokens = 50
-        output.usage_metadata.total_tokens = 150
+        output.usage_metadata = {
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "total_tokens": 150,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output.response_metadata = {"model": "claude-sonnet-4"}
         
         await status_builder.process_event({
@@ -2987,10 +3007,12 @@ class TestUsageMetrics:
             
             # End message
             output = MagicMock()
-            output.usage_metadata = MagicMock(input_token_details=None)
-            output.usage_metadata.input_tokens = 10
-            output.usage_metadata.output_tokens = 5
-            output.usage_metadata.total_tokens = 15
+            output.usage_metadata = {
+                "input_tokens": 10,
+                "output_tokens": 5,
+                "total_tokens": 15,
+                "input_token_details": {"cache_creation": 0, "cache_read": 0},
+            }
             output.response_metadata = {}
             
             await status_builder.process_event({
@@ -3015,10 +3037,12 @@ class TestUsageMetrics:
         })
         
         output = MagicMock()
-        output.usage_metadata = MagicMock(input_token_details=None)
-        output.usage_metadata.input_tokens = 10
-        output.usage_metadata.output_tokens = 5
-        output.usage_metadata.total_tokens = 15
+        output.usage_metadata = {
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "total_tokens": 15,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output.response_metadata = {"model": "claude-sonnet-4"}
         
         await status_builder.process_event({
@@ -3042,10 +3066,12 @@ class TestUsageMetrics:
         })
         
         output1 = MagicMock()
-        output1.usage_metadata = MagicMock(input_token_details=None)
-        output1.usage_metadata.input_tokens = 10
-        output1.usage_metadata.output_tokens = 5
-        output1.usage_metadata.total_tokens = 15
+        output1.usage_metadata = {
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "total_tokens": 15,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output1.response_metadata = {"model": "claude-sonnet-4"}
         
         await status_builder.process_event({
@@ -3064,11 +3090,13 @@ class TestUsageMetrics:
         })
         
         output2 = MagicMock()
-        output2.usage_metadata = MagicMock(input_token_details=None)
-        output2.usage_metadata.input_tokens = 20
-        output2.usage_metadata.output_tokens = 10
-        output2.usage_metadata.total_tokens = 30
-        output2.response_metadata = {"model": "gpt-4o"}  # Different model
+        output2.usage_metadata = {
+            "input_tokens": 20,
+            "output_tokens": 10,
+            "total_tokens": 30,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
+        output2.response_metadata = {"model": "gpt-4o"}
         
         await status_builder.process_event({
             "event": "on_chat_model_end",
@@ -3092,10 +3120,12 @@ class TestUsageMetrics:
         })
         
         output1 = MagicMock()
-        output1.usage_metadata = MagicMock(input_token_details=None)
-        output1.usage_metadata.input_tokens = 100
-        output1.usage_metadata.output_tokens = 50
-        output1.usage_metadata.total_tokens = 150
+        output1.usage_metadata = {
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "total_tokens": 150,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output1.response_metadata = {}
         
         await status_builder.process_event({
@@ -3114,10 +3144,12 @@ class TestUsageMetrics:
         })
         
         output2 = MagicMock()
-        output2.usage_metadata = MagicMock(input_token_details=None)
-        output2.usage_metadata.input_tokens = 200
-        output2.usage_metadata.output_tokens = 100
-        output2.usage_metadata.total_tokens = 300
+        output2.usage_metadata = {
+            "input_tokens": 200,
+            "output_tokens": 100,
+            "total_tokens": 300,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output2.response_metadata = {}
         
         await status_builder.process_event({
@@ -3144,10 +3176,12 @@ class TestUsageMetrics:
         })
         
         output = MagicMock()
-        output.usage_metadata = MagicMock(input_token_details=None)
-        output.usage_metadata.input_tokens = 123
-        output.usage_metadata.output_tokens = 456
-        output.usage_metadata.total_tokens = 579
+        output.usage_metadata = {
+            "input_tokens": 123,
+            "output_tokens": 456,
+            "total_tokens": 579,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output.response_metadata = {}
         
         await status_builder.process_event({
@@ -3190,10 +3224,12 @@ class TestUsageMetrics:
         
         # Sub-agent message end
         output = MagicMock()
-        output.usage_metadata = MagicMock(input_token_details=None)
-        output.usage_metadata.input_tokens = 200
-        output.usage_metadata.output_tokens = 100
-        output.usage_metadata.total_tokens = 300
+        output.usage_metadata = {
+            "input_tokens": 200,
+            "output_tokens": 100,
+            "total_tokens": 300,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output.response_metadata = {"model": "claude-haiku"}
         
         await status_builder.process_event({
@@ -3226,10 +3262,12 @@ class TestUsageMetrics:
         })
         
         output_main = MagicMock()
-        output_main.usage_metadata = MagicMock(input_token_details=None)
-        output_main.usage_metadata.input_tokens = 100
-        output_main.usage_metadata.output_tokens = 50
-        output_main.usage_metadata.total_tokens = 150
+        output_main.usage_metadata = {
+            "input_tokens": 100,
+            "output_tokens": 50,
+            "total_tokens": 150,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output_main.response_metadata = {"model": "claude-sonnet-4"}
         
         await status_builder.process_event({
@@ -3257,10 +3295,12 @@ class TestUsageMetrics:
         })
         
         output_sub = MagicMock()
-        output_sub.usage_metadata = MagicMock(input_token_details=None)
-        output_sub.usage_metadata.input_tokens = 500
-        output_sub.usage_metadata.output_tokens = 250
-        output_sub.usage_metadata.total_tokens = 750
+        output_sub.usage_metadata = {
+            "input_tokens": 500,
+            "output_tokens": 250,
+            "total_tokens": 750,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output_sub.response_metadata = {"model": "claude-haiku"}
         
         await status_builder.process_event({
@@ -3314,10 +3354,12 @@ class TestUsageMetrics:
         })
         
         output = MagicMock()
-        output.usage_metadata = MagicMock(input_token_details=None)
-        output.usage_metadata.input_tokens = 50
-        output.usage_metadata.output_tokens = 25
-        output.usage_metadata.total_tokens = 75
+        output.usage_metadata = {
+            "input_tokens": 50,
+            "output_tokens": 25,
+            "total_tokens": 75,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output.response_metadata = {}  # No model name
         
         await status_builder.process_event({
@@ -6155,10 +6197,12 @@ class TestLLMStreamIsolation:
     @staticmethod
     def _end_event(run_id: str = "", namespace: str = ""):
         output = MagicMock()
-        output.usage_metadata = MagicMock(input_token_details=None)
-        output.usage_metadata.input_tokens = 10
-        output.usage_metadata.output_tokens = 5
-        output.usage_metadata.total_tokens = 15
+        output.usage_metadata = {
+            "input_tokens": 10,
+            "output_tokens": 5,
+            "total_tokens": 15,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output.response_metadata = {}
         event: dict[str, Any] = {
             "event": "on_chat_model_end",
@@ -7143,10 +7187,12 @@ class TestTurnBoundaryAndUsageTracking:
 
         # Simulate on_chat_model_end with usage metadata
         output = MagicMock()
-        output.usage_metadata = MagicMock()
-        output.usage_metadata.input_tokens = 1500
-        output.usage_metadata.output_tokens = 300
-        output.usage_metadata.input_token_details = None
+        output.usage_metadata = {
+            "input_tokens": 1500,
+            "output_tokens": 300,
+            "total_tokens": 1800,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output.response_metadata = {"model": "claude-sonnet-4-20250514"}
         output.content = [{"type": "thinking", "thinking": "Let me read the file..."}]
 
@@ -7189,10 +7235,12 @@ class TestTurnBoundaryAndUsageTracking:
 
         # Finalize turn 1
         output_1 = MagicMock()
-        output_1.usage_metadata = MagicMock()
-        output_1.usage_metadata.input_tokens = 1000
-        output_1.usage_metadata.output_tokens = 100
-        output_1.usage_metadata.input_token_details = None
+        output_1.usage_metadata = {
+            "input_tokens": 1000,
+            "output_tokens": 100,
+            "total_tokens": 1100,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output_1.response_metadata = {"model": "claude-sonnet-4-20250514"}
         output_1.content = ""
         await status_builder.process_event({
@@ -7306,10 +7354,12 @@ class TestTurnBoundaryAndUsageTracking:
 
         # Finalize turn 1
         output_1 = MagicMock()
-        output_1.usage_metadata = MagicMock()
-        output_1.usage_metadata.input_tokens = 800
-        output_1.usage_metadata.output_tokens = 50
-        output_1.usage_metadata.input_token_details = None
+        output_1.usage_metadata = {
+            "input_tokens": 800,
+            "output_tokens": 50,
+            "total_tokens": 850,
+            "input_token_details": {"cache_creation": 0, "cache_read": 0},
+        }
         output_1.response_metadata = {"model": "claude-sonnet-4-20250514"}
         output_1.content = ""
         await status_builder.process_event({
