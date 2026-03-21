@@ -13,9 +13,20 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: In progress — Phases 0, 1, 2 complete, ready for Phase 3
-- **Last Session**: 2026-03-21 (Session 4) — Completed Phase 2: Docs Home Page
-- **Active Task**: Phase 3 — Top 5 Concepts from protos
+- **Status**: In progress — Phases 0–3 complete, ready for Phase 4
+- **Last Session**: 2026-03-21 (Session 5) — Completed Phase 3: Top 5 Concept Docs from Protos
+- **Active Task**: Phase 4 — Validated CLI Quickstart
+
+## Session Progress (2026-03-21, Session 5)
+
+- Completed all Phase 3 deliverables (Top 5 Concept Docs from Protos):
+  - Created `docs/concepts/` directory with `meta.json` and `index.mdx` section landing page
+  - Wrote 5 concept docs from proto ground truth: what-is-stigmer, agent, agent-execution, session, workflow
+  - Each doc follows `docs/standards/templates/concept.mdx`, includes Mermaid diagrams, YAML/CLI examples, and links proto definitions
+  - Updated `docs/meta.json` to add concepts to sidebar
+  - Updated `docs/index.mdx` Concepts card to link to new section (removed "Coming soon")
+- Build verification: `yarn build` passes cleanly — 13 static pages generated including all 5 concept routes
+- Key decision: Runtime resources (AgentExecution, Session) use CLI examples rather than YAML since they aren't authored as files
 
 ## Session Progress (2026-03-21, Session 4)
 
@@ -46,17 +57,13 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Start Phase 3: Top 5 Concepts from protos**
-   - Read proto definitions for each concept from `apis/ai/stigmer/`
-   - Read per-resource `docs/` directories alongside proto files
-   - Write concept docs following `docs/standards/templates/concept.mdx`
-   - Top 5 in priority order: What is Stigmer?, Agent, AgentExecution, Session, Workflow
-   - Proto source: `apis/ai/stigmer/agentic/` domain
-   - Use Mermaid for diagrams
-   - Create `docs/concepts/` directory with `meta.json` and 5 MDX files
+1. **Start Phase 4: Validated CLI Quickstart**
+   - Write a quickstart guide with commands tested against the real CLI implementation
+   - Cover: install, configure, create agent, run agent, check execution status
+   - Every command must be verified against `stigmer` CLI
+   - Create `docs/quickstarts/` directory with meta.json and quickstart MDX
 
-2. **Phase 4**: Validated CLI Quickstart (after Phase 3)
-3. **Phase 5**: Verification (after Phase 4)
+2. **Phase 5**: Verification (lint, build, link check, visual review)
 
 ## Context for Resume
 
@@ -64,8 +71,11 @@ Drop this file into your conversation to quickly resume work on this project.
 - Phase 1 established the visual foundation (clean slate, typography, Mermaid)
 - Session 3 strengthened enforcement — `.cursor/rules/docs/documentation-standards.mdc` now auto-applies full audience context, Diataxis framework, Doc Blueprint process, and quality checklist when any `docs/**` file is touched
 - Phase 2 built the docs home page — hero copy, SDK icons (Go, Java, Python, React, TypeScript), six section cards
+- Phase 3 created 5 concept docs in `docs/concepts/` — each anchored to proto definitions from `apis/ai/stigmer/agentic/`
+- Container analogy (Agent=Docker image, AgentInstance=config, Session=terminal, AgentExecution=docker run) is the core framing across all concept docs
+- The `agent_call` task type is the key connection between Agent and Workflow execution models
 - The LanguageIcons component is a server component (no 'use client') using inline SVGs — no external dependencies
-- The Fumadocs Card/Cards components are already registered and used on the home page
+- The Fumadocs Card/Cards components are already registered and used on the home page and concepts landing
 - The approved plan is at `_projects/2026-03/20260321.03.docs-content-migration/tasks/T01_2_revised_plan.md`
 - Mermaid is fully wired — ` ```mermaid` code blocks in MDX render automatically as diagrams
 - Typography is scoped to `#nd-page .prose` — marketing site is unaffected
@@ -76,11 +86,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-03/20260321.03.docs-content-migration/checkpoints/2026-03-21-session-4.md
+_projects/2026-03/20260321.03.docs-content-migration/checkpoints/2026-03-21-session-5.md
 ```
 
 ### 2. Previous Checkpoints
 ```
+_projects/2026-03/20260321.03.docs-content-migration/checkpoints/2026-03-21-session-4.md
 _projects/2026-03/20260321.03.docs-content-migration/checkpoints/2026-03-21-session-3.md
 _projects/2026-03/20260321.03.docs-content-migration/checkpoints/2026-03-21-session-2.md
 _projects/2026-03/20260321.03.docs-content-migration/checkpoints/2026-03-21-session-1.md
@@ -112,14 +123,14 @@ _projects/2026-03/20260321.03.docs-content-migration/tasks/T01_2_revised_plan.md
 | **0. Audience & Purpose** | New reminder (007), update standards/role/rules with platform builder focus + Diataxis framework | **Complete** |
 | **1. Clean Slate + Visual Foundation** | Delete ~119 stale files, fix typography CSS, set up Mermaid | **Complete** |
 | **2. Home Page** | SDK icons (Go, Java, Python, React, TS), better copy, "Home" sidebar label | **Complete** |
-| **3. Top 5 Concepts** | Rebuild from protos: Stigmer, Agent, AgentExecution, Session, Workflow | Next |
-| **4. Quickstart** | Validated CLI quickstart — every command tested against real implementation | Pending |
+| **3. Top 5 Concepts** | Rebuild from protos: Stigmer, Agent, AgentExecution, Session, Workflow | **Complete** |
+| **4. Quickstart** | Validated CLI quickstart — every command tested against real implementation | Next |
 | **5. Verification** | Lint, build, link check, visual review | Pending |
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 3" — Begin top 5 concept docs from protos
+- "Start Phase 4" — Begin validated CLI quickstart
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 
