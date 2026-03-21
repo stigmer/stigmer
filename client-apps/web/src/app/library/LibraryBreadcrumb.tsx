@@ -38,7 +38,7 @@ export function LibraryBreadcrumb() {
 
           return (
             <li key={segment} className="flex items-center gap-1.5">
-              <span className="text-muted-foreground/60" aria-hidden="true">/</span>
+              <span className="text-muted-foreground-subtle" aria-hidden="true">/</span>
               {isLast ? (
                 <span className="text-foreground font-medium" aria-current="page">
                   {label}

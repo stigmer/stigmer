@@ -77,13 +77,10 @@ export default function SessionPage() {
 
   const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
   const [resolution, setResolution] = useState<AgentResolution | null>(null);
-  const agentInitDone = useRef(false);
+  const [agentInitDone, setAgentInitDone] = useState(false);
 
-  useEffect(() => {
-    if (agentInitDone.current || !derivedAgentRef || !sessionInstanceId) return;
-    if (isDefaultAgentLoading) return;
-
-    agentInitDone.current = true;
+  if (!agentInitDone && derivedAgentRef && sessionInstanceId && !isDefaultAgentLoading) {
+    setAgentInitDone(true);
 
     const isDefault =
       defaultAgent &&
@@ -94,7 +91,7 @@ export default function SessionPage() {
       setAgentRef(derivedAgentRef);
       setResolution({ mode: "saved", instanceId: sessionInstanceId });
     }
-  }, [derivedAgentRef, sessionInstanceId, defaultAgent, isDefaultAgentLoading]);
+  }
 
   useEffect(() => {
     if (!conv.session || initialSyncDone.current) return;
@@ -238,21 +235,21 @@ function SessionSkeleton() {
   return (
     <div className="flex h-full flex-col gap-4 p-4" aria-busy="true">
       <div className="animate-pulse space-y-4">
-        <div className="rounded-lg bg-muted/50 px-4 py-3">
+        <div className="rounded-lg bg-muted-subtle px-4 py-3">
           <div className="h-4 w-3/5 rounded bg-muted" />
         </div>
 
         <div className="space-y-2 px-4">
-          <div className="h-4 w-4/5 rounded bg-muted/60" />
-          <div className="h-4 w-3/5 rounded bg-muted/60" />
-          <div className="h-4 w-2/5 rounded bg-muted/60" />
+          <div className="h-4 w-4/5 rounded bg-muted" />
+          <div className="h-4 w-3/5 rounded bg-muted" />
+          <div className="h-4 w-2/5 rounded bg-muted" />
         </div>
 
-        <div className="mx-4 h-8 w-2/5 rounded-md border border-border bg-muted/30" />
+        <div className="mx-4 h-8 w-2/5 rounded-md border border-border bg-muted-subtle" />
 
         <div className="space-y-2 px-4">
-          <div className="h-4 w-3/4 rounded bg-muted/60" />
-          <div className="h-4 w-1/2 rounded bg-muted/60" />
+          <div className="h-4 w-3/4 rounded bg-muted" />
+          <div className="h-4 w-1/2 rounded bg-muted" />
         </div>
       </div>
     </div>
@@ -263,7 +260,7 @@ function SessionError({ error }: { error: Error }) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6 text-center">
-        <div className="bg-destructive/10 mx-auto flex size-12 items-center justify-center rounded-full">
+        <div className="bg-destructive-subtle mx-auto flex size-12 items-center justify-center rounded-full">
           <AlertTriangle className="text-destructive size-6" />
         </div>
         <div className="space-y-2">

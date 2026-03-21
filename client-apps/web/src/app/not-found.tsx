@@ -19,7 +19,7 @@ export default function NotFound() {
 
         <Link
           href="/"
-          className="bg-primary text-primary-foreground hover:bg-primary/80 inline-flex h-8 items-center justify-center rounded-lg px-2.5 text-sm font-medium transition-colors"
+          className="bg-primary text-primary-foreground hover:bg-primary-hover inline-flex h-8 items-center justify-center rounded-lg px-2.5 text-sm font-medium transition-colors"
         >
           Go to Dashboard
         </Link>

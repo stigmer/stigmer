@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   useGitHubConnection,
   GITHUB_CALLBACK_MESSAGE_TYPE,
 } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
+import { Button } from "@/components/ui/button";
 
 /**
  * Whether this page is running inside a popup window opened by the
@@ -69,7 +70,7 @@ export default function GitHubCallbackPage() {
   const [error, setError] = useState<string | null>(
     missingParams ? "Missing authorization code or state parameter" : null,
   );
-  const [exchanged, setExchanged] = useState(false);
+  const exchangedRef = useRef(false);
   const [isPopup] = useState(isPopupWindow);
 
   const handleSuccess = useCallback(() => {
@@ -89,8 +90,8 @@ export default function GitHubCallbackPage() {
   }, []);
 
   useEffect(() => {
-    if (missingParams || exchanged || !org || isLoading) return;
-    setExchanged(true);
+    if (missingParams || exchangedRef.current || !org || isLoading) return;
+    exchangedRef.current = true;
 
     const redirectUri = `${window.location.origin}/auth/github/callback`;
 
@@ -101,7 +102,6 @@ export default function GitHubCallbackPage() {
     code,
     state,
     missingParams,
-    exchanged,
     org,
     isLoading,
     handleCallback,
@@ -119,12 +119,9 @@ export default function GitHubCallbackPage() {
               You can close this window and try again.
             </p>
           ) : (
-            <button
-              onClick={() => router.replace("/")}
-              className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
-            >
+            <Button onClick={() => router.replace("/")}>
               Back to Home
-            </button>
+            </Button>
           )}
         </div>
       </div>
