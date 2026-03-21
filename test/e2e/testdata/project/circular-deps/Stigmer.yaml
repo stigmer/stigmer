@@ -1,5 +1,0 @@
-name: circular-deps-project
-runtime: go
-main: main.go
-version: 0.1.0
-description: Project with circular dependencies for error testing
