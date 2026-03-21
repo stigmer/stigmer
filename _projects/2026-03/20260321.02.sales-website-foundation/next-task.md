@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-21 15:20
-**Current Task**: Phase 5 (Component Standards) or Phase 8 (Lint Tooling) is next
-**Status**: In Progress — Phases 1-4, 6, and 7 Complete
+**Current Task**: Phase 8 (Lint Tooling) is next — the final phase
+**Status**: In Progress — Phases 1-7 Complete
 
 ## Session Progress (2026-03-21)
 
@@ -117,37 +117,46 @@ When starting a new session:
 - Updated `_roles/009_developer_copywriter.md` — added REFERENCE DOCUMENTS section (5 documents + 3 Cursor rules), strengthened mandate #2 to reference `copy-guidelines.json` for banned phrases, strengthened quality standard #3 to add `copy-guidelines.json` sales terminology, connected Copy Brief to `@write-website-content` rule
 - Numbering note: task plan originally called the reminder `007_website-standards.md` but 007 was already taken by `007_documentation-for-platform-builders.md`, so it became 008
 
+### Completed: Phase 5 — Component Standards
+- Created `site/standards/component-standards.md` — authoritative reference for marketing component naming, props, styling, animation, responsive, and accessibility requirements
+- **7 sections**: Component Taxonomy (atoms/molecules/organisms/pages with decision boundaries), Naming Conventions, Required Props Interface (`className`, `id`, `forwardRef`/`displayName`), Styling Rules (Tailwind-only, full token inventory, `cva` pattern), Animation Rules (variant catalog, transition presets, wrapper components, GPU-only, reduced motion), Responsive Requirements (mobile-first, 4 breakpoints, 44px touch targets), Accessibility Requirements (semantic HTML, ARIA, keyboard nav, contrast)
+- **30-item quality checklist** across structure, styling, animation, responsive, and accessibility
+- **Appendix: 12 inconsistencies** cataloged across 19 existing components (non-normative — existing code audited only when touched)
+- Every pattern in the document references the existing canonical implementation (e.g., `button.tsx` for `cva`, `motion.tsx` for animation wrappers)
+- Both forward-reference links in `website-standards.md` (lines 15 and 357) now resolve to the new file
+
 ### Key Observations
 - The forward-references in `website-standards.md` (lines 9-13) already pointed to the exact filenames created in Phase 3 — no edits to Phase 1 deliverables were needed.
 - Extended banned phrases from 12 to 16 by adding `leverage`, `best-of-breed`, `cutting-edge`, and `AI-powered` from reminder 006.
 - Added `enforced_by` annotations (`"lint"` or `"review"`) to copy guidelines to guide Phase 8 lint tooling scope.
 - Grouped all numerically-enforceable thresholds (performance, accessibility, SEO) into `performance-budget.json` as a single source of truth for measurable constraints.
+- Component audit found 12 issues (2 more than estimated): MDX components skip site patterns, CodeBlock `sm` uses non-standard font size as a separate issue from the arbitrary value violation.
+- The `layout/` directory (Header, Footer, MobileMenu) exists but is not mentioned in the taxonomy — it is acknowledged as-is rather than prescribed for reorganization.
 
 ## Next Steps
 
-1. **Phase 5: Component Standards** — `site/standards/component-standards.md`. Depends on design rules from Phase 1. Can be done any time.
+1. ~~**Phase 5: Component Standards**~~ — DONE. `site/standards/component-standards.md`.
 2. ~~**Phase 6: Cursor Rules**~~ — DONE. 3 rules in `.cursor/rules/site/`.
 3. ~~**Phase 7: Reminder and Role Updates**~~ — DONE. `_reminders/008_website-standards.md` + roles 007, 008, 009 updated.
-4. **Phase 8: Lint Tooling** — `site/scripts/lint-copy.ts`, `site/scripts/lint-pages.ts`, Makefile integration.
+4. **Phase 8: Lint Tooling** — `site/scripts/lint-copy.ts`, `site/scripts/lint-pages.ts`, Makefile integration. **This is the final phase.**
 
 ## Context for Resume
 
 - Branch: `feat/add-docs`
-- The `site/standards/` directory now has 5 files + a `templates/` subdirectory with 17 template files
-- Files: `website-standards.md`, `information-architecture.md`, `content-requirements.json`, `copy-guidelines.json`, `performance-budget.json`
+- The `site/standards/` directory now has **6 files** + a `templates/` subdirectory with 17 template files
+- Files: `website-standards.md`, `information-architecture.md`, `content-requirements.json`, `copy-guidelines.json`, `performance-budget.json`, `component-standards.md`
 - Templates: 8 section templates (`section-*.md`) + 9 page templates (`*.md`)
 - **Cursor rules**: `.cursor/rules/site/` has 3 rules: `website-standards.mdc` (auto-apply on `site/src/**`), `write-website-content.mdc` (action), `review-website-content.mdc` (action)
 - **Reminder**: `_reminders/008_website-standards.md` — quick-reference for website standards (parallel to 004 for docs)
 - **Roles updated**: 007, 008, 009 now have REFERENCE DOCUMENTS sections pointing to all standards artifacts and Cursor rules
 - The task plan (`tasks/T01_0_plan.md`) contains the full 8-phase breakdown with dependencies and success criteria
-- Phase 5 (Component Standards) can be done any time — it is standalone
-- Phase 8 (Lint Tooling) is the final phase
+- **All forward-reference links in `website-standards.md` now resolve to real files** — the standards document set is complete
+- Phase 8 (Lint Tooling) is the only remaining phase
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 5" - Begin Component Standards
-- "Start Phase 8" - Begin Lint Tooling
+- "Start Phase 8" - Begin Lint Tooling (final phase)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 
