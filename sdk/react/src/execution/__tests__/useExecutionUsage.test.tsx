@@ -34,6 +34,8 @@ function makeUsage(
     cacheCreationTokens: number;
     cacheReadTokens: number;
     toolResultCharsTruncated: bigint;
+    modelBreakdown: ReturnType<typeof makeModelUsage>[];
+    llmCalls: ReturnType<typeof makeLlmCall>[];
   }> = {},
 ) {
   return create(UsageMetricsSchema, overrides);

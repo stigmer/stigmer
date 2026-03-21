@@ -31,11 +31,11 @@ function createCapturingTransport(): {
     },
   } as unknown as Transport;
 
-  const originalUnary = (transport as Record<string, unknown>).unary as (
+  const originalUnary = (transport as unknown as Record<string, unknown>).unary as (
     ...args: unknown[]
   ) => Promise<unknown>;
 
-  (transport as Record<string, unknown>).unary = async (
+  (transport as unknown as Record<string, unknown>).unary = async (
     method: { name: string },
     signal: unknown,
     timeout: unknown,
