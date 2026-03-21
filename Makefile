@@ -78,7 +78,7 @@ tidy: ## Run go mod tidy on all Go modules
 
 # ─── Lint ─────────────────────────────────────
 
-.PHONY: lint web-build check
+.PHONY: lint libs-build web-build check
 lint: ## Run all linters and type checks
 	@for mod in $(GO_MODULES); do \
 		(cd $$mod && go vet ./...) || exit 1; \
@@ -91,10 +91,14 @@ lint: ## Run all linters and type checks
 		poetry run mypy grpc_client/ worker/ --show-error-codes
 	npm run lint -w client-apps/web
 
+libs-build: ## Build and test SDK/lib packages (matches CI npm-libs pipeline)
+	npm run build:libs
+	npm test
+
 web-build: ## Lint and build web console (matches CI)
 	npm run build -w client-apps/web
 
-check: protos tidy lint web-build build test ## Run full CI gate locally
+check: protos tidy lint libs-build web-build build test ## Run full CI gate locally
 
 # ─── Dependencies ─────────────────────────────
 
@@ -178,17 +182,20 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 		echo "error: tag $$NEW_TAG already exists" && exit 1; \
 	fi; \
 	echo "$$LATEST_TAG -> $$NEW_TAG"; \
-	git tag -a "apis/stubs/go/$$NEW_TAG" -m "Release apis/stubs/go $$NEW_TAG"; \
 	git tag -a "sdk/go/$$NEW_TAG" -m "Release sdk/go $$NEW_TAG"; \
-	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
 	git tag -a "mcp-server/$$NEW_TAG" -m "Release mcp-server $$NEW_TAG"; \
-	git push origin "apis/stubs/go/$$NEW_TAG" "sdk/go/$$NEW_TAG" "$$NEW_TAG" "mcp-server/$$NEW_TAG"
+	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
+	for t in "sdk/go/$$NEW_TAG" "mcp-server/$$NEW_TAG" "$$NEW_TAG"; do \
+		echo "  pushing $$t"; \
+		git push origin "$$t"; \
+	done
 	@echo ""
 	@echo "Tags pushed. CI will handle:"
 	@echo "  - CLI binaries + GitHub release  (release.cli.yaml)"
 	@echo "  - @stigmer/* npm packages        (release.npm-libs.yaml)"
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
 	@echo "  - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)"
+	@echo "  - MCP server binaries + Docker   (release.mcp-server.yaml)"
 
 protos-release: ## Publish protos to Buf, then tag release
 	$(MAKE) -C apis release

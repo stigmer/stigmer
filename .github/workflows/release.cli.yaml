@@ -381,14 +381,13 @@ jobs:
             
             # Check if tag already exists
             if git rev-parse "$VERSION" >/dev/null 2>&1; then
-              echo "Tag $VERSION already exists"
-              exit 1
+              echo "Tag $VERSION already exists, skipping tag creation"
+            else
+              # Create annotated tag
+              git tag -a "$VERSION" -m "Release $VERSION"
+              git push origin "$VERSION"
+              echo "Created and pushed tag: $VERSION"
             fi
-            
-            # Create annotated tag
-            git tag -a "$VERSION" -m "Release $VERSION"
-            git push origin "$VERSION"
-            echo "Created and pushed tag: $VERSION"
           fi
 
       - name: Download all artifacts
