@@ -7084,3 +7084,286 @@ class TestFinalizeUsage:
         assert first_snapshot.completion_tokens == second_snapshot.completion_tokens
         assert first_snapshot.total_duration_ms == second_snapshot.total_duration_ms
         assert len(first_snapshot.model_breakdown) == len(second_snapshot.model_breakdown)
+
+
+# =============================================================================
+# Tests for LLM Turn-Boundary Detection and Usage Tracking
+# =============================================================================
+
+
+class TestTurnBoundaryAndUsageTracking:
+    """Verify that thinking-only LLM turns (thinking + tool_use, no text)
+    correctly record usage metrics and that consecutive turns produce
+    separate parent AI messages.
+
+    These tests exercise fixes for two bugs:
+      1. _handle_chat_model_end could not find the empty parent AI message
+         for thinking-only turns, causing usage metrics to be lost.
+      2. _last_ai_message was not invalidated between LLM turns, causing
+         tool calls from consecutive thinking-only turns to pile up on
+         the same parent AI message.
+    """
+
+    @pytest.mark.asyncio
+    async def test_thinking_only_turn_records_usage(self, status_builder):
+        """When the LLM produces thinking + tool_use (no text),
+        on_chat_model_end must still find the parent AI message
+        and record token counts."""
+        llm_run_id = "llm-run-001"
+
+        # Thinking chunk
+        thinking_chunk = MagicMock()
+        thinking_chunk.content = [{"type": "thinking", "thinking": "Let me read the file..."}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": thinking_chunk},
+            "run_id": llm_run_id,
+            "metadata": {},
+        })
+
+        # tool_use chunk (early tool call creation)
+        tool_use_chunk = MagicMock()
+        tool_use_chunk.content = [{"type": "tool_use", "id": "tu-1", "name": "read", "input": {}}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": tool_use_chunk},
+            "run_id": llm_run_id,
+            "metadata": {},
+        })
+
+        # Verify the empty parent AI exists with the think + early tool call
+        assert len(status_builder.current_status.messages) == 1
+        parent_ai = status_builder.current_status.messages[0]
+        assert parent_ai.type == MessageType.MESSAGE_AI
+        assert parent_ai.content == ""
+        assert len(parent_ai.tool_calls) == 2  # think + read
+
+        # The empty parent must be registered in _llm_run_id_to_message
+        assert llm_run_id in status_builder._llm_run_id_to_message
+
+        # Simulate on_chat_model_end with usage metadata
+        output = MagicMock()
+        output.usage_metadata = MagicMock()
+        output.usage_metadata.input_tokens = 1500
+        output.usage_metadata.output_tokens = 300
+        output.usage_metadata.input_token_details = None
+        output.response_metadata = {"model": "claude-sonnet-4-20250514"}
+        output.content = [{"type": "thinking", "thinking": "Let me read the file..."}]
+
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output},
+            "run_id": llm_run_id,
+            "metadata": {},
+        })
+
+        # Usage must be recorded on the parent AI message
+        parent_ai = status_builder.current_status.messages[0]
+        assert parent_ai.token_count == 1800  # 1500 + 300
+        assert parent_ai.is_streaming is False
+
+    @pytest.mark.asyncio
+    async def test_consecutive_thinking_only_turns_get_separate_parents(self, status_builder):
+        """Two consecutive thinking-only LLM turns (different run_ids)
+        must produce separate parent AI messages, not pile up on one."""
+        # ── Turn 1: thinking + tool_use ──────────────────────────────────
+        run_id_1 = "llm-run-turn-1"
+
+        thinking_chunk_1 = MagicMock()
+        thinking_chunk_1.content = [{"type": "thinking", "thinking": "Analyzing request..."}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": thinking_chunk_1},
+            "run_id": run_id_1,
+            "metadata": {},
+        })
+
+        tool_use_chunk_1 = MagicMock()
+        tool_use_chunk_1.content = [{"type": "tool_use", "id": "tu-a", "name": "read", "input": {}}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": tool_use_chunk_1},
+            "run_id": run_id_1,
+            "metadata": {},
+        })
+
+        # Finalize turn 1
+        output_1 = MagicMock()
+        output_1.usage_metadata = MagicMock()
+        output_1.usage_metadata.input_tokens = 1000
+        output_1.usage_metadata.output_tokens = 100
+        output_1.usage_metadata.input_token_details = None
+        output_1.response_metadata = {"model": "claude-sonnet-4-20250514"}
+        output_1.content = ""
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output_1},
+            "run_id": run_id_1,
+            "metadata": {},
+        })
+
+        # After turn 1: one parent AI message with think + read
+        assert len(status_builder.current_status.messages) == 1
+        parent_1 = status_builder.current_status.messages[0]
+        assert len(parent_1.tool_calls) == 2
+
+        # ── Turn 2: thinking + tool_use (different run_id) ──────────────
+        run_id_2 = "llm-run-turn-2"
+
+        thinking_chunk_2 = MagicMock()
+        thinking_chunk_2.content = [{"type": "thinking", "thinking": "Now let me write..."}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": thinking_chunk_2},
+            "run_id": run_id_2,
+            "metadata": {},
+        })
+
+        tool_use_chunk_2 = MagicMock()
+        tool_use_chunk_2.content = [{"type": "tool_use", "id": "tu-b", "name": "write", "input": {}}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": tool_use_chunk_2},
+            "run_id": run_id_2,
+            "metadata": {},
+        })
+
+        # Turn 2 must have created a SEPARATE parent AI message
+        assert len(status_builder.current_status.messages) == 2
+        parent_2 = status_builder.current_status.messages[1]
+        assert parent_2.type == MessageType.MESSAGE_AI
+        assert parent_2.content == ""
+        assert len(parent_2.tool_calls) == 2  # think + write
+
+        # Turn 1's parent must be unchanged
+        parent_1 = status_builder.current_status.messages[0]
+        assert len(parent_1.tool_calls) == 2  # think + read (not 4)
+
+    @pytest.mark.asyncio
+    async def test_thinking_then_text_turn_preserves_existing_behavior(self, status_builder):
+        """A turn that starts with thinking then produces text (the common
+        case) must continue to work: thinking on the empty parent,
+        text on a new AI message."""
+        llm_run_id = "llm-run-mixed"
+
+        # Thinking chunk
+        thinking_chunk = MagicMock()
+        thinking_chunk.content = [{"type": "thinking", "thinking": "Deep thought"}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": thinking_chunk},
+            "run_id": llm_run_id,
+            "metadata": {},
+        })
+
+        # Text chunk (triggers thinking flush and new AI message)
+        text_chunk = MagicMock()
+        text_chunk.content = "Here is my answer."
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": text_chunk},
+            "run_id": llm_run_id,
+            "metadata": {},
+        })
+
+        # Two messages: empty parent (with think TC) + text message
+        assert len(status_builder.current_status.messages) == 2
+        parent = status_builder.current_status.messages[0]
+        assert parent.content == ""
+        assert len(parent.tool_calls) == 1
+        assert parent.tool_calls[0].name == "think"
+
+        text_msg = status_builder.current_status.messages[1]
+        assert text_msg.content == "Here is my answer."
+        assert len(text_msg.tool_calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_thinking_only_then_text_turn_separate_parents(self, status_builder):
+        """A thinking-only turn followed by a text turn (common agentic
+        loop: think+tool_use → tool execution → text response) must
+        produce two separate AI messages."""
+        run_id_1 = "llm-run-tools"
+        run_id_2 = "llm-run-response"
+
+        # ── Turn 1: thinking + tool_use (no text) ───────────────────────
+        thinking_chunk = MagicMock()
+        thinking_chunk.content = [{"type": "thinking", "thinking": "Reading file..."}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": thinking_chunk},
+            "run_id": run_id_1,
+            "metadata": {},
+        })
+
+        tool_use_chunk = MagicMock()
+        tool_use_chunk.content = [{"type": "tool_use", "id": "tu-x", "name": "read", "input": {}}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": tool_use_chunk},
+            "run_id": run_id_1,
+            "metadata": {},
+        })
+
+        # Finalize turn 1
+        output_1 = MagicMock()
+        output_1.usage_metadata = MagicMock()
+        output_1.usage_metadata.input_tokens = 800
+        output_1.usage_metadata.output_tokens = 50
+        output_1.usage_metadata.input_token_details = None
+        output_1.response_metadata = {"model": "claude-sonnet-4-20250514"}
+        output_1.content = ""
+        await status_builder.process_event({
+            "event": "on_chat_model_end",
+            "data": {"output": output_1},
+            "run_id": run_id_1,
+            "metadata": {},
+        })
+
+        # ── Turn 2: text response ───────────────────────────────────────
+        text_chunk = MagicMock()
+        text_chunk.content = "Here is the file content."
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": text_chunk},
+            "run_id": run_id_2,
+            "metadata": {},
+        })
+
+        # Two messages: empty parent (turn 1) + text (turn 2)
+        assert len(status_builder.current_status.messages) == 2
+
+        parent_1 = status_builder.current_status.messages[0]
+        assert parent_1.content == ""
+        assert parent_1.token_count == 850  # usage recorded from turn 1
+        assert len(parent_1.tool_calls) == 2  # think + read
+
+        text_msg = status_builder.current_status.messages[1]
+        assert text_msg.content == "Here is the file content."
+        assert text_msg.is_streaming is True  # not yet finalized
+
+    @pytest.mark.asyncio
+    async def test_turn_boundary_does_not_trigger_without_run_id(self, status_builder):
+        """When events lack run_id (legacy path), the turn-boundary
+        detection must not interfere with existing behavior."""
+        # Thinking without run_id
+        thinking_chunk = MagicMock()
+        thinking_chunk.content = [{"type": "thinking", "thinking": "Thinking..."}]
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": thinking_chunk},
+            "metadata": {},
+        })
+
+        # Text without run_id
+        text_chunk = MagicMock()
+        text_chunk.content = "Answer"
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "data": {"chunk": text_chunk},
+            "metadata": {},
+        })
+
+        # Should still produce parent + text message (legacy behavior)
+        assert len(status_builder.current_status.messages) == 2
+        assert status_builder.current_status.messages[0].content == ""
+        assert status_builder.current_status.messages[1].content == "Answer"
