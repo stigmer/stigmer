@@ -2,6 +2,12 @@
 
 When working on any file in `docs/`, these standards govern every decision.
 
+## Audience
+
+Stigmer documentation is written for **platform builders** who want to embed AI agent execution into their products. They are technically skilled, new to Stigmer, evaluating alternatives, and time-constrained. Every page must move them closer to running agents in their platform.
+
+For the full audience mindset, Diataxis framework mapping, and time-to-value principles, see [`_reminders/007_documentation-for-platform-builders.md`](007_documentation-for-platform-builders.md).
+
 ## Reference Documents
 
 All documentation standards, templates, and terminology are defined in `docs/standards/`:

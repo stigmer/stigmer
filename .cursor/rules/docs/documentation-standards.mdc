@@ -14,6 +14,15 @@ Full standards: `docs/standards/documentation-standards.md`
 Terminology dictionary: `docs/standards/terminology.json`
 Information architecture: `docs/standards/information-architecture.md`
 Templates: `docs/standards/templates/`
+Audience mindset: `_reminders/007_documentation-for-platform-builders.md`
+
+---
+
+## Audience
+
+Stigmer documentation is written for **platform builders** who want to embed AI agent execution into their products. They are technically skilled, new to Stigmer, evaluating alternatives, and time-constrained.
+
+Every page must move the reader closer to running agents in their platform. Content is organized around the Diataxis framework: Tutorials (quickstarts), How-to Guides (guides), Reference (CLI/SDK), and Explanation (concepts). Each document belongs to exactly one quadrant.
 
 ---
 
@@ -106,5 +115,16 @@ When in doubt, check `terminology.json`. If a term has an `exceptions` field, re
 
 ## Diagrams
 
-- Use Mermaid for flowcharts, sequence diagrams, and architecture diagrams.
+- Use Mermaid fenced code blocks for all diagrams — flowcharts, sequence diagrams, architecture diagrams, resource hierarchies, and pipelines.
+- Never use `text` code blocks for visual structures like resource trees, architecture flows, or pipelines. If it has a visual structure, use Mermaid.
 - Every diagram must have surrounding text that conveys the same information.
+
+---
+
+## Content Validation
+
+- Every factual claim must be validated against the current codebase. Do not trust legacy documentation as a source.
+- Proto definitions in `apis/ai/stigmer/` are the source of truth for domain concepts.
+- CLI examples must be tested — run the command, verify the output.
+- YAML examples must be valid and complete enough to use.
+- Do not trust AI-generated content without verification against the implementation.
