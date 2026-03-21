@@ -10,23 +10,92 @@ alwaysApply: false
 
 **These standards are MANDATORY. Every file in `docs/` must conform.**
 
-Full standards: `docs/standards/documentation-standards.md`
-Terminology dictionary: `docs/standards/terminology.json`
-Information architecture: `docs/standards/information-architecture.md`
-Templates: `docs/standards/templates/`
-Audience mindset: `_reminders/007_documentation-for-platform-builders.md`
+---
+
+## Audience: platform builders
+
+The primary reader is a **platform builder** — a technical leader or senior developer at a company building a product that needs AI agent capabilities. They are:
+
+- **Technically skilled** — they know distributed systems, APIs, and infrastructure.
+- **New to Stigmer** — they have never used it. They found it through a search, a conference, or a colleague's recommendation.
+- **Evaluating alternatives** — they are comparing Stigmer to LangChain, CrewAI, custom solutions, or doing nothing. Every page is part of the evaluation.
+- **Time-constrained** — they will give Stigmer 15 minutes to prove it is worth deeper investment. If the docs waste their time, they leave.
+- **Integration-focused** — they want to embed agent execution into their existing platform via SDKs and APIs, not use a standalone tool.
+
+Every page must move this reader closer to **"I have agents running in my platform."** A page that does not advance understanding, reduce friction, or enable action does not belong in the docs.
+
+**Time-to-value is the north star.** If a platform builder cannot get from zero to running agents in 5 minutes, the docs have failed.
 
 ---
 
-## Audience
+## Diataxis framework
 
-Stigmer documentation is written for **platform builders** who want to embed AI agent execution into their products. They are technically skilled, new to Stigmer, evaluating alternatives, and time-constrained.
+Every document belongs to exactly one quadrant:
 
-Every page must move the reader closer to running agents in their platform. Content is organized around the Diataxis framework: Tutorials (quickstarts), How-to Guides (guides), Reference (CLI/SDK), and Explanation (concepts). Each document belongs to exactly one quadrant.
+| Quadrant | Reader need | Content type | Directory |
+|---|---|---|---|
+| **Tutorials** | "Help me learn" | Quickstarts | `docs/quickstarts/` |
+| **How-to Guides** | "Help me solve a problem" | Guides | `docs/guides/` |
+| **Reference** | "Give me the facts" | CLI / SDK Reference | `docs/cli/`, `docs/sdk/` |
+| **Explanation** | "Help me understand" | Concepts | `docs/concepts/` |
+
+Content that mixes quadrants confuses the reader — a concept doc that drifts into step-by-step instructions is neither a good explanation nor a good guide. Before writing, identify which quadrant the document serves.
 
 ---
 
-## Content Type Detection
+## Before writing or editing any document
+
+### Three questions (always ask yourself)
+
+1. **Who is reading this?** Default: a platform builder evaluating Stigmer.
+2. **Which Diataxis quadrant does this serve?** If you cannot answer, the document has no clear purpose.
+3. **Does this move the reader closer to running agents in their platform?** If not, reconsider whether the page belongs.
+
+### Required reading before writing
+
+Before creating or substantially editing any document, READ these reference files:
+
+1. **`docs/standards/terminology.json`** — canonical terms and prohibited aliases.
+2. **The template for this content type** from `docs/standards/templates/` (see Content Type Detection below).
+3. **`docs/standards/information-architecture.md`** — sidebar structure, URL conventions, directory mapping.
+
+### Doc Blueprint process
+
+When creating a new document or rewriting an existing one, follow the Doc Blueprint (defined in `@write-documentation`):
+
+1. **Content type** — identify from file path, name the template.
+2. **Audience audit** — who is this for and what is their goal?
+3. **Gap analysis** — what is missing, confusing, or outdated?
+4. **Outline** — propose the structure, get confirmation before drafting.
+
+### Quality review before committing
+
+Before committing documentation changes, run the quality checklist (defined in `@review-documentation`):
+
+- Uses the correct template for its content type
+- Frontmatter includes `title` and `description`
+- Exactly one H1 matching the `title` field
+- No skipped heading levels
+- Every code block has a language tag
+- YAML examples are valid YAML
+- No prohibited terminology (check `terminology.json`)
+- All relative links resolve to real files
+- Active voice throughout
+- No hedging words, no filler words, no marketing language
+
+---
+
+## Five mandates
+
+1. **Ubiquitous language is sacred.** Proto names are the canonical names. If the proto says `AgentExecution`, the docs never say "agent run" or "job." Check `terminology.json`.
+2. **Eliminate assumptions.** State every prerequisite. Define every acronym on first use. Every YAML example must be complete enough to `stigmer apply`.
+3. **Active voice and imperative clarity.** "Configure the environment" — not "The environment should be configured." Remove hedging words.
+4. **Structural hierarchy.** Follow the template. Use headings, tables, code blocks, and diagrams. Make content scannable.
+5. **Analogies ground understanding.** Agent = Docker image, AgentExecution = `docker run`, Organization = Kubernetes namespace. Use these when they clarify.
+
+---
+
+## Content type detection
 
 The file path determines the content type and its governing template:
 
@@ -59,7 +128,7 @@ Optional: `sidebar_label`, `sidebar_position`, `tags`, `last_updated`.
 
 ---
 
-## Heading Hierarchy
+## Heading hierarchy
 
 - Exactly one H1 (`#`) per document. Must match the `title` frontmatter field.
 - H2 (`##`) for major sections. H3 (`###`) for subsections within an H2.
@@ -69,7 +138,7 @@ Optional: `sidebar_label`, `sidebar_position`, `tags`, `last_updated`.
 
 ---
 
-## Code Blocks
+## Code blocks
 
 - Every fenced code block MUST have a language tag (`yaml`, `bash`, `go`, `python`, `typescript`, `json`, `proto`, `mermaid`, `text`).
 - YAML examples must be valid YAML, complete enough to `stigmer apply`.
@@ -93,7 +162,7 @@ When in doubt, check `terminology.json`. If a term has an `exceptions` field, re
 
 ---
 
-## Writing Style
+## Writing style
 
 - **Second person** ("you") when addressing the reader.
 - **Present tense** for descriptions: "Stigmer creates an AgentInstance."
@@ -105,7 +174,7 @@ When in doubt, check `terminology.json`. If a term has an `exceptions` field, re
 
 ---
 
-## Cross-Referencing
+## Cross-referencing
 
 - Use relative links that survive restructuring.
 - Link to the canonical concept doc rather than re-explaining inline.
@@ -121,10 +190,21 @@ When in doubt, check `terminology.json`. If a term has an `exceptions` field, re
 
 ---
 
-## Content Validation
+## Content validation
 
 - Every factual claim must be validated against the current codebase. Do not trust legacy documentation as a source.
 - Proto definitions in `apis/ai/stigmer/` are the source of truth for domain concepts.
 - CLI examples must be tested — run the command, verify the output.
 - YAML examples must be valid and complete enough to use.
 - Do not trust AI-generated content without verification against the implementation.
+
+---
+
+## Reference documents
+
+For full details beyond what is inlined above:
+
+- `docs/standards/documentation-standards.md` — master standards document
+- `docs/standards/terminology.json` — complete terminology dictionary
+- `docs/standards/information-architecture.md` — sidebar tree, URL scheme, directory mapping
+- `docs/standards/templates/` — templates for each content type
