@@ -61,6 +61,12 @@ const EDIT_PLACEHOLDERS: Record<DraftResourceType, string> = {
   "mcp-server": "Describe how you\u2019d like to modify this MCP server\u2026",
 };
 
+function firstNWords(text: string, n: number): string {
+  const words = text.trim().split(/\s+/, n + 1);
+  if (words.length <= n) return text.trim();
+  return words.slice(0, n).join(" ");
+}
+
 export function SessionLauncher() {
   const router = useRouter();
   const rawSearchParams = useSearchParams();
@@ -227,7 +233,7 @@ export function SessionLauncher() {
       try {
         const sessionFields = {
           org,
-          subject: message.slice(0, 120),
+          subject: firstNWords(message, 8),
           workspaceEntries: workspace.hasEntries
             ? workspace.toInput()
             : undefined,
