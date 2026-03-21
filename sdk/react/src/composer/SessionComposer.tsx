@@ -363,6 +363,7 @@ export function SessionComposer({
 
   const [configOpen, setConfigOpen] = useState(false);
   const [configActivePanel, setConfigActivePanel] = useState<string | null>(null);
+  const configMcpInitialServerKeyRef = useRef<string | undefined>(undefined);
 
   // ---------------------------------------------------------------------------
   // Setup hooks — instantiated before handleSubmit so it can read their state
@@ -511,8 +512,11 @@ export function SessionComposer({
   const handleConfigOpenChange = useCallback(
     (open: boolean) => {
       setConfigOpen(open);
-      if (!open && configActivePanel === "agent") {
-        agentSetup.reset();
+      if (!open) {
+        configMcpInitialServerKeyRef.current = undefined;
+        if (configActivePanel === "agent") {
+          agentSetup.reset();
+        }
       }
     },
     [configActivePanel, agentSetup],
@@ -709,6 +713,7 @@ export function SessionComposer({
           onClick:
             entry.status === "needsSetup"
               ? () => {
+                  configMcpInitialServerKeyRef.current = key;
                   setConfigOpen(true);
                   setConfigActivePanel("mcp");
                 }
@@ -868,6 +873,7 @@ export function SessionComposer({
                 onEnabledToolsChange: (ref, tools) =>
                   mcpSetup.setEnabledTools(ref, tools),
               }}
+              initialServerKey={configMcpInitialServerKeyRef.current}
               onDisplayNameResolved={handleDisplayNameResolved}
               disabled={isDisabled}
             />
@@ -1010,6 +1016,14 @@ export function SessionComposer({
             <button
               type="button"
               onClick={() => {
+                if (mcpSetup.needsSetupCount === 1) {
+                  const key = Object.entries(mcpSetup.entries).find(
+                    ([, e]) => e.status === "needsSetup",
+                  )?.[0];
+                  configMcpInitialServerKeyRef.current = key;
+                } else {
+                  configMcpInitialServerKeyRef.current = undefined;
+                }
                 setConfigOpen(true);
                 setConfigActivePanel("mcp");
               }}

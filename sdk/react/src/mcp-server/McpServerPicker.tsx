@@ -121,6 +121,19 @@ export interface McpServerPickerProps {
    * ```
    */
   readonly setup?: McpServerSetupIntegration;
+  /**
+   * When provided, the picker opens directly to the configure view for
+   * the given server key (`"org/slug"`) instead of showing the list.
+   *
+   * Intended for flows where the caller already knows which server
+   * needs configuration (e.g. a warning banner for a single
+   * unconfigured server, or a chip click on a specific server).
+   *
+   * Only used as the initial view — subsequent navigation within the
+   * picker is unaffected. Ignored if the key does not match any entry
+   * in `setup.entries`.
+   */
+  readonly initialServerKey?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -213,6 +226,7 @@ export function McpServerPicker({
   disabled,
   className,
   setup,
+  initialServerKey,
 }: McpServerPickerProps) {
   const instanceId = useId();
   const listId = `${instanceId}-list`;
@@ -221,7 +235,11 @@ export function McpServerPicker({
     useMcpServerSearch(org);
 
   const [focusIndex, setFocusIndex] = useState(-1);
-  const [view, setView] = useState<PickerView>({ type: "list" });
+  const [view, setView] = useState<PickerView>(() =>
+    initialServerKey
+      ? { type: "configure", serverKey: initialServerKey }
+      : { type: "list" },
+  );
   const searchRef = useRef<HTMLInputElement>(null);
   const results_ = useScrollShadows();
   const selected_ = useScrollShadows();
