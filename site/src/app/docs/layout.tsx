@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <RootProvider search={{ options: { type: "static" } }}>
+    <RootProvider>
       <DocsLayout tree={source.pageTree}>{children}</DocsLayout>
     </RootProvider>
   );
