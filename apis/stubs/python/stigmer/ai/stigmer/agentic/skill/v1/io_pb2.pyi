@@ -25,6 +25,18 @@ class PushSkillRequest(_message.Message):
     git_provenance: _status_pb2.GitProvenance
     def __init__(self, org: _Optional[str] = ..., artifact: _Optional[bytes] = ..., tag: _Optional[str] = ..., git_provenance: _Optional[_Union[_status_pb2.GitProvenance, _Mapping]] = ...) -> None: ...
 
+class PushSkillFromExecutionArtifactRequest(_message.Message):
+    __slots__ = ("org", "execution_id", "storage_key", "tag")
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
+    TAG_FIELD_NUMBER: _ClassVar[int]
+    org: str
+    execution_id: str
+    storage_key: str
+    tag: str
+    def __init__(self, org: _Optional[str] = ..., execution_id: _Optional[str] = ..., storage_key: _Optional[str] = ..., tag: _Optional[str] = ...) -> None: ...
+
 class GetArtifactRequest(_message.Message):
     __slots__ = ("artifact_storage_key",)
     ARTIFACT_STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]

@@ -41,6 +41,11 @@ class AgentExecutionQueryControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactDownloadUrlRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactDownloadUrlResponse.FromString,
                 _registered_method=True)
+        self.getArtifactContent = channel.unary_unary(
+                '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getArtifactContent',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactContentRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactContentResponse.FromString,
+                _registered_method=True)
         self.getSessionUsageReport = channel.unary_unary(
                 '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getSessionUsageReport',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetSessionUsageReportInput.SerializeToString,
@@ -141,6 +146,47 @@ class AgentExecutionQueryControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def getArtifactContent(self, request, context):
+        """Read the raw content of an execution artifact.
+
+        Returns artifact bytes through the Stigmer API, eliminating CORS
+        concerns for SDK consumers who need to read content programmatically
+        (e.g., YAML parsing for resource detection, in-app preview rendering).
+
+        For direct file downloads, use getArtifactDownloadUrl instead — it
+        returns a presigned R2 URL that avoids proxying bytes through the server.
+
+        ## Authorization
+
+        Requires can_view permission on the execution. This ensures users can
+        only read artifacts from executions they have access to.
+
+        ## Security
+
+        The storage_key is validated to ensure it belongs to the specified
+        execution. Keys must start with "artifacts/{execution_id}/" to prevent
+        path traversal attacks.
+
+        ## Size Limit
+
+        Content is truncated to max_bytes (default: 512 KB). The response
+        includes total_size_bytes and a truncated flag so callers can decide
+        whether to offer a full download via getArtifactDownloadUrl.
+
+        ## Example Flow
+
+        1. Get execution via AgentExecutionQueryController.get
+        2. Find artifact in status.artifacts[]
+        3. Call getArtifactContent with execution_id and storage_key
+        4. Decode content bytes as UTF-8 for text artifacts
+        5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
+
+        @since Artifact Lifecycle (Attachments & Artifacts)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def getSessionUsageReport(self, request, context):
         """─────────────────────────────────────────────────────────────────────────────
         Usage Report Operations
@@ -207,6 +253,11 @@ def add_AgentExecutionQueryControllerServicer_to_server(servicer, server):
                     servicer.getArtifactDownloadUrl,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactDownloadUrlRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactDownloadUrlResponse.SerializeToString,
+            ),
+            'getArtifactContent': grpc.unary_unary_rpc_method_handler(
+                    servicer.getArtifactContent,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactContentRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactContentResponse.SerializeToString,
             ),
             'getSessionUsageReport': grpc.unary_unary_rpc_method_handler(
                     servicer.getSessionUsageReport,
@@ -360,6 +411,33 @@ class AgentExecutionQueryController(object):
             '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getArtifactDownloadUrl',
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactDownloadUrlRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactDownloadUrlResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def getArtifactContent(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController/getArtifactContent',
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactContentRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_io__pb2.GetArtifactContentResponse.FromString,
             options,
             channel_credentials,
             insecure,

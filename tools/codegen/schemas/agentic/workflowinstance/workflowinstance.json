@@ -29,9 +29,9 @@
       "required": false
     },
     {
-      "name": "EnvRefs",
-      "jsonName": "envRefs",
-      "protoField": "env_refs",
+      "name": "EnvironmentRefs",
+      "jsonName": "environmentRefs",
+      "protoField": "environment_refs",
       "type": {
         "kind": "array",
         "elementType": {

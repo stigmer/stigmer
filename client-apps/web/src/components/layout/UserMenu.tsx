@@ -71,7 +71,7 @@ function UserAvatar({
   return (
     <div
       className={cn(
-        "bg-muted text-muted-foreground border-border flex shrink-0 items-center justify-center rounded-full border",
+        "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-border flex shrink-0 items-center justify-center rounded-full border",
         className,
       )}
     >
@@ -99,6 +99,7 @@ function AppearanceSubmenu() {
         <SunMoon className="size-4" />
         Appearance
         {themeLabel && (
+          // eslint-disable-next-line stigmer/no-main-tokens-in-sidebar -- renders in portaled DropdownMenuContent
           <span className="text-muted-foreground ml-auto mr-1 text-xs">
             {themeLabel}
           </span>
@@ -126,6 +127,7 @@ function AppearanceSubmenu() {
             {THEME_PRESETS.map((preset) => (
               <DropdownMenuRadioItem key={preset.id} value={preset.id}>
                 <span
+                  // eslint-disable-next-line stigmer/no-main-tokens-in-sidebar -- portaled DropdownMenuContent
                   className="size-3 shrink-0 rounded-full border border-border"
                   style={{ backgroundColor: preset.swatch }}
                 />
@@ -159,13 +161,13 @@ export function UserMenu() {
           aria-label="Settings"
           className="hover:bg-sidebar-accent flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 transition-colors focus:outline-none"
         >
-          <div className="bg-muted border-border flex size-6 shrink-0 items-center justify-center rounded-full border">
+          <div className="bg-sidebar-accent border-sidebar-border flex size-6 shrink-0 items-center justify-center rounded-full border">
             <User className="size-3.5" />
           </div>
-          <span className="text-muted-foreground truncate text-sm">
+          <span className="text-sidebar-muted-foreground truncate text-sm">
             Local mode
           </span>
-          <ChevronsUpDown className="text-muted-foreground ml-auto size-3.5 shrink-0" />
+          <ChevronsUpDown className="text-sidebar-muted-foreground ml-auto size-3.5 shrink-0" />
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" side="top" sideOffset={8}>
@@ -189,11 +191,11 @@ export function UserMenu() {
           {user.name && (
             <span className="truncate text-sm font-medium">{user.name}</span>
           )}
-          <span className="text-muted-foreground truncate text-xs">
+          <span className="text-sidebar-muted-foreground truncate text-xs">
             {user.email}
           </span>
         </div>
-        <ChevronsUpDown className="text-muted-foreground size-3.5 shrink-0" />
+        <ChevronsUpDown className="text-sidebar-muted-foreground size-3.5 shrink-0" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" side="top" sideOffset={8}>

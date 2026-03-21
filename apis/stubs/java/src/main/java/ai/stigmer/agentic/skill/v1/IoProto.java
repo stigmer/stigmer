@@ -37,6 +37,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_skill_v1_PushSkillRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromExecutionArtifactRequest_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromExecutionArtifactRequest_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_agentic_skill_v1_GetArtifactRequest_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -64,15 +69,20 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       " \001(\014B\006\272H\003\310\001\001R\010artifact\022-\n\003tag\030\003 \001(\tB\033\272H\030" +
       "r\0262\024^$|^[a-zA-Z0-9._-]+$R\003tag\022Q\n\016git_pro" +
       "venance\030\004 \001(\0132*.ai.stigmer.agentic.skill" +
-      ".v1.GitProvenanceR\rgitProvenanceJ\004\010\005\020\006\"N" +
-      "\n\022GetArtifactRequest\0228\n\024artifact_storage" +
-      "_key\030\001 \001(\tB\006\272H\003\310\001\001R\022artifactStorageKey\"1" +
-      "\n\023GetArtifactResponse\022\032\n\010artifact\030\001 \001(\014R" +
-      "\010artifactB\232\001B\007IoProtoP\001\242\002\004ASAS\252\002\033Ai.Stig" +
-      "mer.Agentic.Skill.V1\312\002\033Ai\\Stigmer\\Agenti" +
-      "c\\Skill\\V1\342\002\'Ai\\Stigmer\\Agentic\\Skill\\V1" +
-      "\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Ski" +
-      "ll::V1b\006proto3"
+      ".v1.GitProvenanceR\rgitProvenanceJ\004\010\005\020\006\"\306" +
+      "\001\n%PushSkillFromExecutionArtifactRequest" +
+      "\022\030\n\003org\030\001 \001(\tB\006\272H\003\310\001\001R\003org\022*\n\014execution_" +
+      "id\030\002 \001(\tB\007\272H\004r\002\020\001R\013executionId\022(\n\013storag" +
+      "e_key\030\003 \001(\tB\007\272H\004r\002\020\001R\nstorageKey\022-\n\003tag\030" +
+      "\004 \001(\tB\033\272H\030r\0262\024^$|^[a-zA-Z0-9._-]+$R\003tag\"" +
+      "N\n\022GetArtifactRequest\0228\n\024artifact_storag" +
+      "e_key\030\001 \001(\tB\006\272H\003\310\001\001R\022artifactStorageKey\"" +
+      "1\n\023GetArtifactResponse\022\032\n\010artifact\030\001 \001(\014" +
+      "R\010artifactB\232\001B\007IoProtoP\001\242\002\004ASAS\252\002\033Ai.Sti" +
+      "gmer.Agentic.Skill.V1\312\002\033Ai\\Stigmer\\Agent" +
+      "ic\\Skill\\V1\342\002\'Ai\\Stigmer\\Agentic\\Skill\\V" +
+      "1\\GPBMetadata\352\002\037Ai::Stigmer::Agentic::Sk" +
+      "ill::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -92,14 +102,20 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_skill_v1_PushSkillRequest_descriptor,
         new java.lang.String[] { "Org", "Artifact", "Tag", "GitProvenance", });
-    internal_static_ai_stigmer_agentic_skill_v1_GetArtifactRequest_descriptor =
+    internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromExecutionArtifactRequest_descriptor =
       getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromExecutionArtifactRequest_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_skill_v1_PushSkillFromExecutionArtifactRequest_descriptor,
+        new java.lang.String[] { "Org", "ExecutionId", "StorageKey", "Tag", });
+    internal_static_ai_stigmer_agentic_skill_v1_GetArtifactRequest_descriptor =
+      getDescriptor().getMessageType(3);
     internal_static_ai_stigmer_agentic_skill_v1_GetArtifactRequest_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_skill_v1_GetArtifactRequest_descriptor,
         new java.lang.String[] { "ArtifactStorageKey", });
     internal_static_ai_stigmer_agentic_skill_v1_GetArtifactResponse_descriptor =
-      getDescriptor().getMessageType(3);
+      getDescriptor().getMessageType(4);
     internal_static_ai_stigmer_agentic_skill_v1_GetArtifactResponse_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_skill_v1_GetArtifactResponse_descriptor,

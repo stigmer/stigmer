@@ -46,6 +46,37 @@ public final class SkillCommandControllerGrpc {
     return getPushMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest,
+      ai.stigmer.agentic.skill.v1.Skill> getPushFromExecutionArtifactMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "pushFromExecutionArtifact",
+      requestType = ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest.class,
+      responseType = ai.stigmer.agentic.skill.v1.Skill.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest,
+      ai.stigmer.agentic.skill.v1.Skill> getPushFromExecutionArtifactMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest, ai.stigmer.agentic.skill.v1.Skill> getPushFromExecutionArtifactMethod;
+    if ((getPushFromExecutionArtifactMethod = SkillCommandControllerGrpc.getPushFromExecutionArtifactMethod) == null) {
+      synchronized (SkillCommandControllerGrpc.class) {
+        if ((getPushFromExecutionArtifactMethod = SkillCommandControllerGrpc.getPushFromExecutionArtifactMethod) == null) {
+          SkillCommandControllerGrpc.getPushFromExecutionArtifactMethod = getPushFromExecutionArtifactMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest, ai.stigmer.agentic.skill.v1.Skill>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "pushFromExecutionArtifact"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.Skill.getDefaultInstance()))
+              .setSchemaDescriptor(new SkillCommandControllerMethodDescriptorSupplier("pushFromExecutionArtifact"))
+              .build();
+        }
+      }
+    }
+    return getPushFromExecutionArtifactMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.SkillId,
       ai.stigmer.agentic.skill.v1.Skill> getDeleteMethod;
 
@@ -169,6 +200,24 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
+     * Push a skill directly from an execution artifact already in storage.
+     * This is the server-side equivalent of push() — instead of receiving
+     * ZIP bytes from the client, it reads an existing directory artifact
+     * (produced by an agent execution) from artifact storage and pushes
+     * it as a skill. This avoids downloading the ZIP to the browser and
+     * re-uploading it, and eliminates CORS concerns for SDK consumers.
+     * The caller must have can_view on the referenced execution AND
+     * can_create_skill in the target organization.
+     * Returns: The created or updated Skill resource
+     * </pre>
+     */
+    default void pushFromExecutionArtifact(ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.Skill> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getPushFromExecutionArtifactMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a skill and all its versions.
      * This removes the skill from the main collection but preserves audit history.
      * </pre>
@@ -239,6 +288,25 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
+     * Push a skill directly from an execution artifact already in storage.
+     * This is the server-side equivalent of push() — instead of receiving
+     * ZIP bytes from the client, it reads an existing directory artifact
+     * (produced by an agent execution) from artifact storage and pushes
+     * it as a skill. This avoids downloading the ZIP to the browser and
+     * re-uploading it, and eliminates CORS concerns for SDK consumers.
+     * The caller must have can_view on the referenced execution AND
+     * can_create_skill in the target organization.
+     * Returns: The created or updated Skill resource
+     * </pre>
+     */
+    public void pushFromExecutionArtifact(ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.Skill> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getPushFromExecutionArtifactMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a skill and all its versions.
      * This removes the skill from the main collection but preserves audit history.
      * </pre>
@@ -295,6 +363,24 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
+     * Push a skill directly from an execution artifact already in storage.
+     * This is the server-side equivalent of push() — instead of receiving
+     * ZIP bytes from the client, it reads an existing directory artifact
+     * (produced by an agent execution) from artifact storage and pushes
+     * it as a skill. This avoids downloading the ZIP to the browser and
+     * re-uploading it, and eliminates CORS concerns for SDK consumers.
+     * The caller must have can_view on the referenced execution AND
+     * can_create_skill in the target organization.
+     * Returns: The created or updated Skill resource
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.Skill pushFromExecutionArtifact(ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getPushFromExecutionArtifactMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete a skill and all its versions.
      * This removes the skill from the main collection but preserves audit history.
      * </pre>
@@ -346,6 +432,24 @@ public final class SkillCommandControllerGrpc {
     public ai.stigmer.agentic.skill.v1.Skill push(ai.stigmer.agentic.skill.v1.PushSkillRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getPushMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Push a skill directly from an execution artifact already in storage.
+     * This is the server-side equivalent of push() — instead of receiving
+     * ZIP bytes from the client, it reads an existing directory artifact
+     * (produced by an agent execution) from artifact storage and pushes
+     * it as a skill. This avoids downloading the ZIP to the browser and
+     * re-uploading it, and eliminates CORS concerns for SDK consumers.
+     * The caller must have can_view on the referenced execution AND
+     * can_create_skill in the target organization.
+     * Returns: The created or updated Skill resource
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.Skill pushFromExecutionArtifact(ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getPushFromExecutionArtifactMethod(), getCallOptions(), request);
     }
 
     /**
@@ -406,6 +510,25 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
+     * Push a skill directly from an execution artifact already in storage.
+     * This is the server-side equivalent of push() — instead of receiving
+     * ZIP bytes from the client, it reads an existing directory artifact
+     * (produced by an agent execution) from artifact storage and pushes
+     * it as a skill. This avoids downloading the ZIP to the browser and
+     * re-uploading it, and eliminates CORS concerns for SDK consumers.
+     * The caller must have can_view on the referenced execution AND
+     * can_create_skill in the target organization.
+     * Returns: The created or updated Skill resource
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.Skill> pushFromExecutionArtifact(
+        ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getPushFromExecutionArtifactMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete a skill and all its versions.
      * This removes the skill from the main collection but preserves audit history.
      * </pre>
@@ -418,7 +541,8 @@ public final class SkillCommandControllerGrpc {
   }
 
   private static final int METHODID_PUSH = 0;
-  private static final int METHODID_DELETE = 1;
+  private static final int METHODID_PUSH_FROM_EXECUTION_ARTIFACT = 1;
+  private static final int METHODID_DELETE = 2;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -439,6 +563,10 @@ public final class SkillCommandControllerGrpc {
       switch (methodId) {
         case METHODID_PUSH:
           serviceImpl.push((ai.stigmer.agentic.skill.v1.PushSkillRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.Skill>) responseObserver);
+          break;
+        case METHODID_PUSH_FROM_EXECUTION_ARTIFACT:
+          serviceImpl.pushFromExecutionArtifact((ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.Skill>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -470,6 +598,13 @@ public final class SkillCommandControllerGrpc {
               ai.stigmer.agentic.skill.v1.PushSkillRequest,
               ai.stigmer.agentic.skill.v1.Skill>(
                 service, METHODID_PUSH)))
+        .addMethod(
+          getPushFromExecutionArtifactMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest,
+              ai.stigmer.agentic.skill.v1.Skill>(
+                service, METHODID_PUSH_FROM_EXECUTION_ARTIFACT)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -526,6 +661,7 @@ public final class SkillCommandControllerGrpc {
           serviceDescriptor = result = io.grpc.ServiceDescriptor.newBuilder(SERVICE_NAME)
               .setSchemaDescriptor(new SkillCommandControllerFileDescriptorSupplier())
               .addMethod(getPushMethod())
+              .addMethod(getPushFromExecutionArtifactMethod())
               .addMethod(getDeleteMethod())
               .build();
         }

@@ -503,6 +503,19 @@ class StatusBuilder:
         self._thinking_tool_call_ids: dict[str, str] = {}
         
         # ─────────────────────────────────────────────────────────────────────────
+        # LLM Turn-Boundary Tracking
+        #
+        # Tracks the most recent LLM run_id per namespace so we can detect
+        # when a new LLM invocation starts.  Without this, thinking-only
+        # turns (thinking + tool_use, no text) leave _last_ai_message
+        # pointing at the previous turn's empty parent AI, causing the
+        # next turn's thinking/tool_use blocks to pile up on the wrong
+        # message.  When the run_id changes we clear _last_ai_message
+        # for that namespace so a fresh parent is created.
+        # ─────────────────────────────────────────────────────────────────────────
+        self._last_llm_run_id: dict[str, str] = {}
+        
+        # ─────────────────────────────────────────────────────────────────────────
         # Early Tool Call Creation (Live Write Streaming UX)
         #
         # When the LLM stream produces a tool_use block, we create the ToolCall
@@ -819,7 +832,12 @@ class StatusBuilder:
                 sub_agent_name=sub_agent_name,
             )
     
-    def _ensure_parent_ai_message(self, ns_key: str, namespace: str) -> AgentMessage:
+    def _ensure_parent_ai_message(
+        self,
+        ns_key: str,
+        namespace: str,
+        llm_run_id: str = "",
+    ) -> AgentMessage:
         """Return the current parent AI message, creating an empty one if needed.
 
         When a tool call (including thinking) fires before the LLM has produced
@@ -831,6 +849,17 @@ class StatusBuilder:
         creates a *new* AI message (keyed by ``run_id``), which replaces
         ``_last_ai_message[ns_key]``.  Subsequent tool calls attach to that
         new message, preserving correct chronological grouping.
+
+        Args:
+            ns_key: Namespace key (empty string for main agent).
+            namespace: Raw LangGraph checkpoint namespace.
+            llm_run_id: When called from the LLM stream path (thinking /
+                early tool_use), pass the LLM's ``run_id`` so the empty
+                parent is registered in ``_llm_run_id_to_message``.  This
+                allows ``_handle_chat_model_end_event`` to find it and
+                record usage metrics for thinking-only turns.  Callers from
+                the tool-execution path (``on_tool_start``) must omit this
+                to avoid polluting the LLM run-id map with tool run-ids.
         """
         existing = self._last_ai_message.get(ns_key)
         if existing is not None:
@@ -850,11 +879,15 @@ class StatusBuilder:
         managed = messages_list[-1]
         self._last_ai_message[ns_key] = managed
 
+        if llm_run_id:
+            self._llm_run_id_to_message[llm_run_id] = managed
+
         self.logger.debug(
             "[AI_MSG] execution=%s created empty parent AI message "
-            "namespace=%s (tool call arrived before text)",
+            "namespace=%s llm_run_id=%s (tool call arrived before text)",
             self.execution_id,
             namespace or "main",
+            llm_run_id or "none",
         )
         return managed
 
@@ -1066,6 +1099,26 @@ class StatusBuilder:
             self._register_sub_agent_namespace(namespace)
         
         # ─────────────────────────────────────────────────────────────────────
+        # LLM Turn-Boundary Detection
+        #
+        # Each LLM invocation carries a unique run_id.  When the run_id
+        # changes we know a new LLM turn has started.  Clear the cached
+        # _last_ai_message for this namespace so that thinking/tool_use
+        # blocks from the new turn create a fresh parent AI message
+        # instead of piling onto the previous turn's parent.
+        #
+        # For text-producing turns this is harmless — the text path
+        # already creates a new AI message per new run_id.  The fix
+        # matters for thinking-only turns where no text path runs and
+        # _last_ai_message would otherwise remain stale.
+        # ─────────────────────────────────────────────────────────────────────
+        run_id = event.get("run_id", "")
+        ns_key = namespace or ""
+        if run_id and run_id != self._last_llm_run_id.get(ns_key):
+            self._last_ai_message.pop(ns_key, None)
+            self._last_llm_run_id[ns_key] = run_id
+        
+        # ─────────────────────────────────────────────────────────────────────
         # Native Thinking Detection
         #
         # When Anthropic extended thinking is active, content blocks arrive as
@@ -1130,6 +1183,7 @@ class StatusBuilder:
                         if t_name and t_name not in skip_early_tools:
                             self._create_early_tool_call(
                                 t_name, t_id, ns_key, namespace,
+                                llm_run_id=run_id,
                             )
                 except Exception:
                     self.logger.exception(
@@ -1158,7 +1212,10 @@ class StatusBuilder:
                     self._thinking_buffers.get(ns_key, "") + thinking_text
                 )
                 if ns_key not in self._thinking_tool_call_ids:
-                    self._start_thinking_stream(ns_key, namespace, self._thinking_buffers[ns_key])
+                    self._start_thinking_stream(
+                        ns_key, namespace, self._thinking_buffers[ns_key],
+                        llm_run_id=run_id,
+                    )
                 else:
                     self._update_thinking_stream(ns_key)
                 
@@ -1205,8 +1262,18 @@ class StatusBuilder:
         if run_id:
             ai_message = self._llm_run_id_to_message.get(run_id)
             if ai_message is not None:
-                ai_message.content += token
-                return
+                # Empty parent AI messages created by _ensure_parent_ai_message
+                # for thinking/tool_use blocks must NOT receive text content.
+                # Text should go to a separate AI message so the frontend
+                # renders the thread in chronological order: thinking tool
+                # group first, then the text response.  Remove the stale
+                # registration so the "first token" path below creates a
+                # proper text AI message and re-registers the run_id.
+                if not ai_message.content and len(ai_message.tool_calls) > 0:
+                    del self._llm_run_id_to_message[run_id]
+                else:
+                    ai_message.content += token
+                    return
         
         if not run_id:
             # Legacy fallback: no run_id available — find the last streaming
@@ -1326,6 +1393,30 @@ class StatusBuilder:
                 del self._message_start_times[ai_message_index]
         
         # ─────────────────────────────────────────────────────────────────────────
+        # Diagnostic: capture output_data shape for zero-usage debugging.
+        # Log the concrete type, usage_metadata value, and whether
+        # response_metadata carries a raw ``usage`` dict (Anthropic always
+        # populates this even during streaming).
+        # ─────────────────────────────────────────────────────────────────────────
+        _rm = getattr(output_data, "response_metadata", None)
+        _rm_usage = _rm.get("usage") if isinstance(_rm, dict) else None
+        self.logger.debug(
+            "[USAGE_DIAG] execution=%s run_id=%s "
+            "output_data_type=%s "
+            "has_usage_metadata=%s usage_metadata=%r "
+            "response_metadata_keys=%s "
+            "response_metadata_usage=%r",
+            self.execution_id,
+            run_id,
+            type(output_data).__name__,
+            hasattr(output_data, "usage_metadata"),
+            getattr(output_data, "usage_metadata", "N/A"),
+            list(_rm.keys()) if isinstance(_rm, dict) else "N/A",
+            _rm_usage,
+        )
+        del _rm, _rm_usage
+
+        # ─────────────────────────────────────────────────────────────────────────
         # Extract usage metadata from LangChain response (Phase 3)
         #
         # LangChain normalises provider token counts into a unified
@@ -1344,24 +1435,21 @@ class StatusBuilder:
         cache_read_tokens = 0
         model_name = ""
         
+        # Resolve usage_metadata from AIMessage attribute or raw dict.
+        usage: dict | None = None
         if hasattr(output_data, "usage_metadata") and output_data.usage_metadata:
             usage = output_data.usage_metadata
-            total_input_tokens = getattr(usage, "input_tokens", 0) or 0
-            output_tokens = getattr(usage, "output_tokens", 0) or 0
-            details = getattr(usage, "input_token_details", None)
-            if details is not None:
-                if isinstance(details, dict):
-                    cache_creation_tokens = details.get("cache_creation", 0) or 0
-                    cache_read_tokens = details.get("cache_read", 0) or 0
-                else:
-                    cache_creation_tokens = getattr(details, "cache_creation", 0) or 0
-                    cache_read_tokens = getattr(details, "cache_read", 0) or 0
         elif isinstance(output_data, dict):
-            usage = output_data.get("usage_metadata") or output_data.get("usage", {})
-            if usage:
-                total_input_tokens = usage.get("input_tokens", 0) or usage.get("prompt_tokens", 0) or 0
-                output_tokens = usage.get("output_tokens", 0) or usage.get("completion_tokens", 0) or 0
-                details = usage.get("input_token_details") or {}
+            usage = output_data.get("usage_metadata") or output_data.get("usage")
+
+        # UsageMetadata is a TypedDict (plain dict at runtime) in all
+        # langchain-core versions.  Use dict .get() for key access;
+        # getattr() silently returns the default on dicts.
+        if usage and isinstance(usage, dict):
+            total_input_tokens = usage.get("input_tokens", 0) or usage.get("prompt_tokens", 0) or 0
+            output_tokens = usage.get("output_tokens", 0) or usage.get("completion_tokens", 0) or 0
+            details = usage.get("input_token_details") or {}
+            if isinstance(details, dict):
                 cache_creation_tokens = details.get("cache_creation", 0) or 0
                 cache_read_tokens = details.get("cache_read", 0) or 0
         
@@ -1695,7 +1783,12 @@ class StatusBuilder:
         return "".join(parts)
     
     def _create_early_tool_call(
-        self, tool_name: str, tool_use_id: str, ns_key: str, namespace: str,
+        self,
+        tool_name: str,
+        tool_use_id: str,
+        ns_key: str,
+        namespace: str,
+        llm_run_id: str = "",
     ) -> None:
         """Create a ToolCall as soon as a ``tool_use`` block appears in the stream.
 
@@ -1736,7 +1829,9 @@ class StatusBuilder:
         )
 
         # Attach to the parent AI message (creates empty one if needed).
-        parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
+        parent_ai = self._ensure_parent_ai_message(
+            ns_key, namespace, llm_run_id=llm_run_id,
+        )
         parent_ai.tool_calls.append(tool_call)
 
         context, sub_agent = self._get_execution_context(namespace)
@@ -1837,7 +1932,13 @@ class StatusBuilder:
 
         return None
 
-    def _start_thinking_stream(self, ns_key: str, namespace: str, initial_text: str) -> None:
+    def _start_thinking_stream(
+        self,
+        ns_key: str,
+        namespace: str,
+        initial_text: str,
+        llm_run_id: str = "",
+    ) -> None:
         """Create a RUNNING ToolCall for native thinking and begin streaming.
 
         Called when the first thinking content block arrives for a namespace.
@@ -1869,7 +1970,9 @@ class StatusBuilder:
         )
 
         # Attach to parent AI message (creates empty one if none exists yet).
-        parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
+        parent_ai = self._ensure_parent_ai_message(
+            ns_key, namespace, llm_run_id=llm_run_id,
+        )
         parent_ai.tool_calls.append(tool_call)
 
         # Flat index for quick lookup by ID.

@@ -29,3 +29,15 @@ export { EnvironmentListPanel } from "./EnvironmentListPanel";
 export type { EnvironmentListPanelProps } from "./EnvironmentListPanel";
 export { CreateEnvironmentForm } from "./CreateEnvironmentForm";
 export type { CreateEnvironmentFormProps } from "./CreateEnvironmentForm";
+export { EnvVarForm } from "./EnvVarForm";
+export type {
+  EnvVarFormProps,
+  EnvVarFormVariable,
+  EnvVarFormSubmitOptions,
+} from "./EnvVarForm";
+export { diffEnvSpec } from "./diffEnvSpec";
+export { useSessionEnvPool } from "./useSessionEnvPool";
+export type {
+  SessionEnvPoolInput,
+  UseSessionEnvPoolReturn,
+} from "./useSessionEnvPool";

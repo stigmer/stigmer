@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import type { ResourceRef } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 export interface UseEnvironmentReturn {
   readonly environment: Environment | null;
   readonly isLoading: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly refetch: () => void;
 }
 
@@ -45,7 +46,7 @@ export function useEnvironment(
   const stigmer = useStigmer();
   const [environment, setEnvironment] = useState<Environment | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
 
   const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
@@ -74,9 +75,7 @@ export function useEnvironment(
       },
       (err) => {
         if (cancelled.current) return;
-        setError(
-          err instanceof Error ? err.message : "Failed to load environment",
-        );
+        setError(toError(err));
         setIsLoading(false);
       },
     );

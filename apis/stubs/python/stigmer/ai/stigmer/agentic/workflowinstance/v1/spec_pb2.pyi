@@ -9,11 +9,11 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class WorkflowInstanceSpec(_message.Message):
-    __slots__ = ("workflow_id", "description", "env_refs")
+    __slots__ = ("workflow_id", "description", "environment_refs")
     WORKFLOW_ID_FIELD_NUMBER: _ClassVar[int]
     DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
-    ENV_REFS_FIELD_NUMBER: _ClassVar[int]
+    ENVIRONMENT_REFS_FIELD_NUMBER: _ClassVar[int]
     workflow_id: str
     description: str
-    env_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
-    def __init__(self, workflow_id: _Optional[str] = ..., description: _Optional[str] = ..., env_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ...) -> None: ...
+    environment_refs: _containers.RepeatedCompositeFieldContainer[_io_pb2.ApiResourceReference]
+    def __init__(self, workflow_id: _Optional[str] = ..., description: _Optional[str] = ..., environment_refs: _Optional[_Iterable[_Union[_io_pb2.ApiResourceReference, _Mapping]]] = ...) -> None: ...

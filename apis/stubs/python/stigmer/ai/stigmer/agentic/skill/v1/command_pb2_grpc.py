@@ -21,6 +21,11 @@ class SkillCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
                 _registered_method=True)
+        self.pushFromExecutionArtifact = channel.unary_unary(
+                '/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromExecutionArtifact',
+                request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromExecutionArtifactRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
+                _registered_method=True)
         self.delete = channel.unary_unary(
                 '/ai.stigmer.agentic.skill.v1.SkillCommandController/delete',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.SkillId.SerializeToString,
@@ -56,6 +61,24 @@ class SkillCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def pushFromExecutionArtifact(self, request, context):
+        """Push a skill directly from an execution artifact already in storage.
+
+        This is the server-side equivalent of push() — instead of receiving
+        ZIP bytes from the client, it reads an existing directory artifact
+        (produced by an agent execution) from artifact storage and pushes
+        it as a skill. This avoids downloading the ZIP to the browser and
+        re-uploading it, and eliminates CORS concerns for SDK consumers.
+
+        The caller must have can_view on the referenced execution AND
+        can_create_skill in the target organization.
+
+        Returns: The created or updated Skill resource
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def delete(self, request, context):
         """Delete a skill and all its versions.
         This removes the skill from the main collection but preserves audit history.
@@ -70,6 +93,11 @@ def add_SkillCommandControllerServicer_to_server(servicer, server):
             'push': grpc.unary_unary_rpc_method_handler(
                     servicer.push,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
+            ),
+            'pushFromExecutionArtifact': grpc.unary_unary_rpc_method_handler(
+                    servicer.pushFromExecutionArtifact,
+                    request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromExecutionArtifactRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -105,6 +133,33 @@ class SkillCommandController(object):
             target,
             '/ai.stigmer.agentic.skill.v1.SkillCommandController/push',
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def pushFromExecutionArtifact(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromExecutionArtifact',
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromExecutionArtifactRequest.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
             options,
             channel_credentials,

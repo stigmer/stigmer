@@ -1,4 +1,35 @@
 /**
+ * Derives a URL-friendly slug from a human-readable name.
+ *
+ * This mirrors the backend `GenerateSlug` logic (Go: `steps/slug.go`,
+ * Java: `ApiRequestResourceSlugGenerator`) so the frontend can preview
+ * the exact slug that the server would produce.
+ *
+ * Rules (applied in order):
+ * 1. Convert to lowercase
+ * 2. Replace spaces with hyphens
+ * 3. Strip everything except `a-z`, `0-9`, and `-`
+ * 4. Collapse consecutive hyphens into one
+ * 5. Trim leading / trailing hyphens
+ *
+ * @example
+ * ```ts
+ * generateSlug("My Cool Agent")  // "my-cool-agent"
+ * generateSlug("Acme Corp!")     // "acme-corp"
+ * generateSlug("  --hello-- ")   // "hello"
+ * generateSlug("")               // ""
+ * ```
+ */
+export function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/ /g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
  * Generates a short random suffix suitable for use in resource slugs.
  *
  * Returns 8 lowercase hex characters derived from `crypto.randomUUID()`,

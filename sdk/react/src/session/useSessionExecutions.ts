@@ -5,11 +5,12 @@ import { create } from "@bufbuild/protobuf";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { ListAgentExecutionsBySessionRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 export interface UseSessionExecutionsReturn {
   readonly executions: readonly AgentExecution[];
   readonly isLoading: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly refetch: () => void;
 }
 
@@ -30,7 +31,7 @@ export function useSessionExecutions(
   const stigmer = useStigmer();
   const [executions, setExecutions] = useState<AgentExecution[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
 
   const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
@@ -62,11 +63,7 @@ export function useSessionExecutions(
         },
         (err) => {
           if (cancelled.current) return;
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Failed to load executions",
-          );
+          setError(toError(err));
           setIsLoading(false);
         },
       );

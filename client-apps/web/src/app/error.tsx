@@ -37,7 +37,7 @@ export default function RootError({ error, reset }: ErrorPageProps) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6 text-center">
-        <div className="bg-destructive/10 mx-auto flex size-12 items-center justify-center rounded-full">
+        <div className="bg-destructive-subtle mx-auto flex size-12 items-center justify-center rounded-full">
           <Icon className="text-destructive size-6" />
         </div>
 
@@ -60,7 +60,7 @@ export default function RootError({ error, reset }: ErrorPageProps) {
         </div>
 
         {error.digest && (
-          <p className="text-muted-foreground/60 font-mono text-xs">
+          <p className="text-muted-foreground-subtle font-mono text-xs">
             Reference: {error.digest}
           </p>
         )}

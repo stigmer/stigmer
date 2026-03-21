@@ -42,7 +42,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ntexecution/v1/io.proto\0328ai/stigmer/comm" +
       "ons/apiresource/rpc_service_options.prot" +
       "o\032Aai/stigmer/iam/iampolicy/v1/rpcauthor" +
-      "ization/method_options.proto2\211\013\n\035AgentEx" +
+      "ization/method_options.proto2\367\014\n\035AgentEx" +
       "ecutionQueryController\022\251\001\n\003get\0226.ai.stig" +
       "mer.agentic.agentexecution.v1.AgentExecu" +
       "tionId\0324.ai.stigmer.agentic.agentexecuti" +
@@ -66,24 +66,30 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ntexecution.v1.GetArtifactDownloadUrlRes" +
       "ponse\"N\302\270\030J\010\003\020)\"\014execution_id*6unauthori" +
       "zed to download artifact from agent exec" +
-      "ution\022\242\001\n\025getSessionUsageReport\022@.ai.sti" +
-      "gmer.agentic.agentexecution.v1.GetSessio" +
-      "nUsageReportInput\032A.ai.stigmer.agentic.a" +
-      "gentexecution.v1.GetSessionUsageReportOu" +
-      "tput\"\004\320\270\030\001\022\234\001\n\023getAgentUsageReport\022>.ai." +
-      "stigmer.agentic.agentexecution.v1.GetAge" +
-      "ntUsageReportInput\032?.ai.stigmer.agentic." +
-      "agentexecution.v1.GetAgentUsageReportOut" +
-      "put\"\004\320\270\030\001\022\226\001\n\021getOrgUsageReport\022<.ai.sti" +
-      "gmer.agentic.agentexecution.v1.GetOrgUsa" +
-      "geReportInput\032=.ai.stigmer.agentic.agent" +
-      "execution.v1.GetOrgUsageReportOutput\"\004\320\270" +
-      "\030\001\032\004\240\377+)B\301\001B\nQueryProtoP\001\242\002\004ASAA\252\002$Ai.St" +
-      "igmer.Agentic.Agentexecution.V1\312\002$Ai\\Sti" +
-      "gmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Stig" +
-      "mer\\Agentic\\Agentexecution\\V1\\GPBMetadat" +
-      "a\352\002(Ai::Stigmer::Agentic::Agentexecution" +
-      "::V1b\006proto3"
+      "ution\022\353\001\n\022getArtifactContent\022?.ai.stigme" +
+      "r.agentic.agentexecution.v1.GetArtifactC" +
+      "ontentRequest\032@.ai.stigmer.agentic.agent" +
+      "execution.v1.GetArtifactContentResponse\"" +
+      "R\302\270\030N\010\003\020)\"\014execution_id*:unauthorized to" +
+      " read artifact content from agent execut" +
+      "ion\022\242\001\n\025getSessionUsageReport\022@.ai.stigm" +
+      "er.agentic.agentexecution.v1.GetSessionU" +
+      "sageReportInput\032A.ai.stigmer.agentic.age" +
+      "ntexecution.v1.GetSessionUsageReportOutp" +
+      "ut\"\004\320\270\030\001\022\234\001\n\023getAgentUsageReport\022>.ai.st" +
+      "igmer.agentic.agentexecution.v1.GetAgent" +
+      "UsageReportInput\032?.ai.stigmer.agentic.ag" +
+      "entexecution.v1.GetAgentUsageReportOutpu" +
+      "t\"\004\320\270\030\001\022\226\001\n\021getOrgUsageReport\022<.ai.stigm" +
+      "er.agentic.agentexecution.v1.GetOrgUsage" +
+      "ReportInput\032=.ai.stigmer.agentic.agentex" +
+      "ecution.v1.GetOrgUsageReportOutput\"\004\320\270\030\001" +
+      "\032\004\240\377+)B\301\001B\nQueryProtoP\001\242\002\004ASAA\252\002$Ai.Stig" +
+      "mer.Agentic.Agentexecution.V1\312\002$Ai\\Stigm" +
+      "er\\Agentic\\Agentexecution\\V1\342\0020Ai\\Stigme" +
+      "r\\Agentic\\Agentexecution\\V1\\GPBMetadata\352" +
+      "\002(Ai::Stigmer::Agentic::Agentexecution::" +
+      "V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

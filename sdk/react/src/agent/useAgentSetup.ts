@@ -1,49 +1,69 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { EnvVarInput, ResourceRef } from "@stigmer/sdk";
-import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
 import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
 import { buildPersonalInstanceInput } from "../agent-instance/buildPersonalInstanceInput";
-import type { AgentEnvFormVariable } from "./AgentEnvForm";
+import { diffEnvSpec } from "../environment/diffEnvSpec";
+import {
+  agentSetupReducer,
+  INITIAL_STATE,
+  type AgentResolution,
+  type AgentSetupResult,
+  type AgentSetupReadyResult,
+  type AgentSetupState,
+} from "./agentSetupReducer";
 
 const PERSONAL_LABEL = "stigmer.ai/personal";
 const FOR_AGENT_LABEL = "stigmer.ai/for-agent";
 
 // ---------------------------------------------------------------------------
-// Public types
+// Public types (re-exported from agentSetupReducer for convenience)
 // ---------------------------------------------------------------------------
 
-/**
- * Discriminated result returned by {@link useAgentSetup.resolveAgent} and
- * {@link useAgentSetup.submitEnvVars}.
- *
- * - `"ready"` — the agent can be used immediately. `instanceId` is the
- *   personal instance when one was resolved, or `null` when the agent has
- *   no `env_spec` (the backend will use the default instance).
- * - `"needsEnvVars"` — the agent requires environment variables that the
- *   user has not yet provided. Render {@link AgentEnvForm} with
- *   `missingVariables` and call {@link submitEnvVars} on form submission.
- */
-export type AgentSetupResult =
-  | {
-      readonly status: "ready";
-      readonly agentRef: ResourceRef;
-      readonly instanceId: string | null;
-      readonly agentName: string;
-    }
-  | {
-      readonly status: "needsEnvVars";
-      readonly agentRef: ResourceRef;
-      readonly agentName: string;
-      readonly missingVariables: AgentEnvFormVariable[];
-    };
+export type {
+  AgentResolution,
+  AgentSetupResult,
+  AgentSetupReadyResult,
+  AgentSetupState,
+  AgentSetupPhase,
+} from "./agentSetupReducer";
+
+export interface SubmitEnvVarsOptions {
+  /**
+   * When `true` (default), the provided values are saved to the user's
+   * personal environment and a personal agent instance is created.
+   * Subsequent runs of the same agent will reuse these credentials.
+   *
+   * When `false`, the values are collected as `runtimeEnv` for this
+   * execution only — no data is persisted and no agent instance is
+   * created. This path is instant (no network calls).
+   *
+   * @default true
+   */
+  readonly saveForFuture?: boolean;
+}
 
 export interface UseAgentSetupReturn {
+  /**
+   * Current state of the agent setup flow.
+   *
+   * A discriminated union on `status`:
+   * - `"idle"` — no agent selected
+   * - `"resolving"` — evaluating an agent's requirements
+   * - `"needsEnvVars"` — waiting for user to provide missing variables
+   * - `"submitting"` — saving environment / creating instance
+   * - `"ready"` — agent resolved, `resolution` describes how to proceed
+   *
+   * `error` is available on all variants (orthogonal to phase).
+   */
+  readonly state: AgentSetupState;
+
   /**
    * Evaluate whether an agent is ready to use or needs env var collection.
    *
@@ -57,74 +77,97 @@ export interface UseAgentSetupReturn {
   /**
    * Complete the env var collection flow for the pending agent.
    *
-   * Creates or updates the personal environment with the provided values,
-   * then creates a personal agent instance linked to that environment.
-   * Must only be called after {@link resolveAgent} returned `"needsEnvVars"`.
+   * Behavior depends on `options.saveForFuture`:
+   * - `true` (default) — Creates or updates the personal environment
+   *   with the provided values, then creates a personal agent instance.
+   *   Returns `{ resolution: { mode: "saved", instanceId } }`.
+   * - `false` — Collects values as `runtimeEnv` without any API calls.
+   *   Returns `{ resolution: { mode: "oneTime", runtimeEnv } }`.
+   *
+   * Must only be called when `state.status === "needsEnvVars"`.
    */
   readonly submitEnvVars: (
     values: Record<string, EnvVarInput>,
-  ) => Promise<AgentSetupResult & { status: "ready" }>;
+    options?: SubmitEnvVarsOptions,
+  ) => Promise<AgentSetupReadyResult>;
 
-  /** `true` while {@link resolveAgent} or {@link submitEnvVars} is in-flight. */
-  readonly isResolving: boolean;
-
-  /** Error message from the most recent failed operation, or `null`. */
-  readonly error: string | null;
+  /** Clear the error without changing the current phase. */
   readonly clearError: () => void;
-}
 
-interface PendingAgent {
-  readonly agent: Agent;
-  readonly agentRef: ResourceRef;
+  /** Reset to `idle` state, clearing all phase data and errors. */
+  readonly reset: () => void;
 }
 
 /**
- * Layer 2 behavior hook that encapsulates the agent selection and
- * personal environment resolution flow.
+ * Layer 2 behavior hook that encapsulates the agent selection,
+ * personal environment resolution, and secret delivery routing flow.
  *
  * When a user picks an agent in the {@link AgentPicker}, this hook
- * determines whether the agent requires credentials (via its `env_spec`),
- * checks what the user has already provided in their personal environment,
- * and either reports the agent as ready or identifies the missing variables
- * so the caller can render {@link AgentEnvForm}.
+ * determines whether the agent requires credentials (via its
+ * `env_spec`), checks what the user has already provided in their
+ * personal environment, and either reports the agent as ready or
+ * identifies the missing variables so the caller can render
+ * {@link AgentEnvForm}.
+ *
+ * The hook supports two secret delivery paths via the `saveForFuture`
+ * option on {@link submitEnvVars}:
+ * - **Saved** — secrets are persisted to the personal environment and
+ *   a personal agent instance is created for reuse.
+ * - **One-time** — secrets are returned as `runtimeEnv` for a single
+ *   execution, with no data persisted.
+ *
+ * State is managed by a `useReducer` state machine with five phases:
+ * `idle → resolving → needsEnvVars → submitting → ready`.
  *
  * Composes {@link usePersonalEnvironment} for personal environment
  * operations and calls the Stigmer client directly for agent and
  * agent instance queries.
  *
+ * > **Why not compose `usePersonalAgentInstance`?**
+ * > `resolveAgent` is an imperative async callback that needs
+ * > immediate results within a single invocation. Hook state
+ * > updates require a render cycle. Instance creation is delegated
+ * > through the shared `buildPersonalInstanceInput` helper instead.
+ *
  * Pass `null` as `org` to disable all operations (stable no-op).
  *
- * This is a Layer 2 **Environment Flow** hook. It provides the managed
- * agent selection + credential collection experience used by the
- * Stigmer Console. Callers who pre-provision environments and
- * instances, or who use the Execution Flow (`runtimeEnv`), should use
- * the Layer 1 building blocks directly.
+ * @param org - Organization slug. Pass `null` to disable.
+ * @param poolKeys - Optional set of env-var keys already available
+ *   from the session env pool (manual secrets, one-time env vars from
+ *   other components). When provided, agents whose `env_spec` keys
+ *   are fully covered by `poolKeys` + personal env auto-resolve to
+ *   `ready` without prompting. Reactive — when `poolKeys` changes,
+ *   `needsEnvVars` is re-evaluated.
  *
  * @example
  * ```tsx
- * const agentSetup = useAgentSetup("acme");
+ * const { state, resolveAgent, submitEnvVars } = useAgentSetup("acme", pool.availableKeys);
  *
- * const result = await agentSetup.resolveAgent({
- *   org: "acme", slug: "code-reviewer",
- * });
+ * const result = await resolveAgent({ org: "acme", slug: "code-reviewer" });
  *
  * if (result.status === "needsEnvVars") {
  *   // Render AgentEnvForm with result.missingVariables
  *   // On form submit:
- *   const ready = await agentSetup.submitEnvVars(formValues);
- *   console.log(ready.instanceId);
+ *   const ready = await submitEnvVars(formValues, { saveForFuture: true });
+ *   // ready.resolution.mode === "saved" | "oneTime"
  * }
  * ```
  */
-export function useAgentSetup(org: string | null): UseAgentSetupReturn {
+export function useAgentSetup(
+  org: string | null,
+  poolKeys?: Set<string>,
+): UseAgentSetupReturn {
   const stigmer = useStigmer();
   const personalEnv = usePersonalEnvironment(org);
 
-  const [isResolving, setIsResolving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const clearError = useCallback(() => setError(null), []);
+  const [state, dispatch] = useReducer(agentSetupReducer, INITIAL_STATE);
 
-  const pendingRef = useRef<PendingAgent | null>(null);
+  const clearError = useCallback(() => dispatch({ type: "CLEAR_ERROR" }), []);
+  const reset = useCallback(() => dispatch({ type: "RESET" }), []);
+
+  // -------------------------------------------------------------------------
+  // resolveAgent
+  // -------------------------------------------------------------------------
 
   const resolveAgent = useCallback(
     async (ref: ResourceRef): Promise<AgentSetupResult> => {
@@ -134,17 +177,23 @@ export function useAgentSetup(org: string | null): UseAgentSetupReturn {
         );
       }
 
-      setIsResolving(true);
-      setError(null);
-      pendingRef.current = null;
+      dispatch({ type: "RESOLVE_START", agentRef: ref });
 
       try {
         const agent = await stigmer.agent.getByReference(ref);
         const agentName = agent.metadata?.name ?? ref.slug;
         const envSpecData = agent.spec?.envSpec?.data;
 
+        // No env_spec — agent is immediately ready (direct mode).
         if (!envSpecData || Object.keys(envSpecData).length === 0) {
-          return { status: "ready", agentRef: ref, instanceId: null, agentName };
+          const resolution: AgentResolution = { mode: "direct" };
+          dispatch({
+            type: "RESOLVE_READY",
+            agentRef: ref,
+            agentName,
+            resolution,
+          });
+          return { status: "ready", agentRef: ref, agentName, resolution };
         }
 
         // Agent has env_spec — check for existing personal instance.
@@ -160,28 +209,27 @@ export function useAgentSetup(org: string | null): UseAgentSetupReturn {
         );
 
         if (instanceList.items.length > 0) {
-          const existingId = instanceList.items[0].metadata!.id;
-          return { status: "ready", agentRef: ref, instanceId: existingId, agentName };
+          const resolution: AgentResolution = {
+            mode: "saved",
+            instanceId: instanceList.items[0].metadata!.id,
+          };
+          dispatch({
+            type: "RESOLVE_READY",
+            agentRef: ref,
+            agentName,
+            resolution,
+          });
+          return { status: "ready", agentRef: ref, agentName, resolution };
         }
 
-        // No personal instance — check which env vars are missing.
+        // No personal instance — diff against existing env keys + pool.
         const existingKeys = new Set(
           Object.keys(personalEnv.environment?.spec?.data ?? {}),
         );
-
-        const missingVariables: AgentEnvFormVariable[] = [];
-        for (const [key, value] of Object.entries(envSpecData)) {
-          if (!existingKeys.has(key)) {
-            missingVariables.push({
-              key,
-              isSecret: value.isSecret,
-              ...(value.description && { description: value.description }),
-            });
-          }
-        }
+        const missingVariables = diffEnvSpec(envSpecData, existingKeys, poolKeys);
 
         if (missingVariables.length === 0) {
-          // All variables present — create personal instance directly.
+          // All variables present — create personal instance.
           const env = await personalEnv.getOrCreate();
           const envRef: ResourceRef = {
             org,
@@ -198,37 +246,72 @@ export function useAgentSetup(org: string | null): UseAgentSetupReturn {
             }),
           );
 
-          return {
-            status: "ready",
-            agentRef: ref,
+          const resolution: AgentResolution = {
+            mode: "saved",
             instanceId: instance.metadata!.id,
-            agentName,
           };
+          dispatch({
+            type: "RESOLVE_READY",
+            agentRef: ref,
+            agentName,
+            resolution,
+          });
+          return { status: "ready", agentRef: ref, agentName, resolution };
         }
 
-        // Missing variables — caller should show the env form.
-        pendingRef.current = { agent, agentRef: ref };
-        return { status: "needsEnvVars", agentRef: ref, agentName, missingVariables };
+        // Missing variables — transition to needsEnvVars.
+        dispatch({
+          type: "RESOLVE_NEEDS_ENV",
+          agentRef: ref,
+          agentId: agent.metadata!.id,
+          agentName,
+          missingVariables,
+        });
+        return {
+          status: "needsEnvVars",
+          agentRef: ref,
+          agentName,
+          missingVariables,
+        };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to resolve agent";
-        setError(message);
+        dispatch({ type: "ERROR", error: toError(err) });
         throw err;
-      } finally {
-        setIsResolving(false);
       }
     },
-    [org, stigmer, personalEnv],
+    [org, stigmer, personalEnv, poolKeys],
   );
+
+  // -------------------------------------------------------------------------
+  // Pool re-evaluation — auto-resolve needsEnvVars when pool changes
+  // -------------------------------------------------------------------------
+
+  const agentMissingVars =
+    state.status === "needsEnvVars" ? state.missingVariables : null;
+
+  useEffect(() => {
+    if (!poolKeys || poolKeys.size === 0) return;
+    if (!agentMissingVars) return;
+
+    const stillMissing = agentMissingVars.filter(
+      (v) => !poolKeys.has(v.key),
+    );
+
+    dispatch({ type: "POOL_RESOLVE", missingVariables: stillMissing });
+  }, [poolKeys, agentMissingVars]);
+
+  // -------------------------------------------------------------------------
+  // submitEnvVars
+  // -------------------------------------------------------------------------
 
   const submitEnvVars = useCallback(
     async (
       values: Record<string, EnvVarInput>,
-    ): Promise<AgentSetupResult & { status: "ready" }> => {
-      const pending = pendingRef.current;
-      if (!pending) {
+      options?: SubmitEnvVarsOptions,
+    ): Promise<AgentSetupReadyResult> => {
+      if (state.status !== "needsEnvVars") {
         throw new Error(
-          "useAgentSetup: no pending agent. Call resolveAgent() first " +
+          "useAgentSetup: submitEnvVars requires state.status === 'needsEnvVars'. " +
+            `Current status is '${state.status}'. Call resolveAgent() first ` +
             "and ensure it returned status 'needsEnvVars'.",
         );
       }
@@ -238,13 +321,28 @@ export function useAgentSetup(org: string | null): UseAgentSetupReturn {
         );
       }
 
-      setIsResolving(true);
-      setError(null);
+      const { agentRef, agentId, agentName } = state;
+      const saveForFuture = options?.saveForFuture ?? true;
+
+      // ----- One-time path: no API calls, instant result -----
+      if (!saveForFuture) {
+        const resolution: AgentResolution = {
+          mode: "oneTime",
+          runtimeEnv: values,
+        };
+        dispatch({
+          type: "SUBMIT_READY",
+          agentRef,
+          agentName,
+          resolution,
+        });
+        return { status: "ready", agentRef, agentName, resolution };
+      }
+
+      // ----- Save path: persist to environment + create instance -----
+      dispatch({ type: "SUBMIT_START" });
 
       try {
-        const { agent, agentRef } = pending;
-        const agentName = agent.metadata?.name ?? agentRef.slug;
-
         const env = await personalEnv.getOrCreate();
         await personalEnv.addVariables(values);
 
@@ -257,32 +355,30 @@ export function useAgentSetup(org: string | null): UseAgentSetupReturn {
         const instance = await stigmer.agentInstance.create(
           buildPersonalInstanceInput({
             org,
-            agentId: agent.metadata!.id,
+            agentId,
             agentSlug: agentRef.slug,
             environmentRef: envRef,
           }),
         );
 
-        pendingRef.current = null;
-        return {
-          status: "ready",
-          agentRef,
+        const resolution: AgentResolution = {
+          mode: "saved",
           instanceId: instance.metadata!.id,
-          agentName,
         };
+        dispatch({
+          type: "SUBMIT_READY",
+          agentRef,
+          agentName,
+          resolution,
+        });
+        return { status: "ready", agentRef, agentName, resolution };
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to complete agent setup";
-        setError(message);
+        dispatch({ type: "ERROR", error: toError(err) });
         throw err;
-      } finally {
-        setIsResolving(false);
       }
     },
-    [org, stigmer, personalEnv],
+    [org, stigmer, personalEnv, state],
   );
 
-  return { resolveAgent, submitEnvVars, isResolving, error, clearError };
+  return { state, resolveAgent, submitEnvVars, clearError, reset };
 }

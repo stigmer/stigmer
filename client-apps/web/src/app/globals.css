@@ -44,10 +44,18 @@
   --color-chart-3: var(--stgm-chart-3);
   --color-chart-4: var(--stgm-chart-4);
   --color-chart-5: var(--stgm-chart-5);
+  --color-primary-hover: var(--stgm-primary-hover);
+  --color-primary-subtle: var(--stgm-primary-subtle);
+  --color-destructive-subtle: var(--stgm-destructive-subtle);
+  --color-muted-subtle: var(--stgm-muted-subtle);
+  --color-muted-foreground-subtle: var(--stgm-muted-foreground-subtle);
+  --color-backdrop: var(--stgm-backdrop);
   --color-sidebar: var(--stgm-sidebar);
   --color-sidebar-foreground: var(--stgm-sidebar-foreground);
   --color-sidebar-primary: var(--stgm-sidebar-primary);
   --color-sidebar-primary-foreground: var(--stgm-sidebar-primary-foreground);
+  --color-sidebar-muted: var(--stgm-sidebar-muted);
+  --color-sidebar-muted-foreground: var(--stgm-sidebar-muted-foreground);
   --color-sidebar-accent: var(--stgm-sidebar-accent);
   --color-sidebar-accent-foreground: var(--stgm-sidebar-accent-foreground);
   --color-sidebar-border: var(--stgm-sidebar-border);

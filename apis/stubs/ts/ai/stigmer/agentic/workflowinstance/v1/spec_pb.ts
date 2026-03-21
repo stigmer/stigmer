@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflowinstance/v1/spec.proto.
  */
 export const file_ai_stigmer_agentic_workflowinstance_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9zcGVjLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MSKRAQoUV29ya2Zsb3dJbnN0YW5jZVNwZWMSHAoLd29ya2Zsb3dfaWQYASABKAlCB7pIBHICEAESEwoLZGVzY3JpcHRpb24YAiABKAkSRgoIZW52X3JlZnMYAyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2ViBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dpbnN0YW5jZS92MS9zcGVjLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dpbnN0YW5jZS52MSKQAgoUV29ya2Zsb3dJbnN0YW5jZVNwZWMSHAoLd29ya2Zsb3dfaWQYASABKAlCB7pIBHICEAESEwoLZGVzY3JpcHRpb24YAiABKAkSxAEKEGVudmlyb25tZW50X3JlZnMYAyADKAsyNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2VCdLpIcZIBbiJsugFpChVlbnZpcm9ubWVudF9yZWZzLmtpbmQSP2Vudmlyb25tZW50X3JlZnMgbXVzdCByZWZlcmVuY2UgcmVzb3VyY2VzIHdpdGgga2luZD1lbnZpcm9ubWVudBoPdGhpcy5raW5kID09IDUyYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_io, file_buf_validate_validate]);
 
 /**
  * WorkflowInstanceSpec defines the user-configurable properties for a WorkflowInstance.
@@ -100,9 +100,9 @@ export type WorkflowInstanceSpec = Message<"ai.stigmer.agentic.workflowinstance.
    * At execution time, the WorkflowExecution runtime merges these environments
    * and provides the combined configuration to all agents in the workflow.
    *
-   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3;
+   * @generated from field: repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3;
    */
-  envRefs: ApiResourceReference[];
+  environmentRefs: ApiResourceReference[];
 };
 
 /**

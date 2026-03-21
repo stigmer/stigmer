@@ -5,6 +5,8 @@ import type { UseWorkspaceEntriesReturn } from "./useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
 import { GitHubRepoPicker } from "../github/GitHubRepoPicker";
 import { FolderBrowser } from "./FolderBrowser";
+import { useScrollShadows } from "../internal/useScrollShadows";
+import { ScrollFade } from "../internal/ScrollFade";
 
 export interface WorkspaceEditorProps {
   readonly workspace: UseWorkspaceEntriesReturn;
@@ -51,9 +53,12 @@ export function WorkspaceEditor({
   enableLocal = false,
   enableFolderBrowser = false,
 }: WorkspaceEditorProps) {
-  const [activePanel, setActivePanel] = useState<ActivePanel>("none");
+  const [activePanel, setActivePanel] = useState<ActivePanel>(
+    enableGitHub ? "github" : "none",
+  );
   const [manualUrl, setManualUrl] = useState("");
   const [manualBranch, setManualBranch] = useState("");
+  const entryList = useScrollShadows();
   const [localPath, setLocalPath] = useState("");
   const [lastFolderPath, setLastFolderPath] = useState<string | undefined>(
     () => {
@@ -113,34 +118,44 @@ export function WorkspaceEditor({
   return (
     <div className={["space-y-2", className].filter(Boolean).join(" ")}>
       {/* Entry list */}
-      {workspace.entries.map((entry) => (
-        <div
-          key={entry.id}
-          className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs"
-        >
-          <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
-            {TYPE_LABELS[entry.type] ?? entry.type}
-          </span>
-          <span
-            className={[
-              "min-w-0 flex-1 truncate text-foreground",
-              entry.type === "local" ? "[direction:rtl] text-left" : "",
-            ].join(" ")}
-            title={entry.name}
-          >
-            <bdi>{entry.name}</bdi>
-          </span>
-          <button
-            type="button"
-            onClick={() => workspace.remove(entry.id)}
-            disabled={disabled}
-            className="shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
-            aria-label={`Remove ${entry.name}`}
-          >
-            <XIcon />
-          </button>
+      {workspace.entries.length > 0 && (
+        <div className="relative">
+          {entryList.canScrollUp && <ScrollFade position="top" />}
+
+          <div ref={entryList.scrollRef} className="max-h-28 space-y-2 overflow-y-auto">
+            {workspace.entries.map((entry) => (
+              <div
+                key={entry.id}
+                className="flex items-center gap-2 rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs"
+              >
+                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[0.65rem] text-muted-foreground">
+                  {TYPE_LABELS[entry.type] ?? entry.type}
+                </span>
+                <span
+                  className={[
+                    "min-w-0 flex-1 truncate text-foreground",
+                    entry.type === "local" ? "[direction:rtl] text-left" : "",
+                  ].join(" ")}
+                  title={entry.name}
+                >
+                  <bdi>{entry.name}</bdi>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => workspace.remove(entry.id)}
+                  disabled={disabled}
+                  className="shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
+                  aria-label={`Remove ${entry.name}`}
+                >
+                  <XIcon />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {entryList.canScrollDown && <ScrollFade position="bottom" />}
         </div>
-      ))}
+      )}
 
       {/* Source buttons */}
       <div className="flex items-center gap-2">
@@ -270,6 +285,19 @@ function GitHubPanel({
   }
 
   if (!connection.isConnected) {
+    if (connection.isConnecting) {
+      return (
+        <div className="space-y-3 py-4 text-center">
+          <div className="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-foreground" />
+          <p className="text-xs text-muted-foreground">
+            Connecting to GitHub...
+          </p>
+        </div>
+      );
+    }
+
+    const redirectUri = `${window.location.origin}/auth/github/callback`;
+
     return (
       <div className="space-y-3 text-center">
         <div className="flex justify-end">
@@ -290,17 +318,39 @@ function GitHubPanel({
             Connect your GitHub account so the agent can access your repos
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            const redirectUri = `${window.location.origin}/auth/github/callback`;
-            connection.connect(redirectUri);
-          }}
-          className="inline-flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-xs text-background hover:bg-foreground/90 transition-colors"
-        >
-          <GitHubIcon />
-          <span>Connect GitHub</span>
-        </button>
+        {connection.popupBlocked ? (
+          <div className="space-y-2">
+            <p className="text-[0.65rem] text-destructive">
+              Popup was blocked by your browser.
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => connection.connect(redirectUri, { popup: true })}
+                className="rounded-md px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Try again
+              </button>
+              <button
+                type="button"
+                onClick={() => connection.connect(redirectUri)}
+                className="inline-flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-xs text-background hover:bg-foreground/90 transition-colors"
+              >
+                <GitHubIcon />
+                <span>Continue with redirect</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => connection.connect(redirectUri, { popup: true })}
+            className="inline-flex items-center gap-2 rounded-md bg-foreground px-3 py-1.5 text-xs text-background hover:bg-foreground/90 transition-colors"
+          >
+            <GitHubIcon />
+            <span>Connect GitHub</span>
+          </button>
+        )}
       </div>
     );
   }

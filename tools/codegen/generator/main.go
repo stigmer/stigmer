@@ -971,21 +971,22 @@ func newGenContextForResourceArgs(packageName string, sharedTypes []*TypeSchema)
 	return ctx
 }
 
+const sdkProtoPrefix = "github.com/stigmer/stigmer/sdk/go/proto"
+
 // protoTypeToGoImportPath converts a proto type namespace to a Go import path
-// Example: "ai.stigmer.agentic.agent.v1.McpServerUsage" -> "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
-func protoTypeToGoImportPath(protoType string) string {
-	// Proto type format: ai.stigmer.<domain>.<subdomain>.<version>.<TypeName>
-	// or: ai.stigmer.commons.<module>.<TypeName>
+// using the given module prefix.
+// Example with sdkProtoPrefix:
+//
+//	"ai.stigmer.agentic.agent.v1.McpServerUsage" -> "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1"
+func protoTypeToGoImportPath(protoType, prefix string) string {
 	parts := strings.Split(protoType, ".")
 	if len(parts) < 4 {
 		return ""
 	}
 
-	// Remove the type name (last element)
 	pathParts := parts[:len(parts)-1]
 
-	// Build the Go import path
-	return "github.com/stigmer/stigmer/sdk/go/proto/" + strings.Join(pathParts, "/")
+	return prefix + "/" + strings.Join(pathParts, "/")
 }
 
 // protoTypeToPackageAlias returns a Go package alias for a proto type
@@ -1769,7 +1770,7 @@ func (c *genContext) goType(typeSpec TypeSpec) string {
 			// If useProtoStubs is enabled, use proto stubs types directly
 			if c.useProtoStubs {
 				if typeSchema, ok := c.protoStubTypes[typeSpec.MessageType]; ok && typeSchema.ProtoType != "" {
-					importPath := protoTypeToGoImportPath(typeSchema.ProtoType)
+					importPath := protoTypeToGoImportPath(typeSchema.ProtoType, sdkProtoPrefix)
 					pkgAlias := protoTypeToPackageAlias(typeSchema.ProtoType)
 					if importPath != "" && pkgAlias != "" {
 						c.addImportWithAlias(importPath, pkgAlias)

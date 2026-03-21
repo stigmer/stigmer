@@ -9,6 +9,7 @@ import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/s
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import type { ApiResourceReference as ProtoApiResourceReference } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import type {
+  AttachmentInput,
   EnvVarInput,
   McpServerUsageInput,
   ResourceRef,
@@ -35,6 +36,12 @@ import { useUpdateSession } from "./useUpdateSession";
  */
 export interface SendFollowUpOptions {
   readonly modelName?: string;
+  /**
+   * Override the session's agent instance for this and all future
+   * executions. When provided, the session is updated before the
+   * execution is created.
+   */
+  readonly agentInstanceId?: string;
   readonly workspaceEntries?: WorkspaceEntryInput[];
   readonly mcpServerUsages?: McpServerUsageInput[];
   readonly skillRefs?: ResourceRef[];
@@ -48,6 +55,16 @@ export interface SendFollowUpOptions {
    * @see {@link CreateAgentExecutionInput.runtimeEnv}
    */
   readonly runtimeEnv?: Record<string, EnvVarInput>;
+  /**
+   * Pre-uploaded file attachments for this execution.
+   *
+   * Each entry must include a `storageKey` from
+   * `agentExecution.uploadAttachment()`. Forwarded directly to
+   * execution creation.
+   *
+   * @see {@link CreateAgentExecutionInput.attachments}
+   */
+  readonly attachments?: AttachmentInput[];
 }
 
 export interface UseSessionConversationReturn {
@@ -66,9 +83,10 @@ export interface UseSessionConversationReturn {
    * Submit a follow-up message. Internally creates an execution and
    * starts streaming it.
    *
-   * When session-level fields (`workspaceEntries`, `mcpServerUsages`,
-   * `skillRefs`) are provided in options, the session is updated via
-   * `session.update()` before creating the execution.
+   * When session-level fields (`agentInstanceId`, `workspaceEntries`,
+   * `mcpServerUsages`, `skillRefs`) are provided in options, the
+   * session is updated via `session.update()` before creating the
+   * execution.
    */
   readonly sendFollowUp: (
     message: string,
@@ -79,7 +97,7 @@ export interface UseSessionConversationReturn {
   /** True during the create RPC call (between submit and execution ID). */
   readonly isSending: boolean;
   /** Error from the last sendFollowUp attempt, or null. */
-  readonly sendError: string | null;
+  readonly sendError: Error | null;
   readonly clearSendError: () => void;
 
   /** The user's message text, shown in the thread before the stream delivers it. */
@@ -108,13 +126,13 @@ export interface UseSessionConversationReturn {
    * for optimistic removal.
    */
   readonly dismissedApprovalIds: ReadonlySet<string>;
-  readonly approvalError: string | null;
+  readonly approvalError: Error | null;
   readonly clearApprovalError: () => void;
 
   readonly isLoading: boolean;
-  readonly loadError: string | null;
+  readonly loadError: Error | null;
 
-  readonly streamError: string | null;
+  readonly streamError: Error | null;
   readonly reconnectStream: () => void;
 }
 
@@ -288,6 +306,7 @@ export function useSessionConversation(
 
       try {
         const needsSessionUpdate =
+          options?.agentInstanceId !== undefined ||
           options?.workspaceEntries !== undefined ||
           options?.mcpServerUsages !== undefined ||
           options?.skillRefs !== undefined;
@@ -295,6 +314,7 @@ export function useSessionConversation(
         if (needsSessionUpdate) {
           await updateSession(
             buildUpdateInput(session, {
+              agentInstanceId: options?.agentInstanceId,
               workspaceEntries: options?.workspaceEntries,
               mcpServerUsages: options?.mcpServerUsages,
               skillRefs: options?.skillRefs,
@@ -308,6 +328,7 @@ export function useSessionConversation(
           message,
           modelName: options?.modelName,
           runtimeEnv: options?.runtimeEnv,
+          attachments: options?.attachments,
         });
         setPendingExecutionId(result.executionId);
         refetch();
@@ -394,6 +415,7 @@ export function useSessionConversation(
 function buildUpdateInput(
   session: Session,
   overrides: {
+    agentInstanceId?: string;
     workspaceEntries?: WorkspaceEntryInput[];
     mcpServerUsages?: McpServerUsageInput[];
     skillRefs?: ResourceRef[];
@@ -413,7 +435,7 @@ function buildUpdateInput(
   return {
     name: meta.name,
     org: meta.org,
-    agentInstanceId: spec?.agentInstanceId || undefined,
+    agentInstanceId: overrides.agentInstanceId ?? (spec?.agentInstanceId || undefined),
     subject: spec?.subject || undefined,
     threadId: spec?.threadId || undefined,
     sandboxId: spec?.sandboxId || undefined,

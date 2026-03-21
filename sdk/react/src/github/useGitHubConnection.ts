@@ -6,10 +6,16 @@ import { EnvironmentSecretValueInputSchema } from "@stigmer/protos/ai/stigmer/ag
 import { useStigmer } from "../hooks";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
 
-const STORAGE_KEY_TOKEN = "stigmer:github:token";
 const STORAGE_KEY_STATE = "stigmer:github:oauth-state";
 const GITHUB_USER_API = "https://api.github.com/user";
 const GITHUB_TOKEN_KEY = "GITHUB_TOKEN";
+
+/** Message type sent from the OAuth callback popup to the opener. */
+export const GITHUB_CALLBACK_MESSAGE_TYPE = "stigmer:github:callback-success";
+
+const POPUP_WIDTH = 600;
+const POPUP_HEIGHT = 700;
+const POPUP_CLOSE_POLL_MS = 500;
 
 /** Minimal GitHub user profile for display. */
 export interface GitHubUser {
@@ -18,17 +24,43 @@ export interface GitHubUser {
   readonly name: string | null;
 }
 
+export interface GitHubConnectOptions {
+  /**
+   * When `true`, open the OAuth authorization page in a popup window
+   * instead of redirecting the current page. The callback page signals
+   * success via `postMessage` and the hook re-reconciles the token
+   * from the personal environment — keeping the user on the same page.
+   *
+   * Falls back to redirect if the popup is blocked by the browser.
+   *
+   * @default false
+   */
+  readonly popup?: boolean;
+}
+
 export interface UseGitHubConnectionReturn {
   /** Whether a valid GitHub token exists. */
   readonly isConnected: boolean;
   /** Whether the connection state is being validated on mount. */
   readonly isLoading: boolean;
+  /** Whether an OAuth popup is open and the flow is in progress. */
+  readonly isConnecting: boolean;
+  /**
+   * Whether the last popup `connect()` attempt was blocked by the
+   * browser. When `true`, the UI should prompt the user to allow
+   * popups or offer a redirect fallback (call `connect` without
+   * `{ popup: true }`).
+   */
+  readonly popupBlocked: boolean;
   /** The connected GitHub user profile, if connected. */
   readonly user: GitHubUser | null;
   /** The current access token (null if not connected). */
   readonly token: string | null;
-  /** Initiate the OAuth flow by redirecting to GitHub. */
-  readonly connect: (redirectUri: string) => Promise<void>;
+  /** Initiate the OAuth flow — redirect or popup based on options. */
+  readonly connect: (
+    redirectUri: string,
+    options?: GitHubConnectOptions,
+  ) => Promise<void>;
   /** Handle the OAuth callback — exchange code for token. */
   readonly handleCallback: (
     code: string,
@@ -76,20 +108,20 @@ function personalEnvHasKey(
  * {@link Environment}.
  *
  * **Storage strategy:** The token is stored encrypted in the personal
- * environment (server-side). On mount the hook reads from localStorage
- * first for instant UX, then reconciles with the server. Tokens found
- * only in localStorage are migrated to the personal environment and
- * removed from localStorage.
+ * environment (server-side). On OAuth callback the token is written
+ * directly to the personal environment via `getOrCreate` /
+ * `addVariables`. On subsequent mounts the token is revealed from the
+ * personal environment and validated against the GitHub API.
  *
- * Pass `null` as `org` to fall back to localStorage-only behavior
- * (useful during initial app load before org context is available).
+ * Pass `null` as `org` to disable server-side storage (the hook will
+ * report as not connected until org context is available).
  *
  * Platform builders who need custom GitHub integration UI use this
  * hook directly. The styled `WorkspaceEditor` component accepts the
  * return value as a prop.
  *
  * @param org - The active organization slug. Required for server-side
- *   token storage. Pass `null` to use localStorage-only mode.
+ *   token storage. Pass `null` to skip all server operations.
  */
 export function useGitHubConnection(
   org: string | null,
@@ -98,150 +130,173 @@ export function useGitHubConnection(
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<GitHubUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [popupBlocked, setPopupBlocked] = useState(false);
 
   const personalEnv = usePersonalEnvironment(org || null);
 
-  // Ref to the personal env hook so async callbacks always see the latest
-  // state without being recreated on every render.
   const personalEnvRef = useRef(personalEnv);
   personalEnvRef.current = personalEnv;
 
-  // Track whether the reconciliation effect has run to avoid double-migration.
   const reconciled = useRef(false);
+  const popupRef = useRef<Window | null>(null);
+  const popupPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Phase 1: Instant localStorage read ──────────────────────────────
-  // Provides zero-latency provisional state while the personal env loads.
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY_TOKEN);
-    if (!stored) {
-      // No localStorage token. If there's no org (so no server check
-      // will happen), we're done loading.
-      if (!org) setIsLoading(false);
-      return;
-    }
+  // Synchronously reset loading state when org changes so callers
+  // (like the callback page) see the correct value in the same
+  // render — not deferred to the next render via an effect.
+  const [prevOrg, setPrevOrg] = useState(org);
+  if (org !== prevOrg) {
+    setPrevOrg(org);
+    setIsLoading(!!org);
+    reconciled.current = false;
+  }
 
-    let cancelled = false;
-    fetchGitHubUser(stored).then((u) => {
-      if (cancelled) return;
-      if (u) {
-        setToken(stored);
-        setUser(u);
-      } else {
-        localStorage.removeItem(STORAGE_KEY_TOKEN);
-      }
-      // If no org, this is the only source — mark loading done.
-      // With org, Phase 2 will finalize loading after reconciliation.
-      if (!org) setIsLoading(false);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-    // Only on mount (org is captured but we don't re-run on org change;
-    // the reconciliation effect handles that).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Phase 2: Server reconciliation ──────────────────────────────────
-  // Runs when the personal environment finishes loading. Handles:
-  //   Case A: Token in server + localStorage → clear localStorage
-  //   Case B: Token in server only → reveal and use it
-  //   Case C: Token in localStorage only → migrate to server
-  //   Case D: Neither → not connected
+  // ── Server reconciliation ────────────────────────────────────────────
+  // Runs once after the personal environment finishes loading.
+  // If GITHUB_TOKEN exists in the personal env, reveals it and sets
+  // React state. If the revealed token is invalid, cleans it up.
+  // If no token exists, marks the hook as not connected.
   useEffect(() => {
     if (!org || personalEnv.isLoading) return;
 
-    // Prevent re-running if we've already reconciled for this org.
     if (reconciled.current) return;
     reconciled.current = true;
 
     const env = personalEnv.environment;
     const hasServerToken = personalEnvHasKey(env, GITHUB_TOKEN_KEY);
-    const localToken = localStorage.getItem(STORAGE_KEY_TOKEN);
+
+    if (!hasServerToken || !env) {
+      setIsLoading(false);
+      return;
+    }
 
     let cancelled = false;
 
-    async function reconcile() {
-      if (hasServerToken && env) {
-        // Cases A & B: Server has the token. Reveal it.
-        localStorage.removeItem(STORAGE_KEY_TOKEN);
-        try {
-          const result = await stigmer.environment.getSecretValue(
-            create(EnvironmentSecretValueInputSchema, {
-              environmentId: env.metadata!.id,
-              key: GITHUB_TOKEN_KEY,
-            }),
-          );
-          if (cancelled) return;
+    async function reveal() {
+      try {
+        const result = await stigmer.environment.getSecretValue(
+          create(EnvironmentSecretValueInputSchema, {
+            environmentId: env!.metadata!.id,
+            key: GITHUB_TOKEN_KEY,
+          }),
+        );
+        if (cancelled) return;
 
-          const serverToken = result.value;
-          if (serverToken) {
-            const u = await fetchGitHubUser(serverToken);
-            if (cancelled) return;
-            if (u) {
-              setToken(serverToken);
-              setUser(u);
-            } else {
-              // Server token is invalid — clean it up.
-              try {
-                await personalEnvRef.current.removeVariables([
-                  GITHUB_TOKEN_KEY,
-                ]);
-              } catch {
-                // Best-effort cleanup; don't block the user.
-              }
-              setToken(null);
-              setUser(null);
-            }
-          }
-        } catch {
-          // getSecretValue failed (permissions, network, etc.).
-          // Fall through — Phase 1 may have set a provisional token.
-        }
-      } else if (localToken) {
-        // Case C: Token in localStorage only → migrate to server.
-        // Pass the token as initialData so a newly created env includes it
-        // in a single call. If the env already existed, getOrCreate returns
-        // it unchanged and we add the variable explicitly.
-        try {
-          const tokenVar = {
-            [GITHUB_TOKEN_KEY]: { value: localToken, isSecret: true },
-          };
-          const created = await personalEnvRef.current.getOrCreate(tokenVar);
+        const serverToken = result.value;
+        if (serverToken) {
+          const u = await fetchGitHubUser(serverToken);
           if (cancelled) return;
-          if (!personalEnvHasKey(created, GITHUB_TOKEN_KEY)) {
-            await personalEnvRef.current.addVariables(tokenVar);
-            if (cancelled) return;
+          if (u) {
+            setToken(serverToken);
+            setUser(u);
+          } else {
+            try {
+              await personalEnvRef.current.removeVariables([
+                GITHUB_TOKEN_KEY,
+              ]);
+            } catch {
+              // Best-effort cleanup.
+            }
+            setToken(null);
+            setUser(null);
           }
-          localStorage.removeItem(STORAGE_KEY_TOKEN);
-        } catch {
-          // Migration failed — keep localStorage token as fallback.
-          // It will be retried on next mount.
         }
+      } catch {
+        // getSecretValue failed — leave state as-is.
       }
-      // Case D: Neither source → no action needed.
 
       if (!cancelled) setIsLoading(false);
     }
 
-    reconcile();
+    reveal();
     return () => {
       cancelled = true;
     };
   }, [org, personalEnv.isLoading, personalEnv.environment, stigmer]);
 
-  // Reset reconciliation flag when org changes so we re-reconcile.
+  // ── Popup OAuth message listener ──────────────────────────────────────
+  // Listens for success signals from the OAuth callback page running
+  // in a popup window. On success, triggers re-reconciliation from the
+  // personal environment (where the popup already persisted the token).
   useEffect(() => {
-    reconciled.current = false;
-  }, [org]);
+    function handleMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== GITHUB_CALLBACK_MESSAGE_TYPE) return;
+
+      if (popupPollRef.current) {
+        clearInterval(popupPollRef.current);
+        popupPollRef.current = null;
+      }
+      popupRef.current = null;
+      setIsConnecting(false);
+
+      // Re-reconcile: the popup persisted the token server-side, so
+      // refetch the personal environment and let the reconciliation
+      // effect reveal and validate it.
+      setIsLoading(true);
+      reconciled.current = false;
+      personalEnvRef.current.refetch();
+    }
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  // Clean up popup resources on unmount.
+  useEffect(() => {
+    return () => {
+      if (popupPollRef.current) {
+        clearInterval(popupPollRef.current);
+      }
+    };
+  }, []);
 
   const connect = useCallback(
-    async (redirectUri: string) => {
+    async (redirectUri: string, options?: GitHubConnectOptions) => {
       const { authorizeUrl, state } =
         await stigmer.github.getOAuthAuthorizeUrl({ redirectUri });
 
       sessionStorage.setItem(STORAGE_KEY_STATE, state);
-      window.location.href = authorizeUrl;
+
+      if (!options?.popup) {
+        window.location.href = authorizeUrl;
+        return;
+      }
+
+      // If a popup is already open, bring it to focus.
+      if (popupRef.current && !popupRef.current.closed) {
+        popupRef.current.focus();
+        return;
+      }
+
+      const left = window.screenX + (window.outerWidth - POPUP_WIDTH) / 2;
+      const top = window.screenY + (window.outerHeight - POPUP_HEIGHT) / 2;
+      const popup = window.open(
+        authorizeUrl,
+        "stigmer-github-auth",
+        `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top},popup=yes`,
+      );
+
+      if (!popup || popup.closed) {
+        setPopupBlocked(true);
+        return;
+      }
+      setPopupBlocked(false);
+
+      setIsConnecting(true);
+      popupRef.current = popup;
+
+      const pollId = setInterval(() => {
+        if (!popup.closed) return;
+        clearInterval(pollId);
+        if (popupPollRef.current === pollId) {
+          popupPollRef.current = null;
+          popupRef.current = null;
+          setIsConnecting(false);
+        }
+      }, POPUP_CLOSE_POLL_MS);
+      popupPollRef.current = pollId;
     },
     [stigmer],
   );
@@ -260,9 +315,14 @@ export function useGitHubConnection(
         redirectUri,
       });
 
-      // Stage in localStorage. The next page mount will migrate it to
-      // the personal environment during reconciliation (Phase 2).
-      localStorage.setItem(STORAGE_KEY_TOKEN, accessToken);
+      const tokenVar = {
+        [GITHUB_TOKEN_KEY]: { value: accessToken, isSecret: true },
+      };
+      const env = await personalEnvRef.current.getOrCreate(tokenVar);
+      if (!personalEnvHasKey(env, GITHUB_TOKEN_KEY)) {
+        await personalEnvRef.current.addVariables(tokenVar);
+      }
+
       setToken(accessToken);
 
       const u = await fetchGitHubUser(accessToken);
@@ -272,26 +332,33 @@ export function useGitHubConnection(
   );
 
   const disconnect = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY_TOKEN);
     sessionStorage.removeItem(STORAGE_KEY_STATE);
     setToken(null);
     setUser(null);
 
-    // Remove from personal environment (fire-and-forget).
+    if (popupRef.current && !popupRef.current.closed) {
+      popupRef.current.close();
+    }
+    popupRef.current = null;
+    if (popupPollRef.current) {
+      clearInterval(popupPollRef.current);
+      popupPollRef.current = null;
+    }
+    setIsConnecting(false);
+
     const env = personalEnvRef.current.environment;
     if (env && personalEnvHasKey(env, GITHUB_TOKEN_KEY)) {
       personalEnvRef.current
         .removeVariables([GITHUB_TOKEN_KEY])
-        .catch(() => {
-          // Best-effort server cleanup. localStorage is already cleared,
-          // so next mount won't find the token in either source.
-        });
+        .catch(() => {});
     }
   }, []);
 
   return {
     isConnected: token !== null,
     isLoading,
+    isConnecting,
+    popupBlocked,
     user,
     token,
     connect,

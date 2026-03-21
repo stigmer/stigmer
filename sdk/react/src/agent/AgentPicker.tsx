@@ -11,7 +11,10 @@ import {
 import type { ResourceRef } from "@stigmer/sdk";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { cn } from "@stigmer/theme";
 import { useAgentSearch } from "./useAgentSearch";
+import { useScrollShadows } from "../internal/useScrollShadows";
+import { ScrollFade } from "../internal/ScrollFade";
 
 export interface AgentPickerProps {
   /** Organization slug to scope the search. */
@@ -72,11 +75,8 @@ export function AgentPicker({
   const { results, isLoading, error, query, setQuery } = useAgentSearch(org);
 
   const [focusIndex, setFocusIndex] = useState(-1);
-  const listRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-
-  const [canScrollUp, setCanScrollUp] = useState(false);
-  const [canScrollDown, setCanScrollDown] = useState(false);
+  const { scrollRef: listRef, canScrollUp, canScrollDown } = useScrollShadows();
 
   const selectedKey = useMemo(
     () => (value ? refKey(value) : null),
@@ -101,26 +101,7 @@ export function AgentPicker({
         ?.querySelector(`[data-idx="${focusIndex}"]`)
         ?.scrollIntoView({ block: "nearest" });
     }
-  }, [focusIndex]);
-
-  const updateScrollShadows = useCallback(() => {
-    const el = listRef.current;
-    if (!el) return;
-    setCanScrollUp(el.scrollTop > 0);
-    setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
-  }, []);
-
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", updateScrollShadows, { passive: true });
-    updateScrollShadows();
-    return () => el.removeEventListener("scroll", updateScrollShadows);
-  }, [updateScrollShadows]);
-
-  useEffect(() => {
-    updateScrollShadows();
-  }, [results, updateScrollShadows]);
+  }, [focusIndex, listRef]);
 
   const handleSelect = useCallback(
     (result: SearchResult) => {
@@ -212,15 +193,7 @@ export function AgentPicker({
 
       {/* Scrollable results list */}
       <div className="relative">
-        {canScrollUp && (
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-3"
-            style={{
-              background:
-                "linear-gradient(to bottom, var(--color-popover, hsl(0 0% 9%)), transparent)",
-            }}
-          />
-        )}
+        {canScrollUp && <ScrollFade position="top" />}
 
         <div
           ref={listRef}
@@ -248,13 +221,13 @@ export function AgentPicker({
                 data-idx={idx}
                 onClick={() => handleSelect(result)}
                 disabled={disabled}
-                className={[
-                  "flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+                className={cn(
+                  "group flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
                   "disabled:pointer-events-none disabled:opacity-50",
                   idx === focusIndex
                     ? "bg-accent text-foreground"
                     : "text-foreground hover:bg-accent/50",
-                ].join(" ")}
+                )}
                 role="option"
                 aria-selected={idx === focusIndex}
               >
@@ -268,7 +241,13 @@ export function AgentPicker({
                   </span>
                 </span>
                 {result.description && (
-                  <span className="line-clamp-1 pl-5 text-[0.65rem] text-muted-foreground">
+                  <span
+                    className={cn(
+                      "pl-5 text-[0.65rem] text-muted-foreground",
+                      idx !== focusIndex &&
+                        "line-clamp-2 group-hover:line-clamp-none",
+                    )}
+                  >
                     {result.description}
                   </span>
                 )}
@@ -277,15 +256,7 @@ export function AgentPicker({
           )}
         </div>
 
-        {canScrollDown && (
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-3"
-            style={{
-              background:
-                "linear-gradient(to top, var(--color-popover, hsl(0 0% 9%)), transparent)",
-            }}
-          />
-        )}
+        {canScrollDown && <ScrollFade position="bottom" />}
       </div>
     </div>
   );

@@ -36,6 +36,25 @@ service SkillCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to push skill in this organization";
   }
 
+  // Push a skill directly from an execution artifact already in storage.
+  //
+  // This is the server-side equivalent of push() — instead of receiving
+  // ZIP bytes from the client, it reads an existing directory artifact
+  // (produced by an agent execution) from artifact storage and pushes
+  // it as a skill. This avoids downloading the ZIP to the browser and
+  // re-uploading it, and eliminates CORS concerns for SDK consumers.
+  //
+  // The caller must have can_view on the referenced execution AND
+  // can_create_skill in the target organization.
+  //
+  // Returns: The created or updated Skill resource
+  rpc pushFromExecutionArtifact(PushSkillFromExecutionArtifactRequest) returns (Skill) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_skill;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "org";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to push skill in this organization";
+  }
+
   // Delete a skill and all its versions.
   // This removes the skill from the main collection but preserves audit history.
   rpc delete(SkillId) returns (Skill) {

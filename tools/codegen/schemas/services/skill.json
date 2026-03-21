@@ -16,6 +16,14 @@
           "description": "Push (upload) a skill artifact.\n This operation creates a new skill if it doesn't exist, or creates a new version\n of an existing skill. The skill artifact must contain SKILL.md.\n\n Authorization:\n - Organization-scoped skills: Caller must have can_create_skill permission in the organization\n - Platform-scoped skills: Caller must be a platform operator (handled automatically by common auth step)\n\n The backend will:\n 1. Normalize the name to a slug\n 2. Find or create the skill resource\n 3. Extract SKILL.md from the artifact\n 4. Calculate SHA256 hash (version identifier)\n 5. Store the artifact (deduplicated by hash)\n 6. Update skill spec and status\n 7. Archive the previous version (if updating)\n\n Returns: The created or updated Skill resource (consistent with other CRUD operations)"
         },
         {
+          "name": "PushFromExecutionArtifact",
+          "inputType": "PushSkillFromExecutionArtifactRequest",
+          "inputFullType": "ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest",
+          "outputType": "Skill",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
+          "description": "Push a skill directly from an execution artifact already in storage.\n\n This is the server-side equivalent of push() — instead of receiving\n ZIP bytes from the client, it reads an existing directory artifact\n (produced by an agent execution) from artifact storage and pushes\n it as a skill. This avoids downloading the ZIP to the browser and\n re-uploading it, and eliminates CORS concerns for SDK consumers.\n\n The caller must have can_view on the referenced execution AND\n can_create_skill in the target organization.\n\n Returns: The created or updated Skill resource"
+        },
+        {
           "name": "Delete",
           "inputType": "SkillId",
           "inputFullType": "ai.stigmer.agentic.skill.v1.SkillId",

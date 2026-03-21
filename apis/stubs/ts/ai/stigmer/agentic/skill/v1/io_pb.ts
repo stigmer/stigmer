@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/skill/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MSIgCgdTa2lsbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEitQEKEFB1c2hTa2lsbFJlcXVlc3QSEwoDb3JnGAEgASgJQga6SAPIAQESGAoIYXJ0aWZhY3QYAiABKAxCBrpIA8gBARIoCgN0YWcYAyABKAlCG7pIGHIWMhReJHxeW2EtekEtWjAtOS5fLV0rJBJCCg5naXRfcHJvdmVuYW5jZRgEIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HaXRQcm92ZW5hbmNlSgQIBRAGIjoKEkdldEFydGlmYWN0UmVxdWVzdBIkChRhcnRpZmFjdF9zdG9yYWdlX2tleRgBIAEoCUIGukgDyAEBIicKE0dldEFydGlmYWN0UmVzcG9uc2USEAoIYXJ0aWZhY3QYASABKAxiBnByb3RvMw", [file_ai_stigmer_agentic_skill_v1_status, file_buf_validate_validate]);
+  fileDesc("CiRhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvaW8ucHJvdG8SG2FpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MSIgCgdTa2lsbElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEitQEKEFB1c2hTa2lsbFJlcXVlc3QSEwoDb3JnGAEgASgJQga6SAPIAQESGAoIYXJ0aWZhY3QYAiABKAxCBrpIA8gBARIoCgN0YWcYAyABKAlCG7pIGHIWMhReJHxeW2EtekEtWjAtOS5fLV0rJBJCCg5naXRfcHJvdmVuYW5jZRgEIAEoCzIqLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5HaXRQcm92ZW5hbmNlSgQIBRAGIqMBCiVQdXNoU2tpbGxGcm9tRXhlY3V0aW9uQXJ0aWZhY3RSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEh0KDGV4ZWN1dGlvbl9pZBgCIAEoCUIHukgEcgIQARIcCgtzdG9yYWdlX2tleRgDIAEoCUIHukgEcgIQARIoCgN0YWcYBCABKAlCG7pIGHIWMhReJHxeW2EtekEtWjAtOS5fLV0rJCI6ChJHZXRBcnRpZmFjdFJlcXVlc3QSJAoUYXJ0aWZhY3Rfc3RvcmFnZV9rZXkYASABKAlCBrpIA8gBASInChNHZXRBcnRpZmFjdFJlc3BvbnNlEhAKCGFydGlmYWN0GAEgASgMYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_status, file_buf_validate_validate]);
 
 /**
  * SkillId wraps a skill identifier.
@@ -98,6 +98,78 @@ export const PushSkillRequestSchema: GenMessage<PushSkillRequest> = /*@__PURE__*
   messageDesc(file_ai_stigmer_agentic_skill_v1_io, 1);
 
 /**
+ * PushSkillFromExecutionArtifactRequest pushes a skill from an execution
+ * artifact that is already stored in artifact storage.
+ *
+ * This enables a server-side push flow where the ZIP artifact produced by
+ * an agent execution (e.g., skill-creator) is pushed as a skill without
+ * downloading it to the client first. The server reads the ZIP directly
+ * from artifact storage and delegates to the standard push logic.
+ *
+ * ## Authorization
+ *
+ * Requires both:
+ * - can_view on the agent execution (to read the artifact)
+ * - can_create_skill in the target organization (to push the skill)
+ *
+ * ## Security
+ *
+ * The storage_key is validated to start with "artifacts/{execution_id}/"
+ * to prevent access to other executions' artifacts (same validation as
+ * getArtifactContent).
+ *
+ * @generated from message ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest
+ */
+export type PushSkillFromExecutionArtifactRequest = Message<"ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest"> & {
+  /**
+   * Organization that will own the skill.
+   *
+   * @generated from field: string org = 1;
+   */
+  org: string;
+
+  /**
+   * ID of the agent execution that produced the artifact.
+   * Used for authorization (can_view check) and storage_key validation.
+   *
+   * Format: "aex_{ulid}"
+   * Example: "aex_abc123xyz456"
+   *
+   * @generated from field: string execution_id = 2;
+   */
+  executionId: string;
+
+  /**
+   * Storage key of the directory artifact (ZIP) to push as a skill.
+   * Must start with "artifacts/{execution_id}/" for security.
+   *
+   * Obtain this value from ExecutionArtifact.storage_key in the
+   * execution status for a DIRECTORY artifact.
+   *
+   * Format: "artifacts/{execution_id}/{filename}.zip"
+   * Example: "artifacts/aex_abc123xyz456/my-skill.zip"
+   *
+   * @generated from field: string storage_key = 3;
+   */
+  storageKey: string;
+
+  /**
+   * Optional version tag (same semantics as PushSkillRequest.tag).
+   * Examples: "stable", "v1.0", "latest"
+   *
+   * @generated from field: string tag = 4;
+   */
+  tag: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest.
+ * Use `create(PushSkillFromExecutionArtifactRequestSchema)` to create a new message.
+ */
+export const PushSkillFromExecutionArtifactRequestSchema: GenMessage<PushSkillFromExecutionArtifactRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 2);
+
+/**
  * GetArtifactRequest requests download of a skill artifact by storage key.
  *
  * @generated from message ai.stigmer.agentic.skill.v1.GetArtifactRequest
@@ -117,7 +189,7 @@ export type GetArtifactRequest = Message<"ai.stigmer.agentic.skill.v1.GetArtifac
  * Use `create(GetArtifactRequestSchema)` to create a new message.
  */
 export const GetArtifactRequestSchema: GenMessage<GetArtifactRequest> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 2);
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 3);
 
 /**
  * GetArtifactResponse contains the skill artifact content.
@@ -139,5 +211,5 @@ export type GetArtifactResponse = Message<"ai.stigmer.agentic.skill.v1.GetArtifa
  * Use `create(GetArtifactResponseSchema)` to create a new message.
  */
 export const GetArtifactResponseSchema: GenMessage<GetArtifactResponse> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 3);
+  messageDesc(file_ai_stigmer_agentic_skill_v1_io, 4);
 

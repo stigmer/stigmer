@@ -4,11 +4,12 @@ import { useCallback, useState } from "react";
 import type { EnvironmentInput } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 export interface UseCreateEnvironmentReturn {
   readonly create: (input: EnvironmentInput) => Promise<Environment>;
   readonly isCreating: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly clearError: () => void;
 }
 
@@ -48,7 +49,7 @@ export interface UseCreateEnvironmentReturn {
 export function useCreateEnvironment(): UseCreateEnvironmentReturn {
   const stigmer = useStigmer();
   const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -60,9 +61,7 @@ export function useCreateEnvironment(): UseCreateEnvironmentReturn {
       try {
         return await stigmer.environment.create(input);
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to create environment";
-        setError(message);
+        setError(toError(err));
         throw err;
       } finally {
         setIsCreating(false);

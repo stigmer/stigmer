@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvaW8ucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSIpChBBZ2VudEV4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEicAoSQWdlbnRFeGVjdXRpb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEkUKB2VudHJpZXMYAiADKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb24ilgEKGkxpc3RBZ2VudEV4ZWN1dGlvbnNSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJEkMKBXBoYXNlGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlEgwKBHRhZ3MYBCADKAkiaAojTGlzdEFnZW50RXhlY3V0aW9uc0J5U2Vzc2lvblJlcXVlc3QSGgoKc2Vzc2lvbl9pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIpQBCh9BZ2VudEV4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJSCgZzdGF0dXMYAiABKAsyOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb25TdGF0dXNCBrpIA8gBASK8AQoTU3VibWl0QXBwcm92YWxJbnB1dBIjChJhZ2VudF9leGVjdXRpb25faWQYASABKAlCB7pIBHICEAESHQoMdG9vbF9jYWxsX2lkGAIgASgJQge6SARyAhABElAKBmFjdGlvbhgDIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEFjdGlvbkIKukgHggEEEAEgABIPCgdjb21tZW50GAQgASgJImQKFEFwcHJvdmFsRGVjaXNpb25MaXN0EkwKCWRlY2lzaW9ucxgBIAMoCzI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TdWJtaXRBcHByb3ZhbElucHV0IkAKGUNhbmNlbEFnZW50RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkMKHFRlcm1pbmF0ZUFnZW50RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIjEKGlJlY292ZXJBZ2VudEV4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABIj8KGFBhdXNlQWdlbnRFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiMAoZUmVzdW1lQWdlbnRFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQASJjChdVcGxvYWRBdHRhY2htZW50UmVxdWVzdBIZCghmaWxlbmFtZRgBIAEoCUIHukgEcgIQARIXCgdjb250ZW50GAIgASgMQga6SAPIAQESFAoMY29udGVudF90eXBlGAMgASgJIi8KGFVwbG9hZEF0dGFjaG1lbnRSZXNwb25zZRITCgtzdG9yYWdlX2tleRgBIAEoCSJcCh1HZXRBcnRpZmFjdERvd25sb2FkVXJsUmVxdWVzdBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESHAoLc3RvcmFnZV9rZXkYAiABKAlCB7pIBHICEAEiSgoeR2V0QXJ0aWZhY3REb3dubG9hZFVybFJlc3BvbnNlEhQKDGRvd25sb2FkX3VybBgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgJIjkKGkdldFNlc3Npb25Vc2FnZVJlcG9ydElucHV0EhsKCnNlc3Npb25faWQYASABKAlCB7pIBHICEAEijAMKG0dldFNlc3Npb25Vc2FnZVJlcG9ydE91dHB1dBISCgpzZXNzaW9uX2lkGAEgASgJEhcKD2V4ZWN1dGlvbl9jb3VudBgCIAEoBRJHCgt0b3RhbF91c2FnZRgDIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Vc2FnZU1ldHJpY3MSTwoKZXhlY3V0aW9ucxgEIAMoCzI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25Vc2FnZVN1bW1hcnkSSQoPbW9kZWxfYnJlYWtkb3duGAUgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLk1vZGVsVXNhZ2USJAocdG90YWxfc3VtbWFyaXphdGlvbl9jb3N0X3VzZBgGIAEoARIaChJmaXJzdF9leGVjdXRpb25fYXQYByABKAkSGQoRbGFzdF9leGVjdXRpb25fYXQYCCABKAkigAEKGEdldEFnZW50VXNhZ2VSZXBvcnRJbnB1dBIZCghhZ2VudF9pZBgBIAEoCUIHukgEcgIQARIRCglmcm9tX2RhdGUYAiABKAkSDwoHdG9fZGF0ZRgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUSEgoKcGFnZV90b2tlbhgFIAEoCSKFAwoZR2V0QWdlbnRVc2FnZVJlcG9ydE91dHB1dBIQCghhZ2VudF9pZBgBIAEoCRISCgphZ2VudF9uYW1lGAIgASgJEkcKC3RvdGFsX3VzYWdlGAMgASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlVzYWdlTWV0cmljcxJJCg9tb2RlbF9icmVha2Rvd24YBCADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuTW9kZWxVc2FnZRJLCghzZXNzaW9ucxgFIAMoCzI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TZXNzaW9uVXNhZ2VTdW1tYXJ5EhYKDnRvdGFsX3Nlc3Npb25zGAYgASgFEhgKEHRvdGFsX2V4ZWN1dGlvbnMYByABKAUSFgoOdG90YWxfY29zdF91c2QYCCABKAESFwoPbmV4dF9wYWdlX3Rva2VuGAkgASgJImcKFkdldE9yZ1VzYWdlUmVwb3J0SW5wdXQSFwoGb3JnX2lkGAEgASgJQge6SARyAhABEhoKCWZyb21fZGF0ZRgCIAEoCUIHukgEcgIQARIYCgd0b19kYXRlGAMgASgJQge6SARyAhABIvQCChdHZXRPcmdVc2FnZVJlcG9ydE91dHB1dBIOCgZvcmdfaWQYASABKAkSFAoMdG90YWxfYWdlbnRzGAIgASgFEhYKDnRvdGFsX3Nlc3Npb25zGAMgASgFEhgKEHRvdGFsX2V4ZWN1dGlvbnMYBCABKAUSFgoOdG90YWxfY29zdF91c2QYBSABKAESSQoPbW9kZWxfYnJlYWtkb3duGAYgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLk1vZGVsVXNhZ2USUwoSdG9wX2FnZW50c19ieV9jb3N0GAcgAygLMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50VXNhZ2VTdW1tYXJ5EkkKC2RhaWx5X2Nvc3RzGAggAygLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkRhaWx5Q29zdEVudHJ5IrUCChVFeGVjdXRpb25Vc2FnZVN1bW1hcnkSFAoMZXhlY3V0aW9uX2lkGAEgASgJEhIKCnN0YXJ0ZWRfYXQYAiABKAkSFAoMY29tcGxldGVkX2F0GAMgASgJEhUKDXByb21wdF90b2tlbnMYBCABKAUSGQoRY29tcGxldGlvbl90b2tlbnMYBSABKAUSGQoRY2FjaGVfcmVhZF90b2tlbnMYBiABKAUSGgoSZXN0aW1hdGVkX2Nvc3RfdXNkGAcgASgBEhUKDXByaW1hcnlfbW9kZWwYCCABKAkSFwoPc3ViX2FnZW50X2NvdW50GAkgASgFEkMKBXBoYXNlGAogASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlIqsBChNTZXNzaW9uVXNhZ2VTdW1tYXJ5EhIKCnNlc3Npb25faWQYASABKAkSFwoPZXhlY3V0aW9uX2NvdW50GAIgASgFEhQKDHRvdGFsX3Rva2VucxgDIAEoBRIaChJlc3RpbWF0ZWRfY29zdF91c2QYBCABKAESGgoSZmlyc3RfZXhlY3V0aW9uX2F0GAUgASgJEhkKEWxhc3RfZXhlY3V0aW9uX2F0GAYgASgJIoQBChFBZ2VudFVzYWdlU3VtbWFyeRIQCghhZ2VudF9pZBgBIAEoCRISCgphZ2VudF9uYW1lGAIgASgJEhcKD2V4ZWN1dGlvbl9jb3VudBgDIAEoBRIUCgx0b3RhbF90b2tlbnMYBCABKAUSGgoSZXN0aW1hdGVkX2Nvc3RfdXNkGAUgASgBImkKDkRhaWx5Q29zdEVudHJ5EgwKBGRhdGUYASABKAkSFwoPZXhlY3V0aW9uX2NvdW50GAIgASgFEhQKDHRvdGFsX3Rva2VucxgDIAEoBRIaChJlc3RpbWF0ZWRfY29zdF91c2QYBCABKAFiBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_api, file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_usage, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvaW8ucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSIpChBBZ2VudEV4ZWN1dGlvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEicAoSQWdlbnRFeGVjdXRpb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEkUKB2VudHJpZXMYAiADKAsyNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb24ilgEKGkxpc3RBZ2VudEV4ZWN1dGlvbnNSZXF1ZXN0EhEKCXBhZ2Vfc2l6ZRgBIAEoBRISCgpwYWdlX3Rva2VuGAIgASgJEkMKBXBoYXNlGAMgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlEgwKBHRhZ3MYBCADKAkiaAojTGlzdEFnZW50RXhlY3V0aW9uc0J5U2Vzc2lvblJlcXVlc3QSGgoKc2Vzc2lvbl9pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIpQBCh9BZ2VudEV4ZWN1dGlvblVwZGF0ZVN0YXR1c0lucHV0Eh0KDGV4ZWN1dGlvbl9pZBgBIAEoCUIHukgEcgIQARJSCgZzdGF0dXMYAiABKAsyOi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb25TdGF0dXNCBrpIA8gBASK8AQoTU3VibWl0QXBwcm92YWxJbnB1dBIjChJhZ2VudF9leGVjdXRpb25faWQYASABKAlCB7pIBHICEAESHQoMdG9vbF9jYWxsX2lkGAIgASgJQge6SARyAhABElAKBmFjdGlvbhgDIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEFjdGlvbkIKukgHggEEEAEgABIPCgdjb21tZW50GAQgASgJImQKFEFwcHJvdmFsRGVjaXNpb25MaXN0EkwKCWRlY2lzaW9ucxgBIAMoCzI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TdWJtaXRBcHByb3ZhbElucHV0IkAKGUNhbmNlbEFnZW50RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIkMKHFRlcm1pbmF0ZUFnZW50RXhlY3V0aW9uSW5wdXQSEwoCaWQYASABKAlCB7pIBHICEAESDgoGcmVhc29uGAIgASgJIjEKGlJlY292ZXJBZ2VudEV4ZWN1dGlvbklucHV0EhMKAmlkGAEgASgJQge6SARyAhABIj8KGFBhdXNlQWdlbnRFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQARIOCgZyZWFzb24YAiABKAkiMAoZUmVzdW1lQWdlbnRFeGVjdXRpb25JbnB1dBITCgJpZBgBIAEoCUIHukgEcgIQASJjChdVcGxvYWRBdHRhY2htZW50UmVxdWVzdBIZCghmaWxlbmFtZRgBIAEoCUIHukgEcgIQARIXCgdjb250ZW50GAIgASgMQga6SAPIAQESFAoMY29udGVudF90eXBlGAMgASgJIi8KGFVwbG9hZEF0dGFjaG1lbnRSZXNwb25zZRITCgtzdG9yYWdlX2tleRgBIAEoCSJcCh1HZXRBcnRpZmFjdERvd25sb2FkVXJsUmVxdWVzdBIdCgxleGVjdXRpb25faWQYASABKAlCB7pIBHICEAESHAoLc3RvcmFnZV9rZXkYAiABKAlCB7pIBHICEAEiSgoeR2V0QXJ0aWZhY3REb3dubG9hZFVybFJlc3BvbnNlEhQKDGRvd25sb2FkX3VybBgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgJIn8KGUdldEFydGlmYWN0Q29udGVudFJlcXVlc3QSHQoMZXhlY3V0aW9uX2lkGAEgASgJQge6SARyAhABEhwKC3N0b3JhZ2Vfa2V5GAIgASgJQge6SARyAhABEhEKCW1heF9ieXRlcxgDIAEoAxISCgplbnRyeV9wYXRoGAQgASgJInAKGkdldEFydGlmYWN0Q29udGVudFJlc3BvbnNlEg8KB2NvbnRlbnQYASABKAwSFAoMY29udGVudF90eXBlGAIgASgJEhgKEHRvdGFsX3NpemVfYnl0ZXMYAyABKAMSEQoJdHJ1bmNhdGVkGAQgASgIIjkKGkdldFNlc3Npb25Vc2FnZVJlcG9ydElucHV0EhsKCnNlc3Npb25faWQYASABKAlCB7pIBHICEAEijAMKG0dldFNlc3Npb25Vc2FnZVJlcG9ydE91dHB1dBISCgpzZXNzaW9uX2lkGAEgASgJEhcKD2V4ZWN1dGlvbl9jb3VudBgCIAEoBRJHCgt0b3RhbF91c2FnZRgDIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Vc2FnZU1ldHJpY3MSTwoKZXhlY3V0aW9ucxgEIAMoCzI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25Vc2FnZVN1bW1hcnkSSQoPbW9kZWxfYnJlYWtkb3duGAUgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLk1vZGVsVXNhZ2USJAocdG90YWxfc3VtbWFyaXphdGlvbl9jb3N0X3VzZBgGIAEoARIaChJmaXJzdF9leGVjdXRpb25fYXQYByABKAkSGQoRbGFzdF9leGVjdXRpb25fYXQYCCABKAkigAEKGEdldEFnZW50VXNhZ2VSZXBvcnRJbnB1dBIZCghhZ2VudF9pZBgBIAEoCUIHukgEcgIQARIRCglmcm9tX2RhdGUYAiABKAkSDwoHdG9fZGF0ZRgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUSEgoKcGFnZV90b2tlbhgFIAEoCSKFAwoZR2V0QWdlbnRVc2FnZVJlcG9ydE91dHB1dBIQCghhZ2VudF9pZBgBIAEoCRISCgphZ2VudF9uYW1lGAIgASgJEkcKC3RvdGFsX3VzYWdlGAMgASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlVzYWdlTWV0cmljcxJJCg9tb2RlbF9icmVha2Rvd24YBCADKAsyMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuTW9kZWxVc2FnZRJLCghzZXNzaW9ucxgFIAMoCzI5LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TZXNzaW9uVXNhZ2VTdW1tYXJ5EhYKDnRvdGFsX3Nlc3Npb25zGAYgASgFEhgKEHRvdGFsX2V4ZWN1dGlvbnMYByABKAUSFgoOdG90YWxfY29zdF91c2QYCCABKAESFwoPbmV4dF9wYWdlX3Rva2VuGAkgASgJImcKFkdldE9yZ1VzYWdlUmVwb3J0SW5wdXQSFwoGb3JnX2lkGAEgASgJQge6SARyAhABEhoKCWZyb21fZGF0ZRgCIAEoCUIHukgEcgIQARIYCgd0b19kYXRlGAMgASgJQge6SARyAhABIvQCChdHZXRPcmdVc2FnZVJlcG9ydE91dHB1dBIOCgZvcmdfaWQYASABKAkSFAoMdG90YWxfYWdlbnRzGAIgASgFEhYKDnRvdGFsX3Nlc3Npb25zGAMgASgFEhgKEHRvdGFsX2V4ZWN1dGlvbnMYBCABKAUSFgoOdG90YWxfY29zdF91c2QYBSABKAESSQoPbW9kZWxfYnJlYWtkb3duGAYgAygLMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLk1vZGVsVXNhZ2USUwoSdG9wX2FnZW50c19ieV9jb3N0GAcgAygLMjcuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50VXNhZ2VTdW1tYXJ5EkkKC2RhaWx5X2Nvc3RzGAggAygLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkRhaWx5Q29zdEVudHJ5IrUCChVFeGVjdXRpb25Vc2FnZVN1bW1hcnkSFAoMZXhlY3V0aW9uX2lkGAEgASgJEhIKCnN0YXJ0ZWRfYXQYAiABKAkSFAoMY29tcGxldGVkX2F0GAMgASgJEhUKDXByb21wdF90b2tlbnMYBCABKAUSGQoRY29tcGxldGlvbl90b2tlbnMYBSABKAUSGQoRY2FjaGVfcmVhZF90b2tlbnMYBiABKAUSGgoSZXN0aW1hdGVkX2Nvc3RfdXNkGAcgASgBEhUKDXByaW1hcnlfbW9kZWwYCCABKAkSFwoPc3ViX2FnZW50X2NvdW50GAkgASgFEkMKBXBoYXNlGAogASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlIqsBChNTZXNzaW9uVXNhZ2VTdW1tYXJ5EhIKCnNlc3Npb25faWQYASABKAkSFwoPZXhlY3V0aW9uX2NvdW50GAIgASgFEhQKDHRvdGFsX3Rva2VucxgDIAEoBRIaChJlc3RpbWF0ZWRfY29zdF91c2QYBCABKAESGgoSZmlyc3RfZXhlY3V0aW9uX2F0GAUgASgJEhkKEWxhc3RfZXhlY3V0aW9uX2F0GAYgASgJIoQBChFBZ2VudFVzYWdlU3VtbWFyeRIQCghhZ2VudF9pZBgBIAEoCRISCgphZ2VudF9uYW1lGAIgASgJEhcKD2V4ZWN1dGlvbl9jb3VudBgDIAEoBRIUCgx0b3RhbF90b2tlbnMYBCABKAUSGgoSZXN0aW1hdGVkX2Nvc3RfdXNkGAUgASgBImkKDkRhaWx5Q29zdEVudHJ5EgwKBGRhdGUYASABKAkSFwoPZXhlY3V0aW9uX2NvdW50GAIgASgFEhQKDHRvdGFsX3Rva2VucxgDIAEoBRIaChJlc3RpbWF0ZWRfY29zdF91c2QYBCABKAFiBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_api, file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_usage, file_buf_validate_validate]);
 
 /**
  * AgentExecutionId wraps an agent execution identifier.
@@ -916,6 +916,196 @@ export const GetArtifactDownloadUrlResponseSchema: GenMessage<GetArtifactDownloa
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 16);
 
 /**
+ * GetArtifactContentRequest reads the raw content of an execution artifact.
+ *
+ * Unlike getArtifactDownloadUrl (which returns a presigned URL for direct
+ * browser download), this endpoint returns the artifact bytes through the
+ * Stigmer API. This eliminates CORS concerns for SDK consumers who need to
+ * read artifact content programmatically — e.g., for YAML parsing, resource
+ * detection, or in-app preview rendering.
+ *
+ * ## Authorization
+ *
+ * Requires can_view permission on the execution. This ensures users can only
+ * read artifacts from executions they have access to.
+ *
+ * ## Security
+ *
+ * The storage_key is validated to ensure it belongs to the specified execution.
+ * Storage keys must start with "artifacts/{execution_id}/" to prevent path
+ * traversal attacks where a user could request content from other executions'
+ * artifacts.
+ *
+ * ## Size Limit
+ *
+ * The server enforces a maximum content size (default: 512 KB). If the
+ * artifact exceeds max_bytes, the response contains the first max_bytes of
+ * content with truncated=true. Callers can use total_size_bytes to decide
+ * whether to offer a full download via getArtifactDownloadUrl instead.
+ *
+ * ## Use Cases
+ *
+ * - Web UI reading YAML artifacts for Stigmer resource detection
+ * - SDK consumers rendering artifact previews in embedded components
+ * - CLI inspecting artifact content without a separate HTTP download
+ *
+ * ## Example
+ *
+ * Request:
+ * {
+ *   "execution_id": "aex_abc123xyz456",
+ *   "storage_key": "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
+ * }
+ *
+ * Response:
+ * {
+ *   "content": <bytes>,
+ *   "content_type": "text/yaml",
+ *   "total_size_bytes": 1842,
+ *   "truncated": false
+ * }
+ *
+ * @since Artifact Lifecycle (Attachments & Artifacts)
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest
+ */
+export type GetArtifactContentRequest = Message<"ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest"> & {
+  /**
+   * ID of the agent execution that produced the artifact.
+   *
+   * Used for authorization (can_view check) and storage_key validation.
+   *
+   * Format: "aex_{ulid}"
+   * Example: "aex_abc123xyz456"
+   *
+   * Validation: Required, minimum 1 character
+   *
+   * @generated from field: string execution_id = 1;
+   */
+  executionId: string;
+
+  /**
+   * Storage key of the artifact to read.
+   *
+   * Must be an artifact from the specified execution. The storage_key
+   * is validated to start with "artifacts/{execution_id}/" to prevent
+   * access to other executions' artifacts.
+   *
+   * Obtain this value from ExecutionArtifact.storage_key in the execution status.
+   *
+   * Format: "artifacts/{execution_id}/{filename}"
+   * Example: "artifacts/aex_abc123xyz456/pr-review-agent.yaml"
+   *
+   * Validation: Required, minimum 1 character
+   *
+   * @generated from field: string storage_key = 2;
+   */
+  storageKey: string;
+
+  /**
+   * Maximum number of bytes to return.
+   *
+   * If the artifact is larger than this limit, the response will contain
+   * the first max_bytes of content with truncated=true.
+   *
+   * When 0 or unset, the server applies a default limit (512 KB).
+   * The server may also enforce a hard upper bound regardless of this value.
+   *
+   * Example: 524288 (512 KB)
+   *
+   * @generated from field: int64 max_bytes = 3;
+   */
+  maxBytes: bigint;
+
+  /**
+   * For directory artifacts (ZIPs): extract a specific file by its
+   * path within the archive instead of returning the raw ZIP bytes.
+   *
+   * When empty, returns the full artifact content (existing behavior).
+   * When set for a FILE artifact, this field is ignored.
+   *
+   * The path must match an entry in the archive exactly (case-sensitive).
+   * Use the paths from ExecutionArtifact.entries to discover valid values.
+   *
+   * Example: "SKILL.md", "scripts/init_skill.py"
+   *
+   * @generated from field: string entry_path = 4;
+   */
+  entryPath: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.GetArtifactContentRequest.
+ * Use `create(GetArtifactContentRequestSchema)` to create a new message.
+ */
+export const GetArtifactContentRequestSchema: GenMessage<GetArtifactContentRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 17);
+
+/**
+ * GetArtifactContentResponse returns the raw content of an execution artifact.
+ *
+ * The content field contains the artifact bytes (up to max_bytes). For text
+ * artifacts, clients decode via TextDecoder or equivalent. The content_type
+ * field provides a hint for rendering (detected by file extension).
+ *
+ * @since Artifact Lifecycle (Attachments & Artifacts)
+ *
+ * @generated from message ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse
+ */
+export type GetArtifactContentResponse = Message<"ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse"> & {
+  /**
+   * Raw artifact content (up to max_bytes).
+   *
+   * For text artifacts (YAML, JSON, Markdown, etc.), decode as UTF-8.
+   * For binary artifacts, this contains raw bytes — but callers should
+   * generally use getArtifactDownloadUrl for binary downloads instead.
+   *
+   * @generated from field: bytes content = 1;
+   */
+  content: Uint8Array;
+
+  /**
+   * Detected content type based on file extension.
+   *
+   * Examples: "text/yaml", "text/plain", "application/json",
+   * "application/zip" (for directory artifacts).
+   *
+   * This is a best-effort detection — not based on content inspection.
+   *
+   * @generated from field: string content_type = 2;
+   */
+  contentType: string;
+
+  /**
+   * Actual total size of the artifact in bytes.
+   *
+   * May be larger than len(content) when truncated=true.
+   * Callers can use this to show "showing 512 KB of 2.1 MB" messages
+   * or to decide whether to offer a full download link.
+   *
+   * @generated from field: int64 total_size_bytes = 3;
+   */
+  totalSizeBytes: bigint;
+
+  /**
+   * Whether the content was truncated to fit within max_bytes.
+   *
+   * When true, content contains only the first max_bytes of the artifact.
+   * The full artifact can be downloaded via getArtifactDownloadUrl.
+   *
+   * @generated from field: bool truncated = 4;
+   */
+  truncated: boolean;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.agentexecution.v1.GetArtifactContentResponse.
+ * Use `create(GetArtifactContentResponseSchema)` to create a new message.
+ */
+export const GetArtifactContentResponseSchema: GenMessage<GetArtifactContentResponse> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 18);
+
+/**
  * GetSessionUsageReportInput requests a usage report for a single session.
  * Aggregates cost and token data across all executions in the session.
  *
@@ -935,7 +1125,7 @@ export type GetSessionUsageReportInput = Message<"ai.stigmer.agentic.agentexecut
  * Use `create(GetSessionUsageReportInputSchema)` to create a new message.
  */
 export const GetSessionUsageReportInputSchema: GenMessage<GetSessionUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 17);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 19);
 
 /**
  * GetSessionUsageReportOutput returns aggregated usage for a session.
@@ -1009,7 +1199,7 @@ export type GetSessionUsageReportOutput = Message<"ai.stigmer.agentic.agentexecu
  * Use `create(GetSessionUsageReportOutputSchema)` to create a new message.
  */
 export const GetSessionUsageReportOutputSchema: GenMessage<GetSessionUsageReportOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 18);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 20);
 
 /**
  * GetAgentUsageReportInput requests a usage report for a specific agent.
@@ -1062,7 +1252,7 @@ export type GetAgentUsageReportInput = Message<"ai.stigmer.agentic.agentexecutio
  * Use `create(GetAgentUsageReportInputSchema)` to create a new message.
  */
 export const GetAgentUsageReportInputSchema: GenMessage<GetAgentUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 19);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 21);
 
 /**
  * GetAgentUsageReportOutput returns aggregated usage for an agent.
@@ -1142,7 +1332,7 @@ export type GetAgentUsageReportOutput = Message<"ai.stigmer.agentic.agentexecuti
  * Use `create(GetAgentUsageReportOutputSchema)` to create a new message.
  */
 export const GetAgentUsageReportOutputSchema: GenMessage<GetAgentUsageReportOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 20);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 22);
 
 /**
  * GetOrgUsageReportInput requests a usage report for an entire organization.
@@ -1181,7 +1371,7 @@ export type GetOrgUsageReportInput = Message<"ai.stigmer.agentic.agentexecution.
  * Use `create(GetOrgUsageReportInputSchema)` to create a new message.
  */
 export const GetOrgUsageReportInputSchema: GenMessage<GetOrgUsageReportInput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 21);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 23);
 
 /**
  * GetOrgUsageReportOutput returns aggregated usage for an organization.
@@ -1254,7 +1444,7 @@ export type GetOrgUsageReportOutput = Message<"ai.stigmer.agentic.agentexecution
  * Use `create(GetOrgUsageReportOutputSchema)` to create a new message.
  */
 export const GetOrgUsageReportOutputSchema: GenMessage<GetOrgUsageReportOutput> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 22);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 24);
 
 /**
  * ExecutionUsageSummary is a lightweight view of a single execution's usage.
@@ -1340,7 +1530,7 @@ export type ExecutionUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v
  * Use `create(ExecutionUsageSummarySchema)` to create a new message.
  */
 export const ExecutionUsageSummarySchema: GenMessage<ExecutionUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 23);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 25);
 
 /**
  * SessionUsageSummary is a lightweight view of a session's usage.
@@ -1397,7 +1587,7 @@ export type SessionUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v1.
  * Use `create(SessionUsageSummarySchema)` to create a new message.
  */
 export const SessionUsageSummarySchema: GenMessage<SessionUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 24);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 26);
 
 /**
  * AgentUsageSummary is a lightweight view of an agent's usage.
@@ -1447,7 +1637,7 @@ export type AgentUsageSummary = Message<"ai.stigmer.agentic.agentexecution.v1.Ag
  * Use `create(AgentUsageSummarySchema)` to create a new message.
  */
 export const AgentUsageSummarySchema: GenMessage<AgentUsageSummary> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 25);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 27);
 
 /**
  * DailyCostEntry represents cost and usage for a single day.
@@ -1490,5 +1680,5 @@ export type DailyCostEntry = Message<"ai.stigmer.agentic.agentexecution.v1.Daily
  * Use `create(DailyCostEntrySchema)` to create a new message.
  */
 export const DailyCostEntrySchema: GenMessage<DailyCostEntry> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 26);
+  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_io, 28);
 

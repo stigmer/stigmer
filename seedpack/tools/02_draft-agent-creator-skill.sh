@@ -150,7 +150,6 @@ stigmer draft skill \
   --attach "$MCPSERVER_DIR" \
   --attach "$WHAT_IS_AGENT_DOC" \
   --output "$SKILLS_DIR" \
-  --env "OUTPUT_DIR=seedpack/skills" \
   --model claude-opus-4.6 \
   -m "$(cat "${_MSG_FILE}")"
 

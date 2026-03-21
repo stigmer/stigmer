@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { PushSkillRequest, SkillId } from "./io_pb.js";
+import { PushSkillFromExecutionArtifactRequest, PushSkillRequest, SkillId } from "./io_pb.js";
 import { Skill } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -40,6 +40,28 @@ export const SkillCommandController = {
     push: {
       name: "push",
       I: PushSkillRequest,
+      O: Skill,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Push a skill directly from an execution artifact already in storage.
+     *
+     * This is the server-side equivalent of push() — instead of receiving
+     * ZIP bytes from the client, it reads an existing directory artifact
+     * (produced by an agent execution) from artifact storage and pushes
+     * it as a skill. This avoids downloading the ZIP to the browser and
+     * re-uploading it, and eliminates CORS concerns for SDK consumers.
+     *
+     * The caller must have can_view on the referenced execution AND
+     * can_create_skill in the target organization.
+     *
+     * Returns: The created or updated Skill resource
+     *
+     * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromExecutionArtifact
+     */
+    pushFromExecutionArtifact: {
+      name: "pushFromExecutionArtifact",
+      I: PushSkillFromExecutionArtifactRequest,
       O: Skill,
       kind: MethodKind.Unary,
     },

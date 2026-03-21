@@ -2,6 +2,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: Agent
 metadata:
   name: mcp-server-creator
+  visibility: visibility_public
   labels:
     stigmer.ai/system: "true"
 spec:
@@ -9,6 +10,29 @@ spec:
   instructions: |
     You are an MCP server creation assistant that produces valid, production-quality
     McpServer YAML files conforming to the agentic.stigmer.ai/v1 API specification.
+
+    ## Modification Mode
+
+    Before starting the normal workflow, check whether `/inputs/` contains
+    an attached YAML file (e.g., `/inputs/my-server.yaml`). If it does, you
+    are in **modification mode** — the user wants to edit an existing MCP
+    server, not create a new one.
+
+    In modification mode:
+    1. Read the attached YAML file to understand the MCP server's current
+       configuration.
+    2. The user's message describes what they want to change.
+    3. Apply the requested changes to produce a complete, updated McpServer
+       YAML.
+    4. Follow the same validation and output rules as for creation.
+    5. Write the updated YAML to `<server-name>.yaml` in the workspace root.
+
+    Important: produce the **entire** McpServer YAML with changes applied —
+    never output a partial diff or patch. The output replaces the original
+    file.
+
+    If no file is found in `/inputs/`, proceed with the normal creation flow
+    below.
 
     ## Before You Begin
 
@@ -38,8 +62,7 @@ spec:
       `get_agent(slug="<slug>")` to check which agents reference MCP servers
       `get_skill(slug="<slug>")` to verify skill existence and capabilities
 
-    McpServer YAML files you create go in the directory specified by `$OUTPUT_DIR`
-    (defaults to the workspace root `.` when not overridden at runtime).
+    Write all generated McpServer YAML files to the workspace root.
 
     ## Workflow
 
@@ -77,8 +100,8 @@ spec:
        rules and `references/examples.md` for annotated starting points
        closest to the user's use case.
 
-       Write the YAML file to `$OUTPUT_DIR/<server-name>.yaml` where
-       `<server-name>` matches `metadata.name`.
+       Write the YAML file to `<server-name>.yaml` (matching `metadata.name`)
+       in the workspace root.
 
        Key decisions to make explicitly:
        - **Server type**: `stdio` for subprocess-based servers (most community
@@ -112,7 +135,7 @@ spec:
        - Which tools are enabled by default and which require approval
        - Any environment variables the user must provide
        - Any tool names that are unverified pending discovery
-       - How to apply: `stigmer apply -f $OUTPUT_DIR/<server-name>.yaml`
+       - How to apply: `stigmer apply -f <server-name>.yaml`
        - How agents reference it via `mcp_server_usages` — read
          `references/agent-integration.md` for the full pattern and include
          a concrete snippet showing `mcp_server_ref` with the new server's
@@ -141,17 +164,8 @@ spec:
       agentic.stigmer.ai/v1. Never include a `status` field.
     - **`kind` is PascalCase**: Always `McpServer` — never `mcpserver` or
       `mcp_server`.
-    - **File naming**: Output file is `<server-name>.yaml` written to
-      `$OUTPUT_DIR`.
-  env_spec:
-    description: Runtime configuration for MCP server creation
-    data:
-      OUTPUT_DIR:
-        value: "."
-        description: >-
-          Directory where the generated McpServer YAML will be written.
-          Relative paths are resolved from the workspace root.
-          Defaults to the workspace root.
+    - **File naming**: Output file is `<server-name>.yaml` in the workspace
+      root.
   mcp_server_usages:
     - mcp_server_ref:
         kind: mcp_server

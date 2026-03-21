@@ -7,26 +7,33 @@ import type {
   WorkspaceEntryInput,
 } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
-export interface CreateSessionInput {
+interface SharedSessionFields {
   readonly org: string;
   readonly workspaceEntries?: WorkspaceEntryInput[];
   readonly subject?: string;
   readonly mcpServerUsages?: McpServerUsageInput[];
   readonly skillRefs?: ResourceRef[];
-  /**
-   * ID of a pre-provisioned AgentInstance. Takes priority over
-   * {@link agentRef}. Typical for platform builders who manage
-   * instances programmatically.
-   */
-  readonly agentInstanceId?: string;
-  /**
-   * Reference to an Agent blueprint. When provided (and
-   * {@link agentInstanceId} is omitted), the hook resolves the
-   * agent's default instance via `agent.getByReference()`.
-   */
-  readonly agentRef?: ResourceRef;
 }
+
+/**
+ * Input for creating a session. Exactly one agent resolution strategy
+ * must be provided:
+ *
+ * - **`agentInstanceId`** — Use a pre-provisioned AgentInstance directly.
+ * - **`agentRef`** — Resolve the agent's default instance via
+ *   `agent.getByReference()`.
+ *
+ * Providing both is a type error. Platform builders who need the
+ * backend's implicit agent resolution can use `@stigmer/sdk`'s
+ * `session.create()` directly.
+ */
+export type CreateSessionInput = SharedSessionFields &
+  (
+    | { readonly agentInstanceId: string; readonly agentRef?: never }
+    | { readonly agentRef: ResourceRef; readonly agentInstanceId?: never }
+  );
 
 export interface CreateSessionResult {
   readonly sessionId: string;
@@ -35,7 +42,7 @@ export interface CreateSessionResult {
 export interface UseCreateSessionReturn {
   readonly create: (input: CreateSessionInput) => Promise<CreateSessionResult>;
   readonly isCreating: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly clearError: () => void;
 }
 
@@ -45,17 +52,16 @@ export interface UseCreateSessionReturn {
  * Creates a Session — the conversation context that holds workspace
  * entries, thread state, and sandbox references.
  *
- * Supports three agent resolution strategies (in priority order):
+ * Exactly one agent resolution strategy must be provided:
  *
- * 1. **`agentInstanceId`** — Use a specific instance directly.
- *    Typical for platform builders who pre-provision instances.
+ * 1. **`agentInstanceId`** — Use a pre-provisioned instance directly.
+ *    Typical for platform builders who manage instances programmatically.
  * 2. **`agentRef`** — Resolve the agent's default instance via
  *    `agent.getByReference()`. Useful when you know the agent slug
  *    but not the instance ID.
- * 3. **Omitted** — The backend resolves the platform default agent.
  *
  * This hook maps 1:1 to the Session aggregate. To start the first
- * execution within the session, compose with {@link useCreateExecution}.
+ * execution within the session, compose with {@link useCreateAgentExecution}.
  *
  * @example
  * ```tsx
@@ -73,18 +79,11 @@ export interface UseCreateSessionReturn {
  *   agentRef: { org: "acme", slug: "code-reviewer" },
  * });
  * ```
- *
- * @example
- * ```tsx
- * // No agent specified: backend uses the platform default
- * const { create } = useCreateSession();
- * await create({ org: "acme" });
- * ```
  */
 export function useCreateSession(): UseCreateSessionReturn {
   const stigmer = useStigmer();
   const [isCreating, setIsCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -94,20 +93,27 @@ export function useCreateSession(): UseCreateSessionReturn {
       setError(null);
 
       try {
-        // Resolve agent instance: explicit ID takes priority over agent
-        // reference lookup, and both take priority over the backend default.
-        let agentInstanceId = input.agentInstanceId;
+        let resolvedInstanceId: string;
 
-        if (!agentInstanceId && input.agentRef) {
+        if (input.agentInstanceId) {
+          resolvedInstanceId = input.agentInstanceId;
+        } else if (input.agentRef) {
           const agent = await stigmer.agent.getByReference(input.agentRef);
-          agentInstanceId = agent.status?.defaultInstanceId;
+          const defaultId = agent.status?.defaultInstanceId;
 
-          if (!agentInstanceId) {
+          if (!defaultId) {
             throw new Error(
               `Agent "${input.agentRef.org}/${input.agentRef.slug}" does not have a default instance. ` +
                 `Pass an explicit agentInstanceId instead.`,
             );
           }
+
+          resolvedInstanceId = defaultId;
+        } else {
+          throw new Error(
+            "useCreateSession requires either agentInstanceId or agentRef. " +
+              "Provide one to specify which agent this session should use.",
+          );
         }
 
         const session = await stigmer.session.create({
@@ -117,14 +123,12 @@ export function useCreateSession(): UseCreateSessionReturn {
           workspaceEntries: input.workspaceEntries,
           mcpServerUsages: input.mcpServerUsages,
           skillRefs: input.skillRefs,
-          agentInstanceId,
+          agentInstanceId: resolvedInstanceId,
         });
 
         return { sessionId: session.metadata!.id };
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Failed to create session";
-        setError(message);
+        setError(toError(err));
         throw err;
       } finally {
         setIsCreating(false);

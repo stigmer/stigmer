@@ -78,15 +78,15 @@ class WorkflowInstanceInput:
     labels: dict[str, str] | None = None
     workflow_id: str = ""
     description: str = ""
-    env_refs: list[ResourceRef] = field(default_factory=list)
+    environment_refs: list[ResourceRef] = field(default_factory=list)
 
     def _to_proto(self) -> api_pb2.WorkflowInstance:
         spec = spec_pb2.WorkflowInstanceSpec(
             workflow_id=self.workflow_id,
             description=self.description,
         )
-        for ref in self.env_refs:
-            spec.env_refs.append(ref._to_proto())
+        for ref in self.environment_refs:
+            spec.environment_refs.append(ref._to_proto())
         metadata = metadata_pb2.ApiResourceMetadata(
             name=self.name,
             org=self.org,
