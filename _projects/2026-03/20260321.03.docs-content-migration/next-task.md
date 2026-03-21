@@ -13,23 +13,26 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: In progress — Phase 0 and Phase 1 complete, ready for Phase 2
-- **Last Session**: 2026-03-21 — Completed Phase 1 (Clean Slate + Visual Foundation)
+- **Status**: In progress — Phases 0, 1 complete + enforcement strengthened, ready for Phase 2
+- **Last Session**: 2026-03-21 (Session 3) — Strengthened docs enforcement backbone
 - **Active Task**: Phase 2 — Docs Home Page
+
+## Session Progress (2026-03-21, Session 3)
+
+- Analyzed the full docs enforcement architecture (Cursor rules, reminders, standards files) and identified the gap: critical audience and process context only loaded when reminders were manually dragged into chat
+- Strengthened `.cursor/rules/docs/documentation-standards.mdc` (auto-apply rule) to serve as the enforcement backbone:
+  - Inlined platform builder audience definition (from reminder 007)
+  - Inlined Diataxis framework mapping (from reminder 007)
+  - Added "before writing" gate: three questions, required reading list, Doc Blueprint process
+  - Inlined five mandates (from reminder 004)
+  - Added quality checklist (from reminder 004)
+- Reminders 004 and 007 no longer need to be manually dragged for docs work — their critical content fires automatically
+- Committed: `7d810806 docs(rules): strengthen auto-apply docs rule with inlined audience and enforcement context`
 
 ## Session Progress (2026-03-21, Session 2)
 
 - Completed all 4 deliverables of Phase 1 (Clean Slate + Visual Foundation)
-- Verified stale docs content already deleted (done in prior commit on `feat/add-docs` branch) — only `docs/standards/` (10 files) + `docs/index.mdx` + `docs/meta.json` remain
-- Added docs typography CSS overrides in `site/src/app/globals.css` — scoped to `#nd-page .prose` (Fumadocs article container), line-height 1.75, generous heading/paragraph/list/code-block margins
-- Set up Mermaid diagram rendering:
-  - Installed `mermaid` and `next-themes` dependencies
-  - Created `site/src/components/mdx/mermaid.tsx` — client component with theme-aware rendering, lazy loading, and caching
-  - Added `remarkMdxMermaid` plugin to `site/source.config.ts` so ` ```mermaid` fenced code blocks auto-render
-  - Registered Mermaid component in `site/src/app/docs/[[...slug]]/page.tsx`
-- Verified `yarn build` passes with zero errors (Node 20, 7 static pages generated)
 - Committed: `665d96ab docs(site): add Mermaid rendering and docs typography overrides`
-- Phase 0's standards updates (Mermaid-only mandate, Content Validation) were already in place — no standards changes needed in Phase 1
 
 ## Next Steps
 
@@ -50,6 +53,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 - Phase 0 established the audience foundation (platform builders, Diataxis framework)
 - Phase 1 established the visual foundation (clean slate, typography, Mermaid)
+- Session 3 strengthened enforcement — `.cursor/rules/docs/documentation-standards.mdc` now auto-applies full audience context, Diataxis framework, Doc Blueprint process, and quality checklist when any `docs/**` file is touched
 - The approved plan is at `_projects/2026-03/20260321.03.docs-content-migration/tasks/T01_2_revised_plan.md`
 - Mermaid is now fully wired — ` ```mermaid` code blocks in MDX render automatically as diagrams
 - Typography is scoped to `#nd-page .prose` — marketing site is unaffected
@@ -60,11 +64,12 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-03/20260321.03.docs-content-migration/checkpoints/2026-03-21-session-2.md
+_projects/2026-03/20260321.03.docs-content-migration/checkpoints/2026-03-21-session-3.md
 ```
 
-### 2. Previous Checkpoint
+### 2. Previous Checkpoints
 ```
+_projects/2026-03/20260321.03.docs-content-migration/checkpoints/2026-03-21-session-2.md
 _projects/2026-03/20260321.03.docs-content-migration/checkpoints/2026-03-21-session-1.md
 ```
 
@@ -77,8 +82,8 @@ _projects/2026-03/20260321.03.docs-content-migration/tasks/T01_2_revised_plan.md
 - `_reminders/001_plan-first.md`
 - `_reminders/002_collaboration-principles.md`
 - `_reminders/003_platform-for-platforms.md`
-- `_reminders/004_documentation-standards.md`
-- `_reminders/007_documentation-for-platform-builders.md`
+- ~~`_reminders/004_documentation-standards.md`~~ — now auto-applied via `.cursor/rules/docs/documentation-standards.mdc`
+- ~~`_reminders/007_documentation-for-platform-builders.md`~~ — now auto-applied via `.cursor/rules/docs/documentation-standards.mdc`
 
 ## Approved Plan
 
