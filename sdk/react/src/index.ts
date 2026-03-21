@@ -47,6 +47,7 @@ export {
   useSessionList,
   useSessionExecutions,
   useSessionConversation,
+  useAgentRefFromSession,
   groupSessionsByTime,
 } from "./session";
 export type {
@@ -60,6 +61,7 @@ export type {
   UseSessionExecutionsReturn,
   SendFollowUpOptions,
   UseSessionConversationReturn,
+  UseAgentRefFromSessionReturn,
   SessionGroup,
 } from "./session";
 

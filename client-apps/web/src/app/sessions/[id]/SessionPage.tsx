@@ -11,10 +11,12 @@ import {
 } from "lucide-react";
 import {
   useSessionConversation,
+  useAgentRefFromSession,
   useModelRegistry,
   useWorkspaceEntries,
   useGitHubConnection,
   useOneTimeSecrets,
+  useStigmer,
   MessageThread,
   SessionComposer,
   ExecutionProgress,
@@ -23,7 +25,7 @@ import {
   SecretFlowErrorGuide,
   isSecretFlowError,
 } from "@stigmer/react";
-import type { SessionComposerSubmitContext } from "@stigmer/react";
+import type { AgentResolution, SessionComposerSubmitContext } from "@stigmer/react";
 import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDeploymentMode } from "@/hooks/useDeploymentMode";
@@ -52,6 +54,7 @@ function usePersistedModel() {
 export default function SessionPage() {
   const { id } = useParams<{ id: string }>();
   const org = useActiveOrgSlug();
+  const stigmer = useStigmer();
   const conv = useSessionConversation(id, org);
   const [modelId, setModelId] = usePersistedModel();
 
@@ -62,6 +65,24 @@ export default function SessionPage() {
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const initialSyncDone = useRef(false);
+
+  // ---------------------------------------------------------------------------
+  // Agent — derive current agentRef from session, allow mid-session changes
+  // ---------------------------------------------------------------------------
+
+  const sessionInstanceId = conv.session?.spec?.agentInstanceId ?? null;
+  const { agentRef: derivedAgentRef } = useAgentRefFromSession(sessionInstanceId);
+
+  const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
+  const [resolution, setResolution] = useState<AgentResolution | null>(null);
+  const agentInitDone = useRef(false);
+
+  useEffect(() => {
+    if (agentInitDone.current || !derivedAgentRef || !sessionInstanceId) return;
+    agentInitDone.current = true;
+    setAgentRef(derivedAgentRef);
+    setResolution({ mode: "saved", instanceId: sessionInstanceId });
+  }, [derivedAgentRef, sessionInstanceId]);
 
   useEffect(() => {
     if (!conv.session || initialSyncDone.current) return;
@@ -79,12 +100,30 @@ export default function SessionPage() {
   }, [conv.session, workspace]);
 
   const handleSubmit = useCallback(
-    (
+    async (
       message: string,
       model?: string,
       context?: SessionComposerSubmitContext,
     ) => {
+      let agentInstanceIdOverride: string | undefined;
+
+      if (resolution) {
+        if (
+          resolution.mode === "saved" &&
+          resolution.instanceId !== sessionInstanceId
+        ) {
+          agentInstanceIdOverride = resolution.instanceId;
+        } else if (resolution.mode === "direct" && agentRef) {
+          const agent = await stigmer.agent.getByReference(agentRef);
+          const defaultId = agent.status?.defaultInstanceId;
+          if (defaultId && defaultId !== sessionInstanceId) {
+            agentInstanceIdOverride = defaultId;
+          }
+        }
+      }
+
       conv.sendFollowUp(message, {
+        agentInstanceId: agentInstanceIdOverride,
         modelName: model ?? modelId,
         workspaceEntries: workspace.hasEntries
           ? workspace.toInput()
@@ -97,7 +136,7 @@ export default function SessionPage() {
 
       secrets.clear();
     },
-    [conv, modelId, workspace, mcpServerUsages, skillRefs, secrets],
+    [conv, modelId, workspace, mcpServerUsages, skillRefs, secrets, resolution, agentRef, sessionInstanceId, stigmer],
   );
 
   const displayExecution = useMemo(() => {
@@ -146,6 +185,9 @@ export default function SessionPage() {
               enableGitHub
               enableLocal={deploymentMode === "local"}
               enableFolderBrowser={deploymentMode === "local"}
+              agentRef={agentRef}
+              onAgentRefChange={setAgentRef}
+              onAgentResolutionChange={setResolution}
               mcpServerUsages={mcpServerUsages}
               onMcpServerUsagesChange={setMcpServerUsages}
               skillRefs={skillRefs}
