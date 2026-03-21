@@ -162,6 +162,7 @@ export function CodeBlock({
 
       {/* Code content with syntax highlighting */}
       <div className={cn("p-4 overflow-x-auto scrollbar-thin", sizeStyles[size])}>
+        {/* @ts-expect-error react-syntax-highlighter types lag behind React 19 */}
         <SyntaxHighlighter
           language={normalizedLanguage}
           style={oneDark}
@@ -236,6 +237,7 @@ export function CodeSnippet({
       sizeStyles[size],
       className
     )}>
+      {/* @ts-expect-error react-syntax-highlighter types lag behind React 19 */}
       <SyntaxHighlighter
         language={normalizedLanguage}
         style={oneDark}

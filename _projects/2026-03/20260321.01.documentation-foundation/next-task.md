@@ -8,7 +8,7 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Description**: Establish documentation standards, patterns, framework, linting rules, and cursor reminders for Stigmer developer documentation. Inspired by docs.temporal.io structure — quickstarts, SDK guides, concept docs — adapted for an agentic platform.
 **Goal**: Set up a production-grade documentation system with framework (Fumadocs), content standards, linting, cursor rules/reminders, and initial quickstart structure that ensures all future documentation is consistent, high-quality, and maintainable.
-**Tech Stack**: Next.js 15, Fumadocs (MDX), TypeScript, Markdown/MDX, ESLint custom rules, Tailwind CSS
+**Tech Stack**: Next.js 15.3.9, Fumadocs (MDX), TypeScript, Markdown/MDX, ESLint custom rules, Tailwind CSS v4
 **Components**: site (Next.js docs routes), docs/ (markdown content), .cursor/rules (documentation reminders), _roles/002_document_writer.md, @stigmer/theme (docs theming)
 
 ## Essential Files to Review
@@ -68,7 +68,7 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-21 10:49
-**Current Task**: T01 — Phase 1 complete, Phase 2 next
+**Current Task**: Phase 2 complete, Phase 3 next
 **Status**: In Progress
 
 ## Session Progress (2026-03-21)
@@ -101,30 +101,55 @@ Created `_reminders/` folder with 4 files for dropping into Cursor conversations
 | `003_platform-for-platforms.md` | UI/SDK/component work |
 | `004_documentation-standards.md` | Documentation work |
 
+### Phase 2: Fumadocs Framework Integration — COMPLETE
+
+Installed and configured Fumadocs within the existing Next.js site:
+
+| Action | File | Purpose |
+|---|---|---|
+| Install | `fumadocs-mdx@12.0.3`, `fumadocs-core@15.8.5`, `fumadocs-ui@15.8.5` | Framework packages |
+| Upgrade | `next@15.3.9`, `react@19.1.0` | Required by fumadocs-mdx v12 |
+| Create | `site/source.config.ts` | Content sourcing from `../docs`, excludes `standards/` |
+| Create | `site/src/lib/source.ts` | Runtime source loader |
+| Create | `site/src/app/docs/layout.tsx` | Docs layout with `RootProvider` + `DocsLayout` |
+| Create | `site/src/app/docs/[[...slug]]/page.tsx` | MDX renderer + `generateStaticParams` |
+| Create | `docs/index.mdx`, `docs/meta.json` | Docs landing page + sidebar ordering |
+| Create | `docs/concepts/index.mdx`, `docs/concepts/meta.json` | Test page for nested routing |
+| Modify | `site/next.config.ts` | `createMDX()` wrapper + `outputFileTracingRoot` |
+| Modify | `site/tsconfig.json` | `@/.source` path alias for generated files |
+| Modify | `site/src/app/globals.css` | Fumadocs CSS imports |
+| Modify | `site/src/app/layout.tsx` | `suppressHydrationWarning` |
+| Fix | `site/src/components/sections/Hero.tsx` | `<a>` → `<Link>` for internal docs links |
+| Fix | `site/src/components/sections/Quickstart.tsx` | `<a>` → `<Link>` for internal docs links |
+| Fix | `site/src/components/ui/code-block.tsx` | `@ts-expect-error` for React 19 type compat |
+
+**Build results**: Static export succeeds — 8 pages generated, `/docs` and `/docs/concepts` both SSG'd.
+
 ### Key Decisions
 
-- Design tokens use unprefixed semantic names (`--background`, `--primary`), not `--stgm-*` as the task plan assumed. Corrected in standards docs.
-- `docs/standards/` directory is excluded from Fumadocs content sourcing — it holds governance docs, not rendered pages.
-- Terminology dictionary covers 23 terms with exceptions for technical contexts (e.g., "org" permitted in CLI flags, "token" permitted for LLM tokens).
+- **Node.js 20 LTS required** — Node 23 causes silent webpack crashes with Next.js 15.3.9. Must use Node 20 for all builds.
+- **Turbopack disabled** — Can't resolve external `../docs/` files. Using webpack.
+- **fumadocs-mdx v12** — v11 had API incompatibility with fumadocs-core v15. v12 required Next.js >=15.3.
+- **`RootProvider` scoped to `/docs`** — Marketing page isolated from fumadocs.
 
 ## Next Steps
 
-1. **Phase 2: Framework Integration (Fumadocs + Next.js)** — Install packages, source config, docs layout, catch-all route, theme integration, static export, search
-2. Phase 3: Cursor Rules & Reminders (can run parallel with 4/5 after Phase 2)
-3. Phase 4: Documentation Linting
-4. Phase 5: Quickstart Skeleton & Content Seeding
+1. **Phase 3: Cursor Rules & Reminders** — Documentation workflow rules for Cursor
+2. **Phase 4: Documentation Linting** — Terminology enforcement, frontmatter validation
+3. **Phase 5: Quickstart Skeleton & Content Seeding** — Initial content population
 
 ## Context for Resume
 
-- Revised plan is in `tasks/T01_2_revised_plan.md` — all Phase 2 details are there.
-- The site is a lean Next.js 15 app at `site/` with only 5 files in `src/app/`. Phase 2 adds the `docs/` route tree.
-- Fumadocs `source.config.ts` will source from `../docs` (relative to `site/`).
-- Static export (`output: "export"`) is confirmed compatible with Fumadocs.
+- The site builds and exports successfully with Node.js 20. Use `nvm use 20` before running `yarn build`.
+- Fumadocs is fully integrated: `source.config.ts` → `lib/source.ts` → docs layout/page.
+- Marketing page at `/` is unaffected by fumadocs integration.
+- Revised plan is in `tasks/T01_2_revised_plan.md` for Phase 2 details.
+- The `docs/standards/` directory is excluded from Fumadocs content sourcing.
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 2" — Begin framework integration
+- "Start Phase 3" — Begin cursor rules & reminders
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns

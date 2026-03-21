@@ -13,7 +13,7 @@ export default async function Page(props: {
   const MDX = page.data.body;
 
   return (
-    <PageRoot toc={page.data.toc}>
+    <PageRoot toc={{ toc: page.data.toc }}>
       <PageArticle>
         <MDX components={{ ...defaultMdxComponents }} />
       </PageArticle>

@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { transitions } from "@/lib/animations";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
@@ -132,10 +133,10 @@ function Hero({ className, ...props }: HeroProps) {
         <FadeInUp delay={0.5}>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Button asChild size="xl">
-              <a href="/docs/getting-started">
+              <Link href="/docs/getting-started">
                 Get Started
                 <Icon name="chevron-right" size="sm" />
-              </a>
+              </Link>
             </Button>
             <Button asChild variant="outline" size="xl">
               <a
