@@ -5,6 +5,7 @@ import {
   EnvVarForm,
   type EnvVarFormVariable,
   type EnvVarFormSubmitOptions,
+  type EnvVarFormProps,
 } from "../environment/EnvVarForm";
 
 // ---------------------------------------------------------------------------
@@ -68,6 +69,11 @@ export interface AgentEnvFormProps {
    * @default false
    */
   readonly hideSaveToggle?: boolean;
+  /**
+   * Lookup function for pre-filling fields from the session env pool.
+   * Passed through to {@link EnvVarForm}.
+   */
+  readonly poolValues?: EnvVarFormProps["poolValues"];
   readonly className?: string;
 }
 

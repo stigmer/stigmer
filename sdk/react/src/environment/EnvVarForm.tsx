@@ -85,6 +85,17 @@ export interface EnvVarFormProps {
    * @default false
    */
   readonly hideSaveToggle?: boolean;
+  /**
+   * Pre-fill values from the session env pool.
+   *
+   * When provided, fields whose keys are in this record are
+   * pre-populated with the pool's value. A subtle indicator shows
+   * that the value was provided by another source in the session.
+   *
+   * Platform builders who use `useSessionEnvPool` can pass
+   * `pool.getAvailableValue` to look up pre-fill values.
+   */
+  readonly poolValues?: (key: string) => EnvVarInput | undefined;
   readonly className?: string;
   /**
    * Overrides the `aria-label` on the `<form>` element. When omitted,
@@ -146,12 +157,26 @@ export function EnvVarForm({
   cancelLabel = "Back",
   defaultSaveForFuture = true,
   hideSaveToggle = false,
+  poolValues,
   className,
   ariaLabel,
 }: EnvVarFormProps) {
   const [values, setValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(variables.map((v) => [v.key, ""])),
+    Object.fromEntries(
+      variables.map((v) => {
+        const poolVal = poolValues?.(v.key);
+        return [v.key, poolVal?.value ?? ""];
+      }),
+    ),
   );
+  const [prefilledKeys] = useState<Set<string>>(() => {
+    if (!poolValues) return new Set<string>();
+    const keys = new Set<string>();
+    for (const v of variables) {
+      if (poolValues(v.key)) keys.add(v.key);
+    }
+    return keys;
+  });
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
   const [saveForFuture, setSaveForFuture] = useState(defaultSaveForFuture);
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -297,6 +322,11 @@ export function EnvVarForm({
                     className="text-[0.6rem] leading-relaxed text-muted-foreground/80"
                   >
                     {variable.description}
+                  </p>
+                )}
+                {prefilledKeys.has(variable.key) && (
+                  <p className="text-[0.55rem] text-primary/70">
+                    Pre-filled from session variables
                   </p>
                 )}
               </div>

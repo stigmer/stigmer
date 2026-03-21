@@ -134,6 +134,13 @@ export interface McpServerPickerProps {
    * in `setup.entries`.
    */
   readonly initialServerKey?: string;
+  /**
+   * Lookup function for pre-filling credential fields from the session
+   * env pool. Passed through to {@link McpServerConfigPanel}'s
+   * credentials form. When a field's key returns a value, the field is
+   * pre-populated.
+   */
+  readonly poolValues?: (key: string) => EnvVarInput | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -227,6 +234,7 @@ export function McpServerPicker({
   className,
   setup,
   initialServerKey,
+  poolValues,
 }: McpServerPickerProps) {
   const instanceId = useId();
   const listId = `${instanceId}-list`;
@@ -373,6 +381,7 @@ export function McpServerPicker({
                   onSubmit: (values, opts) =>
                     setup.onSubmitEnvVars(ref, values, opts),
                   isSubmitting: entry.status === "submitting",
+                  poolValues,
                 }
               : undefined
           }

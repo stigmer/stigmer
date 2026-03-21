@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useReducer } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import { create } from "@bufbuild/protobuf";
 import type { EnvVarInput, ResourceRef } from "@stigmer/sdk";
 import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
@@ -131,9 +131,17 @@ export interface UseAgentSetupReturn {
  *
  * Pass `null` as `org` to disable all operations (stable no-op).
  *
+ * @param org - Organization slug. Pass `null` to disable.
+ * @param poolKeys - Optional set of env-var keys already available
+ *   from the session env pool (manual secrets, one-time env vars from
+ *   other components). When provided, agents whose `env_spec` keys
+ *   are fully covered by `poolKeys` + personal env auto-resolve to
+ *   `ready` without prompting. Reactive — when `poolKeys` changes,
+ *   `needsEnvVars` is re-evaluated.
+ *
  * @example
  * ```tsx
- * const { state, resolveAgent, submitEnvVars } = useAgentSetup("acme");
+ * const { state, resolveAgent, submitEnvVars } = useAgentSetup("acme", pool.availableKeys);
  *
  * const result = await resolveAgent({ org: "acme", slug: "code-reviewer" });
  *
@@ -145,7 +153,10 @@ export interface UseAgentSetupReturn {
  * }
  * ```
  */
-export function useAgentSetup(org: string | null): UseAgentSetupReturn {
+export function useAgentSetup(
+  org: string | null,
+  poolKeys?: Set<string>,
+): UseAgentSetupReturn {
   const stigmer = useStigmer();
   const personalEnv = usePersonalEnvironment(org);
 
@@ -211,11 +222,11 @@ export function useAgentSetup(org: string | null): UseAgentSetupReturn {
           return { status: "ready", agentRef: ref, agentName, resolution };
         }
 
-        // No personal instance — diff against existing env keys.
+        // No personal instance — diff against existing env keys + pool.
         const existingKeys = new Set(
           Object.keys(personalEnv.environment?.spec?.data ?? {}),
         );
-        const missingVariables = diffEnvSpec(envSpecData, existingKeys);
+        const missingVariables = diffEnvSpec(envSpecData, existingKeys, poolKeys);
 
         if (missingVariables.length === 0) {
           // All variables present — create personal instance.
@@ -267,8 +278,26 @@ export function useAgentSetup(org: string | null): UseAgentSetupReturn {
         throw err;
       }
     },
-    [org, stigmer, personalEnv],
+    [org, stigmer, personalEnv, poolKeys],
   );
+
+  // -------------------------------------------------------------------------
+  // Pool re-evaluation — auto-resolve needsEnvVars when pool changes
+  // -------------------------------------------------------------------------
+
+  const agentMissingVars =
+    state.status === "needsEnvVars" ? state.missingVariables : null;
+
+  useEffect(() => {
+    if (!poolKeys || poolKeys.size === 0) return;
+    if (!agentMissingVars) return;
+
+    const stillMissing = agentMissingVars.filter(
+      (v) => !poolKeys.has(v.key),
+    );
+
+    dispatch({ type: "POOL_RESOLVE", missingVariables: stillMissing });
+  }, [poolKeys, agentMissingVars]);
 
   // -------------------------------------------------------------------------
   // submitEnvVars

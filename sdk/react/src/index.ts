@@ -93,8 +93,8 @@ export {
   classifyPath,
   resolveGitBrowseUrl,
   resolvePathAction,
-  useOneTimeSecrets,
-  OneTimeSecretsInput,
+  useSessionVariables,
+  SessionVariablesInput,
   useExecutionArtifacts,
   useArtifactContent,
   isTextArtifact,
@@ -127,9 +127,9 @@ export type {
   FilePathContextValue,
   PathClassification,
   ResolvedPathAction,
-  OneTimeSecretEntry,
-  UseOneTimeSecretsReturn,
-  OneTimeSecretsInputProps,
+  SessionVariableEntry,
+  UseSessionVariablesReturn,
+  SessionVariablesInputProps,
   UseExecutionArtifactsReturn,
   UseArtifactContentReturn,
 } from "./execution";
@@ -289,6 +289,7 @@ export {
   EnvironmentListPanel,
   CreateEnvironmentForm,
   EnvVarForm,
+  useSessionEnvPool,
 } from "./environment";
 export type {
   UseEnvironmentReturn,
@@ -308,6 +309,8 @@ export type {
   EnvVarFormProps,
   EnvVarFormVariable,
   EnvVarFormSubmitOptions,
+  SessionEnvPoolInput,
+  UseSessionEnvPoolReturn,
 } from "./environment";
 
 // Organization — behavior hook and styled form for organization creation

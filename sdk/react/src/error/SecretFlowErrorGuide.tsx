@@ -142,8 +142,8 @@ export function SecretFlowErrorGuide({
                 <span className="mt-px shrink-0">•</span>
                 <span>
                   Provide them as{" "}
-                  <strong className="font-medium">one-time secrets</strong>{" "}
-                  when sending a message (they won't be stored).
+                  <strong className="font-medium">session variables</strong>{" "}
+                  when sending a message.
                 </span>
               </li>
             </ul>
