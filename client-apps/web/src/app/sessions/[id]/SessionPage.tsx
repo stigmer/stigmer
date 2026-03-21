@@ -12,6 +12,7 @@ import {
 import {
   useSessionConversation,
   useAgentRefFromSession,
+  useDefaultAgent,
   useModelRegistry,
   useWorkspaceEntries,
   useGitHubConnection,
@@ -72,6 +73,7 @@ export default function SessionPage() {
 
   const sessionInstanceId = conv.session?.spec?.agentInstanceId ?? null;
   const { agentRef: derivedAgentRef } = useAgentRefFromSession(sessionInstanceId);
+  const { agent: defaultAgent, isLoading: isDefaultAgentLoading } = useDefaultAgent(org);
 
   const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
   const [resolution, setResolution] = useState<AgentResolution | null>(null);
@@ -79,10 +81,20 @@ export default function SessionPage() {
 
   useEffect(() => {
     if (agentInitDone.current || !derivedAgentRef || !sessionInstanceId) return;
+    if (isDefaultAgentLoading) return;
+
     agentInitDone.current = true;
-    setAgentRef(derivedAgentRef);
-    setResolution({ mode: "saved", instanceId: sessionInstanceId });
-  }, [derivedAgentRef, sessionInstanceId]);
+
+    const isDefault =
+      defaultAgent &&
+      derivedAgentRef.org === defaultAgent.metadata?.org &&
+      derivedAgentRef.slug === defaultAgent.metadata?.slug;
+
+    if (!isDefault) {
+      setAgentRef(derivedAgentRef);
+      setResolution({ mode: "saved", instanceId: sessionInstanceId });
+    }
+  }, [derivedAgentRef, sessionInstanceId, defaultAgent, isDefaultAgentLoading]);
 
   useEffect(() => {
     if (!conv.session || initialSyncDone.current) return;
