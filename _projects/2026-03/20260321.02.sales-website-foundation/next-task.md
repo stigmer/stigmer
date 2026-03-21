@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-21 15:20
-**Current Task**: Phase 4 (Page and Section Templates) is next
-**Status**: In Progress — Phases 1-3 Complete
+**Current Task**: Phase 5 (Component Standards) is next
+**Status**: In Progress — Phases 1-4 Complete
 
 ## Session Progress (2026-03-21)
 
@@ -95,6 +95,15 @@ When starting a new session:
 - All forward-reference links in `website-standards.md` now resolve to real files
 - All three files validated as correct JSON
 
+### Completed: Phase 4 — Page and Section Templates
+- Created `site/standards/templates/` directory with 17 markdown specification files (1,780 lines total)
+- **8 section templates**: hero, features, how-it-works, code-showcase, comparison, social-proof, cta-band, faq — each defines job, required elements, constraints, copy guidance, design notes, accessibility requirements, and a quality checklist
+- **9 page templates**: homepage, use-case-page, comparison-page, feature-page, landing-page, pricing-page, changelog-page, blog-page, community-page — each defines metadata, narrative arc, section sequence with per-section requirements, CTA strategy, internal linking requirements, structured data, and a quality checklist
+- Templates are content specifications consumed by Cursor rules and human authors, not code
+- Section templates are referenced by page templates (e.g., homepage references `section-hero.md`, `section-features.md`, etc.)
+- Page templates ordered by priority tier: P0/P1 pages first (homepage, use-case, comparison, feature, landing), then P2/P3 (pricing, changelog, blog, community)
+- The forward-reference link in `website-standards.md` line 7 (`templates/`) now resolves to a populated directory
+
 ### Key Observations
 - The forward-references in `website-standards.md` (lines 9-13) already pointed to the exact filenames created in Phase 3 — no edits to Phase 1 deliverables were needed.
 - Extended banned phrases from 12 to 16 by adding `leverage`, `best-of-breed`, `cutting-edge`, and `AI-powered` from reminder 006.
@@ -103,26 +112,28 @@ When starting a new session:
 
 ## Next Steps
 
-1. **Phase 4: Page and Section Templates** — 9 page templates + 8 section templates in `site/standards/templates/`. Depends on page/section types from Phases 1-2.
-2. **Phase 5: Component Standards** — `site/standards/component-standards.md`. Can run in parallel with Phase 4.
-3. **Phase 6: Cursor Rules** — 3 rules in `.cursor/rules/site/`. Depends on all artifacts from Phases 1-5.
+1. **Phase 5: Component Standards** — `site/standards/component-standards.md`. Depends on design rules from Phase 1.
+2. **Phase 6: Cursor Rules** — 3 rules in `.cursor/rules/site/`. Depends on all artifacts from Phases 1-5.
+3. **Phase 7: Reminder and Role Updates** — `_reminders/007_website-standards.md` + update roles 007, 008, 009.
 
 ## Context for Resume
 
 - Branch: `feat/add-docs`
-- The `site/standards/` directory now has 5 files: `website-standards.md`, `information-architecture.md`, `content-requirements.json`, `copy-guidelines.json`, `performance-budget.json`
+- The `site/standards/` directory now has 5 files + a `templates/` subdirectory with 17 template files
+- Files: `website-standards.md`, `information-architecture.md`, `content-requirements.json`, `copy-guidelines.json`, `performance-budget.json`
+- Templates: 8 section templates (`section-*.md`) + 9 page templates (`*.md`)
 - The task plan (`tasks/T01_0_plan.md`) contains the full 8-phase breakdown with dependencies and success criteria
-- Phases 4 and 5 can run in parallel (both depend on Phases 1-2, not on Phase 3 specifically)
+- Phase 5 (Component Standards) is the next sequential step
 - Phase 6 depends on Phases 1-5 (all must be complete)
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 4" - Begin Page and Section Templates
 - "Start Phase 5" - Begin Component Standards
+- "Start Phase 6" - Begin Cursor Rules (requires Phase 5 complete)
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review Phase 3 deliverables" - Read the three JSON files in `site/standards/`
+- "Review Phase 4 deliverables" - Read the templates in `site/standards/templates/`
 
 ---
 
