@@ -2,6 +2,7 @@ apiVersion: agentic.stigmer.ai/v1
 kind: McpServer
 metadata:
   name: mcp-server-stigmer
+  visibility: visibility_public
   labels:
     stigmer.ai/system: "true"
 spec:
