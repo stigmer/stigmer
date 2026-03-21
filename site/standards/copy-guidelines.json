@@ -1,0 +1,185 @@
+{
+  "version": "1",
+  "description": "Machine-readable copy rules for the Stigmer sales website. Defines voice, banned phrases, required writing patterns, and terminology enforcement. Used by lint tooling (site/scripts/lint-copy.ts) and Cursor rules (.cursor/rules/site/) to enforce copy quality.",
+  "scope": "site/**/*.{tsx,ts}",
+  "voice": {
+    "confident_not_arrogant": {
+      "description": "State what Stigmer does well. Be transparent about where it is headed.",
+      "enforced_by": "review"
+    },
+    "technical_not_academic": {
+      "description": "Use precise terms. Avoid jargon that adds no information.",
+      "enforced_by": "review"
+    },
+    "conversational_not_casual": {
+      "description": "Write as if speaking to a peer at a technical meetup.",
+      "enforced_by": "review"
+    },
+    "second_person": {
+      "description": "Address the visitor as 'you'.",
+      "enforced_by": "review"
+    },
+    "present_tense": {
+      "description": "Use present tense for descriptions.",
+      "enforced_by": "review"
+    },
+    "imperative_mood": {
+      "description": "Use imperative mood for instructions.",
+      "enforced_by": "review"
+    },
+    "active_voice": {
+      "description": "Always active voice. 'Stigmer runs your agent,' not 'Your agent is run by Stigmer.'",
+      "enforced_by": "lint"
+    }
+  },
+  "banned_phrases": [
+    {
+      "phrase": "revolutionary",
+      "reason": "Hyperbole — every tool claims this",
+      "replacement": "State the specific improvement"
+    },
+    {
+      "phrase": "game-changing",
+      "reason": "Hyperbole — unverifiable",
+      "replacement": "State the specific difference"
+    },
+    {
+      "phrase": "seamless",
+      "reason": "Vague — hides actual integration complexity",
+      "replacement": "Describe the actual integration steps"
+    },
+    {
+      "phrase": "best-in-class",
+      "reason": "Unverifiable claim",
+      "replacement": "State the specific metric"
+    },
+    {
+      "phrase": "enterprise-grade",
+      "reason": "Meaningless without proof",
+      "replacement": "State the specific capability (HA, RBAC, audit logs)"
+    },
+    {
+      "phrase": "next-generation",
+      "reason": "Empty marketing — adds no information",
+      "replacement": "Describe what is actually new"
+    },
+    {
+      "phrase": "powerful",
+      "reason": "Every tool claims this",
+      "replacement": "State the specific capability"
+    },
+    {
+      "phrase": "easy to use",
+      "reason": "Subjective — developers will verify and disagree",
+      "replacement": "Show the actual steps ('3 commands')"
+    },
+    {
+      "phrase": "unlock the potential",
+      "reason": "Corporate jargon — signals marketing over engineering",
+      "replacement": "State the specific outcome"
+    },
+    {
+      "phrase": "digital transformation",
+      "reason": "Enterprise jargon — alienates developers",
+      "replacement": "Remove entirely"
+    },
+    {
+      "phrase": "synergy",
+      "reason": "Enterprise jargon — alienates developers",
+      "replacement": "Remove entirely"
+    },
+    {
+      "phrase": "AI-powered",
+      "reason": "The entire product is AI-related — adds no information",
+      "replacement": "Remove entirely"
+    },
+    {
+      "phrase": "scalable solutions",
+      "reason": "Vague — developers expect specificity",
+      "replacement": "State the specific scaling characteristic"
+    },
+    {
+      "phrase": "leverage",
+      "reason": "Enterprise jargon — use plain language",
+      "replacement": "Use 'use' or state the specific action"
+    },
+    {
+      "phrase": "best-of-breed",
+      "reason": "Unverifiable marketing claim",
+      "replacement": "State the specific advantage with proof"
+    },
+    {
+      "phrase": "cutting-edge",
+      "reason": "Hyperbole — overused and unverifiable",
+      "replacement": "Name the specific technology or approach"
+    }
+  ],
+  "required_patterns": {
+    "every_claim_needs_proof": {
+      "required": true,
+      "description": "No undemonstrated assertions. Every claim must be accompanied by a code snippet, terminal output, metric, or link.",
+      "enforced_by": "review"
+    },
+    "code_before_paragraph": {
+      "required": true,
+      "description": "When explaining a capability, show the code first, then explain.",
+      "enforced_by": "review"
+    },
+    "specific_numbers_over_adjectives": {
+      "required": true,
+      "description": "'5 lines of YAML' beats 'simple configuration.' Every quantifiable claim must use a number.",
+      "enforced_by": "review"
+    },
+    "feature_benefit_proof_structure": {
+      "required": true,
+      "description": "Every feature follows: (1) Benefit — why it matters, (2) Feature — what it is, (3) Proof — code, metric, or link. Lead with the benefit.",
+      "enforced_by": "review"
+    },
+    "objection_aware_writing": {
+      "required": true,
+      "description": "Anticipate why the visitor might leave and address it directly.",
+      "enforced_by": "review"
+    },
+    "honest_comparisons": {
+      "required": true,
+      "description": "When comparing to alternatives, state genuine differences. Acknowledge competitor strengths. Never misrepresent.",
+      "enforced_by": "review"
+    }
+  },
+  "terminology_source": "../../docs/standards/terminology.json",
+  "sales_terminology": [
+    {
+      "canonical": "Agent",
+      "prohibited": ["bot", "assistant", "chatbot", "AI agent"],
+      "context": "Use the domain model term. The sales site must not introduce terminology that contradicts the domain model."
+    },
+    {
+      "canonical": "AgentExecution",
+      "prohibited": ["agent run", "job", "task run"],
+      "context": "A single invocation of an agent. Use the canonical term from the proto model."
+    },
+    {
+      "canonical": "McpServer",
+      "prohibited": ["tool connector", "tool server", "tool integration"],
+      "context": "MCP tool integration definition. Use the protocol name."
+    },
+    {
+      "canonical": "Organization",
+      "prohibited": ["tenant", "account", "workspace"],
+      "context": "Root namespace for all Stigmer resources.",
+      "exceptions": ["'org' is permitted in CLI flag names and YAML field references"]
+    },
+    {
+      "canonical": "stigmer apply",
+      "prohibited": ["deploy", "push", "upload"],
+      "context": "The CLI command that deploys resources from YAML to the Stigmer backend.",
+      "exceptions": ["'deploy' is permitted when referring to the general concept, not the specific command"]
+    },
+    {
+      "canonical": "stigmer run",
+      "prohibited": ["execute", "invoke", "trigger"],
+      "context": "The CLI command that creates an AgentExecution or WorkflowExecution.",
+      "exceptions": ["'execute' and 'invoke' are permitted in general programming contexts"]
+    }
+  ]
+}

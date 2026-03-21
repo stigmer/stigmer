@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-21 15:20
-**Current Task**: Phase 3 (Machine-Readable Standards) is next
-**Status**: In Progress — Phases 1-2 Complete
+**Current Task**: Phase 4 (Page and Section Templates) is next
+**Status**: In Progress — Phases 1-3 Complete
 
 ## Session Progress (2026-03-21)
 
@@ -88,32 +88,41 @@ When starting a new session:
 - **Internal Linking Rules**: Funnel flow diagram, linking requirements per page type, anchor text rules, cross-site linking (docs, GitHub), orphan page prevention
 - **Page Inventory**: Current state (1 page + dead links), priority tiers (P0 foundation, P1 first wave with 8 pages, P2 second wave with 7 pages, P3 ongoing), dead link resolution plan
 
+### Completed: Phase 3 — Machine-Readable Standards
+- Created `site/standards/content-requirements.json` (192 lines) — 9 page types, 8 section types, 3 personas, funnel stages, global rules
+- Created `site/standards/copy-guidelines.json` (185 lines) — 7 voice rules, 16 banned phrases with reasons/replacements, 6 required patterns, 6 sales terminology entries
+- Created `site/standards/performance-budget.json` (125 lines) — Core Web Vitals, Lighthouse target, bundle/asset budgets, accessibility thresholds, SEO character limits, responsive breakpoints
+- All forward-reference links in `website-standards.md` now resolve to real files
+- All three files validated as correct JSON
+
 ### Key Observations
-- The document forward-references artifacts from Phases 3-5 (JSON files, templates, component-standards). Those links will resolve as subsequent phases deliver.
-- Identified 5 dead links in the current navigation (`/examples`, `/changelog`, `/docs/getting-started`, `/docs/api`) with resolution recommendations.
-- No design decisions, wrong assumptions, or don't-dos recorded — Phase 2 was a straightforward synthesis of Phase 1 page types, role personas, and existing site structure.
+- The forward-references in `website-standards.md` (lines 9-13) already pointed to the exact filenames created in Phase 3 — no edits to Phase 1 deliverables were needed.
+- Extended banned phrases from 12 to 16 by adding `leverage`, `best-of-breed`, `cutting-edge`, and `AI-powered` from reminder 006.
+- Added `enforced_by` annotations (`"lint"` or `"review"`) to copy guidelines to guide Phase 8 lint tooling scope.
+- Grouped all numerically-enforceable thresholds (performance, accessibility, SEO) into `performance-budget.json` as a single source of truth for measurable constraints.
 
 ## Next Steps
 
-1. **Phase 3: Machine-Readable Standards** — Create `content-requirements.json`, `copy-guidelines.json`, `performance-budget.json`. Depends on rules codified in Phases 1-2.
-2. **Phase 4: Page and Section Templates** — Can start after Phase 3. 9 page templates + 8 section templates.
-3. **Phase 5: Component Standards** — Can run in parallel with Phase 4.
+1. **Phase 4: Page and Section Templates** — 9 page templates + 8 section templates in `site/standards/templates/`. Depends on page/section types from Phases 1-2.
+2. **Phase 5: Component Standards** — `site/standards/component-standards.md`. Can run in parallel with Phase 4.
+3. **Phase 6: Cursor Rules** — 3 rules in `.cursor/rules/site/`. Depends on all artifacts from Phases 1-5.
 
 ## Context for Resume
 
 - Branch: `feat/add-docs`
-- The `site/standards/` directory now has two files: `website-standards.md` and `information-architecture.md`
+- The `site/standards/` directory now has 5 files: `website-standards.md`, `information-architecture.md`, `content-requirements.json`, `copy-guidelines.json`, `performance-budget.json`
 - The task plan (`tasks/T01_0_plan.md`) contains the full 8-phase breakdown with dependencies and success criteria
-- The execution order diagram in the task plan shows Phase 3 depends on Phases 1-2 (both complete)
-- Phases 4 and 5 can run in parallel after Phase 3
+- Phases 4 and 5 can run in parallel (both depend on Phases 1-2, not on Phase 3 specifically)
+- Phase 6 depends on Phases 1-5 (all must be complete)
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 3" - Begin Machine-Readable Standards
+- "Start Phase 4" - Begin Page and Section Templates
+- "Start Phase 5" - Begin Component Standards
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review Phase 2 deliverable" - Read `site/standards/information-architecture.md`
+- "Review Phase 3 deliverables" - Read the three JSON files in `site/standards/`
 
 ---
 
