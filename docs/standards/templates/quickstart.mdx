@@ -1,0 +1,170 @@
+---
+title: "{Name} Quickstart"
+description: "Get {thing} running in 5 minutes with {approach}."
+sidebar_label: "{Short label}"
+sidebar_position: 1
+tags: [quickstart]
+last_updated: 2026-01-01
+---
+
+{/*
+  QUICKSTART TEMPLATE
+  ===================
+  Use this template for quickstart documents that get a user from zero
+  to a working result in under 5 minutes. These live in docs/quickstarts/.
+
+  Every quickstart must be:
+  - Completable in 5 minutes or less by someone with the stated prerequisites.
+  - Runnable end-to-end. Every command must work. Every output must be accurate.
+  - Self-contained. Do not require the reader to read another doc first.
+
+  Section order is mandatory. Do not reorder or skip sections.
+*/}
+
+# {Name} quickstart
+
+{/*
+  One paragraph (2-3 sentences) stating what the reader will accomplish.
+  Be specific: "You will install the Stigmer CLI, create an agent, run it,
+  and verify the output."
+*/}
+
+In this quickstart, you will {specific outcome}. By the end, you will have {concrete deliverable}.
+
+---
+
+## Prerequisites
+
+{/*
+  List every requirement. Include versions. Do not assume anything is installed.
+  Use a bullet list with checkboxes.
+*/}
+
+Before you begin, make sure you have:
+
+- [ ] {Requirement 1} ({version or link to install})
+- [ ] {Requirement 2}
+
+{/*
+  If a prerequisite has a non-obvious install step, include it inline:
+*/}
+
+<details>
+<summary>Install {tool}</summary>
+
+```bash
+# macOS
+brew install {tool}
+
+# Linux
+curl -fsSL https://example.com/install.sh | sh
+```
+
+</details>
+
+---
+
+## Step 1: {Action verb} {thing}
+
+{/*
+  Each step is an H2 with format "Step N: {Imperative verb} {object}".
+  Include the command, then explain what it does in 1-2 sentences.
+  Show the expected output.
+*/}
+
+```bash
+{command}
+```
+
+{1-2 sentence explanation of what this command does.}
+
+Expected output:
+
+```text
+{exact output the user should see}
+```
+
+---
+
+## Step 2: {Action verb} {thing}
+
+```bash
+{command}
+```
+
+{Explanation.}
+
+---
+
+## Step 3: {Action verb} {thing}
+
+{/*
+  For steps that involve creating a file, show the complete file contents.
+  Use a heredoc or instruct the reader to create a file.
+*/}
+
+Create a file named `{filename}`:
+
+```yaml
+{complete, runnable file contents}
+```
+
+{Explanation of key fields.}
+
+---
+
+## Step 4: {Action verb} {thing}
+
+```bash
+{command}
+```
+
+---
+
+## Verify it works
+
+{/*
+  This section is mandatory. The reader must be able to confirm success.
+  Show the exact command and the exact expected output.
+*/}
+
+Run the following command to verify everything is working:
+
+```bash
+{verification command}
+```
+
+You should see output similar to:
+
+```text
+{expected output}
+```
+
+If you see {error condition}, check {troubleshooting link or inline fix}.
+
+---
+
+## What you built
+
+{/*
+  A brief recap (3-5 bullet points) of what the reader accomplished.
+  This reinforces learning and gives a sense of completion.
+*/}
+
+In this quickstart, you:
+
+- {Accomplishment 1}
+- {Accomplishment 2}
+- {Accomplishment 3}
+
+---
+
+## Next steps
+
+{/*
+  3-5 links to natural follow-up docs. Use action-oriented descriptions.
+*/}
+
+- [Learn about {concept}](../concepts/{slug}.mdx) — Understand the resource model behind what you just built.
+- [Try {guide}](../guides/{slug}.mdx) — Extend your setup with {capability}.
+- [Explore {reference}](../cli/{slug}.mdx) — See all available options for the commands you used.

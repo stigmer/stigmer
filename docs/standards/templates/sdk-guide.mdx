@@ -1,0 +1,144 @@
+---
+title: "{Topic} — {Language} SDK"
+description: "How to {accomplish task} using the Stigmer {Language} SDK."
+sidebar_label: "{Short label}"
+sidebar_position: 1
+tags: [sdk, "{language}"]
+last_updated: 2026-01-01
+---
+
+{/*
+  SDK GUIDE TEMPLATE
+  ==================
+  Use this template for SDK-specific topic guides that show how to accomplish
+  a task using a particular Stigmer SDK. These live in docs/sdk/{language}/.
+
+  Each SDK guide focuses on one topic (e.g., "Creating Agents," "Error Handling")
+  for one language. If the same topic applies to multiple languages, create
+  separate guides — do not mix languages in one document.
+
+  Section order is mandatory. Do not reorder or skip sections.
+*/}
+
+# {Topic} — {Language} SDK
+
+{/*
+  One paragraph stating what the reader will learn and what SDK version
+  this guide applies to.
+*/}
+
+This guide shows you how to {task} using the Stigmer {Language} SDK. It applies to SDK version {version} and later.
+
+---
+
+## Prerequisites
+
+- [ ] Stigmer CLI installed and running (`stigmer server status` returns OK)
+- [ ] {Language} {version}+ installed
+- [ ] Stigmer {Language} SDK installed:
+
+```bash
+{install command, e.g., "go get github.com/stigmer/stigmer/sdk/go@latest"}
+```
+
+---
+
+## Overview
+
+{/*
+  2-3 paragraphs explaining the concept at a high level before showing code.
+  Link to the concept doc for the full explanation — do not re-explain
+  the entire resource model here.
+*/}
+
+{Brief explanation of the concept.} For the full resource model, see [What is {Resource}?](../../concepts/{slug}.mdx).
+
+---
+
+## Basic example
+
+{/*
+  A complete, runnable code example showing the simplest possible usage.
+  Include imports. The reader should be able to copy this into a file and run it.
+*/}
+
+```{language}
+{complete, runnable example with imports}
+```
+
+Run it:
+
+```bash
+{command to run the example}
+```
+
+Expected output:
+
+```text
+{expected output}
+```
+
+---
+
+## Common patterns
+
+{/*
+  2-4 subsections showing common variations and patterns.
+  Each pattern gets its own H3 with a code example.
+*/}
+
+### {Pattern 1 name}
+
+{1-2 sentence description of when to use this pattern.}
+
+```{language}
+{code example}
+```
+
+### {Pattern 2 name}
+
+{Description.}
+
+```{language}
+{code example}
+```
+
+---
+
+## Error handling
+
+{/*
+  Show how to handle errors specific to this SDK operation.
+  Include the error types the SDK returns and how to check for them.
+*/}
+
+The SDK returns typed errors for {operation}:
+
+```{language}
+{error handling example}
+```
+
+| Error Type | Cause | Resolution |
+|---|---|---|
+| `{ErrorType1}` | {Cause} | {Fix} |
+| `{ErrorType2}` | {Cause} | {Fix} |
+
+---
+
+## API reference
+
+{/*
+  Link to the generated API reference or proto docs for the types
+  and functions used in this guide.
+*/}
+
+- [`{FunctionOrType}`]({link}) — {Brief description}
+- [`{FunctionOrType}`]({link}) — {Brief description}
+
+---
+
+## Related guides
+
+- [{Related SDK topic}](../{language}/{slug}.mdx) — {Brief description}
+- [{Related concept}](../../concepts/{slug}.mdx) — {Brief description}
+- [{Related how-to guide}](../../guides/{slug}.mdx) — {Brief description}
