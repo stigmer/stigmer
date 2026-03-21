@@ -48,6 +48,8 @@
   --color-sidebar-foreground: var(--stgm-sidebar-foreground);
   --color-sidebar-primary: var(--stgm-sidebar-primary);
   --color-sidebar-primary-foreground: var(--stgm-sidebar-primary-foreground);
+  --color-sidebar-muted: var(--stgm-sidebar-muted);
+  --color-sidebar-muted-foreground: var(--stgm-sidebar-muted-foreground);
   --color-sidebar-accent: var(--stgm-sidebar-accent);
   --color-sidebar-accent-foreground: var(--stgm-sidebar-accent-foreground);
   --color-sidebar-border: var(--stgm-sidebar-border);

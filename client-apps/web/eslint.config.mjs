@@ -1,6 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import stigmerPlugin from "eslint-plugin-stigmer";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -14,6 +15,7 @@ const eslintConfig = defineConfig([
   ]),
   {
     files: ["**/*.ts", "**/*.tsx", "**/*.mts"],
+    plugins: { stigmer: stigmerPlugin },
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
@@ -24,6 +26,9 @@ const eslintConfig = defineConfig([
         },
       ],
       "@typescript-eslint/no-explicit-any": "error",
+      "stigmer/no-main-tokens-in-sidebar": "warn",
+      "stigmer/no-token-opacity-modifiers": "warn",
+      "stigmer/sdk-import-boundaries": "error",
     },
   },
   {
