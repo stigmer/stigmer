@@ -1,0 +1,41 @@
+---
+description: Enforce canonical Stigmer terminology when editing docs or site content files
+globs:
+  - docs/**/*.md
+  - docs/**/*.mdx
+  - site/src/**/*.tsx
+  - site/src/**/*.ts
+alwaysApply: true
+---
+
+# Terminology Enforcement
+
+When editing content files, use **canonical terms only**. Proto names are the canonical names.
+
+## Canonical Terms (from `docs/standards/terminology.json`)
+
+| Canonical | Never Use |
+|---|---|
+| Agent | "ai agent," "bot," "assistant," "chatbot" |
+| AgentExecution | "agent run," "execution run," "job," "task run," "run instance" |
+| AgentInstance | "agent binding," "agent deployment," "deployed agent," "running agent" |
+| Session | "chat," "conversation," "thread," "chat session," "dialog" |
+| Skill | "knowledge pack," "plugin," "extension," "module" |
+| Workflow | "pipeline," "automation," "cron job," "scheduled task" |
+| WorkflowExecution | "workflow run," "pipeline run," "workflow job" |
+| McpServer | "tool connector," "tool server," "tool integration," "MCP connector," "tool provider" |
+| Organization | "tenant," "account," "team space," "workspace" |
+| Environment | "env config," "secret store," "credential store," "vault" |
+| SeedPack | "seed pack," "bootstrap package," "starter kit," "boilerplate" |
+| AgentRunner | "agent executor," "python runner," "AI runtime," "LLM runner" |
+| WorkflowRunner | "workflow executor," "go runner," "task executor," "pipeline runner" |
+| IdentityAccount | "user account," "member" (note: "user" is OK in non-technical prose) |
+| stigmer apply | "deploy," "push," "upload" (note: "deploy" is OK for the general concept) |
+| stigmer run | "execute," "invoke," "trigger" (note: OK in general programming contexts) |
+
+## Sales Copy Terms (from `site/standards/copy-guidelines.json`)
+
+**Banned phrases** — never use on the sales website:
+"revolutionary," "game-changing," "seamless," "best-in-class," "enterprise-grade," "next-generation," "powerful," "easy to use," "unlock the potential," "digital transformation," "synergy," "AI-powered," "scalable solutions," "leverage," "best-of-breed," "cutting-edge"
+
+Replace each with a specific, verifiable claim.

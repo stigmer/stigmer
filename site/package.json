@@ -9,7 +9,11 @@
     "build": "tsx scripts/generate-images.ts && next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "lint:copy": "tsx scripts/lint-copy.ts",
+    "lint:performance": "bash scripts/lint-performance.sh",
+    "lint:website": "tsx scripts/lint-copy.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "yarn lint && yarn typecheck && yarn lint:website"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
