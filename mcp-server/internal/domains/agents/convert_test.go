@@ -3,11 +3,11 @@ package agents
 import (
 	"testing"
 
+	agentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agent/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	geninput "github.com/stigmer/stigmer/mcp-server/gen/agentic/agent"
 	"github.com/stigmer/stigmer/mcp-server/internal/convert"
-	agentv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/agent/v1"
-	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 func mustToProto(t *testing.T, input *geninput.AgentInput) *agentv1.Agent {

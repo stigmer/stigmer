@@ -913,9 +913,10 @@ func (m *mcpGen) writeImports(w *bytes.Buffer) {
 // Proto type helpers
 // --------------------------------------------------------------------
 
-// mcpProtoPrefix is the Go module import path prefix for proto stubs
-// local to the MCP server module.
-const mcpProtoPrefix = "github.com/stigmer/stigmer/mcp-server/proto"
+// mcpProtoPrefix is the Go module import path prefix for API protobuf stubs.
+// Must match apis/stubs/go so binaries that also import apis/stubs (e.g. CLI)
+// do not register duplicate file descriptors.
+const mcpProtoPrefix = "github.com/stigmer/stigmer/apis/stubs/go"
 
 // mcpGenModuleBase is the Go module import path prefix for generated MCP
 // input packages. Combined with "{domain}/{resource}" it produces a full

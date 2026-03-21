@@ -27,9 +27,9 @@ import (
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
 	stigmergrpc "github.com/stigmer/stigmer/mcp-server/internal/grpc"
 
-	apiresourcekind "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
-	rpcpb "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/rpc"
-	searchv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/search/v1"
+	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
+	rpcpb "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/rpc"
+	searchv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/search/v1"
 )
 
 // SearchInput defines the parameters that an MCP client can pass to the

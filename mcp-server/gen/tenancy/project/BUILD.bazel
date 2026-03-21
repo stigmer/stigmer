@@ -6,9 +6,9 @@ go_library(
     importpath = "github.com/stigmer/stigmer/mcp-server/gen/tenancy/project",
     visibility = ["//visibility:public"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
+        "//apis/stubs/go/ai/stigmer/tenancy/project/v1:project",
         "//mcp-server/internal/convert",
-        "//mcp-server/proto/ai/stigmer/commons/apiresource",
-        "//mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind",
-        "//mcp-server/proto/ai/stigmer/tenancy/project/v1:project",
     ],
 )

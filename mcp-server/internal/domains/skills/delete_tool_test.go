@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"testing"
 
+	skillv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/skill/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
 	"github.com/stigmer/stigmer/mcp-server/internal/testutil"
-	skillv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/skill/v1"
-	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
