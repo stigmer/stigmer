@@ -68,7 +68,7 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-21 10:49
-**Current Task**: Phase 2 complete, Phase 3 next
+**Current Task**: Phase 3 complete, Phase 4 next
 **Status**: In Progress
 
 ## Session Progress (2026-03-21)
@@ -125,18 +125,31 @@ Installed and configured Fumadocs within the existing Next.js site:
 
 **Build results**: Static export succeeds — 8 pages generated, `/docs` and `/docs/concepts` both SSG'd.
 
+### Phase 3: Cursor Rules & Reminders — COMPLETE
+
+Created 3 Cursor rules and updated 2 existing files:
+
+| Action | File | Purpose |
+|---|---|---|
+| Create | `.cursor/rules/docs/documentation-standards.mdc` | Auto-apply rule on `docs/**/*.{md,mdx}` — content-type detection, frontmatter, headings, terminology, writing style |
+| Create | `.cursor/rules/docs/write-documentation.mdc` | Action rule — Doc Blueprint process, per-content-type template enforcement, Fumadocs patterns |
+| Create | `.cursor/rules/docs/review-documentation.mdc` | Action rule — 25-item quality checklist, terminology audit, structural/link validation |
+| Rewrite | `_roles/002_document_writer.md` | Removed duplicated standards (~60% was verbatim from `documentation-standards.md`), focused on persona/process/quality philosophy, added framework awareness |
+| Update | `_reminders/004_documentation-standards.md` | Added cursor rules reference table, IA doc reference, tightened cross-references to use action rules |
+
 ### Key Decisions
 
 - **Node.js 20 LTS required** — Node 23 causes silent webpack crashes with Next.js 15.3.9. Must use Node 20 for all builds.
 - **Turbopack disabled** — Can't resolve external `../docs/` files. Using webpack.
 - **fumadocs-mdx v12** — v11 had API incompatibility with fumadocs-core v15. v12 required Next.js >=15.3.
 - **`RootProvider` scoped to `/docs`** — Marketing page isolated from fumadocs.
+- **Three rules, not five** — 1 auto-apply + 2 action rules. Content-type-specific logic consolidated into write rule via path detection, not fragmented per type.
+- **Role as process, rules as enforcement** — Role file defines persona and behavior, cursor rules handle automated standards enforcement. Zero content duplication between role and standards doc.
 
 ## Next Steps
 
-1. **Phase 3: Cursor Rules & Reminders** — Documentation workflow rules for Cursor
-2. **Phase 4: Documentation Linting** — Terminology enforcement, frontmatter validation
-3. **Phase 5: Quickstart Skeleton & Content Seeding** — Initial content population
+1. **Phase 4: Documentation Linting** — Terminology enforcement, frontmatter validation, `make lint-docs` integration
+2. **Phase 5: Quickstart Skeleton & Content Seeding** — Initial content population
 
 ## Context for Resume
 
@@ -145,11 +158,13 @@ Installed and configured Fumadocs within the existing Next.js site:
 - Marketing page at `/` is unaffected by fumadocs integration.
 - Revised plan is in `tasks/T01_2_revised_plan.md` for Phase 2 details.
 - The `docs/standards/` directory is excluded from Fumadocs content sourcing.
+- Cursor rules live in `.cursor/rules/docs/`. Auto-apply rule triggers on any `docs/**/*.{md,mdx}` edit.
+- Role file `_roles/002_document_writer.md` references standards docs, does not duplicate them.
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 3" — Begin cursor rules & reminders
+- "Start Phase 4" — Begin documentation linting
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns

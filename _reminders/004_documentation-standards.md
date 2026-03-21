@@ -9,8 +9,18 @@ All documentation standards, templates, and terminology are defined in `docs/sta
 | Document | What It Defines |
 |---|---|
 | [`docs/standards/documentation-standards.md`](../docs/standards/documentation-standards.md) | Master standards: mandates, content types, frontmatter schema, heading rules, code block rules, writing style, cross-referencing |
-| [`docs/standards/information-architecture.md`](../docs/standards/information-architecture.md) | Sidebar tree, URL scheme, directory-to-route mapping, ordering conventions |
+| [`docs/standards/information-architecture.md`](../docs/standards/information-architecture.md) | Sidebar tree, URL scheme, directory-to-route mapping, ordering conventions, landing page spec |
 | [`docs/standards/terminology.json`](../docs/standards/terminology.json) | Machine-readable terminology dictionary — canonical terms and prohibited aliases |
+
+## Cursor Rules
+
+Three Cursor rules automate documentation enforcement in `.cursor/rules/docs/`:
+
+| Rule | Activation |
+|---|---|
+| `documentation-standards.mdc` | Auto-applies on `docs/**/*.{md,mdx}` edits — injects standards into context |
+| `write-documentation.mdc` | Invoke as `@write-documentation` when creating or rewriting docs |
+| `review-documentation.mdc` | Invoke as `@review-documentation` for quality review before merge |
 
 ## Templates
 
@@ -36,15 +46,16 @@ Every new document must use the correct template from `docs/standards/templates/
 
 ## Before Writing Any Document
 
-Follow the Doc Blueprint process from `_roles/002_document_writer.md`:
+Invoke `@write-documentation` to activate the writing rule, which enforces the Doc Blueprint process:
 
-1. **Audience audit** — who is this for and what is their goal?
-2. **Gap analysis** — what is missing, confusing, or outdated?
-3. **Outline** — proposed structure with confirmation before drafting.
+1. **Content type** — identify from file path, name the template.
+2. **Audience audit** — who is this for and what is their goal?
+3. **Gap analysis** — what is missing, confusing, or outdated?
+4. **Outline** — proposed structure with confirmation before drafting.
 
 ## Quality Checklist
 
-Before merging any documentation change:
+Before merging any documentation change, invoke `@review-documentation` or manually verify:
 
 - [ ] Uses the correct template for its content type
 - [ ] Frontmatter includes `title` and `description`
