@@ -59,27 +59,35 @@ func TestExtractSubdomainFromProtoFile(t *testing.T) {
 
 func TestProtoTypeToGoImportPath(t *testing.T) {
 	tests := []struct {
-		input string
-		want  string
+		input  string
+		prefix string
+		want   string
 	}{
 		{
 			"ai.stigmer.agentic.agent.v1.McpServerUsage",
+			sdkProtoPrefix,
 			"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1",
 		},
 		{
 			"ai.stigmer.commons.apiresource.ApiResourceReference",
+			sdkProtoPrefix,
 			"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource",
 		},
-		{"foo.bar.Baz", ""},
-		{"too.short", ""},
-		{"x", ""},
+		{
+			"ai.stigmer.agentic.session.v1.Session",
+			mcpProtoPrefix,
+			"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/session/v1",
+		},
+		{"foo.bar.Baz", sdkProtoPrefix, ""},
+		{"too.short", sdkProtoPrefix, ""},
+		{"x", sdkProtoPrefix, ""},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.input, func(t *testing.T) {
-			got := protoTypeToGoImportPath(tc.input)
+			got := protoTypeToGoImportPath(tc.input, tc.prefix)
 			if got != tc.want {
-				t.Errorf("protoTypeToGoImportPath(%q) = %q, want %q", tc.input, got, tc.want)
+				t.Errorf("protoTypeToGoImportPath(%q, %q) = %q, want %q", tc.input, tc.prefix, got, tc.want)
 			}
 		})
 	}

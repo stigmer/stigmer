@@ -581,7 +581,7 @@ func (m *mcpGen) genTopLevelToProto(w *bytes.Buffer, it *mcpInputType, resourceN
 	apiVersion := m.deriveApiVersion(it.protoType)
 	kind := resourceName
 
-	m.addImport("github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource", "")
+	m.addImport(mcpProtoPrefix+"/ai/stigmer/commons/apiresource", "")
 	m.addImport("github.com/stigmer/stigmer/mcp-server/internal/convert", "")
 
 	fmt.Fprintf(w, "// ToProto converts the flat MCP input into a fully-formed %s proto message.\n", kind)
@@ -689,8 +689,8 @@ func (m *mcpGen) genConfigToStructSwitch(w *bytes.Buffer, it *mcpInputType) {
 
 // genRefToProto generates a toProto method for a flattened reference input.
 func (m *mcpGen) genRefToProto(w *bytes.Buffer, it *mcpInputType) {
-	m.addImport("github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource", "")
-	m.addImport("github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind", "")
+	m.addImport(mcpProtoPrefix+"/ai/stigmer/commons/apiresource", "")
+	m.addImport(mcpProtoPrefix+"/ai/stigmer/commons/apiresource/apiresourcekind", "")
 
 	enumName, ok := apiResourceKindEnumNames[it.refKindVal]
 	if !ok {
@@ -718,6 +718,19 @@ func (m *mcpGen) genFieldAssignment(w *bytes.Buffer, f *mcpInputField, src, dst 
 
 	goType := f.goType
 	hasToProto := f.inputTypeName != ""
+
+	// Proto3 optional scalar field (synthetic oneof "_field") → assign as pointer.
+	// The proto generates *T types for these fields.
+	if strings.HasPrefix(f.oneofGroup, "_") && !f.isTimestamp && !hasToProto {
+		zeroVal := scalarZeroValue(goType)
+		if zeroVal != "" {
+			fmt.Fprintf(w, "\tif %s.%s != %s {\n", src, f.goName, zeroVal)
+			fmt.Fprintf(w, "\t\tv := %s.%s\n", src, f.goName)
+			fmt.Fprintf(w, "\t\t%s.%s = &v\n", dst, f.goName)
+			fmt.Fprintf(w, "\t}\n")
+			return
+		}
+	}
 
 	// Proto oneof timestamp field → parse ISO 8601 and wrap in oneof
 	if f.oneofGroup != "" && f.isTimestamp {
@@ -900,6 +913,10 @@ func (m *mcpGen) writeImports(w *bytes.Buffer) {
 // Proto type helpers
 // --------------------------------------------------------------------
 
+// mcpProtoPrefix is the Go module import path prefix for proto stubs
+// local to the MCP server module.
+const mcpProtoPrefix = "github.com/stigmer/stigmer/mcp-server/proto"
+
 // mcpGenModuleBase is the Go module import path prefix for generated MCP
 // input packages. Combined with "{domain}/{resource}" it produces a full
 // import path such as "github.com/stigmer/stigmer/mcp-server/gen/agentic/agent".
@@ -966,7 +983,7 @@ func (m *mcpGen) resourceWrapperGenImport(messageName string) (importPath, pkgNa
 
 // protoImport returns (go import path, package alias) for a fully-qualified proto type.
 func (m *mcpGen) protoImport(protoType string) (string, string) {
-	return protoTypeToGoImportPath(protoType), protoTypeToPackageAlias(protoType)
+	return protoTypeToGoImportPath(protoType, mcpProtoPrefix), protoTypeToPackageAlias(protoType)
 }
 
 // deriveApiVersion converts "ai.stigmer.<namespace>.<resource>.<version>.<Type>"
@@ -979,6 +996,21 @@ func (m *mcpGen) deriveApiVersion(protoType string) string {
 	namespace := parts[2] // "agentic"
 	version := parts[4]   // "v1"
 	return namespace + ".stigmer.ai/" + version
+}
+
+// scalarZeroValue returns the Go zero-value literal for a scalar type,
+// used to guard proto3 optional pointer assignments.
+func scalarZeroValue(goType string) string {
+	switch goType {
+	case "int32", "int64", "uint32", "uint64", "float32", "float64":
+		return "0"
+	case "bool":
+		return "false"
+	case "string":
+		return `""`
+	default:
+		return ""
+	}
 }
 
 // protoTypeName returns the Go type name from a fully-qualified proto type.

@@ -1,4 +1,4 @@
-.PHONY: build test docker-build tidy vet lint fmt clean codegen-schemas codegen-mcp codegen
+.PHONY: build test docker-build tidy vet lint fmt clean codegen-stubs codegen-schemas codegen-mcp codegen
 
 BINARY  := mcp-server-stigmer
 CMD     := ./cmd/mcp-server-stigmer
@@ -13,9 +13,7 @@ build:
 test:
 	go test -v -race -timeout 30s ./...
 
-# Build Docker image.  Must be invoked from the repo root so that the build
-# context includes apis/stubs/go (needed for the replace directive).
-#
+# Build Docker image.
 #   cd <repo-root> && docker build -f mcp-server/Dockerfile -t $(IMAGE):latest .
 docker-build:
 	docker build -f ../mcp-server/Dockerfile -t $(IMAGE):latest ..
@@ -43,12 +41,24 @@ lint:
 fmt:
 	go fmt ./...
 
-# Stage 1: Generate JSON schemas from all proto files.
+# Generate proto stubs local to the MCP server module.
+codegen-stubs:
+	@echo "Generating proto stubs into proto/..."
+	@rm -rf proto
+	@mkdir -p proto
+	@cd ../apis && buf generate --template buf.gen.mcp-server.yaml
+	@if [ -d "proto/github.com" ]; then \
+		mv proto/github.com/stigmer/stigmer/mcp-server/proto/* proto/ 2>/dev/null || true; \
+		rm -rf proto/github.com; \
+	fi
+	@echo "Proto stubs generated in proto/"
+
+# Generate JSON schemas from all proto files.
 codegen-schemas:
 	cd .. && go run tools/codegen/proto2schema/main.go \
 		--comprehensive --include-dir apis --output-dir tools/codegen/schemas
 
-# Stage 2: Generate MCP input types for all domains.
+# Generate MCP input types for all domains.
 # Auto-discovers all {domain}/{resource}/ schema directories and generates
 # domain-scoped Go packages into gen/{domain}/{resource}/.
 # Discriminated unions (e.g., workflow task_config) are auto-detected from
@@ -57,8 +67,8 @@ codegen-mcp:
 	go run ../tools/codegen/generator/ \
 		--comprehensive --schema-dir=../tools/codegen/schemas --output-dir=gen --target=mcp
 
-# Full pipeline: schemas + MCP input types.
-codegen: codegen-schemas codegen-mcp
+# Full pipeline: proto stubs + schemas + MCP input types.
+codegen: codegen-stubs codegen-schemas codegen-mcp
 
 # Remove build artifacts.
 clean:
