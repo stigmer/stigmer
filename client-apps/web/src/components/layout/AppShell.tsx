@@ -21,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [sidebar]);
 
   return (
+    // eslint-disable-next-line stigmer/no-main-tokens-in-sidebar -- app shell wraps both sidebar and main content
     <div className="bg-background text-foreground flex h-screen">
       {/* Mobile backdrop */}
       {sidebar.isOpen && (

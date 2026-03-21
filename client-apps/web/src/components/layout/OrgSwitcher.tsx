@@ -51,7 +51,7 @@ export function OrgSwitcher() {
         <span className="text-destructive truncate text-xs">{error}</span>
         <button
           onClick={retry}
-          className="text-muted-foreground hover:text-foreground shrink-0 rounded p-0.5 transition-colors"
+          className="text-sidebar-muted-foreground hover:text-sidebar-foreground shrink-0 rounded p-0.5 transition-colors"
           aria-label="Retry loading organizations"
         >
           <RefreshCw className="size-3" />
@@ -72,11 +72,11 @@ export function OrgSwitcher() {
           aria-label="Organization menu"
           className="hover:bg-sidebar-accent flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors focus:outline-none"
         >
-          <Building2 className="text-muted-foreground size-4 shrink-0" />
-          <span className={hasOrgs ? "truncate" : "text-muted-foreground truncate"}>
+          <Building2 className="text-sidebar-muted-foreground size-4 shrink-0" />
+          <span className={hasOrgs ? "truncate" : "text-sidebar-muted-foreground truncate"}>
             {orgLabel}
           </span>
-          <ChevronsUpDown className="text-muted-foreground ml-auto size-3.5 shrink-0" />
+          <ChevronsUpDown className="text-sidebar-muted-foreground ml-auto size-3.5 shrink-0" />
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" side="bottom" sideOffset={4}>
@@ -128,8 +128,8 @@ export function OrgSwitcher() {
 function OrgSwitcherSkeleton() {
   return (
     <div className="flex items-center gap-2 px-2 py-1.5">
-      <div className="bg-muted size-4 animate-pulse rounded" />
-      <div className="bg-muted h-4 w-24 animate-pulse rounded" />
+      <div className="bg-sidebar-muted size-4 animate-pulse rounded" />
+      <div className="bg-sidebar-muted h-4 w-24 animate-pulse rounded" />
     </div>
   );
 }

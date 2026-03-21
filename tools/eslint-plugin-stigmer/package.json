@@ -1,0 +1,8 @@
+{
+  "name": "eslint-plugin-stigmer",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Custom ESLint rules enforcing Stigmer theme token and architecture conventions",
+  "main": "index.js",
+  "license": "UNLICENSED"
+}

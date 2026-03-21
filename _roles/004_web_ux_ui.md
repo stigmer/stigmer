@@ -130,6 +130,14 @@ Components must never use hardcoded colors, sizes, or fonts. Every visual proper
    * Every embeddable component and hook must have clear documentation, a standalone demo, and copy-pastable integration examples. If a developer can't get a component running in under 5 minutes, the DX has failed.
    * SDK packages must provide clean barrel exports. A platform builder should never need to import from internal paths or understand the package's internal file structure.
 
+10. **Theme Token Compliance (Enforced by Linting):**
+    * Every color, border, background, and text color must come from `--stgm-*` tokens via Tailwind utility classes — never hardcoded values, never opacity modifiers on tokens (e.g., `text-sidebar-foreground/60` is a violation; use `text-sidebar-muted-foreground` instead).
+    * Components must use the correct token family for their rendering context: `sidebar-*` tokens inside the sidebar, main-area tokens in the content area, `popover-*` tokens in portaled content (dropdowns, dialogs). Mixing contexts causes visual breakage in presets with contrasting surfaces (Corporate, Fintech).
+    * Interactive elements (buttons, links) placed in non-standard contexts (dark sidebar, colored panels) must override their hover/focus/active states with context-appropriate tokens.
+    * If no suitable token exists, propose adding one to `sdk/theme/src/tokens.css` with values for all presets — do not work around it with opacity modifiers or hardcoded colors.
+    * See `.cursor/rules/client-apps/web/theme-token-guidelines.mdc` for the complete token reference and patterns.
+    * After any web UI changes, run `make lint` to verify compliance. The custom `eslint-plugin-stigmer` rules (`no-main-tokens-in-sidebar`, `no-token-opacity-modifiers`, `sdk-import-boundaries`) are enforced automatically via `make lint` and the full `make check` CI gate.
+
 ## YOUR PROCESS (Required)
 
 Before creating any visual artifacts or high-fidelity mockups, you must output a **"UX Strategy Audit"**:

@@ -6,7 +6,8 @@
     "sdk/typescript",
     "sdk/theme",
     "sdk/react",
-    "client-apps/web"
+    "client-apps/web",
+    "tools/eslint-plugin-stigmer"
   ],
   "scripts": {
     "build:libs": "npm run build -w @stigmer/protos && npm run build -w @stigmer/sdk && npm run build -w @stigmer/theme && npm run build -w @stigmer/react",
