@@ -1,0 +1,125 @@
+{
+  "version": "1",
+  "description": "Machine-readable performance, accessibility, and SEO budgets for the Stigmer sales website. All thresholds are hard limits — violations must be fixed before merge. Used by lint tooling (site/scripts/lint-performance.sh) and Cursor rules (.cursor/rules/site/) to enforce quality gates.",
+  "core_web_vitals": {
+    "lcp_ms": 2500,
+    "fid_ms": 100,
+    "inp_ms": 200,
+    "cls": 0.1
+  },
+  "lighthouse": {
+    "min_performance_score": 90
+  },
+  "bundle": {
+    "max_js_kb": 150,
+    "max_css_kb": 50,
+    "compression": "gzip",
+    "note": "Static marketing content should ship minimal client-side JavaScript. Interactive elements use progressive enhancement."
+  },
+  "assets": {
+    "images": {
+      "max_individual_kb": 200,
+      "allowed_formats": ["svg", "webp", "avif"],
+      "prohibited_formats": ["unoptimized png", "gif", "bmp"],
+      "lazy_load_below_fold": true
+    },
+    "fonts": {
+      "max_families": 2,
+      "allowed_families": ["Geist Sans", "Geist Mono"],
+      "max_weights_total": 4,
+      "font_display": "swap",
+      "subset_required": true
+    }
+  },
+  "animation": {
+    "gpu_only_properties": ["transform", "opacity"],
+    "prohibited_properties": ["width", "height", "top", "left", "margin", "padding"],
+    "reduced_motion_required": true,
+    "animation_source": "lib/animations.ts",
+    "no_inline_animate_props": true
+  },
+  "accessibility": {
+    "standard": "WCAG 2.1 AA",
+    "contrast": {
+      "body_text_ratio": 4.5,
+      "large_text_ratio": 3.0,
+      "large_text_definition": "18px bold or 24px regular",
+      "ui_components_ratio": 3.0
+    },
+    "touch_targets": {
+      "min_size_px": 44
+    },
+    "keyboard": {
+      "all_interactive_elements_reachable": true,
+      "focus_indicators_visible": true,
+      "focus_order_matches_visual": true,
+      "modal_focus_trap_required": true
+    },
+    "screen_reader": {
+      "skip_link_required": true,
+      "landmark_regions_required": ["header", "main", "footer", "nav"],
+      "one_h1_per_page": true,
+      "sequential_heading_levels": true,
+      "alt_text_required_for_non_decorative": true,
+      "aria_live_for_dynamic_content": true
+    },
+    "color_independence": {
+      "color_not_sole_channel": true
+    }
+  },
+  "seo": {
+    "title": {
+      "max_chars": 60,
+      "must_be_unique": true,
+      "must_include_primary_keyword": true,
+      "format": "{Page-Specific Title} | Stigmer"
+    },
+    "meta_description": {
+      "max_chars": 160,
+      "must_be_unique": true,
+      "must_include_primary_keyword": true,
+      "must_include_cta": true
+    },
+    "headings": {
+      "one_h1_per_page": true,
+      "sequential_levels": true,
+      "no_skipped_levels": true,
+      "natural_keyword_inclusion": true
+    },
+    "structured_data": {
+      "format": "JSON-LD",
+      "required_schemas": {
+        "site_wide": ["Organization", "WebSite"],
+        "homepage": ["SoftwareApplication"],
+        "feature": ["SoftwareApplication"],
+        "faq_sections": ["FAQPage"],
+        "blog": ["Article", "BlogPosting"]
+      }
+    },
+    "open_graph": {
+      "required_tags": ["og:title", "og:description", "og:image", "og:url"],
+      "og_image_width": 1200,
+      "og_image_height": 630
+    },
+    "twitter_card": {
+      "type": "summary_large_image"
+    },
+    "internal_linking": {
+      "min_links_per_page": 2,
+      "max_links_per_page": 3,
+      "descriptive_anchor_text_required": true,
+      "no_generic_cta_as_inline_link": true,
+      "no_dead_end_pages": true
+    }
+  },
+  "responsive": {
+    "breakpoints": {
+      "mobile": 375,
+      "tablet": 768,
+      "laptop": 1024,
+      "desktop": 1440
+    },
+    "code_blocks_horizontally_scrollable": true,
+    "no_horizontal_scroll_on_body": true
+  }
+}
