@@ -53,7 +53,7 @@ describe("wrapError", () => {
   );
 
   it("maps unmapped ConnectError codes to 'unknown'", () => {
-    const connectErr = new ConnectError("test", Code.OK);
+    const connectErr = new ConnectError("test", 0 as unknown as Code);
     const result = wrapError(connectErr);
     expect(result.code).toBe("unknown");
   });

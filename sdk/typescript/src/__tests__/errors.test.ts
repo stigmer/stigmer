@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { ConnectError, Code } from "@connectrpc/connect";
-import { StigmerError } from "../gen/errors";
+import { StigmerError, type ErrorCode } from "../gen/errors";
 import {
   classifyError,
   isRetryableError,
@@ -28,16 +28,8 @@ describe("classifyError", () => {
   it.each(stigmerMappings)(
     "maps StigmerError code '%s' to category '%s'",
     (errorCode, expectedCategory) => {
-      const err = new StigmerError(
-        errorCode as Parameters<typeof classifyError>[0] extends StigmerError
-          ? never
-          : string,
-        "test",
-        Code.Unknown,
-      );
-      // Need to cast because StigmerError constructor takes ErrorCode
       const result = classifyError(
-        new StigmerError(errorCode as never, "test", Code.Unknown),
+        new StigmerError(errorCode as ErrorCode, "test", Code.Unknown),
       );
       expect(result).toBe(expectedCategory);
     },
