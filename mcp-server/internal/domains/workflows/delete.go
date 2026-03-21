@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	workflowv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflow/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains"
-	workflowv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflow/v1"
-	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
 )
 

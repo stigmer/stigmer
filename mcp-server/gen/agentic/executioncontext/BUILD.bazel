@@ -6,8 +6,8 @@ go_library(
     importpath = "github.com/stigmer/stigmer/mcp-server/gen/agentic/executioncontext",
     visibility = ["//visibility:public"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/executioncontext/v1:executioncontext",
+        "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//mcp-server/internal/convert",
-        "//mcp-server/proto/ai/stigmer/agentic/executioncontext/v1:executioncontext",
-        "//mcp-server/proto/ai/stigmer/commons/apiresource",
     ],
 )

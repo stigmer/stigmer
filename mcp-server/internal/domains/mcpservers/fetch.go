@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains"
-	mcpserverv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
 )
 

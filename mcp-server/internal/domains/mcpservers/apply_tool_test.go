@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"testing"
 
+	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	geninput "github.com/stigmer/stigmer/mcp-server/gen/agentic/mcpserver"
 	"github.com/stigmer/stigmer/mcp-server/internal/auth"
 	"github.com/stigmer/stigmer/mcp-server/internal/testutil"
-	mcpserverv1 "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/mcpserver/v1"
-	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
