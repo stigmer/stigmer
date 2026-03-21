@@ -146,6 +146,30 @@ class GetArtifactDownloadUrlResponse(_message.Message):
     expires_at: str
     def __init__(self, download_url: _Optional[str] = ..., expires_at: _Optional[str] = ...) -> None: ...
 
+class GetArtifactContentRequest(_message.Message):
+    __slots__ = ("execution_id", "storage_key", "max_bytes", "entry_path")
+    EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    STORAGE_KEY_FIELD_NUMBER: _ClassVar[int]
+    MAX_BYTES_FIELD_NUMBER: _ClassVar[int]
+    ENTRY_PATH_FIELD_NUMBER: _ClassVar[int]
+    execution_id: str
+    storage_key: str
+    max_bytes: int
+    entry_path: str
+    def __init__(self, execution_id: _Optional[str] = ..., storage_key: _Optional[str] = ..., max_bytes: _Optional[int] = ..., entry_path: _Optional[str] = ...) -> None: ...
+
+class GetArtifactContentResponse(_message.Message):
+    __slots__ = ("content", "content_type", "total_size_bytes", "truncated")
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_TYPE_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_SIZE_BYTES_FIELD_NUMBER: _ClassVar[int]
+    TRUNCATED_FIELD_NUMBER: _ClassVar[int]
+    content: bytes
+    content_type: str
+    total_size_bytes: int
+    truncated: bool
+    def __init__(self, content: _Optional[bytes] = ..., content_type: _Optional[str] = ..., total_size_bytes: _Optional[int] = ..., truncated: bool = ...) -> None: ...
+
 class GetSessionUsageReportInput(_message.Message):
     __slots__ = ("session_id",)
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]

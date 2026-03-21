@@ -129,7 +129,7 @@ export type WorkflowInstanceList = Message<"ai.stigmer.agentic.workflowinstance.
    *
    * Each entry is a complete WorkflowInstance resource with:
    * - api_version, kind, metadata
-   * - spec (workflow_id, description, env_refs)
+   * - spec (workflow_id, description, environment_refs)
    * - status (audit information)
    *
    * @generated from field: repeated ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance entries = 2;

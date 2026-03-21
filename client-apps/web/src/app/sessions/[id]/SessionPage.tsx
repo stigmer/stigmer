@@ -11,15 +11,23 @@ import {
 } from "lucide-react";
 import {
   useSessionConversation,
+  useAgentRefFromSession,
+  useDefaultAgent,
   useModelRegistry,
   useWorkspaceEntries,
   useGitHubConnection,
+  useSessionVariables,
+  useStigmer,
   MessageThread,
   SessionComposer,
   ExecutionProgress,
   ExecutionCostSummary,
+  ArtifactsWidget,
+  SecretFlowErrorGuide,
+  isSecretFlowError,
 } from "@stigmer/react";
-import type { McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import type { AgentResolution, SessionComposerSubmitContext } from "@stigmer/react";
+import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDeploymentMode } from "@/hooks/useDeploymentMode";
 import { Button } from "@/components/ui/button";
@@ -47,15 +55,43 @@ function usePersistedModel() {
 export default function SessionPage() {
   const { id } = useParams<{ id: string }>();
   const org = useActiveOrgSlug();
+  const stigmer = useStigmer();
   const conv = useSessionConversation(id, org);
   const [modelId, setModelId] = usePersistedModel();
 
   const deploymentMode = useDeploymentMode();
   const gitHubConnection = useGitHubConnection(org);
   const workspace = useWorkspaceEntries();
+  const sessionVariables = useSessionVariables();
   const [mcpServerUsages, setMcpServerUsages] = useState<McpServerUsageInput[]>([]);
   const [skillRefs, setSkillRefs] = useState<ResourceRef[]>([]);
   const initialSyncDone = useRef(false);
+
+  // ---------------------------------------------------------------------------
+  // Agent — derive current agentRef from session, allow mid-session changes
+  // ---------------------------------------------------------------------------
+
+  const sessionInstanceId = conv.session?.spec?.agentInstanceId ?? null;
+  const { agentRef: derivedAgentRef } = useAgentRefFromSession(sessionInstanceId);
+  const { agent: defaultAgent, isLoading: isDefaultAgentLoading } = useDefaultAgent(org);
+
+  const [agentRef, setAgentRef] = useState<ResourceRef | null>(null);
+  const [resolution, setResolution] = useState<AgentResolution | null>(null);
+  const [agentInitDone, setAgentInitDone] = useState(false);
+
+  if (!agentInitDone && derivedAgentRef && sessionInstanceId && !isDefaultAgentLoading) {
+    setAgentInitDone(true);
+
+    const isDefault =
+      defaultAgent &&
+      derivedAgentRef.org === defaultAgent.metadata?.org &&
+      derivedAgentRef.slug === defaultAgent.metadata?.slug;
+
+    if (!isDefault) {
+      setAgentRef(derivedAgentRef);
+      setResolution({ mode: "saved", instanceId: sessionInstanceId });
+    }
+  }
 
   useEffect(() => {
     if (!conv.session || initialSyncDone.current) return;
@@ -73,17 +109,43 @@ export default function SessionPage() {
   }, [conv.session, workspace]);
 
   const handleSubmit = useCallback(
-    (message: string, model?: string) => {
+    async (
+      message: string,
+      model?: string,
+      context?: SessionComposerSubmitContext,
+    ) => {
+      let agentInstanceIdOverride: string | undefined;
+
+      if (resolution) {
+        if (
+          resolution.mode === "saved" &&
+          resolution.instanceId !== sessionInstanceId
+        ) {
+          agentInstanceIdOverride = resolution.instanceId;
+        } else if (resolution.mode === "direct" && agentRef) {
+          const agent = await stigmer.agent.getByReference(agentRef);
+          const defaultId = agent.status?.defaultInstanceId;
+          if (defaultId && defaultId !== sessionInstanceId) {
+            agentInstanceIdOverride = defaultId;
+          }
+        }
+      }
+
       conv.sendFollowUp(message, {
+        agentInstanceId: agentInstanceIdOverride,
         modelName: model ?? modelId,
         workspaceEntries: workspace.hasEntries
           ? workspace.toInput()
           : undefined,
         mcpServerUsages: mcpServerUsages.length > 0 ? mcpServerUsages : undefined,
         skillRefs: skillRefs.length > 0 ? skillRefs : undefined,
+        runtimeEnv: context?.runtimeEnv,
+        attachments: context?.attachments,
       });
+
+      sessionVariables.clear();
     },
-    [conv, modelId, workspace, mcpServerUsages, skillRefs],
+    [conv, modelId, workspace, mcpServerUsages, skillRefs, sessionVariables, resolution, agentRef, sessionInstanceId, stigmer],
   );
 
   const displayExecution = useMemo(() => {
@@ -93,7 +155,7 @@ export default function SessionPage() {
   }, [conv.activeStreamExecution, conv.completedExecutions]);
 
   if (conv.isLoading) return <SessionSkeleton />;
-  if (conv.loadError) return <SessionError message={conv.loadError} />;
+  if (conv.loadError) return <SessionError error={conv.loadError} />;
   if (!conv.session && !conv.isLoading) return <SessionStarting />;
 
   return (
@@ -113,17 +175,12 @@ export default function SessionPage() {
           <div className="lg:mr-[208px]">
             {conv.streamError && (
               <StreamErrorBanner
-                message={conv.streamError}
+                error={conv.streamError}
                 onReconnect={conv.reconnectStream}
               />
             )}
             {(conv.sendError || conv.approvalError) && (
-              <div
-                role="alert"
-                className="border-border border-t px-4 py-2 text-xs text-destructive"
-              >
-                {conv.sendError || conv.approvalError}
-              </div>
+              <SendErrorBanner error={(conv.sendError ?? conv.approvalError)!} />
             )}
             <SessionComposer
               onSubmit={handleSubmit}
@@ -137,10 +194,14 @@ export default function SessionPage() {
               enableGitHub
               enableLocal={deploymentMode === "local"}
               enableFolderBrowser={deploymentMode === "local"}
+              agentRef={agentRef}
+              onAgentRefChange={setAgentRef}
+              onAgentResolutionChange={setResolution}
               mcpServerUsages={mcpServerUsages}
               onMcpServerUsagesChange={setMcpServerUsages}
               skillRefs={skillRefs}
               onSkillRefsChange={setSkillRefs}
+              sessionVariables={sessionVariables}
               className="px-4 py-3"
             />
           </div>
@@ -157,6 +218,7 @@ export default function SessionPage() {
               <div className="rounded-lg border border-border bg-card p-3">
                 <ExecutionCostSummary execution={displayExecution} />
               </div>
+              <ArtifactsWidget execution={displayExecution} org={org} />
             </>
           )}
         </aside>
@@ -173,37 +235,37 @@ function SessionSkeleton() {
   return (
     <div className="flex h-full flex-col gap-4 p-4" aria-busy="true">
       <div className="animate-pulse space-y-4">
-        <div className="rounded-lg bg-muted/50 px-4 py-3">
+        <div className="rounded-lg bg-muted-subtle px-4 py-3">
           <div className="h-4 w-3/5 rounded bg-muted" />
         </div>
 
         <div className="space-y-2 px-4">
-          <div className="h-4 w-4/5 rounded bg-muted/60" />
-          <div className="h-4 w-3/5 rounded bg-muted/60" />
-          <div className="h-4 w-2/5 rounded bg-muted/60" />
+          <div className="h-4 w-4/5 rounded bg-muted" />
+          <div className="h-4 w-3/5 rounded bg-muted" />
+          <div className="h-4 w-2/5 rounded bg-muted" />
         </div>
 
-        <div className="mx-4 h-8 w-2/5 rounded-md border border-border bg-muted/30" />
+        <div className="mx-4 h-8 w-2/5 rounded-md border border-border bg-muted-subtle" />
 
         <div className="space-y-2 px-4">
-          <div className="h-4 w-3/4 rounded bg-muted/60" />
-          <div className="h-4 w-1/2 rounded bg-muted/60" />
+          <div className="h-4 w-3/4 rounded bg-muted" />
+          <div className="h-4 w-1/2 rounded bg-muted" />
         </div>
       </div>
     </div>
   );
 }
 
-function SessionError({ message }: { message: string }) {
+function SessionError({ error }: { error: Error }) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-6 text-center">
-        <div className="bg-destructive/10 mx-auto flex size-12 items-center justify-center rounded-full">
+        <div className="bg-destructive-subtle mx-auto flex size-12 items-center justify-center rounded-full">
           <AlertTriangle className="text-destructive size-6" />
         </div>
         <div className="space-y-2">
           <h1 className="text-lg font-semibold">Failed to load session</h1>
-          <p className="text-muted-foreground text-sm">{message}</p>
+          <p className="text-muted-foreground text-sm">{getUserMessage(error)}</p>
         </div>
         <div className="flex items-center justify-center gap-3">
           <Button
@@ -236,11 +298,25 @@ function SessionStarting() {
   );
 }
 
+function SendErrorBanner({ error }: { error: Error }) {
+  if (isSecretFlowError(error)) {
+    return <SecretFlowErrorGuide error={error} className="mx-4 my-2" />;
+  }
+  return (
+    <div
+      role="alert"
+      className="border-border border-t px-4 py-2 text-xs text-destructive"
+    >
+      {getUserMessage(error)}
+    </div>
+  );
+}
+
 function StreamErrorBanner({
-  message,
+  error,
   onReconnect,
 }: {
-  message: string;
+  error: Error;
   onReconnect: () => void;
 }) {
   return (
@@ -250,7 +326,7 @@ function StreamErrorBanner({
     >
       <WifiOff className="text-destructive size-4 shrink-0" />
       <p className="text-muted-foreground min-w-0 flex-1 truncate text-sm">
-        {message}
+        {getUserMessage(error)}
       </p>
       <Button variant="outline" size="sm" onClick={onReconnect}>
         <RotateCcw className="mr-1.5 size-3" />

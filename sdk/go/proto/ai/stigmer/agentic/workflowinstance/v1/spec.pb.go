@@ -94,9 +94,9 @@ type WorkflowInstanceSpec struct {
 	//
 	// At execution time, the WorkflowExecution runtime merges these environments
 	// and provides the combined configuration to all agents in the workflow.
-	EnvRefs       []*apiresource.ApiResourceReference `protobuf:"bytes,3,rep,name=env_refs,json=envRefs,proto3" json:"env_refs,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	EnvironmentRefs []*apiresource.ApiResourceReference `protobuf:"bytes,3,rep,name=environment_refs,json=environmentRefs,proto3" json:"environment_refs,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *WorkflowInstanceSpec) Reset() {
@@ -143,9 +143,9 @@ func (x *WorkflowInstanceSpec) GetDescription() string {
 	return ""
 }
 
-func (x *WorkflowInstanceSpec) GetEnvRefs() []*apiresource.ApiResourceReference {
+func (x *WorkflowInstanceSpec) GetEnvironmentRefs() []*apiresource.ApiResourceReference {
 	if x != nil {
-		return x.EnvRefs
+		return x.EnvironmentRefs
 	}
 	return nil
 }
@@ -154,12 +154,13 @@ var File_ai_stigmer_agentic_workflowinstance_v1_spec_proto protoreflect.FileDesc
 
 const file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"1ai/stigmer/agentic/workflowinstance/v1/spec.proto\x12&ai.stigmer.agentic.workflowinstance.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xb3\x01\n" +
+	"1ai/stigmer/agentic/workflowinstance/v1/spec.proto\x12&ai.stigmer.agentic.workflowinstance.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a\x1bbuf/validate/validate.proto\"\xba\x02\n" +
 	"\x14WorkflowInstanceSpec\x12(\n" +
 	"\vworkflow_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\n" +
 	"workflowId\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\x12O\n" +
-	"\benv_refs\x18\x03 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\aenvRefsB\xd7\x02\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\xd5\x01\n" +
+	"\x10environment_refs\x18\x03 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBt\xbaHq\x92\x01n\"l\xba\x01i\n" +
+	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 52R\x0fenvironmentRefsB\xd7\x02\n" +
 	"*com.ai.stigmer.agentic.workflowinstance.v1B\tSpecProtoP\x01Zagithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflowinstance/v1;workflowinstancev1\xa2\x02\x04ASAW\xaa\x02&Ai.Stigmer.Agentic.Workflowinstance.V1\xca\x02&Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Workflowinstance::V1b\x06proto3"
 
 var (
@@ -180,7 +181,7 @@ var file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_goTypes = []any{
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
 }
 var file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec.env_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
+	1, // 0: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec.environment_refs:type_name -> ai.stigmer.commons.apiresource.ApiResourceReference
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name

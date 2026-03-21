@@ -122,10 +122,10 @@ public interface WorkflowInstanceSpecOrBuilder extends
    * and provides the combined configuration to all agents in the workflow.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
    */
   java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> 
-      getEnvRefsList();
+      getEnvironmentRefsList();
   /**
    * <pre>
    * References to Environment resources providing configuration and secrets.
@@ -158,9 +158,9 @@ public interface WorkflowInstanceSpecOrBuilder extends
    * and provides the combined configuration to all agents in the workflow.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReference getEnvRefs(int index);
+  ai.stigmer.commons.apiresource.ApiResourceReference getEnvironmentRefs(int index);
   /**
    * <pre>
    * References to Environment resources providing configuration and secrets.
@@ -193,9 +193,9 @@ public interface WorkflowInstanceSpecOrBuilder extends
    * and provides the combined configuration to all agents in the workflow.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
    */
-  int getEnvRefsCount();
+  int getEnvironmentRefsCount();
   /**
    * <pre>
    * References to Environment resources providing configuration and secrets.
@@ -228,10 +228,10 @@ public interface WorkflowInstanceSpecOrBuilder extends
    * and provides the combined configuration to all agents in the workflow.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
    */
   java.util.List<? extends ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder> 
-      getEnvRefsOrBuilderList();
+      getEnvironmentRefsOrBuilderList();
   /**
    * <pre>
    * References to Environment resources providing configuration and secrets.
@@ -264,8 +264,8 @@ public interface WorkflowInstanceSpecOrBuilder extends
    * and provides the combined configuration to all agents in the workflow.
    * </pre>
    *
-   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference env_refs = 3 [json_name = "envRefs"];</code>
+   * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [json_name = "environmentRefs", (.buf.validate.field) = { ... }</code>
    */
-  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvRefsOrBuilder(
+  ai.stigmer.commons.apiresource.ApiResourceReferenceOrBuilder getEnvironmentRefsOrBuilder(
       int index);
 }

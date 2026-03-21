@@ -5,12 +5,13 @@ import { create } from "@bufbuild/protobuf";
 import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 export interface UseAgentInstanceListReturn {
   readonly agentInstances: readonly AgentInstance[];
   readonly totalCount: number;
   readonly isLoading: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly refetch: () => void;
 }
 
@@ -41,7 +42,7 @@ export function useAgentInstanceList(
   const [agentInstances, setAgentInstances] = useState<AgentInstance[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [fetchKey, setFetchKey] = useState(0);
 
   const labelsRef = useRef(labels);
@@ -84,11 +85,7 @@ export function useAgentInstanceList(
         },
         (err) => {
           if (cancelled.current) return;
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Failed to load agent instances",
-          );
+          setError(toError(err));
           setIsLoading(false);
         },
       );

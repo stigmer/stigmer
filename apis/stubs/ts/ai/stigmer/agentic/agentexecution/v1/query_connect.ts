@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AgentExecutionId, AgentExecutionList, GetAgentUsageReportInput, GetAgentUsageReportOutput, GetArtifactDownloadUrlRequest, GetArtifactDownloadUrlResponse, GetOrgUsageReportInput, GetOrgUsageReportOutput, GetSessionUsageReportInput, GetSessionUsageReportOutput, ListAgentExecutionsBySessionRequest, ListAgentExecutionsRequest } from "./io_pb.js";
+import { AgentExecutionId, AgentExecutionList, GetAgentUsageReportInput, GetAgentUsageReportOutput, GetArtifactContentRequest, GetArtifactContentResponse, GetArtifactDownloadUrlRequest, GetArtifactDownloadUrlResponse, GetOrgUsageReportInput, GetOrgUsageReportOutput, GetSessionUsageReportInput, GetSessionUsageReportOutput, ListAgentExecutionsBySessionRequest, ListAgentExecutionsRequest } from "./io_pb.js";
 import { AgentExecution } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
@@ -106,6 +106,51 @@ export const AgentExecutionQueryController = {
       name: "getArtifactDownloadUrl",
       I: GetArtifactDownloadUrlRequest,
       O: GetArtifactDownloadUrlResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Read the raw content of an execution artifact.
+     *
+     * Returns artifact bytes through the Stigmer API, eliminating CORS
+     * concerns for SDK consumers who need to read content programmatically
+     * (e.g., YAML parsing for resource detection, in-app preview rendering).
+     *
+     * For direct file downloads, use getArtifactDownloadUrl instead — it
+     * returns a presigned R2 URL that avoids proxying bytes through the server.
+     *
+     * ## Authorization
+     *
+     * Requires can_view permission on the execution. This ensures users can
+     * only read artifacts from executions they have access to.
+     *
+     * ## Security
+     *
+     * The storage_key is validated to ensure it belongs to the specified
+     * execution. Keys must start with "artifacts/{execution_id}/" to prevent
+     * path traversal attacks.
+     *
+     * ## Size Limit
+     *
+     * Content is truncated to max_bytes (default: 512 KB). The response
+     * includes total_size_bytes and a truncated flag so callers can decide
+     * whether to offer a full download via getArtifactDownloadUrl.
+     *
+     * ## Example Flow
+     *
+     * 1. Get execution via AgentExecutionQueryController.get
+     * 2. Find artifact in status.artifacts[]
+     * 3. Call getArtifactContent with execution_id and storage_key
+     * 4. Decode content bytes as UTF-8 for text artifacts
+     * 5. Parse YAML to detect Stigmer resource kind (Agent, McpServer, etc.)
+     *
+     * @since Artifact Lifecycle (Attachments & Artifacts)
+     *
+     * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getArtifactContent
+     */
+    getArtifactContent: {
+      name: "getArtifactContent",
+      I: GetArtifactContentRequest,
+      O: GetArtifactContentResponse,
       kind: MethodKind.Unary,
     },
     /**

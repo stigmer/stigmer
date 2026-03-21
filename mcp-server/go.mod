@@ -2,6 +2,8 @@ module github.com/stigmer/stigmer/mcp-server
 
 go 1.25.6
 
+replace github.com/stigmer/stigmer/apis/stubs/go => ../apis/stubs/go
+
 require (
 	github.com/modelcontextprotocol/go-sdk v1.3.0
 	github.com/stigmer/stigmer/apis/stubs/go v0.0.28

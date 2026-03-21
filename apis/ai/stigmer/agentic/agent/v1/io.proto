@@ -8,3 +8,11 @@ import "buf/validate/validate.proto";
 message AgentId {
   string value = 1 [(buf.validate.field).required = true];
 }
+
+// GetDefaultAgentRequest provides org context for fetching the platform default agent.
+//
+// The handler resolves the default agent globally (by label stigmer.ai/default-agent: "true"
+// with visibility_public), but the org is needed for authorization scoping.
+message GetDefaultAgentRequest {
+  string org = 1 [(buf.validate.field).string.min_len = 1];
+}

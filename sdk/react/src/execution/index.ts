@@ -13,6 +13,19 @@ export type { UseExecutionStreamReturn } from "./useExecutionStream";
 export { useExecutionUsage, aggregateUsage } from "./useExecutionUsage";
 export type { UseExecutionUsageReturn } from "./useExecutionUsage";
 
+export { useExecutionArtifacts } from "./useExecutionArtifacts";
+export type { UseExecutionArtifactsReturn } from "./useExecutionArtifacts";
+
+export { useArtifactContent } from "./useArtifactContent";
+export type { UseArtifactContentReturn } from "./useArtifactContent";
+
+export {
+  isTextArtifact,
+  isArtifactExpired,
+  formatArtifactSize,
+  getArtifactExtension,
+} from "./artifact-utils";
+
 export { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 export type { ExecutionPhaseBadgeProps } from "./ExecutionPhaseBadge";
 
@@ -49,6 +62,15 @@ export type { UseSubmitApprovalReturn } from "./useSubmitApproval";
 export { ApprovalCard } from "./ApprovalCard";
 export type { ApprovalCardProps } from "./ApprovalCard";
 
+export { ArtifactCard } from "./ArtifactCard";
+export type { ArtifactCardProps } from "./ArtifactCard";
+
+export { ArtifactPreviewModal } from "./ArtifactPreviewModal";
+export type { ArtifactPreviewModalProps } from "./ArtifactPreviewModal";
+
+export { ArtifactsWidget } from "./ArtifactsWidget";
+export type { ArtifactsWidgetProps } from "./ArtifactsWidget";
+
 export {
   resolveToolCategory,
   extractPrimaryArg,
@@ -64,3 +86,12 @@ export type { FilePathContextValue } from "./FilePathContext";
 
 export { classifyPath, resolveGitBrowseUrl, resolvePathAction } from "./file-path-resolver";
 export type { PathClassification, ResolvedPathAction } from "./file-path-resolver";
+
+export { useSessionVariables } from "./useSessionVariables";
+export type {
+  SessionVariableEntry,
+  UseSessionVariablesReturn,
+} from "./useSessionVariables";
+
+export { SessionVariablesInput } from "./SessionVariablesInput";
+export type { SessionVariablesInputProps } from "./SessionVariablesInput";

@@ -263,6 +263,9 @@ func Run() error {
 	// Inject artifact storage into AgentExecutionController
 	agentExecutionController.SetArtifactStorage(agentExecutionArtifactStorage)
 
+	// Inject execution artifact storage into SkillController for pushFromExecutionArtifact
+	skillController.SetExecutionArtifactStorage(agentExecutionArtifactStorage)
+
 	log.Info().
 		Str("storage_type", cfg.ArtifactStorage.Type).
 		Msg("Initialized artifact storage for agent execution attachments and outputs")

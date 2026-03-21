@@ -66,6 +66,12 @@ class AgentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def get_default(self, input: io_pb2.GetDefaultAgentRequest) -> api_pb2.Agent:
+        try:
+            return self._query.getDefault(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def list(self, params: ListParams) -> ListResult:
         try:
             req = search_io_pb2.SearchRequest(

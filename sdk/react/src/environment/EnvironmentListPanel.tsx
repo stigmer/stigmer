@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { cn } from "@stigmer/theme";
+import { getUserMessage } from "@stigmer/sdk";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { useEnvironmentList } from "./useEnvironmentList";
 import { EnvironmentVariableEditor } from "./EnvironmentVariableEditor";
@@ -18,7 +19,7 @@ export interface EnvironmentListPanelProps {
   /**
    * Exclude environments whose labels contain all key-value pairs in this
    * record. Useful for filtering the personal environment out of the
-   * shared list: `excludeLabels={{ "stigmer.ai/personal": "true" }}`.
+   * organization list: `excludeLabels={{ "stigmer.ai/personal": "true" }}`.
    */
   readonly excludeLabels?: Record<string, string>;
   /** Fired when a user selects (expands) an environment. */
@@ -124,7 +125,7 @@ export function EnvironmentListPanel({
   if (error) {
     return (
       <p className={cn("text-destructive text-xs", className)} role="alert">
-        {error}
+        {getUserMessage(error)}
       </p>
     );
   }

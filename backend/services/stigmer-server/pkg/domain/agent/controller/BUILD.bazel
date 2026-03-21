@@ -9,6 +9,7 @@ go_library(
         "delete.go",
         "get.go",
         "get_by_reference.go",
+        "get_default.go",
         "merge_mcp_env_specs.go",
         "update.go",
     ],
@@ -29,6 +30,7 @@ go_library(
         "//backend/services/stigmer-server/pkg/downstream/agentinstance",
         "//backend/services/stigmer-server/pkg/query/search/extractor",
         "@com_github_rs_zerolog//log",
+        "@org_golang_google_grpc//codes",
     ],
 )
 

@@ -13,9 +13,7 @@ build:
 test:
 	go test -v -race -timeout 30s ./...
 
-# Build Docker image.  Must be invoked from the repo root so that the build
-# context includes apis/stubs/go (needed for the replace directive).
-#
+# Build Docker image.
 #   cd <repo-root> && docker build -f mcp-server/Dockerfile -t $(IMAGE):latest .
 docker-build:
 	docker build -f ../mcp-server/Dockerfile -t $(IMAGE):latest ..
@@ -43,12 +41,15 @@ lint:
 fmt:
 	go fmt ./...
 
-# Stage 1: Generate JSON schemas from all proto files.
+# Protobuf Go code lives in apis/stubs/go (shared with backend/CLI). Run
+# `make -C apis build` to regenerate stubs; do not duplicate them under mcp-server/proto.
+
+# Generate JSON schemas from all proto files.
 codegen-schemas:
 	cd .. && go run tools/codegen/proto2schema/main.go \
 		--comprehensive --include-dir apis --output-dir tools/codegen/schemas
 
-# Stage 2: Generate MCP input types for all domains.
+# Generate MCP input types for all domains.
 # Auto-discovers all {domain}/{resource}/ schema directories and generates
 # domain-scoped Go packages into gen/{domain}/{resource}/.
 # Discriminated unions (e.g., workflow task_config) are auto-detected from
@@ -57,7 +58,7 @@ codegen-mcp:
 	go run ../tools/codegen/generator/ \
 		--comprehensive --schema-dir=../tools/codegen/schemas --output-dir=gen --target=mcp
 
-# Full pipeline: schemas + MCP input types.
+# Full pipeline: proto stubs + schemas + MCP input types.
 codegen: codegen-schemas codegen-mcp
 
 # Remove build artifacts.

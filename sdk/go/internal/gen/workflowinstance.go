@@ -60,13 +60,13 @@ func (w *WorkflowInstanceClient) GetByReference(ctx context.Context, input *apir
 
 // WorkflowInstanceInput holds the fields for creating/updating a WorkflowInstance.
 type WorkflowInstanceInput struct {
-	Name        string
-	Slug        string
-	Org         string
-	Labels      map[string]string
-	WorkflowId  string
-	Description string
-	EnvRefs     []ResourceRef
+	Name            string
+	Slug            string
+	Org             string
+	Labels          map[string]string
+	WorkflowId      string
+	Description     string
+	EnvironmentRefs []ResourceRef
 }
 
 func (i *WorkflowInstanceInput) toProto() *workflowinstancev1.WorkflowInstance {
@@ -83,8 +83,8 @@ func (i *WorkflowInstanceInput) toProto() *workflowinstancev1.WorkflowInstance {
 	}
 	resource.Spec.WorkflowId = i.WorkflowId
 	resource.Spec.Description = i.Description
-	for _, r := range i.EnvRefs {
-		resource.Spec.EnvRefs = append(resource.Spec.EnvRefs, r.toProto())
+	for _, r := range i.EnvironmentRefs {
+		resource.Spec.EnvironmentRefs = append(resource.Spec.EnvironmentRefs, r.toProto())
 	}
 	return resource
 }

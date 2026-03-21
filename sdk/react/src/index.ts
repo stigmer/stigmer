@@ -47,6 +47,7 @@ export {
   useSessionList,
   useSessionExecutions,
   useSessionConversation,
+  useAgentRefFromSession,
   groupSessionsByTime,
 } from "./session";
 export type {
@@ -60,6 +61,7 @@ export type {
   UseSessionExecutionsReturn,
   SendFollowUpOptions,
   UseSessionConversationReturn,
+  UseAgentRefFromSessionReturn,
   SessionGroup,
 } from "./session";
 
@@ -83,11 +85,22 @@ export {
   MessageThread,
   FollowUpInput,
   ApprovalCard,
+  ArtifactCard,
+  ArtifactPreviewModal,
+  ArtifactsWidget,
   FilePathLink,
   FilePathContext,
   classifyPath,
   resolveGitBrowseUrl,
   resolvePathAction,
+  useSessionVariables,
+  SessionVariablesInput,
+  useExecutionArtifacts,
+  useArtifactContent,
+  isTextArtifact,
+  isArtifactExpired,
+  formatArtifactSize,
+  getArtifactExtension,
 } from "./execution";
 export type {
   CreateAgentExecutionInput,
@@ -107,13 +120,42 @@ export type {
   MessageThreadProps,
   FollowUpInputProps,
   ApprovalCardProps,
+  ArtifactCardProps,
+  ArtifactPreviewModalProps,
+  ArtifactsWidgetProps,
   FilePathLinkProps,
   FilePathContextValue,
   PathClassification,
   ResolvedPathAction,
+  SessionVariableEntry,
+  UseSessionVariablesReturn,
+  SessionVariablesInputProps,
+  UseExecutionArtifactsReturn,
+  UseArtifactContentReturn,
 } from "./execution";
 
-// Composer — unified message input with model + workspace attachments
+// Execution — proto type re-exports for artifact consumers
+export type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
+export { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+
+// Attachment — file upload behavior hook and styled chip list
+export {
+  useAttachments,
+  AttachmentChipList,
+  MAX_ATTACHMENT_BYTES,
+  detectContentType,
+  formatFileSize,
+  validateAttachmentSize,
+} from "./attachment";
+export type {
+  AttachmentPhase,
+  AttachmentEntry,
+  UseAttachmentsOptions,
+  UseAttachmentsReturn,
+  AttachmentChipListProps,
+} from "./attachment";
+
+// Composer — unified message input with model, workspace, and file attachments
 export {
   useComposer,
   SessionComposer,
@@ -122,28 +164,62 @@ export type {
   UseComposerOptions,
   UseComposerReturn,
   SessionComposerProps,
+  SessionComposerSubmitContext,
 } from "./composer";
 
-// MCP Server — search hook and picker component
+// MCP Server — data hook, count hook, list hook, search hook, picker, config panel, tool selector, detail view, and setup orchestration
 export {
+  useMcpServer,
+  useMcpServerCount,
+  useMcpServerList,
   useMcpServerSearch,
+  useMcpServerSetup,
   McpServerPicker,
+  McpServerConfigPanel,
+  McpServerDetailView,
+  McpToolSelector,
+  toServerKey,
 } from "./mcp-server";
 export type {
+  UseMcpServerReturn,
+  UseMcpServerCountOptions,
+  UseMcpServerCountReturn,
+  UseMcpServerListOptions,
+  UseMcpServerListReturn,
   UseMcpServerSearchOptions,
   UseMcpServerSearchReturn,
+  UseMcpServerSetupReturn,
+  SubmitMcpEnvVarsOptions,
+  McpServerSetupEntry,
+  McpServerSetupPhase,
+  McpServerSetupState,
   McpServerPickerProps,
+  McpServerSetupIntegration,
+  McpServerConfigPanelProps,
+  McpServerCredentialsProps,
+  McpServerDetailViewProps,
+  McpToolSelectorProps,
 } from "./mcp-server";
 
-// Skill — search hook and picker component
+// Skill — data hook, count hook, list hook, search hook, picker, and detail view component
 export {
+  useSkill,
+  useSkillCount,
+  useSkillList,
   useSkillSearch,
   SkillPicker,
+  SkillDetailView,
 } from "./skill";
 export type {
+  UseSkillReturn,
+  UseSkillCountOptions,
+  UseSkillCountReturn,
+  UseSkillListOptions,
+  UseSkillListReturn,
   UseSkillSearchOptions,
   UseSkillSearchReturn,
   SkillPickerProps,
+  SkillDetailViewProps,
 } from "./skill";
 
 // GitHub — OAuth connection, repo picker, and hooks
@@ -151,9 +227,11 @@ export {
   useGitHubConnection,
   useGitHubRepos,
   GitHubRepoPicker,
+  GITHUB_CALLBACK_MESSAGE_TYPE,
 } from "./github";
 export type {
   GitHubUser,
+  GitHubConnectOptions,
   UseGitHubConnectionReturn,
   GitHubRepo,
   GitHubBranch,
@@ -161,24 +239,43 @@ export type {
   GitHubRepoPickerProps,
 } from "./github";
 
-// Agent — search hook, picker, env form, and setup orchestration
+// Agent — data hook, count hook, list hook, search hook, picker, detail view, env form, setup orchestration, env_spec diffing, and default agent
 export {
+  useAgent,
+  useAgentCount,
+  useAgentList,
   useAgentSearch,
   AgentPicker,
+  AgentDetailView,
   AgentEnvForm,
+  diffEnvSpec,
   useAgentSetup,
+  useDefaultAgent,
 } from "./agent";
 export type {
+  UseAgentReturn,
+  UseAgentCountOptions,
+  UseAgentCountReturn,
+  UseAgentListOptions,
+  UseAgentListReturn,
   UseAgentSearchOptions,
   UseAgentSearchReturn,
   AgentPickerProps,
+  AgentDetailViewProps,
   AgentEnvFormProps,
+  AgentEnvFormSubmitOptions,
   AgentEnvFormVariable,
   AgentSetupResult,
+  AgentSetupReadyResult,
+  AgentSetupState,
+  AgentSetupPhase,
+  AgentResolution,
+  SubmitEnvVarsOptions,
   UseAgentSetupReturn,
+  UseDefaultAgentReturn,
 } from "./agent";
 
-// Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, and styled components
+// Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, and styled components
 export {
   useEnvironment,
   useEnvironmentList,
@@ -191,6 +288,8 @@ export {
   EnvironmentVariableEditor,
   EnvironmentListPanel,
   CreateEnvironmentForm,
+  EnvVarForm,
+  useSessionEnvPool,
 } from "./environment";
 export type {
   UseEnvironmentReturn,
@@ -207,7 +306,56 @@ export type {
   EnvironmentVariableEditorProps,
   EnvironmentListPanelProps,
   CreateEnvironmentFormProps,
+  EnvVarFormProps,
+  EnvVarFormVariable,
+  EnvVarFormSubmitOptions,
+  SessionEnvPoolInput,
+  UseSessionEnvPoolReturn,
 } from "./environment";
+
+// Organization — behavior hook and styled form for organization creation
+export {
+  useCreateOrganization,
+  CreateOrganizationForm,
+} from "./organization";
+export type {
+  UseCreateOrganizationReturn,
+  CreateOrganizationFormProps,
+} from "./organization";
+
+// Error — structured error display with classification, retry, and contextual guidance
+export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error";
+export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error";
+
+// Library — cross-resource UI components, resource detection, apply flow, and browsing
+export {
+  ScopeToggle,
+  ResourceListView,
+  ResourceCountCard,
+  detectStigmerResource,
+  useDetectStigmerResource,
+  isSkillPackage,
+  detectSkillPackage,
+  useDetectSkillPackage,
+  parseResourceYaml,
+  serializeAgentYaml,
+  serializeMcpServerYaml,
+  useApplyResource,
+} from "./library";
+export type {
+  ScopeToggleProps,
+  ResourceListViewProps,
+  ResourceCountCardProps,
+  ResourceListScope,
+  StigmerResourceKind,
+  StigmerResourceDetection,
+  SkillPackageDetection,
+  UseDetectSkillPackageReturn,
+  ParsedResource,
+  UseApplyResourceReturn,
+  ApplyResourceResult,
+  PushSkillParams,
+} from "./library";
 
 // Agent Instance — data hooks, list hook, personal convenience hook, and behavior hook
 export {

@@ -11,7 +11,10 @@ import {
 import type { ResourceRef } from "@stigmer/sdk";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
+import { cn } from "@stigmer/theme";
 import { useSkillSearch } from "./useSkillSearch";
+import { useScrollShadows } from "../internal/useScrollShadows";
+import { ScrollFade } from "../internal/ScrollFade";
 
 export interface SkillPickerProps {
   /** Organization slug to scope the search. */
@@ -54,11 +57,9 @@ export function SkillPicker({
   const { results, isLoading, error, query, setQuery } = useSkillSearch(org);
 
   const [focusIndex, setFocusIndex] = useState(-1);
-  const listRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-
-  const [canScrollUp, setCanScrollUp] = useState(false);
-  const [canScrollDown, setCanScrollDown] = useState(false);
+  const results_ = useScrollShadows();
+  const selected_ = useScrollShadows();
 
   const selectedKeys = useMemo(
     () => new Set(value.map(refKey)),
@@ -76,30 +77,11 @@ export function SkillPicker({
 
   useEffect(() => {
     if (focusIndex >= 0) {
-      listRef.current
+      results_.scrollRef.current
         ?.querySelector(`[data-idx="${focusIndex}"]`)
         ?.scrollIntoView({ block: "nearest" });
     }
-  }, [focusIndex]);
-
-  const updateScrollShadows = useCallback(() => {
-    const el = listRef.current;
-    if (!el) return;
-    setCanScrollUp(el.scrollTop > 0);
-    setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
-  }, []);
-
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", updateScrollShadows, { passive: true });
-    updateScrollShadows();
-    return () => el.removeEventListener("scroll", updateScrollShadows);
-  }, [updateScrollShadows]);
-
-  useEffect(() => {
-    updateScrollShadows();
-  }, [results, updateScrollShadows]);
+  }, [focusIndex, results_.scrollRef]);
 
   const handleSelect = useCallback(
     (result: SearchResult) => {
@@ -153,29 +135,37 @@ export function SkillPicker({
           <div className="text-[0.65rem] font-medium text-muted-foreground">
             Selected
           </div>
-          {value.map((ref) => {
-            const key = refKey(ref);
-            return (
-              <div
-                key={key}
-                className="flex items-center gap-2 rounded-md bg-muted/30 px-2 py-1 text-xs"
-              >
-                <SkillIcon />
-                <span className="min-w-0 flex-1 truncate text-foreground">
-                  {ref.slug}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleRemove(key)}
-                  disabled={disabled}
-                  className="shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
-                  aria-label={`Remove ${ref.slug}`}
-                >
-                  <XIcon />
-                </button>
-              </div>
-            );
-          })}
+          <div className="relative">
+            {selected_.canScrollUp && <ScrollFade position="top" />}
+
+            <div ref={selected_.scrollRef} className="max-h-28 space-y-1 overflow-y-auto">
+              {value.map((ref) => {
+                const key = refKey(ref);
+                return (
+                  <div
+                    key={key}
+                    className="flex items-center gap-2 rounded-md bg-muted/30 px-2 py-1 text-xs"
+                  >
+                    <SkillIcon />
+                    <span className="min-w-0 flex-1 truncate text-foreground">
+                      {ref.slug}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(key)}
+                      disabled={disabled}
+                      className="shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
+                      aria-label={`Remove ${ref.slug}`}
+                    >
+                      <XIcon />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {selected_.canScrollDown && <ScrollFade position="bottom" />}
+          </div>
         </div>
       )}
 
@@ -202,18 +192,10 @@ export function SkillPicker({
 
       {/* Scrollable results list */}
       <div className="relative">
-        {canScrollUp && (
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-3"
-            style={{
-              background:
-                "linear-gradient(to bottom, var(--color-popover, hsl(0 0% 9%)), transparent)",
-            }}
-          />
-        )}
+        {results_.canScrollUp && <ScrollFade position="top" />}
 
         <div
-          ref={listRef}
+          ref={results_.scrollRef}
           id={LIST_ID}
           role="listbox"
           aria-label="Skills"
@@ -238,13 +220,13 @@ export function SkillPicker({
                 data-idx={idx}
                 onClick={() => handleSelect(result)}
                 disabled={disabled}
-                className={[
-                  "flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+                className={cn(
+                  "group flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
                   "disabled:pointer-events-none disabled:opacity-50",
                   idx === focusIndex
                     ? "bg-accent text-foreground"
                     : "text-foreground hover:bg-accent/50",
-                ].join(" ")}
+                )}
                 role="option"
                 aria-selected={idx === focusIndex}
               >
@@ -258,7 +240,13 @@ export function SkillPicker({
                   </span>
                 </span>
                 {result.description && (
-                  <span className="line-clamp-1 pl-5 text-[0.65rem] text-muted-foreground">
+                  <span
+                    className={cn(
+                      "pl-5 text-[0.65rem] text-muted-foreground",
+                      idx !== focusIndex &&
+                        "line-clamp-2 group-hover:line-clamp-none",
+                    )}
+                  >
                     {result.description}
                   </span>
                 )}
@@ -267,15 +255,7 @@ export function SkillPicker({
           )}
         </div>
 
-        {canScrollDown && (
-          <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-3"
-            style={{
-              background:
-                "linear-gradient(to top, var(--color-popover, hsl(0 0% 9%)), transparent)",
-            }}
-          />
-        )}
+        {results_.canScrollDown && <ScrollFade position="bottom" />}
       </div>
     </div>
   );

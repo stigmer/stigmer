@@ -5,6 +5,7 @@ import { create } from "@bufbuild/protobuf";
 import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import { RemoveEnvironmentVariablesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 /**
  * Input for removing specific variables from an environment by key.
@@ -23,7 +24,7 @@ export interface UseRemoveEnvironmentVariablesReturn {
     input: RemoveEnvironmentVariablesInput,
   ) => Promise<Environment>;
   readonly isRemovingVariables: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly clearError: () => void;
 }
 
@@ -55,7 +56,7 @@ export interface UseRemoveEnvironmentVariablesReturn {
 export function useRemoveEnvironmentVariables(): UseRemoveEnvironmentVariablesReturn {
   const stigmer = useStigmer();
   const [isRemovingVariables, setIsRemovingVariables] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -72,11 +73,7 @@ export function useRemoveEnvironmentVariables(): UseRemoveEnvironmentVariablesRe
 
         return await stigmer.environment.removeVariables(request);
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to remove environment variables";
-        setError(message);
+        setError(toError(err));
         throw err;
       } finally {
         setIsRemovingVariables(false);

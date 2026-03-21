@@ -1,23 +1,85 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { cn } from "@stigmer/theme";
-import { Popover } from "@base-ui/react/popover";
-import type { EnvVarInput, McpServerUsageInput, ResourceRef } from "@stigmer/sdk";
+import { getUserMessage, type AttachmentInput, type EnvVarInput, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useComposer } from "./useComposer";
-import { ModelSelector } from "../models/ModelSelector";
+import { ComposerToolbar } from "./ComposerToolbar";
+import { type ConfigureMenuItem } from "./ConfigureMenu";
+import { ContextChip, type ChipItem } from "./ContextChip";
 import { WorkspaceEditor } from "../workspace/WorkspaceEditor";
 import { AgentPicker } from "../agent/AgentPicker";
-import { AgentEnvForm } from "../agent/AgentEnvForm";
-import { useAgentSetup, type AgentSetupResult } from "../agent/useAgentSetup";
+import { AgentEnvForm, type AgentEnvFormSubmitOptions } from "../agent/AgentEnvForm";
+import { useAgentSetup, type AgentResolution } from "../agent/useAgentSetup";
+import { SecretFlowErrorGuide, isSecretFlowError } from "../error/SecretFlowErrorGuide";
 import { McpServerPicker } from "../mcp-server/McpServerPicker";
+import { useMcpServerSetup } from "../mcp-server/useMcpServerSetup";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { SkillPicker } from "../skill/SkillPicker";
+import { SessionVariablesInput } from "../execution/SessionVariablesInput";
+import type { UseSessionVariablesReturn } from "../execution/useSessionVariables";
 import type { UseWorkspaceEntriesReturn } from "../workspace/useWorkspaceEntries";
 import type { UseGitHubConnectionReturn } from "../github/useGitHubConnection";
+import { useAttachments } from "../attachment/useAttachments";
+import { AttachmentChipList } from "../attachment/AttachmentChipList";
+import { useSessionEnvPool } from "../environment/useSessionEnvPool";
+import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
+import {
+  AgentIcon,
+  McpServerIcon,
+  SkillIcon,
+  SecretsIcon,
+  AlertTriangleIcon,
+  ResolveSpinner,
+} from "./icons";
+
+/**
+ * Context provided to `onSubmit` at the moment of submission.
+ *
+ * Contains aggregated one-time environment variables from all setup
+ * flows managed by the composer (agent, MCP servers, manual secrets).
+ * The consumer passes `context.runtimeEnv` directly to execution
+ * creation without needing to understand the individual sources.
+ */
+export interface SessionComposerSubmitContext {
+  /**
+   * Aggregated one-time environment variables from all setup flows.
+   *
+   * Merged from (in precedence order, last-write-wins):
+   * 1. Agent one-time env vars (when agent resolution mode is `"oneTime"`)
+   * 2. MCP server one-time env vars (collected with `saveForFuture: false`)
+   * 3. Manual session variables (from {@link SessionVariablesInput})
+   *
+   * `undefined` when no runtime env vars were collected from any source.
+   * Pass directly to execution creation as `runtimeEnv`.
+   */
+  readonly runtimeEnv?: Record<string, EnvVarInput>;
+  /**
+   * Pre-uploaded file attachments for the execution.
+   *
+   * Each entry contains a `storageKey` obtained from
+   * `agentExecution.uploadAttachment()`. Only successfully uploaded
+   * attachments are included. Pass directly to execution creation
+   * as `attachments`.
+   *
+   * `undefined` when no files were attached.
+   */
+  readonly attachments?: AttachmentInput[];
+}
 
 export interface SessionComposerProps {
-  /** Called when the user submits a message. */
-  readonly onSubmit: (message: string, modelName?: string) => void;
+  /**
+   * Called when the user submits a message.
+   *
+   * The optional `context` parameter carries aggregated runtime data
+   * collected by the composer's setup flows. When present,
+   * `context.runtimeEnv` should be passed to execution creation.
+   */
+  readonly onSubmit: (
+    message: string,
+    modelName?: string,
+    context?: SessionComposerSubmitContext,
+  ) => void;
   /** Shows loading indicator on the send button. */
   readonly isSubmitting?: boolean;
   /** Disables the entire composer (e.g., while an execution streams). */
@@ -60,14 +122,47 @@ export interface SessionComposerProps {
   /** Called when the agent selection changes. Providing this enables the agent trigger. */
   readonly onAgentRefChange?: (ref: ResourceRef | null) => void;
   /**
-   * Called when the personal environment flow resolves an agent instance ID.
+   * Called when the agent setup flow resolves how the agent should
+   * be used for session creation.
    *
-   * Set to `null` when the agent is deselected or when the selected agent
-   * does not require a personal instance (i.e. has no `env_spec`).
-   * When provided, the resolved ID takes priority over `agentRef` in
-   * session creation via `useCreateSession`.
+   * The {@link AgentResolution} discriminated union tells the caller
+   * which session creation path to use:
+   * - `"saved"` — use `agentInstanceId`
+   * - `"oneTime"` — use `agentRef` + pass `runtimeEnv` to execution
+   * - `"direct"` — use `agentRef` (no secrets needed)
+   *
+   * Set to `null` when the agent is deselected.
    */
-  readonly onAgentInstanceIdChange?: (instanceId: string | null) => void;
+  readonly onAgentResolutionChange?: (resolution: AgentResolution | null) => void;
+
+  /**
+   * Agent to auto-select when the composer mounts.
+   *
+   * When provided, the composer runs the full agent resolution flow
+   * on mount — exactly as if the user had picked this agent in the
+   * {@link AgentPicker}. If the agent requires credentials, the
+   * environment form appears automatically.
+   *
+   * One-time: consumed on mount; subsequent changes are ignored.
+   * To change the agent after mount, use the picker or
+   * `onAgentRefChange` externally.
+   *
+   * Requires `org` and `onAgentRefChange` to be set (same
+   * prerequisites as the agent picker).
+   *
+   * @example
+   * ```tsx
+   * <SessionComposer
+   *   onSubmit={handleCreate}
+   *   org="acme"
+   *   agentRef={agentRef}
+   *   onAgentRefChange={setAgentRef}
+   *   onAgentResolutionChange={setResolution}
+   *   initialAgentRef={{ org: "stigmer", slug: "agent-creator" }}
+   * />
+   * ```
+   */
+  readonly initialAgentRef?: ResourceRef;
 
   /**
    * Currently selected MCP server usages.
@@ -87,6 +182,63 @@ export interface SessionComposerProps {
   /** Called when the skill selection changes. Providing this enables the skill trigger. */
   readonly onSkillRefsChange?: (refs: ResourceRef[]) => void;
 
+  /**
+   * Session variables state managed by {@link useSessionVariables}.
+   * When provided, renders a "Session Variables" trigger in the toolbar
+   * that opens a key-value editor for environment variables.
+   *
+   * Variables are ephemeral by default (single execution). Individual
+   * entries can be marked `saveForFuture: true` to persist them to
+   * the user's personal environment. The consumer should call
+   * `sessionVariables.clear()` after submission.
+   */
+  readonly sessionVariables?: UseSessionVariablesReturn;
+
+  /**
+   * Enable file attachment support in the composer.
+   *
+   * When `true`, renders an attach button in the toolbar and enables
+   * drag-and-drop file upload on the textarea. Attachments are uploaded
+   * immediately via `agentExecution.uploadAttachment()` and included
+   * in `context.attachments` on submit.
+   *
+   * @default true
+   */
+  readonly enableAttachments?: boolean;
+
+  /**
+   * Called when a file is rejected (e.g., exceeds the 10 MB limit).
+   * Consumers can use this for toast notifications.
+   */
+  readonly onAttachmentValidationError?: (message: string) => void;
+
+  /**
+   * Files to attach programmatically when the composer mounts.
+   *
+   * When provided, the composer uploads these files via the same
+   * attachment pipeline as user-selected files. Attachment chips
+   * appear in the UI so the user sees what is attached.
+   *
+   * One-time: consumed when the value first becomes truthy.
+   * Subsequent changes are ignored. This allows async resource
+   * fetching — the effect waits for the files to be ready.
+   *
+   * Requires `enableAttachments` to be `true` (default).
+   *
+   * @example
+   * ```tsx
+   * const yaml = serializeAgentYaml(agent);
+   * const file = new File([yaml], "my-agent.yaml", { type: "text/yaml" });
+   *
+   * <SessionComposer
+   *   onSubmit={handleSubmit}
+   *   initialAttachments={[file]}
+   *   initialAgentRef={{ org: "stigmer", slug: "agent-creator" }}
+   * />
+   * ```
+   */
+  readonly initialAttachments?: File[];
+
   /** Placeholder text for the textarea. @default "Reply\u2026" */
   readonly placeholder?: string;
   /** Initial number of visible rows. @default 1 */
@@ -104,8 +256,12 @@ export interface SessionComposerProps {
  *
  * Combines a self-resizing textarea, model selector, and context pickers
  * (agent, workspace, MCP servers, skills) into a single input card.
- * Context pickers appear as toolbar triggers that open popovers. Selected
- * items render as removable chips between the textarea and toolbar.
+ *
+ * The toolbar uses a two-tier layout:
+ * - **Tier 1** (always visible): Attach, Workspace, Model Selector
+ * - **Tier 2** (behind Configure menu): Agent, MCP, Skills, Secrets
+ *
+ * Selected items render as removable chips between the textarea and toolbar.
  *
  * Used for both new session creation (launcher) and follow-up messages
  * within an existing session. Layout positioning is the consumer's
@@ -124,6 +280,7 @@ export interface SessionComposerProps {
  *   org={org}
  *   agentRef={agentRef}
  *   onAgentRefChange={setAgentRef}
+ *   onAgentResolutionChange={setResolution}
  *   workspace={workspace}
  *   enableGitHub
  *   mcpServerUsages={mcpUsages}
@@ -132,6 +289,19 @@ export interface SessionComposerProps {
  *   onSkillRefsChange={setSkillRefs}
  *   initialRows={3}
  *   placeholder="Describe what you need help with..."
+ *   autoFocus
+ * />
+ *
+ * // Pre-filled launcher (auto-selects agent on mount)
+ * <SessionComposer
+ *   onSubmit={handleCreate}
+ *   org={org}
+ *   agentRef={agentRef}
+ *   onAgentRefChange={setAgentRef}
+ *   onAgentResolutionChange={setResolution}
+ *   initialAgentRef={{ org: "stigmer", slug: "agent-creator" }}
+ *   placeholder="Describe the agent you want to create..."
+ *   initialRows={3}
  *   autoFocus
  * />
  *
@@ -159,11 +329,16 @@ export function SessionComposer({
   org,
   agentRef,
   onAgentRefChange,
-  onAgentInstanceIdChange,
+  onAgentResolutionChange,
+  initialAgentRef,
   mcpServerUsages,
   onMcpServerUsagesChange,
   skillRefs,
   onSkillRefsChange,
+  sessionVariables,
+  enableAttachments = true,
+  onAttachmentValidationError,
+  initialAttachments,
   placeholder = "Reply\u2026",
   initialRows = 1,
   autoFocus = false,
@@ -172,18 +347,174 @@ export function SessionComposer({
 }: SessionComposerProps) {
   const [modelId, setModelId] = useState<string | undefined>(defaultModelId);
 
-  // Display name cache for agents, MCP servers, and skills (populated by pickers)
   const [displayNames, setDisplayNames] = useState<Map<string, string>>(
     () => new Map(),
   );
 
   const isDisabled = disabled || isSubmitting;
 
-  const handleSubmit = useCallback(
-    (message: string) => {
-      onSubmit(message, modelId);
+  const showAgent = onAgentRefChange != null && org != null;
+  const showMcp = onMcpServerUsagesChange != null && org != null;
+  const showWorkspace = workspace != null;
+  const showSkills = onSkillRefsChange != null && org != null;
+  const showSessionVars = sessionVariables != null;
+  const showAttach = enableAttachments;
+
+  // ---------------------------------------------------------------------------
+  // Configure menu state — drives the Tier 2 drill-down popover
+  // ---------------------------------------------------------------------------
+
+  const [configOpen, setConfigOpen] = useState(false);
+  const [configActivePanel, setConfigActivePanel] = useState<string | null>(null);
+  const configMcpInitialServerKeyRef = useRef<string | undefined>(undefined);
+
+  // ---------------------------------------------------------------------------
+  // Session env pool — cross-references secrets across all sources
+  // ---------------------------------------------------------------------------
+
+  const personalEnv = usePersonalEnvironment(
+    (showAgent || showMcp) ? (org ?? null) : null,
+  );
+
+  const personalEnvKeys = useMemo(
+    () => new Set(Object.keys(personalEnv.environment?.spec?.data ?? {})),
+    [personalEnv.environment],
+  );
+
+  const pool = useSessionEnvPool({
+    personalEnvKeys,
+    manualSecrets: sessionVariables?.entries,
+  });
+
+  // ---------------------------------------------------------------------------
+  // Setup hooks — instantiated before handleSubmit so it can read their state
+  // ---------------------------------------------------------------------------
+
+  const agentSetup = useAgentSetup(
+    showAgent ? (org ?? null) : null,
+    pool.availableKeys,
+  );
+
+  const mcpSetup = useMcpServerSetup(
+    showMcp ? (org ?? null) : null,
+    pool.availableKeys,
+  );
+
+  // ---------------------------------------------------------------------------
+  // Attachments — file upload state machine
+  // ---------------------------------------------------------------------------
+
+  const attachments = useAttachments(
+    enableAttachments
+      ? { onValidationError: onAttachmentValidationError }
+      : undefined,
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+        attachments.addFiles(e.target.files);
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    [onSubmit, modelId],
+    [attachments],
+  );
+
+  const handleDragOver = useCallback(
+    (e: DragEvent) => {
+      if (!enableAttachments || isDisabled) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(true);
+    },
+    [enableAttachments, isDisabled],
+  );
+
+  const handleDragLeave = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+    },
+    [],
+  );
+
+  const handleDrop = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+      if (!enableAttachments || isDisabled) return;
+      if (e.dataTransfer.files.length > 0) {
+        attachments.addFiles(e.dataTransfer.files);
+      }
+    },
+    [enableAttachments, isDisabled, attachments],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Submit — aggregates one-time runtimeEnv from all setup flows
+  // ---------------------------------------------------------------------------
+
+  const handleSubmit = useCallback(
+    async (message: string) => {
+      // Persist save-for-future manual secrets before building runtimeEnv
+      if (sessionVariables?.hasSaveForFutureEntries) {
+        const saveVars = sessionVariables.toSaveForFutureEnv();
+        if (Object.keys(saveVars).length > 0) {
+          try {
+            await personalEnv.getOrCreate();
+            await personalEnv.addVariables(saveVars);
+          } catch {
+            // Best-effort: if persistence fails, the values still flow
+            // into runtimeEnv for this execution via the one-time path.
+          }
+        }
+      }
+
+      const env: Record<string, EnvVarInput> = {};
+
+      if (
+        agentSetup.state.status === "ready" &&
+        agentSetup.state.resolution.mode === "oneTime"
+      ) {
+        Object.assign(env, agentSetup.state.resolution.runtimeEnv);
+      }
+
+      const mcpEnv = mcpSetup.pendingRuntimeEnv;
+      if (Object.keys(mcpEnv).length > 0) {
+        Object.assign(env, mcpEnv);
+      }
+
+      if (sessionVariables && sessionVariables.hasValidEntries) {
+        Object.assign(env, sessionVariables.toRuntimeEnv());
+      }
+
+      const attachmentInputs = enableAttachments
+        ? attachments.toAttachmentInputs()
+        : undefined;
+
+      const hasEnv = Object.keys(env).length > 0;
+      const hasAttachments =
+        attachmentInputs !== undefined && attachmentInputs.length > 0;
+
+      const context: SessionComposerSubmitContext | undefined =
+        hasEnv || hasAttachments
+          ? {
+              runtimeEnv: hasEnv ? env : undefined,
+              attachments: hasAttachments ? attachmentInputs : undefined,
+            }
+          : undefined;
+
+      onSubmit(message, modelId, context);
+
+      if (enableAttachments) {
+        attachments.clear();
+      }
+    },
+    [onSubmit, modelId, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv],
   );
 
   const composer = useComposer({
@@ -210,39 +541,43 @@ export function SessionComposer({
     [],
   );
 
-  const showAgent = onAgentRefChange != null && org != null;
+  // ---------------------------------------------------------------------------
+  // Agent setup: state-machine-driven popover + environment resolution
+  // ---------------------------------------------------------------------------
 
-  // -------------------------------------------------------------------------
-  // Agent setup: controlled popover + personal environment resolution
-  // -------------------------------------------------------------------------
+  const showEnvForm = agentSetup.state.status === "needsEnvVars";
+  const isAgentBusy =
+    agentSetup.state.status === "resolving" ||
+    agentSetup.state.status === "submitting";
 
-  const agentSetup = useAgentSetup(showAgent ? (org ?? null) : null);
-
-  const [agentPopoverOpen, setAgentPopoverOpen] = useState(false);
-  const [agentPopoverView, setAgentPopoverView] = useState<
-    "picker" | "envForm"
-  >("picker");
-
-  type EnvRequirement = AgentSetupResult & { status: "needsEnvVars" };
-  const pendingEnvRef = useRef<EnvRequirement | null>(null);
-
-  const handleAgentPopoverOpenChange = useCallback(
+  const handleConfigOpenChange = useCallback(
     (open: boolean) => {
-      setAgentPopoverOpen(open);
+      setConfigOpen(open);
       if (!open) {
-        setAgentPopoverView("picker");
-        pendingEnvRef.current = null;
-        agentSetup.clearError();
+        configMcpInitialServerKeyRef.current = undefined;
+        if (configActivePanel === "agent") {
+          agentSetup.reset();
+        }
       }
     },
-    [agentSetup],
+    [configActivePanel, agentSetup],
+  );
+
+  const handleConfigActivePanelChange = useCallback(
+    (panel: string | null) => {
+      if (configActivePanel === "agent" && panel !== "agent") {
+        agentSetup.reset();
+      }
+      setConfigActivePanel(panel);
+    },
+    [configActivePanel, agentSetup],
   );
 
   const handleAgentSelect = useCallback(
     async (ref: ResourceRef | null) => {
       if (!ref) {
         onAgentRefChange?.(null);
-        onAgentInstanceIdChange?.(null);
+        onAgentResolutionChange?.(null);
         return;
       }
 
@@ -251,64 +586,123 @@ export function SessionComposer({
 
         if (result.status === "ready") {
           onAgentRefChange?.(result.agentRef);
-          onAgentInstanceIdChange?.(result.instanceId);
+          onAgentResolutionChange?.(result.resolution);
           handleDisplayNameResolved(
             `${result.agentRef.org}/${result.agentRef.slug}`,
             result.agentName,
           );
-          setAgentPopoverOpen(false);
-          setAgentPopoverView("picker");
-        } else {
-          pendingEnvRef.current = result;
-          setAgentPopoverView("envForm");
+          setConfigOpen(false);
         }
+        // "needsEnvVars" — state machine transitions automatically,
+        // panel content switches to env form via `showEnvForm`.
       } catch {
-        // Error is captured by agentSetup.error — displayed inline.
+        // Error is captured by agentSetup.state.error — displayed inline.
       }
     },
     [
       agentSetup,
       onAgentRefChange,
-      onAgentInstanceIdChange,
+      onAgentResolutionChange,
       handleDisplayNameResolved,
     ],
   );
 
   const handleEnvFormSubmit = useCallback(
-    async (values: Record<string, EnvVarInput>) => {
+    async (
+      values: Record<string, EnvVarInput>,
+      { saveForFuture }: AgentEnvFormSubmitOptions,
+    ) => {
       try {
-        const result = await agentSetup.submitEnvVars(values);
+        const result = await agentSetup.submitEnvVars(values, { saveForFuture });
         onAgentRefChange?.(result.agentRef);
-        onAgentInstanceIdChange?.(result.instanceId);
+        onAgentResolutionChange?.(result.resolution);
         handleDisplayNameResolved(
           `${result.agentRef.org}/${result.agentRef.slug}`,
           result.agentName,
         );
-        pendingEnvRef.current = null;
-        setAgentPopoverOpen(false);
-        setAgentPopoverView("picker");
+        setConfigOpen(false);
       } catch {
-        // Error is captured by agentSetup.error — displayed inline.
+        // Error is captured by agentSetup.state.error — displayed inline.
       }
     },
     [
       agentSetup,
       onAgentRefChange,
-      onAgentInstanceIdChange,
+      onAgentResolutionChange,
       handleDisplayNameResolved,
     ],
   );
 
   const handleAgentChipRemove = useCallback(() => {
     onAgentRefChange?.(null);
-    onAgentInstanceIdChange?.(null);
-  }, [onAgentRefChange, onAgentInstanceIdChange]);
-  const showWorkspace = workspace != null;
-  const showMcp = onMcpServerUsagesChange != null && org != null;
-  const showSkills = onSkillRefsChange != null && org != null;
-  const hasContextTriggers = showAgent || showWorkspace || showMcp || showSkills;
+    onAgentResolutionChange?.(null);
+  }, [onAgentRefChange, onAgentResolutionChange]);
 
-  // Build chip items from all context sources
+  // ---------------------------------------------------------------------------
+  // Initial agent: auto-resolve on mount when initialAgentRef is provided
+  // ---------------------------------------------------------------------------
+
+  const handleAgentSelectRef = useRef(handleAgentSelect);
+  handleAgentSelectRef.current = handleAgentSelect;
+
+  const initialAgentHandled = useRef(false);
+
+  useEffect(() => {
+    if (initialAgentRef && showAgent && !initialAgentHandled.current) {
+      initialAgentHandled.current = true;
+      handleAgentSelectRef.current(initialAgentRef);
+    }
+  }, [initialAgentRef, showAgent]);
+
+  // ---------------------------------------------------------------------------
+  // Initial attachments: upload files on mount when provided
+  // ---------------------------------------------------------------------------
+
+  const initialAttachmentsHandled = useRef(false);
+
+  useEffect(() => {
+    if (
+      initialAttachments &&
+      initialAttachments.length > 0 &&
+      enableAttachments &&
+      !initialAttachmentsHandled.current
+    ) {
+      initialAttachmentsHandled.current = true;
+      attachments.addFiles(initialAttachments);
+    }
+  }, [initialAttachments, enableAttachments, attachments]);
+
+  // ---------------------------------------------------------------------------
+  // MCP server setup: sync usageInputs to consumer
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!showMcp) return;
+    onMcpServerUsagesChange?.(mcpSetup.usageInputs);
+  }, [showMcp, mcpSetup.usageInputs, onMcpServerUsagesChange]);
+
+  // ---------------------------------------------------------------------------
+  // Submission blocking: MCP servers must be fully configured before send
+  // ---------------------------------------------------------------------------
+
+  const mcpBlocked = showMcp && !mcpSetup.allReady;
+  const canSend = composer.canSubmit && !mcpBlocked;
+
+  const handleTextareaKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (!canSend && e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        return;
+      }
+      composer.textareaProps.onKeyDown(e);
+    },
+    [canSend, composer.textareaProps],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Chips — aggregated from all context sources
+  // ---------------------------------------------------------------------------
+
   const chips = useMemo(() => {
     const items: ChipItem[] = [];
 
@@ -333,21 +727,38 @@ export function SessionComposer({
       }
     }
 
-    if (mcpServerUsages) {
-      for (const usage of mcpServerUsages) {
-        const refStr = `${usage.mcpServerRef.org}/${usage.mcpServerRef.slug}`;
+    if (showMcp) {
+      for (const [key, entry] of Object.entries(mcpSetup.entries)) {
+        const slug = key.slice(key.indexOf("/") + 1);
+        const name =
+          entry.status !== "loading"
+            ? (entry.mcpServer.metadata?.name ?? displayNames.get(key) ?? slug)
+            : (displayNames.get(key) ?? slug);
+
+        let detail: string | undefined;
+        if (
+          entry.status === "ready" &&
+          entry.discoveredTools.length > 0 &&
+          entry.enabledTools.length < entry.discoveredTools.length
+        ) {
+          detail = `${entry.enabledTools.length}/${entry.discoveredTools.length}`;
+        }
+
         items.push({
-          key: `mcp:${refStr}`,
-          label: displayNames.get(refStr) ?? usage.mcpServerRef.slug,
+          key: `mcp:${key}`,
+          label: name,
           type: "mcp",
-          onRemove: () => {
-            onMcpServerUsagesChange?.(
-              mcpServerUsages.filter(
-                (u) =>
-                  `${u.mcpServerRef.org}/${u.mcpServerRef.slug}` !== refStr,
-              ),
-            );
-          },
+          onRemove: () => mcpSetup.removeServer(mcpRefFromKey(key)),
+          status: entry.status,
+          detail,
+          onClick:
+            entry.status === "needsSetup"
+              ? () => {
+                  configMcpInitialServerKeyRef.current = key;
+                  setConfigOpen(true);
+                  setConfigActivePanel("mcp");
+                }
+              : undefined,
         });
       }
     }
@@ -368,21 +779,222 @@ export function SessionComposer({
       }
     }
 
+    if (sessionVariables) {
+      for (const entry of sessionVariables.entries) {
+        const k = entry.key.trim();
+        if (k === "") continue;
+        items.push({
+          key: `secret:${entry.id}`,
+          label: k,
+          type: "secret",
+          onRemove: () => sessionVariables.removeEntry(entry.id),
+        });
+      }
+    }
+
     return items;
   }, [
     agentRef,
     handleAgentChipRemove,
     workspace,
-    mcpServerUsages,
+    showMcp,
+    mcpSetup.entries,
+    mcpSetup.removeServer,
     skillRefs,
+    sessionVariables,
     displayNames,
-    onMcpServerUsagesChange,
     onSkillRefsChange,
   ]);
 
   const workspaceCount = workspace?.entries.length ?? 0;
-  const mcpCount = mcpServerUsages?.length ?? 0;
+  const mcpCount = showMcp ? Object.keys(mcpSetup.entries).length : 0;
   const skillCount = skillRefs?.length ?? 0;
+  const sessionVarCount = sessionVariables?.entries.length ?? 0;
+
+  // ---------------------------------------------------------------------------
+  // Required-by map — tracks which keys are needed by which resources
+  // ---------------------------------------------------------------------------
+
+  const requiredByMap = useMemo((): Record<string, string[]> => {
+    const map: Record<string, string[]> = {};
+
+    if (agentSetup.state.status === "needsEnvVars") {
+      const agentName = agentSetup.state.agentName;
+      for (const v of agentSetup.state.missingVariables) {
+        (map[v.key] ??= []).push(agentName);
+      }
+    }
+
+    if (showMcp) {
+      for (const entry of Object.values(mcpSetup.entries)) {
+        if (entry.status !== "needsSetup") continue;
+        const serverName = entry.mcpServer.metadata?.name ?? "MCP Server";
+        for (const v of entry.missingVariables) {
+          (map[v.key] ??= []).push(serverName);
+        }
+      }
+    }
+
+    return map;
+  }, [agentSetup.state, showMcp, mcpSetup.entries]);
+
+  // ---------------------------------------------------------------------------
+  // Configure menu — Tier 2 items and panel renderer
+  // ---------------------------------------------------------------------------
+
+  const configureItems = useMemo((): ConfigureMenuItem[] => {
+    const items: ConfigureMenuItem[] = [];
+    if (showAgent) {
+      items.push({
+        id: "agent",
+        icon: <AgentIcon />,
+        label: "Agent",
+        count: agentRef ? 1 : 0,
+      });
+    }
+    if (showMcp) {
+      items.push({
+        id: "mcp",
+        icon: <McpServerIcon />,
+        label: "MCP Servers",
+        count: mcpCount,
+        hasWarning: mcpSetup.needsSetupCount > 0,
+      });
+    }
+    if (showSkills) {
+      items.push({
+        id: "skills",
+        icon: <SkillIcon />,
+        label: "Skills",
+        count: skillCount,
+      });
+    }
+    if (showSessionVars) {
+      items.push({
+        id: "sessionVars",
+        icon: <SecretsIcon />,
+        label: "Session Variables",
+        count: sessionVarCount,
+      });
+    }
+    return items;
+  }, [showAgent, agentRef, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showSessionVars, sessionVarCount]);
+
+  const renderConfigPanel = useCallback(
+    (panelId: string): React.ReactNode => {
+      switch (panelId) {
+        case "agent":
+          return showEnvForm ? (
+            <div>
+              <AgentEnvForm
+                agentName={
+                  agentSetup.state.status === "needsEnvVars"
+                    ? agentSetup.state.agentName
+                    : "Agent"
+                }
+                variables={
+                  agentSetup.state.status === "needsEnvVars"
+                    ? agentSetup.state.missingVariables
+                    : []
+                }
+                onSubmit={handleEnvFormSubmit}
+                onCancel={() => agentSetup.reset()}
+                isSubmitting={isAgentBusy}
+                disabled={isDisabled}
+                poolValues={pool.getAvailableValue}
+              />
+              {agentSetup.state.error && (
+                <AgentSetupError error={agentSetup.state.error} />
+              )}
+            </div>
+          ) : (
+            <div className="relative">
+              <AgentPicker
+                org={org!}
+                value={agentRef ?? null}
+                onChange={handleAgentSelect}
+                onDisplayNameResolved={handleDisplayNameResolved}
+                disabled={isDisabled || isAgentBusy}
+              />
+              {isAgentBusy && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-popover/80">
+                  <ResolveSpinner />
+                </div>
+              )}
+              {agentSetup.state.error && (
+                <AgentSetupError error={agentSetup.state.error} />
+              )}
+            </div>
+          );
+
+        case "mcp":
+          return (
+            <McpServerPicker
+              org={org!}
+              setup={{
+                entries: mcpSetup.entries,
+                onServerAdded: (ref) => mcpSetup.addServer(ref),
+                onServerRemoved: (ref) => mcpSetup.removeServer(ref),
+                onSubmitEnvVars: (ref, values, opts) =>
+                  mcpSetup.submitEnvVars(ref, values, {
+                    saveForFuture: opts.saveForFuture,
+                  }),
+                onEnabledToolsChange: (ref, tools) =>
+                  mcpSetup.setEnabledTools(ref, tools),
+              }}
+              initialServerKey={configMcpInitialServerKeyRef.current}
+              onDisplayNameResolved={handleDisplayNameResolved}
+              disabled={isDisabled}
+              poolValues={pool.getAvailableValue}
+            />
+          );
+
+        case "skills":
+          return (
+            <SkillPicker
+              org={org!}
+              value={skillRefs ?? []}
+              onChange={onSkillRefsChange!}
+              onDisplayNameResolved={handleDisplayNameResolved}
+              disabled={isDisabled}
+            />
+          );
+
+        case "sessionVars":
+          return (
+            <SessionVariablesInput
+              sessionVariables={sessionVariables!}
+              disabled={isDisabled}
+              requiredByMap={requiredByMap}
+            />
+          );
+
+        default:
+          return null;
+      }
+    },
+    [
+      showEnvForm,
+      agentSetup,
+      isAgentBusy,
+      isDisabled,
+      org,
+      agentRef,
+      handleAgentSelect,
+      handleEnvFormSubmit,
+      handleDisplayNameResolved,
+      mcpSetup,
+      skillRefs,
+      onSkillRefsChange,
+      sessionVariables,
+      pool,
+      requiredByMap,
+    ],
+  );
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
 
   return (
     <div
@@ -395,16 +1007,43 @@ export function SessionComposer({
           "rounded-xl border border-border bg-card shadow-sm",
           "focus-within:ring-2 focus-within:ring-ring",
           isDisabled && "opacity-50",
+          isDragOver && "ring-2 ring-primary/50",
         )}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         {/* Zone 1: Textarea */}
-        <textarea
-          {...composer.textareaProps}
-          placeholder={placeholder}
-          rows={initialRows}
-          autoFocus={autoFocus}
-          className="block w-full resize-none bg-transparent px-4 pt-3 pb-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
-        />
+        <div className="relative">
+          <textarea
+            {...composer.textareaProps}
+            onKeyDown={handleTextareaKeyDown}
+            placeholder={placeholder}
+            rows={initialRows}
+            autoFocus={autoFocus}
+            className="block w-full resize-none bg-transparent px-4 pt-3 pb-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed"
+          />
+          {isDragOver && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-t-xl bg-primary/5">
+              <span className="text-xs font-medium text-primary">
+                Drop files to attach
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Hidden file input for the attach button */}
+        {showAttach && (
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleFileInputChange}
+            className="hidden"
+            aria-hidden="true"
+            tabIndex={-1}
+          />
+        )}
 
         {/* Zone 2: Context chips */}
         {chips.length > 0 && (
@@ -416,411 +1055,121 @@ export function SessionComposer({
                 type={chip.type}
                 onRemove={chip.onRemove}
                 disabled={isDisabled}
+                status={chip.status}
+                detail={chip.detail}
+                onClick={chip.onClick}
               />
             ))}
           </div>
         )}
 
-        {/* Zone 3: Toolbar */}
-        <div className="flex items-center justify-between gap-2 border-t border-border/50 px-3 py-2">
-          <div className="flex items-center gap-1.5">
-            {/* Context triggers */}
-            {hasContextTriggers && (
-              <>
-                {showAgent && (
-                  <ContextPopover
-                    icon={<AgentIcon />}
-                    label="Agent"
-                    count={agentRef ? 1 : 0}
-                    disabled={isDisabled}
-                    open={agentPopoverOpen}
-                    onOpenChange={handleAgentPopoverOpenChange}
-                  >
-                    {agentPopoverView === "picker" ? (
-                      <div className="relative">
-                        <AgentPicker
-                          org={org!}
-                          value={agentRef ?? null}
-                          onChange={handleAgentSelect}
-                          onDisplayNameResolved={handleDisplayNameResolved}
-                          disabled={isDisabled || agentSetup.isResolving}
-                        />
-                        {agentSetup.isResolving && (
-                          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-popover/80">
-                            <ResolveSpinner />
-                          </div>
-                        )}
-                        {agentSetup.error && (
-                          <p className="mt-2 text-xs text-destructive">
-                            {agentSetup.error}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div>
-                        <AgentEnvForm
-                          agentName={pendingEnvRef.current?.agentName ?? "Agent"}
-                          variables={pendingEnvRef.current?.missingVariables ?? []}
-                          onSubmit={handleEnvFormSubmit}
-                          onCancel={() => {
-                            setAgentPopoverView("picker");
-                            pendingEnvRef.current = null;
-                            agentSetup.clearError();
-                          }}
-                          isSubmitting={agentSetup.isResolving}
-                          disabled={isDisabled}
-                        />
-                        {agentSetup.error && (
-                          <p className="mt-2 text-xs text-destructive">
-                            {agentSetup.error}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </ContextPopover>
-                )}
+        {/* Zone 2.5: Attachment chips */}
+        {showAttach && attachments.hasEntries && (
+          <AttachmentChipList
+            entries={attachments.entries}
+            onRemove={attachments.removeEntry}
+            onRetry={attachments.retryEntry}
+            disabled={isDisabled}
+            className="px-3 pb-2"
+          />
+        )}
 
-                {showWorkspace && (
-                  <ContextPopover
-                    icon={<WorkspaceIcon />}
-                    label="Workspace"
-                    count={workspaceCount}
-                    disabled={isDisabled}
-                  >
-                    <WorkspaceEditor
-                      workspace={workspace}
-                      disabled={isDisabled}
-                      gitHubConnection={gitHubConnection}
-                      enableGitHub={enableGitHub}
-                      enableLocal={enableLocal}
-                      enableFolderBrowser={enableFolderBrowser}
-                    />
-                  </ContextPopover>
-                )}
-
-                {showMcp && (
-                  <ContextPopover
-                    icon={<McpServerIcon />}
-                    label="MCP"
-                    count={mcpCount}
-                    disabled={isDisabled}
-                  >
-                    <McpServerPicker
-                      org={org!}
-                      value={mcpServerUsages ?? []}
-                      onChange={onMcpServerUsagesChange!}
-                      onDisplayNameResolved={handleDisplayNameResolved}
-                      disabled={isDisabled}
-                    />
-                  </ContextPopover>
-                )}
-
-                {showSkills && (
-                  <ContextPopover
-                    icon={<SkillIcon />}
-                    label="Skills"
-                    count={skillCount}
-                    disabled={isDisabled}
-                  >
-                    <SkillPicker
-                      org={org!}
-                      value={skillRefs ?? []}
-                      onChange={onSkillRefsChange!}
-                      onDisplayNameResolved={handleDisplayNameResolved}
-                      disabled={isDisabled}
-                    />
-                  </ContextPopover>
-                )}
-
-                {showModelSelector && (
-                  <div className="mx-0.5 h-4 w-px bg-border/50" />
-                )}
-              </>
-            )}
-
-            {showModelSelector && (
-              <ModelSelector
-                value={modelId}
-                onValueChange={handleModelChange}
-                disabled={isDisabled}
-              />
-            )}
-          </div>
-
-          <button
-            type="button"
-            disabled={!composer.canSubmit}
-            onClick={composer.submit}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-40"
-            aria-label="Send message"
+        {/* Zone 2.75: MCP setup warning */}
+        {showMcp && mcpSetup.needsSetupCount > 0 && (
+          <div
+            role="status"
+            className="mx-3 mb-2 flex items-center gap-2 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning"
           >
-            {isSubmitting ? <SpinnerIcon /> : <ArrowUpIcon />}
-          </button>
-        </div>
+            <AlertTriangleIcon />
+            <span>
+              {mcpSetup.needsSetupCount === 1
+                ? "1 MCP server needs configuration"
+                : `${mcpSetup.needsSetupCount} MCP servers need configuration`}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (mcpSetup.needsSetupCount === 1) {
+                  const key = Object.entries(mcpSetup.entries).find(
+                    ([, e]) => e.status === "needsSetup",
+                  )?.[0];
+                  configMcpInitialServerKeyRef.current = key;
+                } else {
+                  configMcpInitialServerKeyRef.current = undefined;
+                }
+                setConfigOpen(true);
+                setConfigActivePanel("mcp");
+              }}
+              disabled={isDisabled}
+              className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[0.6rem] font-medium hover:bg-warning/20 disabled:pointer-events-none disabled:opacity-50"
+            >
+              Configure
+            </button>
+          </div>
+        )}
+
+        {/* Zone 3: Toolbar */}
+        <ComposerToolbar
+          disabled={isDisabled}
+          isSubmitting={isSubmitting}
+          canSend={canSend}
+          onSend={composer.submit}
+          showAttach={showAttach}
+          attachmentCount={attachments.entries.length}
+          onAttachClick={() => fileInputRef.current?.click()}
+          showWorkspace={showWorkspace}
+          workspaceCount={workspaceCount}
+          workspaceContent={
+            workspace
+              ? <WorkspaceEditor
+                  workspace={workspace}
+                  disabled={isDisabled}
+                  gitHubConnection={gitHubConnection}
+                  enableGitHub={enableGitHub}
+                  enableLocal={enableLocal}
+                  enableFolderBrowser={enableFolderBrowser}
+                />
+              : null
+          }
+          configureItems={configureItems}
+          configOpen={configOpen}
+          onConfigOpenChange={handleConfigOpenChange}
+          configActivePanel={configActivePanel}
+          onConfigActivePanelChange={handleConfigActivePanelChange}
+          renderConfigPanel={renderConfigPanel}
+          showModelSelector={showModelSelector}
+          modelId={modelId}
+          onModelChange={handleModelChange}
+        />
       </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Context popover wrapper
+// Agent setup error — secret-flow guidance or generic fallback
 // ---------------------------------------------------------------------------
 
-function ContextPopover({
-  icon,
-  label,
-  count,
-  children,
-  disabled,
-  open,
-  onOpenChange,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  count: number;
-  children: React.ReactNode;
-  disabled?: boolean;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-}) {
+function AgentSetupError({ error }: { error: Error }) {
+  if (isSecretFlowError(error)) {
+    return <SecretFlowErrorGuide error={error} className="mt-2" />;
+  }
   return (
-    <Popover.Root open={open} onOpenChange={onOpenChange}>
-      <Popover.Trigger
-        disabled={disabled}
-        className={cn(
-          "inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs transition-colors",
-          "text-muted-foreground hover:text-foreground hover:bg-accent/50",
-          "disabled:pointer-events-none disabled:opacity-50",
-        )}
-      >
-        {icon}
-        <span>{label}</span>
-        {count > 0 && (
-          <span className="rounded-full bg-primary/15 px-1.5 text-[0.6rem] font-medium text-primary">
-            {count}
-          </span>
-        )}
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner sideOffset={8} align="start">
-          <Popover.Popup
-            className={[
-              "z-popover overflow-hidden rounded-lg border border-border",
-              "bg-popover p-3 shadow-md text-popover-foreground",
-            ].join(" ")}
-          >
-            {children}
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+    <p className="mt-2 text-xs text-destructive">
+      {getUserMessage(error)}
+    </p>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Context chip
+// MCP key-to-ref utility
 // ---------------------------------------------------------------------------
 
-interface ChipItem {
-  key: string;
-  label: string;
-  type: "agent" | "workspace" | "mcp" | "skill";
-  onRemove: () => void;
-}
-
-const CHIP_TYPE_LABELS: Record<ChipItem["type"], string> = {
-  agent: "Agent",
-  workspace: "WS",
-  mcp: "MCP",
-  skill: "Skill",
-};
-
-function ContextChip({
-  label,
-  type,
-  onRemove,
-  disabled,
-}: {
-  label: string;
-  type: ChipItem["type"];
-  onRemove: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-xs text-foreground">
-      <span className="text-[0.55rem] font-medium uppercase tracking-wider text-muted-foreground">
-        {CHIP_TYPE_LABELS[type]}
-      </span>
-      <span className="max-w-[120px] truncate">{label}</span>
-      <button
-        type="button"
-        onClick={onRemove}
-        disabled={disabled}
-        className="ml-0.5 shrink-0 text-muted-foreground hover:text-destructive disabled:pointer-events-none"
-        aria-label={`Remove ${label}`}
-      >
-        <XIcon />
-      </button>
-    </span>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Icons
-// ---------------------------------------------------------------------------
-
-function ArrowUpIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M8 12V4M4 7l4-4 4 4" />
-    </svg>
-  );
-}
-
-function SpinnerIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      className="animate-spin"
-      aria-hidden="true"
-    >
-      <path d="M8 2a6 6 0 1 0 6 6" />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 14 14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M4 4L10 10M10 4L4 10" />
-    </svg>
-  );
-}
-
-function AgentIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="5" width="10" height="8" rx="2" />
-      <circle cx="6" cy="9" r="1" fill="currentColor" stroke="none" />
-      <circle cx="10" cy="9" r="1" fill="currentColor" stroke="none" />
-      <path d="M8 1v4" />
-      <circle cx="8" cy="1" r="1" />
-    </svg>
-  );
-}
-
-function WorkspaceIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M1.5 3.5V11a1 1 0 001 1h9a1 1 0 001-1V5.5a1 1 0 00-1-1H7L5.5 3H2.5a1 1 0 00-1 .5z" />
-    </svg>
-  );
-}
-
-function McpServerIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="2" y="2" width="12" height="4" rx="1" />
-      <rect x="2" y="10" width="12" height="4" rx="1" />
-      <circle cx="5" cy="4" r="0.75" fill="currentColor" stroke="none" />
-      <circle cx="5" cy="12" r="0.75" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function SkillIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2 3h12M2 7h8M2 11h10M2 15h6" />
-    </svg>
-  );
-}
-
-function ResolveSpinner() {
-  return (
-    <div className="flex flex-col items-center gap-1.5">
-      <svg
-        width="16"
-        height="16"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        className="animate-spin text-muted-foreground"
-        aria-hidden="true"
-      >
-        <path d="M8 2a6 6 0 1 0 6 6" />
-      </svg>
-      <span className="text-[0.6rem] text-muted-foreground">
-        Checking agent requirements...
-      </span>
-    </div>
-  );
+function mcpRefFromKey(key: string): ResourceRef {
+  const idx = key.indexOf("/");
+  return {
+    org: key.slice(0, idx),
+    slug: key.slice(idx + 1),
+    kind: ApiResourceKind.mcp_server,
+  };
 }

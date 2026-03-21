@@ -102,11 +102,7 @@ const instance = await stigmer.agentInstance.create({
 
 **CLI:**
 
-```bash
-stigmer environment apply env.yaml
-stigmer agent instance create --agent my-agent --env prod-credentials
-stigmer run my-agent "Review the latest PR" --instance github-bot-prod
-```
+CLI support for environment and agent instance management is planned. Today, environments and agent instances are managed through the Web Console or the TypeScript/React SDKs. See the Execution Flow below for CLI-supported secret injection.
 
 ### Execution Flow — Ephemeral Credentials
 
@@ -177,7 +173,7 @@ const execution = await stigmer.agentExecution.create({
 **CLI:**
 
 ```bash
-stigmer run my-agent "Process this data" \
+stigmer run my-agent -m "Process this data" \
   --env CUSTOMER_API_KEY=cust_xyz... \
   --secret CUSTOMER_DB_PASSWORD=p4ssw0rd
 ```

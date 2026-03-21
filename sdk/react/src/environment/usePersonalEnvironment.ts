@@ -11,6 +11,7 @@ import {
 import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { useStigmer } from "../hooks";
 import { generateSlugSuffix } from "../internal/slug";
+import { toError } from "../internal/toError";
 import { useEnvironmentList } from "./useEnvironmentList";
 
 const PERSONAL_LABELS: Record<string, string> = {
@@ -23,7 +24,7 @@ export interface UsePersonalEnvironmentReturn {
   /** `true` while the initial list query is in-flight. */
   readonly isLoading: boolean;
   /** Error message from the most recent failed operation (fetch or mutation), or `null`. */
-  readonly error: string | null;
+  readonly error: Error | null;
   /** Re-query the personal environment from the server. */
   readonly refetch: () => void;
 
@@ -34,10 +35,16 @@ export interface UsePersonalEnvironmentReturn {
    * Otherwise, creates a new environment with a unique slug and
    * label `stigmer.ai/personal: "true"`, optionally seeded with initial data.
    *
+   * **Preconditions:** `org` must be non-null and {@link isLoading} must be
+   * `false`. Calling while `isLoading` is `true` throws — the list query
+   * has not completed, so `getOrCreate` cannot determine whether the
+   * environment already exists and would risk creating a duplicate.
+   *
    * @param initialData - Key-value pairs to include on creation. Ignored
    *   if the personal environment already exists. Use {@link addVariables}
    *   to merge variables into an existing environment.
    * @returns The personal environment (existing or newly created).
+   * @throws If `org` is null or the environment list is still loading.
    */
   readonly getOrCreate: (
     initialData?: Record<string, EnvVarInput>,
@@ -129,12 +136,13 @@ export function usePersonalEnvironment(
   );
 
   const [isMutating, setIsMutating] = useState(false);
-  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<Error | null>(null);
 
-  // Stable ref to environment so mutation callbacks always see the latest
-  // without being recreated on every list response.
   const environmentRef = useRef(environment);
   environmentRef.current = environment;
+
+  const isLoadingRef = useRef(isLoading);
+  isLoadingRef.current = isLoading;
 
   const error = mutationError ?? listError;
 
@@ -147,6 +155,14 @@ export function usePersonalEnvironment(
       if (!org) {
         throw new Error(
           "usePersonalEnvironment: cannot call getOrCreate when org is null.",
+        );
+      }
+
+      if (isLoadingRef.current) {
+        throw new Error(
+          "usePersonalEnvironment: cannot call getOrCreate while the " +
+            "environment list is loading. Wait for isLoading to become " +
+            "false before calling getOrCreate().",
         );
       }
 
@@ -170,11 +186,7 @@ export function usePersonalEnvironment(
         refetch();
         return created;
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to create personal environment";
-        setMutationError(message);
+        setMutationError(toError(err));
         throw err;
       } finally {
         setIsMutating(false);
@@ -219,11 +231,7 @@ export function usePersonalEnvironment(
         refetch();
         return updated;
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to add variables to personal environment";
-        setMutationError(message);
+        setMutationError(toError(err));
         throw err;
       } finally {
         setIsMutating(false);
@@ -255,11 +263,7 @@ export function usePersonalEnvironment(
         refetch();
         return updated;
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to remove variables from personal environment";
-        setMutationError(message);
+        setMutationError(toError(err));
         throw err;
       } finally {
         setIsMutating(false);

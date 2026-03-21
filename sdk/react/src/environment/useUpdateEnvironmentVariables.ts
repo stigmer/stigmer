@@ -7,6 +7,7 @@ import type { Environment } from "@stigmer/protos/ai/stigmer/agentic/environment
 import { UpdateEnvironmentVariablesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
 import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
 
 /**
  * Input for adding or updating specific variables in an environment.
@@ -27,7 +28,7 @@ export interface UseUpdateEnvironmentVariablesReturn {
     input: UpdateEnvironmentVariablesInput,
   ) => Promise<Environment>;
   readonly isUpdatingVariables: boolean;
-  readonly error: string | null;
+  readonly error: Error | null;
   readonly clearError: () => void;
 }
 
@@ -64,7 +65,7 @@ export interface UseUpdateEnvironmentVariablesReturn {
 export function useUpdateEnvironmentVariables(): UseUpdateEnvironmentVariablesReturn {
   const stigmer = useStigmer();
   const [isUpdatingVariables, setIsUpdatingVariables] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -92,11 +93,7 @@ export function useUpdateEnvironmentVariables(): UseUpdateEnvironmentVariablesRe
 
         return await stigmer.environment.updateVariables(request);
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to update environment variables";
-        setError(message);
+        setError(toError(err));
         throw err;
       } finally {
         setIsUpdatingVariables(false);

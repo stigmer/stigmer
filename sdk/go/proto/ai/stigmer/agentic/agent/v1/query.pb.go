@@ -26,25 +26,30 @@ var File_ai_stigmer_agentic_agent_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agent_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"'ai/stigmer/agentic/agent/v1/query.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a$ai/stigmer/agentic/agent/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x85\x02\n" +
+	"'ai/stigmer/agentic/agent/v1/query.proto\x12\x1bai.stigmer.agentic.agent.v1\x1a%ai/stigmer/agentic/agent/v1/api.proto\x1a$ai/stigmer/agentic/agent/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xec\x02\n" +
 	"\x14AgentQueryController\x12{\n" +
 	"\x03get\x12$.ai.stigmer.agentic.agent.v1.AgentId\x1a\".ai.stigmer.agentic.agent.v1.Agent\"*¸\x18&\b\x03\x10(\"\x05value*\x19unauthorized to get agent\x12j\n" +
-	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\".ai.stigmer.agentic.agent.v1.Agent\x1a\x04\xa0\xff+(B\x8b\x02\n" +
+	"\x0egetByReference\x124.ai.stigmer.commons.apiresource.ApiResourceReference\x1a\".ai.stigmer.agentic.agent.v1.Agent\x12e\n" +
+	"\n" +
+	"getDefault\x123.ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest\x1a\".ai.stigmer.agentic.agent.v1.Agent\x1a\x04\xa0\xff+(B\x8b\x02\n" +
 	"\x1fcom.ai.stigmer.agentic.agent.v1B\n" +
 	"QueryProtoP\x01ZKgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agent/v1;agentv1\xa2\x02\x04ASAA\xaa\x02\x1bAi.Stigmer.Agentic.Agent.V1\xca\x02\x1bAi\\Stigmer\\Agentic\\Agent\\V1\xe2\x02'Ai\\Stigmer\\Agentic\\Agent\\V1\\GPBMetadata\xea\x02\x1fAi::Stigmer::Agentic::Agent::V1b\x06proto3"
 
 var file_ai_stigmer_agentic_agent_v1_query_proto_goTypes = []any{
 	(*AgentId)(nil),                          // 0: ai.stigmer.agentic.agent.v1.AgentId
 	(*apiresource.ApiResourceReference)(nil), // 1: ai.stigmer.commons.apiresource.ApiResourceReference
-	(*Agent)(nil),                            // 2: ai.stigmer.agentic.agent.v1.Agent
+	(*GetDefaultAgentRequest)(nil),           // 2: ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest
+	(*Agent)(nil),                            // 3: ai.stigmer.agentic.agent.v1.Agent
 }
 var file_ai_stigmer_agentic_agent_v1_query_proto_depIdxs = []int32{
 	0, // 0: ai.stigmer.agentic.agent.v1.AgentQueryController.get:input_type -> ai.stigmer.agentic.agent.v1.AgentId
 	1, // 1: ai.stigmer.agentic.agent.v1.AgentQueryController.getByReference:input_type -> ai.stigmer.commons.apiresource.ApiResourceReference
-	2, // 2: ai.stigmer.agentic.agent.v1.AgentQueryController.get:output_type -> ai.stigmer.agentic.agent.v1.Agent
-	2, // 3: ai.stigmer.agentic.agent.v1.AgentQueryController.getByReference:output_type -> ai.stigmer.agentic.agent.v1.Agent
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	2, // 2: ai.stigmer.agentic.agent.v1.AgentQueryController.getDefault:input_type -> ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest
+	3, // 3: ai.stigmer.agentic.agent.v1.AgentQueryController.get:output_type -> ai.stigmer.agentic.agent.v1.Agent
+	3, // 4: ai.stigmer.agentic.agent.v1.AgentQueryController.getByReference:output_type -> ai.stigmer.agentic.agent.v1.Agent
+	3, // 5: ai.stigmer.agentic.agent.v1.AgentQueryController.getDefault:output_type -> ai.stigmer.agentic.agent.v1.Agent
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
