@@ -1,7 +1,14 @@
 import { source } from "@/lib/source";
 import defaultMdxComponents from "fumadocs-ui/mdx";
+import { Card, Cards } from "fumadocs-ui/components/card";
 import { PageRoot, PageArticle } from "fumadocs-ui/layouts/docs/page";
 import { notFound } from "next/navigation";
+
+const mdxComponents = {
+  ...defaultMdxComponents,
+  Card,
+  Cards,
+};
 
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
@@ -15,7 +22,7 @@ export default async function Page(props: {
   return (
     <PageRoot toc={{ toc: page.data.toc }}>
       <PageArticle>
-        <MDX components={{ ...defaultMdxComponents }} />
+        <MDX components={mdxComponents} />
       </PageArticle>
     </PageRoot>
   );

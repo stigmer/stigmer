@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-21 10:49
-**Current Task**: Phase 4 complete, Phase 5 next
-**Status**: In Progress
+**Current Task**: ALL PHASES COMPLETE
+**Status**: Complete
 
 ## Session Progress (2026-03-21)
 
@@ -150,6 +150,24 @@ Set up documentation linting with two tools:
 
 Key design: `make lint-docs` strictly checks `docs/**/*.mdx` only (CI gate). `make lint-docs-audit` scans all `docs/**/*.{md,mdx}` non-blocking (content migration baseline — reports 377 issues across 114 legacy files). Terminology linter only flags multi-word prohibited terms to avoid false positives on generic programming words.
 
+### Phase 5: Quickstart Skeleton & Content Seeding — COMPLETE
+
+Populated the docs site with its first real content:
+
+| Action | File | Purpose |
+|---|---|---|
+| Create | `docs/quickstarts/meta.json` | Sidebar ordering for quickstarts section |
+| Create | `docs/quickstarts/index.mdx` | Section landing with CLI card (active), SDK cards ("Coming Soon") |
+| Create | `docs/quickstarts/cli.mdx` | Agent-only CLI quickstart: install, create YAML, apply, run, verify |
+| Create | `docs/concepts/stigmer.mdx` | "What is Stigmer?" migrated from `docs/product/what-is-stigmer.md` |
+| Create | `docs/concepts/agent.mdx` | "What is an Agent?" migrated from `docs/product/what-is-agent.md` |
+| Modify | `docs/meta.json` | Added `quickstarts` to sidebar before `concepts` |
+| Modify | `docs/concepts/meta.json` | Added `stigmer`, `agent` to pages array |
+| Modify | `docs/index.mdx` | Replaced minimal landing with hero + 6 section cards |
+| Modify | `site/src/app/docs/[[...slug]]/page.tsx` | Added `Card`/`Cards` to MDX component mapping |
+
+**Build results**: Static export succeeds — 12 pages generated. `make lint-docs` passes (6 files, 0 issues).
+
 ### Key Decisions
 
 - **Node.js 20 LTS required** — Node 23 causes silent webpack crashes with Next.js 15.3.9. Must use Node 20 for all builds.
@@ -160,11 +178,11 @@ Key design: `make lint-docs` strictly checks `docs/**/*.mdx` only (CI gate). `ma
 - **Role as process, rules as enforcement** — Role file defines persona and behavior, cursor rules handle automated standards enforcement. Zero content duplication between role and standards doc.
 - **Multi-word terminology enforcement only** — Single-word prohibited terms have broad contextual exceptions that a line-level linter cannot resolve. Automated linting flags multi-word terms only; single-word enforcement via Cursor rules.
 - **MDX-only strict mode** — `make lint-docs` checks `.mdx` files only. Pre-existing `.md` files fixed by the content migration project. `make lint-docs-audit` provides the full audit.
+- **MDX imports from external docs/ require component mapping** — MDX files outside `site/` cannot import from `site/node_modules/`. Fumadocs UI components (Card, Cards) are provided via the MDX component mapping in `page.tsx` instead of per-file imports.
 
-## Next Steps
+## Project Complete
 
-1. ~~**Phase 4: Documentation Linting**~~ — COMPLETE
-2. **Phase 5: Quickstart Skeleton & Content Seeding** — Initial content population
+All 5 phases of the documentation foundation project are complete. The follow-up project is **Documentation Content Migration** — migrating ~54 public docs from `.md` to `.mdx`, triaging ~68 internal docs, fixing stale content, and applying the standards established here. See `tasks/T01_2_revised_plan.md` (lines 266-285) for the full scope.
 
 ## Context for Resume
 
@@ -178,11 +196,12 @@ Key design: `make lint-docs` strictly checks `docs/**/*.mdx` only (CI gate). `ma
 - Doc linting: `make lint-docs` (strict MDX), `make lint-docs-audit` (all files), `make fix-docs` (auto-fix). Wired into `make check`.
 - Custom linter at `scripts/lint-docs.mjs`. markdownlint config at `.markdownlint-cli2.jsonc`.
 - Audit baseline: 377 issues across 114 legacy `.md` files (for content migration project).
+- Fumadocs Card/Cards components available in MDX via component mapping in `page.tsx` — no imports needed in doc files.
+- Static build generates 12 pages: landing, quickstarts index, CLI quickstart, concepts index, stigmer, agent, plus marketing pages.
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 4" — Begin documentation linting
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 - "Review guidelines" — Check established patterns
