@@ -15,6 +15,8 @@
     "test": "npm run test -w @stigmer/sdk && npm run test -w @stigmer/react && npm run test -w @stigmer/theme"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.2.1"
+    "@tailwindcss/cli": "^4.2.1",
+    "gray-matter": "^4.0.3",
+    "markdownlint-cli2": "^0.21.0"
   }
 }

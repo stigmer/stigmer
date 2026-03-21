@@ -1,0 +1,46 @@
+{
+  // Stigmer documentation linting config.
+  // Rules derived from docs/standards/documentation-standards.md.
+  // Used by: make lint-docs, make fix-docs, make lint-docs-audit
+  "config": {
+    "default": true,
+
+    // MD001: heading levels must increment by one (no skipped levels)
+    "heading-increment": true,
+
+    // MD003: enforce ATX-style headings (# prefix)
+    "heading-style": { "style": "atx" },
+
+    // MD013: disable line-length — prose docs wrap naturally
+    "line-length": false,
+
+    // MD024: allow duplicate headings across different parent sections
+    "no-duplicate-heading": { "siblings_only": true },
+
+    // MD025: exactly one H1 per document.
+    // front_matter_title="" prevents frontmatter `title:` from counting as an H1.
+    "single-h1": { "front_matter_title": "" },
+
+    // MD033: disable — MDX uses JSX/HTML components legitimately
+    "no-inline-html": false,
+
+    // MD040: every fenced code block must have a language tag
+    "fenced-code-language": true,
+
+    // MD041: disable — frontmatter precedes the first heading
+    "first-line-heading": false,
+
+    // MD046: enforce fenced code blocks (not indented)
+    "code-block-style": { "style": "fenced" },
+
+    // MD049: enforce asterisks for emphasis
+    "emphasis-style": { "style": "asterisk" },
+
+    // MD050: enforce double asterisks for strong
+    "strong-style": { "style": "asterisk" }
+  },
+  "ignores": [
+    "docs/standards/templates/**",
+    "node_modules/**"
+  ]
+}
