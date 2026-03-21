@@ -1,0 +1,137 @@
+{
+  "version": "1",
+  "description": "Machine-readable terminology dictionary for Stigmer documentation. The terminology linter reads this file to enforce consistent use of ubiquitous language across all docs.",
+  "rules": {
+    "case_sensitive": false,
+    "scope": "docs/**/*.{md,mdx}"
+  },
+  "terms": [
+    {
+      "canonical": "Agent",
+      "prohibited": ["ai agent", "bot", "assistant", "chatbot"],
+      "context": "A portable, versioned, declarative definition of an AI worker. The proto resource in the agentic domain."
+    },
+    {
+      "canonical": "AgentExecution",
+      "prohibited": ["agent run", "execution run", "job", "task run", "run instance"],
+      "context": "A single invocation of an agent instance within a session. Produces messages, tool calls, and results."
+    },
+    {
+      "canonical": "AgentInstance",
+      "prohibited": ["agent binding", "agent deployment", "deployed agent", "running agent"],
+      "context": "Binds an Agent blueprint to an environment — provides secrets, credentials, and runtime values."
+    },
+    {
+      "canonical": "Session",
+      "prohibited": ["chat", "conversation", "thread", "chat session", "dialog"],
+      "context": "Groups related AgentExecutions into a conversational context. Maintains message history across multiple runs."
+    },
+    {
+      "canonical": "Skill",
+      "prohibited": ["knowledge pack", "knowledge package", "plugin", "extension", "module"],
+      "context": "A portable, versioned, content-addressed package of domain knowledge injected into an agent's context at runtime."
+    },
+    {
+      "canonical": "Workflow",
+      "prohibited": ["pipeline", "automation", "job", "cron job", "scheduled task"],
+      "context": "A portable, versioned, declarative definition of a durable automation pipeline with typed task steps."
+    },
+    {
+      "canonical": "WorkflowExecution",
+      "prohibited": ["workflow run", "pipeline run", "workflow job", "execution instance"],
+      "context": "A single run of a WorkflowInstance. Backed by Temporal for durability."
+    },
+    {
+      "canonical": "WorkflowInstance",
+      "prohibited": ["workflow binding", "workflow deployment"],
+      "context": "Binds a Workflow blueprint to an environment, similar to how AgentInstance binds an Agent."
+    },
+    {
+      "canonical": "McpServer",
+      "prohibited": ["tool connector", "tool server", "tool integration", "MCP connector", "tool provider"],
+      "context": "A portable, versioned tool integration definition following the Model Context Protocol. Exposes tools and resources to agents."
+    },
+    {
+      "canonical": "Organization",
+      "prohibited": ["org", "tenant", "account", "team space", "workspace"],
+      "context": "The root namespace for all Stigmer resources. Every resource belongs to exactly one Organization.",
+      "exceptions": ["'org' is permitted in CLI flag names (--org), YAML fields (metadata.org), and inline code references"]
+    },
+    {
+      "canonical": "Environment",
+      "prohibited": ["env config", "secret store", "credential store", "vault"],
+      "context": "An encrypted key-value store that provides secrets and configuration to AgentInstances and WorkflowInstances.",
+      "exceptions": ["'env' is permitted in CLI flag names (--env), YAML fields, and technical references to environment variables"]
+    },
+    {
+      "canonical": "Project",
+      "prohibited": ["app", "application", "deployment group"],
+      "context": "A managed grouping of related resources with orphan pruning. Created by stigmer apply from a Stigmer.yaml."
+    },
+    {
+      "canonical": "Workspace",
+      "prohibited": ["working directory", "work dir", "sandbox"],
+      "context": "A git repository or local path that serves as an agent's working directory during execution."
+    },
+    {
+      "canonical": "SeedPack",
+      "prohibited": ["seed pack", "bootstrap package", "starter kit", "boilerplate"],
+      "context": "A complete Stigmer project embedded in the CLI binary containing system agents, skills, and MCP servers that bootstrap every install."
+    },
+    {
+      "canonical": "AgentRunner",
+      "prohibited": ["agent executor", "python runner", "AI runtime", "LLM runner"],
+      "context": "The Python service that executes AI agents using LangGraph with MCP server integration, skill injection, and checkpoint-based state management."
+    },
+    {
+      "canonical": "WorkflowRunner",
+      "prohibited": ["workflow executor", "go runner", "task executor", "pipeline runner"],
+      "context": "The Go service that interprets CNCF Serverless Workflow definitions, executing HTTP calls, gRPC calls, agent invocations, and control flow tasks."
+    },
+    {
+      "canonical": "IdentityAccount",
+      "prohibited": ["user", "user account", "member"],
+      "context": "The canonical principal type in the IAM domain. Represents a human or machine identity.",
+      "exceptions": ["'user' is permitted when referring to a generic person in non-technical prose (e.g., 'the user clicks the button')"]
+    },
+    {
+      "canonical": "IamPolicy",
+      "prohibited": ["permission", "access rule", "role binding", "authorization rule"],
+      "context": "A declarative access grant that binds a principal to a permission on a resource."
+    },
+    {
+      "canonical": "IdentityProvider",
+      "prohibited": ["auth provider", "login provider", "SSO provider", "OAuth provider"],
+      "context": "Enables federated authentication so external platforms can let their users access Stigmer without a separate account."
+    },
+    {
+      "canonical": "ApiKey",
+      "prohibited": ["token", "access token", "auth token", "secret key"],
+      "context": "A managed programmatic credential for API access.",
+      "exceptions": ["'token' is permitted when referring to LLM tokens (prompt tokens, completion tokens) or Temporal auth tokens"]
+    },
+    {
+      "canonical": "ExecutionContext",
+      "prohibited": ["runtime context", "exec context", "context bundle"],
+      "context": "An ephemeral runtime secret bundle assembled from Environment entries for a specific execution."
+    },
+    {
+      "canonical": "StigmerServer",
+      "prohibited": ["server", "backend", "API server", "gRPC server"],
+      "context": "The Go gRPC server that owns every API resource and coordinates execution.",
+      "exceptions": ["'server' is permitted in CLI commands (stigmer server start) and when referring to generic server concepts"]
+    },
+    {
+      "canonical": "stigmer apply",
+      "prohibited": ["deploy", "push", "upload", "sync"],
+      "context": "The CLI command that deploys resources from YAML or Go code to the Stigmer backend.",
+      "exceptions": ["'deploy' is permitted when referring to the general concept of deployment, not the specific Stigmer command"]
+    },
+    {
+      "canonical": "stigmer run",
+      "prohibited": ["execute", "invoke", "trigger", "start agent"],
+      "context": "The CLI command that creates an AgentExecution or WorkflowExecution.",
+      "exceptions": ["'execute' and 'invoke' are permitted in general programming contexts, not when referring to the specific CLI command"]
+    }
+  ]
+}
