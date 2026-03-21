@@ -101,7 +101,7 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-20 18:23
-**Current Task**: T01 — All phases complete
+**Current Task**: T01 — All phases and all tasks complete (including T01.12)
 **Status**: Complete
 
 ## Session Progress (2026-03-20, Session 3 — Round 2)
@@ -158,9 +158,41 @@ When starting a new session:
 - `client-apps/web/src/app/library/skills/SkillListPage.tsx` (onItemClick → detail route)
 - `client-apps/web/src/app/library/mcp-servers/McpServerListPage.tsx` (onItemClick → detail route)
 
+## Session Progress (2026-03-21, Session 4 — T01.12 Breadcrumb Polish)
+
+### Completed This Session
+
+- **T01.12 Breadcrumb polish** — display resource display name instead of raw slug
+  - **SDK**: Added `onResourceLoad?: (meta: { name: string }) => void` callback prop to `AgentDetailView`, `SkillDetailView`, `McpServerDetailView`
+  - Stable ref pattern (`useRef` + `useEffect`) prevents re-firing on inline callbacks
+  - **Console**: Created `LibraryBreadcrumbContext` with provider + 2 consumer hooks (`useBreadcrumbLabel`, `useBreadcrumbOverride`)
+  - Wrapped `LibraryLayout` in `LibraryBreadcrumbProvider`
+  - `LibraryBreadcrumb` reads override label from context for slug segments
+  - All 3 detail pages wire `onResourceLoad` to context with cleanup on unmount
+  - Progressive enhancement: slug shown initially, display name after data loads
+  - Committed: `f18727d9 feat(sdk/react,web): add breadcrumb display name via onResourceLoad callback`
+
+### Key Decisions This Session
+
+- `onResourceLoad` callback on SDK components (not duplicate hook call) — zero extra API calls, minimal SDK surface addition
+- Callback is genuinely useful for platform builders (document titles, analytics) — not Console-specific
+- Override only applies to slug segments (last segment when not a known category like "Agents")
+
+### Files Created This Session
+- `client-apps/web/src/app/library/LibraryBreadcrumbContext.tsx`
+
+### Files Modified This Session
+- `sdk/react/src/agent/AgentDetailView.tsx`
+- `sdk/react/src/skill/SkillDetailView.tsx`
+- `sdk/react/src/mcp-server/McpServerDetailView.tsx`
+- `client-apps/web/src/app/library/LibraryBreadcrumb.tsx`
+- `client-apps/web/src/app/library/layout.tsx`
+- `client-apps/web/src/app/library/agents/[slug]/AgentDetailPage.tsx`
+- `client-apps/web/src/app/library/skills/[slug]/SkillDetailPage.tsx`
+- `client-apps/web/src/app/library/mcp-servers/[slug]/McpServerDetailPage.tsx`
+
 ## Remaining Work
 
-- **T01.12 Breadcrumb polish** (optional) — display resource display name instead of raw slug. Deferred: slug is already human-readable.
 - **Visual QA** — test all 3 detail views with real data in the Console
 - **`stgm-prose` cleanup** — consider removing the unused class from `MessageEntry.tsx` or defining it in `@stigmer/theme`
 
