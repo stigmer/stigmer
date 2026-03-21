@@ -36,6 +36,12 @@ import { useUpdateSession } from "./useUpdateSession";
  */
 export interface SendFollowUpOptions {
   readonly modelName?: string;
+  /**
+   * Override the session's agent instance for this and all future
+   * executions. When provided, the session is updated before the
+   * execution is created.
+   */
+  readonly agentInstanceId?: string;
   readonly workspaceEntries?: WorkspaceEntryInput[];
   readonly mcpServerUsages?: McpServerUsageInput[];
   readonly skillRefs?: ResourceRef[];
@@ -77,9 +83,10 @@ export interface UseSessionConversationReturn {
    * Submit a follow-up message. Internally creates an execution and
    * starts streaming it.
    *
-   * When session-level fields (`workspaceEntries`, `mcpServerUsages`,
-   * `skillRefs`) are provided in options, the session is updated via
-   * `session.update()` before creating the execution.
+   * When session-level fields (`agentInstanceId`, `workspaceEntries`,
+   * `mcpServerUsages`, `skillRefs`) are provided in options, the
+   * session is updated via `session.update()` before creating the
+   * execution.
    */
   readonly sendFollowUp: (
     message: string,
@@ -299,6 +306,7 @@ export function useSessionConversation(
 
       try {
         const needsSessionUpdate =
+          options?.agentInstanceId !== undefined ||
           options?.workspaceEntries !== undefined ||
           options?.mcpServerUsages !== undefined ||
           options?.skillRefs !== undefined;
@@ -306,6 +314,7 @@ export function useSessionConversation(
         if (needsSessionUpdate) {
           await updateSession(
             buildUpdateInput(session, {
+              agentInstanceId: options?.agentInstanceId,
               workspaceEntries: options?.workspaceEntries,
               mcpServerUsages: options?.mcpServerUsages,
               skillRefs: options?.skillRefs,
@@ -406,6 +415,7 @@ export function useSessionConversation(
 function buildUpdateInput(
   session: Session,
   overrides: {
+    agentInstanceId?: string;
     workspaceEntries?: WorkspaceEntryInput[];
     mcpServerUsages?: McpServerUsageInput[];
     skillRefs?: ResourceRef[];
@@ -425,7 +435,7 @@ function buildUpdateInput(
   return {
     name: meta.name,
     org: meta.org,
-    agentInstanceId: spec?.agentInstanceId || undefined,
+    agentInstanceId: overrides.agentInstanceId ?? (spec?.agentInstanceId || undefined),
     subject: spec?.subject || undefined,
     threadId: spec?.threadId || undefined,
     sandboxId: spec?.sandboxId || undefined,

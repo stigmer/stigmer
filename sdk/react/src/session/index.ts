@@ -26,5 +26,8 @@ export type {
   UseSessionConversationReturn,
 } from "./useSessionConversation";
 
+export { useAgentRefFromSession } from "./useAgentRefFromSession";
+export type { UseAgentRefFromSessionReturn } from "./useAgentRefFromSession";
+
 export { groupSessionsByTime } from "./group-sessions";
 export type { SessionGroup } from "./group-sessions";
