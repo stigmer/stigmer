@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -18,6 +19,15 @@ export interface McpServerDetailViewProps {
   readonly org: string;
   /** MCP server slug (URL-friendly identifier unique within the org). */
   readonly slug: string;
+  /**
+   * Called once when the MCP server resource has been fetched successfully.
+   * Provides the resource display name for use cases like breadcrumbs,
+   * document titles, or analytics — without requiring the consumer to
+   * also call {@link useMcpServer}.
+   *
+   * Not called on error or not-found states.
+   */
+  readonly onResourceLoad?: (meta: { name: string }) => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -47,9 +57,19 @@ export interface McpServerDetailViewProps {
 export function McpServerDetailView({
   org,
   slug,
+  onResourceLoad,
   className,
 }: McpServerDetailViewProps) {
   const { mcpServer, isLoading, error, refetch } = useMcpServer(org, slug);
+
+  const onResourceLoadRef = useRef(onResourceLoad);
+  onResourceLoadRef.current = onResourceLoad;
+
+  useEffect(() => {
+    if (mcpServer?.metadata?.name) {
+      onResourceLoadRef.current?.({ name: mcpServer.metadata.name });
+    }
+  }, [mcpServer]);
 
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useBreadcrumbLabel } from "./LibraryBreadcrumbContext";
 
 const SEGMENT_LABELS: Record<string, string> = {
   agents: "Agents",
@@ -11,6 +12,7 @@ const SEGMENT_LABELS: Record<string, string> = {
 
 export function LibraryBreadcrumb() {
   const pathname = usePathname();
+  const overrideLabel = useBreadcrumbLabel();
   const segments = pathname.replace(/^\/library\/?/, "").split("/").filter(Boolean);
 
   if (segments.length === 0) return null;
@@ -28,7 +30,11 @@ export function LibraryBreadcrumb() {
         </li>
         {segments.map((segment, i) => {
           const isLast = i === segments.length - 1;
-          const label = SEGMENT_LABELS[segment] ?? segment;
+          const isKnownCategory = segment in SEGMENT_LABELS;
+          const label =
+            isLast && !isKnownCategory && overrideLabel
+              ? overrideLabel
+              : (SEGMENT_LABELS[segment] ?? segment);
 
           return (
             <li key={segment} className="flex items-center gap-1.5">

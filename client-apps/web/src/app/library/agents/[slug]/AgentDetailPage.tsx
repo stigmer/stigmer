@@ -1,16 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { AgentDetailView } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { getEditSessionUrl } from "@/utils/draft-session";
+import { useBreadcrumbOverride } from "../../LibraryBreadcrumbContext";
 
 export function AgentDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const org = useActiveOrgSlug();
   const router = useRouter();
+  const { setLabel } = useBreadcrumbOverride();
+
+  useEffect(() => () => setLabel(null), [setLabel]);
 
   return (
     <div className="space-y-4">
@@ -27,6 +32,7 @@ export function AgentDetailPage() {
       <AgentDetailView
         org={org}
         slug={slug}
+        onResourceLoad={({ name }) => setLabel(name)}
         onMcpServerClick={({ slug: s }) =>
           router.push(`/library/mcp-servers/${s}`)
         }

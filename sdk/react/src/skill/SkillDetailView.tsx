@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Markdown from "react-markdown";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
@@ -18,6 +19,15 @@ export interface SkillDetailViewProps {
   readonly slug: string;
   /** Optional version tag or content hash to pin to a specific version. */
   readonly version?: string;
+  /**
+   * Called once when the skill resource has been fetched successfully.
+   * Provides the resource display name for use cases like breadcrumbs,
+   * document titles, or analytics — without requiring the consumer to
+   * also call {@link useSkill}.
+   *
+   * Not called on error or not-found states.
+   */
+  readonly onResourceLoad?: (meta: { name: string }) => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -54,9 +64,19 @@ export function SkillDetailView({
   org,
   slug,
   version,
+  onResourceLoad,
   className,
 }: SkillDetailViewProps) {
   const { skill, isLoading, error, refetch } = useSkill(org, slug, version);
+
+  const onResourceLoadRef = useRef(onResourceLoad);
+  onResourceLoadRef.current = onResourceLoad;
+
+  useEffect(() => {
+    if (skill?.metadata?.name) {
+      onResourceLoadRef.current?.({ name: skill.metadata.name });
+    }
+  }, [skill]);
 
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)

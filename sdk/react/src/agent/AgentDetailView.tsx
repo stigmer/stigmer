@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { Agent } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/api_pb";
@@ -33,6 +33,15 @@ export interface AgentDetailViewProps {
    * Provides `org` and `slug` of the referenced skill.
    */
   readonly onSkillClick?: (ref: { org: string; slug: string }) => void;
+  /**
+   * Called once when the agent resource has been fetched successfully.
+   * Provides the resource display name for use cases like breadcrumbs,
+   * document titles, or analytics — without requiring the consumer to
+   * also call {@link useAgent}.
+   *
+   * Not called on error or not-found states.
+   */
+  readonly onResourceLoad?: (meta: { name: string }) => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -72,9 +81,19 @@ export function AgentDetailView({
   slug,
   onMcpServerClick,
   onSkillClick,
+  onResourceLoad,
   className,
 }: AgentDetailViewProps) {
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
+
+  const onResourceLoadRef = useRef(onResourceLoad);
+  onResourceLoadRef.current = onResourceLoad;
+
+  useEffect(() => {
+    if (agent?.metadata?.name) {
+      onResourceLoadRef.current?.({ name: agent.metadata.name });
+    }
+  }, [agent]);
 
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)
