@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-21 15:20
-**Current Task**: Phase 2 (Information Architecture) is next
-**Status**: In Progress — Phase 1 Complete
+**Current Task**: Phase 3 (Machine-Readable Standards) is next
+**Status**: In Progress — Phases 1-2 Complete
 
 ## Session Progress (2026-03-21)
 
@@ -80,30 +80,40 @@ When starting a new session:
 - Synthesized content from roles 007/008/009 and reminders 005/006
 - Committed: `20ea547a docs(site): add sales website standards document`
 
+### Completed: Phase 2 — Information Architecture
+- Created `site/standards/information-architecture.md` (5 sections)
+- **Page Map**: 18 pages organized by funnel stage (Awareness → Interest → Evaluation → Action → Cross-Funnel), with persona mapping for all 3 personas (solo dev, platform builder, engineering leader)
+- **Navigation Structure**: Header nav (6 items: Use Cases, Features, Compare, Docs, Pricing, GitHub), footer nav (4 groups: Product, Developers, Resources, Open Source), mobile drawer, breadcrumb rules
+- **URL Scheme**: Predictable patterns for all 9 page types, slug conventions, directory-to-route mapping for Next.js App Router
+- **Internal Linking Rules**: Funnel flow diagram, linking requirements per page type, anchor text rules, cross-site linking (docs, GitHub), orphan page prevention
+- **Page Inventory**: Current state (1 page + dead links), priority tiers (P0 foundation, P1 first wave with 8 pages, P2 second wave with 7 pages, P3 ongoing), dead link resolution plan
+
 ### Key Observations
-- The document forward-references artifacts from Phases 2-5 (JSON files, templates, component-standards, information-architecture). Those links will resolve as subsequent phases deliver.
-- No design decisions, wrong assumptions, or don't-dos recorded — Phase 1 was a straightforward codification of existing material.
+- The document forward-references artifacts from Phases 3-5 (JSON files, templates, component-standards). Those links will resolve as subsequent phases deliver.
+- Identified 5 dead links in the current navigation (`/examples`, `/changelog`, `/docs/getting-started`, `/docs/api`) with resolution recommendations.
+- No design decisions, wrong assumptions, or don't-dos recorded — Phase 2 was a straightforward synthesis of Phase 1 page types, role personas, and existing site structure.
 
 ## Next Steps
 
-1. **Phase 2: Information Architecture** — Create `site/standards/information-architecture.md` defining the complete page map, navigation structure, URL scheme, and internal linking rules. Depends on the page types defined in Phase 1.
-2. **Phase 3: Machine-Readable Standards** — Create `content-requirements.json`, `copy-guidelines.json`, `performance-budget.json`. Depends on rules codified in Phases 1-2.
-3. Phases 4 and 5 can run in parallel after Phases 1-2.
+1. **Phase 3: Machine-Readable Standards** — Create `content-requirements.json`, `copy-guidelines.json`, `performance-budget.json`. Depends on rules codified in Phases 1-2.
+2. **Phase 4: Page and Section Templates** — Can start after Phase 3. 9 page templates + 8 section templates.
+3. **Phase 5: Component Standards** — Can run in parallel with Phase 4.
 
 ## Context for Resume
 
 - Branch: `feat/add-docs`
-- The `site/standards/` directory now exists with one file
+- The `site/standards/` directory now has two files: `website-standards.md` and `information-architecture.md`
 - The task plan (`tasks/T01_0_plan.md`) contains the full 8-phase breakdown with dependencies and success criteria
-- The execution order diagram in the task plan shows Phase 2 depends only on Phase 1 (now complete)
+- The execution order diagram in the task plan shows Phase 3 depends on Phases 1-2 (both complete)
+- Phases 4 and 5 can run in parallel after Phase 3
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 2" - Begin Information Architecture
+- "Start Phase 3" - Begin Machine-Readable Standards
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review Phase 1 deliverable" - Read `site/standards/website-standards.md`
+- "Review Phase 2 deliverable" - Read `site/standards/information-architecture.md`
 
 ---
 
