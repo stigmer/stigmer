@@ -26,7 +26,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile backdrop */}
       {sidebar.isOpen && (
         <div
-          className="bg-background/80 fixed inset-0 z-40 backdrop-blur-sm lg:hidden"
+          className="bg-backdrop fixed inset-0 z-40 backdrop-blur-sm lg:hidden"
           onClick={sidebar.close}
           aria-hidden="true"
         />

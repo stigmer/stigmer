@@ -31,6 +31,12 @@
   --stgm-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.12), 0 4px 6px -4px rgb(0 0 0 / 0.08);
   --stgm-transition-duration: 200ms;
   --stgm-transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+  --stgm-primary-hover: oklch(0.43 0.16 250);
+  --stgm-primary-subtle: oklch(0.95 0.02 250);
+  --stgm-destructive-subtle: oklch(0.95 0.03 27);
+  --stgm-muted-subtle: oklch(0.95 0.01 250);
+  --stgm-muted-foreground-subtle: oklch(0.58 0.03 250);
+  --stgm-backdrop: oklch(0.97 0.01 250 / 80%);
   --stgm-sidebar: oklch(0.20 0.06 250);
   --stgm-sidebar-foreground: oklch(0.93 0 0);
   --stgm-sidebar-primary: oklch(0.75 0.14 250);
@@ -70,6 +76,12 @@
   --stgm-shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.28);
   --stgm-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.35), 0 2px 4px -2px rgb(0 0 0 / 0.3);
   --stgm-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.35);
+  --stgm-primary-hover: oklch(0.62 0.14 250);
+  --stgm-primary-subtle: oklch(0.24 0.04 250);
+  --stgm-destructive-subtle: oklch(0.24 0.04 22);
+  --stgm-muted-subtle: oklch(0.21 0.03 250);
+  --stgm-muted-foreground-subtle: oklch(0.55 0.04 250);
+  --stgm-backdrop: oklch(0.16 0.04 250 / 80%);
   --stgm-sidebar: oklch(0.13 0.05 250);
   --stgm-sidebar-foreground: oklch(0.93 0 0);
   --stgm-sidebar-primary: oklch(0.68 0.16 250);

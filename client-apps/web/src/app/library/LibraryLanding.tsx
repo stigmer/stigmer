@@ -146,7 +146,7 @@ function CreateResourceMenu() {
                   onClick={() => setOpen(false)}
                   className={cn(
                     "flex w-full items-center gap-2.5 px-3 py-2 text-sm",
-                    "text-foreground transition-colors hover:bg-accent/50",
+                    "text-foreground transition-colors hover:bg-accent",
                   )}
                 >
                   <span className="shrink-0 text-muted-foreground">

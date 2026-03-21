@@ -57,7 +57,7 @@ function PersonalEnvironmentCard({ org }: { org: string }) {
         >
           Personal Environment
         </h2>
-        <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-wider">
+        <span className="bg-primary-subtle text-primary rounded-full px-2 py-0.5 text-[0.6rem] font-medium uppercase tracking-wider">
           You
         </span>
       </div>
@@ -115,7 +115,7 @@ function EnvironmentsCard({ org }: { org: string }) {
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="text-primary hover:text-primary/80 text-xs font-medium transition-colors"
+            className="text-primary hover:text-foreground text-xs font-medium transition-colors"
           >
             + New environment
           </button>
@@ -161,7 +161,7 @@ function SkeletonRows({ count }: { count: number }) {
       {Array.from({ length: count }, (_, i) => (
         <div
           key={i}
-          className="bg-muted/40 h-8 animate-pulse rounded"
+          className="bg-muted-subtle h-8 animate-pulse rounded"
           style={{ width: `${85 - i * 10}%` }}
         />
       ))}
