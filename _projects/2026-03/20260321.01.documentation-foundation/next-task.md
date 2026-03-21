@@ -68,7 +68,7 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-21 10:49
-**Current Task**: Phase 3 complete, Phase 4 next
+**Current Task**: Phase 4 complete, Phase 5 next
 **Status**: In Progress
 
 ## Session Progress (2026-03-21)
@@ -137,6 +137,19 @@ Created 3 Cursor rules and updated 2 existing files:
 | Rewrite | `_roles/002_document_writer.md` | Removed duplicated standards (~60% was verbatim from `documentation-standards.md`), focused on persona/process/quality philosophy, added framework awareness |
 | Update | `_reminders/004_documentation-standards.md` | Added cursor rules reference table, IA doc reference, tightened cross-references to use action rules |
 
+### Phase 4: Documentation Linting — COMPLETE
+
+Set up documentation linting with two tools:
+
+| Action | File | Purpose |
+|---|---|---|
+| Create | `.markdownlint-cli2.jsonc` | Markdown structure/style linting config |
+| Create | `scripts/lint-docs.mjs` | Custom linter: terminology, frontmatter, H1-title match, link validation |
+| Modify | `package.json` | Added `markdownlint-cli2`, `gray-matter` devDeps |
+| Modify | `Makefile` | Added `lint-docs`, `fix-docs`, `lint-docs-audit` targets; wired `lint-docs` into `check` |
+
+Key design: `make lint-docs` strictly checks `docs/**/*.mdx` only (CI gate). `make lint-docs-audit` scans all `docs/**/*.{md,mdx}` non-blocking (content migration baseline — reports 377 issues across 114 legacy files). Terminology linter only flags multi-word prohibited terms to avoid false positives on generic programming words.
+
 ### Key Decisions
 
 - **Node.js 20 LTS required** — Node 23 causes silent webpack crashes with Next.js 15.3.9. Must use Node 20 for all builds.
@@ -145,10 +158,12 @@ Created 3 Cursor rules and updated 2 existing files:
 - **`RootProvider` scoped to `/docs`** — Marketing page isolated from fumadocs.
 - **Three rules, not five** — 1 auto-apply + 2 action rules. Content-type-specific logic consolidated into write rule via path detection, not fragmented per type.
 - **Role as process, rules as enforcement** — Role file defines persona and behavior, cursor rules handle automated standards enforcement. Zero content duplication between role and standards doc.
+- **Multi-word terminology enforcement only** — Single-word prohibited terms have broad contextual exceptions that a line-level linter cannot resolve. Automated linting flags multi-word terms only; single-word enforcement via Cursor rules.
+- **MDX-only strict mode** — `make lint-docs` checks `.mdx` files only. Pre-existing `.md` files fixed by the content migration project. `make lint-docs-audit` provides the full audit.
 
 ## Next Steps
 
-1. **Phase 4: Documentation Linting** — Terminology enforcement, frontmatter validation, `make lint-docs` integration
+1. ~~**Phase 4: Documentation Linting**~~ — COMPLETE
 2. **Phase 5: Quickstart Skeleton & Content Seeding** — Initial content population
 
 ## Context for Resume
@@ -160,6 +175,9 @@ Created 3 Cursor rules and updated 2 existing files:
 - The `docs/standards/` directory is excluded from Fumadocs content sourcing.
 - Cursor rules live in `.cursor/rules/docs/`. Auto-apply rule triggers on any `docs/**/*.{md,mdx}` edit.
 - Role file `_roles/002_document_writer.md` references standards docs, does not duplicate them.
+- Doc linting: `make lint-docs` (strict MDX), `make lint-docs-audit` (all files), `make fix-docs` (auto-fix). Wired into `make check`.
+- Custom linter at `scripts/lint-docs.mjs`. markdownlint config at `.markdownlint-cli2.jsonc`.
+- Audit baseline: 377 issues across 114 legacy `.md` files (for content migration project).
 
 ## Quick Commands
 

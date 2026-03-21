@@ -74,7 +74,7 @@ tidy: ## Run go mod tidy on all Go modules
 
 # ─── Lint & Check ────────────────────────────
 
-.PHONY: lint libs-build web-build check
+.PHONY: lint lint-docs fix-docs lint-docs-audit libs-build web-build check
 lint: ## Run all linters and type checks
 	@for mod in $(GO_MODULES); do \
 		(cd $$mod && go vet ./...) || exit 1; \
@@ -94,7 +94,20 @@ libs-build:
 web-build:
 	npm run build -w client-apps/web
 
-check: protos tidy lint libs-build web-build build test ## Run full CI gate locally
+check: protos tidy lint lint-docs libs-build web-build build test ## Run full CI gate locally
+
+# ─── Docs Linting ─────────────────────────────
+
+lint-docs: ## Lint documentation (MDX files, strict)
+	@npx markdownlint-cli2 "docs/**/*.mdx"
+	@node scripts/lint-docs.mjs "docs/**/*.mdx"
+
+fix-docs: ## Auto-fix markdown lint issues in MDX files
+	@npx markdownlint-cli2 --fix "docs/**/*.mdx"
+
+lint-docs-audit: ## Audit all docs (md + mdx, non-blocking report)
+	-@npx markdownlint-cli2 "docs/**/*.md" "docs/**/*.mdx"
+	-@node scripts/lint-docs.mjs "docs/**/*.md" "docs/**/*.mdx"
 
 # ─── Dependencies ─────────────────────────────
 
