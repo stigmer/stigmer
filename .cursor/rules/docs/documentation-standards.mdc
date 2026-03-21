@@ -1,0 +1,110 @@
+---
+description: Engineering standards for Stigmer documentation - mandatory constraints enforced on every docs file edit
+globs:
+  - "docs/**/*.md"
+  - "docs/**/*.mdx"
+alwaysApply: false
+---
+
+# Stigmer Documentation Standards
+
+**These standards are MANDATORY. Every file in `docs/` must conform.**
+
+Full standards: `docs/standards/documentation-standards.md`
+Terminology dictionary: `docs/standards/terminology.json`
+Information architecture: `docs/standards/information-architecture.md`
+Templates: `docs/standards/templates/`
+
+---
+
+## Content Type Detection
+
+The file path determines the content type and its governing template:
+
+| Path prefix | Content type | Template |
+|---|---|---|
+| `docs/quickstarts/` | Quickstart | `templates/quickstart.mdx` |
+| `docs/concepts/` | Concept | `templates/concept.mdx` |
+| `docs/guides/` | How-to guide | `templates/how-to-guide.mdx` |
+| `docs/cli/` | CLI reference | `templates/cli-reference.mdx` |
+| `docs/sdk/` | SDK guide | `templates/sdk-guide.mdx` |
+| `docs/architecture/` | Architecture | `templates/architecture.mdx` |
+| `docs/adr/` | ADR | `templates/adr.mdx` |
+
+Every document must follow the structure defined by its template. Do not invent new structures.
+
+---
+
+## Frontmatter
+
+Required on every MDX file:
+
+```yaml
+---
+title: "Page title"
+description: "One-sentence summary, max 160 characters."
+---
+```
+
+Optional: `sidebar_label`, `sidebar_position`, `tags`, `last_updated`.
+
+---
+
+## Heading Hierarchy
+
+- Exactly one H1 (`#`) per document. Must match the `title` frontmatter field.
+- H2 (`##`) for major sections. H3 (`###`) for subsections within an H2.
+- Never skip levels (no H3 after H1).
+- Sentence case: "The problem agents solve," not "The Problem Agents Solve."
+- No code formatting in headings: "Install the CLI," not "Install \`stigmer\`."
+
+---
+
+## Code Blocks
+
+- Every fenced code block MUST have a language tag (`yaml`, `bash`, `go`, `python`, `typescript`, `json`, `proto`, `mermaid`, `text`).
+- YAML examples must be valid YAML, complete enough to `stigmer apply`.
+- Bash examples must include expected output as a comment or separate `text` block.
+- Go/Python/TypeScript examples must include imports when not obvious.
+
+---
+
+## Terminology
+
+Proto names are canonical. The full dictionary is in `docs/standards/terminology.json`.
+
+Key rules:
+- `AgentExecution`, never "agent run" or "job"
+- `McpServer`, never "tool connector"
+- `Organization`, never "tenant" (exception: `--org` in CLI flags and YAML fields)
+- `stigmer apply`, never "deploy" when referring to the CLI command
+- `stigmer run`, never "execute" when referring to the CLI command
+
+When in doubt, check `terminology.json`. If a term has an `exceptions` field, respect those contexts.
+
+---
+
+## Writing Style
+
+- **Second person** ("you") when addressing the reader.
+- **Present tense** for descriptions: "Stigmer creates an AgentInstance."
+- **Imperative mood** for instructions: "Run the command."
+- **Active voice** always: "Configure the environment," not "The environment should be configured."
+- **No hedging**: Remove "usually," "sometimes," "might," "should probably." State conditions explicitly.
+- **No filler**: Remove "basically," "simply," "just," "actually," "in order to."
+- **No marketing language.** Documentation is not a press release.
+
+---
+
+## Cross-Referencing
+
+- Use relative links that survive restructuring.
+- Link to the canonical concept doc rather than re-explaining inline.
+- Never duplicate explanations across documents.
+
+---
+
+## Diagrams
+
+- Use Mermaid for flowcharts, sequence diagrams, and architecture diagrams.
+- Every diagram must have surrounding text that conveys the same information.
