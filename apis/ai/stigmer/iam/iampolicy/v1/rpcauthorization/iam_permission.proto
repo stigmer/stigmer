@@ -25,6 +25,7 @@ enum ApiResourceIamPermission {
   // Resource ownership and membership
   owner = 10; // Resource owner
   member = 11; // Resource member (for teams, organizations)
+  viewer = 26; // Resource viewer (base relation for public visibility tuples)
 
   // Structural relations (parent links)
   identity_account = 12; // Link to identity account (user-scoped parent)
