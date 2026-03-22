@@ -1,0 +1,13 @@
+{
+  "pages": [
+    "getting-started",
+    "concepts",
+    "sdks",
+    "integration",
+    "architecture",
+    "deployment",
+    "cli",
+    "reference",
+    "contributing"
+  ]
+}

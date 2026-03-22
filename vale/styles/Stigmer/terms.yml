@@ -1,0 +1,58 @@
+extends: substitution
+message: Use '%s' instead of '%s' when referring to a Stigmer term.
+level: warning
+ignorecase: false
+action:
+  name: replace
+swap:
+  # --- Agentic pillar ---
+  '\bagent\b': Agent
+  agent execution: Agent Execution
+  agent instance: Agent Instance
+  agent runner: Agent Runner
+  execution context: Execution Context
+  mcp server: MCP Server
+  mcp servers: MCP Servers
+  '\bsession\b': Session
+  '\bsessions\b': Sessions
+  '\bskill\b': Skill
+  '\bskills\b': Skills
+  sub-agent: Sub-Agent
+  sub-agents: Sub-Agents
+  subagent: Sub-Agent
+  subagents: Sub-Agents
+
+  # --- Workflow pillar ---
+  '\bworkflow\b': Workflow
+  '\bworkflows\b': Workflows
+  workflow execution: Workflow Execution
+  workflow instance: Workflow Instance
+  workflow runner: Workflow Runner
+
+  # --- Platform pillar ---
+  api key: API Key
+  api keys: API Keys
+  '\benvironment\b': Environment
+  '\benvironments\b': Environments
+  iam policy: IAM Policy
+  identity account: Identity Account
+  identity provider: Identity Provider
+  '\borganization\b': Organization
+  '\borganizations\b': Organizations
+  '\bproject\b': Project
+  '\bprojects\b': Projects
+  '\bseedpack\b': Seedpack
+  '\bseedpacks\b': Seedpacks
+  '\bworkspace\b': Workspace
+  '\bworkspaces\b': Workspaces
+
+  # --- Infrastructure ---
+  durable execution: Durable Execution
+  stigmer server: Stigmer Server
+
+  # --- Common corrections ---
+  grpc: gRPC
+  Grpc: gRPC
+  GRPC: gRPC
+  id: ID
+  ids: IDs

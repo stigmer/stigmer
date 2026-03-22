@@ -7,6 +7,8 @@
 // concerns managed by AuthProvider.
 // ---------------------------------------------------------------------------
 
+import type { OidcConfig } from "./oidc/types";
+
 /**
  * Supported authentication modes.
  *
@@ -26,6 +28,7 @@ export type AuthMode = "disabled" | "oidc";
 export interface AuthUser {
   readonly email: string;
   readonly name?: string;
+  readonly picture?: string;
 }
 
 /**
@@ -56,12 +59,12 @@ export interface AuthState {
 }
 
 /**
- * Auth configuration resolved at startup.
+ * Auth configuration resolved at startup — discriminated union on `mode`.
  *
  * The `mode` field determines which auth provider implementation is rendered
- * by `AuthProvider`. Additional provider-specific config (e.g., OIDC issuer,
- * client ID) will be added to this type as providers are implemented.
+ * by `AuthProvider`. OIDC mode carries the full provider config; disabled
+ * mode carries nothing.
  */
-export interface AuthConfig {
-  readonly mode: AuthMode;
-}
+export type AuthConfig =
+  | { readonly mode: "disabled" }
+  | { readonly mode: "oidc"; readonly oidc: OidcConfig };

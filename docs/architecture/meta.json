@@ -1,0 +1,10 @@
+{
+  "title": "Architecture",
+  "pages": [
+    "index",
+    "durable-execution",
+    "agent-lifecycle",
+    "workflow-lifecycle",
+    "open-core"
+  ]
+}

@@ -17,6 +17,18 @@ spec:
         requests:
           cpu: 20m
           memory: 32Mi
+      env:
+        variables:
+          API_URL:
+            value: $variables-group/stigmer-web-config/prod.api-url
+          AUTH_MODE:
+            value: $variables-group/stigmer-web-config/prod.auth-mode
+          OIDC_ISSUER:
+            value: $variables-group/stigmer-web-config/prod.oidc-issuer
+          OIDC_CLIENT_ID:
+            value: $variables-group/stigmer-web-config/prod.oidc-client-id
+          OIDC_AUDIENCE:
+            value: $variables-group/stigmer-web-config/prod.oidc-audience
   ingress:
     enabled: true
     hostname: stigmer-prod-web.planton.live

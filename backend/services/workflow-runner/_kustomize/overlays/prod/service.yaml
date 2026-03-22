@@ -42,17 +42,17 @@ spec:
             value: "true"
           # Cloudflare R2 Configuration (S3-compatible storage)
           R2_BUCKET:
-            value: $variables-group/workflow-runner-r2-config/prod.bucket-name
+            value: $variables-group/stigmer-claimcheck-r2-config/prod.bucket-name
           R2_ENDPOINT:
-            value: $variables-group/workflow-runner-r2-config/prod.endpoint
+            value: $variables-group/stigmer-claimcheck-r2-config/prod.endpoint
           R2_REGION:
-            value: $variables-group/workflow-runner-r2-config/region
+            value: $variables-group/stigmer-claimcheck-r2-config/region
         secrets:
           # Cloudflare R2 Credentials
           R2_ACCESS_KEY_ID:
-            value: $secrets-group/workflow-runner-r2-credentials/prod.access-key-id
+            value: $secrets-group/stigmer-r2-credentials/prod.access-key-id
           R2_SECRET_ACCESS_KEY:
-            value: $secrets-group/workflow-runner-r2-credentials/prod.secret-access-key
+            value: $secrets-group/stigmer-r2-credentials/prod.secret-access-key
           # Stigmer API Key (unified with agent-runner)
           STIGMER_API_KEY:
             value: $secrets-group/stigmer-api/prod.api-key

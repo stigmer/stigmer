@@ -153,13 +153,13 @@ execution, err := client.Create(ctx, &agentexec.AgentExecution{
                     Python gRPC client example in docs (standard grpc-tools). Native Python SDK in active development—track progress on GitHub.
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    <a 
+                    <Link 
                       href="/docs/integration/grpc" 
                       className="inline-flex items-center gap-1 text-primary hover:underline"
                     >
                       See full integration guide
                       <Icon name="arrow-right" size="xs" />
-                    </a>
+                    </Link>
                   </p>
                 </div>
               </QuickstartStep>

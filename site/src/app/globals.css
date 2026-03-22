@@ -1,99 +1,181 @@
 @import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+@source "../node_modules/fumadocs-ui/dist/**/*.js";
 
 /*
  * Stigmer Design System
- * 
- * Color palette: Dark theme with electric blue primary and purple accents
- * Inspired by developer tools and terminal aesthetics
+ *
+ * Dual-palette color system: light mode (default) and dark mode.
+ * Electric blue primary (#3b82f6) and purple accent (#8b5cf6) carry
+ * across both palettes — only surface lightness and contrast shift.
+ *
+ * Fumadocs uses --color-fd-* prefixed variables (imported above).
+ * We override them below to match Stigmer's brand in both modes.
  */
 
+/* =============================================================================
+ * LIGHT PALETTE (default)
+ *
+ * Clean, professional surfaces with a subtle blue-gray undertone.
+ * High contrast text for readability. Glows and glass effects are
+ * softened to suit bright backgrounds.
+ * ============================================================================= */
+
 :root {
-  /* Core palette - HSL components for composability */
-  --background: 222 47% 4%;           /* Near-black with blue undertone */
-  --foreground: 210 40% 98%;          /* Off-white */
-  
-  /* Primary: Electric blue - action, links, CTAs */
-  --primary: 217 91% 60%;             /* #3b82f6 */
-  --primary-foreground: 222 47% 4%;
-  
-  /* Secondary: Slate - supporting elements */
-  --secondary: 215 28% 17%;           /* Slate-800 equivalent */
-  --secondary-foreground: 210 40% 98%;
-  
-  /* Accent: Purple - highlights, badges, special elements */
-  --accent: 262 83% 58%;              /* #8b5cf6 */
-  --accent-foreground: 210 40% 98%;
-  
-  /* Muted: For backgrounds and disabled states */
-  --muted: 217 33% 12%;
-  --muted-foreground: 215 20% 55%;
-  
-  /* Destructive: Error states */
+  --background: 220 23% 97%;
+  --foreground: 222 47% 11%;
+
+  --primary: 217 91% 50%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 215 20% 93%;
+  --secondary-foreground: 222 47% 11%;
+
+  --accent: 262 83% 58%;
+  --accent-foreground: 0 0% 100%;
+
+  --muted: 220 14% 93%;
+  --muted-foreground: 215 16% 47%;
+
   --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-  
-  /* UI elements */
-  --border: 217 33% 17%;
-  --input: 217 33% 17%;
-  --ring: 217 91% 60%;
-  
-  /* Cards and elevated surfaces */
-  --card: 222 47% 6%;
-  --card-foreground: 210 40% 98%;
-  
-  /* Popovers and dropdowns */
-  --popover: 222 47% 6%;
-  --popover-foreground: 210 40% 98%;
-  
-  /* Border radius */
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 220 13% 87%;
+  --input: 220 13% 87%;
+  --ring: 217 91% 50%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+
   --radius: 0.5rem;
-  
-  /* ==========================================================================
-   * GLOW EFFECTS
-   * Composable shadow tokens for glow effects using existing color system
-   * ========================================================================== */
-  
-  /* Base glow sizes */
+
+  /* Glow sizes (shared between modes) */
   --glow-sm: 0 0 10px;
   --glow-md: 0 0 20px;
   --glow-lg: 0 0 40px;
-  
-  /* Semantic glow presets */
-  --glow-primary: var(--glow-md) hsl(var(--primary) / 0.3);
-  --glow-primary-intense: var(--glow-lg) hsl(var(--primary) / 0.4);
-  --glow-accent: var(--glow-md) hsl(var(--accent) / 0.3);
-  --glow-accent-intense: var(--glow-lg) hsl(var(--accent) / 0.4);
-  
-  /* ==========================================================================
-   * GLASSMORPHISM
-   * Backdrop blur and semi-transparent backgrounds
-   * ========================================================================== */
-  
-  /* Glass backgrounds - extend existing card token */
-  --glass-bg: hsl(var(--card) / 0.8);
-  --glass-bg-strong: hsl(var(--card) / 0.9);
-  --glass-bg-subtle: hsl(var(--card) / 0.6);
-  
-  /* Glass borders */
-  --glass-border: hsl(var(--primary) / 0.2);
-  --glass-border-hover: hsl(var(--primary) / 0.4);
-  --glass-border-accent: hsl(var(--accent) / 0.2);
-  
-  /* Blur intensities */
+
+  /* Subdued glow on light backgrounds */
+  --glow-primary: var(--glow-md) hsl(var(--primary) / 0.15);
+  --glow-primary-intense: var(--glow-lg) hsl(var(--primary) / 0.2);
+  --glow-accent: var(--glow-md) hsl(var(--accent) / 0.15);
+  --glow-accent-intense: var(--glow-lg) hsl(var(--accent) / 0.2);
+
+  /* Semi-transparent white glass on light backgrounds */
+  --glass-bg: hsl(var(--card) / 0.7);
+  --glass-bg-strong: hsl(var(--card) / 0.85);
+  --glass-bg-subtle: hsl(var(--card) / 0.5);
+  --glass-border: hsl(var(--primary) / 0.12);
+  --glass-border-hover: hsl(var(--primary) / 0.25);
+  --glass-border-accent: hsl(var(--accent) / 0.12);
   --glass-blur: 12px;
   --glass-blur-strong: 20px;
   --glass-blur-subtle: 8px;
-  
-  /* ==========================================================================
-   * ANIMATION DURATIONS
-   * Standardized timing for CSS transitions and JS reference
-   * ========================================================================== */
-  
+
+  /* Animation durations (shared between modes) */
   --duration-instant: 100ms;
   --duration-fast: 150ms;
   --duration-normal: 300ms;
   --duration-slow: 500ms;
   --duration-slower: 800ms;
+}
+
+/* =============================================================================
+ * DARK PALETTE
+ *
+ * Near-black surfaces with a blue undertone. Terminal-inspired aesthetic.
+ * Glows and glass effects are intensified for contrast on dark backgrounds.
+ * ============================================================================= */
+
+.dark {
+  --background: 222 47% 4%;
+  --foreground: 210 40% 98%;
+
+  --primary: 217 91% 60%;
+  --primary-foreground: 222 47% 4%;
+
+  --secondary: 215 28% 17%;
+  --secondary-foreground: 210 40% 98%;
+
+  --accent: 262 83% 58%;
+  --accent-foreground: 210 40% 98%;
+
+  --muted: 217 33% 12%;
+  --muted-foreground: 215 20% 55%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --ring: 217 91% 60%;
+
+  --card: 222 47% 6%;
+  --card-foreground: 210 40% 98%;
+
+  --popover: 222 47% 6%;
+  --popover-foreground: 210 40% 98%;
+
+  --glow-primary: var(--glow-md) hsl(var(--primary) / 0.3);
+  --glow-primary-intense: var(--glow-lg) hsl(var(--primary) / 0.4);
+  --glow-accent: var(--glow-md) hsl(var(--accent) / 0.3);
+  --glow-accent-intense: var(--glow-lg) hsl(var(--accent) / 0.4);
+
+  --glass-bg: hsl(var(--card) / 0.8);
+  --glass-bg-strong: hsl(var(--card) / 0.9);
+  --glass-bg-subtle: hsl(var(--card) / 0.6);
+  --glass-border: hsl(var(--primary) / 0.2);
+  --glass-border-hover: hsl(var(--primary) / 0.4);
+  --glass-border-accent: hsl(var(--accent) / 0.2);
+}
+
+/* =============================================================================
+ * FUMADOCS THEME OVERRIDES
+ *
+ * Map --color-fd-* variables to Stigmer's palette for both modes.
+ * Light values live at :root; dark values override under .dark.
+ * ============================================================================= */
+
+:root {
+  --color-fd-background: hsl(220 23% 97%);
+  --color-fd-foreground: hsl(222 47% 11%);
+  --color-fd-muted: hsl(220 14% 93%);
+  --color-fd-muted-foreground: hsl(215 16% 47%);
+  --color-fd-popover: hsl(0 0% 100%);
+  --color-fd-popover-foreground: hsl(222 47% 11%);
+  --color-fd-card: hsl(0 0% 100%);
+  --color-fd-card-foreground: hsl(222 47% 11%);
+  --color-fd-border: hsl(220 13% 87%);
+  --color-fd-primary: hsl(217 91% 50%);
+  --color-fd-primary-foreground: hsl(0 0% 100%);
+  --color-fd-secondary: hsl(215 20% 93%);
+  --color-fd-secondary-foreground: hsl(222 47% 11%);
+  --color-fd-accent: hsl(220 14% 93% / 0.7);
+  --color-fd-accent-foreground: hsl(222 47% 11%);
+  --color-fd-ring: hsl(217 91% 50%);
+}
+
+.dark {
+  --color-fd-background: hsl(222 47% 4%);
+  --color-fd-foreground: hsl(210 40% 98%);
+  --color-fd-muted: hsl(217 33% 12%);
+  --color-fd-muted-foreground: hsl(215 20% 55%);
+  --color-fd-popover: hsl(222 47% 6%);
+  --color-fd-popover-foreground: hsl(210 40% 98%);
+  --color-fd-card: hsl(222 47% 6%);
+  --color-fd-card-foreground: hsl(210 40% 98%);
+  --color-fd-border: hsl(217 33% 17%);
+  --color-fd-primary: hsl(217 91% 60%);
+  --color-fd-primary-foreground: hsl(222 47% 4%);
+  --color-fd-secondary: hsl(215 28% 17%);
+  --color-fd-secondary-foreground: hsl(210 40% 98%);
+  --color-fd-accent: hsl(217 33% 17% / 0.5);
+  --color-fd-accent-foreground: hsl(210 40% 98%);
+  --color-fd-ring: hsl(217 91% 60%);
 }
 
 /* Map semantic tokens to Tailwind v4 */
@@ -183,7 +265,7 @@
   }
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar styling */
 @layer utilities {
   .animate-gradient {
     animation: gradient 8s ease infinite;

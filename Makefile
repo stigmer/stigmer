@@ -1,5 +1,4 @@
 bump ?= patch
-sandbox ?= basic
 
 GO_MODULES := \
 	apis/stubs/go \
@@ -36,10 +35,18 @@ setup: ## Install all dependencies (one-time)
 	else \
 		echo "tip: brew install pre-commit for git hook support"; \
 	fi
+	@echo ""
+	@echo "--- git hooks (husky) ---"
+	@npm install && echo "husky pre-commit hooks installed"
+	@echo ""
+	@echo "--- docs toolchain ---"
+	@command -v vale >/dev/null 2>&1 || { echo "error: vale not found — brew install vale"; exit 1; }
+	@command -v lychee >/dev/null 2>&1 || { echo "error: lychee not found — brew install lychee"; exit 1; }
+	@vale sync && echo "vale packages synced"
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build protos
+.PHONY: build protos codegen gen-cli-docs gen-cli-docs-check
 build: ## Build the Stigmer CLI binary
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -53,9 +60,17 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
 
+gen-cli-docs: ## Generate CLI reference docs from command tree
+	$(MAKE) -C client-apps/cli gen-cli-docs
+
+gen-cli-docs-check: ## Verify CLI docs are up to date (CI, no writes)
+	$(MAKE) -C client-apps/cli gen-cli-docs-check
+
+codegen: protos gen-cli-docs ## Regenerate all derived code (protos, SDKs, CLI docs)
+
 # ─── Test ─────────────────────────────────────
 
-.PHONY: test test-e2e
+.PHONY: test
 test: ## Run all unit tests
 	@for mod in $(GO_MODULES); do \
 		echo "testing  $$mod"; \
@@ -63,9 +78,6 @@ test: ## Run all unit tests
 	done
 	@echo "testing  $(AGENT_RUNNER_DIR)"
 	@cd $(AGENT_RUNNER_DIR) && poetry install --no-interaction --quiet && poetry run pytest
-
-test-e2e: ## Run E2E tests (requires running stigmer server + ollama)
-	cd test/e2e && go test -v -tags=e2e -timeout 60s ./...
 
 # ─── Tidy ────────────────────────────────────
 
@@ -76,9 +88,9 @@ tidy: ## Run go mod tidy on all Go modules
 		(cd $$mod && go mod tidy) || exit 1; \
 	done
 
-# ─── Lint ─────────────────────────────────────
+# ─── Lint & Check ────────────────────────────
 
-.PHONY: lint libs-build web-build check
+.PHONY: lint lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build check
 lint: ## Run all linters and type checks
 	@for mod in $(GO_MODULES); do \
 		(cd $$mod && go vet ./...) || exit 1; \
@@ -91,19 +103,40 @@ lint: ## Run all linters and type checks
 		poetry run mypy grpc_client/ worker/ --show-error-codes
 	npm run lint -w client-apps/web
 
-libs-build: ## Build and test SDK/lib packages (matches CI npm-libs pipeline)
+libs-build:
 	npm run build:libs
 	npm test
 
-web-build: ## Lint and build web console (matches CI)
+web-build:
 	npm run build -w client-apps/web
 
-check: protos tidy lint libs-build web-build build test ## Run full CI gate locally
+check: codegen tidy lint lint-docs format-docs-check libs-build web-build build test ## Run full CI gate locally
+
+# ─── Docs Linting ─────────────────────────────
+
+DOCS_SOURCES = $(shell find docs -path docs/_archive -prune -o \( -name '*.md' -o -name '*.mdx' \) -print)
+
+lint-docs: ## Lint documentation with Vale (strict, fails on warnings+)
+	@vale sync 2>/dev/null
+	@vale $(DOCS_SOURCES)
+
+lint-docs-audit: ## Audit docs with Vale (non-blocking report)
+	-@vale sync 2>/dev/null
+	-@vale $(DOCS_SOURCES)
+
+format-docs: ## Format documentation with Prettier
+	@npx prettier --write --prose-wrap always $(DOCS_SOURCES)
+
+format-docs-check: ## Check documentation formatting (CI, no writes)
+	@npx prettier --check --prose-wrap always $(DOCS_SOURCES)
+
+check-links: ## Check for broken links in documentation
+	@lychee --no-progress $(DOCS_SOURCES)
 
 # ─── Dependencies ─────────────────────────────
 
-.PHONY: update-agent-runner-deps
-update-agent-runner-deps: ## Regenerate agent-runner requirements.txt from poetry.lock
+.PHONY: update-deps
+update-deps: ## Regenerate agent-runner requirements.txt from poetry.lock
 	@cd $(AGENT_RUNNER_DIR) && poetry show --only main --no-ansi \
 		| awk '{ name=$$1; ver=$$2; if (name=="graphton" || name=="stigmer-protos") next; printf "%s==%s\n", name, ver }' \
 		| sort > /tmp/stigmer-ar-deps.txt
@@ -111,7 +144,7 @@ update-agent-runner-deps: ## Regenerate agent-runner requirements.txt from poetr
 		&& echo "pathspec==$$(cd $(AGENT_RUNNER_DIR) && poetry show pathspec --no-ansi | awk '/version/{print $$3}')" >> /tmp/stigmer-ar-deps.txt \
 		&& sort -o /tmp/stigmer-ar-deps.txt /tmp/stigmer-ar-deps.txt || true
 	@{ echo "# Auto-generated from poetry.lock — do not edit manually."; \
-	   echo "# Regenerate with: make update-agent-runner-deps"; \
+	   echo "# Regenerate with: make update-deps"; \
 	   echo "#"; \
 	   echo "# This file lists all PyPI dependencies (direct + transitive) needed to run"; \
 	   echo "# agent-runner inside the hermetic pythonrt venv.  Path dependencies (graphton,"; \
@@ -126,7 +159,7 @@ update-agent-runner-deps: ## Regenerate agent-runner requirements.txt from poetr
 
 DEV_LDFLAGS := -X github.com/stigmer/stigmer/client-apps/cli/embedded/agentrunner.devSourceDir=$(CURDIR)/backend/services/agent-runner
 
-.PHONY: local build-release
+.PHONY: local
 local: ## Build + install CLI for local development
 	@rm -f $(HOME)/bin/stigmer /usr/local/bin/stigmer bin/stigmer 2>/dev/null || true
 	@$(MAKE) web-console-build
@@ -145,7 +178,7 @@ local: ## Build + install CLI for local development
 	@echo "Then run:  stigmer server"
 	@echo ""
 
-web-console-build: ## Build web console static assets for embedding
+web-console-build:
 	@if [ ! -d node_modules ]; then \
 		echo "error: node_modules not found — run 'npm install' first"; exit 1; \
 	fi
@@ -154,17 +187,20 @@ web-console-build: ## Build web console static assets for embedding
 	@cp -r client-apps/web/out client-apps/cli/embedded/webconsole/out
 	@echo "copied: client-apps/web/out -> client-apps/cli/embedded/webconsole/out"
 
-build-release: ## Build CLI with embedded agent-runner and web console (production-like)
-	@cd client-apps/cli/embedded/agentrunner && chmod +x sync.sh && ./sync.sh
-	@$(MAKE) web-console-build
-	@mkdir -p bin
-	cd client-apps/cli && go build -tags 'embed_agentrunner embed_webconsole' -o ../../bin/stigmer .
-	@echo "built: bin/stigmer (with embedded agent-runner + web console)"
+# ─── Site ─────────────────────────────────────
+
+.PHONY: site docs-build
+site: ## Start the documentation website with hot reload
+	$(MAKE) -C site dev
+
+docs-build: ## Build the documentation site (production)
+	$(MAKE) -C site build
 
 # ─── Release ──────────────────────────────────
 
-.PHONY: release protos-release
+.PHONY: release
 release: ## Tag and push a release (usage: make release [bump=patch|minor|major])
+	-$(MAKE) -C apis release
 	@LATEST_TAG=$$(git tag -l "v*" | sort -V | tail -n1); \
 	[ -z "$$LATEST_TAG" ] && LATEST_TAG="v0.0.0"; \
 	VERSION=$$(echo $$LATEST_TAG | sed 's/^v//'); \
@@ -196,22 +232,6 @@ release: ## Tag and push a release (usage: make release [bump=patch|minor|major]
 	@echo "  - Go SDK (go get)                (sdk/go tag auto-cached by proxy.golang.org)"
 	@echo "  - stigmer + stigmer-protos PyPI  (release.python-sdk.yaml)"
 	@echo "  - MCP server binaries + Docker   (release.mcp-server.yaml)"
-
-protos-release: ## Publish protos to Buf, then tag release
-	$(MAKE) -C apis release
-	$(MAKE) release bump=$(bump)
-
-# ─── Sandbox ──────────────────────────────────
-
-.PHONY: sandbox sandbox-clean
-sandbox: ## Build sandbox image (usage: make sandbox [sandbox=basic|full])
-	cd $(AGENT_RUNNER_DIR)/sandbox && \
-		docker build -f Dockerfile.sandbox.$(sandbox) -t stigmer-sandbox-$(sandbox):local .
-	@echo "built: stigmer-sandbox-$(sandbox):local"
-
-sandbox-clean: ## Remove all sandbox images
-	@docker rmi stigmer-sandbox-basic:local 2>/dev/null || true
-	@docker rmi stigmer-sandbox-full:local 2>/dev/null || true
 
 # ─── Clean ────────────────────────────────────
 
