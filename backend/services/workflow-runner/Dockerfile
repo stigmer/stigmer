@@ -4,7 +4,7 @@
 # Build command: docker build -f backend/services/workflow-runner/Dockerfile -t workflow-runner .
 
 # ---------- Builder Stage ----------
-FROM golang:1.24 AS builder
+FROM golang:1.25 AS builder
 
 # Match repository structure so the go.mod replace directive resolves:
 #   replace github.com/stigmer/stigmer/apis/stubs/go => ../../../apis/stubs/go
