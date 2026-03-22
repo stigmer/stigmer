@@ -1,0 +1,98 @@
+---
+title: Installation
+description:
+  Install the Stigmer CLI and start a local server in under five minutes.
+---
+
+# Installation
+
+Stigmer ships as a single `stigmer` binary that embeds everything you need to
+run locally: a gRPC server, a Temporal orchestration engine, an AI execution
+runtime, and a set of built-in system Agents. No Docker required. No cloud
+account required.
+
+## Install the CLI
+
+### Homebrew (macOS and Linux)
+
+```bash
+brew install stigmer/tap/stigmer
+```
+
+### Shell script
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/stigmer/stigmer/main/scripts/install.sh | bash
+```
+
+### Build from source
+
+```bash
+git clone https://github.com/stigmer/stigmer.git
+cd stigmer
+make setup
+make local
+```
+
+Building from source requires Go 1.25+, Python 3.11+ with
+[Poetry](https://python-poetry.org/), and Make.
+
+## Verify the installation
+
+```bash
+stigmer --version
+```
+
+You should see the installed version number. If the command is not found, make
+sure `stigmer` is on your `PATH`.
+
+## Configure a model provider
+
+Agents need a large language model to generate responses. Configure one before
+starting the server, or let the interactive setup guide you on first run.
+
+### Anthropic (recommended)
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+### OpenAI
+
+```bash
+export OPENAI_API_KEY=sk-...
+```
+
+### Ollama (free, local, offline)
+
+```bash
+brew install ollama
+ollama serve
+ollama pull qwen2.5-coder:7b
+```
+
+If you skip this step, `stigmer server` prompts you to choose a provider
+interactively.
+
+## Start the server
+
+```bash
+stigmer server
+```
+
+On first run, the server downloads Temporal, starts all services, and is ready
+on `localhost:7234`. Subsequent starts take under 30 seconds.
+
+## Verify the server
+
+```bash
+stigmer server status
+```
+
+The output shows the server status, LLM configuration, and a link to the
+Temporal Web UI for Workflow debugging.
+
+## Next steps
+
+You have a running Stigmer server. Continue to [Your First Agent](./first-agent)
+to create and run an Agent.

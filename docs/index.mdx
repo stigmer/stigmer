@@ -1,0 +1,130 @@
+---
+title: What is Stigmer?
+description:
+  An open-source platform for building, running, and managing AI Agents and
+  automation Workflows.
+---
+
+# What is Stigmer?
+
+Stigmer is an infrastructure platform for AI Agents and automation Workflows. It
+provides the same operational rigor for Agents that Kubernetes provides for
+containers: declarative definitions, versioning, Environment separation, access
+control, Durable Execution, and lifecycle management.
+
+You define an Agent in YAML. You deploy it with `stigmer apply`. You run it with
+`stigmer run`. The same definition works on your laptop with SQLite and Ollama,
+or in production with MongoDB and Anthropic. The definition never changes—only
+the Environment binding does.
+
+## Why Stigmer exists
+
+Most teams build AI Agents by hardcoding everything into application code. This
+works for a proof of concept. It breaks at team scale because there is no
+infrastructure around the Agent:
+
+- **No versioning.** Prompt changes have no history and no way to roll back.
+- **No separation of concerns.** Credentials live alongside instructions.
+  Running the same Agent against staging and production means duplicating code.
+- **No portability.** An Agent built for local development cannot move to
+  production without changing application code.
+- **No lifecycle control.** When an Agent makes a destructive tool call, there
+  is no approval gate and no way to stop it mid-run.
+
+Stigmer solves these problems with a single, coherent platform.
+
+## The resource model
+
+Every concept in Stigmer is a YAML resource with `apiVersion`, `kind`,
+`metadata`, `spec`, and `status`. You author the spec. The platform manages the
+status.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: code-reviewer
+  org: acme-corp
+spec:
+  description: Reviews code for quality, security, and best practices
+  instructions: |
+    You are a code review assistant. For every review:
+    1. Check for security vulnerabilities
+    2. Evaluate code quality
+    3. Suggest actionable improvements
+  mcp_server_usages:
+    - mcp_server_ref:
+        slug: github
+  skill_refs:
+    - slug: company-style-guide
+```
+
+Stigmer enforces a clean separation between what an Agent does and where it
+runs:
+
+- **Agent** declares capabilities: instructions, tools, knowledge. No secrets.
+  No Environment-specific values.
+- **Agent Instance** binds the Agent to an Environment with production
+  credentials, staging API Keys, or per-customer tokens.
+- **Session** maintains conversation context across multiple turns.
+- **Agent Execution** is a single run with full tool call audit trails.
+
+The same pattern applies to Workflows with Workflow Instances and Workflow
+Executions.
+
+## Building blocks
+
+Agents compose four independent building blocks:
+
+| Building block | Purpose                                                | Stigmer resource         |
+| -------------- | ------------------------------------------------------ | ------------------------ |
+| Instructions   | What the Agent does and how it behaves                 | Inline in the Agent spec |
+| Tools          | External system integrations the Agent can call        | MCP Server               |
+| Knowledge      | Domain expertise injected at runtime                   | Skill                    |
+| Delegation     | Specialized Sub-Agents the parent can dispatch work to | Inline in the Agent spec |
+
+Workflows provide deterministic, multi-step automation with 13 task types
+including HTTP calls, gRPC calls, conditional branching, parallel execution,
+loops, and Agent invocations. An Agent thinks. A Workflow orchestrates. The two
+compose well.
+
+## For platform builders
+
+Stigmer is a platform for platforms. If you are building a product that needs AI
+Agent or Workflow capabilities, Stigmer provides the infrastructure so you do
+not have to build it from scratch:
+
+- **gRPC API.** Every operation available through the CLI is available through
+  the API. Manage Agents, Workflows, Sessions, and Executions programmatically.
+- **React components.** Drop Stigmer UI into any React application with
+  `@stigmer/react`. Agent chat, Workflow visualization, and Execution history
+  are included.
+- **Theme tokens.** Customize the visual appearance with `--stgm-*` CSS custom
+  properties to match your product's design system.
+- **Multi-tenancy.** Organizations, role-based access control, and federated
+  Identity Providers. Your customers get isolated Environments with their own
+  Agents, Workflows, and credentials.
+
+## Durable Execution
+
+Every Agent Execution and Workflow Execution runs on
+[Temporal](https://temporal.io/), providing durability guarantees that no script
+or job runner can match:
+
+- Pause, resume, cancel, and recover Executions without losing completed work.
+- Configure specific tool calls to require human approval before they run.
+- Recover from failures at the last checkpoint. Completed steps do not
+  re-execute.
+- Stream Execution progress in real time from the CLI or API.
+
+## Get started
+
+Install the CLI and run your first Agent in under five minutes.
+
+```bash
+brew install stigmer/tap/stigmer
+stigmer server
+stigmer run my-assistant "Hello, what can you do?"
+```
+
+[Install Stigmer →](./getting-started/installation)
