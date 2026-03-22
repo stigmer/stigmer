@@ -15,6 +15,9 @@
 /.next/
 /out/
 
+# Fumadocs (generated content source)
+/.source/
+
 # Production
 /build
 

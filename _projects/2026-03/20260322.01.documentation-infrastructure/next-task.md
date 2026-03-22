@@ -8,8 +8,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 **Description**: Build world-class documentation infrastructure for Stigmer: Vale prose linting, Fumadocs integration into the existing Next.js site, Snipsync code sample pipeline, auto-generated CLI/API reference docs, CI/CD quality gates, and advanced features (custom components, LLM output, search). Based on comparative analysis of Temporal, Pulumi, HashiCorp, GitHub, Crossplane, and Next.js documentation repositories.
 **Goal**: Transform Stigmer's ad-hoc 112 markdown files into a production-grade documentation system with automated quality enforcement, a rendered docs site at stigmer.ai/docs, tested code samples, and CI gates -- all within the existing monorepo
-**Tech Stack**: Next.js 15, Fumadocs (fumadocs-core/fumadocs-mdx/fumadocs-ui), Vale, Snipsync, Prettier, Husky, MDX, Tailwind 4, TypeScript
-**Components**: site/ (Next.js marketing site), docs/ (36 clean .mdx files + _archive), Makefile (build targets), .github/workflows/ (CI), root package.json (npm workspaces), sdk/ (Go/TS/Python/Java SDKs), client-apps/cli/ (CLI for doc generation), examples/ (code samples)
+**Tech Stack**: Next.js 15.3.9, Fumadocs v15 (fumadocs-core 15.8.5, fumadocs-mdx 13.0.8, fumadocs-ui 15.8.5), Vale, Snipsync, Prettier, Husky, MDX, Tailwind 4, TypeScript, Orama (static search)
+**Components**: site/ (Next.js marketing site + docs), docs/ (36 clean .mdx files + _archive + meta.json files), Makefile (build targets), .github/workflows/ (CI), root package.json (npm workspaces), sdk/ (Go/TS/Python/Java SDKs), client-apps/cli/ (CLI for doc generation), examples/ (code samples)
 
 ## Essential Files to Review
 
@@ -68,46 +68,58 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-22 09:54
-**Current Task**: T03 (Pre-commit Hooks) or T06 (Fumadocs Setup) — both unblocked
-**Status**: In Progress — Phase 1 well advanced
+**Current Task**: T03 (Pre-commit Hooks) — next unblocked task
+**Status**: In Progress — Phase 1 nearly complete (T01, T02, T05, T06 done)
 
-## Session Progress (2026-03-22, Session 2)
+## Session Progress (2026-03-22, Session 3)
 
 ### Completed
-- **T05: Archive Existing Docs + Design Fresh Content Architecture**
-  - Archived 116 legacy files to `docs/_archive/` (git history preserved)
-  - Updated `.vale.ini` and `Makefile` to exclude archive from all tooling
-  - Scaffolded 10-section content architecture (36 `.mdx` files)
-  - Wrote 3 seed pages setting the quality bar: `index.mdx`, `installation.mdx`, `agents.mdx`
-  - Validated: 0 Vale errors, 0 warnings, Prettier passes, archive excluded
-  - Disabled 4 additional Vale rules due to domain term conflicts
-  - Added 10 vocabulary entries to `accept.txt`
+- **T06: Fumadocs Integration** — Full integration of Fumadocs into the existing Next.js site
+  - Installed Fumadocs v15 packages (compatible with Next.js 15.3.9 and Tailwind 4)
+  - Created `source.config.ts` with `../docs` content path and `_archive` exclusion
+  - Wrapped `next.config.ts` with `createMDX()` for MDX processing
+  - Added `~source` path alias in `tsconfig.json` for generated source imports
+  - Integrated Fumadocs CSS with Stigmer dark theme via `--color-fd-*` variable overrides in `globals.css`
+  - Created core components: `mdx.tsx`, `source.ts`, `layout.shared.tsx`
+  - Created docs route tree: `app/docs/layout.tsx` (RootProvider + DocsLayout) and `app/docs/[[...slug]]/page.tsx`
+  - Built 10 `meta.json` files (root + 9 sections) for sidebar navigation ordering
+  - Set up static Orama search via `app/api/search/route.ts` with `dynamic = "force-static"`
+  - Fixed Node.js 23 incompatibility by switching to Node.js 22 (confirmed webpack bug)
+  - Removed Turbopack from dev script (incompatible with fumadocs-mdx query-string imports)
+  - Fixed ESLint errors: replaced `<a>` with `<Link>` in Hero.tsx and Quickstart.tsx
+  - Added `.nvmrc` pinning Node.js 22
+  - Added `.source/` to `.gitignore`
+  - Static build: 42 pages, 295KB search index, zero errors
 
-### Previously Completed (Session 1)
-- **T01: Vale Prose Linter Setup** — `.vale.ini`, terms.yml, vocabulary, style packages
-- **T02: Fix Broken Lint Target + Add Formatting** — Makefile targets, Prettier, lychee
+### Previously Completed
+- **Session 2**: T05 — Archive + Fresh Content Architecture (116 files archived, 36 MDX scaffolded)
+- **Session 1**: T01 — Vale Prose Linter, T02 — Fix Broken Lint Target + Formatting
 
 ## Next Steps
 
-1. **T03: Pre-commit Hooks** — Husky + lint-staged for Vale/Prettier on staged docs files. Now safe since only clean content exists outside `_archive/`.
-2. **T06: Fumadocs Setup** — Integrate Fumadocs into `site/`. The clean `.mdx` content structure is ready.
-3. **T04: Style Guide and Contributing Guide** — Write `docs/STYLE.md` and `docs/CONTRIBUTING.md`
+1. **T03: Pre-commit Hooks** — Husky + lint-staged for Vale/Prettier on staged docs files
+2. **T04: Style Guide and Contributing Guide** — Write `docs/STYLE.md` and `docs/CONTRIBUTING.md`
+3. **T07: Snipsync Setup** — Code sample extraction from working examples
+4. **T08: CI Documentation Quality Gate** — GitHub Actions workflow for docs CI
 
 ## Context for Resume
 - The full 5-phase plan is in `tasks/T01_0_plan.md` (449 lines)
 - Developer review feedback is in `tasks/T01_1_review.md`
 - Session 1 checkpoint: `checkpoints/2026-03-22-session-1.md`
 - Session 2 checkpoint: `checkpoints/2026-03-22-session-2.md`
-- T05 execution plan: `.cursor/plans/t05_archive_and_content_architecture_8c635e0c.plan.md`
-- Content architecture has 10 sections: getting-started, concepts, integration, sdks, architecture, deployment, cli, reference, contributing
-- Seed pages set the voice: direct, technical, platform-builder audience, domain terms capitalized
-- The `DOCS_SOURCES` Makefile variable uses `find` with `-path docs/_archive -prune` for exclusion
+- Session 3 checkpoint: `checkpoints/2026-03-22-session-3.md`
+- T06 execution plan: `.cursor/plans/t06_fumadocs_setup_b1353cf0.plan.md`
+- **Critical**: Node.js 22 is required. Node.js 23 silently breaks `next build` (webpack cache snapshot bug). `.nvmrc` is set.
+- **Critical**: Dev server must use webpack, not Turbopack. `fumadocs-mdx` query-string imports (`?collection=docs`) are incompatible with Turbopack.
+- Fumadocs v15 is compatible with Next.js 15.x and Tailwind 4. v16 requires Next.js 16/React 19.2+.
+- Content architecture has 10 sections with `meta.json` controlling sidebar order
+- Static Orama search uses `force-static` export with pre-built 295KB JSON index
 
 ## Quick Commands
 
 After loading context:
 - "Continue with T03" — Pre-commit hooks (Husky + lint-staged)
-- "Continue with T06" — Fumadocs setup
+- "Continue with T04" — Style guide and contributing guide
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 

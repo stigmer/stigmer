@@ -1,10 +1,17 @@
 @import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+@source "../node_modules/fumadocs-ui/dist/**/*.js";
 
 /*
  * Stigmer Design System
- * 
+ *
  * Color palette: Dark theme with electric blue primary and purple accents
  * Inspired by developer tools and terminal aesthetics
+ *
+ * Fumadocs uses --color-fd-* prefixed variables (imported above).
+ * We override them below to match Stigmer's brand.
  */
 
 :root {
@@ -94,6 +101,30 @@
   --duration-normal: 300ms;
   --duration-slow: 500ms;
   --duration-slower: 800ms;
+}
+
+/*
+ * Fumadocs theme overrides — map fd-* variables to Stigmer's design system.
+ * The .dark selector matches the hardcoded className="dark" on <html>.
+ */
+.dark,
+:root {
+  --color-fd-background: hsl(222 47% 4%);
+  --color-fd-foreground: hsl(210 40% 98%);
+  --color-fd-muted: hsl(217 33% 12%);
+  --color-fd-muted-foreground: hsl(215 20% 55%);
+  --color-fd-popover: hsl(222 47% 6%);
+  --color-fd-popover-foreground: hsl(210 40% 98%);
+  --color-fd-card: hsl(222 47% 6%);
+  --color-fd-card-foreground: hsl(210 40% 98%);
+  --color-fd-border: hsl(217 33% 17%);
+  --color-fd-primary: hsl(217 91% 60%);
+  --color-fd-primary-foreground: hsl(222 47% 4%);
+  --color-fd-secondary: hsl(215 28% 17%);
+  --color-fd-secondary-foreground: hsl(210 40% 98%);
+  --color-fd-accent: hsl(217 33% 17% / 0.5);
+  --color-fd-accent-foreground: hsl(210 40% 98%);
+  --color-fd-ring: hsl(217 91% 60%);
 }
 
 /* Map semantic tokens to Tailwind v4 */
