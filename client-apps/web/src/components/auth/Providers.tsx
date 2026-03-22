@@ -9,6 +9,7 @@ import { AuthProvider, AuthGuard } from "@/auth";
 import { StigmerTransportBridge } from "@/components/providers/StigmerTransportBridge";
 import { Toaster } from "@/components/ui/sonner";
 import { OrgProvider } from "@/contexts/org-context";
+import { OrgGate } from "@/components/auth/OrgGate";
 import { loadRuntimeConfig } from "@/config/runtime-config";
 
 const queryClient = new QueryClient({
@@ -38,7 +39,8 @@ const queryClient = new QueryClient({
  * 4. QueryClientProvider      — TanStack Query cache and state management
  * 5. StigmerTransportBridge   — bridges console auth to @stigmer/* library transport
  * 6. OrgProvider              — fetches organizations and provides OrgContext
- * 7. Toaster                  — sonner toast container (themed, top-right)
+ * 7. OrgGate                  — blocks app until user has at least one organization
+ * 8. Toaster                  — sonner toast container (themed, top-right)
  *
  * Query retry strategy:
  * - Only transient errors (server / unavailable) are retried once
@@ -57,8 +59,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
               <QueryClientProvider client={queryClient}>
                 <StigmerTransportBridge>
                   <OrgProvider>
-                    {children}
-                    <Toaster />
+                    <OrgGate>
+                      {children}
+                      <Toaster />
+                    </OrgGate>
                   </OrgProvider>
                 </StigmerTransportBridge>
               </QueryClientProvider>
