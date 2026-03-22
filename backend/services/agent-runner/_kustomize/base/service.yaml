@@ -12,7 +12,7 @@ spec:
   container:
     app:
       image:
-        repo: ghcr.io/stigmer/stigmer-cloud/backend/services/agent-runner
+        repo: ghcr.io/stigmer/stigmer/backend/services/agent-runner
         #tag: <comes-from-ci-git-commit-sha>
       env:
         variables:
