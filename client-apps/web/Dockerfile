@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 # Build stage — compile the Next.js static export
 FROM node:22-alpine AS builder
 WORKDIR /app
@@ -37,23 +35,7 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 COPY --from=builder /app/client-apps/web/out /usr/share/nginx/html
 COPY client-apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Inline the entrypoint script to avoid build-context dependency.
-# At container startup this generates /config.json from env vars,
-# then hands off to nginx.
-COPY <<'ENTRYPOINT' /entrypoint.sh
-#!/bin/sh
-set -e
-cat > /usr/share/nginx/html/config.json <<CONFIGJSON
-{
-  "apiUrl": "${API_URL:-http://localhost:7234}",
-  "authMode": "${AUTH_MODE:-disabled}",
-  "oidcIssuer": "${OIDC_ISSUER:-}",
-  "oidcClientId": "${OIDC_CLIENT_ID:-}",
-  "oidcAudience": "${OIDC_AUDIENCE:-}"
-}
-CONFIGJSON
-exec nginx -g 'daemon off;'
-ENTRYPOINT
+COPY client-apps/web/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 3000
