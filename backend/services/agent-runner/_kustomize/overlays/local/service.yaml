@@ -13,17 +13,17 @@ spec:
             value: INFO
           # Temporal Configuration (using external endpoints for local development)
           TEMPORAL_SERVICE_ADDRESS:
-            value: localhost:7233
+            value: $variables-group/stigmer-temporal-config/prod.external-endpoint
           TEMPORAL_NAMESPACE:
-            value: default
+            value: $variables-group/stigmer-temporal-config/namespace
           TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE:
             value: agent_execution_runner
           # Redis Configuration (using external endpoint for local development)
           REDIS_HOST:
-            value: localhost
-          # Stigmer Backend (local endpoint)
+            value: $variables-group/stigmer-redis-config/prod.host
+          # Stigmer Backend
           STIGMER_BACKEND_ENDPOINT:
-            value: localhost:8080
+            value: $variables-group/stigmer-api/prod.endpoint
           # LLM Configuration (local development)
           # Default: Ollama (zero-cost, runs locally)
           # 

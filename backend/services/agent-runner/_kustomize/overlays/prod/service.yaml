@@ -69,9 +69,9 @@ spec:
             value: $secrets-group/anthropic/prod.api-key
           # Cloudflare R2 Credentials (Agent Execution Artifact Storage)
           AGENT_EXECUTION_ARTIFACT_R2_ACCESS_KEY_ID:
-            value: $secrets-group/stigmer-agent-execution-r2-credentials/prod.access-key-id
+            value: $secrets-group/stigmer-r2-credentials/prod.access-key-id
           AGENT_EXECUTION_ARTIFACT_R2_SECRET_ACCESS_KEY:
-            value: $secrets-group/stigmer-agent-execution-r2-credentials/prod.secret-access-key
+            value: $secrets-group/stigmer-r2-credentials/prod.secret-access-key
   availability:
     minReplicas: 3
     # Zero-downtime deployment strategy
