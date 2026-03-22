@@ -13,6 +13,7 @@ on:
     paths:
       - "docs/**"
       - "site/**"
+      - "client-apps/cli/**"
       - ".vale.ini"
       - ".prettierrc"
       - "vale/**"
@@ -21,6 +22,7 @@ on:
     paths:
       - "docs/**"
       - "site/**"
+      - "client-apps/cli/**"
       - ".vale.ini"
       - ".prettierrc"
       - "vale/**"
@@ -86,6 +88,21 @@ jobs:
 
       - name: Build documentation site
         run: yarn build
+
+  cli-docs-freshness:
+    name: CLI Docs Freshness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: client-apps/cli/go.mod
+
+      - name: Verify CLI docs are up to date
+        run: make gen-cli-docs-check
 
   links:
     name: Links (Lychee)

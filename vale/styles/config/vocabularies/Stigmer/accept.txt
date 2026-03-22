@@ -61,3 +61,11 @@ config
 frontmatter
 Seedpack
 Seedpacks
+subcommand
+subcommands
+OAuth
+whoami
+[Zz]sh
+[Pp]owershell
+autoload
+compinit

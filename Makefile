@@ -46,7 +46,7 @@ setup: ## Install all dependencies (one-time)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build protos
+.PHONY: build protos codegen gen-cli-docs gen-cli-docs-check
 build: ## Build the Stigmer CLI binary
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -59,6 +59,14 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/typescript codegen
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
+
+gen-cli-docs: ## Generate CLI reference docs from command tree
+	$(MAKE) -C client-apps/cli gen-cli-docs
+
+gen-cli-docs-check: ## Verify CLI docs are up to date (CI, no writes)
+	$(MAKE) -C client-apps/cli gen-cli-docs-check
+
+codegen: protos gen-cli-docs ## Regenerate all derived code (protos, SDKs, CLI docs)
 
 # ─── Test ─────────────────────────────────────
 
@@ -102,7 +110,7 @@ libs-build:
 web-build:
 	npm run build -w client-apps/web
 
-check: protos tidy lint lint-docs format-docs-check libs-build web-build build test ## Run full CI gate locally
+check: codegen tidy lint lint-docs format-docs-check libs-build web-build build test ## Run full CI gate locally
 
 # ─── Docs Linting ─────────────────────────────
 

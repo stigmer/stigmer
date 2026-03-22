@@ -81,6 +81,18 @@ local: clean install
 run: build
 	@"$(BAZEL_BIN)" $(ARGS)
 
+.PHONY: gen-cli-docs
+gen-cli-docs: ## Generate CLI reference docs from command tree
+	go run ./cmd/gen-cli-docs --output ../../docs/cli/commands/
+
+.PHONY: gen-cli-docs-check
+gen-cli-docs-check: ## Verify CLI docs are up to date (CI, no writes)
+	@tmpdir=$$(mktemp -d) && \
+	go run ./cmd/gen-cli-docs --output "$$tmpdir" && \
+	diff -r "$$tmpdir" ../../docs/cli/commands/ > /dev/null 2>&1 || \
+	(echo "error: CLI docs are stale — run 'make gen-cli-docs'" && rm -rf "$$tmpdir" && exit 1); \
+	rm -rf "$$tmpdir" && echo "✓ CLI docs are up to date"
+
 .PHONY: test
 test:
 	@cd ../.. && bazel test //client-apps/cli/...
