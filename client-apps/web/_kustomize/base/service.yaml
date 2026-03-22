@@ -12,9 +12,6 @@ spec:
     app:
       image:
         repo: ghcr.io/stigmer/stigmer/client-apps/web
-      # NEXT_PUBLIC_* variables are baked into the JS bundle at Docker build
-      # time via --build-arg. They cannot be overridden at runtime. See the
-      # Dockerfile for available build args.
       resources:
         limits:
           cpu: 100m
