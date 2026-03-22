@@ -1,4 +1,7 @@
-npx lint-staged
+# Prettier via lint-staged (only when staged docs files exist)
+if git diff --cached --name-only -- 'docs/**/*.md' 'docs/**/*.mdx' | grep -q .; then
+  npx lint-staged
+fi
 
 # Vale on staged docs files (graceful degradation if not installed)
 if command -v vale >/dev/null 2>&1; then
