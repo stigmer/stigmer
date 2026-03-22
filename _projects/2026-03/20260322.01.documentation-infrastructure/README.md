@@ -1,43 +1,43 @@
-# Project: 20260321.01.documentation-foundation
+# Project: 20260322.01.documentation-infrastructure
 
 ## Overview
-Establish documentation standards, patterns, framework, linting rules, and cursor reminders for Stigmer developer documentation. Inspired by docs.temporal.io structure — quickstarts, SDK guides, concept docs — adapted for an agentic platform.
+Build world-class documentation infrastructure for Stigmer: Vale prose linting, Fumadocs integration into the existing Next.js site, Snipsync code sample pipeline, auto-generated CLI/API reference docs, CI/CD quality gates, and advanced features (custom components, LLM output, search). Based on comparative analysis of Temporal, Pulumi, HashiCorp, GitHub, Crossplane, and Next.js documentation repositories.
 
-**Created**: 2026-03-21
+**Created**: 2026-03-22
 **Status**: Active 🟢
 
 ## Project Information
 
 ### Primary Goal
-Set up a production-grade documentation system with framework (Fumadocs), content standards, linting, cursor rules/reminders, and initial quickstart structure that ensures all future documentation is consistent, high-quality, and maintainable.
+Transform Stigmer's ad-hoc 112 markdown files into a production-grade documentation system with automated quality enforcement, a rendered docs site at stigmer.ai/docs, tested code samples, and CI gates -- all within the existing monorepo
 
 ### Timeline
-**Target Completion**: 2-3 weeks
+**Target Completion**: 6-8 weeks across 5 phases
 
 ### Technology Stack
-Next.js 15, Fumadocs (MDX), TypeScript, Markdown/MDX, ESLint custom rules, Tailwind CSS
+Next.js 15, Fumadocs (fumadocs-core/fumadocs-mdx/fumadocs-ui), Vale, Snipsync, Prettier, Husky, MDX, Tailwind 4, TypeScript
 
 ### Project Type
 Feature Development
 
 ### Affected Components
-site (Next.js docs routes), docs/ (markdown content), .cursor/rules (documentation reminders), _roles/002_document_writer.md, @stigmer/theme (docs theming)
+site/ (Next.js marketing site), docs/ (112 markdown files), Makefile (build targets), .github/workflows/ (CI), root package.json (npm workspaces), sdk/ (Go/TS/Python/Java SDKs), client-apps/cli/ (CLI for doc generation), examples/ (code samples)
 
 ## Project Context
 
 ### Dependencies
-Existing site infrastructure (Next.js 15, Tailwind v4, static export), existing docs/ markdown files (116 files), existing role definitions
+Fumadocs requires Next.js App Router (already in site/). Vale requires separate binary install (brew install vale). Snipsync requires Node.js. No external service dependencies for Phase 1-2.
 
 ### Success Criteria
-- Documentation framework integrated into site with /docs routes
-- Content standards document with templates for every doc type
-- Linting rules for doc quality enforcement
-- Cursor rules/reminders for consistent AI-generated docs
-- Quickstart page modeled after Temporal
-- Homepage docs landing with navigation sidebar
+- Vale runs on all docs with zero errors on committed content
+- Fumadocs renders docs at /docs/ with sidebar and search
+- make lint-docs and make docs-build pass in CI
+- code samples extracted from tested examples/ via Snipsync
+- CLI reference auto-generated
+- PR preview deployments working
 
 ### Known Risks & Mitigations
-Static export (output: export) may conflict with some Fumadocs features, Existing 116 docs need migration/adaptation to new framework, Theme integration with existing --stgm-* token system needs careful alignment
+Fumadocs integration with existing site/ layout and Tailwind config may require careful merging. Existing 112 markdown files may have significant quality issues requiring bulk triage. Snipsync markers require touching many files. Proto-to-docs generation has no proven blueprint from reference repos.
 
 ## Project Structure
 
