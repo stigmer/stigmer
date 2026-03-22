@@ -68,28 +68,24 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-22 09:54
-**Current Task**: T14 complete. Next: T15 (PR Previews), T10 (Snipsync), or T12 (CLI Docs)
+**Current Task**: Session 7 complete. Next: T15 (PR Previews), T10 (Snipsync), or T12 (CLI Docs)
 **Status**: Phase 1 COMPLETE, Phase 2 COMPLETE, Phase 4 PARTIALLY COMPLETE
 
-## Session Progress (2026-03-22, Session 5)
+## Session Progress (2026-03-22, Session 7)
 
 ### Completed
-- **T14: CI Quality Gates** — First PR-triggered workflow in the repo
-  - Created `.github/workflows/ci.docs.yaml` with three parallel jobs:
-    lint (Vale + Prettier), build (Fumadocs/Next.js), links (Lychee, non-blocking)
-  - Triggers on `pull_request` and `push` to `main` for docs/site/config changes
-  - Concurrency group cancels stale runs on the same PR branch
-  - `ci.` prefix convention established for PR check workflows
-
-- **Companion: `release.website.yaml` fixes**
-  - Added `docs/**` and `vale/**` to paths (docs-only merges now trigger deploy)
-  - Updated Node from 20 to 22 to match `.nvmrc`
-
-- **Companion: Makefile improvements**
-  - Restored `lint-docs` and `format-docs-check` in `check` target
-  - Added `docs-build` target for production site builds
+- **Fixed light/dark theme system** — Both modes previously rendered identically as dark
+  - Removed hardcoded `className="dark"` from `<html>` in `layout.tsx`, added `suppressHydrationWarning`
+  - Split `globals.css` into distinct light (`:root`) and dark (`.dark`) palettes
+  - Fumadocs `--color-fd-*` overrides now have separate light and dark definitions
+  - `CodeBlock` and `CodeSnippet` dynamically select `oneDark`/`oneLight` syntax themes
+  - `MobileMenu` backdrop is theme-aware (`bg-foreground/60`)
+  - `Hero` grid pattern uses neutral gray with mode-specific opacity
+  - Verified visually: docs pages, marketing homepage, Fumadocs theme toggle
 
 ### Previously Completed
+- **Session 6**: Docs navigation simplification, "What is Stigmer?" content rewrite
+- **Session 5**: T14 — CI Quality Gates (first PR-triggered workflow in the repo)
 - **Session 4**: T03 — Pre-commit Hooks, T04 — Style Guide + Contributing Guide
 - **Session 3**: T06 — Fumadocs Integration (42 pages, 295KB search index)
 - **Session 2**: T05 — Archive + Fresh Content Architecture (116 files archived, 36 MDX scaffolded)
@@ -138,6 +134,8 @@ When starting a new session:
 - Session 3 checkpoint: `checkpoints/2026-03-22-session-3.md`
 - Session 4 checkpoint: `checkpoints/2026-03-22-session-4.md`
 - Session 5 checkpoint: `checkpoints/2026-03-22-session-5.md`
+- Session 6 checkpoint: `checkpoints/2026-03-22-session-6.md`
+- Session 7 checkpoint: `checkpoints/2026-03-22-session-7.md`
 - T06 execution plan: `.cursor/plans/t06_fumadocs_setup_b1353cf0.plan.md`
 - T14 execution plan: `.cursor/plans/t14_ci_quality_gates_6fe9edad.plan.md`
 - **Critical**: Node.js 22 is required. Node.js 23 silently breaks `next build` (webpack cache snapshot bug). `.nvmrc` is set.
