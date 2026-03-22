@@ -37,6 +37,10 @@ var groupTitles = map[string]string{
 // Cobra Long descriptions (e.g. "USAGE FORMS:", "ENVIRONMENT VARIABLES:").
 var sectionHeaderRe = regexp.MustCompile(`^([A-Z][A-Z0-9]+(?: [A-Za-z0-9]+)*):\s*$`)
 
+// angleBracketRe matches bare CLI placeholder tokens like <id>, <agent-ref>,
+// <name-or-id> that MDX would otherwise parse as JSX elements.
+var angleBracketRe = regexp.MustCompile(`<([a-zA-Z][a-zA-Z0-9_-]*)>`)
+
 type flagDoc struct {
 	Name      string
 	Shorthand string
@@ -273,7 +277,7 @@ func formatLongDescription(s string) string {
 		result = append(result, line)
 	}
 
-	return collapseBlankLines(strings.TrimSpace(strings.Join(result, "\n")))
+	return escapeMDX(collapseBlankLines(strings.TrimSpace(strings.Join(result, "\n"))))
 }
 
 // collapseBlankLines replaces runs of 2+ consecutive blank lines with a single
@@ -427,7 +431,35 @@ func escapeYAML(s string) string {
 }
 
 func escapeTable(s string) string {
-	return strings.ReplaceAll(s, "|", "\\|")
+	return escapeMDX(strings.ReplaceAll(s, "|", "\\|"))
+}
+
+// escapeMDX makes prose text safe for MDX by escaping characters that the MDX
+// compiler would otherwise parse as JSX. Bare <placeholder> tokens are wrapped
+// in backticks for readable rendering; remaining angle brackets and curly braces
+// outside backtick code spans are backslash-escaped.
+func escapeMDX(s string) string {
+	s = angleBracketRe.ReplaceAllString(s, "`<$1>`")
+
+	var b strings.Builder
+	b.Grow(len(s))
+	inCode := false
+	for i := 0; i < len(s); i++ {
+		switch {
+		case s[i] == '`':
+			inCode = !inCode
+			b.WriteByte('`')
+		case !inCode && s[i] == '<':
+			b.WriteString("\\<")
+		case !inCode && s[i] == '{':
+			b.WriteString("\\{")
+		case !inCode && s[i] == '}':
+			b.WriteString("\\}")
+		default:
+			b.WriteByte(s[i])
+		}
+	}
+	return b.String()
 }
 
 // ---------------------------------------------------------------------------
