@@ -143,6 +143,7 @@ When starting a new session:
 - Session 9 checkpoint: `checkpoints/2026-03-22-session-9.md`
 - Session 10 checkpoint: `checkpoints/2026-03-22-session-10.md`
 - T06 execution plan: `.cursor/plans/t06_fumadocs_setup_b1353cf0.plan.md`
+- T12 execution plan: `.cursor/plans/t12_cli_reference_docs_85f99de8.plan.md`
 - T14 execution plan: `.cursor/plans/t14_ci_quality_gates_6fe9edad.plan.md`
 - **Critical**: Node.js 22 is required. Node.js 23 silently breaks `next build` (webpack cache snapshot bug). `.nvmrc` is set.
 - **Critical**: Dev server must use webpack, not Turbopack. `fumadocs-mdx` query-string imports (`?collection=docs`) are incompatible with Turbopack.
@@ -160,7 +161,7 @@ When starting a new session:
 After loading context:
 - "Continue with T15" — PR preview deployments (architecture decision needed)
 - "Continue with T10" — Snipsync setup (requires examples/)
-- "Continue with T12" — CLI reference generation
+- "Continue with T13" — Proto API reference generation (experimental)
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 
