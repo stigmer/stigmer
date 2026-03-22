@@ -1,139 +1,30 @@
 ---
-title: What is Stigmer?
+title: Home
 description:
   An open-source platform for building, running, and managing AI Agents and
   automation Workflows.
+full: true
 ---
 
-# What is Stigmer?
+# Stigmer
 
-Stigmer is an open-source platform for AI Agents and automation Workflows.
+An open-source platform for AI Agents and automation Workflows.
 
-You describe what an Agent should do in a definition file. Stigmer handles
-running it, tracking changes, controlling who can access it, and recovering if
-something goes wrong.
+Describe what an Agent should do. Stigmer runs it, tracks changes, and recovers
+when things fail.
 
-The same definition works on your laptop for testing and on a server for real
-use. You change the settings. You never change the definition.
-
-## Why Stigmer exists
-
-Most teams build AI Agents by writing code. The Agent's instructions, its
-connections to tools, its passwords, its settings—everything lives together in
-the same codebase. This works for a quick experiment. It breaks when a team
-needs to manage many Agents reliably.
-
-Here is what goes wrong:
-
-- **No change history.** Someone edits the Agent's instructions. There is no
-  record of what changed. There is no way to undo it.
-- **Secrets mixed with instructions.** Passwords and access keys sit next to the
-  Agent's behavior. A developer who should only edit instructions can see every
-  credential.
-- **No safe way to test.** Moving an Agent from testing to real use means
-  changing code. A small mistake can affect real customers.
-- **No guardrails.** When an Agent is about to take a serious action—deleting
-  data, sending money, contacting a customer—there is no approval step and no
-  way to stop it.
-
-Stigmer solves all four problems with a single platform.
-
-## How it works
-
-You write a definition file that describes your Agent. Think of it like a recipe
-card. The recipe says what the dish is, what ingredients it needs, and what
-steps to follow. But it does not contain the kitchen or the ingredients—those
-depend on where you decide to cook.
-
-A Stigmer definition file works the same way. It describes what the Agent does,
-what tools it uses, and what knowledge it has. It never contains passwords or
-settings that differ across Environments.
-
-Here is what a definition file looks like:
-
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: Agent
-metadata:
-  name: code-reviewer
-  org: acme-corp
-spec:
-  description: Reviews code for quality, security, and best practices
-  instructions: |
-    You are a code review assistant. For every review:
-    1. Check for security vulnerabilities
-    2. Evaluate code quality
-    3. Suggest actionable improvements
-  mcp_server_usages:
-    - mcp_server_ref:
-        slug: github
-  skill_refs:
-    - slug: company-style-guide
-```
-
-This is written in YAML, a text format that uses indentation to show structure.
-You do not need to memorize the format. Stigmer validates it for you.
-
-When you are ready to run the Agent, Stigmer connects the definition to an
-Environment. An Environment is a separate space with its own credentials and
-settings. The same Agent definition can run in a "testing" Environment with test
-data, and in a "production" Environment with real data. You never change the
-definition itself.
-
-## Building blocks
-
-Every Agent in Stigmer is made of four parts:
-
-| Part             | What it does                                                                                                                                        |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Instructions** | Tell the Agent what to do and how to behave.                                                                                                        |
-| **Tools**        | Connect the Agent to external systems like calendars, databases, or code repositories. In Stigmer, these connections are called MCP Servers.        |
-| **Knowledge**    | Give the Agent domain expertise—company policies, style guides, product documentation. In Stigmer, each piece of knowledge is called a Skill.       |
-| **Sub-Agents**   | Let the Agent hand off specific tasks to other specialized Agents. A lead Agent can send code review to one Sub-Agent and documentation to another. |
-
-For tasks that follow a fixed sequence of steps, Stigmer provides **Workflows**.
-A Workflow runs a series of actions in a defined order—calling services,
-checking conditions, running loops, or asking Agents for help. An Agent thinks
-and makes decisions. A Workflow follows a plan.
-
-## For teams building products
-
-If you are building your own software and want to add AI Agent or Workflow
-features, Stigmer provides the infrastructure so you do not have to build it
-yourself.
-
-- **A complete API.** An API (application programming interface) lets your
-  software talk to Stigmer directly. Every action available through the
-  command-line tool is also available through the API. Create Agents, start
-  runs, and read results from your own code.
-- **Pre-built screen elements.** Add Agent chat windows, Workflow progress
-  views, and run history to your application without building them yourself.
-- **A separate space for each customer.** Each of your customers gets their own
-  isolated space with separate Agents, Workflows, credentials, and access
-  controls.
-
-## Runs reliably, even when things fail
-
-When you start an Agent, Stigmer calls that run an Execution. Stigmer tracks
-every step of the Execution. If the process crashes—a network drops, a server
-restarts, or a tool times out—Stigmer picks up from the last completed step.
-Work that already finished does not run again.
-
-You can also:
-
-- **Pause and resume** a running Agent without losing progress.
-- **Cancel** an Execution at any point.
-- **Require human approval** before an Agent takes a specific action, like
-  deleting data or sending a message.
-
-## Get started
-
-Install Stigmer and run your first Agent in under five minutes.
-
-```bash
-brew install stigmer/tap/stigmer
-stigmer server
-stigmer run my-assistant "Hello, what can you do?"
-```
-
-[Install Stigmer →](./getting-started/installation)
+<Cards>
+  <Card href="/docs/getting-started" title="Getting Started">
+    Install Stigmer and run your first Agent in under five minutes.
+  </Card>
+  <Card href="/docs/concepts" title="Core Concepts">
+    Understand Agents, Workflows, Skills, and how they fit together.
+  </Card>
+  <Card href="/docs/integration" title="Integrate into Your Platform">
+    Add AI Agent features to your product with the API, SDKs, and React
+    components.
+  </Card>
+  <Card href="/docs/deployment" title="Deploy">
+    Run locally for development or deploy to production.
+  </Card>
+</Cards>
