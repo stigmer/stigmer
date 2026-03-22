@@ -1,5 +1,10 @@
 # Stigmer OSS Documentation Standards
 
+> **Canonical references**: See [docs/STYLE.md](../../docs/STYLE.md) for writing
+> conventions and [docs/CONTRIBUTING.md](../../docs/CONTRIBUTING.md) for the
+> contributor workflow. This rule provides AI-facing guidance that complements
+> those human-facing documents.
+
 All documentation in the Stigmer OSS repository follows standardized organization and naming conventions.
 
 ## Organization Principle

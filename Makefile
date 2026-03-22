@@ -36,6 +36,9 @@ setup: ## Install all dependencies (one-time)
 		echo "tip: brew install pre-commit for git hook support"; \
 	fi
 	@echo ""
+	@echo "--- git hooks (husky) ---"
+	@npm install && echo "husky pre-commit hooks installed"
+	@echo ""
 	@echo "--- docs toolchain ---"
 	@command -v vale >/dev/null 2>&1 || { echo "error: vale not found — brew install vale"; exit 1; }
 	@command -v lychee >/dev/null 2>&1 || { echo "error: lychee not found — brew install lychee"; exit 1; }

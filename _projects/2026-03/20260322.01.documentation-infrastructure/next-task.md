@@ -68,39 +68,65 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-22 09:54
-**Current Task**: T03 (Pre-commit Hooks) — next unblocked task
-**Status**: In Progress — Phase 1 nearly complete (T01, T02, T05, T06 done)
+**Current Task**: Phase 1 complete. Next: Phase 3 (Snipsync) or Phase 4 (CI)
+**Status**: Phase 1 COMPLETE, Phase 2 COMPLETE
 
-## Session Progress (2026-03-22, Session 3)
+## Session Progress (2026-03-22, Session 4)
 
 ### Completed
-- **T06: Fumadocs Integration** — Full integration of Fumadocs into the existing Next.js site
-  - Installed Fumadocs v15 packages (compatible with Next.js 15.3.9 and Tailwind 4)
-  - Created `source.config.ts` with `../docs` content path and `_archive` exclusion
-  - Wrapped `next.config.ts` with `createMDX()` for MDX processing
-  - Added `~source` path alias in `tsconfig.json` for generated source imports
-  - Integrated Fumadocs CSS with Stigmer dark theme via `--color-fd-*` variable overrides in `globals.css`
-  - Created core components: `mdx.tsx`, `source.ts`, `layout.shared.tsx`
-  - Created docs route tree: `app/docs/layout.tsx` (RootProvider + DocsLayout) and `app/docs/[[...slug]]/page.tsx`
-  - Built 10 `meta.json` files (root + 9 sections) for sidebar navigation ordering
-  - Set up static Orama search via `app/api/search/route.ts` with `dynamic = "force-static"`
-  - Fixed Node.js 23 incompatibility by switching to Node.js 22 (confirmed webpack bug)
-  - Removed Turbopack from dev script (incompatible with fumadocs-mdx query-string imports)
-  - Fixed ESLint errors: replaced `<a>` with `<Link>` in Hero.tsx and Quickstart.tsx
-  - Added `.nvmrc` pinning Node.js 22
-  - Added `.source/` to `.gitignore`
-  - Static build: 42 pages, 295KB search index, zero errors
+- **T03: Pre-commit Hooks** — Husky v9 + lint-staged for automated quality enforcement
+  - Added `husky` (v9.1.7) and `lint-staged` (v16.4.0) to root `package.json`
+  - `prepare` script auto-installs hooks on `npm install`
+  - lint-staged runs Prettier on `docs/**/*.{md,mdx}` files
+  - Pre-commit script runs Vale conditionally (graceful degradation if not installed)
+  - Updated `Makefile` `setup` target with Husky initialization
+  - Verified end-to-end: Prettier reformats, Vale catches violations, bad commits blocked
+
+- **T04: Style Guide and Contributing Guide** — Documentation conventions formalized
+  - Created `docs/STYLE.md` (~100 lines): audience, domain terms, headings, code blocks, prose, formatting
+  - Created `docs/CONTRIBUTING.md` (~120 lines): prerequisites, workflow, content architecture, Make targets
+  - Updated `.cursor/rules/stigmer-oss-documentation-standards.md` with canonical references
+  - Both files pass Vale with zero errors/warnings
+  - All 38 docs files pass `make lint-docs` and `make format-docs-check`
 
 ### Previously Completed
+- **Session 3**: T06 — Fumadocs Integration (42 pages, 295KB search index)
 - **Session 2**: T05 — Archive + Fresh Content Architecture (116 files archived, 36 MDX scaffolded)
 - **Session 1**: T01 — Vale Prose Linter, T02 — Fix Broken Lint Target + Formatting
 
+## Phase Completion Summary
+
+### Phase 1: Quality Foundation — COMPLETE
+- [x] T01: Vale Prose Linter Setup
+- [x] T02: Fix Broken Lint Target + Formatting
+- [x] T03: Pre-commit Hooks
+- [x] T04: Style Guide and Contributing Guide
+- [x] T05: Archive + Fresh Content Architecture
+
+### Phase 2: Fumadocs Integration — COMPLETE
+- [x] T06: Fumadocs Setup (includes T07 navigation, T08 Make targets, T09 search)
+
+### Phase 3: Code Sample Pipeline — NOT STARTED
+- [ ] T10: Snipsync Setup
+- [ ] T11: Example Projects
+- [ ] T12: CLI Reference Generation
+- [ ] T13: Proto API Reference (experimental)
+
+### Phase 4: CI/CD Pipeline — NOT STARTED
+- [ ] T14: CI Quality Gates
+- [ ] T15: PR Preview Deployments
+
+### Phase 5: Advanced Features — NOT STARTED
+- [ ] T16: Custom MDX Components
+- [ ] T17: LLM-Friendly Output
+- [ ] T18: On-Page Feedback
+- [ ] T19: Visual Regression Testing
+
 ## Next Steps
 
-1. **T03: Pre-commit Hooks** — Husky + lint-staged for Vale/Prettier on staged docs files
-2. **T04: Style Guide and Contributing Guide** — Write `docs/STYLE.md` and `docs/CONTRIBUTING.md`
-3. **T07: Snipsync Setup** — Code sample extraction from working examples
-4. **T08: CI Documentation Quality Gate** — GitHub Actions workflow for docs CI
+1. **T14: CI Quality Gates** — GitHub Actions workflow for Vale/Prettier/build on docs PRs (no external dependencies, can start immediately)
+2. **T10: Snipsync Setup** — Code sample extraction (requires `examples/` directory with working code)
+3. **T12: CLI Reference Generation** — Auto-generated CLI docs from `stigmer --help`
 
 ## Context for Resume
 - The full 5-phase plan is in `tasks/T01_0_plan.md` (449 lines)
@@ -108,18 +134,21 @@ When starting a new session:
 - Session 1 checkpoint: `checkpoints/2026-03-22-session-1.md`
 - Session 2 checkpoint: `checkpoints/2026-03-22-session-2.md`
 - Session 3 checkpoint: `checkpoints/2026-03-22-session-3.md`
+- Session 4 checkpoint: `checkpoints/2026-03-22-session-4.md`
 - T06 execution plan: `.cursor/plans/t06_fumadocs_setup_b1353cf0.plan.md`
 - **Critical**: Node.js 22 is required. Node.js 23 silently breaks `next build` (webpack cache snapshot bug). `.nvmrc` is set.
 - **Critical**: Dev server must use webpack, not Turbopack. `fumadocs-mdx` query-string imports (`?collection=docs`) are incompatible with Turbopack.
 - Fumadocs v15 is compatible with Next.js 15.x and Tailwind 4. v16 requires Next.js 16/React 19.2+.
 - Content architecture has 10 sections with `meta.json` controlling sidebar order
 - Static Orama search uses `force-static` export with pre-built 295KB JSON index
+- Pre-commit hooks: Husky v9 + lint-staged. Prettier always runs; Vale runs if installed.
+- Style guide: `docs/STYLE.md`. Contributing guide: `docs/CONTRIBUTING.md`.
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T03" — Pre-commit hooks (Husky + lint-staged)
-- "Continue with T04" — Style guide and contributing guide
+- "Continue with T14" — CI quality gates (GitHub Actions)
+- "Continue with T10" — Snipsync setup (requires examples/)
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 
