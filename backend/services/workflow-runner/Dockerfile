@@ -22,7 +22,7 @@ RUN go mod download
 COPY backend/services/workflow-runner/ .
 
 # Build binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o workflow-runner ./cmd/worker
+RUN CGO_ENABLED=0 GOOS=linux go build -o workflow-runner ./cmd/zigflow
 
 # ---------- Runtime Stage ----------
 FROM alpine:3.19

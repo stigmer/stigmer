@@ -124,5 +124,9 @@ vale/styles/Google/
 vale/styles/Microsoft/
 vale/styles/alex/
 
+# Environment files (local secrets, never commit)
+.env
+.env_export
+
 # Cursor
 _cursor/
