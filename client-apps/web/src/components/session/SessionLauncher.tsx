@@ -226,6 +226,11 @@ export function SessionLauncher() {
       context?: SessionComposerSubmitContext,
     ) => {
       if (isSubmitting) return;
+      if (!org) {
+        setSubmitError("Select an organization before starting a session.");
+        toast.error("Select an organization before starting a session.");
+        return;
+      }
 
       setIsSubmitting(true);
       setSubmitError(null);
