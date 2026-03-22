@@ -18,8 +18,6 @@ export function baseOptions(): BaseLayoutProps {
       ),
     },
     links: [
-      { text: "Home", url: "/" },
-      { text: "Docs", url: "/docs", active: "nested-url" },
       {
         text: "GitHub",
         url: "https://github.com/stigmer/stigmer",
