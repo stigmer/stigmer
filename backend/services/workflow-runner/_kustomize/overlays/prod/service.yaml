@@ -14,10 +14,6 @@ spec:
         variables:
           ENV:
             value: prod
-          # gRPC Server Configuration
-          # Workflow runner listens on this port for commands from Stigmer Service
-          GRPC_PORT:
-            value: "8080"
           # Temporal Configuration (using internal Kubernetes endpoint for prod)
           TEMPORAL_SERVICE_ADDRESS:
             value: $variables-group/stigmer-temporal-config/prod.kube-endpoint
@@ -63,28 +59,6 @@ spec:
         requests:
           cpu: 60m
           memory: 100Mi
-      # Health probes for zero-downtime deployments
-      readinessProbe:
-        grpc:
-          port: 8080
-        initialDelaySeconds: 10
-        periodSeconds: 10
-        timeoutSeconds: 5
-        failureThreshold: 3
-      livenessProbe:
-        grpc:
-          port: 8080
-        initialDelaySeconds: 30
-        periodSeconds: 30
-        timeoutSeconds: 5
-        failureThreshold: 3
-      startupProbe:
-        grpc:
-          port: 8080
-        initialDelaySeconds: 0
-        periodSeconds: 5
-        timeoutSeconds: 5
-        failureThreshold: 30
   availability:
     minReplicas: 3  # More replicas for production
     # Zero-downtime deployment strategy
