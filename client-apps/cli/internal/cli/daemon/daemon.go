@@ -44,7 +44,6 @@ const (
 
 	// AgentRunnerPIDFileName stores the agent-runner PID.
 	AgentRunnerPIDFileName = "agent-runner.pid"
-
 )
 
 // StartOptions provides options for starting the daemon.
