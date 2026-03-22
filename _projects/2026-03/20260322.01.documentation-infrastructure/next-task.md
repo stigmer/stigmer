@@ -9,7 +9,7 @@ Drop this file into your conversation to quickly resume work on this project.
 **Description**: Build world-class documentation infrastructure for Stigmer: Vale prose linting, Fumadocs integration into the existing Next.js site, Snipsync code sample pipeline, auto-generated CLI/API reference docs, CI/CD quality gates, and advanced features (custom components, LLM output, search). Based on comparative analysis of Temporal, Pulumi, HashiCorp, GitHub, Crossplane, and Next.js documentation repositories.
 **Goal**: Transform Stigmer's ad-hoc 112 markdown files into a production-grade documentation system with automated quality enforcement, a rendered docs site at stigmer.ai/docs, tested code samples, and CI gates -- all within the existing monorepo
 **Tech Stack**: Next.js 15, Fumadocs (fumadocs-core/fumadocs-mdx/fumadocs-ui), Vale, Snipsync, Prettier, Husky, MDX, Tailwind 4, TypeScript
-**Components**: site/ (Next.js marketing site), docs/ (112 markdown files), Makefile (build targets), .github/workflows/ (CI), root package.json (npm workspaces), sdk/ (Go/TS/Python/Java SDKs), client-apps/cli/ (CLI for doc generation), examples/ (code samples)
+**Components**: site/ (Next.js marketing site), docs/ (36 clean .mdx files + _archive), Makefile (build targets), .github/workflows/ (CI), root package.json (npm workspaces), sdk/ (Go/TS/Python/Java SDKs), client-apps/cli/ (CLI for doc generation), examples/ (code samples)
 
 ## Essential Files to Review
 
@@ -68,48 +68,48 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-22 09:54
-**Current Task**: T03 (Pre-commit Hooks) — next to pick up
-**Status**: In Progress — Phase 1 underway
+**Current Task**: T03 (Pre-commit Hooks) or T06 (Fumadocs Setup) — both unblocked
+**Status**: In Progress — Phase 1 well advanced
 
-## Session Progress (2026-03-22)
+## Session Progress (2026-03-22, Session 2)
 
 ### Completed
-- **T01: Vale Prose Linter Setup** — `.vale.ini`, `vale/styles/Stigmer/terms.yml` (45 domain term rules), vocabulary files (accept.txt, reject.txt), style packages (Google, Microsoft, alex via `vale sync`)
-- **T02: Fix Broken Lint Target + Add Formatting** — Replaced broken `make lint-docs` (was referencing missing `scripts/lint-docs.mjs` and `.mdx` glob). New targets: `lint-docs`, `lint-docs-audit`, `format-docs`, `format-docs-check`, `check-links`. Added Prettier and lychee. Removed `lint-docs` from `make check` temporarily.
+- **T05: Archive Existing Docs + Design Fresh Content Architecture**
+  - Archived 116 legacy files to `docs/_archive/` (git history preserved)
+  - Updated `.vale.ini` and `Makefile` to exclude archive from all tooling
+  - Scaffolded 10-section content architecture (36 `.mdx` files)
+  - Wrote 3 seed pages setting the quality bar: `index.mdx`, `installation.mdx`, `agents.mdx`
+  - Validated: 0 Vale errors, 0 warnings, Prettier passes, archive excluded
+  - Disabled 4 additional Vale rules due to domain term conflicts
+  - Added 10 vocabulary entries to `accept.txt`
 
-### Key Decisions
-- Vale packages downloaded via `vale sync`, not vendored — downloaded dirs gitignored
-- `MinAlertLevel = warning` (not suggestion) — matches Temporal baseline
-- `--no-progress` flag does not exist in Vale 3.14.1 — used `2>/dev/null` for sync output
-- `lint-docs` removed from `make check` until T05 archives stale docs
-- Lychee chosen over markdown-link-check for speed and simpler glob support
-
-### Validation Results (existing 112 stale docs)
-- Vale: 3,207 errors, 6,956 warnings (expected — these get archived in T05)
-- Prettier: 112 files with formatting issues
-- Lychee: 64 broken links
+### Previously Completed (Session 1)
+- **T01: Vale Prose Linter Setup** — `.vale.ini`, terms.yml, vocabulary, style packages
+- **T02: Fix Broken Lint Target + Add Formatting** — Makefile targets, Prettier, lychee
 
 ## Next Steps
 
-1. **T03: Pre-commit Hooks** — BUT: should wait until after T05 (archive stale docs), otherwise hooks fire on 112 stale files. Consider doing T04 or T05 first.
-2. **T04: Style Guide and Contributing Guide** — Write `docs/STYLE.md` and `docs/CONTRIBUTING.md`
-3. **T05: Archive Existing Docs + Design Fresh Content Architecture** — Move `docs/` to `docs/_archive/`, design platform-builder-oriented structure, write 3 seed pages
-4. **T06: Fumadocs Setup** — Depends on T05 for clean content structure
+1. **T03: Pre-commit Hooks** — Husky + lint-staged for Vale/Prettier on staged docs files. Now safe since only clean content exists outside `_archive/`.
+2. **T06: Fumadocs Setup** — Integrate Fumadocs into `site/`. The clean `.mdx` content structure is ready.
+3. **T04: Style Guide and Contributing Guide** — Write `docs/STYLE.md` and `docs/CONTRIBUTING.md`
 
 ## Context for Resume
 - The full 5-phase plan is in `tasks/T01_0_plan.md` (449 lines)
 - Developer review feedback is in `tasks/T01_1_review.md`
-- The Cursor plan file used for T01+T02 execution is at `.cursor/plans/vale_+_docs_tooling_a0726d14.plan.md`
-- Temporal docs repo (`temporalio/documentation`) was the primary reference for Vale config
-- Crossplane docs repo (`crossplane/docs`) was secondary reference (uses `utils/vale/` layout)
+- Session 1 checkpoint: `checkpoints/2026-03-22-session-1.md`
+- Session 2 checkpoint: `checkpoints/2026-03-22-session-2.md`
+- T05 execution plan: `.cursor/plans/t05_archive_and_content_architecture_8c635e0c.plan.md`
+- Content architecture has 10 sections: getting-started, concepts, integration, sdks, architecture, deployment, cli, reference, contributing
+- Seed pages set the voice: direct, technical, platform-builder audience, domain terms capitalized
+- The `DOCS_SOURCES` Makefile variable uses `find` with `-path docs/_archive -prune` for exclusion
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T03" - Pre-commit hooks (but consider T05 first)
-- "Continue with T05" - Archive docs and design content architecture
-- "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
+- "Continue with T03" — Pre-commit hooks (Husky + lint-staged)
+- "Continue with T06" — Fumadocs setup
+- "Show project status" — Get overview of progress
+- "Create checkpoint" — Save current progress
 
 ---
 

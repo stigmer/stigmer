@@ -105,22 +105,24 @@ check: protos tidy lint libs-build web-build build test ## Run full CI gate loca
 
 # ─── Docs Linting ─────────────────────────────
 
+DOCS_SOURCES = $(shell find docs -path docs/_archive -prune -o \( -name '*.md' -o -name '*.mdx' \) -print)
+
 lint-docs: ## Lint documentation with Vale (strict, fails on warnings+)
 	@vale sync 2>/dev/null
-	@vale docs/
+	@vale $(DOCS_SOURCES)
 
 lint-docs-audit: ## Audit docs with Vale (non-blocking report)
 	-@vale sync 2>/dev/null
-	-@vale docs/
+	-@vale $(DOCS_SOURCES)
 
 format-docs: ## Format documentation with Prettier
-	@npx prettier --write --prose-wrap always 'docs/**/*.md'
+	@npx prettier --write --prose-wrap always $(DOCS_SOURCES)
 
 format-docs-check: ## Check documentation formatting (CI, no writes)
-	@npx prettier --check --prose-wrap always 'docs/**/*.md'
+	@npx prettier --check --prose-wrap always $(DOCS_SOURCES)
 
 check-links: ## Check for broken links in documentation
-	@lychee --no-progress 'docs/**/*.md'
+	@lychee --no-progress $(DOCS_SOURCES)
 
 # ─── Dependencies ─────────────────────────────
 
