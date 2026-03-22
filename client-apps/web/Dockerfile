@@ -10,9 +10,15 @@ WORKDIR /app
 # Copy workspace config and dependency manifests first (layer caching)
 COPY package.json package-lock.json ./
 COPY apis/stubs/ts/package.json apis/stubs/ts/
+COPY sdk/typescript/package.json sdk/typescript/
+COPY sdk/theme/package.json sdk/theme/
+COPY sdk/react/package.json sdk/react/
 
-# Copy the proto stubs (committed to the repo, no Buf needed)
+# Copy workspace packages the web app depends on
 COPY apis/stubs/ts/ apis/stubs/ts/
+COPY sdk/typescript/ sdk/typescript/
+COPY sdk/theme/ sdk/theme/
+COPY sdk/react/ sdk/react/
 
 # Copy the web console source
 COPY client-apps/web/ client-apps/web/
