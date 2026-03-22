@@ -33,7 +33,7 @@ typecheck:
 
 # Remove build artifacts
 clean:
-	rm -rf .next out node_modules
+	rm -rf .next out node_modules .source
 
 # Preview the static build locally
 preview: build

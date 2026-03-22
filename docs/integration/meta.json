@@ -1,0 +1,10 @@
+{
+  "title": "Integration",
+  "pages": [
+    "index",
+    "grpc-api",
+    "react-components",
+    "theme-tokens",
+    "mcp-servers"
+  ]
+}
