@@ -5,14 +5,15 @@ description: "Stigmer is an open-source platform for building AI agents into you
 
 # What is Stigmer?
 
-**Stigmer is an infrastructure platform for AI agents — the same way Kubernetes is an infrastructure platform for containers.**
-
-You define agents and workflows as declarative YAML resources. Stigmer handles execution, state, tool integration, observability, and multi-tenant isolation. Your platform consumes it all through typed SDKs.
-
----
+<DefinitionBanner analogy="Kubernetes for containers">
+  Stigmer is an infrastructure platform for AI agents — you define agents
+  and workflows as declarative YAML resources, and Stigmer handles execution,
+  state, tool integration, observability, and multi-tenant isolation.
+</DefinitionBanner>
 
 ## The problem Stigmer solves
 
+<ProblemStatement>
 ### Building AI agents from scratch does not scale
 
 Most teams building AI agent capabilities start the same way: a Python script, a prompt, an API key, and a growing pile of glue code.
@@ -37,8 +38,7 @@ response = client.chat.completions.create(
 - Multi-tenancy is an afterthought — every customer gets the same agent with the same secrets
 
 Frameworks like LangChain and CrewAI solve the LLM abstraction layer. Stigmer solves the infrastructure layer: how you deploy, run, observe, and manage agents at scale inside a product.
-
----
+</ProblemStatement>
 
 ## What Stigmer provides
 
@@ -81,8 +81,6 @@ When you need structured automation — not conversation — Stigmer Workflows p
 ### SDKs for every language
 
 Stigmer is a platform for platforms. Go, TypeScript, and Python SDKs provide typed API clients, React hooks, and embeddable components. Your product consumes Stigmer through the SDK — the CLI and console are reference implementations.
-
----
 
 ## How it works
 
@@ -130,21 +128,17 @@ graph TB
 | **Invocation** | `stigmer run` or API | WorkflowInstance + trigger |
 | **Use case** | Code review, research, customer support | Data pipelines, multi-step automation, batch processing |
 
----
-
 ## How it compares
 
-| Without Stigmer | With Stigmer |
-|---|---|
-| Agent definitions live in application code | Agents are versioned YAML resources, portable across environments |
-| Conversation state is ad hoc and ephemeral | Sessions persist message history and workspace across runs |
-| Tool integrations are hand-wired per agent | McpServer resources are defined once, shared across agents |
-| No execution control — fire and forget | Pause, resume, cancel, and approval gates on every run |
-| No cost visibility | Per-execution token tracking and cost caps |
-| Multi-tenancy requires custom isolation | Organizations, Environments, and IAM policies built in |
-| Orchestration mixed with agent logic | Workflows handle orchestration; agents handle conversation |
-
----
+<ComparisonTable rows={[
+  { before: "Agent definitions live in application code", after: "Agents are versioned YAML resources, portable across environments" },
+  { before: "Conversation state is ad hoc and ephemeral", after: "Sessions persist message history and workspace across runs" },
+  { before: "Tool integrations are hand-wired per agent", after: "McpServer resources are defined once, shared across agents" },
+  { before: "No execution control — fire and forget", after: "Pause, resume, cancel, and approval gates on every run" },
+  { before: "No cost visibility", after: "Per-execution token tracking and cost caps" },
+  { before: "Multi-tenancy requires custom isolation", after: "Organizations, Environments, and IAM policies built in" },
+  { before: "Orchestration mixed with agent logic", after: "Workflows handle orchestration; agents handle conversation" },
+]} />
 
 ## Getting started
 
@@ -167,11 +161,11 @@ stigmer apply -f agent.yaml
 stigmer run agent my-assistant -m "What can you help me with?"
 ```
 
----
-
 ## Further reading
 
-- [What is an Agent?](agent.mdx) — The template layer: instructions, tools, skills, and sub-agents
-- [What is an AgentExecution?](agent-execution.mdx) — The runtime layer: lifecycle, approvals, and observability
-- [What is a Session?](session.mdx) — Conversation context: thread continuity and workspace persistence
-- [What is a Workflow?](workflow.mdx) — Deterministic orchestration: durable pipelines that invoke agents
+<RelatedDocs links={[
+  { href: "agent", title: "What is an Agent?", description: "The template layer: instructions, tools, skills, and sub-agents" },
+  { href: "agent-execution", title: "What is an AgentExecution?", description: "The runtime layer: lifecycle, approvals, and observability" },
+  { href: "session", title: "What is a Session?", description: "Conversation context: thread continuity and workspace persistence" },
+  { href: "workflow", title: "What is a Workflow?", description: "Deterministic orchestration: durable pipelines that invoke agents" },
+]} />

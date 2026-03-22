@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-21 15:20
-**Current Task**: Phase 8 (Lint Tooling) is next — the final phase
-**Status**: In Progress — Phases 1-7 Complete
+**Current Task**: ALL PHASES COMPLETE
+**Status**: Complete — All 8 Phases Delivered
 
 ## Session Progress (2026-03-21)
 
@@ -125,6 +125,15 @@ When starting a new session:
 - Every pattern in the document references the existing canonical implementation (e.g., `button.tsx` for `cva`, `motion.tsx` for animation wrappers)
 - Both forward-reference links in `website-standards.md` (lines 15 and 357) now resolve to the new file
 
+### Completed: Phase 8 — Lint Tooling (Final Phase)
+- Created `site/scripts/lint-copy.ts` — scans `site/src/**/*.{tsx,ts}` against `copy-guidelines.json`. Checks banned phrases (16 entries, case-insensitive word-boundary matching), prohibited terminology (entries without exceptions — terms with exceptions are left to human review since context matters), and passive voice patterns (best-effort regex with extensive false-positive exclusion list for technical state descriptions).
+- Created `site/scripts/lint-pages.ts` — validates page components in `site/src/components/pages/*Page.tsx` against `content-requirements.json`. Detects page type from component name (`HomePage` → `homepage`), checks required sections by scanning imports from `components/sections/`, includes alias map for known mismatches (`Architecture` → `how-it-works`), and validates metadata presence in route files (checks both `page.tsx` and `layout.tsx`).
+- Created `site/scripts/lint-performance.sh` — validates build output against `performance-budget.json`. Checks JS/CSS bundle sizes (gzipped), individual image sizes in `public/`, prohibited image formats (.gif, .bmp), and font family count. Reads thresholds from the JSON file via `node -e`. Gracefully skips bundle checks if no build output exists.
+- Updated `site/Makefile` — added 5 new targets: `lint-copy`, `lint-pages`, `lint-performance` (depends on `build`), `lint-website` (runs lint-copy + lint-pages), `check` (runs lint + typecheck + lint-website). Fast lints (copy, pages) don't require a build; performance lint does.
+- Updated `site/package.json` — added 5 new script entries: `lint:copy`, `lint:pages`, `lint:performance`, `lint:website`, `check`.
+- **Existing code findings** (not fixed — "audited only when touched"): lint-copy found 1 prohibited term ("agent run" in Quickstart.tsx), lint-pages found 1 missing section (cta-band on HomePage), lint-performance found 3 violations (total JS bundle exceeds 150 KB budget, 2 source SVGs > 200 KB in public/).
+- **Design decisions**: (1) Terminology entries with exceptions are skipped by lint-copy since determining context requires human judgment. (2) Passive voice detection uses an extensive false-positive exclusion list for technical state descriptions (75+ entries). (3) Section detection in lint-pages uses imports from `sections/` only, not all JSX components. (4) `lint-website` target runs only fast lints (no build required); `lint-performance` is separate.
+
 ### Key Observations
 - The forward-references in `website-standards.md` (lines 9-13) already pointed to the exact filenames created in Phase 3 — no edits to Phase 1 deliverables were needed.
 - Extended banned phrases from 12 to 16 by adding `leverage`, `best-of-breed`, `cutting-edge`, and `AI-powered` from reminder 006.
@@ -133,32 +142,35 @@ When starting a new session:
 - Component audit found 12 issues (2 more than estimated): MDX components skip site patterns, CodeBlock `sm` uses non-standard font size as a separate issue from the arbitrary value violation.
 - The `layout/` directory (Header, Footer, MobileMenu) exists but is not mentioned in the taxonomy — it is acknowledged as-is rather than prescribed for reorganization.
 
-## Next Steps
+## Completion Summary
 
-1. ~~**Phase 5: Component Standards**~~ — DONE. `site/standards/component-standards.md`.
-2. ~~**Phase 6: Cursor Rules**~~ — DONE. 3 rules in `.cursor/rules/site/`.
-3. ~~**Phase 7: Reminder and Role Updates**~~ — DONE. `_reminders/008_website-standards.md` + roles 007, 008, 009 updated.
-4. **Phase 8: Lint Tooling** — `site/scripts/lint-copy.ts`, `site/scripts/lint-pages.ts`, Makefile integration. **This is the final phase.**
+All 8 phases delivered:
+
+1. ~~**Phase 1: Master Standards Document**~~ — `site/standards/website-standards.md`
+2. ~~**Phase 2: Information Architecture**~~ — `site/standards/information-architecture.md`
+3. ~~**Phase 3: Machine-Readable Standards**~~ — 3 JSON files in `site/standards/`
+4. ~~**Phase 4: Page and Section Templates**~~ — 17 templates in `site/standards/templates/`
+5. ~~**Phase 5: Component Standards**~~ — `site/standards/component-standards.md`
+6. ~~**Phase 6: Cursor Rules**~~ — 3 rules in `.cursor/rules/site/`
+7. ~~**Phase 7: Reminder and Role Updates**~~ — `_reminders/008_website-standards.md` + roles 007, 008, 009 updated
+8. ~~**Phase 8: Lint Tooling**~~ — 3 scripts in `site/scripts/`, Makefile + package.json integration
+
+**This project is complete.** Follow-up projects can now use these standards to build actual website content.
 
 ## Context for Resume
 
 - Branch: `feat/add-docs`
-- The `site/standards/` directory now has **6 files** + a `templates/` subdirectory with 17 template files
+- The `site/standards/` directory has **6 files** + a `templates/` subdirectory with 17 template files
 - Files: `website-standards.md`, `information-architecture.md`, `content-requirements.json`, `copy-guidelines.json`, `performance-budget.json`, `component-standards.md`
 - Templates: 8 section templates (`section-*.md`) + 9 page templates (`*.md`)
 - **Cursor rules**: `.cursor/rules/site/` has 3 rules: `website-standards.mdc` (auto-apply on `site/src/**`), `write-website-content.mdc` (action), `review-website-content.mdc` (action)
 - **Reminder**: `_reminders/008_website-standards.md` — quick-reference for website standards (parallel to 004 for docs)
 - **Roles updated**: 007, 008, 009 now have REFERENCE DOCUMENTS sections pointing to all standards artifacts and Cursor rules
+- **Lint scripts**: `site/scripts/` has `lint-copy.ts`, `lint-pages.ts`, `lint-performance.sh`
+- **Makefile targets**: `lint-copy`, `lint-pages`, `lint-performance`, `lint-website`, `check`
 - The task plan (`tasks/T01_0_plan.md`) contains the full 8-phase breakdown with dependencies and success criteria
 - **All forward-reference links in `website-standards.md` now resolve to real files** — the standards document set is complete
-- Phase 8 (Lint Tooling) is the only remaining phase
-
-## Quick Commands
-
-After loading context:
-- "Start Phase 8" - Begin Lint Tooling (final phase)
-- "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
+- **All phases are complete** — this project is done
 
 ---
 

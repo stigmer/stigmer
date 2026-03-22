@@ -12,9 +12,30 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: Phase 2 — four custom doc components built (4 of 8), minimum viable set for Phase 3 rewrite is complete
-- **Last Session**: March 21, 2026 — built ProblemStatement (design discussion + implementation)
-- **Active Task**: Phase 2: Build remaining custom doc components (PropertyTable next, needs design conversation)
+- **Status**: Phase 3 complete — `what-is-stigmer.mdx` rewritten with all four custom doc components
+- **Last Session**: March 22, 2026 — Phase 3 proof rewrite of what-is-stigmer.mdx
+- **Active Task**: Phase 4 or remaining concept page rewrites
+
+## Session Progress (2026-03-22, Session 5)
+
+- Rewrote `docs/concepts/what-is-stigmer.mdx` using all four custom doc components (Phase 3 proof):
+  - `<DefinitionBanner analogy="Kubernetes for containers">` replaces the bold intro paragraph + explanatory paragraph. Condensed two paragraphs into a single banner-appropriate sentence.
+  - `<ProblemStatement>` wraps the entire "Building AI agents from scratch does not scale" section — narrative, code block, "What goes wrong" bullets, and differentiator paragraph. H2 heading stays outside for TOC.
+  - `<ComparisonTable rows={[...]} />` replaces the "How it compares" markdown table (7 rows, default labels).
+  - `<RelatedDocs links={[...]} />` replaces the "Further reading" bullet list with card grid.
+- Removed all `---` horizontal rules between sections — components provide sufficient visual separation, and `<hr>` created redundant breaks next to bordered/shadowed containers.
+- Sections kept as plain MDX (no component needed): "What Stigmer provides" (5 H3 subsections with prose and code), "How it works" (Mermaid diagrams + markdown tables), "Getting started" (bash code block).
+- Verified: `yarn typecheck` and `yarn build` both pass clean (13 pages, all 7 docs)
+
+### Design Decisions Made (Session 5)
+
+| Decision | Rationale |
+|---|---|
+| PropertyTable deferred | Tables across concept pages vary from 2–4 columns with different semantics. A generic table component adds API complexity without clear visual benefit over Fumadocs-styled markdown tables. Revisit after all pages use the existing 4 components. |
+| Agent-vs-Workflow table stays markdown | ComparisonTable's before/after semantics and muted-before/full-after visual treatment would be misleading for a feature-vs-feature comparison where neither column is "worse." |
+| Structure-only rewrite, not content rewrite | Existing prose follows the Content Author quality bar. Isolating structural changes from content changes keeps the diff reviewable and validates the component framework independently. |
+| Removed `---` horizontal rules | With DefinitionBanner (shadow+border), ProblemStatement (border+background), ComparisonTable (border), and RelatedDocs (card grid), the `<hr>` elements created redundant visual breaks. H2 headings provide sufficient section demarcation for non-component sections. |
+| DefinitionBanner condensed two paragraphs into one | The banner renders children in a single `<p>` — nested `<p>` tags from two MDX paragraphs would be invalid HTML. Merged the definition and the "what it handles" clause into one sentence. The "typed SDKs" point is covered in its own "SDKs for every language" section below. |
 
 ## Session Progress (2026-03-21, Session 4)
 
@@ -83,8 +104,8 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Phase 3 is now unblocked** — the minimum viable component set for rewriting `docs/concepts/what-is-stigmer.mdx` is complete: DefinitionBanner + ComparisonTable + RelatedDocs + ProblemStatement. This is the highest-value next task.
-2. **PropertyTable (batch 2, optional)** — needs a design conversation: existing "Key properties" tables across concept pages vary from 2–4 columns. May not justify a custom component vs. plain markdown tables. Evaluate during Phase 3 rewrite.
+1. **Rewrite remaining 4 concept pages** — `agent.mdx`, `agent-execution.mdx`, `session.mdx`, `workflow.mdx` all follow the same structure as `what-is-stigmer.mdx` and can be rewritten with the same four components. This is the highest-leverage next task — it validates the component framework across all concept pages and produces a consistent experience.
+2. **PropertyTable (deferred)** — decision made in Session 5 to defer. Tables across concept pages vary from 2–4 columns. Revisit after all 5 pages use the existing 4 components to see if the remaining markdown tables warrant a custom component.
 3. **Lower-priority components** — `QuickExample` (low complexity, "Getting started" works fine as plain code blocks), `Prerequisites` and `StepSequence` (quickstart pages — deferred until quickstart content exists to validate against).
 4. **Phase 4: Finalize workflow** — document the content designer/author/engineer handoff.
 
@@ -130,13 +151,12 @@ _snippets/content-quality.md
 
 ## Context for Resume
 
-- Phase 1 (cleanup) and Phase 2 scaffolding are both complete
-- Phase 2 batch 1 (DefinitionBanner, ComparisonTable, RelatedDocs) is complete
-- Phase 2 batch 2 partial: ProblemStatement is complete. PropertyTable deferred pending design conversation.
+- Phase 1 (cleanup), Phase 2 (components), and Phase 3 (proof rewrite) are all complete
+- `what-is-stigmer.mdx` is the first page using all four custom components — it is the reference pattern for rewriting the remaining 4 concept pages
+- PropertyTable deferred (Session 5 decision): markdown tables stay for now across all pages
 - `@docs-kit` is the internal package alias — all doc components import from here
 - Fumadocs built-ins (Callout, Tabs, Steps, Accordion, Card, Cards) are re-exported through docs-kit
 - Custom components: `DefinitionBanner`, `ComparisonTable`, `RelatedDocs`, `ProblemStatement` — all server components, all registered in MDX map
-- Minimum viable set for Phase 3 doc rewrite is complete (DefinitionBanner + ComparisonTable + RelatedDocs + ProblemStatement)
 - `Mermaid` and `LanguageIcons` already live in docs-kit
 - The `internal/` directory under docs-kit is empty — ready for shared utilities when needed
 - Components are server components by default; only add `"use client"` when needed
