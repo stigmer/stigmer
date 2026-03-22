@@ -48,6 +48,117 @@ Environment configuration."
 - Keep blocks short. If a block exceeds 30 lines, break it into smaller pieces
   with explanatory prose between them.
 
+## MDX components
+
+Custom components are available in all `.mdx` files without imports. Use them to
+improve readability and structure.
+
+### Callouts
+
+Highlight important information with a colored sidebar and icon.
+
+```mdx
+<Callout type="info">General information the reader should know.</Callout>
+<Callout type="warn">Something the reader should be cautious about.</Callout>
+<Callout type="error">A critical warning or breaking change.</Callout>
+```
+
+### Tabs
+
+Show alternative content (install methods, platform-specific instructions).
+
+```mdx
+<Tabs items={["npm", "yarn", "pnpm"]}>
+  <Tab value="npm">npm install @stigmer/sdk</Tab>
+  <Tab value="yarn">yarn add @stigmer/sdk</Tab>
+  <Tab value="pnpm">pnpm add @stigmer/sdk</Tab>
+</Tabs>
+```
+
+### SDK language tabs
+
+Use `<SDKTabs>` for multi-language SDK code examples. The selected language
+persists across pages.
+
+```mdx
+<SDKTabs>
+  <Tab value="Go">Go code here</Tab>
+  <Tab value="TypeScript">TypeScript code here</Tab>
+  <Tab value="Python">Python code here</Tab>
+  <Tab value="Java">Java code here</Tab>
+</SDKTabs>
+```
+
+### Steps
+
+Numbered step-by-step instructions for tutorials and how-to guides.
+
+```mdx
+<Steps>
+  <Step>### Install the CLI
+  Download and install the Stigmer CLI.</Step>
+  <Step>### Create an Agent
+  Define your first Agent.</Step>
+</Steps>
+```
+
+### Term tooltips
+
+Wrap a Stigmer domain term in `<Term>` to show its definition on hover.
+Definitions come from the glossary at `site/src/components/docs/glossary.ts`.
+
+```mdx
+When you create a <Term>Workflow</Term>, you define each step.
+```
+
+### File trees
+
+Visualize directory structures with interactive expand/collapse.
+
+```mdx
+<Files>
+  <Folder name="docs" defaultOpen>
+    <File name="index.mdx" />
+    <Folder name="concepts">
+      <File name="agents.mdx" />
+    </Folder>
+  </Folder>
+</Files>
+```
+
+### Accordions
+
+Collapsible sections for FAQ-style content or optional detail.
+
+```mdx
+<Accordions>
+  <Accordion title="What is an Agent?">
+  A reusable definition of what an AI assistant knows and can do.
+  </Accordion>
+</Accordions>
+```
+
+### TypeTable
+
+Structured property tables for API reference documentation.
+
+```mdx
+<TypeTable
+  type={{
+    name: { type: "string", description: "Agent name.", required: true },
+    model: { type: "string", description: "LLM model.", default: "gpt-4o" },
+  }}
+/>
+```
+
+### ImageZoom
+
+Click-to-zoom for screenshots and diagrams.
+
+```mdx
+<ImageZoom src="/docs/screenshot.png" alt="Dashboard overview" />
+```
+
 ## Prose
 
 - Write in **second person** ("you") when addressing the reader.

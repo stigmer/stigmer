@@ -68,4 +68,8 @@ whoami
 [Zz]sh
 [Pp]owershell
 autoload
+[Cc]allout
+[Cc]allouts
 compinit
+[Tt]ooltip
+[Tt]ooltips
