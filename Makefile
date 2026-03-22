@@ -102,9 +102,7 @@ libs-build:
 web-build:
 	npm run build -w client-apps/web
 
-# lint-docs temporarily removed — existing AI-generated docs do not pass Vale yet.
-# Restore after T05 archives stale content and establishes clean docs.
-check: protos tidy lint libs-build web-build build test ## Run full CI gate locally
+check: protos tidy lint lint-docs format-docs-check libs-build web-build build test ## Run full CI gate locally
 
 # ─── Docs Linting ─────────────────────────────
 
@@ -183,9 +181,12 @@ web-console-build:
 
 # ─── Site ─────────────────────────────────────
 
-.PHONY: site
+.PHONY: site docs-build
 site: ## Start the documentation website with hot reload
 	$(MAKE) -C site dev
+
+docs-build: ## Build the documentation site (production)
+	$(MAKE) -C site build
 
 # ─── Release ──────────────────────────────────
 
