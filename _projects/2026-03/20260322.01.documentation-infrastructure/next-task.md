@@ -68,20 +68,24 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-22 09:54
-**Current Task**: Session 8 complete. Next: T15 (PR Previews), T10 (Snipsync), or T12 (CLI Docs)
-**Status**: Phase 1 COMPLETE, Phase 2 COMPLETE, Phase 4 PARTIALLY COMPLETE
+**Current Task**: Session 10 complete. Next: T15 (PR Previews), T10 (Snipsync), or T13 (Proto API Reference)
+**Status**: Phase 1 COMPLETE, Phase 2 COMPLETE, Phase 3 PARTIALLY COMPLETE, Phase 4 PARTIALLY COMPLETE
 
-## Session Progress (2026-03-22, Session 8)
+## Session Progress (2026-03-22, Session 10)
 
 ### Completed
-- **Added breadcrumb navigation with home link** — Docs pages now show full breadcrumb trail
-  - Added `breadcrumb` prop to `DocsPage` in `site/src/app/docs/[[...slug]]/page.tsx`
-  - `includeRoot: { url: "/docs" }` adds a clickable "Docs" root link back to the docs homepage
-  - `includePage: true` displays the current page name at the end of the trail
-  - Result: `Docs > Getting Started > Installation` (all segments clickable)
-  - Verified in browser: breadcrumb renders correctly, "Docs" link navigates to `/docs` home
+- **T12: CLI Reference Generation — COMPLETE**
+  - Built custom Go doc generator at `client-apps/cli/cmd/gen-cli-docs/main.go` (~350 lines)
+  - Generated 20 MDX command reference pages + index + `meta.json` sidebar config
+  - Integrated Make targets: `gen-cli-docs`, `gen-cli-docs-check`, `codegen` umbrella
+  - Added CI freshness check job (`cli-docs-freshness`) to `.github/workflows/ci.docs.yaml`
+  - Tuned `.vale.ini` with dedicated scope for auto-generated CLI reference content
+  - Enhanced `docs/cli/index.mdx` with links to command reference and configuration
+  - Verified all pages render correctly via dev server (HTTP 200, sidebar, breadcrumbs)
 
 ### Previously Completed
+- **Session 9**: Docs home page redesign, "What is Stigmer?" relocation to concepts
+- **Session 8**: Added breadcrumb navigation with home link
 - **Session 7**: Fixed light/dark theme system (distinct palettes for both modes)
 - **Session 6**: Docs navigation simplification, "What is Stigmer?" content rewrite
 - **Session 5**: T14 — CI Quality Gates (first PR-triggered workflow in the repo)
@@ -102,10 +106,10 @@ When starting a new session:
 ### Phase 2: Fumadocs Integration — COMPLETE
 - [x] T06: Fumadocs Setup (includes T07 navigation, T08 Make targets, T09 search)
 
-### Phase 3: Code Sample Pipeline — NOT STARTED
+### Phase 3: Code Sample Pipeline — PARTIALLY COMPLETE
 - [ ] T10: Snipsync Setup
 - [ ] T11: Example Projects
-- [ ] T12: CLI Reference Generation
+- [x] T12: CLI Reference Generation
 - [ ] T13: Proto API Reference (experimental)
 
 ### Phase 4: CI/CD Pipeline — PARTIALLY COMPLETE
@@ -122,7 +126,7 @@ When starting a new session:
 
 1. **T15: PR Preview Deployments** — Deploy preview URLs on docs PRs (requires choosing Vercel, Cloudflare Pages, or Netlify)
 2. **T10: Snipsync Setup** — Code sample extraction (requires `examples/` directory with working code)
-3. **T12: CLI Reference Generation** — Auto-generated CLI docs from `stigmer --help`
+3. **T13: Proto API Reference** — Auto-generated proto API docs (experimental, slots into `codegen` umbrella)
 4. **Link checking improvements** — Add `.lychee.toml` config to handle Fumadocs-style links and exclude known flaky external URLs
 
 ## Context for Resume
@@ -136,6 +140,8 @@ When starting a new session:
 - Session 6 checkpoint: `checkpoints/2026-03-22-session-6.md`
 - Session 7 checkpoint: `checkpoints/2026-03-22-session-7.md`
 - Session 8 checkpoint: `checkpoints/2026-03-22-session-8.md`
+- Session 9 checkpoint: `checkpoints/2026-03-22-session-9.md`
+- Session 10 checkpoint: `checkpoints/2026-03-22-session-10.md`
 - T06 execution plan: `.cursor/plans/t06_fumadocs_setup_b1353cf0.plan.md`
 - T14 execution plan: `.cursor/plans/t14_ci_quality_gates_6fe9edad.plan.md`
 - **Critical**: Node.js 22 is required. Node.js 23 silently breaks `next build` (webpack cache snapshot bug). `.nvmrc` is set.
