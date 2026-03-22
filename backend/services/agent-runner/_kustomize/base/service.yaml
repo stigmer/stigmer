@@ -45,6 +45,9 @@ spec:
             value: $variables-group/stigmer-llm-config/max-tokens
           STIGMER_LLM_BASE_URL:
             value: $variables-group/stigmer-llm-config/prod.ollama-base-url
+          # MongoDB Checkpointer Configuration (cloud mode uses mongodb by default)
+          STIGMER_CHECKPOINTER_MONGODB_DB:
+            value: $variables-group/stigmer-mongodb-config/prod.checkpointer-db-name
           # Logging
           LOG_LEVEL:
             value: INFO
