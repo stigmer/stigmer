@@ -119,5 +119,10 @@ bazel-*
 # npm auth tokens (never commit)
 .npmrc
 
+# Vale (downloaded style packages — run `vale sync` to fetch)
+vale/styles/Google/
+vale/styles/Microsoft/
+vale/styles/alex/
+
 # Cursor
 _cursor/

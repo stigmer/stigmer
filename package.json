@@ -15,6 +15,7 @@
     "test": "npm run test -w @stigmer/sdk && npm run test -w @stigmer/react && npm run test -w @stigmer/theme"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.2.1"
+    "@tailwindcss/cli": "^4.2.1",
+    "prettier": "^3.8.1"
   }
 }
