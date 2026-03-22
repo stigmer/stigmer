@@ -112,6 +112,38 @@ Husky runs two checks on every commit:
 To bypass hooks in an emergency, use `git commit --no-verify`. CI will still
 catch issues.
 
+## MDX components
+
+Custom components are available in all `.mdx` files without needing `import`
+statements. See [STYLE.md](STYLE.md) for usage examples of each component.
+
+Available components: `Callout`, `Tabs`/`Tab`, `SDKTabs`, `Steps`/`Step`,
+`Term`, `Files`/`Folder`/`File`, `Accordions`/`Accordion`, `TypeTable`,
+`ImageZoom`, `Cards`/`Card`.
+
+### Docs component directory
+
+Custom docs-specific components live in `site/src/components/docs/`. This
+directory is separate from the website components (`site/src/components/ui/`,
+`layout/`, etc.) to maintain a clear boundary between the marketing site and
+documentation.
+
+| File            | Purpose                                     |
+| --------------- | ------------------------------------------- |
+| `glossary.ts`   | Term definitions for the `<Term>` component |
+| `term.tsx`      | `<Term>` glossary tooltip component         |
+| `sdk-tabs.tsx`  | `<SDKTabs>` language switcher wrapper       |
+| `index.ts`      | Barrel export                               |
+
+All components (Fumadocs built-ins and custom) are registered in
+`site/src/components/mdx.tsx`.
+
+### Adding a new glossary term
+
+Edit `site/src/components/docs/glossary.ts` and add an entry to the `glossary`
+object. The key is the term as it appears in prose; the value is a one- or
+two-sentence plain-language definition.
+
 ## Writing conventions
 
 See [STYLE.md](STYLE.md) for the full style guide. The key points:
