@@ -11,8 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"bytes"
-
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -22,9 +20,9 @@ import (
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/cliprint"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/llm"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/seedpackbootstrap"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/temporal"
 	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
-	"github.com/stigmer/stigmer/seedpack"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -47,10 +45,6 @@ const (
 	// AgentRunnerPIDFileName stores the agent-runner PID.
 	AgentRunnerPIDFileName = "agent-runner.pid"
 
-	seedpackBootstrapFlagFile = ".seedpack-bootstrapped"
-	seedpackSkipEnvVar        = "STIGMER_SKIP_SEEDPACK_BOOTSTRAP"
-	seedpackOrgEnvVar         = "STIGMER_SEEDPACK_ORG"
-	seedpackOrgDefault        = "stigmer"
 )
 
 // StartOptions provides options for starting the daemon.
@@ -542,116 +536,13 @@ func EnsureRunning(dataDir string) error {
 // EnsureSeedpackBootstrapped applies the embedded seedpack content if the
 // current binary's seedpack differs from the last-applied version.
 //
-// Bootstrap runs in two phases to respect the resource hierarchy
-// (Organization -> Project -> Members):
-//
-//  1. Apply organization resources — creates the prerequisite Organization
-//     that all other resources belong to.
-//  2. Apply the project — creates agents, skills, MCP servers, and the
-//     project itself under the organization from phase 1.
+// Delegates to seedpackbootstrap.Apply with the daemon's data directory
+// as the marker location for idempotency.
 func EnsureSeedpackBootstrapped(dataDir string) error {
-	if os.Getenv(seedpackSkipEnvVar) == "1" {
-		log.Debug().Msg("Seedpack bootstrap skipped (recursion guard)")
-		return nil
-	}
-
-	currentHash, err := seedpack.ContentHash()
-	if err != nil {
-		return errors.Wrap(err, "failed to compute seedpack content hash")
-	}
-
-	flagPath := filepath.Join(dataDir, seedpackBootstrapFlagFile)
-	storedHash, err := os.ReadFile(flagPath)
-	if err == nil && strings.TrimSpace(string(storedHash)) == currentHash {
-		log.Debug().Str("hash", currentHash).Msg("Seedpack already bootstrapped (hash matches)")
-		return nil
-	}
-
-	log.Info().
-		Str("current_hash", currentHash).
-		Str("stored_hash", strings.TrimSpace(string(storedHash))).
-		Msg("Seedpack bootstrap required (hash mismatch or first run)")
-
-	climsg.Info("Applying system resources (seedpack)...")
-
-	tmpDir, err := os.MkdirTemp("", "stigmer-seedpack-*")
-	if err != nil {
-		return errors.Wrap(err, "failed to create temp directory for seedpack")
-	}
-	defer os.RemoveAll(tmpDir)
-
-	if err := seedpack.ExtractToDir(tmpDir); err != nil {
-		return errors.Wrap(err, "failed to extract seedpack")
-	}
-
-	cliBin, err := os.Executable()
-	if err != nil {
-		return errors.Wrap(err, "failed to get CLI executable path")
-	}
-
-	bootstrapEnv := append(os.Environ(), seedpackSkipEnvVar+"=1")
-	verbose := zerolog.GlobalLevel() <= zerolog.DebugLevel
-
-	// Phase 1: Apply organizations first. Organization is the root of the
-	// resource hierarchy and must exist before any project members reference it.
-	orgDir := filepath.Join(tmpDir, "organizations")
-	if info, statErr := os.Stat(orgDir); statErr == nil && info.IsDir() {
-		cmd := exec.Command(cliBin, "apply", "-f", orgDir)
-		cmd.Env = bootstrapEnv
-		var buf bytes.Buffer
-		if verbose {
-			cmd.Stdout = os.Stderr
-			cmd.Stderr = os.Stderr
-		} else {
-			cmd.Stdout = &buf
-			cmd.Stderr = &buf
-		}
-		if err := cmd.Run(); err != nil {
-			if !verbose {
-				os.Stderr.Write(buf.Bytes())
-			}
-			return errors.Wrap(err, "failed to apply seedpack organizations")
-		}
-	}
-
-	// Phase 2: Apply the project (agents, skills, MCP servers).
-	// Organization YAMLs are skipped by the declarative apply flow, so this
-	// is safe even though the organizations/ directory still exists in tmpDir.
-	//
-	// The --org flag overrides stigmer.yaml's metadata.org, allowing the
-	// seedpack org to be controlled externally via STIGMER_SEEDPACK_ORG
-	// without modifying the embedded YAML.
-	seedpackOrg := os.Getenv(seedpackOrgEnvVar)
-	if seedpackOrg == "" {
-		seedpackOrg = seedpackOrgDefault
-	}
-	cmd := exec.Command(cliBin, "apply", "--config", tmpDir, "--org", seedpackOrg)
-	cmd.Env = bootstrapEnv
-	var buf bytes.Buffer
-	if verbose {
-		cmd.Stdout = os.Stderr
-		cmd.Stderr = os.Stderr
-	} else {
-		cmd.Stdout = &buf
-		cmd.Stderr = &buf
-	}
-	if err := cmd.Run(); err != nil {
-		if !verbose {
-			os.Stderr.Write(buf.Bytes())
-		}
-		return errors.Wrap(err, "failed to apply seedpack project")
-	}
-
-	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		return errors.Wrap(err, "failed to ensure data directory exists")
-	}
-
-	if err := os.WriteFile(flagPath, []byte(currentHash), 0644); err != nil {
-		log.Warn().Err(err).Msg("Failed to write seedpack bootstrap flag file")
-	}
-
-	climsg.Success("✓ System resources applied successfully")
-	return nil
+	return seedpackbootstrap.Apply(seedpackbootstrap.Options{
+		MarkerDir: dataDir,
+		Verbose:   zerolog.GlobalLevel() <= zerolog.DebugLevel,
+	})
 }
 
 // EnsureOrgContext checks whether the CLI has an active organization context

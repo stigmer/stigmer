@@ -74,6 +74,7 @@ func init() {
 	// Server Commands
 	rootCmd.AddCommand(withGroup(root.NewServerCommand(), "server"))
 	rootCmd.AddCommand(withGroup(root.NewMCPServerCommand(), "server"))
+	rootCmd.AddCommand(withGroup(root.NewSeedpackCommand(), "server"))
 
 	// Configuration
 	rootCmd.AddCommand(withGroup(root.NewAuthCommand(), "config"))
