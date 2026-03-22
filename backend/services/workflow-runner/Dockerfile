@@ -1,27 +1,38 @@
+# Multi-stage Dockerfile for workflow-runner service
+#
+# Build context: Repository root
+# Build command: docker build -f backend/services/workflow-runner/Dockerfile -t workflow-runner .
+
+# ---------- Builder Stage ----------
 FROM golang:1.24 AS builder
 
-WORKDIR /app
+# Match repository structure so the go.mod replace directive resolves:
+#   replace github.com/stigmer/stigmer/apis/stubs/go => ../../../apis/stubs/go
+WORKDIR /app/backend/services/workflow-runner
 
-# Copy Go modules files
-COPY go.mod go.sum ./
+# Copy dependency manifests first for layer caching
+COPY backend/services/workflow-runner/go.mod backend/services/workflow-runner/go.sum ./
+
+# Copy local path dependency referenced by replace directive in go.mod
+COPY apis/stubs/go /app/apis/stubs/go
+
 RUN go mod download
 
 # Copy source code
-COPY . .
+COPY backend/services/workflow-runner/ .
 
 # Build binary
 RUN CGO_ENABLED=0 GOOS=linux go build -o workflow-runner ./cmd/worker
 
-# Final stage
+# ---------- Runtime Stage ----------
 FROM alpine:3.19
 
-# Install CA certificates for HTTPS
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /app/workflow-runner .
+COPY --from=builder /app/backend/services/workflow-runner/workflow-runner .
 
 # Run as non-root user
 RUN addgroup -g 1000 workflow && \
@@ -31,4 +42,3 @@ RUN addgroup -g 1000 workflow && \
 USER workflow
 
 CMD ["./workflow-runner"]
-
