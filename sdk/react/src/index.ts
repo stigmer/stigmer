@@ -323,6 +323,24 @@ export type {
   CreateOrganizationFormProps,
 } from "./organization";
 
+// API Key — data hooks, behavior hooks, and styled components for API key lifecycle
+export {
+  useApiKeyList,
+  useCreateApiKey,
+  useDeleteApiKey,
+  ApiKeyListPanel,
+  CreateApiKeyForm,
+  ApiKeyCreatedAlert,
+} from "./api-key";
+export type {
+  UseApiKeyListReturn,
+  UseCreateApiKeyReturn,
+  UseDeleteApiKeyReturn,
+  ApiKeyListPanelProps,
+  CreateApiKeyFormProps,
+  ApiKeyCreatedAlertProps,
+} from "./api-key";
+
 // Error — structured error display with classification, retry, and contextual guidance
 export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error";
 export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error";

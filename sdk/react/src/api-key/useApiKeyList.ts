@@ -1,0 +1,68 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import type { ApiKey } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import { useStigmer } from "../hooks";
+import { toError } from "../internal/toError";
+
+export interface UseApiKeyListReturn {
+  readonly apiKeys: readonly ApiKey[];
+  readonly isLoading: boolean;
+  readonly error: Error | null;
+  readonly refetch: () => void;
+}
+
+/**
+ * Data hook that fetches all {@link ApiKey} entries for the
+ * authenticated identity.
+ *
+ * API keys are identity-scoped — the server returns every key owned
+ * by the identity in the auth header, regardless of organization.
+ * Call `refetch()` to re-query after mutations (create / delete).
+ *
+ * The raw key value is never returned by `findAll` — only the
+ * `fingerprint` (last 6 characters) is available for display.
+ *
+ * @example
+ * ```tsx
+ * const { apiKeys, isLoading, error, refetch } = useApiKeyList();
+ *
+ * if (isLoading) return <Spinner />;
+ * apiKeys.map((k) => k.metadata?.name);
+ * ```
+ */
+export function useApiKeyList(): UseApiKeyListReturn {
+  const stigmer = useStigmer();
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [fetchKey, setFetchKey] = useState(0);
+
+  const refetch = useCallback(() => setFetchKey((k) => k + 1), []);
+
+  useEffect(() => {
+    const cancelled = { current: false };
+
+    setIsLoading(true);
+    setError(null);
+
+    stigmer.apiKey.findAll().then(
+      (result) => {
+        if (cancelled.current) return;
+        setApiKeys([...result.entries]);
+        setIsLoading(false);
+      },
+      (err) => {
+        if (cancelled.current) return;
+        setError(toError(err));
+        setIsLoading(false);
+      },
+    );
+
+    return () => {
+      cancelled.current = true;
+    };
+  }, [stigmer, fetchKey]);
+
+  return { apiKeys, isLoading, error, refetch };
+}
