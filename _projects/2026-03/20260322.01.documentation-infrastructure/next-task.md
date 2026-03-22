@@ -68,22 +68,21 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-22 09:54
-**Current Task**: Session 7 complete. Next: T15 (PR Previews), T10 (Snipsync), or T12 (CLI Docs)
+**Current Task**: Session 8 complete. Next: T15 (PR Previews), T10 (Snipsync), or T12 (CLI Docs)
 **Status**: Phase 1 COMPLETE, Phase 2 COMPLETE, Phase 4 PARTIALLY COMPLETE
 
-## Session Progress (2026-03-22, Session 7)
+## Session Progress (2026-03-22, Session 8)
 
 ### Completed
-- **Fixed light/dark theme system** — Both modes previously rendered identically as dark
-  - Removed hardcoded `className="dark"` from `<html>` in `layout.tsx`, added `suppressHydrationWarning`
-  - Split `globals.css` into distinct light (`:root`) and dark (`.dark`) palettes
-  - Fumadocs `--color-fd-*` overrides now have separate light and dark definitions
-  - `CodeBlock` and `CodeSnippet` dynamically select `oneDark`/`oneLight` syntax themes
-  - `MobileMenu` backdrop is theme-aware (`bg-foreground/60`)
-  - `Hero` grid pattern uses neutral gray with mode-specific opacity
-  - Verified visually: docs pages, marketing homepage, Fumadocs theme toggle
+- **Added breadcrumb navigation with home link** — Docs pages now show full breadcrumb trail
+  - Added `breadcrumb` prop to `DocsPage` in `site/src/app/docs/[[...slug]]/page.tsx`
+  - `includeRoot: { url: "/docs" }` adds a clickable "Docs" root link back to the docs homepage
+  - `includePage: true` displays the current page name at the end of the trail
+  - Result: `Docs > Getting Started > Installation` (all segments clickable)
+  - Verified in browser: breadcrumb renders correctly, "Docs" link navigates to `/docs` home
 
 ### Previously Completed
+- **Session 7**: Fixed light/dark theme system (distinct palettes for both modes)
 - **Session 6**: Docs navigation simplification, "What is Stigmer?" content rewrite
 - **Session 5**: T14 — CI Quality Gates (first PR-triggered workflow in the repo)
 - **Session 4**: T03 — Pre-commit Hooks, T04 — Style Guide + Contributing Guide
@@ -136,6 +135,7 @@ When starting a new session:
 - Session 5 checkpoint: `checkpoints/2026-03-22-session-5.md`
 - Session 6 checkpoint: `checkpoints/2026-03-22-session-6.md`
 - Session 7 checkpoint: `checkpoints/2026-03-22-session-7.md`
+- Session 8 checkpoint: `checkpoints/2026-03-22-session-8.md`
 - T06 execution plan: `.cursor/plans/t06_fumadocs_setup_b1353cf0.plan.md`
 - T14 execution plan: `.cursor/plans/t14_ci_quality_gates_6fe9edad.plan.md`
 - **Critical**: Node.js 22 is required. Node.js 23 silently breaks `next build` (webpack cache snapshot bug). `.nvmrc` is set.
