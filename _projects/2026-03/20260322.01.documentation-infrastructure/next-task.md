@@ -68,20 +68,19 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-22 09:54
-**Current Task**: Session 10 complete. Next: T15 (PR Previews), T10 (Snipsync), or T13 (Proto API Reference)
+**Current Task**: Session 11 complete. Next: T15 (PR Previews), T10 (Snipsync), or T13 (Proto API Reference)
 **Status**: Phase 1 COMPLETE, Phase 2 COMPLETE, Phase 3 PARTIALLY COMPLETE, Phase 4 PARTIALLY COMPLETE
 
-## Session Progress (2026-03-22, Session 10)
+## Session Progress (2026-03-22, Session 11)
 
 ### Completed
-- **T12: CLI Reference Generation — COMPLETE**
-  - Built custom Go doc generator at `client-apps/cli/cmd/gen-cli-docs/main.go` (~350 lines)
-  - Generated 20 MDX command reference pages + index + `meta.json` sidebar config
-  - Integrated Make targets: `gen-cli-docs`, `gen-cli-docs-check`, `codegen` umbrella
-  - Added CI freshness check job (`cli-docs-freshness`) to `.github/workflows/ci.docs.yaml`
-  - Tuned `.vale.ini` with dedicated scope for auto-generated CLI reference content
-  - Enhanced `docs/cli/index.mdx` with links to command reference and configuration
-  - Verified all pages render correctly via dev server (HTTP 200, sidebar, breadcrumbs)
+- **Fix: MDX angle-bracket escaping in gen-cli-docs**
+  - Diagnosed MDX build errors: bare `<placeholder>` tokens, bash `<(` process substitution, and `{ }` curly braces in prose were parsed as JSX
+  - Added `angleBracketRe` regex and `escapeMDX` function to `client-apps/cli/cmd/gen-cli-docs/main.go`
+  - `escapeMDX` wraps `<word>` tokens in backticks for inline-code rendering, then backslash-escapes remaining `<`, `{`, `}` outside backtick spans
+  - Applied in `formatLongDescription` (prose paragraphs) and `escapeTable` (table cells)
+  - Regenerated all 20 command pages + index — zero MDX parse errors
+  - Verified `apikey.mdx`, `completion.mdx`, `mcp-server.mdx` all render cleanly in dev server
 
 ### Previously Completed
 - **Session 9**: Docs home page redesign, "What is Stigmer?" relocation to concepts
@@ -142,6 +141,7 @@ When starting a new session:
 - Session 8 checkpoint: `checkpoints/2026-03-22-session-8.md`
 - Session 9 checkpoint: `checkpoints/2026-03-22-session-9.md`
 - Session 10 checkpoint: `checkpoints/2026-03-22-session-10.md`
+- Session 11 checkpoint: `checkpoints/2026-03-22-session-11.md`
 - T06 execution plan: `.cursor/plans/t06_fumadocs_setup_b1353cf0.plan.md`
 - T12 execution plan: `.cursor/plans/t12_cli_reference_docs_85f99de8.plan.md`
 - T14 execution plan: `.cursor/plans/t14_ci_quality_gates_6fe9edad.plan.md`

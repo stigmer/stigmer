@@ -9,18 +9,18 @@ Execute an agent or workflow by reference, or browse agents interactively.
 
 ### Usage Forms
 
-stigmer run Browse and select an agent interactively stigmer run <agent-ref>
-Resolve agent by slug, org/slug, or ID stigmer run <type> <name-or-id> Explicit
-type + reference (backward-compatible)
+stigmer run Browse and select an agent interactively stigmer run `<agent-ref>`
+Resolve agent by slug, org/slug, or ID stigmer run `<type>` `<name-or-id>`
+Explicit type + reference (backward-compatible)
 
 The single-argument form resolves agents by default. If the reference does not
 match an agent exactly, an interactive search picker is shown.
 
 For workflows, use the explicit two-argument form: stigmer run workflow
-<name-or-id>
+`<name-or-id>`
 
 To resume a session, use the dedicated resume command: stigmer resume
-<session-id>
+`<session-id>`
 
 ### Environment Variables
 
@@ -38,7 +38,7 @@ Precedence (highest to lowest):
 
 ### Input Files
 
---attach PATH Attach a file as input (can be repeated) Files < 4MB: embedded
+--attach PATH Attach a file as input (can be repeated) Files \< 4MB: embedded
 inline Files >= 4MB: uploaded to artifact store
 
 ### Workspace
