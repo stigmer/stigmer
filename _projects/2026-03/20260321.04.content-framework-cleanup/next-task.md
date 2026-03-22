@@ -12,9 +12,49 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: Phase 2 scaffolding complete, ready to build custom components
-- **Last Session**: March 21, 2026 — created `@docs-kit` internal package
-- **Active Task**: Phase 2: Build custom doc components (DefinitionBanner first)
+- **Status**: Phase 2 — four custom doc components built (4 of 8), minimum viable set for Phase 3 rewrite is complete
+- **Last Session**: March 21, 2026 — built ProblemStatement (design discussion + implementation)
+- **Active Task**: Phase 2: Build remaining custom doc components (PropertyTable next, needs design conversation)
+
+## Session Progress (2026-03-21, Session 4)
+
+- Built `ProblemStatement` custom doc component in `@docs-kit`:
+  - Visual container for the "what goes wrong" problem section on concept pages. `<section>` with muted background, `fd-muted-foreground` left bar (differentiated from DefinitionBanner's `accent` bar). Descendant CSS styles consequence bullet markers.
+  - Children-based: wraps arbitrary MDX content (prose, code blocks, consequence bullets). No sub-components, no structured props.
+  - Headings stay in MDX for TOC compatibility (same pattern as RelatedDocs).
+- Exported `ProblemStatement` + `ProblemStatementProps` from `site/packages/docs-kit/index.ts`
+- Registered in the MDX component map (`site/src/app/docs/[[...slug]]/page.tsx`)
+- Verified: `yarn typecheck` and `yarn build` both pass clean (13 pages, all 7 docs)
+
+### Design Decisions Made (Session 4)
+
+| Decision | Rationale |
+|---|---|
+| Visual container (Option A), not sub-components (Option C) or focused list (Option B) | All 5 concept pages share identical problem section structure (narrative + code + "What goes wrong" + bullets). Content authors already follow this organically — no need to enforce internal structure with `<Problem>` sub-components. A wrapper provides the visual signal without fighting MDX composition. |
+| `children` only, no other props | Simplest API that solves the need. The heading stays in MDX (TOC constraint). Content inside is standard markdown — code blocks, prose, lists. No metadata to extract into props. |
+| `<section>` not `<aside>` | This is a content section of the page (the problem explanation), not supplementary information. DefinitionBanner uses `<aside role="note">` because it is a thesis statement/summary — supplementary to the main content. |
+| `fd-muted-foreground` left bar, `bg-fd-muted/30` background | Differentiates from DefinitionBanner (which uses `accent` left bar, `bg-fd-card`, `shadow-md`). ProblemStatement is less prominent — it's a section within the page, not a card floating above it. No shadow. |
+| No `not-prose` | Unlike ComparisonTable (custom table layout needing `not-prose`), ProblemStatement wraps prose content — paragraphs, code blocks, lists. Prose styling must be inherited for correct rendering. |
+| Departed from plan's `<Problem>` sub-component sketch | The plan's Phase 3 example was a simplified sketch. Actual content includes code blocks, narrative paragraphs, and rich bullet text that would be awkward as structured child components. MDX composition with JSX sub-components is also the most fragile pattern (whitespace/newline sensitivity). |
+
+## Session Progress (2026-03-21, Session 3)
+
+- Built 3 custom doc components in `@docs-kit`:
+  - `DefinitionBanner` — page-level TL;DR with optional analogy badge. `<aside role="note">` with accent left border. Uses Fumadocs `fd-` tokens for structural styling, Stigmer `accent` token for brand identity.
+  - `ComparisonTable` — two-column without/with comparison table. Props-based rows (not children), muted "before" column, full-contrast "after" column. `not-prose` to bypass Fumadocs table auto-styling.
+  - `RelatedDocs` — navigation card grid composing Fumadocs `Card`/`Cards`. Heading stays in MDX for TOC compatibility.
+- Exported all 3 components + their TypeScript interfaces from `site/packages/docs-kit/index.ts`
+- Registered all 3 in the MDX component map (`site/src/app/docs/[[...slug]]/page.tsx`)
+- Verified: `yarn typecheck` and `yarn build` both pass clean (13 pages, all 7 docs)
+
+### Design Decisions Made (Session 3)
+
+| Decision | Rationale |
+|---|---|
+| DefinitionBanner: analogy as badge prop, not inline text | Analogy is metadata about the definition (classifies the concept). Badge creates a scannable pattern across pages. Definition text stands alone without it. |
+| ComparisonTable: rows as typed props, not MDX children | Table data is data, not composition. Props give build-time type safety. More AI-friendly than nested JSX. |
+| RelatedDocs: heading outside component (in MDX) | Fumadocs extracts TOC headings from MDX AST at compile time. A heading rendered inside a React component would NOT appear in the sidebar TOC. Hard constraint. |
+| Fumadocs `fd-` tokens for structure, Stigmer tokens for accents | Components live inside Fumadocs docs layout. Using `fd-` tokens ensures visual consistency with Callout, Card, etc. Stigmer `accent`/`primary` used only for brand accent elements. |
 
 ## Session Progress (2026-03-21, Session 2)
 
@@ -43,9 +83,10 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Build custom doc components** — start with `DefinitionBanner`, then `ProblemStatement`, `ComparisonTable`, etc. Each component gets its own review cycle (prop API presented before coding).
-2. **Phase 3: Rewrite one doc as proof** — rewrite `docs/concepts/what-is-stigmer.mdx` using the new component library to validate the framework.
-3. **Phase 4: Finalize workflow** — document the content designer/author/engineer handoff.
+1. **Phase 3 is now unblocked** — the minimum viable component set for rewriting `docs/concepts/what-is-stigmer.mdx` is complete: DefinitionBanner + ComparisonTable + RelatedDocs + ProblemStatement. This is the highest-value next task.
+2. **PropertyTable (batch 2, optional)** — needs a design conversation: existing "Key properties" tables across concept pages vary from 2–4 columns. May not justify a custom component vs. plain markdown tables. Evaluate during Phase 3 rewrite.
+3. **Lower-priority components** — `QuickExample` (low complexity, "Getting started" works fine as plain code blocks), `Prerequisites` and `StepSequence` (quickstart pages — deferred until quickstart content exists to validate against).
+4. **Phase 4: Finalize workflow** — document the content designer/author/engineer handoff.
 
 ## Essential Files
 
@@ -90,11 +131,16 @@ _snippets/content-quality.md
 ## Context for Resume
 
 - Phase 1 (cleanup) and Phase 2 scaffolding are both complete
+- Phase 2 batch 1 (DefinitionBanner, ComparisonTable, RelatedDocs) is complete
+- Phase 2 batch 2 partial: ProblemStatement is complete. PropertyTable deferred pending design conversation.
 - `@docs-kit` is the internal package alias — all doc components import from here
 - Fumadocs built-ins (Callout, Tabs, Steps, Accordion, Card, Cards) are re-exported through docs-kit
+- Custom components: `DefinitionBanner`, `ComparisonTable`, `RelatedDocs`, `ProblemStatement` — all server components, all registered in MDX map
+- Minimum viable set for Phase 3 doc rewrite is complete (DefinitionBanner + ComparisonTable + RelatedDocs + ProblemStatement)
 - `Mermaid` and `LanguageIcons` already live in docs-kit
 - The `internal/` directory under docs-kit is empty — ready for shared utilities when needed
 - Components are server components by default; only add `"use client"` when needed
+- Theming pattern: `fd-` prefixed Tailwind classes for Fumadocs structural consistency, Stigmer design tokens (`accent`, `primary`) for brand accent elements
 - Three JSON files survived Phase 1: `docs/standards/terminology.json`, `site/standards/copy-guidelines.json`, `site/standards/performance-budget.json`
 - Two lint scripts survived: `site/scripts/lint-copy.ts`, `site/scripts/lint-performance.sh`
 - Console roles (004_web_ux_ui, 006_ux_designer) are untouched

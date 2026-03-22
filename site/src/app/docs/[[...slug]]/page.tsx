@@ -12,6 +12,10 @@ import {
   Accordions,
   Mermaid,
   LanguageIcons,
+  DefinitionBanner,
+  ComparisonTable,
+  RelatedDocs,
+  ProblemStatement,
 } from "@docs-kit";
 import { PageRoot, PageArticle } from "fumadocs-ui/layouts/docs/page";
 import { notFound } from "next/navigation";
@@ -29,6 +33,10 @@ const mdxComponents = {
   Accordions,
   Mermaid,
   LanguageIcons,
+  DefinitionBanner,
+  ComparisonTable,
+  RelatedDocs,
+  ProblemStatement,
 };
 
 export default async function Page(props: {
