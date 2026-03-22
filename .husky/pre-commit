@@ -5,7 +5,7 @@ fi
 
 # Vale on staged docs files (graceful degradation if not installed)
 if command -v vale >/dev/null 2>&1; then
-  STAGED_DOCS=$(git diff --cached --name-only --diff-filter=ACM -- 'docs/*.md' 'docs/*.mdx' | grep -v '_archive/')
+  STAGED_DOCS=$(git diff --cached --name-only --diff-filter=ACM -- 'docs/*.md' 'docs/*.mdx' | grep -v '_archive/' || true)
   if [ -n "$STAGED_DOCS" ]; then
     vale sync 2>/dev/null
     echo "$STAGED_DOCS" | xargs vale

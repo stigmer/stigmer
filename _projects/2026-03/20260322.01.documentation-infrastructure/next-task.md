@@ -68,28 +68,29 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-22 09:54
-**Current Task**: Phase 1 complete. Next: Phase 3 (Snipsync) or Phase 4 (CI)
-**Status**: Phase 1 COMPLETE, Phase 2 COMPLETE
+**Current Task**: T14 complete. Next: T15 (PR Previews), T10 (Snipsync), or T12 (CLI Docs)
+**Status**: Phase 1 COMPLETE, Phase 2 COMPLETE, Phase 4 PARTIALLY COMPLETE
 
-## Session Progress (2026-03-22, Session 4)
+## Session Progress (2026-03-22, Session 5)
 
 ### Completed
-- **T03: Pre-commit Hooks** — Husky v9 + lint-staged for automated quality enforcement
-  - Added `husky` (v9.1.7) and `lint-staged` (v16.4.0) to root `package.json`
-  - `prepare` script auto-installs hooks on `npm install`
-  - lint-staged runs Prettier on `docs/**/*.{md,mdx}` files
-  - Pre-commit script runs Vale conditionally (graceful degradation if not installed)
-  - Updated `Makefile` `setup` target with Husky initialization
-  - Verified end-to-end: Prettier reformats, Vale catches violations, bad commits blocked
+- **T14: CI Quality Gates** — First PR-triggered workflow in the repo
+  - Created `.github/workflows/ci.docs.yaml` with three parallel jobs:
+    lint (Vale + Prettier), build (Fumadocs/Next.js), links (Lychee, non-blocking)
+  - Triggers on `pull_request` and `push` to `main` for docs/site/config changes
+  - Concurrency group cancels stale runs on the same PR branch
+  - `ci.` prefix convention established for PR check workflows
 
-- **T04: Style Guide and Contributing Guide** — Documentation conventions formalized
-  - Created `docs/STYLE.md` (~100 lines): audience, domain terms, headings, code blocks, prose, formatting
-  - Created `docs/CONTRIBUTING.md` (~120 lines): prerequisites, workflow, content architecture, Make targets
-  - Updated `.cursor/rules/stigmer-oss-documentation-standards.md` with canonical references
-  - Both files pass Vale with zero errors/warnings
-  - All 38 docs files pass `make lint-docs` and `make format-docs-check`
+- **Companion: `release.website.yaml` fixes**
+  - Added `docs/**` and `vale/**` to paths (docs-only merges now trigger deploy)
+  - Updated Node from 20 to 22 to match `.nvmrc`
+
+- **Companion: Makefile improvements**
+  - Restored `lint-docs` and `format-docs-check` in `check` target
+  - Added `docs-build` target for production site builds
 
 ### Previously Completed
+- **Session 4**: T03 — Pre-commit Hooks, T04 — Style Guide + Contributing Guide
 - **Session 3**: T06 — Fumadocs Integration (42 pages, 295KB search index)
 - **Session 2**: T05 — Archive + Fresh Content Architecture (116 files archived, 36 MDX scaffolded)
 - **Session 1**: T01 — Vale Prose Linter, T02 — Fix Broken Lint Target + Formatting
@@ -112,8 +113,8 @@ When starting a new session:
 - [ ] T12: CLI Reference Generation
 - [ ] T13: Proto API Reference (experimental)
 
-### Phase 4: CI/CD Pipeline — NOT STARTED
-- [ ] T14: CI Quality Gates
+### Phase 4: CI/CD Pipeline — PARTIALLY COMPLETE
+- [x] T14: CI Quality Gates
 - [ ] T15: PR Preview Deployments
 
 ### Phase 5: Advanced Features — NOT STARTED
@@ -124,9 +125,10 @@ When starting a new session:
 
 ## Next Steps
 
-1. **T14: CI Quality Gates** — GitHub Actions workflow for Vale/Prettier/build on docs PRs (no external dependencies, can start immediately)
+1. **T15: PR Preview Deployments** — Deploy preview URLs on docs PRs (requires choosing Vercel, Cloudflare Pages, or Netlify)
 2. **T10: Snipsync Setup** — Code sample extraction (requires `examples/` directory with working code)
 3. **T12: CLI Reference Generation** — Auto-generated CLI docs from `stigmer --help`
+4. **Link checking improvements** — Add `.lychee.toml` config to handle Fumadocs-style links and exclude known flaky external URLs
 
 ## Context for Resume
 - The full 5-phase plan is in `tasks/T01_0_plan.md` (449 lines)
@@ -135,7 +137,9 @@ When starting a new session:
 - Session 2 checkpoint: `checkpoints/2026-03-22-session-2.md`
 - Session 3 checkpoint: `checkpoints/2026-03-22-session-3.md`
 - Session 4 checkpoint: `checkpoints/2026-03-22-session-4.md`
+- Session 5 checkpoint: `checkpoints/2026-03-22-session-5.md`
 - T06 execution plan: `.cursor/plans/t06_fumadocs_setup_b1353cf0.plan.md`
+- T14 execution plan: `.cursor/plans/t14_ci_quality_gates_6fe9edad.plan.md`
 - **Critical**: Node.js 22 is required. Node.js 23 silently breaks `next build` (webpack cache snapshot bug). `.nvmrc` is set.
 - **Critical**: Dev server must use webpack, not Turbopack. `fumadocs-mdx` query-string imports (`?collection=docs`) are incompatible with Turbopack.
 - Fumadocs v15 is compatible with Next.js 15.x and Tailwind 4. v16 requires Next.js 16/React 19.2+.
@@ -143,12 +147,16 @@ When starting a new session:
 - Static Orama search uses `force-static` export with pre-built 295KB JSON index
 - Pre-commit hooks: Husky v9 + lint-staged. Prettier always runs; Vale runs if installed.
 - Style guide: `docs/STYLE.md`. Contributing guide: `docs/CONTRIBUTING.md`.
+- CI workflow: `.github/workflows/ci.docs.yaml` (lint, build, links — first PR check in repo)
+- Vale style packages are gitignored — `vale sync` is required in CI to download Google/Microsoft/alex
+- Lychee link checking has known false positives: Fumadocs slug-style links (`./skills` vs `./skills.mdx`)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T14" — CI quality gates (GitHub Actions)
+- "Continue with T15" — PR preview deployments (architecture decision needed)
 - "Continue with T10" — Snipsync setup (requires examples/)
+- "Continue with T12" — CLI reference generation
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 
