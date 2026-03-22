@@ -42,6 +42,7 @@ const (
 	// Resource ownership and membership
 	ApiResourceIamPermission_owner  ApiResourceIamPermission = 10 // Resource owner
 	ApiResourceIamPermission_member ApiResourceIamPermission = 11 // Resource member (for teams, organizations)
+	ApiResourceIamPermission_viewer ApiResourceIamPermission = 26 // Resource viewer (base relation for public visibility tuples)
 	// Structural relations (parent links)
 	ApiResourceIamPermission_identity_account ApiResourceIamPermission = 12 // Link to identity account (user-scoped parent)
 	ApiResourceIamPermission_organization     ApiResourceIamPermission = 13 // Link to organization (org-scoped parent)
@@ -77,6 +78,7 @@ var (
 		9:  "can_view_access",
 		10: "owner",
 		11: "member",
+		26: "viewer",
 		12: "identity_account",
 		13: "organization",
 		14: "session",
@@ -105,6 +107,7 @@ var (
 		"can_view_access":         9,
 		"owner":                   10,
 		"member":                  11,
+		"viewer":                  26,
 		"identity_account":        12,
 		"organization":            13,
 		"session":                 14,
@@ -153,7 +156,7 @@ var File_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission_proto proto
 
 const file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission_proto_rawDesc = "" +
 	"\n" +
-	"Aai/stigmer/iam/iampolicy/v1/rpcauthorization/iam_permission.proto\x12,ai.stigmer.iam.iampolicy.v1.rpcauthorization*\x81\x04\n" +
+	"Aai/stigmer/iam/iampolicy/v1/rpcauthorization/iam_permission.proto\x12,ai.stigmer.iam.iampolicy.v1.rpcauthorization*\x8d\x04\n" +
 	"\x18ApiResourceIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\n" +
 	"\n" +
@@ -170,7 +173,9 @@ const file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission_proto_raw
 	"\x05owner\x10\n" +
 	"\x12\n" +
 	"\n" +
-	"\x06member\x10\v\x12\x14\n" +
+	"\x06member\x10\v\x12\n" +
+	"\n" +
+	"\x06viewer\x10\x1a\x12\x14\n" +
 	"\x10identity_account\x10\f\x12\x10\n" +
 	"\forganization\x10\r\x12\v\n" +
 	"\asession\x10\x0e\x12\t\n" +

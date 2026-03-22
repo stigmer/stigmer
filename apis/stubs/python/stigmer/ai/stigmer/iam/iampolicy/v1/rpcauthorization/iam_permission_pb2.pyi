@@ -18,6 +18,7 @@ class ApiResourceIamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper
     can_view_access: _ClassVar[ApiResourceIamPermission]
     owner: _ClassVar[ApiResourceIamPermission]
     member: _ClassVar[ApiResourceIamPermission]
+    viewer: _ClassVar[ApiResourceIamPermission]
     identity_account: _ClassVar[ApiResourceIamPermission]
     organization: _ClassVar[ApiResourceIamPermission]
     session: _ClassVar[ApiResourceIamPermission]
@@ -44,6 +45,7 @@ can_grant_access: ApiResourceIamPermission
 can_view_access: ApiResourceIamPermission
 owner: ApiResourceIamPermission
 member: ApiResourceIamPermission
+viewer: ApiResourceIamPermission
 identity_account: ApiResourceIamPermission
 organization: ApiResourceIamPermission
 session: ApiResourceIamPermission

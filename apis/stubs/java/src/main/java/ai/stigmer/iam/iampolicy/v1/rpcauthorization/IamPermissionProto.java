@@ -37,26 +37,27 @@ public final class IamPermissionProto extends com.google.protobuf.GeneratedFile 
     java.lang.String[] descriptorData = {
       "\nAai/stigmer/iam/iampolicy/v1/rpcauthori" +
       "zation/iam_permission.proto\022,ai.stigmer." +
-      "iam.iampolicy.v1.rpcauthorization*\201\004\n\030Ap" +
+      "iam.iampolicy.v1.rpcauthorization*\215\004\n\030Ap" +
       "iResourceIamPermission\022\017\n\013unspecified\020\000\022" +
       "\n\n\006create\020\001\022\016\n\ncan_delete\020\002\022\014\n\010can_view\020" +
       "\003\022\014\n\010can_edit\020\004\022\014\n\010operator\020\005\022\014\n\010platfor" +
       "m\020\006\022\030\n\024login_to_back_office\020\007\022\024\n\020can_gra" +
       "nt_access\020\010\022\023\n\017can_view_access\020\t\022\t\n\005owne" +
-      "r\020\n\022\n\n\006member\020\013\022\024\n\020identity_account\020\014\022\020\n" +
-      "\014organization\020\r\022\013\n\007session\020\016\022\t\n\005agent\020\017\022" +
-      "\024\n\020can_create_agent\020\020\022\027\n\023can_create_work" +
-      "flow\020\021\022\026\n\022can_create_session\020\022\022\033\n\027can_cr" +
-      "eate_execution_in\020\023\022\027\n\023can_create_instan" +
-      "ce\020\024\022\024\n\020can_create_skill\020\025\022\026\n\022can_create" +
-      "_project\020\027\022\022\n\016can_create_idp\020\030\022\017\n\013can_ex" +
-      "ecute\020\026\022\024\n\020can_read_secrets\020\031B\354\001B\022IamPer" +
-      "missionProtoP\001\242\002\006ASIIVR\252\002,Ai.Stigmer.Iam" +
-      ".Iampolicy.V1.Rpcauthorization\312\002,Ai\\Stig" +
-      "mer\\Iam\\Iampolicy\\V1\\Rpcauthorization\342\0028" +
-      "Ai\\Stigmer\\Iam\\Iampolicy\\V1\\Rpcauthoriza" +
-      "tion\\GPBMetadata\352\0021Ai::Stigmer::Iam::Iam" +
-      "policy::V1::Rpcauthorizationb\006proto3"
+      "r\020\n\022\n\n\006member\020\013\022\n\n\006viewer\020\032\022\024\n\020identity_" +
+      "account\020\014\022\020\n\014organization\020\r\022\013\n\007session\020\016" +
+      "\022\t\n\005agent\020\017\022\024\n\020can_create_agent\020\020\022\027\n\023can" +
+      "_create_workflow\020\021\022\026\n\022can_create_session" +
+      "\020\022\022\033\n\027can_create_execution_in\020\023\022\027\n\023can_c" +
+      "reate_instance\020\024\022\024\n\020can_create_skill\020\025\022\026" +
+      "\n\022can_create_project\020\027\022\022\n\016can_create_idp" +
+      "\020\030\022\017\n\013can_execute\020\026\022\024\n\020can_read_secrets\020" +
+      "\031B\354\001B\022IamPermissionProtoP\001\242\002\006ASIIVR\252\002,Ai" +
+      ".Stigmer.Iam.Iampolicy.V1.Rpcauthorizati" +
+      "on\312\002,Ai\\Stigmer\\Iam\\Iampolicy\\V1\\Rpcauth" +
+      "orization\342\0028Ai\\Stigmer\\Iam\\Iampolicy\\V1\\" +
+      "Rpcauthorization\\GPBMetadata\352\0021Ai::Stigm" +
+      "er::Iam::Iampolicy::V1::Rpcauthorization" +
+      "b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

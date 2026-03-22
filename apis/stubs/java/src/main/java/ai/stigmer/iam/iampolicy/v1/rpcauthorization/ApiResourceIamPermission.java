@@ -98,6 +98,14 @@ public enum ApiResourceIamPermission
   member(11),
   /**
    * <pre>
+   * Resource viewer (base relation for public visibility tuples)
+   * </pre>
+   *
+   * <code>viewer = 26;</code>
+   */
+  viewer(26),
+  /**
+   * <pre>
    * Structural relations (parent links)
    * </pre>
    *
@@ -302,6 +310,14 @@ public enum ApiResourceIamPermission
   public static final int member_VALUE = 11;
   /**
    * <pre>
+   * Resource viewer (base relation for public visibility tuples)
+   * </pre>
+   *
+   * <code>viewer = 26;</code>
+   */
+  public static final int viewer_VALUE = 26;
+  /**
+   * <pre>
    * Structural relations (parent links)
    * </pre>
    *
@@ -450,6 +466,7 @@ public enum ApiResourceIamPermission
       case 9: return can_view_access;
       case 10: return owner;
       case 11: return member;
+      case 26: return viewer;
       case 12: return identity_account;
       case 13: return organization;
       case 14: return session;
