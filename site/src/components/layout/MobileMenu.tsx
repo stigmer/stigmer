@@ -174,7 +174,7 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
             transition={fadeTransition}
             className={cn(
               "fixed inset-0 z-40",
-              "bg-black/60 backdrop-blur-sm"
+              "bg-foreground/60 backdrop-blur-sm"
             )}
             onClick={onClose}
             aria-hidden="true"

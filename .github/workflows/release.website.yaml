@@ -11,6 +11,8 @@ on:
     branches: [main]
     paths:
       - "site/**"
+      - "docs/**"
+      - "vale/**"
       - ".github/workflows/release.website.yaml"
   workflow_dispatch:
 
@@ -36,7 +38,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

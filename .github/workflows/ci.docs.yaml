@@ -1,0 +1,122 @@
+# =============================================================================
+# Documentation CI
+# =============================================================================
+# Quality gates for documentation changes: prose linting, formatting, site
+# build verification, and link checking. Runs on every PR and push to main
+# that touches docs, the site, or the linting/formatting configuration.
+# =============================================================================
+
+name: ci.docs
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "site/**"
+      - "client-apps/cli/**"
+      - ".vale.ini"
+      - ".prettierrc"
+      - "vale/**"
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "site/**"
+      - "client-apps/cli/**"
+      - ".vale.ini"
+      - ".prettierrc"
+      - "vale/**"
+
+concurrency:
+  group: docs-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (Vale + Prettier)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Vale
+        env:
+          VALE_VERSION: "3.9.5"
+        run: |
+          curl -sSfL "https://github.com/errata-ai/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz" \
+            | sudo tar xz -C /usr/local/bin vale
+          vale --version
+
+      - name: Download Vale style packages
+        run: vale sync
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Lint prose
+        run: make lint-docs
+
+      - name: Check formatting
+        run: make format-docs-check
+
+  build:
+    name: Build (Fumadocs)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          corepack install
+          yarn
+
+      - name: Build documentation site
+        run: yarn build
+
+  cli-docs-freshness:
+    name: CLI Docs Freshness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: client-apps/cli/go.mod
+
+      - name: Verify CLI docs are up to date
+        run: make gen-cli-docs-check
+
+  links:
+    name: Links (Lychee)
+    runs-on: ubuntu-latest
+    # Non-blocking: external links are inherently flaky in CI due to rate
+    # limiting, transient failures, and geo-blocks. Tighten after tuning
+    # exclusions in a .lychee.toml config.
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --no-progress --exclude-path docs/_archive docs/
+          fail: true

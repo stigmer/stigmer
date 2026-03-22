@@ -1,0 +1,31 @@
+{
+  "pages": [
+    "index",
+    "---Core Commands---",
+    "resume",
+    "run",
+    "usage",
+    "---Resource Management---",
+    "apply",
+    "delete",
+    "discover",
+    "draft",
+    "get",
+    "list",
+    "search",
+    "validate",
+    "---Artifact Commands---",
+    "download",
+    "push",
+    "---Server Commands---",
+    "mcp-server",
+    "server",
+    "---Configuration---",
+    "apikey",
+    "auth",
+    "completion",
+    "config",
+    "version"
+  ],
+  "title": "Commands"
+}
