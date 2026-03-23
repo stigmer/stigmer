@@ -43,7 +43,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "apiresource/io.proto\0328ai/stigmer/commons" +
       "/apiresource/rpc_service_options.proto\032A" +
       "ai/stigmer/iam/iampolicy/v1/rpcauthoriza" +
-      "tion/method_options.proto2\341\004\n\034AgentInsta" +
+      "tion/method_options.proto2\350\004\n\034AgentInsta" +
       "nceQueryController\022\244\001\n\003get\0224.ai.stigmer." +
       "agentic.agentinstance.v1.AgentInstanceId" +
       "\0322.ai.stigmer.agentic.agentinstance.v1.A" +
@@ -52,18 +52,19 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "\022D.ai.stigmer.agentic.agentinstance.v1.G" +
       "etAgentInstancesByAgentRequest\0326.ai.stig" +
       "mer.agentic.agentinstance.v1.AgentInstan" +
-      "ceList\"\004\320\270\030\001\022z\n\016getByReference\0224.ai.stig" +
-      "mer.commons.apiresource.ApiResourceRefer" +
-      "ence\0322.ai.stigmer.agentic.agentinstance." +
-      "v1.AgentInstance\022\204\001\n\004list\022>.ai.stigmer.a" +
-      "gentic.agentinstance.v1.ListAgentInstanc" +
-      "esRequest\0326.ai.stigmer.agentic.agentinst" +
-      "ance.v1.AgentInstanceList\"\004\320\270\030\001\032\004\240\377+-B\275\001" +
-      "B\nQueryProtoP\001\242\002\004ASAA\252\002#Ai.Stigmer.Agent" +
-      "ic.Agentinstance.V1\312\002#Ai\\Stigmer\\Agentic" +
-      "\\Agentinstance\\V1\342\002/Ai\\Stigmer\\Agentic\\A" +
-      "gentinstance\\V1\\GPBMetadata\352\002\'Ai::Stigme" +
-      "r::Agentic::Agentinstance::V1b\006proto3"
+      "ceList\"\004\320\270\030\001\022\200\001\n\016getByReference\0224.ai.sti" +
+      "gmer.commons.apiresource.ApiResourceRefe" +
+      "rence\0322.ai.stigmer.agentic.agentinstance" +
+      ".v1.AgentInstance\"\004\320\270\030\001\022\204\001\n\004list\022>.ai.st" +
+      "igmer.agentic.agentinstance.v1.ListAgent" +
+      "InstancesRequest\0326.ai.stigmer.agentic.ag" +
+      "entinstance.v1.AgentInstanceList\"\004\320\270\030\001\032\004" +
+      "\240\377+-B\275\001B\nQueryProtoP\001\242\002\004ASAA\252\002#Ai.Stigme" +
+      "r.Agentic.Agentinstance.V1\312\002#Ai\\Stigmer\\" +
+      "Agentic\\Agentinstance\\V1\342\002/Ai\\Stigmer\\Ag" +
+      "entic\\Agentinstance\\V1\\GPBMetadata\352\002\'Ai:" +
+      ":Stigmer::Agentic::Agentinstance::V1b\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

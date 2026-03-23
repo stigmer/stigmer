@@ -63,7 +63,6 @@ class AgentInstanceCommandControllerServicer(object):
         - FGA evaluates membership via contextual tuple (single authorization check)
 
         This pattern eliminates redundant checks by providing organization context to FGA
-        Authorization handled in handler using FGA contextual tuples
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

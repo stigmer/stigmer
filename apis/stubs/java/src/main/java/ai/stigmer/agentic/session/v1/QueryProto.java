@@ -42,21 +42,21 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "stigmer/commons/apiresource/rpc_service_" +
       "options.proto\032Aai/stigmer/iam/iampolicy/" +
       "v1/rpcauthorization/method_options.proto" +
-      "2\204\003\n\026SessionQueryController\022\205\001\n\003get\022(.ai" +
+      "2\220\003\n\026SessionQueryController\022\205\001\n\003get\022(.ai" +
       ".stigmer.agentic.session.v1.SessionId\032&." +
       "ai.stigmer.agentic.session.v1.Session\",\302" +
       "\270\030(\010\003\020*\"\005value*\033unauthorized to get sess" +
-      "ion\022f\n\004list\0222.ai.stigmer.agentic.session" +
+      "ion\022l\n\004list\0222.ai.stigmer.agentic.session" +
       ".v1.ListSessionsRequest\032*.ai.stigmer.age" +
-      "ntic.session.v1.SessionList\022t\n\013listByAge" +
-      "nt\0229.ai.stigmer.agentic.session.v1.ListS" +
-      "essionsByAgentRequest\032*.ai.stigmer.agent" +
-      "ic.session.v1.SessionList\032\004\240\377+*B\245\001B\nQuer" +
-      "yProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Ses" +
-      "sion.V1\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342" +
-      "\002)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetad" +
-      "ata\352\002!Ai::Stigmer::Agentic::Session::V1b" +
-      "\006proto3"
+      "ntic.session.v1.SessionList\"\004\320\270\030\001\022z\n\013lis" +
+      "tByAgent\0229.ai.stigmer.agentic.session.v1" +
+      ".ListSessionsByAgentRequest\032*.ai.stigmer" +
+      ".agentic.session.v1.SessionList\"\004\320\270\030\001\032\004\240" +
+      "\377+*B\245\001B\nQueryProtoP\001\242\002\004ASAS\252\002\035Ai.Stigmer" +
+      ".Agentic.Session.V1\312\002\035Ai\\Stigmer\\Agentic" +
+      "\\Session\\V1\342\002)Ai\\Stigmer\\Agentic\\Session" +
+      "\\V1\\GPBMetadata\352\002!Ai::Stigmer::Agentic::" +
+      "Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -75,6 +75,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

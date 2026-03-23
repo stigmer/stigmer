@@ -43,31 +43,31 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       ".proto\0328ai/stigmer/commons/apiresource/r" +
       "pc_service_options.proto\032Aai/stigmer/iam" +
       "/iampolicy/v1/rpcauthorization/method_op" +
-      "tions.proto2\205\006\n\032McpServerCommandControll" +
+      "tions.proto2\213\006\n\032McpServerCommandControll" +
       "er\022_\n\005apply\022*.ai.stigmer.agentic.mcpserv" +
       "er.v1.McpServer\032*.ai.stigmer.agentic.mcp" +
-      "server.v1.McpServer\022`\n\006create\022*.ai.stigm" +
+      "server.v1.McpServer\022f\n\006create\022*.ai.stigm" +
       "er.agentic.mcpserver.v1.McpServer\032*.ai.s" +
-      "tigmer.agentic.mcpserver.v1.McpServer\022\232\001" +
-      "\n\006update\022*.ai.stigmer.agentic.mcpserver." +
-      "v1.McpServer\032*.ai.stigmer.agentic.mcpser" +
-      "ver.v1.McpServer\"8\302\270\0304\010\004\020,\"\013metadata.id*" +
-      "!unauthorized to update mcp server\022\246\001\n\006d" +
-      "elete\0226.ai.stigmer.commons.apiresource.A" +
-      "piResourceDeleteInput\032*.ai.stigmer.agent" +
-      "ic.mcpserver.v1.McpServer\"8\302\270\0304\010\002\020,\"\013res" +
-      "ource_id*!unauthorized to delete mcp ser" +
-      "ver\022\327\001\n\034updateDiscoveredCapabilities\022B.a" +
-      "i.stigmer.agentic.mcpserver.v1.UpdateDis" +
-      "coveredCapabilitiesInput\032*.ai.stigmer.ag" +
-      "entic.mcpserver.v1.McpServer\"G\302\270\030C\010\004\020,\"\r" +
-      "mcp_server_id*.unauthorized to update mc" +
-      "p server capabilities\032\004\240\377+,B\257\001B\014CommandP" +
-      "rotoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpse" +
-      "rver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V" +
-      "1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBM" +
-      "etadata\352\002#Ai::Stigmer::Agentic::Mcpserve" +
-      "r::V1b\006proto3"
+      "tigmer.agentic.mcpserver.v1.McpServer\"\004\320" +
+      "\270\030\001\022\232\001\n\006update\022*.ai.stigmer.agentic.mcps" +
+      "erver.v1.McpServer\032*.ai.stigmer.agentic." +
+      "mcpserver.v1.McpServer\"8\302\270\0304\010\004\020,\"\013metada" +
+      "ta.id*!unauthorized to update mcp server" +
+      "\022\246\001\n\006delete\0226.ai.stigmer.commons.apireso" +
+      "urce.ApiResourceDeleteInput\032*.ai.stigmer" +
+      ".agentic.mcpserver.v1.McpServer\"8\302\270\0304\010\002\020" +
+      ",\"\013resource_id*!unauthorized to delete m" +
+      "cp server\022\327\001\n\034updateDiscoveredCapabiliti" +
+      "es\022B.ai.stigmer.agentic.mcpserver.v1.Upd" +
+      "ateDiscoveredCapabilitiesInput\032*.ai.stig" +
+      "mer.agentic.mcpserver.v1.McpServer\"G\302\270\030C" +
+      "\010\004\020,\"\rmcp_server_id*.unauthorized to upd" +
+      "ate mcp server capabilities\032\004\240\377+,B\257\001B\014Co" +
+      "mmandProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic" +
+      ".Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpse" +
+      "rver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V" +
+      "1\\GPBMetadata\352\002#Ai::Stigmer::Agentic::Mc" +
+      "pserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -88,6 +88,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

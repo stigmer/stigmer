@@ -21,7 +21,9 @@ service AgentQueryController {
   }
 
   // Custom authorization in handler
-  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Agent);
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Agent) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 
   // Get the platform default agent.
   //
@@ -34,5 +36,7 @@ service AgentQueryController {
   //
   // Error: NOT_FOUND if no default agent is configured.
   // Custom authorization in handler.
-  rpc getDefault(GetDefaultAgentRequest) returns (Agent);
+  rpc getDefault(GetDefaultAgentRequest) returns (Agent) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }

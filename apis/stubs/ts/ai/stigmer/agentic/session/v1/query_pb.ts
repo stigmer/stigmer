@@ -15,7 +15,7 @@ import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from
  * Describes the file ai/stigmer/agentic/session/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9xdWVyeS5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEyhAMKFlNlc3Npb25RdWVyeUNvbnRyb2xsZXIShQEKA2dldBIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25JZBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iLMK4GCgIAxAqIgV2YWx1ZSobdW5hdXRob3JpemVkIHRvIGdldCBzZXNzaW9uEmYKBGxpc3QSMi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNSZXF1ZXN0GiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkxpc3QSdAoLbGlzdEJ5QWdlbnQSOS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNCeUFnZW50UmVxdWVzdBoqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25MaXN0GgSg/ysqYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9xdWVyeS5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEykAMKFlNlc3Npb25RdWVyeUNvbnRyb2xsZXIShQEKA2dldBIoLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25JZBomLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb24iLMK4GCgIAxAqIgV2YWx1ZSobdW5hdXRob3JpemVkIHRvIGdldCBzZXNzaW9uEmwKBGxpc3QSMi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNSZXF1ZXN0GiouYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuU2Vzc2lvbkxpc3QiBNC4GAESegoLbGlzdEJ5QWdlbnQSOS5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5MaXN0U2Vzc2lvbnNCeUFnZW50UmVxdWVzdBoqLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLlNlc3Npb25MaXN0IgTQuBgBGgSg/ysqYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_ai_stigmer_agentic_session_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
  * SessionQueryController handles read operations for agent sessions.
@@ -35,6 +35,7 @@ export const SessionQueryController: GenService<{
   },
   /**
    * List all sessions with pagination and optional filtering.
+   * Authorization is handled in-handler via FGA-filtered queries.
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.list
    */
@@ -45,6 +46,7 @@ export const SessionQueryController: GenService<{
   },
   /**
    * List all sessions for a specific agent.
+   * Authorization is handled in-handler via FGA-filtered queries.
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listByAgent
    */

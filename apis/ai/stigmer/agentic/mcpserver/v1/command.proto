@@ -54,7 +54,9 @@ service McpServerCommandController {
   // - Platform: Requires platform operator role
   // - Organization: Requires org admin role or can_create_mcp_server permission
   // - Identity Account: Automatically allowed for the authenticated user
-  rpc create(McpServer) returns (McpServer);
+  rpc create(McpServer) returns (McpServer) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 
   // Update an existing MCP server resource.
   //

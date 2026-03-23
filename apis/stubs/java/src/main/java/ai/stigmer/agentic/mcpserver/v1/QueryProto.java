@@ -42,19 +42,19 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "to\0328ai/stigmer/commons/apiresource/rpc_s" +
       "ervice_options.proto\032Aai/stigmer/iam/iam" +
       "policy/v1/rpcauthorization/method_option" +
-      "s.proto2\251\002\n\030McpServerQueryController\022\222\001\n" +
+      "s.proto2\257\002\n\030McpServerQueryController\022\222\001\n" +
       "\003get\022-.ai.stigmer.commons.apiresource.Ap" +
       "iResourceId\032*.ai.stigmer.agentic.mcpserv" +
       "er.v1.McpServer\"0\302\270\030,\010\003\020,\"\005value*\037unauth" +
-      "orized to view mcp server\022r\n\016getByRefere" +
+      "orized to view mcp server\022x\n\016getByRefere" +
       "nce\0224.ai.stigmer.commons.apiresource.Api" +
       "ResourceReference\032*.ai.stigmer.agentic.m" +
-      "cpserver.v1.McpServer\032\004\240\377+,B\255\001B\nQueryPro" +
-      "toP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpserv" +
-      "er.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V1\342" +
-      "\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMet" +
-      "adata\352\002#Ai::Stigmer::Agentic::Mcpserver:" +
-      ":V1b\006proto3"
+      "cpserver.v1.McpServer\"\004\320\270\030\001\032\004\240\377+,B\255\001B\nQu" +
+      "eryProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.M" +
+      "cpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserv" +
+      "er\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\" +
+      "GPBMetadata\352\002#Ai::Stigmer::Agentic::Mcps" +
+      "erver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -73,6 +73,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

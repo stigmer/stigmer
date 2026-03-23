@@ -20,8 +20,14 @@ service SessionQueryController {
   }
 
   // List all sessions with pagination and optional filtering.
-  rpc list(ListSessionsRequest) returns (SessionList);
+  // Authorization is handled in-handler via FGA-filtered queries.
+  rpc list(ListSessionsRequest) returns (SessionList) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 
   // List all sessions for a specific agent.
-  rpc listByAgent(ListSessionsByAgentRequest) returns (SessionList);
+  // Authorization is handled in-handler via FGA-filtered queries.
+  rpc listByAgent(ListSessionsByAgentRequest) returns (SessionList) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }

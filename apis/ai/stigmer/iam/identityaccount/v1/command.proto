@@ -16,7 +16,9 @@ service IdentityAccountCommandController {
   // system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
   // no FGA authorization — called via inProcessChannelAsSystem (machine account).
   // the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
-  rpc create(IdentityAccount) returns (IdentityAccount);
+  rpc create(IdentityAccount) returns (IdentityAccount) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 
   // update an existing identity-account
   rpc update(IdentityAccount) returns (IdentityAccount) {
@@ -37,5 +39,7 @@ service IdentityAccountCommandController {
   //simulate signup webhook to add a user who created account on auth0 but is not created on stigmer.
   //this rpc will take the email, look it up on auth0,
   // if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format.
-  rpc simulateSignupWebhook(IdentityAccountEmail) returns (google.protobuf.Empty);
+  rpc simulateSignupWebhook(IdentityAccountEmail) returns (google.protobuf.Empty) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }

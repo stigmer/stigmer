@@ -26,11 +26,11 @@ var File_ai_stigmer_agentic_session_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_query_proto_rawDesc = "" +
 	"\n" +
-	")ai/stigmer/agentic/session/v1/query.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x84\x03\n" +
+	")ai/stigmer/agentic/session/v1/query.proto\x12\x1dai.stigmer.agentic.session.v1\x1a'ai/stigmer/agentic/session/v1/api.proto\x1a&ai/stigmer/agentic/session/v1/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x90\x03\n" +
 	"\x16SessionQueryController\x12\x85\x01\n" +
-	"\x03get\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\",¸\x18(\b\x03\x10*\"\x05value*\x1bunauthorized to get session\x12f\n" +
-	"\x04list\x122.ai.stigmer.agentic.session.v1.ListSessionsRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\x12t\n" +
-	"\vlistByAgent\x129.ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\x1a\x04\xa0\xff+*B\x9a\x02\n" +
+	"\x03get\x12(.ai.stigmer.agentic.session.v1.SessionId\x1a&.ai.stigmer.agentic.session.v1.Session\",¸\x18(\b\x03\x10*\"\x05value*\x1bunauthorized to get session\x12l\n" +
+	"\x04list\x122.ai.stigmer.agentic.session.v1.ListSessionsRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04и\x18\x01\x12z\n" +
+	"\vlistByAgent\x129.ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest\x1a*.ai.stigmer.agentic.session.v1.SessionList\"\x04и\x18\x01\x1a\x04\xa0\xff+*B\x9a\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\n" +
 	"QueryProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 

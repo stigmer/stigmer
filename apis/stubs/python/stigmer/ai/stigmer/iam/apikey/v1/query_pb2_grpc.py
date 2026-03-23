@@ -47,8 +47,6 @@ class ApiKeyQueryControllerServicer(object):
 
     def getByKeyHash(self, request, context):
         """lookup api-key by hashed key
-        Authorization is handled in the handler after loading the resource
-        (input doesn't contain API key ID, so proto-level auth cannot work)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

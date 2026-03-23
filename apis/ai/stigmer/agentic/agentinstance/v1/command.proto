@@ -28,6 +28,7 @@ service AgentInstanceCommandController {
   // This pattern eliminates redundant checks by providing organization context to FGA
   rpc create(AgentInstance) returns (AgentInstance) {
     // Authorization handled in handler using FGA contextual tuples
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
   // Update an instance with full state.

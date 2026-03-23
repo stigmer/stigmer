@@ -44,68 +44,68 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ai/stigmer/commons/apiresource/rpc_servi" +
       "ce_options.proto\032Aai/stigmer/iam/iampoli" +
       "cy/v1/rpcauthorization/method_options.pr" +
-      "oto2\251\021\n\"WorkflowExecutionCommandControll" +
-      "er\022\200\001\n\006create\022:.ai.stigmer.agentic.workf" +
+      "oto2\257\021\n\"WorkflowExecutionCommandControll" +
+      "er\022\206\001\n\006create\022:.ai.stigmer.agentic.workf" +
       "lowexecution.v1.WorkflowExecution\032:.ai.s" +
       "tigmer.agentic.workflowexecution.v1.Work" +
-      "flowExecution\022\302\001\n\006update\022:.ai.stigmer.ag" +
-      "entic.workflowexecution.v1.WorkflowExecu" +
-      "tion\032:.ai.stigmer.agentic.workflowexecut" +
-      "ion.v1.WorkflowExecution\"@\302\270\030<\010\004\0204\"\013meta" +
-      "data.id*)unauthorized to update workflow" +
-      " execution\022\341\001\n\014updateStatus\022K.ai.stigmer" +
-      ".agentic.workflowexecution.v1.WorkflowEx" +
-      "ecutionUpdateStatusInput\032:.ai.stigmer.ag" +
-      "entic.workflowexecution.v1.WorkflowExecu" +
-      "tion\"H\302\270\030D\010\004\0204\"\014execution_id*0unauthoriz" +
-      "ed to update workflow execution status\022\342" +
-      "\001\n\016submitApproval\022D.ai.stigmer.agentic.w" +
-      "orkflowexecution.v1.SubmitWorkflowApprov" +
-      "alInput\032:.ai.stigmer.agentic.workflowexe" +
-      "cution.v1.WorkflowExecution\"N\302\270\030J\010\004\0204\"\014e" +
-      "xecution_id*6unauthorized to submit appr" +
-      "oval for workflow execution\022\257\001\n\006delete\022-" +
-      ".ai.stigmer.commons.apiresource.ApiResou" +
-      "rceId\032:.ai.stigmer.agentic.workflowexecu" +
-      "tion.v1.WorkflowExecution\":\302\270\0306\010\004\0204\"\005val" +
-      "ue*)unauthorized to delete workflow exec" +
-      "ution\022\315\001\n\nsendSignal\0228.ai.stigmer.agenti" +
-      "c.workflowexecution.v1.SendSignalInput\032:" +
+      "flowExecution\"\004\320\270\030\001\022\302\001\n\006update\022:.ai.stig" +
+      "mer.agentic.workflowexecution.v1.Workflo" +
+      "wExecution\032:.ai.stigmer.agentic.workflow" +
+      "execution.v1.WorkflowExecution\"@\302\270\030<\010\004\0204" +
+      "\"\013metadata.id*)unauthorized to update wo" +
+      "rkflow execution\022\341\001\n\014updateStatus\022K.ai.s" +
+      "tigmer.agentic.workflowexecution.v1.Work" +
+      "flowExecutionUpdateStatusInput\032:.ai.stig" +
+      "mer.agentic.workflowexecution.v1.Workflo" +
+      "wExecution\"H\302\270\030D\010\004\0204\"\014execution_id*0unau" +
+      "thorized to update workflow execution st" +
+      "atus\022\342\001\n\016submitApproval\022D.ai.stigmer.age" +
+      "ntic.workflowexecution.v1.SubmitWorkflow" +
+      "ApprovalInput\032:.ai.stigmer.agentic.workf" +
+      "lowexecution.v1.WorkflowExecution\"N\302\270\030J\010" +
+      "\004\0204\"\014execution_id*6unauthorized to submi" +
+      "t approval for workflow execution\022\257\001\n\006de" +
+      "lete\022-.ai.stigmer.commons.apiresource.Ap" +
+      "iResourceId\032:.ai.stigmer.agentic.workflo" +
+      "wexecution.v1.WorkflowExecution\":\302\270\0306\010\004\020" +
+      "4\"\005value*)unauthorized to delete workflo" +
+      "w execution\022\315\001\n\nsendSignal\0228.ai.stigmer." +
+      "agentic.workflowexecution.v1.SendSignalI" +
+      "nput\032:.ai.stigmer.agentic.workflowexecut" +
+      "ion.v1.WorkflowExecution\"I\302\270\030E\010\004\0204\"\014exec" +
+      "ution_id*1unauthorized to send signal to" +
+      " workflow execution\022\304\001\n\006cancel\022E.ai.stig" +
+      "mer.agentic.workflowexecution.v1.CancelW" +
+      "orkflowExecutionInput\032:.ai.stigmer.agent" +
+      "ic.workflowexecution.v1.WorkflowExecutio" +
+      "n\"7\302\270\0303\010\004\0204\"\002id*)unauthorized to cancel " +
+      "workflow execution\022\315\001\n\tterminate\022H.ai.st" +
+      "igmer.agentic.workflowexecution.v1.Termi" +
+      "nateWorkflowExecutionInput\032:.ai.stigmer." +
+      "agentic.workflowexecution.v1.WorkflowExe" +
+      "cution\":\302\270\0306\010\004\0204\"\002id*,unauthorized to te" +
+      "rminate workflow execution\022\307\001\n\007recover\022F" +
       ".ai.stigmer.agentic.workflowexecution.v1" +
-      ".WorkflowExecution\"I\302\270\030E\010\004\0204\"\014execution_" +
-      "id*1unauthorized to send signal to workf" +
-      "low execution\022\304\001\n\006cancel\022E.ai.stigmer.ag" +
-      "entic.workflowexecution.v1.CancelWorkflo" +
-      "wExecutionInput\032:.ai.stigmer.agentic.wor" +
-      "kflowexecution.v1.WorkflowExecution\"7\302\270\030" +
-      "3\010\004\0204\"\002id*)unauthorized to cancel workfl" +
-      "ow execution\022\315\001\n\tterminate\022H.ai.stigmer." +
-      "agentic.workflowexecution.v1.TerminateWo" +
-      "rkflowExecutionInput\032:.ai.stigmer.agenti" +
-      "c.workflowexecution.v1.WorkflowExecution" +
-      "\":\302\270\0306\010\004\0204\"\002id*,unauthorized to terminat" +
-      "e workflow execution\022\307\001\n\007recover\022F.ai.st" +
-      "igmer.agentic.workflowexecution.v1.Recov" +
-      "erWorkflowExecutionInput\032:.ai.stigmer.ag" +
-      "entic.workflowexecution.v1.WorkflowExecu" +
-      "tion\"8\302\270\0304\010\004\0204\"\002id**unauthorized to reco" +
-      "ver workflow execution\022\301\001\n\005pause\022D.ai.st" +
-      "igmer.agentic.workflowexecution.v1.Pause" +
-      "WorkflowExecutionInput\032:.ai.stigmer.agen" +
-      "tic.workflowexecution.v1.WorkflowExecuti" +
-      "on\"6\302\270\0302\010\004\0204\"\002id*(unauthorized to pause " +
-      "workflow execution\022\304\001\n\006resume\022E.ai.stigm" +
-      "er.agentic.workflowexecution.v1.ResumeWo" +
-      "rkflowExecutionInput\032:.ai.stigmer.agenti" +
-      "c.workflowexecution.v1.WorkflowExecution" +
-      "\"7\302\270\0303\010\004\0204\"\002id*)unauthorized to resume w" +
-      "orkflow execution\032\004\240\377+4B\317\001B\014CommandProto" +
-      "P\001\242\002\004ASAW\252\002\'Ai.Stigmer.Agentic.Workflowe" +
-      "xecution.V1\312\002\'Ai\\Stigmer\\Agentic\\Workflo" +
-      "wexecution\\V1\342\0023Ai\\Stigmer\\Agentic\\Workf" +
-      "lowexecution\\V1\\GPBMetadata\352\002+Ai::Stigme" +
-      "r::Agentic::Workflowexecution::V1b\006proto" +
-      "3"
+      ".RecoverWorkflowExecutionInput\032:.ai.stig" +
+      "mer.agentic.workflowexecution.v1.Workflo" +
+      "wExecution\"8\302\270\0304\010\004\0204\"\002id**unauthorized t" +
+      "o recover workflow execution\022\301\001\n\005pause\022D" +
+      ".ai.stigmer.agentic.workflowexecution.v1" +
+      ".PauseWorkflowExecutionInput\032:.ai.stigme" +
+      "r.agentic.workflowexecution.v1.WorkflowE" +
+      "xecution\"6\302\270\0302\010\004\0204\"\002id*(unauthorized to " +
+      "pause workflow execution\022\304\001\n\006resume\022E.ai" +
+      ".stigmer.agentic.workflowexecution.v1.Re" +
+      "sumeWorkflowExecutionInput\032:.ai.stigmer." +
+      "agentic.workflowexecution.v1.WorkflowExe" +
+      "cution\"7\302\270\0303\010\004\0204\"\002id*)unauthorized to re" +
+      "sume workflow execution\032\004\240\377+4B\317\001B\014Comman" +
+      "dProtoP\001\242\002\004ASAW\252\002\'Ai.Stigmer.Agentic.Wor" +
+      "kflowexecution.V1\312\002\'Ai\\Stigmer\\Agentic\\W" +
+      "orkflowexecution\\V1\342\0023Ai\\Stigmer\\Agentic" +
+      "\\Workflowexecution\\V1\\GPBMetadata\352\002+Ai::" +
+      "Stigmer::Agentic::Workflowexecution::V1b" +
+      "\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -126,6 +126,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

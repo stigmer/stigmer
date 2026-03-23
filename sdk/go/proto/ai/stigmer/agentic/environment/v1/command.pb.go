@@ -26,10 +26,10 @@ var File_ai_stigmer_agentic_environment_v1_command_proto protoreflect.FileDescri
 
 const file_ai_stigmer_agentic_environment_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"/ai/stigmer/agentic/environment/v1/command.proto\x12!ai.stigmer.agentic.environment.v1\x1a+ai/stigmer/agentic/environment/v1/api.proto\x1a*ai/stigmer/agentic/environment/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xef\a\n" +
+	"/ai/stigmer/agentic/environment/v1/command.proto\x12!ai.stigmer.agentic.environment.v1\x1a+ai/stigmer/agentic/environment/v1/api.proto\x1a*ai/stigmer/agentic/environment/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xc1\b\n" +
 	"\x1cEnvironmentCommandController\x12g\n" +
-	"\x05apply\x12..ai.stigmer.agentic.environment.v1.Environment\x1a..ai.stigmer.agentic.environment.v1.Environment\x12h\n" +
-	"\x06create\x12..ai.stigmer.agentic.environment.v1.Environment\x1a..ai.stigmer.agentic.environment.v1.Environment\x12\xa3\x01\n" +
+	"\x05apply\x12..ai.stigmer.agentic.environment.v1.Environment\x1a..ai.stigmer.agentic.environment.v1.Environment\x12\xb9\x01\n" +
+	"\x06create\x12..ai.stigmer.agentic.environment.v1.Environment\x1a..ai.stigmer.agentic.environment.v1.Environment\"O¸\x18K\b\x1b\x10\x1e\"\fmetadata.org*7unauthorized to create environment in this organization\x12\xa3\x01\n" +
 	"\x06update\x12..ai.stigmer.agentic.environment.v1.Environment\x1a..ai.stigmer.agentic.environment.v1.Environment\"9¸\x185\b\x04\x105\"\vmetadata.id*\"unauthorized to update environment\x12\xab\x01\n" +
 	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a..ai.stigmer.agentic.environment.v1.Environment\"9¸\x185\b\x04\x105\"\vmetadata.id*\"unauthorized to delete environment\x12\xcf\x01\n" +
 	"\x0fupdateVariables\x12D.ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest\x1a..ai.stigmer.agentic.environment.v1.Environment\"F¸\x18B\b\x04\x105\"\x0eenvironment_id*,unauthorized to update environment variables\x12\xcf\x01\n" +
