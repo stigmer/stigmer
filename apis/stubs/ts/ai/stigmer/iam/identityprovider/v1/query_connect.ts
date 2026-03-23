@@ -28,6 +28,7 @@ export const IdentityProviderQueryController = {
     },
     /**
      * Get an identity provider by reference (org + slug).
+     * Custom authorization in handler.
      *
      * @generated from rpc ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryController.getByReference
      */

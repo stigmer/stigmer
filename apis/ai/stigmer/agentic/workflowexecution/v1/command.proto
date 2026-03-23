@@ -142,7 +142,9 @@ service WorkflowExecutionCommandController {
   //     }
   //   }
   // }
-  rpc create(WorkflowExecution) returns (WorkflowExecution);
+  rpc create(WorkflowExecution) returns (WorkflowExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 
   // Update execution with full state.
   // Used by users to update execution configuration (spec fields).

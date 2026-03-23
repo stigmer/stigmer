@@ -26,9 +26,9 @@ var File_ai_stigmer_agentic_workflowexecution_v1_command_proto protoreflect.File
 
 const file_ai_stigmer_agentic_workflowexecution_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"5ai/stigmer/agentic/workflowexecution/v1/command.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a0ai/stigmer/agentic/workflowexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xa9\x11\n" +
-	"\"WorkflowExecutionCommandController\x12\x80\x01\n" +
-	"\x06create\x12:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x12\xc2\x01\n" +
+	"5ai/stigmer/agentic/workflowexecution/v1/command.proto\x12'ai.stigmer.agentic.workflowexecution.v1\x1a1ai/stigmer/agentic/workflowexecution/v1/api.proto\x1a0ai/stigmer/agentic/workflowexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xaf\x11\n" +
+	"\"WorkflowExecutionCommandController\x12\x86\x01\n" +
+	"\x06create\x12:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"\x04и\x18\x01\x12\xc2\x01\n" +
 	"\x06update\x12:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"@¸\x18<\b\x04\x104\"\vmetadata.id*)unauthorized to update workflow execution\x12\xe1\x01\n" +
 	"\fupdateStatus\x12K.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"H¸\x18D\b\x04\x104\"\fexecution_id*0unauthorized to update workflow execution status\x12\xe2\x01\n" +
 	"\x0esubmitApproval\x12D.ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"N¸\x18J\b\x04\x104\"\fexecution_id*6unauthorized to submit approval for workflow execution\x12\xaf\x01\n" +

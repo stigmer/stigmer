@@ -42,19 +42,19 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "ai/stigmer/iam/apikey/v1/io.proto\032Aai/st" +
       "igmer/iam/iampolicy/v1/rpcauthorization/" +
       "method_options.proto\032\033google/protobuf/em" +
-      "pty.proto2\277\002\n\025ApiKeyQueryController\022z\n\003g" +
+      "pty.proto2\303\002\n\025ApiKeyQueryController\022z\n\003g" +
       "et\022\".ai.stigmer.iam.apikey.v1.ApiKeyId\032 " +
       ".ai.stigmer.iam.apikey.v1.ApiKey\"-\302\270\030)\010\003" +
       "\020\014\"\005value*\034unauthorized to view api key\022" +
-      "X\n\014getByKeyHash\022$.ai.stigmer.iam.apikey." +
+      "\\\n\014getByKeyHash\022$.ai.stigmer.iam.apikey." +
       "v1.ApiKeyHash\032 .ai.stigmer.iam.apikey.v1" +
-      ".ApiKey\"\000\022J\n\007findAll\022\026.google.protobuf.E" +
-      "mpty\032!.ai.stigmer.iam.apikey.v1.ApiKeys\"" +
-      "\004\320\270\030\001\032\004\240\377+\014B\221\001B\nQueryProtoP\001\242\002\004ASIA\252\002\030Ai" +
-      ".Stigmer.Iam.Apikey.V1\312\002\030Ai\\Stigmer\\Iam\\" +
-      "Apikey\\V1\342\002$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPB" +
-      "Metadata\352\002\034Ai::Stigmer::Iam::Apikey::V1b" +
-      "\006proto3"
+      ".ApiKey\"\004\320\270\030\001\022J\n\007findAll\022\026.google.protob" +
+      "uf.Empty\032!.ai.stigmer.iam.apikey.v1.ApiK" +
+      "eys\"\004\320\270\030\001\032\004\240\377+\014B\221\001B\nQueryProtoP\001\242\002\004ASIA\252" +
+      "\002\030Ai.Stigmer.Iam.Apikey.V1\312\002\030Ai\\Stigmer\\" +
+      "Iam\\Apikey\\V1\342\002$Ai\\Stigmer\\Iam\\Apikey\\V1" +
+      "\\GPBMetadata\352\002\034Ai::Stigmer::Iam::Apikey:" +
+      ":V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

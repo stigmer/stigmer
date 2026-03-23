@@ -26,10 +26,10 @@ var File_ai_stigmer_agentic_mcpserver_v1_command_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_mcpserver_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/mcpserver/v1/command.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a)ai/stigmer/agentic/mcpserver/v1/api.proto\x1a(ai/stigmer/agentic/mcpserver/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x85\x06\n" +
+	"-ai/stigmer/agentic/mcpserver/v1/command.proto\x12\x1fai.stigmer.agentic.mcpserver.v1\x1a)ai/stigmer/agentic/mcpserver/v1/api.proto\x1a(ai/stigmer/agentic/mcpserver/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\x8b\x06\n" +
 	"\x1aMcpServerCommandController\x12_\n" +
-	"\x05apply\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\x12`\n" +
-	"\x06create\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\x12\x9a\x01\n" +
+	"\x05apply\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\x12f\n" +
+	"\x06create\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"\x04и\x18\x01\x12\x9a\x01\n" +
 	"\x06update\x12*.ai.stigmer.agentic.mcpserver.v1.McpServer\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"8¸\x184\b\x04\x10,\"\vmetadata.id*!unauthorized to update mcp server\x12\xa6\x01\n" +
 	"\x06delete\x126.ai.stigmer.commons.apiresource.ApiResourceDeleteInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"8¸\x184\b\x02\x10,\"\vresource_id*!unauthorized to delete mcp server\x12\xd7\x01\n" +
 	"\x1cupdateDiscoveredCapabilities\x12B.ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput\x1a*.ai.stigmer.agentic.mcpserver.v1.McpServer\"G¸\x18C\b\x04\x10,\"\rmcp_server_id*.unauthorized to update mcp server capabilities\x1a\x04\xa0\xff+,B\xaa\x02\n" +

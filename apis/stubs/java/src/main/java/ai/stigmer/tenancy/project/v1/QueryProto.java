@@ -43,18 +43,18 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "v1/rpcauthorization/method_options.proto" +
       "\032\'ai/stigmer/tenancy/project/v1/api.prot" +
       "o\032&ai/stigmer/tenancy/project/v1/io.prot" +
-      "o2\226\002\n\026ProjectQueryController\022\205\001\n\003get\022(.a" +
+      "o2\234\002\n\026ProjectQueryController\022\205\001\n\003get\022(.a" +
       "i.stigmer.tenancy.project.v1.ProjectId\032&" +
       ".ai.stigmer.tenancy.project.v1.Project\"," +
       "\302\270\030(\010\003\020<\"\005value*\033unauthorized to get pro" +
-      "ject\022n\n\016getByReference\0224.ai.stigmer.comm" +
+      "ject\022t\n\016getByReference\0224.ai.stigmer.comm" +
       "ons.apiresource.ApiResourceReference\032&.a" +
-      "i.stigmer.tenancy.project.v1.Project\032\004\240\377" +
-      "+<B\245\001B\nQueryProtoP\001\242\002\004ASTP\252\002\035Ai.Stigmer." +
-      "Tenancy.Project.V1\312\002\035Ai\\Stigmer\\Tenancy\\" +
-      "Project\\V1\342\002)Ai\\Stigmer\\Tenancy\\Project\\" +
-      "V1\\GPBMetadata\352\002!Ai::Stigmer::Tenancy::P" +
-      "roject::V1b\006proto3"
+      "i.stigmer.tenancy.project.v1.Project\"\004\320\270" +
+      "\030\001\032\004\240\377+<B\245\001B\nQueryProtoP\001\242\002\004ASTP\252\002\035Ai.St" +
+      "igmer.Tenancy.Project.V1\312\002\035Ai\\Stigmer\\Te" +
+      "nancy\\Project\\V1\342\002)Ai\\Stigmer\\Tenancy\\Pr" +
+      "oject\\V1\\GPBMetadata\352\002!Ai::Stigmer::Tena" +
+      "ncy::Project::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -75,6 +75,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

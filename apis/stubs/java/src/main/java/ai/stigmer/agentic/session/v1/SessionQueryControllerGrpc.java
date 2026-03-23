@@ -187,6 +187,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
+     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     default void list(ai.stigmer.agentic.session.v1.ListSessionsRequest request,
@@ -197,6 +198,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent.
+     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     default void listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request,
@@ -252,6 +254,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
+     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     public void list(ai.stigmer.agentic.session.v1.ListSessionsRequest request,
@@ -263,6 +266,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent.
+     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     public void listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request,
@@ -304,6 +308,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
+     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.SessionList list(ai.stigmer.agentic.session.v1.ListSessionsRequest request) throws io.grpc.StatusException {
@@ -314,6 +319,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent.
+     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.SessionList listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request) throws io.grpc.StatusException {
@@ -354,6 +360,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
+     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.SessionList list(ai.stigmer.agentic.session.v1.ListSessionsRequest request) {
@@ -364,6 +371,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent.
+     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.SessionList listByAgent(ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest request) {
@@ -405,6 +413,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
+     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionList> list(
@@ -416,6 +425,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent.
+     * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.SessionList> listByAgent(

@@ -18,7 +18,12 @@ service EnvironmentCommandController {
   rpc apply(Environment) returns (Environment);
 
   // Create a new Environment resource.
-  rpc create(Environment) returns (Environment);
+  rpc create(Environment) returns (Environment) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_environment;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "metadata.org";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to create environment in this organization";
+  }
 
   // Update an existing Environment resource.
   rpc update(Environment) returns (Environment) {

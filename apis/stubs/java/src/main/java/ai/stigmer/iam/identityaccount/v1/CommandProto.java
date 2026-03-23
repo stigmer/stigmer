@@ -43,27 +43,27 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ons.proto\032+ai/stigmer/iam/identityaccoun" +
       "t/v1/api.proto\032*ai/stigmer/iam/identitya" +
       "ccount/v1/io.proto\032\033google/protobuf/empt" +
-      "y.proto2\346\004\n IdentityAccountCommandContro" +
-      "ller\022p\n\006create\0222.ai.stigmer.iam.identity" +
+      "y.proto2\362\004\n IdentityAccountCommandContro" +
+      "ller\022v\n\006create\0222.ai.stigmer.iam.identity" +
       "account.v1.IdentityAccount\0322.ai.stigmer." +
-      "iam.identityaccount.v1.IdentityAccount\022\260" +
-      "\001\n\006update\0222.ai.stigmer.iam.identityaccou" +
-      "nt.v1.IdentityAccount\0322.ai.stigmer.iam.i" +
-      "dentityaccount.v1.IdentityAccount\">\302\270\030:\010" +
-      "\004\020\013\"\013metadata.id*\'unauthorized to update" +
-      " identity account\022\254\001\n\006delete\0224.ai.stigme" +
-      "r.iam.identityaccount.v1.IdentityAccount" +
-      "Id\0322.ai.stigmer.iam.identityaccount.v1.I" +
-      "dentityAccount\"8\302\270\0304\010\002\020\013\"\005value*\'unautho" +
-      "rized to delete identity account\022h\n\025simu" +
-      "lateSignupWebhook\0227.ai.stigmer.iam.ident" +
-      "ityaccount.v1.IdentityAccountEmail\032\026.goo" +
-      "gle.protobuf.Empty\032\004\240\377+\013B\267\001B\014CommandProt" +
-      "oP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam.Identityacco" +
-      "unt.V1\312\002!Ai\\Stigmer\\Iam\\Identityaccount\\" +
-      "V1\342\002-Ai\\Stigmer\\Iam\\Identityaccount\\V1\\G" +
-      "PBMetadata\352\002%Ai::Stigmer::Iam::Identitya" +
-      "ccount::V1b\006proto3"
+      "iam.identityaccount.v1.IdentityAccount\"\004" +
+      "\320\270\030\001\022\260\001\n\006update\0222.ai.stigmer.iam.identit" +
+      "yaccount.v1.IdentityAccount\0322.ai.stigmer" +
+      ".iam.identityaccount.v1.IdentityAccount\"" +
+      ">\302\270\030:\010\004\020\013\"\013metadata.id*\'unauthorized to " +
+      "update identity account\022\254\001\n\006delete\0224.ai." +
+      "stigmer.iam.identityaccount.v1.IdentityA" +
+      "ccountId\0322.ai.stigmer.iam.identityaccoun" +
+      "t.v1.IdentityAccount\"8\302\270\0304\010\002\020\013\"\005value*\'u" +
+      "nauthorized to delete identity account\022n" +
+      "\n\025simulateSignupWebhook\0227.ai.stigmer.iam" +
+      ".identityaccount.v1.IdentityAccountEmail" +
+      "\032\026.google.protobuf.Empty\"\004\320\270\030\001\032\004\240\377+\013B\267\001B" +
+      "\014CommandProtoP\001\242\002\004ASII\252\002!Ai.Stigmer.Iam." +
+      "Identityaccount.V1\312\002!Ai\\Stigmer\\Iam\\Iden" +
+      "tityaccount\\V1\342\002-Ai\\Stigmer\\Iam\\Identity" +
+      "account\\V1\\GPBMetadata\352\002%Ai::Stigmer::Ia" +
+      "m::Identityaccount::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -84,6 +84,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

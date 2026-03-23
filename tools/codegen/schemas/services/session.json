@@ -59,7 +59,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionsRequest",
           "outputType": "SessionList",
           "outputFullType": "ai.stigmer.agentic.session.v1.SessionList",
-          "description": "List all sessions with pagination and optional filtering."
+          "description": "List all sessions with pagination and optional filtering.\n Authorization is handled in-handler via FGA-filtered queries."
         },
         {
           "name": "ListByAgent",
@@ -67,7 +67,7 @@
           "inputFullType": "ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest",
           "outputType": "SessionList",
           "outputFullType": "ai.stigmer.agentic.session.v1.SessionList",
-          "description": "List all sessions for a specific agent."
+          "description": "List all sessions for a specific agent.\n Authorization is handled in-handler via FGA-filtered queries."
         }
       ]
     }

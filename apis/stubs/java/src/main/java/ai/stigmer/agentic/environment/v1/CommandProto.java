@@ -43,37 +43,39 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "ource/io.proto\0328ai/stigmer/commons/apire" +
       "source/rpc_service_options.proto\032Aai/sti" +
       "gmer/iam/iampolicy/v1/rpcauthorization/m" +
-      "ethod_options.proto2\357\007\n\034EnvironmentComma" +
+      "ethod_options.proto2\301\010\n\034EnvironmentComma" +
       "ndController\022g\n\005apply\022..ai.stigmer.agent" +
       "ic.environment.v1.Environment\032..ai.stigm" +
-      "er.agentic.environment.v1.Environment\022h\n" +
-      "\006create\022..ai.stigmer.agentic.environment" +
-      ".v1.Environment\032..ai.stigmer.agentic.env" +
-      "ironment.v1.Environment\022\243\001\n\006update\022..ai." +
-      "stigmer.agentic.environment.v1.Environme" +
-      "nt\032..ai.stigmer.agentic.environment.v1.E" +
-      "nvironment\"9\302\270\0305\010\004\0205\"\013metadata.id*\"unaut" +
-      "horized to update environment\022\253\001\n\006delete" +
-      "\0226.ai.stigmer.commons.apiresource.ApiRes" +
-      "ourceDeleteInput\032..ai.stigmer.agentic.en" +
-      "vironment.v1.Environment\"9\302\270\0305\010\004\0205\"\013meta" +
-      "data.id*\"unauthorized to delete environm" +
-      "ent\022\317\001\n\017updateVariables\022D.ai.stigmer.age" +
-      "ntic.environment.v1.UpdateEnvironmentVar" +
-      "iablesRequest\032..ai.stigmer.agentic.envir" +
-      "onment.v1.Environment\"F\302\270\030B\010\004\0205\"\016environ" +
-      "ment_id*,unauthorized to update environm" +
-      "ent variables\022\317\001\n\017removeVariables\022D.ai.s" +
-      "tigmer.agentic.environment.v1.RemoveEnvi" +
-      "ronmentVariablesRequest\032..ai.stigmer.age" +
-      "ntic.environment.v1.Environment\"F\302\270\030B\010\004\020" +
-      "5\"\016environment_id*,unauthorized to remov" +
-      "e environment variables\032\004\240\377+5B\267\001B\014Comman" +
-      "dProtoP\001\242\002\004ASAE\252\002!Ai.Stigmer.Agentic.Env" +
-      "ironment.V1\312\002!Ai\\Stigmer\\Agentic\\Environ" +
-      "ment\\V1\342\002-Ai\\Stigmer\\Agentic\\Environment" +
-      "\\V1\\GPBMetadata\352\002%Ai::Stigmer::Agentic::" +
-      "Environment::V1b\006proto3"
+      "er.agentic.environment.v1.Environment\022\271\001" +
+      "\n\006create\022..ai.stigmer.agentic.environmen" +
+      "t.v1.Environment\032..ai.stigmer.agentic.en" +
+      "vironment.v1.Environment\"O\302\270\030K\010\033\020\036\"\014meta" +
+      "data.org*7unauthorized to create environ" +
+      "ment in this organization\022\243\001\n\006update\022..a" +
+      "i.stigmer.agentic.environment.v1.Environ" +
+      "ment\032..ai.stigmer.agentic.environment.v1" +
+      ".Environment\"9\302\270\0305\010\004\0205\"\013metadata.id*\"una" +
+      "uthorized to update environment\022\253\001\n\006dele" +
+      "te\0226.ai.stigmer.commons.apiresource.ApiR" +
+      "esourceDeleteInput\032..ai.stigmer.agentic." +
+      "environment.v1.Environment\"9\302\270\0305\010\004\0205\"\013me" +
+      "tadata.id*\"unauthorized to delete enviro" +
+      "nment\022\317\001\n\017updateVariables\022D.ai.stigmer.a" +
+      "gentic.environment.v1.UpdateEnvironmentV" +
+      "ariablesRequest\032..ai.stigmer.agentic.env" +
+      "ironment.v1.Environment\"F\302\270\030B\010\004\0205\"\016envir" +
+      "onment_id*,unauthorized to update enviro" +
+      "nment variables\022\317\001\n\017removeVariables\022D.ai" +
+      ".stigmer.agentic.environment.v1.RemoveEn" +
+      "vironmentVariablesRequest\032..ai.stigmer.a" +
+      "gentic.environment.v1.Environment\"F\302\270\030B\010" +
+      "\004\0205\"\016environment_id*,unauthorized to rem" +
+      "ove environment variables\032\004\240\377+5B\267\001B\014Comm" +
+      "andProtoP\001\242\002\004ASAE\252\002!Ai.Stigmer.Agentic.E" +
+      "nvironment.V1\312\002!Ai\\Stigmer\\Agentic\\Envir" +
+      "onment\\V1\342\002-Ai\\Stigmer\\Agentic\\Environme" +
+      "nt\\V1\\GPBMetadata\352\002%Ai::Stigmer::Agentic" +
+      "::Environment::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

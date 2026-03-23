@@ -156,6 +156,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by reference (org + slug).
+     * Custom authorization in handler.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -211,6 +212,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by reference (org + slug).
+     * Custom authorization in handler.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -252,6 +254,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by reference (org + slug).
+     * Custom authorization in handler.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -292,6 +295,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by reference (org + slug).
+     * Custom authorization in handler.
      * </pre>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -333,6 +337,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by reference (org + slug).
+     * Custom authorization in handler.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityprovider.v1.IdentityProvider> getByReference(

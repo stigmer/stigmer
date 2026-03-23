@@ -21,5 +21,7 @@ service WorkflowQueryController {
   }
 
   // Custom authorization in handler
-  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Workflow);
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Workflow) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }

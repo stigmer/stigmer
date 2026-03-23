@@ -27,10 +27,10 @@ var File_ai_stigmer_iam_apikey_v1_query_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_iam_apikey_v1_query_proto_rawDesc = "" +
 	"\n" +
-	"$ai/stigmer/iam/apikey/v1/query.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a!ai/stigmer/iam/apikey/v1/io.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a\x1bgoogle/protobuf/empty.proto2\xbf\x02\n" +
+	"$ai/stigmer/iam/apikey/v1/query.proto\x12\x18ai.stigmer.iam.apikey.v1\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1a\"ai/stigmer/iam/apikey/v1/api.proto\x1a!ai/stigmer/iam/apikey/v1/io.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto\x1a\x1bgoogle/protobuf/empty.proto2\xc3\x02\n" +
 	"\x15ApiKeyQueryController\x12z\n" +
-	"\x03get\x12\".ai.stigmer.iam.apikey.v1.ApiKeyId\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"-¸\x18)\b\x03\x10\f\"\x05value*\x1cunauthorized to view api key\x12X\n" +
-	"\fgetByKeyHash\x12$.ai.stigmer.iam.apikey.v1.ApiKeyHash\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"\x00\x12J\n" +
+	"\x03get\x12\".ai.stigmer.iam.apikey.v1.ApiKeyId\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"-¸\x18)\b\x03\x10\f\"\x05value*\x1cunauthorized to view api key\x12\\\n" +
+	"\fgetByKeyHash\x12$.ai.stigmer.iam.apikey.v1.ApiKeyHash\x1a .ai.stigmer.iam.apikey.v1.ApiKey\"\x04и\x18\x01\x12J\n" +
 	"\afindAll\x12\x16.google.protobuf.Empty\x1a!.ai.stigmer.iam.apikey.v1.ApiKeys\"\x04и\x18\x01\x1a\x04\xa0\xff+\fB\xfb\x01\n" +
 	"\x1ccom.ai.stigmer.iam.apikey.v1B\n" +
 	"QueryProtoP\x01ZJgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/apikey/v1;apikeyv1\xa2\x02\x04ASIA\xaa\x02\x18Ai.Stigmer.Iam.Apikey.V1\xca\x02\x18Ai\\Stigmer\\Iam\\Apikey\\V1\xe2\x02$Ai\\Stigmer\\Iam\\Apikey\\V1\\GPBMetadata\xea\x02\x1cAi::Stigmer::Iam::Apikey::V1b\x06proto3"

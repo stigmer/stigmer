@@ -46,6 +46,7 @@ class SessionQueryControllerServicer(object):
 
     def list(self, request, context):
         """List all sessions with pagination and optional filtering.
+        Authorization is handled in-handler via FGA-filtered queries.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -53,6 +54,7 @@ class SessionQueryControllerServicer(object):
 
     def listByAgent(self, request, context):
         """List all sessions for a specific agent.
+        Authorization is handled in-handler via FGA-filtered queries.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

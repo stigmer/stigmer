@@ -26,9 +26,9 @@ var File_ai_stigmer_agentic_agentexecution_v1_command_proto protoreflect.FileDes
 
 const file_ai_stigmer_agentic_agentexecution_v1_command_proto_rawDesc = "" +
 	"\n" +
-	"2ai/stigmer/agentic/agentexecution/v1/command.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a-ai/stigmer/agentic/agentexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xe5\x0f\n" +
-	"\x1fAgentExecutionCommandController\x12v\n" +
-	"\x06create\x124.ai.stigmer.agentic.agentexecution.v1.AgentExecution\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"\x00\x12\xb3\x01\n" +
+	"2ai/stigmer/agentic/agentexecution/v1/command.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a.ai/stigmer/agentic/agentexecution/v1/api.proto\x1a-ai/stigmer/agentic/agentexecution/v1/io.proto\x1a'ai/stigmer/commons/apiresource/io.proto\x1a8ai/stigmer/commons/apiresource/rpc_service_options.proto\x1aAai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto2\xe9\x0f\n" +
+	"\x1fAgentExecutionCommandController\x12z\n" +
+	"\x06create\x124.ai.stigmer.agentic.agentexecution.v1.AgentExecution\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"\x04и\x18\x01\x12\xb3\x01\n" +
 	"\x06update\x124.ai.stigmer.agentic.agentexecution.v1.AgentExecution\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"=¸\x189\b\x04\x10)\"\vmetadata.id*&unauthorized to update agent execution\x12\xd2\x01\n" +
 	"\fupdateStatus\x12E.ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"E¸\x18A\b\x04\x10)\"\fexecution_id*-unauthorized to update agent execution status\x12\xa6\x01\n" +
 	"\x06delete\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a4.ai.stigmer.agentic.agentexecution.v1.AgentExecution\"7¸\x183\b\x04\x10)\"\x05value*&unauthorized to delete agent execution\x12\xd4\x01\n" +

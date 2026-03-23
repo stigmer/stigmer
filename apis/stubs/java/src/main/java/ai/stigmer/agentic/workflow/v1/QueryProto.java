@@ -43,18 +43,18 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "\0328ai/stigmer/commons/apiresource/rpc_ser" +
       "vice_options.proto\032Aai/stigmer/iam/iampo" +
       "licy/v1/rpcauthorization/method_options." +
-      "proto2\236\002\n\027WorkflowQueryController\022\212\001\n\003ge" +
+      "proto2\244\002\n\027WorkflowQueryController\022\212\001\n\003ge" +
       "t\022*.ai.stigmer.agentic.workflow.v1.Workf" +
       "lowId\032(.ai.stigmer.agentic.workflow.v1.W" +
       "orkflow\"-\302\270\030)\010\003\0202\"\005value*\034unauthorized t" +
-      "o get workflow\022p\n\016getByReference\0224.ai.st" +
+      "o get workflow\022v\n\016getByReference\0224.ai.st" +
       "igmer.commons.apiresource.ApiResourceRef" +
       "erence\032(.ai.stigmer.agentic.workflow.v1." +
-      "Workflow\032\004\240\377+2B\251\001B\nQueryProtoP\001\242\002\004ASAW\252\002" +
-      "\036Ai.Stigmer.Agentic.Workflow.V1\312\002\036Ai\\Sti" +
-      "gmer\\Agentic\\Workflow\\V1\342\002*Ai\\Stigmer\\Ag" +
-      "entic\\Workflow\\V1\\GPBMetadata\352\002\"Ai::Stig" +
-      "mer::Agentic::Workflow::V1b\006proto3"
+      "Workflow\"\004\320\270\030\001\032\004\240\377+2B\251\001B\nQueryProtoP\001\242\002\004" +
+      "ASAW\252\002\036Ai.Stigmer.Agentic.Workflow.V1\312\002\036" +
+      "Ai\\Stigmer\\Agentic\\Workflow\\V1\342\002*Ai\\Stig" +
+      "mer\\Agentic\\Workflow\\V1\\GPBMetadata\352\002\"Ai" +
+      "::Stigmer::Agentic::Workflow::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -75,6 +75,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

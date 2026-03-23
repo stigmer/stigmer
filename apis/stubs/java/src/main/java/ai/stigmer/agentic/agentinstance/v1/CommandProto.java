@@ -42,28 +42,28 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "tinstance/v1/io.proto\0328ai/stigmer/common" +
       "s/apiresource/rpc_service_options.proto\032" +
       "Aai/stigmer/iam/iampolicy/v1/rpcauthoriz" +
-      "ation/method_options.proto2\351\004\n\036AgentInst" +
+      "ation/method_options.proto2\355\004\n\036AgentInst" +
       "anceCommandController\022o\n\005apply\0222.ai.stig" +
       "mer.agentic.agentinstance.v1.AgentInstan" +
       "ce\0322.ai.stigmer.agentic.agentinstance.v1" +
-      ".AgentInstance\022r\n\006create\0222.ai.stigmer.ag" +
+      ".AgentInstance\022v\n\006create\0222.ai.stigmer.ag" +
       "entic.agentinstance.v1.AgentInstance\0322.a" +
       "i.stigmer.agentic.agentinstance.v1.Agent" +
-      "Instance\"\000\022\256\001\n\006update\0222.ai.stigmer.agent" +
-      "ic.agentinstance.v1.AgentInstance\0322.ai.s" +
-      "tigmer.agentic.agentinstance.v1.AgentIns" +
-      "tance\"<\302\270\0308\010\004\020-\"\013metadata.id*%unauthoriz" +
-      "ed to update agent instance\022\252\001\n\006delete\0224" +
-      ".ai.stigmer.agentic.agentinstance.v1.Age" +
-      "ntInstanceId\0322.ai.stigmer.agentic.agenti" +
-      "nstance.v1.AgentInstance\"6\302\270\0302\010\002\020-\"\005valu" +
-      "e*%unauthorized to delete agent instance" +
-      "\032\004\240\377+-B\277\001B\014CommandProtoP\001\242\002\004ASAA\252\002#Ai.St" +
-      "igmer.Agentic.Agentinstance.V1\312\002#Ai\\Stig" +
-      "mer\\Agentic\\Agentinstance\\V1\342\002/Ai\\Stigme" +
-      "r\\Agentic\\Agentinstance\\V1\\GPBMetadata\352\002" +
-      "\'Ai::Stigmer::Agentic::Agentinstance::V1" +
-      "b\006proto3"
+      "Instance\"\004\320\270\030\001\022\256\001\n\006update\0222.ai.stigmer.a" +
+      "gentic.agentinstance.v1.AgentInstance\0322." +
+      "ai.stigmer.agentic.agentinstance.v1.Agen" +
+      "tInstance\"<\302\270\0308\010\004\020-\"\013metadata.id*%unauth" +
+      "orized to update agent instance\022\252\001\n\006dele" +
+      "te\0224.ai.stigmer.agentic.agentinstance.v1" +
+      ".AgentInstanceId\0322.ai.stigmer.agentic.ag" +
+      "entinstance.v1.AgentInstance\"6\302\270\0302\010\002\020-\"\005" +
+      "value*%unauthorized to delete agent inst" +
+      "ance\032\004\240\377+-B\277\001B\014CommandProtoP\001\242\002\004ASAA\252\002#A" +
+      "i.Stigmer.Agentic.Agentinstance.V1\312\002#Ai\\" +
+      "Stigmer\\Agentic\\Agentinstance\\V1\342\002/Ai\\St" +
+      "igmer\\Agentic\\Agentinstance\\V1\\GPBMetada" +
+      "ta\352\002\'Ai::Stigmer::Agentic::Agentinstance" +
+      "::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -82,6 +82,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
     registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

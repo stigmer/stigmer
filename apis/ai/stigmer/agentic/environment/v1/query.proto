@@ -22,7 +22,9 @@ service EnvironmentQueryController {
   }
 
   // Custom authorization in handler
-  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Environment);
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Environment) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 
   // Get the unredacted value of a single secret key in an environment.
   // Creator-only: requires can_read_secrets permission (FGA: creator relation).

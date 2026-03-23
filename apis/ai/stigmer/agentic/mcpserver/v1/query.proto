@@ -48,5 +48,7 @@ service McpServerQueryController {
   //
   // Authorization: Custom authorization in handler.
   // The handler performs scope-aware authorization based on the reference.
-  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (McpServer);
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (McpServer) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }

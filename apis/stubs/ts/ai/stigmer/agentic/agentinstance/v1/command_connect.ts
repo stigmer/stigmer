@@ -40,8 +40,6 @@ export const AgentInstanceCommandController = {
      *
      * This pattern eliminates redundant checks by providing organization context to FGA
      *
-     * Authorization handled in handler using FGA contextual tuples
-     *
      * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController.create
      */
     create: {

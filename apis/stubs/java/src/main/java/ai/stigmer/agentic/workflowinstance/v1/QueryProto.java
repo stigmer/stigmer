@@ -43,7 +43,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "mer/commons/apiresource/io.proto\0328ai/sti" +
       "gmer/commons/apiresource/rpc_service_opt" +
       "ions.proto\032Aai/stigmer/iam/iampolicy/v1/" +
-      "rpcauthorization/method_options.proto2\205\004" +
+      "rpcauthorization/method_options.proto2\213\004" +
       "\n\037WorkflowInstanceQueryController\022\263\001\n\003ge" +
       "t\022:.ai.stigmer.agentic.workflowinstance." +
       "v1.WorkflowInstanceId\0328.ai.stigmer.agent" +
@@ -53,16 +53,16 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "tigmer.agentic.workflowinstance.v1.GetWo" +
       "rkflowInstancesByWorkflowRequest\032<.ai.st" +
       "igmer.agentic.workflowinstance.v1.Workfl" +
-      "owInstanceList\"\004\320\270\030\001\022\200\001\n\016getByReference\022" +
+      "owInstanceList\"\004\320\270\030\001\022\206\001\n\016getByReference\022" +
       "4.ai.stigmer.commons.apiresource.ApiReso" +
       "urceReference\0328.ai.stigmer.agentic.workf" +
-      "lowinstance.v1.WorkflowInstance\032\004\240\377+3B\311\001" +
-      "B\nQueryProtoP\001\242\002\004ASAW\252\002&Ai.Stigmer.Agent" +
-      "ic.Workflowinstance.V1\312\002&Ai\\Stigmer\\Agen" +
-      "tic\\Workflowinstance\\V1\342\0022Ai\\Stigmer\\Age" +
-      "ntic\\Workflowinstance\\V1\\GPBMetadata\352\002*A" +
-      "i::Stigmer::Agentic::Workflowinstance::V" +
-      "1b\006proto3"
+      "lowinstance.v1.WorkflowInstance\"\004\320\270\030\001\032\004\240" +
+      "\377+3B\311\001B\nQueryProtoP\001\242\002\004ASAW\252\002&Ai.Stigmer" +
+      ".Agentic.Workflowinstance.V1\312\002&Ai\\Stigme" +
+      "r\\Agentic\\Workflowinstance\\V1\342\0022Ai\\Stigm" +
+      "er\\Agentic\\Workflowinstance\\V1\\GPBMetada" +
+      "ta\352\002*Ai::Stigmer::Agentic::Workflowinsta" +
+      "nce::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

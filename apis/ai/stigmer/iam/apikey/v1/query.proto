@@ -24,6 +24,7 @@ service ApiKeyQueryController {
   rpc getByKeyHash(ApiKeyHash) returns (ApiKey) {
     // Authorization is handled in the handler after loading the resource
     // (input doesn't contain API key ID, so proto-level auth cannot work)
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
   // lookup all api-keys for the identity-account in the auth header.

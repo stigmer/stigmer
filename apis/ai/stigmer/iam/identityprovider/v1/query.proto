@@ -20,5 +20,8 @@ service IdentityProviderQueryController {
   }
 
   // Get an identity provider by reference (org + slug).
-  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (IdentityProvider);
+  // Custom authorization in handler.
+  rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (IdentityProvider) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 }

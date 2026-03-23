@@ -18,7 +18,9 @@ service AgentExecutionCommandController {
   // Authorization is handled in handler:
   //   - If session_id provided: checks can_create_execution_in on session
   //   - If session_id NOT provided: checks can_create_execution_in on organization
-  rpc create(AgentExecution) returns (AgentExecution) {}
+  rpc create(AgentExecution) returns (AgentExecution) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 
   // Update an execution with full state.
   // Used by users to update execution configuration (spec fields).

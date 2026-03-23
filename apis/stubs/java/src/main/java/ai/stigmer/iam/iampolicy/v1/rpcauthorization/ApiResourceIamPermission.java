@@ -202,6 +202,14 @@ public enum ApiResourceIamPermission
   can_create_idp(24),
   /**
    * <pre>
+   * Permission to create environments in an organization
+   * </pre>
+   *
+   * <code>can_create_environment = 27;</code>
+   */
+  can_create_environment(27),
+  /**
+   * <pre>
    * Resource-specific operation permissions
    * </pre>
    *
@@ -414,6 +422,14 @@ public enum ApiResourceIamPermission
   public static final int can_create_idp_VALUE = 24;
   /**
    * <pre>
+   * Permission to create environments in an organization
+   * </pre>
+   *
+   * <code>can_create_environment = 27;</code>
+   */
+  public static final int can_create_environment_VALUE = 27;
+  /**
+   * <pre>
    * Resource-specific operation permissions
    * </pre>
    *
@@ -479,6 +495,7 @@ public enum ApiResourceIamPermission
       case 21: return can_create_skill;
       case 23: return can_create_project;
       case 24: return can_create_idp;
+      case 27: return can_create_environment;
       case 22: return can_execute;
       case 25: return can_read_secrets;
       default: return null;

@@ -53,7 +53,9 @@ service WorkflowInstanceCommandController {
   // Example:
   // Input: WorkflowInstance with workflow_id="wfl-123", environment_refs=["env-prod"]
   // Output: WorkflowInstance with id="wfi-abc456", created_at="2025-01-11T10:00:00Z"
-  rpc create(WorkflowInstance) returns (WorkflowInstance);
+  rpc create(WorkflowInstance) returns (WorkflowInstance) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
+  }
 
   // Update an existing workflow instance.
   //
