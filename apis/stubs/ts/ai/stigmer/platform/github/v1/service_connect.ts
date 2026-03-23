@@ -34,10 +34,10 @@ export const GitHubService = {
      * redirects the user to this URL, and GitHub redirects back to the
      * provided redirect_uri with an authorization code.
      *
-     * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.GetOAuthAuthorizeUrl
+     * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.getOAuthAuthorizeUrl
      */
     getOAuthAuthorizeUrl: {
-      name: "GetOAuthAuthorizeUrl",
+      name: "getOAuthAuthorizeUrl",
       I: GetOAuthAuthorizeUrlRequest,
       O: GetOAuthAuthorizeUrlResponse,
       kind: MethodKind.Unary,
@@ -54,10 +54,10 @@ export const GitHubService = {
      * is responsible for persisting it (e.g., in localStorage) and including
      * it in subsequent requests that need GitHub access.
      *
-     * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.ExchangeOAuthCode
+     * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.exchangeOAuthCode
      */
     exchangeOAuthCode: {
-      name: "ExchangeOAuthCode",
+      name: "exchangeOAuthCode",
       I: ExchangeOAuthCodeRequest,
       O: ExchangeOAuthCodeResponse,
       kind: MethodKind.Unary,

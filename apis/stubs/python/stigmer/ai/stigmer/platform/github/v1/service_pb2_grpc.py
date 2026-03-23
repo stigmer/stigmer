@@ -27,13 +27,13 @@ class GitHubServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.GetOAuthAuthorizeUrl = channel.unary_unary(
-                '/ai.stigmer.platform.github.v1.GitHubService/GetOAuthAuthorizeUrl',
+        self.getOAuthAuthorizeUrl = channel.unary_unary(
+                '/ai.stigmer.platform.github.v1.GitHubService/getOAuthAuthorizeUrl',
                 request_serializer=ai_dot_stigmer_dot_platform_dot_github_dot_v1_dot_service__pb2.GetOAuthAuthorizeUrlRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_platform_dot_github_dot_v1_dot_service__pb2.GetOAuthAuthorizeUrlResponse.FromString,
                 _registered_method=True)
-        self.ExchangeOAuthCode = channel.unary_unary(
-                '/ai.stigmer.platform.github.v1.GitHubService/ExchangeOAuthCode',
+        self.exchangeOAuthCode = channel.unary_unary(
+                '/ai.stigmer.platform.github.v1.GitHubService/exchangeOAuthCode',
                 request_serializer=ai_dot_stigmer_dot_platform_dot_github_dot_v1_dot_service__pb2.ExchangeOAuthCodeRequest.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_platform_dot_github_dot_v1_dot_service__pb2.ExchangeOAuthCodeResponse.FromString,
                 _registered_method=True)
@@ -55,7 +55,7 @@ class GitHubServiceServicer(object):
     persisted by the backend.
     """
 
-    def GetOAuthAuthorizeUrl(self, request, context):
+    def getOAuthAuthorizeUrl(self, request, context):
         """Returns the GitHub OAuth authorize URL for initiating the OAuth flow.
 
         The backend constructs the URL with the registered client_id, requested
@@ -67,7 +67,7 @@ class GitHubServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def ExchangeOAuthCode(self, request, context):
+    def exchangeOAuthCode(self, request, context):
         """Exchanges a GitHub OAuth authorization code for an access token.
 
         The frontend calls this after receiving the authorization code from
@@ -86,13 +86,13 @@ class GitHubServiceServicer(object):
 
 def add_GitHubServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'GetOAuthAuthorizeUrl': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetOAuthAuthorizeUrl,
+            'getOAuthAuthorizeUrl': grpc.unary_unary_rpc_method_handler(
+                    servicer.getOAuthAuthorizeUrl,
                     request_deserializer=ai_dot_stigmer_dot_platform_dot_github_dot_v1_dot_service__pb2.GetOAuthAuthorizeUrlRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_platform_dot_github_dot_v1_dot_service__pb2.GetOAuthAuthorizeUrlResponse.SerializeToString,
             ),
-            'ExchangeOAuthCode': grpc.unary_unary_rpc_method_handler(
-                    servicer.ExchangeOAuthCode,
+            'exchangeOAuthCode': grpc.unary_unary_rpc_method_handler(
+                    servicer.exchangeOAuthCode,
                     request_deserializer=ai_dot_stigmer_dot_platform_dot_github_dot_v1_dot_service__pb2.ExchangeOAuthCodeRequest.FromString,
                     response_serializer=ai_dot_stigmer_dot_platform_dot_github_dot_v1_dot_service__pb2.ExchangeOAuthCodeResponse.SerializeToString,
             ),
@@ -121,7 +121,7 @@ class GitHubService(object):
     """
 
     @staticmethod
-    def GetOAuthAuthorizeUrl(request,
+    def getOAuthAuthorizeUrl(request,
             target,
             options=(),
             channel_credentials=None,
@@ -134,7 +134,7 @@ class GitHubService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.platform.github.v1.GitHubService/GetOAuthAuthorizeUrl',
+            '/ai.stigmer.platform.github.v1.GitHubService/getOAuthAuthorizeUrl',
             ai_dot_stigmer_dot_platform_dot_github_dot_v1_dot_service__pb2.GetOAuthAuthorizeUrlRequest.SerializeToString,
             ai_dot_stigmer_dot_platform_dot_github_dot_v1_dot_service__pb2.GetOAuthAuthorizeUrlResponse.FromString,
             options,
@@ -148,7 +148,7 @@ class GitHubService(object):
             _registered_method=True)
 
     @staticmethod
-    def ExchangeOAuthCode(request,
+    def exchangeOAuthCode(request,
             target,
             options=(),
             channel_credentials=None,
@@ -161,7 +161,7 @@ class GitHubService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ai.stigmer.platform.github.v1.GitHubService/ExchangeOAuthCode',
+            '/ai.stigmer.platform.github.v1.GitHubService/exchangeOAuthCode',
             ai_dot_stigmer_dot_platform_dot_github_dot_v1_dot_service__pb2.ExchangeOAuthCodeRequest.SerializeToString,
             ai_dot_stigmer_dot_platform_dot_github_dot_v1_dot_service__pb2.ExchangeOAuthCodeResponse.FromString,
             options,

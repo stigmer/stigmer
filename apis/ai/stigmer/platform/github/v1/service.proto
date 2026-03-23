@@ -25,7 +25,7 @@ service GitHubService {
   // scopes, and a random state parameter for CSRF protection. The frontend
   // redirects the user to this URL, and GitHub redirects back to the
   // provided redirect_uri with an authorization code.
-  rpc GetOAuthAuthorizeUrl(GetOAuthAuthorizeUrlRequest) returns (GetOAuthAuthorizeUrlResponse) {
+  rpc getOAuthAuthorizeUrl(GetOAuthAuthorizeUrlRequest) returns (GetOAuthAuthorizeUrlResponse) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
@@ -39,7 +39,7 @@ service GitHubService {
   // The returned access_token is NOT stored by the backend. The frontend
   // is responsible for persisting it (e.g., in localStorage) and including
   // it in subsequent requests that need GitHub access.
-  rpc ExchangeOAuthCode(ExchangeOAuthCodeRequest) returns (ExchangeOAuthCodeResponse) {
+  rpc exchangeOAuthCode(ExchangeOAuthCodeRequest) returns (ExchangeOAuthCodeResponse) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 }

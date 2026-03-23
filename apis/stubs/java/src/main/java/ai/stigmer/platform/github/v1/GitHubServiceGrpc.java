@@ -28,7 +28,7 @@ public final class GitHubServiceGrpc {
       ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse> getGetOAuthAuthorizeUrlMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "GetOAuthAuthorizeUrl",
+      fullMethodName = SERVICE_NAME + '/' + "getOAuthAuthorizeUrl",
       requestType = ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest.class,
       responseType = ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
@@ -41,13 +41,13 @@ public final class GitHubServiceGrpc {
           GitHubServiceGrpc.getGetOAuthAuthorizeUrlMethod = getGetOAuthAuthorizeUrlMethod =
               io.grpc.MethodDescriptor.<ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest, ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "GetOAuthAuthorizeUrl"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "getOAuthAuthorizeUrl"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new GitHubServiceMethodDescriptorSupplier("GetOAuthAuthorizeUrl"))
+              .setSchemaDescriptor(new GitHubServiceMethodDescriptorSupplier("getOAuthAuthorizeUrl"))
               .build();
         }
       }
@@ -59,7 +59,7 @@ public final class GitHubServiceGrpc {
       ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse> getExchangeOAuthCodeMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "ExchangeOAuthCode",
+      fullMethodName = SERVICE_NAME + '/' + "exchangeOAuthCode",
       requestType = ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest.class,
       responseType = ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse.class,
       methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
@@ -72,13 +72,13 @@ public final class GitHubServiceGrpc {
           GitHubServiceGrpc.getExchangeOAuthCodeMethod = getExchangeOAuthCodeMethod =
               io.grpc.MethodDescriptor.<ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest, ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse>newBuilder()
               .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "ExchangeOAuthCode"))
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "exchangeOAuthCode"))
               .setSampledToLocalTracing(true)
               .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest.getDefaultInstance()))
               .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
                   ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse.getDefaultInstance()))
-              .setSchemaDescriptor(new GitHubServiceMethodDescriptorSupplier("ExchangeOAuthCode"))
+              .setSchemaDescriptor(new GitHubServiceMethodDescriptorSupplier("exchangeOAuthCode"))
               .build();
         }
       }

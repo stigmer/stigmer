@@ -70,11 +70,11 @@ public final class ServiceProto extends com.google.protobuf.GeneratedFile {
       "ngeOAuthCodeResponse\022!\n\014access_token\030\001 \001" +
       "(\tR\013accessToken\022\035\n\ntoken_type\030\002 \001(\tR\ttok" +
       "enType\022\024\n\005scope\030\003 \001(\tR\005scope2\266\002\n\rGitHubS" +
-      "ervice\022\225\001\n\024GetOAuthAuthorizeUrl\022:.ai.sti" +
+      "ervice\022\225\001\n\024getOAuthAuthorizeUrl\022:.ai.sti" +
       "gmer.platform.github.v1.GetOAuthAuthoriz" +
       "eUrlRequest\032;.ai.stigmer.platform.github" +
       ".v1.GetOAuthAuthorizeUrlResponse\"\004\320\270\030\001\022\214" +
-      "\001\n\021ExchangeOAuthCode\0227.ai.stigmer.platfo" +
+      "\001\n\021exchangeOAuthCode\0227.ai.stigmer.platfo" +
       "rm.github.v1.ExchangeOAuthCodeRequest\0328." +
       "ai.stigmer.platform.github.v1.ExchangeOA" +
       "uthCodeResponse\"\004\320\270\030\001B\247\001B\014ServiceProtoP\001" +

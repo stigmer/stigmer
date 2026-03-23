@@ -10,8 +10,8 @@ export interface UseResourceCountOptions {
   /**
    * Controls resource visibility scope.
    *
-   * - `"org"` — only resources owned by the given organization (excludes public/platform resources).
-   * - `"all"` — includes public/platform resources alongside the org's own resources.
+   * - `"org"` — all resources owned by the given organization, regardless of visibility.
+   * - `"all"` — all resources the caller is authorized to access, across all organizations.
    *
    * @default "org"
    */
@@ -72,9 +72,9 @@ export function useResourceCount(
     setError(null);
 
     const params: ListParams = {
-      org,
+      org: scope === "all" ? "" : org,
       query: query || undefined,
-      excludePublic: scope === "org",
+      excludePublic: false,
       page: { num: 1, size: 1 },
     };
 
