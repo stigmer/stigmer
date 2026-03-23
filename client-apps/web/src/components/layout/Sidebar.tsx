@@ -156,7 +156,7 @@ function SessionGroupList({
                     <Tooltip>
                       <TooltipTrigger
                         render={
-                          <Link
+                          <a
                             href={`/sessions/${id}`}
                             aria-current={
                               isActive ? "page" : undefined
