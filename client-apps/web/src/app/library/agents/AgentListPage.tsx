@@ -2,9 +2,9 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Bot, Plus } from "lucide-react";
 import { getDraftSessionUrl } from "@/utils/draft-session";
+import { navigateTo } from "@/utils/navigation";
 import {
   useAgentList,
   ResourceListView,
@@ -22,7 +22,6 @@ function readPersistedScope(): ResourceListScope {
 
 export function AgentListPage() {
   const org = useActiveOrgSlug();
-  const router = useRouter();
 
   const [scope, setScope] = useState<ResourceListScope>(readPersistedScope);
   const [query, setQuery] = useState("");
@@ -67,7 +66,7 @@ export function AgentListPage() {
         onScopeChange={handleScopeChange}
         onPageChange={setPage}
         emptyIcon={<Bot className="size-10" aria-hidden="true" />}
-        onItemClick={(item) => router.push(`/library/agents/${item.slug}`)}
+        onItemClick={(item) => navigateTo(`/library/agents/${item.slug}`)}
         emptyTitle="No agents found"
         onRetry={refetch}
         aria-label="Agent list"

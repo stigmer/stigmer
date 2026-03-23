@@ -2,17 +2,17 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { AgentDetailView } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { getEditSessionUrl } from "@/utils/draft-session";
+import { navigateTo } from "@/utils/navigation";
 import { useBreadcrumbOverride } from "../../LibraryBreadcrumbContext";
 
 export function AgentDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const org = useActiveOrgSlug();
-  const router = useRouter();
   const { setLabel } = useBreadcrumbOverride();
 
   useEffect(() => () => setLabel(null), [setLabel]);
@@ -34,9 +34,9 @@ export function AgentDetailPage() {
         slug={slug}
         onResourceLoad={({ name }) => setLabel(name)}
         onMcpServerClick={({ slug: s }) =>
-          router.push(`/library/mcp-servers/${s}`)
+          navigateTo(`/library/mcp-servers/${s}`)
         }
-        onSkillClick={({ slug: s }) => router.push(`/library/skills/${s}`)}
+        onSkillClick={({ slug: s }) => navigateTo(`/library/skills/${s}`)}
       />
     </div>
   );

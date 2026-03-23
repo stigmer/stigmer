@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Bot, Plus, Sparkles, Server } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { getDraftSessionUrl } from "@/utils/draft-session";
+import { navigateTo } from "@/utils/navigation";
 import type { DraftResourceType } from "@/utils/draft-session";
 import {
   useAgentCount,
@@ -69,7 +69,6 @@ function useResourceCounts(org: string | null) {
 
 export function LibraryLanding() {
   const org = useActiveOrgSlug();
-  const router = useRouter();
   const counts = useResourceCounts(org || null);
 
   return (
@@ -93,7 +92,7 @@ export function LibraryLanding() {
               href={card.href}
               onClick={(e) => {
                 e.preventDefault();
-                router.push(card.href);
+                navigateTo(card.href);
               }}
             />
           );

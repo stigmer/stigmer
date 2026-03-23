@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   SessionComposer,
@@ -30,6 +30,7 @@ import {
   parseDraftParams,
   type DraftResourceType,
 } from "@/utils/draft-session";
+import { navigateTo } from "@/utils/navigation";
 
 /**
  * Console-specific session launcher — the landing page widget that
@@ -68,7 +69,6 @@ function firstNWords(text: string, n: number): string {
 }
 
 export function SessionLauncher() {
-  const router = useRouter();
   const rawSearchParams = useSearchParams();
   const draftParams = parseDraftParams(rawSearchParams);
   const org = useActiveOrgSlug();
@@ -283,7 +283,7 @@ export function SessionLauncher() {
 
         await createExecution({ ...executionFields, sessionId });
         sessionVariables.clear();
-        router.push(`/sessions/${sessionId}`);
+        navigateTo(`/sessions/${sessionId}`);
       } catch (err) {
         const detail = getUserMessage(err, "Failed to start session");
         setSubmitError(detail);
@@ -305,7 +305,6 @@ export function SessionLauncher() {
       createSession,
       createExecution,
       sessionVariables,
-      router,
     ],
   );
 
