@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/platform/github/v1/service.proto.
  */
 export const file_ai_stigmer_platform_github_v1_service: GenFile = /*@__PURE__*/
-  fileDesc("CithaS9zdGlnbWVyL3BsYXRmb3JtL2dpdGh1Yi92MS9zZXJ2aWNlLnByb3RvEh1haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MSI8ChtHZXRPQXV0aEF1dGhvcml6ZVVybFJlcXVlc3QSHQoMcmVkaXJlY3RfdXJpGAEgASgJQge6SARyAhABIkQKHEdldE9BdXRoQXV0aG9yaXplVXJsUmVzcG9uc2USFQoNYXV0aG9yaXplX3VybBgBIAEoCRINCgVzdGF0ZRgCIAEoCSJoChhFeGNoYW5nZU9BdXRoQ29kZVJlcXVlc3QSFQoEY29kZRgBIAEoCUIHukgEcgIQARIWCgVzdGF0ZRgCIAEoCUIHukgEcgIQARIdCgxyZWRpcmVjdF91cmkYAyABKAlCB7pIBHICEAEiVAoZRXhjaGFuZ2VPQXV0aENvZGVSZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRINCgVzY29wZRgDIAEoCTK2AgoNR2l0SHViU2VydmljZRKVAQoUR2V0T0F1dGhBdXRob3JpemVVcmwSOi5haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MS5HZXRPQXV0aEF1dGhvcml6ZVVybFJlcXVlc3QaOy5haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MS5HZXRPQXV0aEF1dGhvcml6ZVVybFJlc3BvbnNlIgTQuBgBEowBChFFeGNoYW5nZU9BdXRoQ29kZRI3LmFpLnN0aWdtZXIucGxhdGZvcm0uZ2l0aHViLnYxLkV4Y2hhbmdlT0F1dGhDb2RlUmVxdWVzdBo4LmFpLnN0aWdtZXIucGxhdGZvcm0uZ2l0aHViLnYxLkV4Y2hhbmdlT0F1dGhDb2RlUmVzcG9uc2UiBNC4GAFiBnByb3RvMw", [file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_buf_validate_validate]);
+  fileDesc("CithaS9zdGlnbWVyL3BsYXRmb3JtL2dpdGh1Yi92MS9zZXJ2aWNlLnByb3RvEh1haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MSI8ChtHZXRPQXV0aEF1dGhvcml6ZVVybFJlcXVlc3QSHQoMcmVkaXJlY3RfdXJpGAEgASgJQge6SARyAhABIkQKHEdldE9BdXRoQXV0aG9yaXplVXJsUmVzcG9uc2USFQoNYXV0aG9yaXplX3VybBgBIAEoCRINCgVzdGF0ZRgCIAEoCSJoChhFeGNoYW5nZU9BdXRoQ29kZVJlcXVlc3QSFQoEY29kZRgBIAEoCUIHukgEcgIQARIWCgVzdGF0ZRgCIAEoCUIHukgEcgIQARIdCgxyZWRpcmVjdF91cmkYAyABKAlCB7pIBHICEAEiVAoZRXhjaGFuZ2VPQXV0aENvZGVSZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSEgoKdG9rZW5fdHlwZRgCIAEoCRINCgVzY29wZRgDIAEoCTK2AgoNR2l0SHViU2VydmljZRKVAQoUZ2V0T0F1dGhBdXRob3JpemVVcmwSOi5haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MS5HZXRPQXV0aEF1dGhvcml6ZVVybFJlcXVlc3QaOy5haS5zdGlnbWVyLnBsYXRmb3JtLmdpdGh1Yi52MS5HZXRPQXV0aEF1dGhvcml6ZVVybFJlc3BvbnNlIgTQuBgBEowBChFleGNoYW5nZU9BdXRoQ29kZRI3LmFpLnN0aWdtZXIucGxhdGZvcm0uZ2l0aHViLnYxLkV4Y2hhbmdlT0F1dGhDb2RlUmVxdWVzdBo4LmFpLnN0aWdtZXIucGxhdGZvcm0uZ2l0aHViLnYxLkV4Y2hhbmdlT0F1dGhDb2RlUmVzcG9uc2UiBNC4GAFiBnByb3RvMw", [file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_buf_validate_validate]);
 
 /**
  * Request to get the OAuth authorize URL.
@@ -162,7 +162,7 @@ export const GitHubService: GenService<{
    * redirects the user to this URL, and GitHub redirects back to the
    * provided redirect_uri with an authorization code.
    *
-   * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.GetOAuthAuthorizeUrl
+   * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.getOAuthAuthorizeUrl
    */
   getOAuthAuthorizeUrl: {
     methodKind: "unary";
@@ -181,7 +181,7 @@ export const GitHubService: GenService<{
    * is responsible for persisting it (e.g., in localStorage) and including
    * it in subsequent requests that need GitHub access.
    *
-   * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.ExchangeOAuthCode
+   * @generated from rpc ai.stigmer.platform.github.v1.GitHubService.exchangeOAuthCode
    */
   exchangeOAuthCode: {
     methodKind: "unary";

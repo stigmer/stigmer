@@ -275,8 +275,8 @@ const file_ai_stigmer_platform_github_v1_service_proto_rawDesc = "" +
 	"token_type\x18\x02 \x01(\tR\ttokenType\x12\x14\n" +
 	"\x05scope\x18\x03 \x01(\tR\x05scope2\xb6\x02\n" +
 	"\rGitHubService\x12\x95\x01\n" +
-	"\x14GetOAuthAuthorizeUrl\x12:.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest\x1a;.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse\"\x04и\x18\x01\x12\x8c\x01\n" +
-	"\x11ExchangeOAuthCode\x127.ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest\x1a8.ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse\"\x04и\x18\x01B\x9b\x02\n" +
+	"\x14getOAuthAuthorizeUrl\x12:.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest\x1a;.ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse\"\x04и\x18\x01\x12\x8c\x01\n" +
+	"\x11exchangeOAuthCode\x127.ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest\x1a8.ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse\"\x04и\x18\x01B\x9b\x02\n" +
 	"!com.ai.stigmer.platform.github.v1B\fServiceProtoP\x01ZOgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/platform/github/v1;githubv1\xa2\x02\x04ASPG\xaa\x02\x1dAi.Stigmer.Platform.Github.V1\xca\x02\x1dAi\\Stigmer\\Platform\\Github\\V1\xe2\x02)Ai\\Stigmer\\Platform\\Github\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Platform::Github::V1b\x06proto3"
 
 var (
@@ -299,10 +299,10 @@ var file_ai_stigmer_platform_github_v1_service_proto_goTypes = []any{
 	(*ExchangeOAuthCodeResponse)(nil),    // 3: ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse
 }
 var file_ai_stigmer_platform_github_v1_service_proto_depIdxs = []int32{
-	0, // 0: ai.stigmer.platform.github.v1.GitHubService.GetOAuthAuthorizeUrl:input_type -> ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest
-	2, // 1: ai.stigmer.platform.github.v1.GitHubService.ExchangeOAuthCode:input_type -> ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest
-	1, // 2: ai.stigmer.platform.github.v1.GitHubService.GetOAuthAuthorizeUrl:output_type -> ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse
-	3, // 3: ai.stigmer.platform.github.v1.GitHubService.ExchangeOAuthCode:output_type -> ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse
+	0, // 0: ai.stigmer.platform.github.v1.GitHubService.getOAuthAuthorizeUrl:input_type -> ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlRequest
+	2, // 1: ai.stigmer.platform.github.v1.GitHubService.exchangeOAuthCode:input_type -> ai.stigmer.platform.github.v1.ExchangeOAuthCodeRequest
+	1, // 2: ai.stigmer.platform.github.v1.GitHubService.getOAuthAuthorizeUrl:output_type -> ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse
+	3, // 3: ai.stigmer.platform.github.v1.GitHubService.exchangeOAuthCode:output_type -> ai.stigmer.platform.github.v1.ExchangeOAuthCodeResponse
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

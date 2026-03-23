@@ -64,7 +64,7 @@ class GitHubClient:
             redirect_uri=params.redirect_uri,
         )
         try:
-            resp = self._stub.GetOAuthAuthorizeUrl(req)
+            resp = self._stub.getOAuthAuthorizeUrl(req)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
@@ -83,7 +83,7 @@ class GitHubClient:
             redirect_uri=params.redirect_uri,
         )
         try:
-            resp = self._stub.ExchangeOAuthCode(req)
+            resp = self._stub.exchangeOAuthCode(req)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

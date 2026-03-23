@@ -4,7 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ListParams, ListResult } from "@stigmer/sdk";
 import type { SearchResult } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
 
-/** Scope controls whether only the org's own resources or all accessible resources are returned. */
+/**
+ * Scope controls resource listing boundaries.
+ *
+ * - `"org"` — resources owned by the active organization (public and private).
+ * - `"all"` — all resources the caller can access, across every organization.
+ */
 export type ResourceListScope = "org" | "all";
 
 export interface UseResourceListOptions {
@@ -17,8 +22,8 @@ export interface UseResourceListOptions {
   /**
    * Controls resource visibility scope.
    *
-   * - `"org"` — only resources owned by the given organization (excludes public/platform resources).
-   * - `"all"` — includes public/platform resources alongside the org's own resources.
+   * - `"org"` — all resources owned by the given organization, regardless of visibility.
+   * - `"all"` — all resources the caller is authorized to access, across all organizations.
    *
    * @default "org"
    */
@@ -83,9 +88,9 @@ export function useResourceList(
     setError(null);
 
     const params: ListParams = {
-      org,
+      org: scope === "all" ? "" : org,
       query: query || undefined,
-      excludePublic: scope === "org",
+      excludePublic: false,
       page: { num: page, size: pageSize },
     };
 

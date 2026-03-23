@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	GitHubService_GetOAuthAuthorizeUrl_FullMethodName = "/ai.stigmer.platform.github.v1.GitHubService/GetOAuthAuthorizeUrl"
-	GitHubService_ExchangeOAuthCode_FullMethodName    = "/ai.stigmer.platform.github.v1.GitHubService/ExchangeOAuthCode"
+	GitHubService_GetOAuthAuthorizeUrl_FullMethodName = "/ai.stigmer.platform.github.v1.GitHubService/getOAuthAuthorizeUrl"
+	GitHubService_ExchangeOAuthCode_FullMethodName    = "/ai.stigmer.platform.github.v1.GitHubService/exchangeOAuthCode"
 )
 
 // GitHubServiceClient is the client API for GitHubService service.
@@ -204,11 +204,11 @@ var GitHubService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*GitHubServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetOAuthAuthorizeUrl",
+			MethodName: "getOAuthAuthorizeUrl",
 			Handler:    _GitHubService_GetOAuthAuthorizeUrl_Handler,
 		},
 		{
-			MethodName: "ExchangeOAuthCode",
+			MethodName: "exchangeOAuthCode",
 			Handler:    _GitHubService_ExchangeOAuthCode_Handler,
 		},
 	},
