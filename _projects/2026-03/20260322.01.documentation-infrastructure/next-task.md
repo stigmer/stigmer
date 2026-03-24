@@ -68,13 +68,26 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-22 09:54
-**Current Task**: Session 15 complete. Next: T10 (Snipsync), T13 (Proto API Reference), or content enrichment
+**Current Task**: Session 16 complete. Next: T10 (Snipsync), T13 (Proto API Reference), or content enrichment
 **Status**: Phase 1 COMPLETE, Phase 2 COMPLETE, Phase 3 PARTIALLY COMPLETE, Phase 4 PARTIALLY COMPLETE, Phase 5 PARTIALLY COMPLETE
 
-## Session Progress (2026-03-24, Session 15)
+## Session Progress (2026-03-24, Session 16)
 
 ### Completed
-- **Build hygiene: fix all `make check` warnings**
+- **T18: On-Page Feedback**
+  - Added "Report an issue with this page" link to every docs page footer
+  - Server component (no `"use client"`) -- just an `<a>` tag with a pre-filled GitHub Issue URL
+  - GitHub Issue auto-labeled `documentation`, pre-filled with page title and full URL
+  - Issue body includes a markdown template prompting the user to describe the issue
+  - Styled with Fumadocs `fd-*` tokens, Lucide `MessageSquarePlus` icon
+  - Renders below `DocsBody` with subtle top border separator
+  - Works in both light and dark modes
+  - Zero new dependencies, zero backend, zero client-side state
+  - Design decision: simplified from thumbs up/down to single issue link -- thumbs up is decorative without a backend, and GitHub Issues is a work tracker not a compliment box
+  - Build verified: 65 pages, zero errors, typecheck clean
+
+### Previously Completed
+- **Session 15**: Build hygiene — fix all `make check` warnings, dependency alignment
   - Fixed Gazelle merge failure in `seedpack/BUILD.bazel` — extracted embed sources into a `filegroup` target so Gazelle can merge the `embedsrcs` attribute
   - Ran `bazel mod tidy` to sync `MODULE.bazel` `use_repo` — added 10 missing direct deps, removed 2 stale indirect entries
   - Aligned Go module dependency versions across all 6 workspace modules:
@@ -120,6 +133,7 @@ When starting a new session:
   - Build verified: 64 pages, zero errors, typecheck clean
 
 ### Previously Completed
+- **Session 15**: Build hygiene — fix all `make check` warnings, dependency alignment
 - **Session 14**: T17 — LLM-Friendly Output (llms.txt standard, post-build script, CopyMarkdownButton)
 - **Session 13**: IAM bootstrap automation (stigmer-cloud)
 - **Session 12**: T16 — Custom MDX Components (Mermaid, Term, Callout, Tabs enrichment)
@@ -159,7 +173,7 @@ When starting a new session:
 ### Phase 5: Advanced Features — PARTIALLY COMPLETE
 - [x] T16: Custom MDX Components
 - [x] T17: LLM-Friendly Output
-- [ ] T18: On-Page Feedback
+- [x] T18: On-Page Feedback
 - [ ] T19: Visual Regression Testing
 
 ## Next Steps
@@ -168,7 +182,7 @@ When starting a new session:
 2. **T13: Proto API Reference** — Auto-generated proto API docs (experimental)
 3. **Link checking improvements** — Add `.lychee.toml` config to handle Fumadocs-style links and exclude known flaky external URLs
 4. **Content enrichment** — Apply MDX components to more content pages (SDKs, architecture, deployment)
-5. **T18: On-Page Feedback** — "Was this page helpful?" widget
+5. **T19: Visual Regression Testing** — Screenshot comparison for docs pages
 
 ## Context for Resume
 - The full 5-phase plan is in `tasks/T01_0_plan.md` (449 lines)
@@ -187,11 +201,13 @@ When starting a new session:
 - Session 12 checkpoint: `checkpoints/2026-03-24-session-12.md`
 - Session 14 checkpoint: `checkpoints/2026-03-24-session-14.md`
 - Session 15 checkpoint: `checkpoints/2026-03-24-session-15.md`
+- Session 16 checkpoint: `checkpoints/2026-03-24-session-16.md`
 - T06 execution plan: `.cursor/plans/t06_fumadocs_setup_b1353cf0.plan.md`
 - T12 execution plan: `.cursor/plans/t12_cli_reference_docs_85f99de8.plan.md`
 - T14 execution plan: `.cursor/plans/t14_ci_quality_gates_6fe9edad.plan.md`
 - T16 execution plan: `.cursor/plans/t16_custom_mdx_components_3d2006c8.plan.md`
 - T17 execution plan: `.cursor/plans/t17_llm-friendly_output_e680ae54.plan.md`
+- T18 execution plan: `.cursor/plans/t18_on-page_feedback_7166ce8b.plan.md`
 - **Critical**: Node.js 22 is required. Node.js 23 silently breaks `next build` (webpack cache snapshot bug). `.nvmrc` is set.
 - **Critical**: Dev server must use webpack, not Turbopack. `fumadocs-mdx` query-string imports (`?collection=docs`) are incompatible with Turbopack.
 - **Critical**: New files in `site/src/lib/` require `git add -f` due to `lib/` pattern in `.gitignore` (Python build artifacts)
@@ -213,7 +229,7 @@ When starting a new session:
 After loading context:
 - "Continue with T10" — Snipsync setup (requires examples/)
 - "Continue with T13" — Proto API reference generation (experimental)
-- "Continue with T18" — On-page feedback widget
+- "Continue with T19" — Visual regression testing
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 
