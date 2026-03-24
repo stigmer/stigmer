@@ -401,6 +401,19 @@ export function SessionComposer({
   );
 
   // ---------------------------------------------------------------------------
+  // Pool-resolve notification — when POOL_RESOLVE transitions agentSetup to
+  // "ready" reactively (via the useEffect inside useAgentSetup), the
+  // imperative callbacks (handleAgentSelect, handleEnvSubmit) are not
+  // involved, so onAgentResolutionChange would never fire. This effect
+  // bridges that gap so the parent always knows the current resolution.
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (agentSetup.state.status !== "ready") return;
+    onAgentResolutionChange?.(agentSetup.state.resolution);
+  }, [agentSetup.state, onAgentResolutionChange]);
+
+  // ---------------------------------------------------------------------------
   // Attachments — file upload state machine
   // ---------------------------------------------------------------------------
 
