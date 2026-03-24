@@ -71,6 +71,16 @@ When starting a new session:
 **Current Task**: Session 12 complete. Next: T17 (LLM-Friendly Output), T10 (Snipsync), or T13 (Proto API Reference)
 **Status**: Phase 1 COMPLETE, Phase 2 COMPLETE, Phase 3 PARTIALLY COMPLETE, Phase 4 PARTIALLY COMPLETE, Phase 5 PARTIALLY COMPLETE
 
+## Session Progress (2026-03-24, Session 13 — stigmer-cloud IAM)
+
+### Completed (stigmer-cloud, not docs-infrastructure)
+- **IAM Bootstrap Automation**: Automated day-0 operator account creation
+  - Migration now auto-creates `operator@stigmer.ai` in Auth0 via Management API
+  - Eliminated `BOOTSTRAP_OPERATOR_IDP_ID` config, `BootstrapConfig` class, kustomize/Planton variables
+  - Fixed all `.com` domain references to `.ai`
+  - Deleted obsolete setup guides (developer-accounts, temporal-search-attributes, UPDATES_SUMMARY, scripts/)
+  - Committed as `dd90398c` in stigmer-cloud
+
 ## Session Progress (2026-03-24, Session 12)
 
 ### Completed
