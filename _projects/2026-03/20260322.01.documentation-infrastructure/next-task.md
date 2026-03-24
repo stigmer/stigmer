@@ -68,8 +68,35 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-22 09:54
-**Current Task**: Session 14 complete. Next: T10 (Snipsync), T13 (Proto API Reference), or content enrichment
+**Current Task**: Session 15 complete. Next: T10 (Snipsync), T13 (Proto API Reference), or content enrichment
 **Status**: Phase 1 COMPLETE, Phase 2 COMPLETE, Phase 3 PARTIALLY COMPLETE, Phase 4 PARTIALLY COMPLETE, Phase 5 PARTIALLY COMPLETE
+
+## Session Progress (2026-03-24, Session 15)
+
+### Completed
+- **Build hygiene: fix all `make check` warnings**
+  - Fixed Gazelle merge failure in `seedpack/BUILD.bazel` — extracted embed sources into a `filegroup` target so Gazelle can merge the `embedsrcs` attribute
+  - Ran `bazel mod tidy` to sync `MODULE.bazel` `use_repo` — added 10 missing direct deps, removed 2 stale indirect entries
+  - Aligned Go module dependency versions across all 6 workspace modules:
+    - `google.golang.org/grpc` v1.78.0→v1.79.2 (apis/stubs/go, stigmer-server, test/e2e)
+    - `modernc.org/sqlite` v1.44.3→v1.46.0 (stigmer-server, test/e2e)
+    - AWS SDK v2 (aws-sdk-go-v2, config, credentials, s3) bumped in workflow-runner and test/e2e
+    - grpc bumped in mcp-server, client-apps/cli (v1.79.1→v1.79.2)
+  - Added missing `replace` directives in `test/e2e/go.mod` for `mcp-server` and `seedpack` local modules
+  - Fixed Vale warning in `docs/STYLE.md` — changed "URL" → "Address" in LLM output table header (Microsoft.GeneralURL)
+  - Verified: `make check` passes cleanly with exit code 0, all tests green (1264 Python, 102 TS SDK, 85 React, all Go)
+
+### Files Modified (32 files)
+- `MODULE.bazel` — use_repo sync
+- `seedpack/BUILD.bazel` — filegroup for Gazelle compatibility
+- `docs/STYLE.md` — Vale warning fix
+- `test/e2e/go.mod`, `test/e2e/go.sum` — replace directives + version bumps
+- `backend/services/stigmer-server/go.mod`, `go.sum` — grpc + sqlite bumps
+- `backend/services/workflow-runner/go.mod`, `go.sum` — AWS SDK + grpc bumps
+- `backend/libs/go/go.mod`, `go.sum` — transitive updates
+- `client-apps/cli/go.mod`, `go.sum` — grpc bump
+- `mcp-server/go.mod`, `go.sum` — grpc bump
+- `mcp-server/gen/**/*_gen.go` (16 files) — regenerated code
 
 ## Session Progress (2026-03-24, Session 14)
 
@@ -93,6 +120,7 @@ When starting a new session:
   - Build verified: 64 pages, zero errors, typecheck clean
 
 ### Previously Completed
+- **Session 14**: T17 — LLM-Friendly Output (llms.txt standard, post-build script, CopyMarkdownButton)
 - **Session 13**: IAM bootstrap automation (stigmer-cloud)
 - **Session 12**: T16 — Custom MDX Components (Mermaid, Term, Callout, Tabs enrichment)
 - **Session 11**: Fix MDX angle-bracket escaping in gen-cli-docs
@@ -158,6 +186,7 @@ When starting a new session:
 - Session 11 checkpoint: `checkpoints/2026-03-22-session-11.md`
 - Session 12 checkpoint: `checkpoints/2026-03-24-session-12.md`
 - Session 14 checkpoint: `checkpoints/2026-03-24-session-14.md`
+- Session 15 checkpoint: `checkpoints/2026-03-24-session-15.md`
 - T06 execution plan: `.cursor/plans/t06_fumadocs_setup_b1353cf0.plan.md`
 - T12 execution plan: `.cursor/plans/t12_cli_reference_docs_85f99de8.plan.md`
 - T14 execution plan: `.cursor/plans/t14_ci_quality_gates_6fe9edad.plan.md`

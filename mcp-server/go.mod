@@ -7,7 +7,7 @@ replace github.com/stigmer/stigmer/apis/stubs/go => ../apis/stubs/go
 require (
 	github.com/modelcontextprotocol/go-sdk v1.3.0
 	github.com/stigmer/stigmer/apis/stubs/go v0.0.28
-	google.golang.org/grpc v1.79.1
+	google.golang.org/grpc v1.79.2
 	google.golang.org/protobuf v1.36.11
 )
 
