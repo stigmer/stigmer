@@ -8,7 +8,7 @@ import {
 import { notFound } from "next/navigation";
 import { getMDXComponents } from "@/components/mdx";
 import { createRelativeLink } from "fumadocs-ui/mdx";
-import { CopyMarkdownButton } from "@/components/docs";
+import { CopyMarkdownButton, PageFeedback } from "@/components/docs";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -44,6 +44,7 @@ export default async function Page(props: PageProps) {
           })}
         />
       </DocsBody>
+      <PageFeedback pageTitle={page.data.title} pageUrl={page.url} />
     </DocsPage>
   );
 }
