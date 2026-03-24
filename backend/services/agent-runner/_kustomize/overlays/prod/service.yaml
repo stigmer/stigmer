@@ -31,9 +31,9 @@ spec:
           # Redis Configuration (using internal Kubernetes endpoint)
           REDIS_HOST:
             value: $variables-group/stigmer-redis-config/prod.kube-endpoint
-          # Stigmer API Configuration
+          # Stigmer API Configuration (internal Kubernetes endpoint, plain gRPC)
           STIGMER_BACKEND_ENDPOINT:
-            value: $variables-group/stigmer-api/prod.endpoint
+            value: $variables-group/stigmer-api/prod.kube-endpoint
           # LLM Configuration (production uses Anthropic)
           STIGMER_LLM_PROVIDER:
             value: anthropic
