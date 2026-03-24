@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
-import { useParams } from "next/navigation";
 import { McpServerDetailView } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
+import { useStaticRouteParam } from "@/hooks/useStaticRouteParam";
 import { useBreadcrumbOverride } from "../../LibraryBreadcrumbContext";
 
 export function McpServerDetailPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const slug = useStaticRouteParam("slug");
   const org = useActiveOrgSlug();
   const { setLabel } = useBreadcrumbOverride();
 
   useEffect(() => () => setLabel(null), [setLabel]);
+
+  if (!slug) return null;
 
   return (
     <McpServerDetailView
