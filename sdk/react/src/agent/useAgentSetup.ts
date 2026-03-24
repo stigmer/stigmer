@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useReducer } from "react";
 import { create } from "@bufbuild/protobuf";
-import type { EnvVarInput, ResourceRef } from "@stigmer/sdk";
+import type { EnvVarInput, ResourceRef, Stigmer } from "@stigmer/sdk";
 import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/io_pb";
+import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinstance/v1/api_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
@@ -21,6 +22,42 @@ import {
 
 const PERSONAL_LABEL = "stigmer.ai/personal";
 const FOR_AGENT_LABEL = "stigmer.ai/for-agent";
+
+/**
+ * Re-checks for an existing personal instance immediately before
+ * creating one. Narrows the race window when multiple clients
+ * (tabs, double-clicks) attempt to create simultaneously.
+ */
+async function findOrCreatePersonalInstance(
+  stigmer: Stigmer,
+  params: {
+    org: string;
+    agentId: string;
+    agentSlug: string;
+    agentLabel: string;
+    environmentRef: ResourceRef;
+  },
+): Promise<AgentInstance> {
+  const { org, agentId, agentSlug, agentLabel, environmentRef } = params;
+
+  const recheck = await stigmer.agentInstance.list(
+    create(ListAgentInstancesRequestSchema, {
+      org,
+      labels: {
+        [PERSONAL_LABEL]: "true",
+        [FOR_AGENT_LABEL]: agentLabel,
+      },
+    }),
+  );
+
+  if (recheck.items.length > 0) {
+    return recheck.items[0];
+  }
+
+  return stigmer.agentInstance.create(
+    buildPersonalInstanceInput({ org, agentId, agentSlug, environmentRef }),
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Public types (re-exported from agentSetupReducer for convenience)
@@ -226,10 +263,11 @@ export function useAgentSetup(
         const existingKeys = new Set(
           Object.keys(personalEnv.environment?.spec?.data ?? {}),
         );
+        const personalOnlyMissing = diffEnvSpec(envSpecData, existingKeys);
         const missingVariables = diffEnvSpec(envSpecData, existingKeys, poolKeys);
 
-        if (missingVariables.length === 0) {
-          // All variables present — create personal instance.
+        if (personalOnlyMissing.length === 0) {
+          // Personal env covers all keys — create personal instance.
           const env = await personalEnv.getOrCreate();
           const envRef: ResourceRef = {
             org,
@@ -237,19 +275,31 @@ export function useAgentSetup(
             kind: ApiResourceKind.environment,
           };
 
-          const instance = await stigmer.agentInstance.create(
-            buildPersonalInstanceInput({
-              org,
-              agentId: agent.metadata!.id,
-              agentSlug: ref.slug,
-              environmentRef: envRef,
-            }),
-          );
+          const instance = await findOrCreatePersonalInstance(stigmer, {
+            org,
+            agentId: agent.metadata!.id,
+            agentSlug: ref.slug,
+            agentLabel,
+            environmentRef: envRef,
+          });
 
           const resolution: AgentResolution = {
             mode: "saved",
             instanceId: instance.metadata!.id,
           };
+          dispatch({
+            type: "RESOLVE_READY",
+            agentRef: ref,
+            agentName,
+            resolution,
+          });
+          return { status: "ready", agentRef: ref, agentName, resolution };
+        }
+
+        if (missingVariables.length === 0) {
+          // Pool covers remaining keys — use default instance, pool
+          // values flow via sessionVariables.toRuntimeEnv() at submit.
+          const resolution: AgentResolution = { mode: "direct" };
           dispatch({
             type: "RESOLVE_READY",
             agentRef: ref,
@@ -352,14 +402,14 @@ export function useAgentSetup(
           kind: ApiResourceKind.environment,
         };
 
-        const instance = await stigmer.agentInstance.create(
-          buildPersonalInstanceInput({
-            org,
-            agentId,
-            agentSlug: agentRef.slug,
-            environmentRef: envRef,
-          }),
-        );
+        const agentLabel = `${agentRef.org}/${agentRef.slug}`;
+        const instance = await findOrCreatePersonalInstance(stigmer, {
+          org,
+          agentId,
+          agentSlug: agentRef.slug,
+          agentLabel,
+          environmentRef: envRef,
+        });
 
         const resolution: AgentResolution = {
           mode: "saved",

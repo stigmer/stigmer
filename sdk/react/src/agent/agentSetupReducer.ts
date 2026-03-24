@@ -50,6 +50,7 @@ export type AgentSetupPhase =
       readonly agentRef: ResourceRef;
       readonly agentId: string;
       readonly agentName: string;
+      readonly missingVariables: AgentEnvFormVariable[];
     }
   | {
       readonly status: "ready";
@@ -194,6 +195,7 @@ export function agentSetupReducer(
         agentRef: state.agentRef,
         agentId: state.agentId,
         agentName: state.agentName,
+        missingVariables: state.missingVariables,
         error: null,
       };
     }
@@ -208,6 +210,16 @@ export function agentSetupReducer(
       };
 
     case "ERROR":
+      if (state.status === "submitting") {
+        return {
+          status: "needsEnvVars",
+          agentRef: state.agentRef,
+          agentId: state.agentId,
+          agentName: state.agentName,
+          missingVariables: state.missingVariables,
+          error: action.error,
+        };
+      }
       return { ...state, error: action.error };
 
     case "CLEAR_ERROR":
