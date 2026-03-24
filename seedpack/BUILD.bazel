@@ -1,5 +1,17 @@
 load("@rules_go//go:def.bzl", "go_library", "go_test")
 
+filegroup(
+    name = "seedpack_embed",
+    srcs = glob([
+        "stigmer.yaml",
+        "skills/**",
+        "agents/**",
+        "mcp-servers/**",
+        "organizations/**",
+    ]),
+    visibility = ["//visibility:private"],
+)
+
 go_library(
     name = "seedpack",
     srcs = [
@@ -7,13 +19,31 @@ go_library(
         "seedpack.go",
     ],
     embedsrcs = [
+        "agents/agent-creator.yaml",
+        "agents/assistant.yaml",
+        "agents/mcp-server-creator.yaml",
+        "agents/skill-creator.yaml",
+        "mcp-servers/mcp-server-stigmer.yaml",
+        "organizations/stigmer.yaml",
+        "skills/agent-creator/SKILL.md",
+        "skills/agent-creator/references/examples.md",
+        "skills/agent-creator/references/schema.md",
+        "skills/agent-creator/references/validation-rules.md",
+        "skills/mcp-server-creator/SKILL.md",
+        "skills/mcp-server-creator/references/agent-integration.md",
+        "skills/mcp-server-creator/references/examples.md",
+        "skills/mcp-server-creator/references/schema.md",
+        "skills/mcp-server-creator/references/validation.md",
+        "skills/skill-creator/LICENSE.txt",
+        "skills/skill-creator/SKILL.md",
+        "skills/skill-creator/provenance.json",
+        "skills/skill-creator/references/output-patterns.md",
+        "skills/skill-creator/references/workflows.md",
+        "skills/skill-creator/scripts/init_skill.py",
+        "skills/skill-creator/scripts/package_skill.py",
+        "skills/skill-creator/scripts/quick_validate.py",
         "stigmer.yaml",
-    ] + glob([
-        "skills/**",
-        "agents/**",
-        "mcp-servers/**",
-        "organizations/**",
-    ]),
+    ],
     importpath = "github.com/stigmer/stigmer/seedpack",
     visibility = ["//visibility:public"],
     deps = [

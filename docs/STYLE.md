@@ -243,7 +243,7 @@ Stigmer documentation as plain text, following the
 
 ### Generated files
 
-| File                | URL                         | Purpose                                           |
+| File                | Address                     | Purpose                                           |
 | ------------------- | --------------------------- | ------------------------------------------------- |
 | `out/llms.txt`      | `stigmer.ai/llms.txt`       | Curated index with section links and descriptions |
 | `out/llms-full.txt` | `stigmer.ai/llms-full.txt`  | All documentation concatenated into one file      |
