@@ -8,24 +8,34 @@ description:
 
 Stigmer ships as a single `stigmer` binary that embeds everything you need to
 run locally: a gRPC server, a Temporal orchestration engine, an AI execution
-runtime, and a set of built-in system Agents. No Docker required. No cloud
-account required.
+runtime, and a set of built-in system Agents.
+
+<Callout type="info">
+  No Docker required. No cloud account required. One binary, everything
+  included.
+</Callout>
+
+<Steps>
+<Step>
 
 ## Install the CLI
 
-### Homebrew (macOS and Linux)
+<Tabs items={["Homebrew", "Shell script", "Build from source"]}>
+<Tab value="Homebrew">
 
 ```bash
 brew install stigmer/tap/stigmer
 ```
 
-### Shell script
+</Tab>
+<Tab value="Shell script">
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/stigmer/stigmer/main/scripts/install.sh | bash
 ```
 
-### Build from source
+</Tab>
+<Tab value="Build from source">
 
 ```bash
 git clone https://github.com/stigmer/stigmer.git
@@ -37,6 +47,12 @@ make local
 Building from source requires Go 1.25+, Python 3.11+ with
 [Poetry](https://python-poetry.org/), and Make.
 
+</Tab>
+</Tabs>
+
+</Step>
+<Step>
+
 ## Verify the installation
 
 ```bash
@@ -46,24 +62,33 @@ stigmer --version
 You should see the installed version number. If the command is not found, make
 sure `stigmer` is on your `PATH`.
 
+</Step>
+<Step>
+
 ## Configure a model provider
 
-Agents need a large language model to generate responses. Configure one before
-starting the server, or let the interactive setup guide you on first run.
+<Term>Agent</Term>s need a large language model to generate responses. Configure
+one before starting the server, or let the interactive setup guide you on first
+run.
 
-### Anthropic (recommended)
+<Tabs items={["Anthropic (recommended)", "OpenAI", "Ollama"]}>
+<Tab value="Anthropic (recommended)">
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-### OpenAI
+</Tab>
+<Tab value="OpenAI">
 
 ```bash
 export OPENAI_API_KEY=sk-...
 ```
 
-### Ollama (free, local, offline)
+</Tab>
+<Tab value="Ollama">
+
+Ollama is free, local, and works offline.
 
 ```bash
 brew install ollama
@@ -71,8 +96,14 @@ ollama serve
 ollama pull qwen2.5-coder:7b
 ```
 
+</Tab>
+</Tabs>
+
 If you skip this step, `stigmer server` prompts you to choose a provider
 interactively.
+
+</Step>
+<Step>
 
 ## Start the server
 
@@ -83,6 +114,9 @@ stigmer server
 On first run, the server downloads Temporal, starts all services, and is ready
 on `localhost:7234`. Subsequent starts take under 30 seconds.
 
+</Step>
+<Step>
+
 ## Verify the server
 
 ```bash
@@ -90,7 +124,10 @@ stigmer server status
 ```
 
 The output shows the server status, LLM configuration, and a link to the
-Temporal Web UI for Workflow debugging.
+Temporal Web UI for <Term>Workflow</Term> debugging.
+
+</Step>
+</Steps>
 
 ## Next steps
 

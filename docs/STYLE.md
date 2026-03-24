@@ -55,12 +55,29 @@ improve readability and structure.
 
 ### Callouts
 
-Highlight important information with a colored sidebar and icon.
+Highlight important information with a colored sidebar and icon. Supported
+types: `info`, `warn` (or `warning`), `error`, `success`.
 
 ```mdx
 <Callout type="info">General information the reader should know.</Callout>
 <Callout type="warn">Something the reader should be cautious about.</Callout>
 <Callout type="error">A critical warning or breaking change.</Callout>
+<Callout type="success">A positive outcome or confirmation.</Callout>
+```
+
+### Cards
+
+Link card grids for navigation hubs and landing pages.
+
+```mdx
+<Cards>
+  <Card href="/docs/concepts" title="Core Concepts">
+    Understand Agents, Workflows, Skills, and how they fit together.
+  </Card>
+  <Card href="/docs/getting-started" title="Getting Started">
+    Install Stigmer and run your first Agent in under five minutes.
+  </Card>
+</Cards>
 ```
 
 ### Tabs
@@ -95,10 +112,8 @@ Numbered step-by-step instructions for tutorials and how-to guides.
 
 ```mdx
 <Steps>
-  <Step>### Install the CLI
-  Download and install the Stigmer CLI.</Step>
-  <Step>### Create an Agent
-  Define your first Agent.</Step>
+  <Step>### Install the CLI Download and install the Stigmer CLI.</Step>
+  <Step>### Create an Agent Define your first Agent.</Step>
 </Steps>
 ```
 
@@ -133,7 +148,7 @@ Collapsible sections for FAQ-style content or optional detail.
 ```mdx
 <Accordions>
   <Accordion title="What is an Agent?">
-  A reusable definition of what an AI assistant knows and can do.
+    A reusable definition of what an AI assistant knows and can do.
   </Accordion>
 </Accordions>
 ```
@@ -197,10 +212,11 @@ description: Step-by-step guide to defining and running your first Agent.
 
 ## Diagrams
 
-Include Mermaid diagrams wherever they add clarity. Prefer diagrams over lengthy
-textual descriptions of architecture or data flow.
+Fenced ` ```mermaid ` code blocks render as interactive diagrams (client-side
+via Mermaid.js). They automatically switch between light and dark themes. Prefer
+diagrams over lengthy textual descriptions of architecture or data flow.
 
-````markdown
+````mdx
 ```mermaid
 flowchart TB
     A[Submit Workflow] --> B{Validate spec}
@@ -208,6 +224,10 @@ flowchart TB
     B -->|Invalid| D[Return error]
 ```
 ````
+
+Supported diagram types include `flowchart`, `sequenceDiagram`,
+`stateDiagram-v2`, `classDiagram`, `erDiagram`, and `gantt`. See the
+[Mermaid documentation](https://mermaid.js.org/) for full syntax.
 
 ## Links
 
