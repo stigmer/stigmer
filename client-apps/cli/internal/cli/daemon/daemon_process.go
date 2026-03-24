@@ -481,7 +481,7 @@ func buildAgentRunnerEnv(dataDir string, grpcPort int) []string {
 		fmt.Sprintf("STIGMER_BACKEND_ENDPOINT=localhost:%d", grpcPort),
 		fmt.Sprintf("TEMPORAL_SERVICE_ADDRESS=%s", os.Getenv("TEMPORAL_SERVICE_ADDRESS")),
 		"TEMPORAL_NAMESPACE=default",
-		"TASK_QUEUE=agent_execution_runner",
+		"TEMPORAL_AGENT_EXECUTION_RUNNER_TASK_QUEUE=agent_execution_runner",
 		"SANDBOX_TYPE=filesystem",
 		fmt.Sprintf("SANDBOX_ROOT_DIR=%s", workspaceDir),
 		"LOG_LEVEL=DEBUG",
