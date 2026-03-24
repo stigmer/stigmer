@@ -128,12 +128,12 @@ directory is separate from the website components (`site/src/components/ui/`,
 `layout/`, etc.) to maintain a clear boundary between the marketing site and
 documentation.
 
-| File            | Purpose                                     |
-| --------------- | ------------------------------------------- |
-| `glossary.ts`   | Term definitions for the `<Term>` component |
-| `term.tsx`      | `<Term>` glossary tooltip component         |
-| `sdk-tabs.tsx`  | `<SDKTabs>` language switcher wrapper       |
-| `index.ts`      | Barrel export                               |
+| File           | Purpose                                     |
+| -------------- | ------------------------------------------- |
+| `glossary.ts`  | Term definitions for the `<Term>` component |
+| `term.tsx`     | `<Term>` glossary tooltip component         |
+| `sdk-tabs.tsx` | `<SDKTabs>` language switcher wrapper       |
+| `index.ts`     | Barrel export                               |
 
 All components (Fumadocs built-ins and custom) are registered in
 `site/src/components/mdx.tsx`.

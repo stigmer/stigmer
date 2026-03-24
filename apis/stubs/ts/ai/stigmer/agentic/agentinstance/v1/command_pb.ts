@@ -58,7 +58,7 @@ export const AgentInstanceCommandController: GenService<{
    * Update an instance with full state.
    * Used to update entire instance configuration including metadata, spec, and secrets.
    * No individual field updates - always provide complete state.
-   * Authorization: Owner or org admin can update (can_edit permission)
+   * Authorization: Only owner can update (can_edit permission)
    *
    * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceCommandController.update
    */

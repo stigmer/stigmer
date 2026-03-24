@@ -124,25 +124,6 @@ export default function OidcAuthProvider({
     managerRef.current.signoutRedirect();
   }, []);
 
-  // If the callback exchange failed, show the error with a retry action
-  // instead of allowing AuthGuard to loop back into login().
-  if (callbackError) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
-        <p className="text-destructive text-sm font-medium">Login Failed</p>
-        <p className="text-muted-foreground max-w-md text-center text-sm">
-          {callbackError}
-        </p>
-        <button
-          onClick={login}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium transition-colors"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
-
   const authUser = useMemo<AuthUser | null>(() => {
     if (!user?.profile) return null;
     return {
@@ -163,6 +144,25 @@ export default function OidcAuthProvider({
     }),
     [user, isLoading, authUser, login, logout],
   );
+
+  // If the callback exchange failed, show the error with a retry action
+  // instead of allowing AuthGuard to loop back into login().
+  if (callbackError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
+        <p className="text-destructive text-sm font-medium">Login Failed</p>
+        <p className="text-muted-foreground max-w-md text-center text-sm">
+          {callbackError}
+        </p>
+        <button
+          onClick={login}
+          className="bg-primary text-primary-foreground hover:bg-primary-hover rounded-md px-4 py-2 text-sm font-medium transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
 }

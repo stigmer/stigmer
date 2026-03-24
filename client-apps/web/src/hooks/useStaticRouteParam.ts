@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useParams } from "next/navigation";
 
 const PLACEHOLDER = "__placeholder__";
@@ -13,28 +13,17 @@ const PLACEHOLDER = "__placeholder__";
  * instead of the actual value from the URL.  This hook detects that
  * case and extracts the real value from window.location.pathname.
  *
- * Returns null during the brief resolution frame so consumers can
- * show a loading state instead of firing API calls with the placeholder.
+ * Returns null if the real value cannot be determined.
  */
 export function useStaticRouteParam(name: string): string | null {
   const params = useParams();
   const raw = params[name] as string;
 
-  const [resolved, setResolved] = useState<string | null>(
-    raw === PLACEHOLDER ? null : raw,
-  );
-
-  useEffect(() => {
-    if (raw !== PLACEHOLDER) {
-      setResolved(raw);
-      return;
-    }
+  return useMemo(() => {
+    if (raw !== PLACEHOLDER) return raw;
+    if (typeof window === "undefined") return null;
     const segments = window.location.pathname.split("/").filter(Boolean);
     const actual = segments[segments.length - 1];
-    if (actual && actual !== PLACEHOLDER) {
-      setResolved(actual);
-    }
+    return actual && actual !== PLACEHOLDER ? actual : null;
   }, [raw]);
-
-  return resolved;
 }

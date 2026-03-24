@@ -243,11 +243,11 @@ Stigmer documentation as plain text, following the
 
 ### Generated files
 
-| File | URL | Purpose |
-| --- | --- | --- |
-| `out/llms.txt` | `stigmer.ai/llms.txt` | Curated index with section links and descriptions |
-| `out/llms-full.txt` | `stigmer.ai/llms-full.txt` | All documentation concatenated into one file |
-| `out/docs/**/*.md` | `stigmer.ai/docs/{path}.md` | Per-page markdown variant of each doc page |
+| File                | URL                         | Purpose                                           |
+| ------------------- | --------------------------- | ------------------------------------------------- |
+| `out/llms.txt`      | `stigmer.ai/llms.txt`       | Curated index with section links and descriptions |
+| `out/llms-full.txt` | `stigmer.ai/llms-full.txt`  | All documentation concatenated into one file      |
+| `out/docs/**/*.md`  | `stigmer.ai/docs/{path}.md` | Per-page markdown variant of each doc page        |
 
 ### How it works
 

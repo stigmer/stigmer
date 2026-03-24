@@ -49,7 +49,7 @@ type AgentInstanceCommandControllerClient interface {
 	// Update an instance with full state.
 	// Used to update entire instance configuration including metadata, spec, and secrets.
 	// No individual field updates - always provide complete state.
-	// Authorization: Owner or org admin can update (can_edit permission)
+	// Authorization: Only owner can update (can_edit permission)
 	Update(ctx context.Context, in *AgentInstance, opts ...grpc.CallOption) (*AgentInstance, error)
 	// Delete an agent instance.
 	// Authorization: Only owner can delete (can_delete permission)
@@ -128,7 +128,7 @@ type AgentInstanceCommandControllerServer interface {
 	// Update an instance with full state.
 	// Used to update entire instance configuration including metadata, spec, and secrets.
 	// No individual field updates - always provide complete state.
-	// Authorization: Owner or org admin can update (can_edit permission)
+	// Authorization: Only owner can update (can_edit permission)
 	Update(context.Context, *AgentInstance) (*AgentInstance, error)
 	// Delete an agent instance.
 	// Authorization: Only owner can delete (can_delete permission)

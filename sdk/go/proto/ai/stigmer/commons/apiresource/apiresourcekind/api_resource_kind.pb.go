@@ -437,7 +437,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"cloud_only\x10\x02*A\n" +
 	"\x0fPlatformIdValue\x12!\n" +
 	"\x1dplatform_id_value_unspecified\x10\x00\x12\v\n" +
-	"\astigmer\x10\x01*\xb4\v\n" +
+	"\astigmer\x10\x01*\xb8\v\n" +
 	"\x0fApiResourceKind\x12\x1d\n" +
 	"\x19api_resource_kind_unknown\x10\x00\x12[\n" +
 	"\x14api_resource_version\x10\x01\x1aA\xaa\xff+=\b\x01\x10\x01\x1a\x12ApiResourceVersion\"\x14API Resource Version*\x03ver8\x01@\x02J\x04\b\x05\x10\x04\x12?\n" +
@@ -458,9 +458,9 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\x05skill\x10+\x1a)\xaa\xff+%\b\x01\x10\x01\x1a\x05Skill\"\x05Skill*\x03skl0\x01@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12@\n" +
 	"\n" +
 	"mcp_server\x10,\x1a0\xaa\xff+,\b\x01\x10\x01\x1a\tMcpServer\"\n" +
-	"MCP Server*\x03mcp@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12b\n" +
-	"\x0eagent_instance\x10-\x1aN\xaa\xff+J\b\x01\x10\x01\x1a\rAgentInstance\"\x0eAgent Instance*\x03ain@\x01J\x1e\b\x02\x10\x01\"\x18\n" +
-	"\x05agent\x12\x05agent\x1a\bagent_id\x12;\n" +
+	"MCP Server*\x03mcp@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12f\n" +
+	"\x0eagent_instance\x10-\x1aR\xaa\xff+N\b\x01\x10\x01\x1a\rAgentInstance\"\x0eAgent Instance*\x03ain@\x01J\"\b\x02\x10\x01\"\x18\n" +
+	"\x05agent\x12\x05agent\x1a\bagent_id*\x02\b\x01\x12;\n" +
 	"\bworkflow\x102\x1a-\xaa\xff+)\b\x01\x10\x01\x1a\bWorkflow\"\bWorkflow*\x03wfl@\x01J\b\b\x02\x10\x01*\x02\b\x01\x12t\n" +
 	"\x11workflow_instance\x103\x1a]\xaa\xff+Y\b\x01\x10\x01\x1a\x10WorkflowInstance\"\x11Workflow Instance*\x03win@\x01J'\b\x02\x10\x01\"!\n" +
 	"\bworkflow\x12\bworkflow\x1a\vworkflow_id\x12T\n" +

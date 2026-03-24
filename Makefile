@@ -62,6 +62,7 @@ protos: ## Generate protocol buffer stubs and SDK client code
 
 gen-cli-docs: ## Generate CLI reference docs from command tree
 	$(MAKE) -C client-apps/cli gen-cli-docs
+	@npx prettier --write --prose-wrap always docs/cli/commands/*.mdx >/dev/null 2>&1
 
 gen-cli-docs-check: ## Verify CLI docs are up to date (CI, no writes)
 	$(MAKE) -C client-apps/cli gen-cli-docs-check
