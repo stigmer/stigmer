@@ -2,20 +2,22 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { AgentDetailView } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { getEditSessionUrl } from "@/utils/draft-session";
 import { navigateTo } from "@/utils/navigation";
+import { useStaticRouteParam } from "@/hooks/useStaticRouteParam";
 import { useBreadcrumbOverride } from "../../LibraryBreadcrumbContext";
 
 export function AgentDetailPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const slug = useStaticRouteParam("slug");
   const org = useActiveOrgSlug();
   const { setLabel } = useBreadcrumbOverride();
 
   useEffect(() => () => setLabel(null), [setLabel]);
+
+  if (!slug) return null;
 
   return (
     <div className="space-y-4">

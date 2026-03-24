@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -30,6 +29,7 @@ import type { AgentResolution, SessionComposerSubmitContext } from "@stigmer/rea
 import { getUserMessage, type McpServerUsageInput, type ResourceRef } from "@stigmer/sdk";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useDeploymentMode } from "@/hooks/useDeploymentMode";
+import { useStaticRouteParam } from "@/hooks/useStaticRouteParam";
 import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY_MODEL = "stigmer:session:model";
@@ -53,7 +53,12 @@ function usePersistedModel() {
 }
 
 export default function SessionPage() {
-  const { id } = useParams<{ id: string }>();
+  const id = useStaticRouteParam("id");
+  if (!id) return <SessionSkeleton />;
+  return <SessionPageInner id={id} />;
+}
+
+function SessionPageInner({ id }: { id: string }) {
   const org = useActiveOrgSlug();
   const stigmer = useStigmer();
   const conv = useSessionConversation(id, org);
