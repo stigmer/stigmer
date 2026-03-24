@@ -189,12 +189,15 @@ web-console-build:
 
 # ─── Site ─────────────────────────────────────
 
-.PHONY: site docs-build
+.PHONY: site docs-build gen-llms
 site: ## Start the documentation website with hot reload
 	$(MAKE) -C site dev
 
 docs-build: ## Build the documentation site (production)
 	$(MAKE) -C site build
+
+gen-llms: ## Generate LLM-friendly output (llms.txt, llms-full.txt, per-page .md)
+	cd site && yarn generate-llms
 
 # ─── Release ──────────────────────────────────
 

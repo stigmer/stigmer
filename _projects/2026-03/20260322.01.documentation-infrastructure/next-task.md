@@ -68,33 +68,33 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-22 09:54
-**Current Task**: Session 12 complete. Next: T17 (LLM-Friendly Output), T10 (Snipsync), or T13 (Proto API Reference)
+**Current Task**: Session 14 complete. Next: T10 (Snipsync), T13 (Proto API Reference), or content enrichment
 **Status**: Phase 1 COMPLETE, Phase 2 COMPLETE, Phase 3 PARTIALLY COMPLETE, Phase 4 PARTIALLY COMPLETE, Phase 5 PARTIALLY COMPLETE
 
-## Session Progress (2026-03-24, Session 13 — stigmer-cloud IAM)
-
-### Completed (stigmer-cloud, not docs-infrastructure)
-- **IAM Bootstrap Automation**: Automated day-0 operator account creation
-  - Migration now auto-creates `operator@stigmer.ai` in Auth0 via Management API
-  - Eliminated `BOOTSTRAP_OPERATOR_IDP_ID` config, `BootstrapConfig` class, kustomize/Planton variables
-  - Fixed all `.com` domain references to `.ai`
-  - Deleted obsolete setup guides (developer-accounts, temporal-search-attributes, UPDATES_SUMMARY, scripts/)
-  - Committed as `dd90398c` in stigmer-cloud
-
-## Session Progress (2026-03-24, Session 12)
+## Session Progress (2026-03-24, Session 14)
 
 ### Completed
-- **T16: Custom MDX Components**
-  - Added client-side Mermaid diagram rendering (`site/src/components/docs/mermaid.tsx`) with light/dark theme switching via MutationObserver
-  - Created `remark-mermaid` plugin (`site/src/lib/remark-mermaid.ts`) that intercepts fenced mermaid code blocks before Shiki
-  - Wired plugin into fumadocs-mdx via `source.config.ts` remarkPlugins
-  - Enriched `installation.mdx` with Tabs (install methods, model providers), Steps, Callout, Term
-  - Enriched `agents.mdx` with Term tooltips, Callout for blueprint/runtime invariant, Mermaid flowchart + stateDiagram
-  - Updated STYLE.md with Cards/Card docs, success Callout type, accurate Mermaid section
-  - Disabled `Google.Quotes`/`Microsoft.Quotes` Vale rules (systematic JSX false positives)
+- **T17: LLM-Friendly Output**
+  - Created post-build script `site/scripts/generate-llms-txt.ts` that generates LLM-friendly documentation following the llms.txt standard
+  - Generates `out/llms.txt` (7.3 KB, curated index with 9 sections, 57 pages)
+  - Generates `out/llms-full.txt` (89.5 KB, all documentation concatenated)
+  - Generates 57 per-page `.md` files at `out/docs/**/*.md` for individual page access
+  - Content cleaning pipeline: strips frontmatter, imports, exports, MDX comments; preserves semantic JSX tags
+  - Respects `meta.json` ordering at all levels (root sections, section pages, nested directories)
+  - CLI command pages and contributing section placed in "Optional" llms.txt section
+  - Added `CopyMarkdownButton` client component with fetch + clipboard API and visual feedback
+  - Integrated button into docs page header next to `DocsTitle`
+  - Updated `sitemap.ts` to dynamically include all doc pages and `llms.txt`
+  - Added `gray-matter` devDependency for frontmatter parsing
+  - Wired into build pipeline: `yarn build` now runs script after `next build`
+  - Added `make gen-llms` Makefile target and standalone `yarn generate-llms` script
+  - Updated `docs/STYLE.md` with LLM output documentation section
+  - Added LLM/LLMs/llms to Vale accepted vocabulary
   - Build verified: 64 pages, zero errors, typecheck clean
 
 ### Previously Completed
+- **Session 13**: IAM bootstrap automation (stigmer-cloud)
+- **Session 12**: T16 — Custom MDX Components (Mermaid, Term, Callout, Tabs enrichment)
 - **Session 11**: Fix MDX angle-bracket escaping in gen-cli-docs
 - **Session 9**: Docs home page redesign, "What is Stigmer?" relocation to concepts
 - **Session 8**: Added breadcrumb navigation with home link
@@ -130,17 +130,17 @@ When starting a new session:
 
 ### Phase 5: Advanced Features — PARTIALLY COMPLETE
 - [x] T16: Custom MDX Components
-- [ ] T17: LLM-Friendly Output
+- [x] T17: LLM-Friendly Output
 - [ ] T18: On-Page Feedback
 - [ ] T19: Visual Regression Testing
 
 ## Next Steps
 
-1. **T17: LLM-Friendly Output** — `llms.txt` and structured sitemap for AI tool consumption
-2. **T10: Snipsync Setup** — Code sample extraction (requires `examples/` directory with working code)
-3. **T13: Proto API Reference** — Auto-generated proto API docs (experimental)
-4. **Link checking improvements** — Add `.lychee.toml` config to handle Fumadocs-style links and exclude known flaky external URLs
-5. **Content enrichment** — Apply MDX components to more content pages (SDKs, architecture, deployment)
+1. **T10: Snipsync Setup** — Code sample extraction (requires `examples/` directory with working code)
+2. **T13: Proto API Reference** — Auto-generated proto API docs (experimental)
+3. **Link checking improvements** — Add `.lychee.toml` config to handle Fumadocs-style links and exclude known flaky external URLs
+4. **Content enrichment** — Apply MDX components to more content pages (SDKs, architecture, deployment)
+5. **T18: On-Page Feedback** — "Was this page helpful?" widget
 
 ## Context for Resume
 - The full 5-phase plan is in `tasks/T01_0_plan.md` (449 lines)
@@ -157,13 +157,16 @@ When starting a new session:
 - Session 10 checkpoint: `checkpoints/2026-03-22-session-10.md`
 - Session 11 checkpoint: `checkpoints/2026-03-22-session-11.md`
 - Session 12 checkpoint: `checkpoints/2026-03-24-session-12.md`
+- Session 14 checkpoint: `checkpoints/2026-03-24-session-14.md`
 - T06 execution plan: `.cursor/plans/t06_fumadocs_setup_b1353cf0.plan.md`
 - T12 execution plan: `.cursor/plans/t12_cli_reference_docs_85f99de8.plan.md`
 - T14 execution plan: `.cursor/plans/t14_ci_quality_gates_6fe9edad.plan.md`
 - T16 execution plan: `.cursor/plans/t16_custom_mdx_components_3d2006c8.plan.md`
+- T17 execution plan: `.cursor/plans/t17_llm-friendly_output_e680ae54.plan.md`
 - **Critical**: Node.js 22 is required. Node.js 23 silently breaks `next build` (webpack cache snapshot bug). `.nvmrc` is set.
 - **Critical**: Dev server must use webpack, not Turbopack. `fumadocs-mdx` query-string imports (`?collection=docs`) are incompatible with Turbopack.
 - **Critical**: New files in `site/src/lib/` require `git add -f` due to `lib/` pattern in `.gitignore` (Python build artifacts)
+- **Critical**: `fumadocs-core@15.8.5` does NOT have the `llms()` function or `getText()` API from Fumadocs v16+ docs. LLM output is generated by a post-build script instead.
 - Fumadocs v15 is compatible with Next.js 15.x and Tailwind 4. v16 requires Next.js 16/React 19.2+.
 - Content architecture has 10 sections with `meta.json` controlling sidebar order
 - Static Orama search uses `force-static` export with pre-built 295KB JSON index
@@ -174,13 +177,14 @@ When starting a new session:
 - `Google.Quotes` and `Microsoft.Quotes` Vale rules disabled (JSX false positives in MDX)
 - Lychee link checking has known false positives: Fumadocs slug-style links (`./skills` vs `./skills.mdx`)
 - Mermaid diagrams use client-side rendering via remark plugin + React component. Built-in `dark`/`default` themes.
+- LLM output: post-build script at `site/scripts/generate-llms-txt.ts` generates `llms.txt`, `llms-full.txt`, and per-page `.md` files into `out/`. Content cleaning preserves semantic JSX tags.
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T17" — LLM-friendly output (llms.txt)
 - "Continue with T10" — Snipsync setup (requires examples/)
 - "Continue with T13" — Proto API reference generation (experimental)
+- "Continue with T18" — On-page feedback widget
 - "Show project status" — Get overview of progress
 - "Create checkpoint" — Save current progress
 
