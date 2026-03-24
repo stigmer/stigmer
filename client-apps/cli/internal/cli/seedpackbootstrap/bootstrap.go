@@ -60,22 +60,24 @@ func (o *Options) resolveOrg() string {
 }
 
 // Apply extracts the embedded seedpack and applies it to the configured backend.
+// It returns true if the seedpack was actually applied, or false if it was
+// skipped (already up to date or recursion guard).
 //
 // When MarkerDir is set and Force is false, a content-hash check skips the
 // apply if the seedpack has not changed since the last successful run.
-func Apply(opts Options) error {
+func Apply(opts Options) (bool, error) {
 	if os.Getenv(recursionGuardEnvVar) == "1" {
 		log.Debug().Msg("Seedpack bootstrap skipped (recursion guard)")
-		return nil
+		return false, nil
 	}
 
 	if !opts.Force && opts.MarkerDir != "" {
 		skip, err := isAlreadyApplied(opts.MarkerDir)
 		if err != nil {
-			return err
+			return false, err
 		}
 		if skip {
-			return nil
+			return false, nil
 		}
 	}
 
@@ -83,25 +85,25 @@ func Apply(opts Options) error {
 
 	tmpDir, err := os.MkdirTemp("", "stigmer-seedpack-*")
 	if err != nil {
-		return errors.Wrap(err, "failed to create temp directory for seedpack")
+		return false, errors.Wrap(err, "failed to create temp directory for seedpack")
 	}
 	defer os.RemoveAll(tmpDir)
 
 	if err := seedpack.ExtractToDir(tmpDir); err != nil {
-		return errors.Wrap(err, "failed to extract seedpack")
+		return false, errors.Wrap(err, "failed to extract seedpack")
 	}
 
 	cliBin, err := os.Executable()
 	if err != nil {
-		return errors.Wrap(err, "failed to resolve CLI executable path")
+		return false, errors.Wrap(err, "failed to resolve CLI executable path")
 	}
 
 	if err := applyOrganizations(cliBin, tmpDir, opts.Verbose); err != nil {
-		return err
+		return false, err
 	}
 
 	if err := applyProject(cliBin, tmpDir, opts.resolveOrg(), opts.Verbose); err != nil {
-		return err
+		return false, err
 	}
 
 	if opts.MarkerDir != "" {
@@ -109,7 +111,7 @@ func Apply(opts Options) error {
 	}
 
 	climsg.Success("System resources applied successfully")
-	return nil
+	return true, nil
 }
 
 // isAlreadyApplied compares the embedded seedpack's content hash with the

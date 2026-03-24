@@ -538,10 +538,11 @@ func EnsureRunning(dataDir string) error {
 // Delegates to seedpackbootstrap.Apply with the daemon's data directory
 // as the marker location for idempotency.
 func EnsureSeedpackBootstrapped(dataDir string) error {
-	return seedpackbootstrap.Apply(seedpackbootstrap.Options{
+	_, err := seedpackbootstrap.Apply(seedpackbootstrap.Options{
 		MarkerDir: dataDir,
 		Verbose:   zerolog.GlobalLevel() <= zerolog.DebugLevel,
 	})
+	return err
 }
 
 // EnsureOrgContext checks whether the CLI has an active organization context
