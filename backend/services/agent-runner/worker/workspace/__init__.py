@@ -22,7 +22,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from worker.workspace.backend import ExecuteResult, WorkspaceBackend
 from worker.workspace.daytona import DaytonaWorkspaceBackend
@@ -99,12 +99,17 @@ async def initialize_workspace(
     session_id: str | None,
     session_client: Any,
     activity_logger: logging.Logger | None = None,
+    heartbeat_fn: Callable[[str], None] | None = None,
 ) -> WorkspaceInitResult:
     """Create the appropriate ``WorkspaceBackend`` for the current mode.
 
     This is the **single point** where the local-vs-cloud decision is
     made.  All downstream code receives a ``WorkspaceBackend`` and never
     branches on deployment mode.
+
+    Args:
+        heartbeat_fn: Optional callback forwarded to SandboxManager so the
+            Temporal activity stays alive during long sandbox creation waits.
 
     Returns:
         A :class:`WorkspaceInitResult` with the backend, optional sandbox,
@@ -162,6 +167,7 @@ async def initialize_workspace(
         sandbox_config=sandbox_config,
         session_id=session_id,
         session_client=session_client,
+        heartbeat_fn=heartbeat_fn,
     )
 
     log.info(

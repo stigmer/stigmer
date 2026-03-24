@@ -1459,6 +1459,11 @@ async def _execute_graphton_impl(
 
         resolved_session_id: str | None = execution.spec.session_id if execution.spec.session_id else None
 
+        heartbeat_during_setup("sandbox_init", {
+            "mode": worker_config.mode,
+            "sandbox_type": sandbox_config.get("type"),
+        })
+
         # Create the workspace backend — single point where local-vs-cloud
         # decision is made.  All subsequent code uses workspace_backend for
         # file operations and never branches on deployment mode.
@@ -1469,10 +1474,16 @@ async def _execute_graphton_impl(
             session_id=resolved_session_id,
             session_client=session_client,
             activity_logger=activity_logger,
+            heartbeat_fn=lambda phase: heartbeat_during_setup(phase),
         )
         workspace_backend = workspace_init.backend
         sandbox = workspace_init.sandbox
         is_new_sandbox = workspace_init.is_new_sandbox
+
+        heartbeat_during_setup("workspace_ready", {
+            "is_new_sandbox": is_new_sandbox,
+            "sandbox_id": sandbox.id if sandbox else None,
+        })
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 2.8: Merge environment variables (moved up from Step 4)

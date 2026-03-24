@@ -121,9 +121,12 @@ class LLMConfig:
         model_name = os.getenv("STIGMER_LLM_MODEL", default_model_name)
         
         # Provider-specific settings
-        # Note: For Ollama, LangChain reads OLLAMA_BASE_URL directly from environment
-        # We just store it here for validation purposes
-        base_url = os.getenv("OLLAMA_BASE_URL", default_base_url)
+        # STIGMER_LLM_BASE_URL is the canonical name set by kustomize; fall back
+        # to OLLAMA_BASE_URL for backward compatibility with local/Ollama setups.
+        base_url = (
+            os.getenv("STIGMER_LLM_BASE_URL")
+            or os.getenv("OLLAMA_BASE_URL", default_base_url)
+        )
         
         # API key with backward compatibility
         api_key = (

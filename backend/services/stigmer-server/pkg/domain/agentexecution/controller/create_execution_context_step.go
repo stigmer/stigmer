@@ -8,6 +8,7 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
+	sessionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/backend/libs/go/envmerge"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
@@ -110,6 +111,23 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 			Msg("Filtered env vars not declared in agent env_spec")
 	}
 
+	// 6.5 Re-inject workspace-provisioning keys that were excluded by env_spec
+	// filtering. GITHUB_TOKEN is needed by the agent-runner to clone private
+	// repos, but it is a session-level workspace concern, not an agent-declared
+	// tool dependency. Without this passthrough, agents with a non-empty
+	// env_spec that omit GITHUB_TOKEN silently lose it.
+	sessionID := execution.GetSpec().GetSessionId()
+	if sessionID != "" {
+		sess, sessErr := s.sessionClient.Get(ctx.Context(), sessionID)
+		if sessErr != nil {
+			log.Warn().Err(sessErr).
+				Str("execution_id", executionID).
+				Msg("Failed to load session for workspace provisioning key injection (non-fatal)")
+		} else {
+			filtered = injectWorkspaceProvisioningKeys(filtered, merged, sess, executionID)
+		}
+	}
+
 	log.Info().
 		Str("execution_id", executionID).
 		Int("merged_count", len(merged)).
@@ -187,6 +205,58 @@ func (s *createExecutionContextStep) resolveAgentInstanceID(ctx *pipeline.Reques
 	}
 
 	return agentInstanceID, nil
+}
+
+// workspaceProvisioningKeys lists environment variable keys required by the
+// agent-runner for workspace provisioning. These are re-injected after
+// env_spec filtering when the session has git_repo workspace entries.
+var workspaceProvisioningKeys = []string{"GITHUB_TOKEN"}
+
+// injectWorkspaceProvisioningKeys re-injects provisioning keys that were
+// excluded by env_spec filtering, but only when the session actually has
+// git_repo workspace entries.
+func injectWorkspaceProvisioningKeys(
+	filtered map[string]*executioncontextv1.ExecutionValue,
+	merged map[string]*executioncontextv1.ExecutionValue,
+	sess *sessionv1.Session,
+	executionID string,
+) map[string]*executioncontextv1.ExecutionValue {
+	hasGitRepo := false
+	for _, entry := range sess.GetSpec().GetWorkspaceEntries() {
+		if entry.GetSource().GetGitRepo() != nil {
+			hasGitRepo = true
+			break
+		}
+	}
+	if !hasGitRepo {
+		return filtered
+	}
+
+	injected := false
+	for _, key := range workspaceProvisioningKeys {
+		if _, inFiltered := filtered[key]; inFiltered {
+			continue
+		}
+		val, inMerged := merged[key]
+		if !inMerged {
+			continue
+		}
+		if !injected {
+			// Copy-on-write: create a new map so the original is not mutated.
+			cp := make(map[string]*executioncontextv1.ExecutionValue, len(filtered)+len(workspaceProvisioningKeys))
+			for k, v := range filtered {
+				cp[k] = v
+			}
+			filtered = cp
+			injected = true
+		}
+		filtered[key] = val
+		log.Info().
+			Str("execution_id", executionID).
+			Str("key", key).
+			Msg("Re-injected workspace-provisioning key after env_spec filter (session has git_repo entries)")
+	}
+	return filtered
 }
 
 // resolveEnvironments fetches each referenced Environment resource in order.

@@ -6,7 +6,7 @@ session persistence, state-aware recovery, and cleanup.
 
 import logging
 import time
-from typing import Any
+from typing import Any, Callable
 
 try:
     from daytona import (
@@ -132,6 +132,7 @@ class SandboxManager:
         sandbox_config: dict,
         session_id: str | None,
         session_client: Any | None,
+        heartbeat_fn: Callable[[str], None] | None = None,
     ) -> tuple[Any, bool]:
         """Get or create Daytona sandbox (legacy cloud mode).
         
@@ -142,6 +143,9 @@ class SandboxManager:
             sandbox_config: Sandbox configuration dict
             session_id: Session ID for persistence
             session_client: Session client for updates
+            heartbeat_fn: Optional callback invoked periodically during sandbox
+                creation to keep the Temporal activity alive.  Receives a short
+                status string describing the current phase.
             
         Returns:
             (sandbox, is_new): Tuple of sandbox instance and whether it was newly created
@@ -211,7 +215,9 @@ class SandboxManager:
         
         # Create new Daytona sandbox
         logger.info(f"Creating new Daytona sandbox with config: {sandbox_config}")
-        sandbox = self._create_daytona_sandbox(sandbox_config, session_id=session_id)
+        sandbox = self._create_daytona_sandbox(
+            sandbox_config, session_id=session_id, heartbeat_fn=heartbeat_fn,
+        )
         logger.info(f"✨ Created new Daytona sandbox: {sandbox.id}")
         
         # Store in session if exists
@@ -233,6 +239,7 @@ class SandboxManager:
         self,
         config: dict,
         session_id: str | None = None,
+        heartbeat_fn: Callable[[str], None] | None = None,
     ) -> Any:
         """Create new Daytona sandbox with polling for readiness.
         
@@ -248,6 +255,8 @@ class SandboxManager:
             session_id: Session identifier for volume subpath isolation.
                 When *None*, the sandbox is created without a volume mount
                 (ephemeral).
+            heartbeat_fn: Optional callback invoked every ~30 s during the
+                readiness polling loop to keep the Temporal activity alive.
             
         Returns:
             Daytona Sandbox instance
@@ -307,7 +316,13 @@ class SandboxManager:
             
             logger.info(f"Daytona sandbox created: {sandbox.id}, waiting for readiness...")
             
-            # Poll until ready (max 180 seconds)
+            if heartbeat_fn:
+                heartbeat_fn(f"sandbox_created:{sandbox.id}")
+
+            # Poll until ready (max 180 seconds).
+            # Heartbeat every ~30 s (every 15th iteration of the 2 s loop)
+            # to keep the Temporal activity alive during this synchronous wait.
+            _HEARTBEAT_EVERY = 15  # 15 × 2 s = 30 s
             for attempt in range(90):
                 try:
                     result = sandbox.process.exec("echo ready", timeout=5)
@@ -318,6 +333,9 @@ class SandboxManager:
                     if attempt % 10 == 0:
                         logger.debug(f"Daytona sandbox not ready yet (attempt {attempt}/90): {e}")
                 
+                if heartbeat_fn and attempt > 0 and attempt % _HEARTBEAT_EVERY == 0:
+                    heartbeat_fn(f"sandbox_polling:{sandbox.id}:{attempt * 2}s")
+
                 time.sleep(2)
             
             # Timeout - cleanup and raise
