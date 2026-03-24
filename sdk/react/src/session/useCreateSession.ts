@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type {
-  McpServerUsageInput,
-  ResourceRef,
-  WorkspaceEntryInput,
+import {
+  PENDING_SUBJECT,
+  type McpServerUsageInput,
+  type ResourceRef,
+  type WorkspaceEntryInput,
 } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
@@ -119,7 +120,7 @@ export function useCreateSession(): UseCreateSessionReturn {
         const session = await stigmer.session.create({
           name: `session-${Date.now()}`,
           org: input.org,
-          subject: input.subject,
+          subject: input.subject ?? PENDING_SUBJECT,
           workspaceEntries: input.workspaceEntries,
           mcpServerUsages: input.mcpServerUsages,
           skillRefs: input.skillRefs,
