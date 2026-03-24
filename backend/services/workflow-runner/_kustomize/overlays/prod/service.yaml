@@ -21,12 +21,12 @@ spec:
             value: default
           TEMPORAL_WORKFLOW_EXECUTION_RUNNER_TASK_QUEUE:
             value: workflow_execution_runner
-          # Stigmer Backend Configuration
+          # Stigmer Backend Configuration (internal Kubernetes endpoint, plain gRPC)
           # Used by workflow runner to report progress back to Stigmer backend service
           STIGMER_BACKEND_ENDPOINT:
-            value: $variables-group/stigmer-api/prod.endpoint
+            value: $variables-group/stigmer-api/prod.kube-endpoint
           STIGMER_SERVICE_USE_TLS:
-            value: "true"
+            value: "false"
           # Claim Check Configuration (for large payload handling)
           CLAIMCHECK_ENABLED:
             value: "true"
