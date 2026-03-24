@@ -114,6 +114,9 @@ export {
   type GitRepoSourceInput,
   type LocalPathSourceInput,
 } from "./gen/session";
+
+// Session utilities (hand-written)
+export { PENDING_SUBJECT, resolvedSubject } from "./session";
 export { SkillClient, type SkillInput } from "./gen/skill";
 export {
   WorkflowClient,

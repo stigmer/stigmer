@@ -31,3 +31,6 @@ export type { UseAgentRefFromSessionReturn } from "./useAgentRefFromSession";
 
 export { groupSessionsByTime } from "./group-sessions";
 export type { SessionGroup } from "./group-sessions";
+
+// Session utilities (re-exported from @stigmer/sdk)
+export { PENDING_SUBJECT, resolvedSubject } from "@stigmer/sdk";

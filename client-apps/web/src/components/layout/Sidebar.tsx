@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Plus, Library, MessageSquare, PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
-import { useSessionList, groupSessionsByTime } from "@stigmer/react";
+import { useSessionList, groupSessionsByTime, resolvedSubject } from "@stigmer/react";
 import type { SessionGroup } from "@stigmer/react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -149,7 +149,7 @@ function SessionGroupList({
                 const id = session.metadata?.id;
                 if (!id) return null;
                 const subject =
-                  session.spec?.subject || "Untitled session";
+                  resolvedSubject(session.spec?.subject) ?? "Untitled session";
                 const isActive = id === activeSessionId;
                 return (
                   <li key={id}>
