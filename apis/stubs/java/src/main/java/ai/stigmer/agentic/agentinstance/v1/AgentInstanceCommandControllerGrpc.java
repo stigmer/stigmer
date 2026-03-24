@@ -240,7 +240,7 @@ public final class AgentInstanceCommandControllerGrpc {
      * Update an instance with full state.
      * Used to update entire instance configuration including metadata, spec, and secrets.
      * No individual field updates - always provide complete state.
-     * Authorization: Owner or org admin can update (can_edit permission)
+     * Authorization: Only owner can update (can_edit permission)
      * </pre>
      */
     default void update(ai.stigmer.agentic.agentinstance.v1.AgentInstance request,
@@ -330,7 +330,7 @@ public final class AgentInstanceCommandControllerGrpc {
      * Update an instance with full state.
      * Used to update entire instance configuration including metadata, spec, and secrets.
      * No individual field updates - always provide complete state.
-     * Authorization: Owner or org admin can update (can_edit permission)
+     * Authorization: Only owner can update (can_edit permission)
      * </pre>
      */
     public void update(ai.stigmer.agentic.agentinstance.v1.AgentInstance request,
@@ -405,7 +405,7 @@ public final class AgentInstanceCommandControllerGrpc {
      * Update an instance with full state.
      * Used to update entire instance configuration including metadata, spec, and secrets.
      * No individual field updates - always provide complete state.
-     * Authorization: Owner or org admin can update (can_edit permission)
+     * Authorization: Only owner can update (can_edit permission)
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance update(ai.stigmer.agentic.agentinstance.v1.AgentInstance request) throws io.grpc.StatusException {
@@ -478,7 +478,7 @@ public final class AgentInstanceCommandControllerGrpc {
      * Update an instance with full state.
      * Used to update entire instance configuration including metadata, spec, and secrets.
      * No individual field updates - always provide complete state.
-     * Authorization: Owner or org admin can update (can_edit permission)
+     * Authorization: Only owner can update (can_edit permission)
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance update(ai.stigmer.agentic.agentinstance.v1.AgentInstance request) {
@@ -553,7 +553,7 @@ public final class AgentInstanceCommandControllerGrpc {
      * Update an instance with full state.
      * Used to update entire instance configuration including metadata, spec, and secrets.
      * No individual field updates - always provide complete state.
-     * Authorization: Owner or org admin can update (can_edit permission)
+     * Authorization: Only owner can update (can_edit permission)
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstance> update(

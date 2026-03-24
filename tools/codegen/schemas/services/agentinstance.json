@@ -29,7 +29,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Update an instance with full state.\n Used to update entire instance configuration including metadata, spec, and secrets.\n No individual field updates - always provide complete state.\n Authorization: Owner or org admin can update (can_edit permission)"
+          "description": "Update an instance with full state.\n Used to update entire instance configuration including metadata, spec, and secrets.\n No individual field updates - always provide complete state.\n Authorization: Only owner can update (can_edit permission)"
         },
         {
           "name": "Delete",

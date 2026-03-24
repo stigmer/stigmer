@@ -72,7 +72,7 @@ class AgentInstanceCommandControllerServicer(object):
         """Update an instance with full state.
         Used to update entire instance configuration including metadata, spec, and secrets.
         No individual field updates - always provide complete state.
-        Authorization: Owner or org admin can update (can_edit permission)
+        Authorization: Only owner can update (can_edit permission)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
