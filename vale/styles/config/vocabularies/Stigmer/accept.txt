@@ -6,6 +6,9 @@ protobuf
 SDK
 SDKs
 CLI
+LLM
+LLMs
+[Ll]lms
 MCP
 SQLite
 YAML

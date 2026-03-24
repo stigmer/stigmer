@@ -235,6 +235,40 @@ Supported diagram types include `flowchart`, `sequenceDiagram`,
 - Use descriptive link text. Avoid "click here" or bare URLs.
 - The `check-links` Make target validates all links before CI.
 
+## LLM-friendly output
+
+The build pipeline generates files that let LLM agents and AI tools consume
+Stigmer documentation as plain text, following the
+[llms.txt standard](https://llmstxt.org).
+
+### Generated files
+
+| File | URL | Purpose |
+| --- | --- | --- |
+| `out/llms.txt` | `stigmer.ai/llms.txt` | Curated index with section links and descriptions |
+| `out/llms-full.txt` | `stigmer.ai/llms-full.txt` | All documentation concatenated into one file |
+| `out/docs/**/*.md` | `stigmer.ai/docs/{path}.md` | Per-page markdown variant of each doc page |
+
+### How it works
+
+The script `site/scripts/generate-llms-txt.ts` runs automatically after
+`next build`. It reads all `.mdx` files from `docs/`, strips frontmatter and
+import statements, and writes cleaned markdown to `out/`. Page ordering follows
+the `meta.json` files. Individual CLI command pages and the contributing section
+are placed in an "Optional" section in `llms.txt`.
+
+### Commands
+
+- `make docs-build` --- runs the full build including LLM output
+- `make gen-llms` --- regenerates LLM output from an existing `out/` directory
+- `cd site && yarn generate-llms` --- same as above from the site directory
+
+### Copy as Markdown button
+
+Every docs page includes a "Copy as Markdown" button next to the title. It
+fetches the `.md` variant of the current page and copies the content to the
+clipboard so users can share documentation context with AI tools.
+
 ## What not to do
 
 - Do not add comments that narrate what the code does ("Import the module").

@@ -8,6 +8,7 @@ import {
 import { notFound } from "next/navigation";
 import { getMDXComponents } from "@/components/mdx";
 import { createRelativeLink } from "fumadocs-ui/mdx";
+import { CopyMarkdownButton } from "@/components/docs";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -20,6 +21,7 @@ export default async function Page(props: PageProps) {
   if (!page) notFound();
 
   const MDX = page.data.body;
+  const markdownUrl = `${page.url}.md`;
 
   return (
     <DocsPage
@@ -30,7 +32,10 @@ export default async function Page(props: PageProps) {
         includePage: true,
       }}
     >
-      <DocsTitle>{page.data.title}</DocsTitle>
+      <div className="flex items-center justify-between">
+        <DocsTitle>{page.data.title}</DocsTitle>
+        <CopyMarkdownButton markdownUrl={markdownUrl} />
+      </div>
       <DocsDescription>{page.data.description}</DocsDescription>
       <DocsBody>
         <MDX
