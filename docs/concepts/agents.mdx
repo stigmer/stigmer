@@ -7,10 +7,10 @@ description:
 
 # Agents
 
-An Agent is a declarative definition of an AI worker. It describes what the
-worker does, what tools it can access, and what knowledge it carries, but not
-where it runs or what credentials it uses. Think of it the same way you think of
-a Docker image: a portable, versionable, shareable artifact.
+An <Term>Agent</Term> is a declarative definition of an AI worker. It describes
+what the worker does, what tools it can access, and what knowledge it carries,
+but not where it runs or what credentials it uses. Think of it the same way you
+think of a Docker image: a portable, versionable, shareable artifact.
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -41,37 +41,46 @@ You author this YAML once. You deploy it with `stigmer apply`. You run it with
 
 ## Blueprint versus runtime
 
-Stigmer separates what an Agent does from where it runs. This separation is a
-hard architectural invariant, the most important design decision in the
-platform.
+Stigmer separates what an <Term>Agent</Term> does from where it runs.
 
-Four resources form the Execution stack:
+<Callout type="warn">
+  The separation between blueprint and runtime is a hard architectural
+  invariant---the most important design decision in the platform. Blueprints
+  carry zero secrets and zero <Term>Environment</Term>-specific values.
+</Callout>
 
+Four resources form the execution stack:
+
+```mermaid
+flowchart LR
+    A["Agent\n(Blueprint)"] --> B["Agent Instance\n(Runtime binding)"]
+    B --> C["Session\n(Conversation)"]
+    C --> D["Agent Execution\n(Single run)"]
 ```
-Agent → Agent Instance → Session → Agent Execution
-```
 
-| Resource            | Role                                                                                                     | Analogy                |
-| ------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------- |
-| **Agent**           | Declares capabilities and behavior. No secrets. No Environment-specific values.                          | Docker image           |
-| **Agent Instance**  | Binds the Agent to an Environment with production credentials, staging API Keys, or per-customer tokens. | Docker Compose service |
-| **Session**         | Groups related Executions into a conversation. Maintains message history and an optional Workspace.      | Terminal Session       |
-| **Agent Execution** | A single run: one user message, one Agent response, with a full tool call audit trail.                   | `docker run`           |
+| Resource                         | Role                                                                                                     | Analogy                |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **<Term>Agent</Term>**           | Declares capabilities and behavior. No secrets. No <Term>Environment</Term>-specific values.             | Docker image           |
+| **<Term>Agent Instance</Term>**  | Binds the Agent to an Environment with production credentials, staging API Keys, or per-customer tokens. | Docker Compose service |
+| **<Term>Session</Term>**         | Groups related Executions into a conversation. Maintains message history and an optional Workspace.      | Terminal Session       |
+| **<Term>Agent Execution</Term>** | A single run: one user message, one Agent response, with a full tool call audit trail.                   | `docker run`           |
 
-**Why this matters for platform builders:** You create one Agent definition for
-your code review bot. Then you create separate Agent Instances for each
-customer, each with their own GitHub token and Organization context. The Agent
-YAML never changes. The Instance handles the per-customer binding.
+**Why this matters for platform builders:** you create one
+
+<Term>Agent</Term> definition for your code review bot. Then you create separate
+<Term>Agent Instance</Term>s for each customer, each with their own GitHub token
+and <Term>Organization</Term> context. The Agent YAML never changes. The
+Instance handles the per-customer binding.
 
 ## Four building blocks
 
-Every Agent composes four independent building blocks.
+Every <Term>Agent</Term> composes four independent building blocks.
 
 ### Instructions
 
-The system prompt: what the Agent does and how it behaves. Instructions are
-versioned alongside the rest of the spec. When you change them, Stigmer creates
-a new version and preserves the previous one.
+The system prompt: what the <Term>Agent</Term> does and how it behaves.
+Instructions are versioned alongside the rest of the spec. When you change them,
+Stigmer creates a new version and preserves the previous one.
 
 ```yaml
 spec:
@@ -83,9 +92,9 @@ spec:
 
 ### Tools (MCP Servers)
 
-MCP Servers give Agents the ability to act in external systems like GitHub,
-Slack, databases, internal APIs. Each MCP Server exposes named tools that the
-Agent can call.
+<Term>MCP Server</Term>s give Agents the ability to act in external systems like
+GitHub, Slack, databases, internal APIs. Each MCP Server exposes named tools
+that the Agent can call.
 
 ```yaml
 spec:
@@ -107,9 +116,9 @@ tools.
 
 ### Knowledge (Skills)
 
-Skills are versioned packages of domain knowledge (style guides, runbooks,
-procedures) that get injected into the Agent's context at runtime. Skills
-decouple knowledge from the Agent definition.
+<Term>Skill</Term>s are versioned packages of domain knowledge (style guides,
+runbooks, procedures) that get injected into the Agent's context at runtime.
+Skills decouple knowledge from the Agent definition.
 
 ```yaml
 spec:
@@ -119,14 +128,14 @@ spec:
       version: stable
 ```
 
-When the style guide Skill is updated, every Agent that references it picks up
-the change at the next pinned version.
+When the style guide <Term>Skill</Term> is updated, every Agent that references
+it picks up the change at the next pinned version.
 
 ### Delegation (Sub-Agents)
 
-Sub-Agents let a parent Agent dispatch specialized work to focused workers. Each
-Sub-Agent has its own instructions and a restricted slice of the parent's tool
-access.
+Sub-Agents let a parent <Term>Agent</Term> dispatch specialized work to focused
+workers. Each Sub-Agent has its own instructions and a restricted slice of the
+parent's tool access.
 
 ```yaml
 spec:
@@ -148,9 +157,24 @@ independently auditable.
 
 ## Lifecycle control
 
-Every Agent Execution runs on [Temporal](https://temporal.io/), which provides
-Durable Execution guarantees. Five lifecycle operations give you full control
-over running Agents:
+Every <Term>Agent Execution</Term> runs on [Temporal](https://temporal.io/),
+which provides Durable Execution guarantees. Five lifecycle operations give you
+full control over running Agents:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Running
+    Running --> Paused: Pause
+    Paused --> Running: Resume
+    Running --> Cancelled: Cancel
+    Running --> Terminated: Terminate
+    Running --> Failed: Error
+    Failed --> Running: Recover
+    Running --> Completed: Success
+    Completed --> [*]
+    Cancelled --> [*]
+    Terminated --> [*]
+```
 
 | Operation     | What it does                                                                          |
 | ------------- | ------------------------------------------------------------------------------------- |
@@ -175,16 +199,16 @@ stigmer agent exec resume --id exec-123
 
 ## Versioning
 
-Every `stigmer apply` that changes an Agent's spec creates a new version. The
-version record includes the full spec, who made the change, and when. You can
-always answer: "What were this Agent's instructions when it ran that review six
-months ago?"
+Every `stigmer apply` that changes an <Term>Agent</Term>'s spec creates a new
+version. The version record includes the full spec, who made the change, and
+when. You can always answer: "What were this Agent's instructions when it ran
+that review six months ago?"
 
 ## Visibility and sharing
 
 Agents support two visibility levels:
 
-- **Private.** Only your Organization can see or use the Agent.
+- **Private.** Only your <Term>Organization</Term> can see or use the Agent.
 - **Public.** Anyone can discover and reference the Agent by its `org/slug`, the
   same way you pull a Docker image by its registry path.
 
