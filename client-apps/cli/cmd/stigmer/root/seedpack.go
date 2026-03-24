@@ -79,7 +79,7 @@ func handleSeedpackApply(force bool, format clioutput.OutputFormat) {
 		return
 	}
 
-	err = seedpackbootstrap.Apply(seedpackbootstrap.Options{
+	applied, err := seedpackbootstrap.Apply(seedpackbootstrap.Options{
 		MarkerDir: markerDir,
 		Force:     force,
 		Verbose:   zerolog.GlobalLevel() <= zerolog.DebugLevel,
@@ -89,8 +89,11 @@ func handleSeedpackApply(force bool, format clioutput.OutputFormat) {
 		return
 	}
 
-	result := clioutput.Success("Seedpack applied to %s backend", resolveBackendLabel())
-	renderer.Render(result)
+	if applied {
+		renderer.Render(clioutput.Success("Seedpack applied to %s backend", resolveBackendLabel()))
+	} else {
+		renderer.Render(clioutput.Success("Seedpack already up to date on %s backend (use --force to re-apply)", resolveBackendLabel()))
+	}
 }
 
 func newSeedpackStatusCommand() *cobra.Command {
