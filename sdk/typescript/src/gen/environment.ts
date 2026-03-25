@@ -10,6 +10,7 @@ import { EnvironmentCommandController } from "@stigmer/protos/ai/stigmer/agentic
 import { UpdateEnvironmentVariablesRequestSchema, RemoveEnvironmentVariablesRequestSchema, EnvironmentSecretValueInputSchema, ListEnvironmentsRequestSchema, EnvironmentListSchema, type UpdateEnvironmentVariablesRequest, type RemoveEnvironmentVariablesRequest, type EnvironmentSecretValueInput, type ListEnvironmentsRequest, type EnvironmentList } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { EnvironmentQueryController } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/query_pb";
 import { EnvironmentValueSchema, EnvironmentSpecSchema, type EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -71,7 +72,7 @@ export class EnvironmentClient {
 
   async getByReference(ref: ResourceRef): Promise<Environment> {
     try {
-      return await this.query.getByReference(create(ApiResourceReferenceSchema, ref));
+      return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.environment }));
     } catch (e) { throw wrapError(e); }
   }
 

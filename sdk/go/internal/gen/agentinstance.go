@@ -7,6 +7,7 @@ import (
 
 	agentinstancev1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentinstance/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
 )
 
@@ -53,8 +54,9 @@ func (a *AgentInstanceClient) GetByAgent(ctx context.Context, input *agentinstan
 	return resp, wrapErr(err)
 }
 
-func (a *AgentInstanceClient) GetByReference(ctx context.Context, input *apiresource.ApiResourceReference) (*agentinstancev1.AgentInstance, error) {
-	resp, err := a.query.GetByReference(ctx, input)
+func (a *AgentInstanceClient) GetByReference(ctx context.Context, ref ResourceRef) (*agentinstancev1.AgentInstance, error) {
+	ref.Kind = apiresourcekind.ApiResourceKind_agent_instance
+	resp, err := a.query.GetByReference(ctx, ref.toProto())
 	return resp, wrapErr(err)
 }
 

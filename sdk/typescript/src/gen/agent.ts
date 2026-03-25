@@ -68,7 +68,7 @@ export class AgentClient {
 
   async getByReference(ref: ResourceRef): Promise<Agent> {
     try {
-      return await this.query.getByReference(create(ApiResourceReferenceSchema, ref));
+      return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.agent }));
     } catch (e) { throw wrapError(e); }
   }
 

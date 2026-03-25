@@ -5,6 +5,7 @@ import { stripUndefined } from "./proto-utils";
 import { type DeleteResourceInput, type ResourceRef } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceIdSchema, ApiResourceReferenceSchema, ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { IdentityProviderSchema, type IdentityProvider } from "@stigmer/protos/ai/stigmer/iam/identityprovider/v1/api_pb";
@@ -58,7 +59,7 @@ export class IdentityProviderClient {
 
   async getByReference(ref: ResourceRef): Promise<IdentityProvider> {
     try {
-      return await this.query.getByReference(create(ApiResourceReferenceSchema, ref));
+      return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.identity_provider }));
     } catch (e) { throw wrapError(e); }
   }
 }

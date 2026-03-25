@@ -66,7 +66,7 @@ public final class AgentClient {
 
     public Agent getByReference(ResourceRef ref) {
         try {
-            return query.getByReference(ref.toProto());
+            return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.agent).build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

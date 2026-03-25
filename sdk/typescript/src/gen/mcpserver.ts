@@ -78,7 +78,7 @@ export class McpServerClient {
 
   async getByReference(ref: ResourceRef): Promise<McpServer> {
     try {
-      return await this.query.getByReference(create(ApiResourceReferenceSchema, ref));
+      return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.mcp_server }));
     } catch (e) { throw wrapError(e); }
   }
 

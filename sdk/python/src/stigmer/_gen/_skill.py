@@ -13,9 +13,9 @@ from ai.stigmer.agentic.skill.v1 import io_pb2
 from ai.stigmer.agentic.skill.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
+from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc
 from ai.stigmer.search.v1 import io_pb2 as search_io_pb2
-from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 from ai.stigmer.commons.rpc import pagination_pb2
 
 from ._errors import wrap_error
@@ -62,7 +62,9 @@ class SkillClient:
 
     def get_by_reference(self, ref: ResourceRef) -> api_pb2.Skill:
         try:
-            return self._query.getByReference(ref._to_proto())
+            proto = ref._to_proto()
+            proto.kind = api_resource_kind_pb2.skill
+            return self._query.getByReference(proto)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

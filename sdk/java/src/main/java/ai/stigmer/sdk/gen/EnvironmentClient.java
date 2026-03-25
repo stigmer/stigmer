@@ -13,6 +13,7 @@ import ai.stigmer.agentic.environment.v1.RemoveEnvironmentVariablesRequest;
 import ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -76,7 +77,7 @@ public final class EnvironmentClient {
 
     public Environment getByReference(ResourceRef ref) {
         try {
-            return query.getByReference(ref.toProto());
+            return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.environment).build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

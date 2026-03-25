@@ -58,8 +58,9 @@ func (a *AgentClient) Get(ctx context.Context, id string) (*agentv1.Agent, error
 	return resp, wrapErr(err)
 }
 
-func (a *AgentClient) GetByReference(ctx context.Context, input *apiresource.ApiResourceReference) (*agentv1.Agent, error) {
-	resp, err := a.query.GetByReference(ctx, input)
+func (a *AgentClient) GetByReference(ctx context.Context, ref ResourceRef) (*agentv1.Agent, error) {
+	ref.Kind = apiresourcekind.ApiResourceKind_agent
+	resp, err := a.query.GetByReference(ctx, ref.toProto())
 	return resp, wrapErr(err)
 }
 

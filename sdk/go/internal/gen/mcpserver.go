@@ -67,8 +67,9 @@ func (m *McpServerClient) Get(ctx context.Context, id string) (*mcpserverv1.McpS
 	return resp, wrapErr(err)
 }
 
-func (m *McpServerClient) GetByReference(ctx context.Context, input *apiresource.ApiResourceReference) (*mcpserverv1.McpServer, error) {
-	resp, err := m.query.GetByReference(ctx, input)
+func (m *McpServerClient) GetByReference(ctx context.Context, ref ResourceRef) (*mcpserverv1.McpServer, error) {
+	ref.Kind = apiresourcekind.ApiResourceKind_mcp_server
+	resp, err := m.query.GetByReference(ctx, ref.toProto())
 	return resp, wrapErr(err)
 }
 

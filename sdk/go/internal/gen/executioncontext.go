@@ -7,6 +7,7 @@ import (
 
 	executioncontextv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/executioncontext/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
 )
 
@@ -47,8 +48,9 @@ func (e *ExecutionContextClient) Get(ctx context.Context, id string) (*execution
 	return resp, wrapErr(err)
 }
 
-func (e *ExecutionContextClient) GetByReference(ctx context.Context, input *apiresource.ApiResourceReference) (*executioncontextv1.ExecutionContext, error) {
-	resp, err := e.query.GetByReference(ctx, input)
+func (e *ExecutionContextClient) GetByReference(ctx context.Context, ref ResourceRef) (*executioncontextv1.ExecutionContext, error) {
+	ref.Kind = apiresourcekind.ApiResourceKind_execution_context
+	resp, err := e.query.GetByReference(ctx, ref.toProto())
 	return resp, wrapErr(err)
 }
 

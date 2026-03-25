@@ -272,6 +272,7 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	needsIO := false
 	needsEmptypb := false
 	needsApiResource := false
+	needsApiResourceRef := false
 	needsSearch := schema.ListVia == "SearchService"
 	hasInputType := specSchema != nil
 	for _, svc := range schema.Services {
@@ -281,6 +282,9 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 			}
 			if strings.Contains(m.InputFullType, "commons.apiresource") {
 				needsApiResource = true
+			}
+			if m.InputType == "ApiResourceReference" {
+				needsApiResourceRef = true
 			}
 			if isEmptyType(m.InputFullType) {
 				needsEmptypb = true
@@ -335,8 +339,10 @@ func generateResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConfig, sp
 	if needsApiResource || hasInputType {
 		buf.WriteString("\tapiresource \"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource\"\n")
 	}
-	if needsSearch {
+	if needsSearch || needsApiResourceRef {
 		buf.WriteString("\tapiresourcekind \"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind\"\n")
+	}
+	if needsSearch {
 		buf.WriteString("\trpc \"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/rpc\"\n")
 		buf.WriteString("\tsearchv1 \"github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/search/v1\"\n")
 	}
@@ -422,6 +428,7 @@ func generateMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefinition, 
 	isIDInput := isIDType(m.InputType)
 	isDeleteInput := m.InputType == "ApiResourceDeleteInput"
 	isResourceInput := m.InputType == cfg.protoResType
+	isApiResRefInput := m.InputType == "ApiResourceReference"
 
 	switch {
 	case emptyInput && emptyOutput:
@@ -483,6 +490,15 @@ func generateMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefinition, 
 		buf.WriteString("\t\tVersionMessage: input.VersionMessage,\n")
 		buf.WriteString("\t\tForce:          input.Force,\n")
 		buf.WriteString("\t})\n\treturn resp, wrapErr(err)\n}\n\n")
+
+	case isApiResRefInput:
+		kindConst := "apiresourcekind.ApiResourceKind_" + pascalToSnake(cfg.protoResType)
+		fmt.Fprintf(buf, "func (%s *%s) %s(ctx context.Context, ref ResourceRef) (*%s.%s, error) {\n",
+			receiver, cfg.clientName, m.Name, outputPkg, outputType)
+		fmt.Fprintf(buf, "\tref.Kind = %s\n", kindConst)
+		fmt.Fprintf(buf, "\tresp, err := %s.%s.%s(ctx, ref.toProto())\n",
+			receiver, svc.Role, m.Name)
+		buf.WriteString("\treturn resp, wrapErr(err)\n}\n\n")
 
 	default:
 		fmt.Fprintf(buf, "func (%s *%s) %s(ctx context.Context, input *%s.%s) (*%s.%s, error) {\n",

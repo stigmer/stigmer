@@ -7,6 +7,7 @@ import (
 
 	workflowv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/workflow/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -49,8 +50,9 @@ func (w *WorkflowClient) Get(ctx context.Context, id string) (*workflowv1.Workfl
 	return resp, wrapErr(err)
 }
 
-func (w *WorkflowClient) GetByReference(ctx context.Context, input *apiresource.ApiResourceReference) (*workflowv1.Workflow, error) {
-	resp, err := w.query.GetByReference(ctx, input)
+func (w *WorkflowClient) GetByReference(ctx context.Context, ref ResourceRef) (*workflowv1.Workflow, error) {
+	ref.Kind = apiresourcekind.ApiResourceKind_workflow
+	resp, err := w.query.GetByReference(ctx, ref.toProto())
 	return resp, wrapErr(err)
 }
 
