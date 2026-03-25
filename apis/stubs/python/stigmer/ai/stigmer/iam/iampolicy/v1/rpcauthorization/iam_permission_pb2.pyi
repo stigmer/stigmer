@@ -11,8 +11,6 @@ class ApiResourceIamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper
     can_delete: _ClassVar[ApiResourceIamPermission]
     can_view: _ClassVar[ApiResourceIamPermission]
     can_edit: _ClassVar[ApiResourceIamPermission]
-    operator: _ClassVar[ApiResourceIamPermission]
-    platform: _ClassVar[ApiResourceIamPermission]
     login_to_back_office: _ClassVar[ApiResourceIamPermission]
     can_grant_access: _ClassVar[ApiResourceIamPermission]
     can_view_access: _ClassVar[ApiResourceIamPermission]
@@ -34,13 +32,14 @@ class ApiResourceIamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper
     can_create_environment: _ClassVar[ApiResourceIamPermission]
     can_execute: _ClassVar[ApiResourceIamPermission]
     can_read_secrets: _ClassVar[ApiResourceIamPermission]
+    can_bootstrap_iam: _ClassVar[ApiResourceIamPermission]
+    can_manage_identity_accounts: _ClassVar[ApiResourceIamPermission]
+    can_update_execution_status: _ClassVar[ApiResourceIamPermission]
 unspecified: ApiResourceIamPermission
 create: ApiResourceIamPermission
 can_delete: ApiResourceIamPermission
 can_view: ApiResourceIamPermission
 can_edit: ApiResourceIamPermission
-operator: ApiResourceIamPermission
-platform: ApiResourceIamPermission
 login_to_back_office: ApiResourceIamPermission
 can_grant_access: ApiResourceIamPermission
 can_view_access: ApiResourceIamPermission
@@ -62,3 +61,6 @@ can_create_idp: ApiResourceIamPermission
 can_create_environment: ApiResourceIamPermission
 can_execute: ApiResourceIamPermission
 can_read_secrets: ApiResourceIamPermission
+can_bootstrap_iam: ApiResourceIamPermission
+can_manage_identity_accounts: ApiResourceIamPermission
+can_update_execution_status: ApiResourceIamPermission

@@ -40,6 +40,7 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/dedupe",
+        "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities",
         "//backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows",
         "//backend/services/stigmer-server/pkg/downstream/environment",
         "//backend/services/stigmer-server/pkg/downstream/executioncontext",

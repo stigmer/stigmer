@@ -134,4 +134,16 @@ public interface OrganizationSpecOrBuilder extends
    */
   com.google.protobuf.ByteString
       getExternalOrgIdBytes();
+
+  /**
+   * <pre>
+   * Whether this is a personal organization, auto-created during identity provisioning.
+   * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
+   * Immutable after creation. Set by the server — clients cannot set this to true.
+   * </pre>
+   *
+   * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>
+   * @return The isPersonal.
+   */
+  boolean getIsPersonal();
 }

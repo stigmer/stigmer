@@ -42,27 +42,23 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "mons/apiresource/io.proto\0328ai/stigmer/co" +
       "mmons/apiresource/rpc_service_options.pr" +
       "oto\032Aai/stigmer/iam/iampolicy/v1/rpcauth" +
-      "orization/method_options.proto2\312\004\n!Execu" +
+      "orization/method_options.proto2\256\003\n!Execu" +
       "tionContextCommandController\022{\n\005apply\0228." +
       "ai.stigmer.agentic.executioncontext.v1.E" +
       "xecutionContext\0328.ai.stigmer.agentic.exe" +
-      "cutioncontext.v1.ExecutionContext\022\320\001\n\006cr" +
+      "cutioncontext.v1.ExecutionContext\022\202\001\n\006cr" +
       "eate\0228.ai.stigmer.agentic.executionconte" +
       "xt.v1.ExecutionContext\0328.ai.stigmer.agen" +
       "tic.executioncontext.v1.ExecutionContext" +
-      "\"R\302\270\030N\010\005\020\037*?unauthorized to create Execu" +
-      "tion Context (operator-only action)2\007sti" +
-      "gmer\022\316\001\n\006delete\0226.ai.stigmer.commons.api" +
-      "resource.ApiResourceDeleteInput\0328.ai.sti" +
-      "gmer.agentic.executioncontext.v1.Executi" +
-      "onContext\"R\302\270\030N\010\005\020\037*?unauthorized to del" +
-      "ete Execution Context (operator-only act" +
-      "ion)2\007stigmer\032\004\240\377+6B\313\001B\014CommandProtoP\001\242\002" +
-      "\004ASAE\252\002&Ai.Stigmer.Agentic.Executioncont" +
-      "ext.V1\312\002&Ai\\Stigmer\\Agentic\\Executioncon" +
-      "text\\V1\342\0022Ai\\Stigmer\\Agentic\\Executionco" +
-      "ntext\\V1\\GPBMetadata\352\002*Ai::Stigmer::Agen" +
-      "tic::Executioncontext::V1b\006proto3"
+      "\"\004\320\270\030\001\022\200\001\n\006delete\0226.ai.stigmer.commons.a" +
+      "piresource.ApiResourceDeleteInput\0328.ai.s" +
+      "tigmer.agentic.executioncontext.v1.Execu" +
+      "tionContext\"\004\320\270\030\001\032\004\240\377+6B\313\001B\014CommandProto" +
+      "P\001\242\002\004ASAE\252\002&Ai.Stigmer.Agentic.Execution" +
+      "context.V1\312\002&Ai\\Stigmer\\Agentic\\Executio" +
+      "ncontext\\V1\342\0022Ai\\Stigmer\\Agentic\\Executi" +
+      "oncontext\\V1\\GPBMetadata\352\002*Ai::Stigmer::" +
+      "Agentic::Executioncontext::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -80,7 +76,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }

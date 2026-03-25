@@ -11,6 +11,15 @@ import { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 /**
  * ExecutionContextQueryController provides read operations for ExecutionContext resources.
  *
+ * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
+ * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+ * FGA model. Authorization is derived from the parent execution:
+ *   - All read operations check can_view on parent agent_execution or workflow_execution
+ *
+ * The handler loads the ExecutionContext, extracts the execution_id from spec,
+ * and verifies the caller has permission on whichever parent type matches.
+ * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
+ *
  * @generated from service ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController
  */
 export const ExecutionContextQueryController = {
@@ -18,7 +27,7 @@ export const ExecutionContextQueryController = {
   methods: {
     /**
      * Get an ExecutionContext by ID.
-     * Note: Only the execution engine should typically need to read these.
+     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      *
      * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.get
      */
@@ -29,7 +38,8 @@ export const ExecutionContextQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get an ExecutionContext by reference (operator-only).
+     * Get an ExecutionContext by reference (slug-based lookup).
+     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      *
      * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByReference
      */
@@ -45,12 +55,7 @@ export const ExecutionContextQueryController = {
      * environment variables during workflow/agent execution. The returned context
      * contains decrypted secrets for runner consumption.
      *
-     * Use cases:
-     * - Go workflow-runner queries for merged env vars before executing workflow
-     * - Python agent-runner queries for merged env vars before executing agent
-     *
-     * Security: Operator-only access ensures only internal services (runners) can
-     * retrieve decrypted secrets. Public APIs use get/getByReference which redact secrets.
+     * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      *
      * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByExecutionId
      */

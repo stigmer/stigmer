@@ -85,6 +85,7 @@ export interface OrganizationInput {
   managementMode?: ManagementMode;
   identityProviderRef?: ResourceRef;
   externalOrgId?: string;
+  isPersonal?: boolean;
 }
 
 function buildOrganizationProto(input: OrganizationInput): Organization {
@@ -104,6 +105,7 @@ function buildOrganizationProto(input: OrganizationInput): Organization {
       managementMode: input.managementMode,
       identityProviderRef,
       externalOrgId: input.externalOrgId,
+      isPersonal: input.isPersonal,
     })),
   }) as Organization;
 }

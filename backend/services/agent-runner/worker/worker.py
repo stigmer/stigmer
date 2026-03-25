@@ -31,6 +31,7 @@ class AgentRunner:
         if not config.is_local_mode():
             self._initialize_redis()
             self._initialize_daytona_volume()
+            self._validate_mongodb_connectivity()
         else:
             self.logger.info(
                 "Local mode: Skipping Redis and Daytona volume initialization"
@@ -95,6 +96,55 @@ class AgentRunner:
         except Exception as e:
             self.logger.error("❌ Failed to initialize Daytona volume: %s", e)
             raise
+    
+    def _validate_mongodb_connectivity(self):
+        """Validate MongoDB connectivity for cloud-mode checkpointer.
+        
+        Performs a fast ping against the MongoDB instance configured for
+        the LangGraph checkpointer.  Runs only when the checkpointer type
+        is ``mongodb``; silently skips for ``memory`` and ``sqlite``.
+        
+        This catches authentication and network issues at startup rather
+        than on the first agent execution, giving operators a clear signal
+        that the mongodb-app-user-provisioning Job needs to be applied.
+        """
+        if self.config.checkpointer.type != "mongodb":
+            return
+        
+        if not self.config.checkpointer.mongodb_uri:
+            raise ValueError(
+                "STIGMER_CHECKPOINTER_MONGODB_URI is required when "
+                "checkpointer type is 'mongodb'"
+            )
+        
+        from pymongo import MongoClient
+        from pymongo.errors import ConnectionFailure, OperationFailure
+        
+        client = MongoClient(
+            self.config.checkpointer.mongodb_uri,
+            serverSelectionTimeoutMS=5000,
+        )
+        try:
+            client.admin.command("ping")
+            self.logger.info(
+                "✅ Connected to MongoDB for checkpointer (db=%s)",
+                self.config.checkpointer.mongodb_db_name,
+            )
+        except ConnectionFailure as e:
+            self.logger.error("❌ MongoDB unreachable for checkpointer: %s", e)
+            raise RuntimeError(
+                f"MongoDB unreachable for checkpointer: {e}. "
+                "Check STIGMER_CHECKPOINTER_MONGODB_URI and network connectivity."
+            ) from e
+        except OperationFailure as e:
+            self.logger.error("❌ MongoDB authentication failed for checkpointer: %s", e)
+            raise RuntimeError(
+                f"MongoDB authentication failed for checkpointer: {e}. "
+                "Verify the stigmer-app user exists with correct roles. "
+                "Run the mongodb-app-user-provisioning Job if this is a new environment."
+            ) from e
+        finally:
+            client.close()
     
     async def register_activities(self):
         """Connect to Temporal and register activities.

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	"go.temporal.io/sdk/client"
 )
 
@@ -36,9 +36,10 @@ func NewInvokeWorkflowExecutionWorkflowCreator(
 	}
 }
 
-// Create starts a new workflow execution workflow.
-func (c *InvokeWorkflowExecutionWorkflowCreator) Create(ctx context.Context, execution *workflowexecutionv1.WorkflowExecution) error {
-	executionID := execution.GetMetadata().GetId()
+// Create starts a new workflow execution workflow with slim input.
+// Secrets (runtime_env) are excluded from Temporal history — they live in the ExecutionContext.
+func (c *InvokeWorkflowExecutionWorkflowCreator) Create(ctx context.Context, input *activities.InvokeWorkflowExecutionWorkflowInput) error {
+	executionID := input.ExecutionID
 
 	// Workflow ID format: stigmer/workflow-execution/invoke/{execution-id}
 	workflowID := fmt.Sprintf("%s/%s", InvokeWorkflowExecutionWorkflowName, executionID)
@@ -52,8 +53,8 @@ func (c *InvokeWorkflowExecutionWorkflowCreator) Create(ctx context.Context, exe
 		},
 	}
 
-	// Start workflow asynchronously
-	_, err := c.workflowClient.ExecuteWorkflow(ctx, options, InvokeWorkflowExecutionWorkflowName, execution)
+	// Start workflow asynchronously with slim input
+	_, err := c.workflowClient.ExecuteWorkflow(ctx, options, InvokeWorkflowExecutionWorkflowName, input)
 	if err != nil {
 		log.Error().
 			Err(err).
@@ -77,19 +78,19 @@ func (c *InvokeWorkflowExecutionWorkflowCreator) Create(ctx context.Context, exe
 // This provides race-proof signal delivery for LISTEN tasks.
 //
 // Uses Temporal's SignalWithStart API which atomically handles both cases:
-// - Workflow exists → sends signal immediately
-// - Workflow not started yet → starts workflow, then sends signal
+// - Workflow exists -> sends signal immediately
+// - Workflow not started yet -> starts workflow, then sends signal
 //
 // This solves the race condition where a signal might arrive before the Temporal
 // workflow is fully started. Without SignalWithStart, SignalWorkflow would fail
 // with "WorkflowNotFound" if called too early.
 func (c *InvokeWorkflowExecutionWorkflowCreator) SignalWithStart(
 	ctx context.Context,
-	execution *workflowexecutionv1.WorkflowExecution,
+	input *activities.InvokeWorkflowExecutionWorkflowInput,
 	signalName string,
 	signalPayload interface{},
 ) error {
-	executionID := execution.GetMetadata().GetId()
+	executionID := input.ExecutionID
 
 	// Workflow ID format: stigmer/workflow-execution/invoke/{execution-id}
 	workflowID := fmt.Sprintf("%s/%s", InvokeWorkflowExecutionWorkflowName, executionID)
@@ -104,8 +105,7 @@ func (c *InvokeWorkflowExecutionWorkflowCreator) SignalWithStart(
 	}
 
 	// SignalWithStart: atomically start workflow if needed, then send signal.
-	// This ensures signal delivery even in race conditions where the signal
-	// arrives before the workflow is fully started.
+	// Slim input keeps secrets out of Temporal history.
 	_, err := c.workflowClient.SignalWithStartWorkflow(
 		ctx,
 		workflowID,
@@ -113,7 +113,7 @@ func (c *InvokeWorkflowExecutionWorkflowCreator) SignalWithStart(
 		signalPayload,
 		options,
 		InvokeWorkflowExecutionWorkflowName,
-		execution,
+		input,
 	)
 	if err != nil {
 		log.Error().

@@ -9,11 +9,13 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/iam/iampolicy/v1/rpcauthorization/iam_permission.proto.
  */
 export const file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission: GenFile = /*@__PURE__*/
-  fileDesc("CkFhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvcnBjYXV0aG9yaXphdGlvbi9pYW1fcGVybWlzc2lvbi5wcm90bxIsYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLnJwY2F1dGhvcml6YXRpb24qqQQKGEFwaVJlc291cmNlSWFtUGVybWlzc2lvbhIPCgt1bnNwZWNpZmllZBAAEgoKBmNyZWF0ZRABEg4KCmNhbl9kZWxldGUQAhIMCghjYW5fdmlldxADEgwKCGNhbl9lZGl0EAQSDAoIb3BlcmF0b3IQBRIMCghwbGF0Zm9ybRAGEhgKFGxvZ2luX3RvX2JhY2tfb2ZmaWNlEAcSFAoQY2FuX2dyYW50X2FjY2VzcxAIEhMKD2Nhbl92aWV3X2FjY2VzcxAJEgkKBW93bmVyEAoSCgoGbWVtYmVyEAsSCgoGdmlld2VyEBoSFAoQaWRlbnRpdHlfYWNjb3VudBAMEhAKDG9yZ2FuaXphdGlvbhANEgsKB3Nlc3Npb24QDhIJCgVhZ2VudBAPEhQKEGNhbl9jcmVhdGVfYWdlbnQQEBIXChNjYW5fY3JlYXRlX3dvcmtmbG93EBESFgoSY2FuX2NyZWF0ZV9zZXNzaW9uEBISGwoXY2FuX2NyZWF0ZV9leGVjdXRpb25faW4QExIXChNjYW5fY3JlYXRlX2luc3RhbmNlEBQSFAoQY2FuX2NyZWF0ZV9za2lsbBAVEhYKEmNhbl9jcmVhdGVfcHJvamVjdBAXEhIKDmNhbl9jcmVhdGVfaWRwEBgSGgoWY2FuX2NyZWF0ZV9lbnZpcm9ubWVudBAbEg8KC2Nhbl9leGVjdXRlEBYSFAoQY2FuX3JlYWRfc2VjcmV0cxAZYgZwcm90bzM");
+  fileDesc("CkFhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvcnBjYXV0aG9yaXphdGlvbi9pYW1fcGVybWlzc2lvbi5wcm90bxIsYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLnJwY2F1dGhvcml6YXRpb24qoAUKGEFwaVJlc291cmNlSWFtUGVybWlzc2lvbhIPCgt1bnNwZWNpZmllZBAAEgoKBmNyZWF0ZRABEg4KCmNhbl9kZWxldGUQAhIMCghjYW5fdmlldxADEgwKCGNhbl9lZGl0EAQSGAoUbG9naW5fdG9fYmFja19vZmZpY2UQBxIUChBjYW5fZ3JhbnRfYWNjZXNzEAgSEwoPY2FuX3ZpZXdfYWNjZXNzEAkSCQoFb3duZXIQChIKCgZtZW1iZXIQCxIKCgZ2aWV3ZXIQGhIUChBpZGVudGl0eV9hY2NvdW50EAwSEAoMb3JnYW5pemF0aW9uEA0SCwoHc2Vzc2lvbhAOEgkKBWFnZW50EA8SFAoQY2FuX2NyZWF0ZV9hZ2VudBAQEhcKE2Nhbl9jcmVhdGVfd29ya2Zsb3cQERIWChJjYW5fY3JlYXRlX3Nlc3Npb24QEhIbChdjYW5fY3JlYXRlX2V4ZWN1dGlvbl9pbhATEhcKE2Nhbl9jcmVhdGVfaW5zdGFuY2UQFBIUChBjYW5fY3JlYXRlX3NraWxsEBUSFgoSY2FuX2NyZWF0ZV9wcm9qZWN0EBcSEgoOY2FuX2NyZWF0ZV9pZHAQGBIaChZjYW5fY3JlYXRlX2Vudmlyb25tZW50EBsSDwoLY2FuX2V4ZWN1dGUQFhIUChBjYW5fcmVhZF9zZWNyZXRzEBkSFQoRY2FuX2Jvb3RzdHJhcF9pYW0QHRIgChxjYW5fbWFuYWdlX2lkZW50aXR5X2FjY291bnRzEB4SHwobY2FuX3VwZGF0ZV9leGVjdXRpb25fc3RhdHVzEB8iBAgFEAUiBAgGEAYiBAgcEBwqCG9wZXJhdG9yKghwbGF0Zm9ybSoRY2FuX3VwZGF0ZV9zdGF0dXNiBnByb3RvMw");
 
 /**
- * ApiResourceIamPermission defines the core permissions used in the authorization model.
- * This is a simplified set for a demo project, containing only essential permissions.
+ * ApiResourceIamPermission defines the permissions and structural relations
+ * used in the Stigmer authorization model. Each value maps to an FGA relation
+ * name that appears either in RPC authorization annotations or in FGA tuple
+ * creation logic.
  *
  * @generated from enum ai.stigmer.iam.iampolicy.v1.rpcauthorization.ApiResourceIamPermission
  */
@@ -48,38 +50,18 @@ export enum ApiResourceIamPermission {
   /**
    * Platform-level permissions
    *
-   * Platform operator with elevated privileges
-   *
-   * @generated from enum value: operator = 5;
-   */
-  operator = 5,
-
-  /**
-   * Platform-level access
-   *
-   * @generated from enum value: platform = 6;
-   */
-  platform = 6,
-
-  /**
-   * Permission to login to back office
-   *
    * @generated from enum value: login_to_back_office = 7;
    */
   login_to_back_office = 7,
 
   /**
-   * IAM policy management permissions (follows can_* pattern)
-   *
-   * Permission to grant/revoke access (create/delete IAM policies)
+   * IAM policy management permissions
    *
    * @generated from enum value: can_grant_access = 8;
    */
   can_grant_access = 8,
 
   /**
-   * Permission to view who has access (view IAM policies)
-   *
    * @generated from enum value: can_view_access = 9;
    */
   can_view_access = 9,
@@ -87,22 +69,16 @@ export enum ApiResourceIamPermission {
   /**
    * Resource ownership and membership
    *
-   * Resource owner
-   *
    * @generated from enum value: owner = 10;
    */
   owner = 10,
 
   /**
-   * Resource member (for teams, organizations)
-   *
    * @generated from enum value: member = 11;
    */
   member = 11,
 
   /**
-   * Resource viewer (base relation for public visibility tuples)
-   *
    * @generated from enum value: viewer = 26;
    */
   viewer = 26,
@@ -110,29 +86,21 @@ export enum ApiResourceIamPermission {
   /**
    * Structural relations (parent links)
    *
-   * Link to identity account (user-scoped parent)
-   *
    * @generated from enum value: identity_account = 12;
    */
   identity_account = 12,
 
   /**
-   * Link to organization (org-scoped parent)
-   *
    * @generated from enum value: organization = 13;
    */
   organization = 13,
 
   /**
-   * Link to session (agent execution parent)
-   *
    * @generated from enum value: session = 14;
    */
   session = 14,
 
   /**
-   * Link to agent (agent instance parent)
-   *
    * @generated from enum value: agent = 15;
    */
   agent = 15,
@@ -140,72 +108,52 @@ export enum ApiResourceIamPermission {
   /**
    * Resource-specific creation permissions
    *
-   * Permission to create agents in an organization
-   *
    * @generated from enum value: can_create_agent = 16;
    */
   can_create_agent = 16,
 
   /**
-   * Permission to create workflows in an organization
-   *
    * @generated from enum value: can_create_workflow = 17;
    */
   can_create_workflow = 17,
 
   /**
-   * Permission to create sessions in an organization
-   *
    * @generated from enum value: can_create_session = 18;
    */
   can_create_session = 18,
 
   /**
-   * Permission to create agent executions in a session
-   *
    * @generated from enum value: can_create_execution_in = 19;
    */
   can_create_execution_in = 19,
 
   /**
-   * Permission to create agent instances (derived from can_execute on parent agent)
-   *
    * @generated from enum value: can_create_instance = 20;
    */
   can_create_instance = 20,
 
   /**
-   * Permission to create skills in an organization
-   *
    * @generated from enum value: can_create_skill = 21;
    */
   can_create_skill = 21,
 
   /**
-   * Permission to create projects in an organization
-   *
    * @generated from enum value: can_create_project = 23;
    */
   can_create_project = 23,
 
   /**
-   * Permission to create identity providers in an organization
-   *
    * @generated from enum value: can_create_idp = 24;
    */
   can_create_idp = 24,
 
   /**
-   * Permission to create environments in an organization
-   *
    * @generated from enum value: can_create_environment = 27;
    */
   can_create_environment = 27,
 
   /**
    * Resource-specific operation permissions
-   *
-   * Permission to execute agent/session operations
    *
    * @generated from enum value: can_execute = 22;
    */
@@ -214,11 +162,26 @@ export enum ApiResourceIamPermission {
   /**
    * Secret access permissions
    *
-   * Permission to read unredacted secret values (creator-only)
-   *
    * @generated from enum value: can_read_secrets = 25;
    */
   can_read_secrets = 25,
+
+  /**
+   * Platform-level operational permissions (checked against platform:stigmer)
+   *
+   * @generated from enum value: can_bootstrap_iam = 29;
+   */
+  can_bootstrap_iam = 29,
+
+  /**
+   * @generated from enum value: can_manage_identity_accounts = 30;
+   */
+  can_manage_identity_accounts = 30,
+
+  /**
+   * @generated from enum value: can_update_execution_status = 31;
+   */
+  can_update_execution_status = 31,
 }
 
 /**

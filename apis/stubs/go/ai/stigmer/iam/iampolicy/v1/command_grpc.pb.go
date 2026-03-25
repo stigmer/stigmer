@@ -22,7 +22,6 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	IamPolicyCommandController_Create_FullMethodName                  = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/create"
 	IamPolicyCommandController_Delete_FullMethodName                  = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/delete"
-	IamPolicyCommandController_CreatePlatformLink_FullMethodName      = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/createPlatformLink"
 	IamPolicyCommandController_BootstrapPolicy_FullMethodName         = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/bootstrapPolicy"
 	IamPolicyCommandController_CleanupResourcePolicies_FullMethodName = "/ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController/cleanupResourcePolicies"
 )
@@ -108,57 +107,21 @@ type IamPolicyCommandControllerClient interface {
 	// Input: IamPolicySpec identifying the policy to delete (principal, resource, relation)
 	// Output: The deleted IamPolicy object (for audit/confirmation purposes)
 	Delete(ctx context.Context, in *IamPolicySpec, opts ...grpc.CallOption) (*IamPolicy, error)
-	// Create platform link policy (operator-only)
-	//
-	// Creates a platform link policy that associates an identity account with the platform.
-	// This is a privileged operation that can only be called by platform operators.
-	//
-	// The operation:
-	// 1. Validates that caller has operator permission on platform:stigmer
-	// 2. Validates the input is a platform link (principal=platform, relation=platform)
-	// 3. Checks for duplicates (idempotent if already exists)
-	// 4. Creates the policy in the database with auto-generated ID and metadata
-	// 5. Writes the corresponding tuple to OpenFGA
-	//
-	// Authorization:
-	// - Caller must have 'operator' permission on platform:stigmer
-	// - This is typically only granted to machine accounts (service-to-service)
-	//
-	// Use Cases:
-	// - Bootstrapping new identity accounts
-	// - Initial permission setup when standard authorization cannot work yet
-	// - Establishing platform-level relationships for new resources
-	//
-	// Example:
-	// Input:
-	//
-	//	principal: {kind: "platform", id: "stigmer"}
-	//	resource: {kind: "identity_account", id: "ida-alice-123"}
-	//	relation: "platform"
-	//
-	// Result:
-	//
-	//	Created IamPolicy linking the identity account to the platform
-	//	Machine accounts with operator permission can now manage this account
-	//
-	// Input: IamPolicySpec with principal=platform:stigmer, relation=platform, resource=identity_account:{id}
-	// Output: The created IamPolicy with generated ID and metadata
-	CreatePlatformLink(ctx context.Context, in *IamPolicySpec, opts ...grpc.CallOption) (*IamPolicy, error)
-	// Bootstrap IAM policy during resource creation (operator-only)
+	// Bootstrap IAM policy during resource creation
 	//
 	// Creates IAM policies during resource creation when standard authorization cannot work yet
 	// because no tuples exist. This solves the chicken-and-egg problem where creating the first
 	// policy for a resource requires authorization, but authorization requires that first policy.
 	//
 	// The operation:
-	// 1. Validates that caller has operator permission on platform:stigmer
+	// 1. Validates that caller has can_bootstrap_iam permission on platform:stigmer
 	// 2. Validates the input (principal, resource, relation are all valid)
 	// 3. Checks for duplicates (skips if the exact policy already exists, idempotent)
 	// 4. Creates the policy in the database with auto-generated ID and metadata
 	// 5. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
 	//
 	// Authorization:
-	// - Caller must have 'operator' permission on platform:stigmer
+	// - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
 	// - This is typically only called by resource creation handlers running as machine accounts
 	//
 	// Use Cases:
@@ -184,7 +147,7 @@ type IamPolicyCommandControllerClient interface {
 	// Input: IamPolicySpec containing principal, resource, and relation
 	// Output: The created IamPolicy with generated ID and metadata
 	BootstrapPolicy(ctx context.Context, in *IamPolicySpec, opts ...grpc.CallOption) (*IamPolicy, error)
-	// Cleanup all IAM policies for a deleted resource (operator-only)
+	// Cleanup all IAM policies for a deleted resource
 	//
 	// This is a system-level cleanup operation that removes all IAM policies
 	// associated with a deleted resource. It performs bidirectional cleanup:
@@ -192,14 +155,14 @@ type IamPolicyCommandControllerClient interface {
 	// 2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)
 	//
 	// The operation:
-	// 1. Validates operator permission on platform:stigmer
+	// 1. Validates can_bootstrap_iam permission on platform:stigmer
 	// 2. Finds all policies where resource_id appears (as principal OR resource)
 	// 3. Deletes all matching policies from MongoDB
 	// 4. Removes all corresponding tuples from OpenFGA
 	// 5. Returns Empty (idempotent if no policies exist)
 	//
 	// Authorization:
-	// - Caller must have 'operator' permission on platform:stigmer
+	// - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
 	// - This is typically only granted to platform services
 	//
 	// Use Cases:
@@ -238,16 +201,6 @@ func (c *iamPolicyCommandControllerClient) Delete(ctx context.Context, in *IamPo
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IamPolicy)
 	err := c.cc.Invoke(ctx, IamPolicyCommandController_Delete_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *iamPolicyCommandControllerClient) CreatePlatformLink(ctx context.Context, in *IamPolicySpec, opts ...grpc.CallOption) (*IamPolicy, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(IamPolicy)
-	err := c.cc.Invoke(ctx, IamPolicyCommandController_CreatePlatformLink_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -355,57 +308,21 @@ type IamPolicyCommandControllerServer interface {
 	// Input: IamPolicySpec identifying the policy to delete (principal, resource, relation)
 	// Output: The deleted IamPolicy object (for audit/confirmation purposes)
 	Delete(context.Context, *IamPolicySpec) (*IamPolicy, error)
-	// Create platform link policy (operator-only)
-	//
-	// Creates a platform link policy that associates an identity account with the platform.
-	// This is a privileged operation that can only be called by platform operators.
-	//
-	// The operation:
-	// 1. Validates that caller has operator permission on platform:stigmer
-	// 2. Validates the input is a platform link (principal=platform, relation=platform)
-	// 3. Checks for duplicates (idempotent if already exists)
-	// 4. Creates the policy in the database with auto-generated ID and metadata
-	// 5. Writes the corresponding tuple to OpenFGA
-	//
-	// Authorization:
-	// - Caller must have 'operator' permission on platform:stigmer
-	// - This is typically only granted to machine accounts (service-to-service)
-	//
-	// Use Cases:
-	// - Bootstrapping new identity accounts
-	// - Initial permission setup when standard authorization cannot work yet
-	// - Establishing platform-level relationships for new resources
-	//
-	// Example:
-	// Input:
-	//
-	//	principal: {kind: "platform", id: "stigmer"}
-	//	resource: {kind: "identity_account", id: "ida-alice-123"}
-	//	relation: "platform"
-	//
-	// Result:
-	//
-	//	Created IamPolicy linking the identity account to the platform
-	//	Machine accounts with operator permission can now manage this account
-	//
-	// Input: IamPolicySpec with principal=platform:stigmer, relation=platform, resource=identity_account:{id}
-	// Output: The created IamPolicy with generated ID and metadata
-	CreatePlatformLink(context.Context, *IamPolicySpec) (*IamPolicy, error)
-	// Bootstrap IAM policy during resource creation (operator-only)
+	// Bootstrap IAM policy during resource creation
 	//
 	// Creates IAM policies during resource creation when standard authorization cannot work yet
 	// because no tuples exist. This solves the chicken-and-egg problem where creating the first
 	// policy for a resource requires authorization, but authorization requires that first policy.
 	//
 	// The operation:
-	// 1. Validates that caller has operator permission on platform:stigmer
+	// 1. Validates that caller has can_bootstrap_iam permission on platform:stigmer
 	// 2. Validates the input (principal, resource, relation are all valid)
 	// 3. Checks for duplicates (skips if the exact policy already exists, idempotent)
 	// 4. Creates the policy in the database with auto-generated ID and metadata
 	// 5. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
 	//
 	// Authorization:
-	// - Caller must have 'operator' permission on platform:stigmer
+	// - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
 	// - This is typically only called by resource creation handlers running as machine accounts
 	//
 	// Use Cases:
@@ -431,7 +348,7 @@ type IamPolicyCommandControllerServer interface {
 	// Input: IamPolicySpec containing principal, resource, and relation
 	// Output: The created IamPolicy with generated ID and metadata
 	BootstrapPolicy(context.Context, *IamPolicySpec) (*IamPolicy, error)
-	// Cleanup all IAM policies for a deleted resource (operator-only)
+	// Cleanup all IAM policies for a deleted resource
 	//
 	// This is a system-level cleanup operation that removes all IAM policies
 	// associated with a deleted resource. It performs bidirectional cleanup:
@@ -439,14 +356,14 @@ type IamPolicyCommandControllerServer interface {
 	// 2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)
 	//
 	// The operation:
-	// 1. Validates operator permission on platform:stigmer
+	// 1. Validates can_bootstrap_iam permission on platform:stigmer
 	// 2. Finds all policies where resource_id appears (as principal OR resource)
 	// 3. Deletes all matching policies from MongoDB
 	// 4. Removes all corresponding tuples from OpenFGA
 	// 5. Returns Empty (idempotent if no policies exist)
 	//
 	// Authorization:
-	// - Caller must have 'operator' permission on platform:stigmer
+	// - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
 	// - This is typically only granted to platform services
 	//
 	// Use Cases:
@@ -475,9 +392,6 @@ func (UnimplementedIamPolicyCommandControllerServer) Create(context.Context, *Ia
 }
 func (UnimplementedIamPolicyCommandControllerServer) Delete(context.Context, *IamPolicySpec) (*IamPolicy, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
-}
-func (UnimplementedIamPolicyCommandControllerServer) CreatePlatformLink(context.Context, *IamPolicySpec) (*IamPolicy, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreatePlatformLink not implemented")
 }
 func (UnimplementedIamPolicyCommandControllerServer) BootstrapPolicy(context.Context, *IamPolicySpec) (*IamPolicy, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BootstrapPolicy not implemented")
@@ -541,24 +455,6 @@ func _IamPolicyCommandController_Delete_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _IamPolicyCommandController_CreatePlatformLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IamPolicySpec)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(IamPolicyCommandControllerServer).CreatePlatformLink(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: IamPolicyCommandController_CreatePlatformLink_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(IamPolicyCommandControllerServer).CreatePlatformLink(ctx, req.(*IamPolicySpec))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _IamPolicyCommandController_BootstrapPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IamPolicySpec)
 	if err := dec(in); err != nil {
@@ -609,10 +505,6 @@ var IamPolicyCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _IamPolicyCommandController_Delete_Handler,
-		},
-		{
-			MethodName: "createPlatformLink",
-			Handler:    _IamPolicyCommandController_CreatePlatformLink_Handler,
 		},
 		{
 			MethodName: "bootstrapPolicy",

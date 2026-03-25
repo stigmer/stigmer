@@ -87,6 +87,7 @@ class OrganizationInput:
     management_mode: int = 0
     identity_provider_ref: ResourceRef | None = None
     external_org_id: str = ""
+    is_personal: bool = False
 
     def _to_proto(self) -> api_pb2.Organization:
         spec = spec_pb2.OrganizationSpec(
@@ -94,6 +95,7 @@ class OrganizationInput:
             logo_url=self.logo_url,
             management_mode=self.management_mode,
             external_org_id=self.external_org_id,
+            is_personal=self.is_personal,
         )
         if self.identity_provider_ref is not None:
             spec.identity_provider_ref.CopyFrom(self.identity_provider_ref._to_proto())

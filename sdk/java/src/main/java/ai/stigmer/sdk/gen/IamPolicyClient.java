@@ -40,12 +40,6 @@ public final class IamPolicyClient {
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
-    public IamPolicy createPlatformLink(IamPolicySpec input) {
-        try {
-            return command.createPlatformLink(input);
-        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
-    }
-
     public IamPolicy bootstrapPolicy(IamPolicySpec input) {
         try {
             return command.bootstrapPolicy(input);

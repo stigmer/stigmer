@@ -18,7 +18,7 @@ message ExecutionContext {
   string kind = 2 [(buf.validate.field).string.const = 'ExecutionContext'];
 
   // Standard resource metadata including name, id, labels, and tags.
-  // ExecutionContext is operator-managed and belongs to an organization.
+  // ExecutionContext is ephemeral and authorization is derived from the parent execution.
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [(buf.validate.field).required = true];
 
   // ExecutionContext-specific configuration.

@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Building2,
   AlertCircle,
   RefreshCw,
   ChevronsUpDown,
   Plus,
+  User,
 } from "lucide-react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { CreateOrganizationForm } from "@stigmer/react";
@@ -65,6 +66,17 @@ export function OrgSwitcher() {
     ? activeOrg.metadata?.name || activeOrg.metadata?.slug
     : "No organizations";
 
+  const personalOrgs = useMemo(
+    () => orgs.filter((o) => o.spec?.isPersonal),
+    [orgs],
+  );
+  const teamOrgs = useMemo(
+    () => orgs.filter((o) => !o.spec?.isPersonal),
+    [orgs],
+  );
+
+  const TriggerIcon = activeOrg?.spec?.isPersonal ? User : Building2;
+
   return (
     <>
       <DropdownMenu>
@@ -72,7 +84,7 @@ export function OrgSwitcher() {
           aria-label="Organization menu"
           className="hover:bg-sidebar-accent flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors focus:outline-none"
         >
-          <Building2 className="text-sidebar-muted-foreground size-4 shrink-0" />
+          <TriggerIcon className="text-sidebar-muted-foreground size-4 shrink-0" />
           <span className={hasOrgs ? "truncate" : "text-sidebar-muted-foreground truncate"}>
             {orgLabel}
           </span>
@@ -88,11 +100,24 @@ export function OrgSwitcher() {
                 if (org) setActiveOrg(org);
               }}
             >
-              {orgs.map((org) => (
+              {personalOrgs.map((org) => (
                 <DropdownMenuRadioItem
                   key={org.metadata?.slug}
                   value={org.metadata?.slug ?? ""}
                 >
+                  <User className="size-3.5 shrink-0" />
+                  {org.metadata?.name || org.metadata?.slug}
+                </DropdownMenuRadioItem>
+              ))}
+              {personalOrgs.length > 0 && teamOrgs.length > 0 && (
+                <DropdownMenuSeparator />
+              )}
+              {teamOrgs.map((org) => (
+                <DropdownMenuRadioItem
+                  key={org.metadata?.slug}
+                  value={org.metadata?.slug ?? ""}
+                >
+                  <Building2 className="size-3.5 shrink-0" />
                   {org.metadata?.name || org.metadata?.slug}
                 </DropdownMenuRadioItem>
               ))}

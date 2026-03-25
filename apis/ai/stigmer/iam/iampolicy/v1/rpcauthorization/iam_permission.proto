@@ -2,10 +2,17 @@ syntax = "proto3";
 
 package ai.stigmer.iam.iampolicy.v1.rpcauthorization;
 
-// ApiResourceIamPermission defines the core permissions used in the authorization model.
-// This is a simplified set for a demo project, containing only essential permissions.
+// ApiResourceIamPermission defines the permissions and structural relations
+// used in the Stigmer authorization model. Each value maps to an FGA relation
+// name that appears either in RPC authorization annotations or in FGA tuple
+// creation logic.
 enum ApiResourceIamPermission {
   unspecified = 0;
+
+  // Removed: operator (5), platform (6), can_update_status (28).
+  // These values are reserved to prevent accidental reuse.
+  reserved 5, 6, 28;
+  reserved "operator", "platform", "can_update_status";
 
   // Basic CRUD permissions
   create = 1;
@@ -14,39 +21,42 @@ enum ApiResourceIamPermission {
   can_edit = 4;
 
   // Platform-level permissions
-  operator = 5; // Platform operator with elevated privileges
-  platform = 6; // Platform-level access
-  login_to_back_office = 7; // Permission to login to back office
+  login_to_back_office = 7;
 
-  // IAM policy management permissions (follows can_* pattern)
-  can_grant_access = 8; // Permission to grant/revoke access (create/delete IAM policies)
-  can_view_access = 9; // Permission to view who has access (view IAM policies)
+  // IAM policy management permissions
+  can_grant_access = 8;
+  can_view_access = 9;
 
   // Resource ownership and membership
-  owner = 10; // Resource owner
-  member = 11; // Resource member (for teams, organizations)
-  viewer = 26; // Resource viewer (base relation for public visibility tuples)
+  owner = 10;
+  member = 11;
+  viewer = 26;
 
   // Structural relations (parent links)
-  identity_account = 12; // Link to identity account (user-scoped parent)
-  organization = 13; // Link to organization (org-scoped parent)
-  session = 14; // Link to session (agent execution parent)
-  agent = 15; // Link to agent (agent instance parent)
+  identity_account = 12;
+  organization = 13;
+  session = 14;
+  agent = 15;
 
   // Resource-specific creation permissions
-  can_create_agent = 16; // Permission to create agents in an organization
-  can_create_workflow = 17; // Permission to create workflows in an organization
-  can_create_session = 18; // Permission to create sessions in an organization
-  can_create_execution_in = 19; // Permission to create agent executions in a session
-  can_create_instance = 20; // Permission to create agent instances (derived from can_execute on parent agent)
-  can_create_skill = 21; // Permission to create skills in an organization
-  can_create_project = 23; // Permission to create projects in an organization
-  can_create_idp = 24; // Permission to create identity providers in an organization
-  can_create_environment = 27; // Permission to create environments in an organization
+  can_create_agent = 16;
+  can_create_workflow = 17;
+  can_create_session = 18;
+  can_create_execution_in = 19;
+  can_create_instance = 20;
+  can_create_skill = 21;
+  can_create_project = 23;
+  can_create_idp = 24;
+  can_create_environment = 27;
 
   // Resource-specific operation permissions
-  can_execute = 22; // Permission to execute agent/session operations
+  can_execute = 22;
 
   // Secret access permissions
-  can_read_secrets = 25; // Permission to read unredacted secret values (creator-only)
+  can_read_secrets = 25;
+
+  // Platform-level operational permissions (checked against platform:stigmer)
+  can_bootstrap_iam = 29;
+  can_manage_identity_accounts = 30;
+  can_update_execution_status = 31;
 }

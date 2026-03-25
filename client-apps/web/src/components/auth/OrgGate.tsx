@@ -1,19 +1,26 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, AlertCircle, RefreshCw, Building2, LogOut } from "lucide-react";
 import { CreateOrganizationForm } from "@stigmer/react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
 import { useOrg } from "@/contexts/org-context";
 import { useAuth } from "@/auth";
+import { getRuntimeConfig } from "@/config/runtime-config";
+
+const PROVISIONING_POLL_MS = 2_000;
+const PROVISIONING_TIMEOUT_MS = 10_000;
 
 /**
  * Blocks the application shell until the user has at least one organization.
  *
  * Sits between {@link OrgProvider} and the app content in the provider
- * hierarchy. Handles three pre-app states:
+ * hierarchy. Handles four pre-app states:
  *
  * - **Loading** — spinner while `findMyOrganizations()` is in flight.
+ * - **Provisioning** (OIDC only) — personalized welcome screen while the
+ *   server-side personal org creation completes. Auto-retries every 2 s
+ *   for up to 10 s before falling back to the manual onboarding form.
  * - **Error** — retry prompt when the org fetch fails.
  * - **No organizations** — onboarding screen with inline
  *   {@link CreateOrganizationForm} from `@stigmer/react`.
@@ -25,6 +32,53 @@ import { useAuth } from "@/auth";
  */
 export function OrgGate({ children }: { children: React.ReactNode }) {
   const { orgs, isLoading, error, retry, refresh } = useOrg();
+  const [isProvisioning, setIsProvisioning] = useState(false);
+  const provisioningAttemptedRef = useRef(false);
+
+  // Enter provisioning once when the initial load returns empty in OIDC mode.
+  // The ref guard prevents re-entry after the timeout expires.
+  useEffect(() => {
+    if (
+      !isLoading &&
+      orgs.length === 0 &&
+      !error &&
+      !provisioningAttemptedRef.current &&
+      getRuntimeConfig().authMode === "oidc"
+    ) {
+      provisioningAttemptedRef.current = true;
+      setIsProvisioning(true);
+    }
+  }, [isLoading, orgs.length, error]);
+
+  useEffect(() => {
+    if (orgs.length > 0 && isProvisioning) {
+      setIsProvisioning(false);
+    }
+  }, [orgs.length, isProvisioning]);
+
+  // Poll for the personal org while provisioning is in progress.
+  // Errors from refresh() are absorbed — transient failures (identity not
+  // yet created) are expected during the provisioning window.
+  useEffect(() => {
+    if (!isProvisioning) return;
+
+    const interval = setInterval(() => refresh(), PROVISIONING_POLL_MS);
+    const timeout = setTimeout(
+      () => setIsProvisioning(false),
+      PROVISIONING_TIMEOUT_MS,
+    );
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [isProvisioning, refresh]);
+
+  // Provisioning takes render priority over isLoading/error so the user
+  // sees a stable welcome screen throughout the retry loop.
+  if (isProvisioning) {
+    return <ProvisioningState />;
+  }
 
   if (isLoading) {
     return <LoadingState />;
@@ -68,6 +122,39 @@ function GateHeader() {
         <LogOut className="size-3.5" />
         Sign out
       </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Provisioning — waiting for server-side personal org creation (OIDC only)
+// ---------------------------------------------------------------------------
+
+function ProvisioningState() {
+  const { user } = useAuth();
+  const displayName = user?.name ?? user?.email;
+
+  return (
+    <div className="relative flex min-h-screen flex-col items-center justify-center p-8">
+      <GateHeader />
+      <div className="flex flex-col items-center gap-4 text-center">
+        {user && (
+          <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+            <span className="text-muted-foreground text-lg font-medium">
+              {(displayName ?? "?").charAt(0).toUpperCase()}
+            </span>
+          </div>
+        )}
+        <div className="space-y-1.5">
+          <h1 className="text-lg font-semibold text-foreground">
+            {displayName ? `Welcome, ${displayName}!` : "Welcome!"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Setting up your workspace&hellip;
+          </p>
+        </div>
+        <Loader2 className="text-muted-foreground size-5 animate-spin" />
+      </div>
     </div>
   );
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline/steps"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	wfactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/workflowinstance"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/query/search/extractor"
@@ -445,8 +446,17 @@ func (s *startWorkflowStep) Execute(ctx *pipeline.RequestContext[*workflowexecut
 		Str("execution_id", executionID).
 		Msg("Starting Temporal workflow")
 
-	// Start the Temporal workflow
-	if err := s.workflowCreator.Create(ctx.Context(), execution); err != nil {
+	// Build slim workflow input from execution.
+	// OSS does not have multi-tenant identity, so invoker identity is empty.
+	workflowInput := &wfactivities.InvokeWorkflowExecutionWorkflowInput{
+		ExecutionID:        executionID,
+		WorkflowInstanceID: execution.GetSpec().GetWorkflowInstanceId(),
+		WorkflowID:         execution.GetSpec().GetWorkflowId(),
+		OrgID:              execution.GetMetadata().GetOrg(),
+	}
+
+	// Start the Temporal workflow with slim input (secrets excluded from history)
+	if err := s.workflowCreator.Create(ctx.Context(), workflowInput); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).

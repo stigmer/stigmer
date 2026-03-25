@@ -254,9 +254,9 @@ service WorkflowExecutionCommandController {
   //   }
   // }
   rpc updateStatus(WorkflowExecutionUpdateStatusInput) returns (WorkflowExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = workflow_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "execution_id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_update_execution_status;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update workflow execution status";
   }
 

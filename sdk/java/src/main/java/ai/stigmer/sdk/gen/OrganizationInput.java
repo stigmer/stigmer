@@ -18,6 +18,7 @@ public final class OrganizationInput {
     private final ManagementMode managementMode;
     private final ResourceRef identityProviderRef;
     private final String externalOrgId;
+    private final boolean isPersonal;
 
     private OrganizationInput(Builder builder) {
         this.name = builder.name;
@@ -29,6 +30,7 @@ public final class OrganizationInput {
         this.managementMode = builder.managementMode;
         this.identityProviderRef = builder.identityProviderRef;
         this.externalOrgId = builder.externalOrgId;
+        this.isPersonal = builder.isPersonal;
     }
 
     Organization toProto() {
@@ -48,6 +50,7 @@ public final class OrganizationInput {
         if (this.externalOrgId != null) {
             spec.setExternalOrgId(this.externalOrgId);
         }
+        spec.setIsPersonal(this.isPersonal);
         ApiResourceMetadata.Builder metaBuilder = ApiResourceMetadata.newBuilder()
             .setName(this.name)
             .setOrg(this.org);
@@ -77,6 +80,7 @@ public final class OrganizationInput {
         private ManagementMode managementMode;
         private ResourceRef identityProviderRef;
         private String externalOrgId;
+        private boolean isPersonal;
 
         private Builder() {}
 
@@ -89,6 +93,7 @@ public final class OrganizationInput {
         public Builder managementMode(ManagementMode managementMode) { this.managementMode = managementMode; return this; }
         public Builder identityProviderRef(ResourceRef identityProviderRef) { this.identityProviderRef = identityProviderRef; return this; }
         public Builder externalOrgId(String externalOrgId) { this.externalOrgId = externalOrgId; return this; }
+        public Builder isPersonal(boolean isPersonal) { this.isPersonal = isPersonal; return this; }
 
         public OrganizationInput build() { return new OrganizationInput(this); }
     }

@@ -284,6 +284,23 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int IS_PERSONAL_FIELD_NUMBER = 6;
+  private boolean isPersonal_ = false;
+  /**
+   * <pre>
+   * Whether this is a personal organization, auto-created during identity provisioning.
+   * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
+   * Immutable after creation. Set by the server — clients cannot set this to true.
+   * </pre>
+   *
+   * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>
+   * @return The isPersonal.
+   */
+  @java.lang.Override
+  public boolean getIsPersonal() {
+    return isPersonal_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -313,6 +330,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalOrgId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 5, externalOrgId_);
     }
+    if (isPersonal_ != false) {
+      output.writeBool(6, isPersonal_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -338,6 +358,10 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(externalOrgId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(5, externalOrgId_);
+    }
+    if (isPersonal_ != false) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBoolSize(6, isPersonal_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -366,6 +390,8 @@ private static final long serialVersionUID = 0L;
     }
     if (!getExternalOrgId()
         .equals(other.getExternalOrgId())) return false;
+    if (getIsPersonal()
+        != other.getIsPersonal()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -389,6 +415,9 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + EXTERNAL_ORG_ID_FIELD_NUMBER;
     hash = (53 * hash) + getExternalOrgId().hashCode();
+    hash = (37 * hash) + IS_PERSONAL_FIELD_NUMBER;
+    hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
+        getIsPersonal());
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -542,6 +571,7 @@ private static final long serialVersionUID = 0L;
         identityProviderRefBuilder_ = null;
       }
       externalOrgId_ = "";
+      isPersonal_ = false;
       return this;
     }
 
@@ -594,6 +624,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000010) != 0)) {
         result.externalOrgId_ = externalOrgId_;
       }
+      if (((from_bitField0_ & 0x00000020) != 0)) {
+        result.isPersonal_ = isPersonal_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -629,6 +662,9 @@ private static final long serialVersionUID = 0L;
         externalOrgId_ = other.externalOrgId_;
         bitField0_ |= 0x00000010;
         onChanged();
+      }
+      if (other.getIsPersonal() != false) {
+        setIsPersonal(other.getIsPersonal());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -683,6 +719,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000010;
               break;
             } // case 42
+            case 48: {
+              isPersonal_ = input.readBool();
+              bitField0_ |= 0x00000020;
+              break;
+            } // case 48
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1253,6 +1294,56 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       externalOrgId_ = value;
       bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+
+    private boolean isPersonal_ ;
+    /**
+     * <pre>
+     * Whether this is a personal organization, auto-created during identity provisioning.
+     * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
+     * Immutable after creation. Set by the server — clients cannot set this to true.
+     * </pre>
+     *
+     * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>
+     * @return The isPersonal.
+     */
+    @java.lang.Override
+    public boolean getIsPersonal() {
+      return isPersonal_;
+    }
+    /**
+     * <pre>
+     * Whether this is a personal organization, auto-created during identity provisioning.
+     * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
+     * Immutable after creation. Set by the server — clients cannot set this to true.
+     * </pre>
+     *
+     * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>
+     * @param value The isPersonal to set.
+     * @return This builder for chaining.
+     */
+    public Builder setIsPersonal(boolean value) {
+
+      isPersonal_ = value;
+      bitField0_ |= 0x00000020;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Whether this is a personal organization, auto-created during identity provisioning.
+     * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
+     * Immutable after creation. Set by the server — clients cannot set this to true.
+     * </pre>
+     *
+     * <code>bool is_personal = 6 [json_name = "isPersonal"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearIsPersonal() {
+      bitField0_ = (bitField0_ & ~0x00000020);
+      isPersonal_ = false;
       onChanged();
       return this;
     }
