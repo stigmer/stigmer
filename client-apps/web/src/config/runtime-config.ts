@@ -1,14 +1,13 @@
 // ---------------------------------------------------------------------------
 // Runtime configuration loader
 //
-// In container deployments, the Docker entrypoint generates /config.json
-// from environment variables at startup. The web app fetches this file on
-// initialization to obtain deployment-specific settings (API URL, auth
-// mode, OIDC parameters).
+// All configuration uses NEXT_PUBLIC_* environment variables as the single
+// canonical set of names. In container deployments, the Docker entrypoint
+// reads these variables and generates /config.json at startup. The web app
+// fetches this file on initialization to obtain deployment-specific settings.
 //
 // During local development (`next dev`), /config.json does not exist. The
-// loader falls back to NEXT_PUBLIC_* environment variables, preserving the
-// standard Next.js dev workflow with zero additional setup.
+// loader falls back to the same NEXT_PUBLIC_* variables from .env files.
 //
 // Usage:
 //   await loadRuntimeConfig();    // call once during app initialization
@@ -131,14 +130,14 @@ function asAuthMode(value: unknown): AuthMode {
 
 function validateOidcFields(config: RuntimeConfig): void {
   const missing: string[] = [];
-  if (!config.oidcIssuer) missing.push("oidcIssuer (OIDC_ISSUER)");
-  if (!config.oidcClientId) missing.push("oidcClientId (OIDC_CLIENT_ID)");
-  if (!config.oidcAudience) missing.push("oidcAudience (OIDC_AUDIENCE)");
+  if (!config.oidcIssuer) missing.push("oidcIssuer (NEXT_PUBLIC_OIDC_ISSUER)");
+  if (!config.oidcClientId) missing.push("oidcClientId (NEXT_PUBLIC_OIDC_CLIENT_ID)");
+  if (!config.oidcAudience) missing.push("oidcAudience (NEXT_PUBLIC_OIDC_AUDIENCE)");
 
   if (missing.length > 0) {
     throw new Error(
       `Auth mode is "oidc" but required fields are missing: ${missing.join(", ")}. ` +
-        "Check /config.json (container) or NEXT_PUBLIC_* env vars (dev).",
+        "Check /config.json (container) or NEXT_PUBLIC_* env vars (.env).",
     );
   }
 }
