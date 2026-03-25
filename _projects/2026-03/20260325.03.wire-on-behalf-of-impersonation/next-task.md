@@ -73,59 +73,60 @@ This project depends on `20260325.02.sp.on-behalf-of-grpc-channel` (COMPLETE). A
 ## Current Status
 
 **Last Updated**: 2026-03-25
-**Status**: In Progress — T05, T06, T08 complete; remaining work is testing + T07/T08 review
+**Status**: In Progress — All code changes complete; remaining work is build validation + end-to-end testing
 
-### Completed (previous sessions)
+### Completed (Sessions 1–3 — OBO Infrastructure + Wiring)
 - **T07**: Simplified `agent_execution.fga` owner relation (removed redundant `operator from session`)
 - **T01**: Converted ExecutionContext creation to `createOnBehalfOf` (2 call sites)
 - **T02**: Converted AgentInstance auto-creation to `createOnBehalfOf` (3 call sites)
 - **T03**: Added `createOnBehalfOf` to WorkflowInstanceGrpcRepo + converted callers (2 repo files + 2 call sites)
 - **T04**: Thread invoker identity through Temporal workflow inputs (cross-repo: Java, Go, Python)
+- **T05/T06**: Full OBO wiring plan — FGA/proto auth changes, pipeline reordering, agent-runner + workflow-runner OBO channels
+- **T08**: Architectural decision — ExecutionContext uses derived auth from parent execution (no dedicated FGA model)
 
-### Completed (this session — OBO impersonation wiring)
+### Completed (Session 4 — ExecutionContext Derived Auth + Runner OBO Fixes)
 
-This session implemented the full OBO wiring plan across both repos:
+This session completed the derived authorization model for ExecutionContext and fixed OBO channel usage in agent-runner:
 
-#### FGA + Proto Authorization Changes
-- Added `operator` relation + `can_update_status` permission to `agent_execution.fga` and `workflow_execution.fga`
-- Added `can_update_status = 28` to `ApiResourceIamPermission` enum
-- Changed `updateStatus` RPCs from `can_edit` to `can_update_status` in both execution command protos
-- Set `is_skip_authorization=true` on all ExecutionContext RPCs (derived auth from parent execution)
+#### ExecutionContext Derived Authorization Service (stigmer-cloud — NEW)
+- Created `ExecutionContextDerivedAuthorization` shared Spring `@Component` — encapsulates "try agent_execution, then workflow_execution" FGA check pattern
+- Single method: `isAuthorized(caller, executionId, permission)` — reused by all ExecutionContext handlers
 
-#### Pipeline Reordering (stigmer-cloud)
-- Reordered both `AgentExecutionCreateHandler` and `WorkflowExecutionCreateHandler` pipelines to: `createAuthorizationTuples → createExecutionContext → persist`
-- Ensures FGA tuples exist before ExecutionContext creation; runtime_env cleared before persist
+#### ExecutionContext Handler Refactoring (stigmer-cloud — 6 handlers)
+- **CreateHandler**: Replaced `commonSteps.authorize` with custom step checking `can_edit` on parent execution
+- **GetHandler**: Reordered pipeline (load before authorize), custom step checking `can_view` on parent
+- **GetByReferenceHandler**: Replaced operator check with derived auth (`can_view` on parent)
+- **GetByExecutionIdHandler**: Delegated inline auth to shared service
+- **DeleteHandler**: Reordered pipeline (load before authorize), custom step checking `can_edit` on parent
+- **ApplyHandler**: Updated Javadoc to document inherited authorization
 
-#### ExecutionContext Derived Auth (stigmer-cloud)
-- Rewrote `ExecutionContextGetByExecutionIdHandler.Authorize` to check `can_view` on parent `agent_execution` or `workflow_execution` (tries both, passes if either authorizes)
+#### Agent Runner OBO Fixes (stigmer — Python)
+- `generate_session_subject.py`: Switched session update and agent execution read to OBO channel
+- `execute_graphton.py`: Split execution client — `execution_query_client` (OBO for reads), `execution_client` (system for `updateStatus`)
 
-#### Agent Runner OBO (Python)
-- Created `OnBehalfOfInterceptor` (`x-on-behalf-of` header injection)
-- Extended `ChannelProvider` with dual-channel: `channel` (system) + `obo_channel` (impersonated)
-- Wired OBO in `execute_graphton.py`: read clients use OBO, `execution_client` stays system for `updateStatus`
-- Wired OBO in `generate_session_subject.py`: added `invoker_identity_account_id` parameter, updated Java interface
+#### Proto + Documentation Updates (stigmer)
+- Updated `command.proto`, `query.proto`, `api.proto` comments — replaced "operator-only" with derived auth documentation
 
-#### Workflow Runner OBO (Go)
-- Created `WithOnBehalfOf` context helper in `pkg/grpc_client/on_behalf_of.go`
-- Wired OBO in `execute_workflow_activity.go`: `oboCtx` for reads, plain `ctx` for `updateStatus`
-- Fixed missing auth headers in `task_builder_call_agent_activities.go` + wired OBO via `buildAuthenticatedContext`
-- Added `InvokerIdentityAccountID` to `TemporalWorkflowInput`, stored in workflow state, threaded to task builder
+#### Key Bug Fix
+- Discovered latent bug: `commonSteps.authorize` (`AuthorizeRequestStepV2`) fails with `Status.INTERNAL` for OBO calls when `is_skip_authorization=true` is set without `RpcAuthorizationConfig` — all handlers now use custom auth steps to avoid this
 
-#### T08 Decision: ExecutionContext FGA Model
-- Architectural decision: ExecutionContext is ephemeral (1:1 with parent, created and deleted within execution lifecycle) — a dedicated FGA model would be over-engineering
-- Solution: derive authorization from parent execution (`can_view` on `agent_execution` or `workflow_execution`)
-- No FGA tuples created for ExecutionContext; `is_skip_authorization=true` on all RPCs with handler-level custom auth
+### Session 4 Checkpoint
+```
+checkpoints/2026-03-25-session-4.md
+```
 
 ### Commits
 - `e0547c56` (stigmer-cloud): `feat(backend/stigmer-service): wire on-behalf-of impersonation into all createAsSystem call sites`
 - `4f00e47a` (stigmer): `docs(projects): update wire-on-behalf-of task status and add changelog`
 - `e3f53251` (stigmer): `feat(backend): thread invoker identity through Temporal workflow inputs`
 - `7d4e384d` (stigmer-cloud): `feat(backend/stigmer-service): thread invoker identity through Temporal workflow inputs`
+- *(pending)* Session 4 changes — uncommitted across both repos
 
 ### Remaining Work
+- Commit Session 4 changes (both repos)
 - Build and validate all changes (Bazel for Java, Go vet, Python syntax)
-- End-to-end test: trigger agent execution and verify OBO header flows through
-- End-to-end test: trigger workflow execution and verify OBO header flows through
+- End-to-end test: trigger agent execution and verify OBO + derived auth flows through
+- End-to-end test: trigger workflow execution and verify OBO + derived auth flows through
 - Verify `can_update_status` FGA permission resolves correctly for operator
 
 ---
