@@ -6,6 +6,8 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ApiResourceKind } from "./apiresourcekind/api_resource_kind_pb";
 import { file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind } from "./apiresourcekind/api_resource_kind_pb";
+import type { ApiResourceVisibility } from "./enum_pb";
+import { file_ai_stigmer_commons_apiresource_enum } from "./enum_pb";
 import type { PageInfo } from "../rpc/pagination_pb";
 import { file_ai_stigmer_commons_rpc_pagination } from "../rpc/pagination_pb";
 import { file_buf_validate_validate } from "../../../../buf/validate/validate_pb";
@@ -15,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/commons/apiresource/io.proto.
  */
 export const file_ai_stigmer_commons_apiresource_io: GenFile = /*@__PURE__*/
-  fileDesc("CidhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvaW8ucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSImCg1BcGlSZXNvdXJjZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXQoWQXBpUmVzb3VyY2VEZWxldGVJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhcKD3ZlcnNpb25fbWVzc2FnZRgCIAEoCRINCgVmb3JjZRgDIAEoCCJKCh1BcGlSZXNvdXJjZUJ5T3JnQnlTbHVnUmVxdWVzdBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQEilAEKF0ZpbmRBcGlSZXNvdXJjZXNSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEgwKBGtpbmQYAyABKAkSLgoEcGFnZRgEIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8SEwoLcGFnZV9udW1iZXIYBSABKAUSEQoJcGFnZV9zaXplGAYgASgFIoYCChRBcGlSZXNvdXJjZVJlZmVyZW5jZRIqCgNvcmcYASABKAlCHbpIGnIYGD8yFF4kfF5bYS16XVthLXowLTktXSokEk0KBGtpbmQYAiABKA4yPy5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuYXBpcmVzb3VyY2VraW5kLkFwaVJlc291cmNlS2luZBItCgRzbHVnGAMgASgJQh+6SBzIAQFyFxABGD8yEV5bYS16XVthLXowLTktXSokEkQKB3ZlcnNpb24YBCABKAlCM7pIMHIuMixeJHxebGF0ZXN0JHxeW2EtekEtWjAtOS5fLV0rJHxeW2EtZjAtOV17NjR9JGIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
+  fileDesc("CidhaS9zdGlnbWVyL2NvbW1vbnMvYXBpcmVzb3VyY2UvaW8ucHJvdG8SHmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZSImCg1BcGlSZXNvdXJjZUlkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiXQoWQXBpUmVzb3VyY2VEZWxldGVJbnB1dBIbCgtyZXNvdXJjZV9pZBgBIAEoCUIGukgDyAEBEhcKD3ZlcnNpb25fbWVzc2FnZRgCIAEoCRINCgVmb3JjZRgDIAEoCCJKCh1BcGlSZXNvdXJjZUJ5T3JnQnlTbHVnUmVxdWVzdBITCgNvcmcYASABKAlCBrpIA8gBARIUCgRzbHVnGAIgASgJQga6SAPIAQEilAEKF0ZpbmRBcGlSZXNvdXJjZXNSZXF1ZXN0EhMKA29yZxgBIAEoCUIGukgDyAEBEgwKBGtpbmQYAyABKAkSLgoEcGFnZRgEIAEoCzIgLmFpLnN0aWdtZXIuY29tbW9ucy5ycGMuUGFnZUluZm8SEwoLcGFnZV9udW1iZXIYBSABKAUSEQoJcGFnZV9zaXplGAYgASgFIosBChVVcGRhdGVWaXNpYmlsaXR5SW5wdXQSGwoLcmVzb3VyY2VfaWQYASABKAlCBrpIA8gBARJVCgp2aXNpYmlsaXR5GAIgASgOMjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlVmlzaWJpbGl0eUIKukgHggEEEAEgACKGAgoUQXBpUmVzb3VyY2VSZWZlcmVuY2USKgoDb3JnGAEgASgJQh26SBpyGBg/MhReJHxeW2Etel1bYS16MC05LV0qJBJNCgRraW5kGAIgASgOMj8uYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLmFwaXJlc291cmNla2luZC5BcGlSZXNvdXJjZUtpbmQSLQoEc2x1ZxgDIAEoCUIfukgcyAEBchcQARg/MhFeW2Etel1bYS16MC05LV0qJBJECgd2ZXJzaW9uGAQgASgJQjO6SDByLjIsXiR8XmxhdGVzdCR8XlthLXpBLVowLTkuXy1dKyR8XlthLWYwLTldezY0fSRiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind, file_ai_stigmer_commons_apiresource_enum, file_ai_stigmer_commons_rpc_pagination, file_buf_validate_validate]);
 
 /**
  * Wrapper for api-resource-id
@@ -150,6 +152,43 @@ export const FindApiResourcesRequestSchema: GenMessage<FindApiResourcesRequest> 
   messageDesc(file_ai_stigmer_commons_apiresource_io, 3);
 
 /**
+ * Input for updating the visibility of any API resource.
+ *
+ * Used by resource-specific command controllers to toggle between
+ * PRIVATE and PUBLIC visibility. Each controller's updateVisibility RPC
+ * accepts this shared input and returns the full updated resource.
+ *
+ * Visibility transitions trigger FGA tuple management in Cloud mode:
+ * - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple
+ * - PUBLIC → PRIVATE: deletes the wildcard viewer tuple
+ *
+ * @generated from message ai.stigmer.commons.apiresource.UpdateVisibilityInput
+ */
+export type UpdateVisibilityInput = Message<"ai.stigmer.commons.apiresource.UpdateVisibilityInput"> & {
+  /**
+   * ID of the resource whose visibility is being updated.
+   *
+   * @generated from field: string resource_id = 1;
+   */
+  resourceId: string;
+
+  /**
+   * The new visibility setting for the resource.
+   * Must be either visibility_private or visibility_public.
+   *
+   * @generated from field: ai.stigmer.commons.apiresource.ApiResourceVisibility visibility = 2;
+   */
+  visibility: ApiResourceVisibility;
+};
+
+/**
+ * Describes the message ai.stigmer.commons.apiresource.UpdateVisibilityInput.
+ * Use `create(UpdateVisibilityInputSchema)` to create a new message.
+ */
+export const UpdateVisibilityInputSchema: GenMessage<UpdateVisibilityInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_commons_apiresource_io, 4);
+
+/**
  * Generic reference to any API resource by org and slug.
  * Used across resources to reference other resources (e.g., Environment, Agent, Skill).
  * Canonical format: "org/slug" (e.g., "stigmer/web-search", "acme/my-agent").
@@ -217,5 +256,5 @@ export type ApiResourceReference = Message<"ai.stigmer.commons.apiresource.ApiRe
  * Use `create(ApiResourceReferenceSchema)` to create a new message.
  */
 export const ApiResourceReferenceSchema: GenMessage<ApiResourceReference> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_commons_apiresource_io, 4);
+  messageDesc(file_ai_stigmer_commons_apiresource_io, 5);
 

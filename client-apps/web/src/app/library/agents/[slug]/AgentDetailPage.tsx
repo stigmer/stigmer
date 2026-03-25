@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
-import { AgentDetailView } from "@stigmer/react";
+import { AgentDetailView, useUpdateVisibility } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 import { getEditSessionUrl } from "@/utils/draft-session";
 import { navigateTo } from "@/utils/navigation";
@@ -14,8 +14,22 @@ export function AgentDetailPage() {
   const slug = useStaticRouteParam("slug");
   const org = useActiveOrgSlug();
   const { setLabel } = useBreadcrumbOverride();
+  const [resourceId, setResourceId] = useState<string | null>(null);
+
+  const { updateVisibility, isPending } = useUpdateVisibility(
+    "agent",
+    resourceId,
+  );
 
   useEffect(() => () => setLabel(null), [setLabel]);
+
+  const handleResourceLoad = useCallback(
+    ({ name, id }: { name: string; id: string }) => {
+      setLabel(name);
+      setResourceId(id);
+    },
+    [setLabel],
+  );
 
   if (!slug) return null;
 
@@ -34,11 +48,13 @@ export function AgentDetailPage() {
       <AgentDetailView
         org={org}
         slug={slug}
-        onResourceLoad={({ name }) => setLabel(name)}
+        onResourceLoad={handleResourceLoad}
         onMcpServerClick={({ slug: s }) =>
           navigateTo(`/library/mcp-servers/${s}`)
         }
         onSkillClick={({ slug: s }) => navigateTo(`/library/skills/${s}`)}
+        onVisibilityChange={updateVisibility}
+        isVisibilityPending={isPending}
       />
     </div>
   );

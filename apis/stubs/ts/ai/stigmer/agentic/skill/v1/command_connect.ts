@@ -6,6 +6,7 @@
 import { PushSkillFromExecutionArtifactRequest, PushSkillRequest, SkillId } from "./io_pb.js";
 import { Skill } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
+import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pb.js";
 
 /**
  * SkillCommandController handles write operations for skills.
@@ -62,6 +63,24 @@ export const SkillCommandController = {
     pushFromExecutionArtifact: {
       name: "pushFromExecutionArtifact",
       I: PushSkillFromExecutionArtifactRequest,
+      O: Skill,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Update the visibility of an existing skill.
+     *
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Skills default
+     * to visibility_private on push; use this RPC to make a skill publicly
+     * accessible (marketplace-style sharing) or to revoke public access.
+     *
+     * Authorization: Requires can_edit permission on the skill resource.
+     *
+     * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.updateVisibility
+     */
+    updateVisibility: {
+      name: "updateVisibility",
+      I: UpdateVisibilityInput,
       O: Skill,
       kind: MethodKind.Unary,
     },

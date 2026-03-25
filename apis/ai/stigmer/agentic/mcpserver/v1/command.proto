@@ -95,6 +95,21 @@ service McpServerCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete mcp server";
   }
 
+  // Update the visibility of an existing MCP server.
+  //
+  // This is a targeted metadata update — it only modifies metadata.visibility,
+  // leaving spec, status, and other metadata fields untouched. Use this to
+  // make an MCP server publicly accessible (marketplace-style sharing) or to
+  // revoke public access without sending the entire resource.
+  //
+  // Authorization: Requires can_edit permission on the mcp_server resource.
+  rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (McpServer) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = mcp_server;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "resource_id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update mcp server visibility";
+  }
+
   // Update the discovered capabilities (tools and resource templates) for an MCP server.
   //
   // This is a targeted status update — it only modifies status.discovered_capabilities,

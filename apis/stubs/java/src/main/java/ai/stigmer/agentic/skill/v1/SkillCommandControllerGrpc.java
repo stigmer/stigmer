@@ -77,6 +77,37 @@ public final class SkillCommandControllerGrpc {
     return getPushFromExecutionArtifactMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.skill.v1.Skill> getUpdateVisibilityMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateVisibility",
+      requestType = ai.stigmer.commons.apiresource.UpdateVisibilityInput.class,
+      responseType = ai.stigmer.agentic.skill.v1.Skill.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.skill.v1.Skill> getUpdateVisibilityMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.skill.v1.Skill> getUpdateVisibilityMethod;
+    if ((getUpdateVisibilityMethod = SkillCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+      synchronized (SkillCommandControllerGrpc.class) {
+        if ((getUpdateVisibilityMethod = SkillCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+          SkillCommandControllerGrpc.getUpdateVisibilityMethod = getUpdateVisibilityMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.skill.v1.Skill>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateVisibility"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.commons.apiresource.UpdateVisibilityInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.skill.v1.Skill.getDefaultInstance()))
+              .setSchemaDescriptor(new SkillCommandControllerMethodDescriptorSupplier("updateVisibility"))
+              .build();
+        }
+      }
+    }
+    return getUpdateVisibilityMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.skill.v1.SkillId,
       ai.stigmer.agentic.skill.v1.Skill> getDeleteMethod;
 
@@ -218,6 +249,21 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing skill.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Skills default
+     * to visibility_private on push; use this RPC to make a skill publicly
+     * accessible (marketplace-style sharing) or to revoke public access.
+     * Authorization: Requires can_edit permission on the skill resource.
+     * </pre>
+     */
+    default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.Skill> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateVisibilityMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a skill and all its versions.
      * This removes the skill from the main collection but preserves audit history.
      * </pre>
@@ -307,6 +353,22 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing skill.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Skills default
+     * to visibility_private on push; use this RPC to make a skill publicly
+     * accessible (marketplace-style sharing) or to revoke public access.
+     * Authorization: Requires can_edit permission on the skill resource.
+     * </pre>
+     */
+    public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.Skill> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a skill and all its versions.
      * This removes the skill from the main collection but preserves audit history.
      * </pre>
@@ -381,6 +443,21 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing skill.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Skills default
+     * to visibility_private on push; use this RPC to make a skill publicly
+     * accessible (marketplace-style sharing) or to revoke public access.
+     * Authorization: Requires can_edit permission on the skill resource.
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.Skill updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete a skill and all its versions.
      * This removes the skill from the main collection but preserves audit history.
      * </pre>
@@ -450,6 +527,21 @@ public final class SkillCommandControllerGrpc {
     public ai.stigmer.agentic.skill.v1.Skill pushFromExecutionArtifact(ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getPushFromExecutionArtifactMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Update the visibility of an existing skill.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Skills default
+     * to visibility_private on push; use this RPC to make a skill publicly
+     * accessible (marketplace-style sharing) or to revoke public access.
+     * Authorization: Requires can_edit permission on the skill resource.
+     * </pre>
+     */
+    public ai.stigmer.agentic.skill.v1.Skill updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
     }
 
     /**
@@ -529,6 +621,22 @@ public final class SkillCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing skill.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Skills default
+     * to visibility_private on push; use this RPC to make a skill publicly
+     * accessible (marketplace-style sharing) or to revoke public access.
+     * Authorization: Requires can_edit permission on the skill resource.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.Skill> updateVisibility(
+        ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete a skill and all its versions.
      * This removes the skill from the main collection but preserves audit history.
      * </pre>
@@ -542,7 +650,8 @@ public final class SkillCommandControllerGrpc {
 
   private static final int METHODID_PUSH = 0;
   private static final int METHODID_PUSH_FROM_EXECUTION_ARTIFACT = 1;
-  private static final int METHODID_DELETE = 2;
+  private static final int METHODID_UPDATE_VISIBILITY = 2;
+  private static final int METHODID_DELETE = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -567,6 +676,10 @@ public final class SkillCommandControllerGrpc {
           break;
         case METHODID_PUSH_FROM_EXECUTION_ARTIFACT:
           serviceImpl.pushFromExecutionArtifact((ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.Skill>) responseObserver);
+          break;
+        case METHODID_UPDATE_VISIBILITY:
+          serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.skill.v1.Skill>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -605,6 +718,13 @@ public final class SkillCommandControllerGrpc {
               ai.stigmer.agentic.skill.v1.PushSkillFromExecutionArtifactRequest,
               ai.stigmer.agentic.skill.v1.Skill>(
                 service, METHODID_PUSH_FROM_EXECUTION_ARTIFACT)))
+        .addMethod(
+          getUpdateVisibilityMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+              ai.stigmer.agentic.skill.v1.Skill>(
+                service, METHODID_UPDATE_VISIBILITY)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -662,6 +782,7 @@ public final class SkillCommandControllerGrpc {
               .setSchemaDescriptor(new SkillCommandControllerFileDescriptorSupplier())
               .addMethod(getPushMethod())
               .addMethod(getPushFromExecutionArtifactMethod())
+              .addMethod(getUpdateVisibilityMethod())
               .addMethod(getDeleteMethod())
               .build();
         }

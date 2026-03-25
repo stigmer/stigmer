@@ -40,6 +40,14 @@
           "description": "Delete an MCP server resource.\n\n Permanently removes the MCP server definition.\n Agents referencing this MCP server will need to be updated.\n\n Input: ApiResourceDeleteInput with resource_id and optional version_message.\n Returns: The deleted McpServer (for confirmation/audit).\n\n Authorization: Requires can_delete permission on the mcp_server resource.\n Only the owner can delete:\n - Platform: Platform operators\n - Organization: Org admins or resource owner\n - Identity Account: The owner"
         },
         {
+          "name": "UpdateVisibility",
+          "inputType": "UpdateVisibilityInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+          "outputType": "McpServer",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+          "description": "Update the visibility of an existing MCP server.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched. Use this to\n make an MCP server publicly accessible (marketplace-style sharing) or to\n revoke public access without sending the entire resource.\n\n Authorization: Requires can_edit permission on the mcp_server resource."
+        },
+        {
           "name": "UpdateDiscoveredCapabilities",
           "inputType": "UpdateDiscoveredCapabilitiesInput",
           "inputFullType": "ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput",

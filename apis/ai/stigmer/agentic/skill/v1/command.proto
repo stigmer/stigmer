@@ -4,6 +4,7 @@ package ai.stigmer.agentic.skill.v1;
 
 import "ai/stigmer/agentic/skill/v1/api.proto";
 import "ai/stigmer/agentic/skill/v1/io.proto";
+import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
 
@@ -53,6 +54,21 @@ service SkillCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_skill;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "org";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to push skill in this organization";
+  }
+
+  // Update the visibility of an existing skill.
+  //
+  // This is a targeted metadata update — it only modifies metadata.visibility,
+  // leaving spec, status, and other metadata fields untouched. Skills default
+  // to visibility_private on push; use this RPC to make a skill publicly
+  // accessible (marketplace-style sharing) or to revoke public access.
+  //
+  // Authorization: Requires can_edit permission on the skill resource.
+  rpc updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput) returns (Skill) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = skill;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "resource_id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update skill visibility";
   }
 
   // Delete a skill and all its versions.

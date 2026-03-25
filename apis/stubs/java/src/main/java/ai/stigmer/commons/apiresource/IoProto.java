@@ -47,6 +47,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_commons_apiresource_FindApiResourcesRequest_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_commons_apiresource_UpdateVisibilityInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_commons_apiresource_UpdateVisibilityInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_ai_stigmer_commons_apiresource_ApiResourceReference_descriptor;
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -63,37 +68,43 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "\n\'ai/stigmer/commons/apiresource/io.prot" +
       "o\022\036ai.stigmer.commons.apiresource\032Fai/st" +
       "igmer/commons/apiresource/apiresourcekin" +
-      "d/api_resource_kind.proto\032\'ai/stigmer/co" +
-      "mmons/rpc/pagination.proto\032\033buf/validate" +
-      "/validate.proto\"-\n\rApiResourceId\022\034\n\005valu" +
-      "e\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\200\001\n\026ApiResourceDe" +
-      "leteInput\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001\001R\n" +
-      "resourceId\022\'\n\017version_message\030\002 \001(\tR\016ver" +
-      "sionMessage\022\024\n\005force\030\003 \001(\010R\005force\"U\n\035Api" +
-      "ResourceByOrgBySlugRequest\022\030\n\003org\030\001 \001(\tB" +
-      "\006\272H\003\310\001\001R\003org\022\032\n\004slug\030\002 \001(\tB\006\272H\003\310\001\001R\004slug" +
-      "\"\273\001\n\027FindApiResourcesRequest\022\030\n\003org\030\001 \001(" +
-      "\tB\006\272H\003\310\001\001R\003org\022\022\n\004kind\030\003 \001(\tR\004kind\0224\n\004pa" +
-      "ge\030\004 \001(\0132 .ai.stigmer.commons.rpc.PageIn" +
-      "foR\004page\022\037\n\013page_number\030\005 \001(\005R\npageNumbe" +
-      "r\022\033\n\tpage_size\030\006 \001(\005R\010pageSize\"\240\002\n\024ApiRe" +
-      "sourceReference\022/\n\003org\030\001 \001(\tB\035\272H\032r\030\030?2\024^" +
-      "$|^[a-z][a-z0-9-]*$R\003org\022S\n\004kind\030\002 \001(\0162?" +
-      ".ai.stigmer.commons.apiresource.apiresou" +
-      "rcekind.ApiResourceKindR\004kind\0223\n\004slug\030\003 " +
-      "\001(\tB\037\272H\034r\027\020\001\030?2\021^[a-z][a-z0-9-]*$\310\001\001R\004sl" +
-      "ug\022M\n\007version\030\004 \001(\tB3\272H0r.2,^$|^latest$|" +
-      "^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$R\007versio" +
-      "nB\245\001B\007IoProtoP\001\242\002\004ASCA\252\002\036Ai.Stigmer.Comm" +
-      "ons.Apiresource\312\002\036Ai\\Stigmer\\Commons\\Api" +
-      "resource\342\002*Ai\\Stigmer\\Commons\\Apiresourc" +
-      "e\\GPBMetadata\352\002!Ai::Stigmer::Commons::Ap" +
-      "iresourceb\006proto3"
+      "d/api_resource_kind.proto\032)ai/stigmer/co" +
+      "mmons/apiresource/enum.proto\032\'ai/stigmer" +
+      "/commons/rpc/pagination.proto\032\033buf/valid" +
+      "ate/validate.proto\"-\n\rApiResourceId\022\034\n\005v" +
+      "alue\030\001 \001(\tB\006\272H\003\310\001\001R\005value\"\200\001\n\026ApiResourc" +
+      "eDeleteInput\022\'\n\013resource_id\030\001 \001(\tB\006\272H\003\310\001" +
+      "\001R\nresourceId\022\'\n\017version_message\030\002 \001(\tR\016" +
+      "versionMessage\022\024\n\005force\030\003 \001(\010R\005force\"U\n\035" +
+      "ApiResourceByOrgBySlugRequest\022\030\n\003org\030\001 \001" +
+      "(\tB\006\272H\003\310\001\001R\003org\022\032\n\004slug\030\002 \001(\tB\006\272H\003\310\001\001R\004s" +
+      "lug\"\273\001\n\027FindApiResourcesRequest\022\030\n\003org\030\001" +
+      " \001(\tB\006\272H\003\310\001\001R\003org\022\022\n\004kind\030\003 \001(\tR\004kind\0224\n" +
+      "\004page\030\004 \001(\0132 .ai.stigmer.commons.rpc.Pag" +
+      "eInfoR\004page\022\037\n\013page_number\030\005 \001(\005R\npageNu" +
+      "mber\022\033\n\tpage_size\030\006 \001(\005R\010pageSize\"\243\001\n\025Up" +
+      "dateVisibilityInput\022\'\n\013resource_id\030\001 \001(\t" +
+      "B\006\272H\003\310\001\001R\nresourceId\022a\n\nvisibility\030\002 \001(\016" +
+      "25.ai.stigmer.commons.apiresource.ApiRes" +
+      "ourceVisibilityB\n\272H\007\202\001\004\020\001 \000R\nvisibility\"" +
+      "\240\002\n\024ApiResourceReference\022/\n\003org\030\001 \001(\tB\035\272" +
+      "H\032r\030\030?2\024^$|^[a-z][a-z0-9-]*$R\003org\022S\n\004kin" +
+      "d\030\002 \001(\0162?.ai.stigmer.commons.apiresource" +
+      ".apiresourcekind.ApiResourceKindR\004kind\0223" +
+      "\n\004slug\030\003 \001(\tB\037\272H\034r\027\020\001\030?2\021^[a-z][a-z0-9-]" +
+      "*$\310\001\001R\004slug\022M\n\007version\030\004 \001(\tB3\272H0r.2,^$|" +
+      "^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}" +
+      "$R\007versionB\245\001B\007IoProtoP\001\242\002\004ASCA\252\002\036Ai.Sti" +
+      "gmer.Commons.Apiresource\312\002\036Ai\\Stigmer\\Co" +
+      "mmons\\Apiresource\342\002*Ai\\Stigmer\\Commons\\A" +
+      "piresource\\GPBMetadata\352\002!Ai::Stigmer::Co" +
+      "mmons::Apiresourceb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindProto.getDescriptor(),
+          ai.stigmer.commons.apiresource.EnumProto.getDescriptor(),
           ai.stigmer.commons.rpc.PaginationProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
@@ -121,14 +132,21 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_commons_apiresource_FindApiResourcesRequest_descriptor,
         new java.lang.String[] { "Org", "Kind", "Page", "PageNumber", "PageSize", });
-    internal_static_ai_stigmer_commons_apiresource_ApiResourceReference_descriptor =
+    internal_static_ai_stigmer_commons_apiresource_UpdateVisibilityInput_descriptor =
       getDescriptor().getMessageType(4);
+    internal_static_ai_stigmer_commons_apiresource_UpdateVisibilityInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_commons_apiresource_UpdateVisibilityInput_descriptor,
+        new java.lang.String[] { "ResourceId", "Visibility", });
+    internal_static_ai_stigmer_commons_apiresource_ApiResourceReference_descriptor =
+      getDescriptor().getMessageType(5);
     internal_static_ai_stigmer_commons_apiresource_ApiResourceReference_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_commons_apiresource_ApiResourceReference_descriptor,
         new java.lang.String[] { "Org", "Kind", "Slug", "Version", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindProto.getDescriptor();
+    ai.stigmer.commons.apiresource.EnumProto.getDescriptor();
     ai.stigmer.commons.rpc.PaginationProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

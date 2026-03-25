@@ -54,6 +54,12 @@ class McpServerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def update_visibility(self, input: io_pb2.UpdateVisibilityInput) -> api_pb2.McpServer:
+        try:
+            return self._command.updateVisibility(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def update_discovered_capabilities(self, input: io_pb2.UpdateDiscoveredCapabilitiesInput) -> api_pb2.McpServer:
         try:
             return self._command.updateDiscoveredCapabilities(input)

@@ -7,6 +7,7 @@ import ai.stigmer.agentic.agent.v1.AgentCommandControllerGrpc;
 import ai.stigmer.agentic.agent.v1.AgentId;
 import ai.stigmer.agentic.agent.v1.AgentQueryControllerGrpc;
 import ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest;
+import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.commons.rpc.PageInfo;
 import ai.stigmer.search.v1.SearchRequest;
@@ -42,6 +43,12 @@ public final class AgentClient {
     public Agent update(AgentInput input) {
         try {
             return command.update(input.toProto());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Agent updateVisibility(UpdateVisibilityInput input) {
+        try {
+            return command.updateVisibility(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

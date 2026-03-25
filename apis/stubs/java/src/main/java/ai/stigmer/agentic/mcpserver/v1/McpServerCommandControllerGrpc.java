@@ -146,6 +146,37 @@ public final class McpServerCommandControllerGrpc {
     return getDeleteMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.mcpserver.v1.McpServer> getUpdateVisibilityMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateVisibility",
+      requestType = ai.stigmer.commons.apiresource.UpdateVisibilityInput.class,
+      responseType = ai.stigmer.agentic.mcpserver.v1.McpServer.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.mcpserver.v1.McpServer> getUpdateVisibilityMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.mcpserver.v1.McpServer> getUpdateVisibilityMethod;
+    if ((getUpdateVisibilityMethod = McpServerCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+      synchronized (McpServerCommandControllerGrpc.class) {
+        if ((getUpdateVisibilityMethod = McpServerCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+          McpServerCommandControllerGrpc.getUpdateVisibilityMethod = getUpdateVisibilityMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.mcpserver.v1.McpServer>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateVisibility"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.commons.apiresource.UpdateVisibilityInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.mcpserver.v1.McpServer.getDefaultInstance()))
+              .setSchemaDescriptor(new McpServerCommandControllerMethodDescriptorSupplier("updateVisibility"))
+              .build();
+        }
+      }
+    }
+    return getUpdateVisibilityMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput,
       ai.stigmer.agentic.mcpserver.v1.McpServer> getUpdateDiscoveredCapabilitiesMethod;
 
@@ -329,6 +360,21 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing MCP server.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make an MCP server publicly accessible (marketplace-style sharing) or to
+     * revoke public access without sending the entire resource.
+     * Authorization: Requires can_edit permission on the mcp_server resource.
+     * </pre>
+     */
+    default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateVisibilityMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Update the discovered capabilities (tools and resource templates) for an MCP server.
      * This is a targeted status update — it only modifies status.discovered_capabilities,
      * leaving spec, validation state, and other status fields untouched.
@@ -477,6 +523,22 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing MCP server.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make an MCP server publicly accessible (marketplace-style sharing) or to
+     * revoke public access without sending the entire resource.
+     * Authorization: Requires can_edit permission on the mcp_server resource.
+     * </pre>
+     */
+    public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Update the discovered capabilities (tools and resource templates) for an MCP server.
      * This is a targeted status update — it only modifies status.discovered_capabilities,
      * leaving spec, validation state, and other status fields untouched.
@@ -601,6 +663,21 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing MCP server.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make an MCP server publicly accessible (marketplace-style sharing) or to
+     * revoke public access without sending the entire resource.
+     * Authorization: Requires can_edit permission on the mcp_server resource.
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.McpServer updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Update the discovered capabilities (tools and resource templates) for an MCP server.
      * This is a targeted status update — it only modifies status.discovered_capabilities,
      * leaving spec, validation state, and other status fields untouched.
@@ -720,6 +797,21 @@ public final class McpServerCommandControllerGrpc {
     public ai.stigmer.agentic.mcpserver.v1.McpServer delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getDeleteMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Update the visibility of an existing MCP server.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make an MCP server publicly accessible (marketplace-style sharing) or to
+     * revoke public access without sending the entire resource.
+     * Authorization: Requires can_edit permission on the mcp_server resource.
+     * </pre>
+     */
+    public ai.stigmer.agentic.mcpserver.v1.McpServer updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
     }
 
     /**
@@ -851,6 +943,22 @@ public final class McpServerCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing MCP server.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make an MCP server publicly accessible (marketplace-style sharing) or to
+     * revoke public access without sending the entire resource.
+     * Authorization: Requires can_edit permission on the mcp_server resource.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.mcpserver.v1.McpServer> updateVisibility(
+        ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Update the discovered capabilities (tools and resource templates) for an MCP server.
      * This is a targeted status update — it only modifies status.discovered_capabilities,
      * leaving spec, validation state, and other status fields untouched.
@@ -874,7 +982,8 @@ public final class McpServerCommandControllerGrpc {
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
   private static final int METHODID_DELETE = 3;
-  private static final int METHODID_UPDATE_DISCOVERED_CAPABILITIES = 4;
+  private static final int METHODID_UPDATE_VISIBILITY = 4;
+  private static final int METHODID_UPDATE_DISCOVERED_CAPABILITIES = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -907,6 +1016,10 @@ public final class McpServerCommandControllerGrpc {
           break;
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.commons.apiresource.ApiResourceDeleteInput) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer>) responseObserver);
+          break;
+        case METHODID_UPDATE_VISIBILITY:
+          serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.mcpserver.v1.McpServer>) responseObserver);
           break;
         case METHODID_UPDATE_DISCOVERED_CAPABILITIES:
@@ -959,6 +1072,13 @@ public final class McpServerCommandControllerGrpc {
               ai.stigmer.commons.apiresource.ApiResourceDeleteInput,
               ai.stigmer.agentic.mcpserver.v1.McpServer>(
                 service, METHODID_DELETE)))
+        .addMethod(
+          getUpdateVisibilityMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+              ai.stigmer.agentic.mcpserver.v1.McpServer>(
+                service, METHODID_UPDATE_VISIBILITY)))
         .addMethod(
           getUpdateDiscoveredCapabilitiesMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1018,6 +1138,7 @@ public final class McpServerCommandControllerGrpc {
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
               .addMethod(getDeleteMethod())
+              .addMethod(getUpdateVisibilityMethod())
               .addMethod(getUpdateDiscoveredCapabilitiesMethod())
               .build();
         }

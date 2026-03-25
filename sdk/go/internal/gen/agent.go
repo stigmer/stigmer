@@ -43,6 +43,11 @@ func (a *AgentClient) Update(ctx context.Context, input *AgentInput) (*agentv1.A
 	return resp, wrapErr(err)
 }
 
+func (a *AgentClient) UpdateVisibility(ctx context.Context, input *apiresource.UpdateVisibilityInput) (*agentv1.Agent, error) {
+	resp, err := a.command.UpdateVisibility(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (a *AgentClient) Delete(ctx context.Context, id string) (*agentv1.Agent, error) {
 	resp, err := a.command.Delete(ctx, &agentv1.AgentId{Value: id})
 	return resp, wrapErr(err)

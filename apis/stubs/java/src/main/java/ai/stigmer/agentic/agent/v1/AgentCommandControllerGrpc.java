@@ -108,6 +108,37 @@ public final class AgentCommandControllerGrpc {
     return getUpdateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.agent.v1.Agent> getUpdateVisibilityMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateVisibility",
+      requestType = ai.stigmer.commons.apiresource.UpdateVisibilityInput.class,
+      responseType = ai.stigmer.agentic.agent.v1.Agent.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+      ai.stigmer.agentic.agent.v1.Agent> getUpdateVisibilityMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.agent.v1.Agent> getUpdateVisibilityMethod;
+    if ((getUpdateVisibilityMethod = AgentCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+      synchronized (AgentCommandControllerGrpc.class) {
+        if ((getUpdateVisibilityMethod = AgentCommandControllerGrpc.getUpdateVisibilityMethod) == null) {
+          AgentCommandControllerGrpc.getUpdateVisibilityMethod = getUpdateVisibilityMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.commons.apiresource.UpdateVisibilityInput, ai.stigmer.agentic.agent.v1.Agent>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateVisibility"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.commons.apiresource.UpdateVisibilityInput.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.agent.v1.Agent.getDefaultInstance()))
+              .setSchemaDescriptor(new AgentCommandControllerMethodDescriptorSupplier("updateVisibility"))
+              .build();
+        }
+      }
+    }
+    return getUpdateVisibilityMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.agent.v1.AgentId,
       ai.stigmer.agentic.agent.v1.Agent> getDeleteMethod;
 
@@ -242,6 +273,21 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing agent.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make an agent publicly accessible or to revoke public access without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Authorization: Requires can_edit permission on the agent resource.
+     * </pre>
+     */
+    default void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateVisibilityMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete an agent.
      * </pre>
      */
@@ -324,6 +370,22 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing agent.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make an agent publicly accessible or to revoke public access without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Authorization: Requires can_edit permission on the agent resource.
+     * </pre>
+     */
+    public void updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete an agent.
      * </pre>
      */
@@ -390,6 +452,21 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing agent.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make an agent publicly accessible or to revoke public access without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Authorization: Requires can_edit permission on the agent resource.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.Agent updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete an agent.
      * </pre>
      */
@@ -451,6 +528,21 @@ public final class AgentCommandControllerGrpc {
     public ai.stigmer.agentic.agent.v1.Agent update(ai.stigmer.agentic.agent.v1.Agent request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Update the visibility of an existing agent.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make an agent publicly accessible or to revoke public access without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Authorization: Requires can_edit permission on the agent resource.
+     * </pre>
+     */
+    public ai.stigmer.agentic.agent.v1.Agent updateVisibility(ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateVisibilityMethod(), getCallOptions(), request);
     }
 
     /**
@@ -523,6 +615,22 @@ public final class AgentCommandControllerGrpc {
 
     /**
      * <pre>
+     * Update the visibility of an existing agent.
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make an agent publicly accessible or to revoke public access without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     * Authorization: Requires can_edit permission on the agent resource.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> updateVisibility(
+        ai.stigmer.commons.apiresource.UpdateVisibilityInput request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateVisibilityMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete an agent.
      * </pre>
      */
@@ -536,7 +644,8 @@ public final class AgentCommandControllerGrpc {
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
-  private static final int METHODID_DELETE = 3;
+  private static final int METHODID_UPDATE_VISIBILITY = 3;
+  private static final int METHODID_DELETE = 4;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -565,6 +674,10 @@ public final class AgentCommandControllerGrpc {
           break;
         case METHODID_UPDATE:
           serviceImpl.update((ai.stigmer.agentic.agent.v1.Agent) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
+          break;
+        case METHODID_UPDATE_VISIBILITY:
+          serviceImpl.updateVisibility((ai.stigmer.commons.apiresource.UpdateVisibilityInput) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.agent.v1.Agent>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -610,6 +723,13 @@ public final class AgentCommandControllerGrpc {
               ai.stigmer.agentic.agent.v1.Agent,
               ai.stigmer.agentic.agent.v1.Agent>(
                 service, METHODID_UPDATE)))
+        .addMethod(
+          getUpdateVisibilityMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.commons.apiresource.UpdateVisibilityInput,
+              ai.stigmer.agentic.agent.v1.Agent>(
+                service, METHODID_UPDATE_VISIBILITY)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -668,6 +788,7 @@ public final class AgentCommandControllerGrpc {
               .addMethod(getApplyMethod())
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
+              .addMethod(getUpdateVisibilityMethod())
               .addMethod(getDeleteMethod())
               .build();
         }

@@ -1018,9 +1018,11 @@ func generateJavaMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefiniti
 		buf.WriteString("    }\n")
 
 	case isApiResRefIn:
+		imports.add("ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind")
+		kindConst := pascalToSnake(cfg.protoResType)
 		fmt.Fprintf(buf, "    public %s %s(ResourceRef ref) {\n", outputType, methodName)
 		fmt.Fprintf(buf, "        try {\n")
-		fmt.Fprintf(buf, "            %s%s.%s(ref.toProto());\n", returnKw, role, javaMethodLower(m.Name))
+		fmt.Fprintf(buf, "            %s%s.%s(ref.toProto().toBuilder().setKind(ApiResourceKind.%s).build());\n", returnKw, role, javaMethodLower(m.Name), kindConst)
 		fmt.Fprintf(buf, "        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }\n")
 		buf.WriteString("    }\n")
 

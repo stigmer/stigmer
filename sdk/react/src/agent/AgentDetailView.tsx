@@ -13,6 +13,7 @@ import type { EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/enviro
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useAgent } from "./useAgent";
 import { ErrorMessage } from "../error/ErrorMessage";
+import { VisibilityToggle } from "../library/VisibilityToggle";
 
 const INSTRUCTIONS_COLLAPSED_LINES = 8;
 
@@ -41,7 +42,16 @@ export interface AgentDetailViewProps {
    *
    * Not called on error or not-found states.
    */
-  readonly onResourceLoad?: (meta: { name: string }) => void;
+  readonly onResourceLoad?: (meta: { name: string; id: string }) => void;
+  /**
+   * Called when the user toggles visibility via the inline control.
+   * When provided, the header renders an interactive
+   * {@link VisibilityToggle} instead of a read-only badge.
+   * When omitted, visibility is displayed as a static "Public" pill.
+   */
+  readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
+  /** `true` while a visibility update RPC is in flight. */
+  readonly isVisibilityPending?: boolean;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -82,6 +92,8 @@ export function AgentDetailView({
   onMcpServerClick,
   onSkillClick,
   onResourceLoad,
+  onVisibilityChange,
+  isVisibilityPending,
   className,
 }: AgentDetailViewProps) {
   const { agent, isLoading, error, refetch } = useAgent(org, slug);
@@ -91,7 +103,7 @@ export function AgentDetailView({
 
   useEffect(() => {
     if (agent?.metadata?.name) {
-      onResourceLoadRef.current?.({ name: agent.metadata.name });
+      onResourceLoadRef.current?.({ name: agent.metadata.name, id: agent.metadata.id });
     }
   }, [agent]);
 
@@ -114,6 +126,8 @@ export function AgentDetailView({
         updatedAt={
           specAudit?.updatedAt ? timestampDate(specAudit.updatedAt) : null
         }
+        onVisibilityChange={onVisibilityChange}
+        isVisibilityPending={isVisibilityPending}
       />
 
       {spec?.instructions && (
@@ -155,10 +169,14 @@ function Header({
   agent,
   createdAt,
   updatedAt,
+  onVisibilityChange,
+  isVisibilityPending,
 }: {
   readonly agent: Agent;
   readonly createdAt: Date | null;
   readonly updatedAt: Date | null;
+  readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
+  readonly isVisibilityPending?: boolean;
 }) {
   const meta = agent.metadata;
   const spec = agent.spec;
@@ -182,10 +200,18 @@ function Header({
           <h2 className="truncate text-lg font-semibold text-foreground">
             {displayName}
           </h2>
-          {isPublic && (
-            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              Public
-            </span>
+          {onVisibilityChange && meta ? (
+            <VisibilityToggle
+              visibility={meta.visibility}
+              onVisibilityChange={onVisibilityChange}
+              isPending={isVisibilityPending}
+            />
+          ) : (
+            isPublic && (
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                Public
+              </span>
+            )
           )}
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">

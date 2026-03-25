@@ -38,6 +38,11 @@ func (s *SkillClient) PushFromExecutionArtifact(ctx context.Context, input *skil
 	return resp, wrapErr(err)
 }
 
+func (s *SkillClient) UpdateVisibility(ctx context.Context, input *apiresource.UpdateVisibilityInput) (*skillv1.Skill, error) {
+	resp, err := s.command.UpdateVisibility(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (s *SkillClient) Delete(ctx context.Context, id string) (*skillv1.Skill, error) {
 	resp, err := s.command.Delete(ctx, &skillv1.SkillId{Value: id})
 	return resp, wrapErr(err)

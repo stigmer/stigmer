@@ -38,40 +38,47 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "\n)ai/stigmer/agentic/skill/v1/command.pr" +
       "oto\022\033ai.stigmer.agentic.skill.v1\032%ai/sti" +
       "gmer/agentic/skill/v1/api.proto\032$ai/stig" +
-      "mer/agentic/skill/v1/io.proto\0328ai/stigme" +
-      "r/commons/apiresource/rpc_service_option" +
-      "s.proto\032Aai/stigmer/iam/iampolicy/v1/rpc" +
-      "authorization/method_options.proto2\204\004\n\026S" +
-      "killCommandController\022\231\001\n\004push\022-.ai.stig" +
-      "mer.agentic.skill.v1.PushSkillRequest\032\"." +
-      "ai.stigmer.agentic.skill.v1.Skill\">\302\270\030:\010" +
-      "\025\020\036\"\003org*/unauthorized to push skill in " +
-      "this organization\022\303\001\n\031pushFromExecutionA" +
-      "rtifact\022B.ai.stigmer.agentic.skill.v1.Pu" +
-      "shSkillFromExecutionArtifactRequest\032\".ai" +
-      ".stigmer.agentic.skill.v1.Skill\">\302\270\030:\010\025\020" +
-      "\036\"\003org*/unauthorized to push skill in th" +
-      "is organization\022\201\001\n\006delete\022$.ai.stigmer." +
-      "agentic.skill.v1.SkillId\032\".ai.stigmer.ag" +
-      "entic.skill.v1.Skill\"-\302\270\030)\010\002\020+\"\005value*\034u" +
-      "nauthorized to delete skill\032\004\240\377++B\237\001B\014Co" +
-      "mmandProtoP\001\242\002\004ASAS\252\002\033Ai.Stigmer.Agentic" +
-      ".Skill.V1\312\002\033Ai\\Stigmer\\Agentic\\Skill\\V1\342" +
-      "\002\'Ai\\Stigmer\\Agentic\\Skill\\V1\\GPBMetadat" +
-      "a\352\002\037Ai::Stigmer::Agentic::Skill::V1b\006pro" +
-      "to3"
+      "mer/agentic/skill/v1/io.proto\032\'ai/stigme" +
+      "r/commons/apiresource/io.proto\0328ai/stigm" +
+      "er/commons/apiresource/rpc_service_optio" +
+      "ns.proto\032Aai/stigmer/iam/iampolicy/v1/rp" +
+      "cauthorization/method_options.proto2\264\005\n\026" +
+      "SkillCommandController\022\231\001\n\004push\022-.ai.sti" +
+      "gmer.agentic.skill.v1.PushSkillRequest\032\"" +
+      ".ai.stigmer.agentic.skill.v1.Skill\">\302\270\030:" +
+      "\010\025\020\036\"\003org*/unauthorized to push skill in" +
+      " this organization\022\303\001\n\031pushFromExecution" +
+      "Artifact\022B.ai.stigmer.agentic.skill.v1.P" +
+      "ushSkillFromExecutionArtifactRequest\032\".a" +
+      "i.stigmer.agentic.skill.v1.Skill\">\302\270\030:\010\025" +
+      "\020\036\"\003org*/unauthorized to push skill in t" +
+      "his organization\022\255\001\n\020updateVisibility\0225." +
+      "ai.stigmer.commons.apiresource.UpdateVis" +
+      "ibilityInput\032\".ai.stigmer.agentic.skill." +
+      "v1.Skill\">\302\270\030:\010\004\020+\"\013resource_id*\'unautho" +
+      "rized to update skill visibility\022\201\001\n\006del" +
+      "ete\022$.ai.stigmer.agentic.skill.v1.SkillI" +
+      "d\032\".ai.stigmer.agentic.skill.v1.Skill\"-\302" +
+      "\270\030)\010\002\020+\"\005value*\034unauthorized to delete s" +
+      "kill\032\004\240\377++B\237\001B\014CommandProtoP\001\242\002\004ASAS\252\002\033A" +
+      "i.Stigmer.Agentic.Skill.V1\312\002\033Ai\\Stigmer\\" +
+      "Agentic\\Skill\\V1\342\002\'Ai\\Stigmer\\Agentic\\Sk" +
+      "ill\\V1\\GPBMetadata\352\002\037Ai::Stigmer::Agenti" +
+      "c::Skill::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.skill.v1.ApiProto.getDescriptor(),
           ai.stigmer.agentic.skill.v1.IoProto.getDescriptor(),
+          ai.stigmer.commons.apiresource.IoProto.getDescriptor(),
           ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor(),
           ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor(),
         });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.skill.v1.ApiProto.getDescriptor();
     ai.stigmer.agentic.skill.v1.IoProto.getDescriptor();
+    ai.stigmer.commons.apiresource.IoProto.getDescriptor();
     ai.stigmer.commons.apiresource.RpcServiceOptionsProto.getDescriptor();
     ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

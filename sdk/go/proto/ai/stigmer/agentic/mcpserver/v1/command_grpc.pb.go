@@ -24,6 +24,7 @@ const (
 	McpServerCommandController_Create_FullMethodName                       = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/create"
 	McpServerCommandController_Update_FullMethodName                       = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/update"
 	McpServerCommandController_Delete_FullMethodName                       = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/delete"
+	McpServerCommandController_UpdateVisibility_FullMethodName             = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateVisibility"
 	McpServerCommandController_UpdateDiscoveredCapabilities_FullMethodName = "/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateDiscoveredCapabilities"
 )
 
@@ -99,6 +100,15 @@ type McpServerCommandControllerClient interface {
 	// - Organization: Org admins or resource owner
 	// - Identity Account: The owner
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*McpServer, error)
+	// Update the visibility of an existing MCP server.
+	//
+	// This is a targeted metadata update — it only modifies metadata.visibility,
+	// leaving spec, status, and other metadata fields untouched. Use this to
+	// make an MCP server publicly accessible (marketplace-style sharing) or to
+	// revoke public access without sending the entire resource.
+	//
+	// Authorization: Requires can_edit permission on the mcp_server resource.
+	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*McpServer, error)
 	// Update the discovered capabilities (tools and resource templates) for an MCP server.
 	//
 	// This is a targeted status update — it only modifies status.discovered_capabilities,
@@ -158,6 +168,16 @@ func (c *mcpServerCommandControllerClient) Delete(ctx context.Context, in *apire
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(McpServer)
 	err := c.cc.Invoke(ctx, McpServerCommandController_Delete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mcpServerCommandControllerClient) UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*McpServer, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(McpServer)
+	err := c.cc.Invoke(ctx, McpServerCommandController_UpdateVisibility_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -246,6 +266,15 @@ type McpServerCommandControllerServer interface {
 	// - Organization: Org admins or resource owner
 	// - Identity Account: The owner
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*McpServer, error)
+	// Update the visibility of an existing MCP server.
+	//
+	// This is a targeted metadata update — it only modifies metadata.visibility,
+	// leaving spec, status, and other metadata fields untouched. Use this to
+	// make an MCP server publicly accessible (marketplace-style sharing) or to
+	// revoke public access without sending the entire resource.
+	//
+	// Authorization: Requires can_edit permission on the mcp_server resource.
+	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*McpServer, error)
 	// Update the discovered capabilities (tools and resource templates) for an MCP server.
 	//
 	// This is a targeted status update — it only modifies status.discovered_capabilities,
@@ -281,6 +310,9 @@ func (UnimplementedMcpServerCommandControllerServer) Update(context.Context, *Mc
 }
 func (UnimplementedMcpServerCommandControllerServer) Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*McpServer, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedMcpServerCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*McpServer, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateVisibility not implemented")
 }
 func (UnimplementedMcpServerCommandControllerServer) UpdateDiscoveredCapabilities(context.Context, *UpdateDiscoveredCapabilitiesInput) (*McpServer, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateDiscoveredCapabilities not implemented")
@@ -377,6 +409,24 @@ func _McpServerCommandController_Delete_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _McpServerCommandController_UpdateVisibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(apiresource.UpdateVisibilityInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(McpServerCommandControllerServer).UpdateVisibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: McpServerCommandController_UpdateVisibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(McpServerCommandControllerServer).UpdateVisibility(ctx, req.(*apiresource.UpdateVisibilityInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _McpServerCommandController_UpdateDiscoveredCapabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateDiscoveredCapabilitiesInput)
 	if err := dec(in); err != nil {
@@ -417,6 +467,10 @@ var McpServerCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "delete",
 			Handler:    _McpServerCommandController_Delete_Handler,
+		},
+		{
+			MethodName: "updateVisibility",
+			Handler:    _McpServerCommandController_UpdateVisibility_Handler,
 		},
 		{
 			MethodName: "updateDiscoveredCapabilities",

@@ -13,6 +13,7 @@ import type { EnvironmentValue } from "@stigmer/protos/ai/stigmer/agentic/enviro
 import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { useMcpServer } from "./useMcpServer";
 import { ErrorMessage } from "../error/ErrorMessage";
+import { VisibilityToggle } from "../library/VisibilityToggle";
 
 export interface McpServerDetailViewProps {
   /** Organization slug that owns the MCP server. */
@@ -27,7 +28,16 @@ export interface McpServerDetailViewProps {
    *
    * Not called on error or not-found states.
    */
-  readonly onResourceLoad?: (meta: { name: string }) => void;
+  readonly onResourceLoad?: (meta: { name: string; id: string }) => void;
+  /**
+   * Called when the user toggles visibility via the inline control.
+   * When provided, the header renders an interactive
+   * {@link VisibilityToggle} instead of a read-only badge.
+   * When omitted, visibility is displayed as a static "Public" pill.
+   */
+  readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
+  /** `true` while a visibility update RPC is in flight. */
+  readonly isVisibilityPending?: boolean;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -58,6 +68,8 @@ export function McpServerDetailView({
   org,
   slug,
   onResourceLoad,
+  onVisibilityChange,
+  isVisibilityPending,
   className,
 }: McpServerDetailViewProps) {
   const { mcpServer, isLoading, error, refetch } = useMcpServer(org, slug);
@@ -67,7 +79,7 @@ export function McpServerDetailView({
 
   useEffect(() => {
     if (mcpServer?.metadata?.name) {
-      onResourceLoadRef.current?.({ name: mcpServer.metadata.name });
+      onResourceLoadRef.current?.({ name: mcpServer.metadata.name, id: mcpServer.metadata.id });
     }
   }, [mcpServer]);
 
@@ -101,6 +113,8 @@ export function McpServerDetailView({
             ? timestampDate(capabilities.lastDiscoveredAt)
             : null
         }
+        onVisibilityChange={onVisibilityChange}
+        isVisibilityPending={isVisibilityPending}
       />
 
       {spec?.serverType.case && (
@@ -152,11 +166,15 @@ function Header({
   createdAt,
   updatedAt,
   lastDiscoveredAt,
+  onVisibilityChange,
+  isVisibilityPending,
 }: {
   readonly server: McpServer;
   readonly createdAt: Date | null;
   readonly updatedAt: Date | null;
   readonly lastDiscoveredAt: Date | null;
+  readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
+  readonly isVisibilityPending?: boolean;
 }) {
   const meta = server.metadata;
   const spec = server.spec;
@@ -181,10 +199,18 @@ function Header({
           <h2 className="truncate text-lg font-semibold text-foreground">
             {displayName}
           </h2>
-          {isPublic && (
-            <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              Public
-            </span>
+          {onVisibilityChange && meta ? (
+            <VisibilityToggle
+              visibility={meta.visibility}
+              onVisibilityChange={onVisibilityChange}
+              isPending={isVisibilityPending}
+            />
+          ) : (
+            isPublic && (
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                Public
+              </span>
+            )
           )}
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">

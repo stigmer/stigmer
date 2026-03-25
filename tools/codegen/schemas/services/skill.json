@@ -24,6 +24,14 @@
           "description": "Push a skill directly from an execution artifact already in storage.\n\n This is the server-side equivalent of push() — instead of receiving\n ZIP bytes from the client, it reads an existing directory artifact\n (produced by an agent execution) from artifact storage and pushes\n it as a skill. This avoids downloading the ZIP to the browser and\n re-uploading it, and eliminates CORS concerns for SDK consumers.\n\n The caller must have can_view on the referenced execution AND\n can_create_skill in the target organization.\n\n Returns: The created or updated Skill resource"
         },
         {
+          "name": "UpdateVisibility",
+          "inputType": "UpdateVisibilityInput",
+          "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+          "outputType": "Skill",
+          "outputFullType": "ai.stigmer.agentic.skill.v1.Skill",
+          "description": "Update the visibility of an existing skill.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched. Skills default\n to visibility_private on push; use this RPC to make a skill publicly\n accessible (marketplace-style sharing) or to revoke public access.\n\n Authorization: Requires can_edit permission on the skill resource."
+        },
+        {
           "name": "Delete",
           "inputType": "SkillId",
           "inputFullType": "ai.stigmer.agentic.skill.v1.SkillId",

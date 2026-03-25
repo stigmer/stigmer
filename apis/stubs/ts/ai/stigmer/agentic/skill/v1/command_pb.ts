@@ -8,6 +8,8 @@ import type { SkillSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_skill_v1_api } from "./api_pb";
 import type { PushSkillFromExecutionArtifactRequestSchema, PushSkillRequestSchema, SkillIdSchema } from "./io_pb";
 import { file_ai_stigmer_agentic_skill_v1_io } from "./io_pb";
+import type { UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb";
+import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
 import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../../iam/iampolicy/v1/rpcauthorization/method_options_pb";
 
@@ -15,7 +17,7 @@ import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from
  * Describes the file ai/stigmer/agentic/skill/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_skill_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxMoQEChZTa2lsbENvbW1hbmRDb250cm9sbGVyEpkBCgRwdXNoEi0uYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoIFRAeIgNvcmcqL3VuYXV0aG9yaXplZCB0byBwdXNoIHNraWxsIGluIHRoaXMgb3JnYW5pemF0aW9uEsMBChlwdXNoRnJvbUV4ZWN1dGlvbkFydGlmYWN0EkIuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbEZyb21FeGVjdXRpb25BcnRpZmFjdFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoIFRAeIgNvcmcqL3VuYXV0aG9yaXplZCB0byBwdXNoIHNraWxsIGluIHRoaXMgb3JnYW5pemF0aW9uEoEBCgZkZWxldGUSJC5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGxJZBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCItwrgYKQgCECsiBXZhbHVlKhx1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIHNraWxsGgSg/ysrYgZwcm90bzM", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvc2tpbGwvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxMrQFChZTa2lsbENvbW1hbmRDb250cm9sbGVyEpkBCgRwdXNoEi0uYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoIFRAeIgNvcmcqL3VuYXV0aG9yaXplZCB0byBwdXNoIHNraWxsIGluIHRoaXMgb3JnYW5pemF0aW9uEsMBChlwdXNoRnJvbUV4ZWN1dGlvbkFydGlmYWN0EkIuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlB1c2hTa2lsbEZyb21FeGVjdXRpb25BcnRpZmFjdFJlcXVlc3QaIi5haS5zdGlnbWVyLmFnZW50aWMuc2tpbGwudjEuU2tpbGwiPsK4GDoIFRAeIgNvcmcqL3VuYXV0aG9yaXplZCB0byBwdXNoIHNraWxsIGluIHRoaXMgb3JnYW5pemF0aW9uEq0BChB1cGRhdGVWaXNpYmlsaXR5EjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLlVwZGF0ZVZpc2liaWxpdHlJbnB1dBoiLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbCI+wrgYOggEECsiC3Jlc291cmNlX2lkKid1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIHNraWxsIHZpc2liaWxpdHkSgQEKBmRlbGV0ZRIkLmFpLnN0aWdtZXIuYWdlbnRpYy5za2lsbC52MS5Ta2lsbElkGiIuYWkuc3RpZ21lci5hZ2VudGljLnNraWxsLnYxLlNraWxsIi3CuBgpCAIQKyIFdmFsdWUqHHVuYXV0aG9yaXplZCB0byBkZWxldGUgc2tpbGwaBKD/KytiBnByb3RvMw", [file_ai_stigmer_agentic_skill_v1_api, file_ai_stigmer_agentic_skill_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
  * SkillCommandController handles write operations for skills.
@@ -69,6 +71,23 @@ export const SkillCommandController: GenService<{
   pushFromExecutionArtifact: {
     methodKind: "unary";
     input: typeof PushSkillFromExecutionArtifactRequestSchema;
+    output: typeof SkillSchema;
+  },
+  /**
+   * Update the visibility of an existing skill.
+   *
+   * This is a targeted metadata update — it only modifies metadata.visibility,
+   * leaving spec, status, and other metadata fields untouched. Skills default
+   * to visibility_private on push; use this RPC to make a skill publicly
+   * accessible (marketplace-style sharing) or to revoke public access.
+   *
+   * Authorization: Requires can_edit permission on the skill resource.
+   *
+   * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.updateVisibility
+   */
+  updateVisibility: {
+    methodKind: "unary";
+    input: typeof UpdateVisibilityInputSchema;
     output: typeof SkillSchema;
   },
   /**

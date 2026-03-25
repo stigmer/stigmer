@@ -587,9 +587,11 @@ func generateTSMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefinition
 
 	case isApiResourceRefInput:
 		imports.addType("./types", "ResourceRef")
+		imports.addValue("@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb", "ApiResourceKind")
+		kindConst := pascalToSnake(cfg.protoResType)
 		fmt.Fprintf(buf, "  async %s(ref: ResourceRef): Promise<%s> {\n", tsMethodName(m.Name), outputType)
 		fmt.Fprintf(buf, "    try {\n")
-		fmt.Fprintf(buf, "      %sawait this.%s.%s(create(ApiResourceReferenceSchema, ref));\n", returnKeyword, svc.Role, tsMethodName(m.Name))
+		fmt.Fprintf(buf, "      %sawait this.%s.%s(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.%s }));\n", returnKeyword, svc.Role, tsMethodName(m.Name), kindConst)
 		fmt.Fprintf(buf, "    } catch (e) { throw wrapError(e); }\n")
 		buf.WriteString("  }\n")
 
