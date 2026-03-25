@@ -36,9 +36,9 @@ service AgentExecutionCommandController {
   // Used by agent-runner to send progressive status updates (messages, tool_calls, phase, etc.)
   // This RPC is optimized for frequent status updates and merges status fields with existing state.
   rpc updateStatus(AgentExecutionUpdateStatusInput) returns (AgentExecution) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_update_status;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "execution_id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_update_execution_status;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update agent execution status";
   }
 

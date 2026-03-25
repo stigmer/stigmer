@@ -1068,7 +1068,8 @@ async def execute_graphton(
     # This catches errors that occur before the main try block or during initialization
     try:
         return await _execute_graphton_impl(
-            execution_id, thread_id, approval_decisions, activity_logger
+            execution_id, thread_id, approval_decisions, activity_logger,
+            invoker_identity_account_id,
         )
     except Exception as system_error:
         exc_type = type(system_error).__name__
@@ -1119,6 +1120,7 @@ async def _execute_graphton_impl(
     thread_id: str,
     approval_decisions: list[SubmitApprovalInput],
     activity_logger,
+    invoker_identity_account_id: str | None = None,
 ) -> AgentExecutionStatus:
     """
     Internal implementation of execute_graphton with existing error handling.
