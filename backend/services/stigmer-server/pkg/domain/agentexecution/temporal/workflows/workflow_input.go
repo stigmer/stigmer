@@ -14,10 +14,11 @@ package workflows
 // parent-notification features (AutoApproveAll, ParentWorkflowID) even if the
 // OSS workflow does not use them yet.
 type InvokeAgentExecutionWorkflowInput struct {
-	ExecutionID      string `json:"execution_id"`
-	SessionID        string `json:"session_id"`
-	AgentID          string `json:"agent_id"`
-	CallbackToken    []byte `json:"callback_token,omitempty"`
-	AutoApproveAll   bool   `json:"auto_approve_all,omitempty"`
-	ParentWorkflowID string `json:"parent_workflow_id,omitempty"`
+	ExecutionID              string `json:"execution_id"`
+	SessionID                string `json:"session_id"`
+	AgentID                  string `json:"agent_id"`
+	CallbackToken            []byte `json:"callback_token,omitempty"`
+	AutoApproveAll           bool   `json:"auto_approve_all,omitempty"`
+	ParentWorkflowID         string `json:"parent_workflow_id,omitempty"`
+	InvokerIdentityAccountID string `json:"invoker_identity_account_id,omitempty"`
 }

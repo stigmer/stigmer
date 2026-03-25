@@ -10,6 +10,7 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/dedupe"
+	wfactivities "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/workflows"
 	"google.golang.org/protobuf/proto"
 )
@@ -295,8 +296,17 @@ func (s *SendSignalToWorkflowStep[T]) Execute(ctx *pipeline.RequestContext[T]) e
 		Str("signal_name", signalName).
 		Msg("Sending signal to Temporal workflow via SignalWithStart")
 
-	// Use SignalWithStart for race-proof delivery
-	err := s.workflowCreator.SignalWithStart(ctx.Context(), execution, signalName, signalPayload)
+	// Build slim workflow input from execution.
+	// OSS does not have multi-tenant identity, so invoker identity is empty.
+	workflowInput := &wfactivities.InvokeWorkflowExecutionWorkflowInput{
+		ExecutionID:        executionID,
+		WorkflowInstanceID: execution.GetSpec().GetWorkflowInstanceId(),
+		WorkflowID:         execution.GetSpec().GetWorkflowId(),
+		OrgID:              execution.GetMetadata().GetOrg(),
+	}
+
+	// Use SignalWithStart for race-proof delivery (slim input keeps secrets out of history)
+	err := s.workflowCreator.SignalWithStart(ctx.Context(), workflowInput, signalName, signalPayload)
 	if err != nil {
 		return grpclib.InternalError(err, "failed to send signal to workflow")
 	}

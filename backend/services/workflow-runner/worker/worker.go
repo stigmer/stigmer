@@ -189,7 +189,7 @@ func (w *ZigflowWorker) RegisterWorkflowsAndActivities() {
 
 	// Register ExecuteWorkflowActivity (polyglot activity called from Java)
 	// IMPORTANT: Activity name must match Java @ActivityMethod annotation: "ExecuteWorkflow" (PascalCase)
-	// Java: @ActivityMethod(name = "ExecuteWorkflow") WorkflowExecutionStatus executeWorkflow(WorkflowExecution execution);
+	// Java: @ActivityMethod(name = "ExecuteWorkflow") WorkflowExecutionStatus executeWorkflow(InvokeWorkflowExecutionWorkflowInput input);
 	// Go method is ExecuteWorkflow (uppercase), and we register it as "ExecuteWorkflow" (PascalCase)
 	// This matches the agent execution activity naming convention (ExecuteGraphton, EnsureThread)
 	w.orchestrationWorker.RegisterActivityWithOptions(w.executeWorkflowActivity.ExecuteWorkflow, activity.RegisterOptions{

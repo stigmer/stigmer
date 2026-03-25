@@ -67,20 +67,28 @@ Add timestamps and notes to track your progress.
 
 ## Task 4: Add invoker identity to Temporal workflow inputs
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-25 11:59
-**Repos**: stigmer (protos), stigmer-cloud (workflow starters)
+**Completed**: 2026-03-25
+**Repos**: stigmer (Go, Python), stigmer-cloud (Java)
 
 ### Subtasks
-- [ ] Find the Temporal workflow input protos/types for agent execution and workflow execution workflows
-- [ ] Add `invoker_identity_account_id` field to workflow input
-- [ ] In stigmer-service: where Temporal workflows are started (e.g., `startWorkflowStep` in handlers), pass `context.getCaller().getIdentityAccountId()` as the new field
-- [ ] Regenerate stubs if proto change
-- [ ] Build and validate
+- [x] Find the Temporal workflow input protos/types for agent execution and workflow execution workflows
+- [x] Add `invokerIdentityAccountId` field to agent execution slim input (Java record + Go struct)
+- [x] Create new `InvokeWorkflowExecutionWorkflowInput` slim record replacing full `WorkflowExecution` proto (Java + Go)
+- [x] In stigmer-service: pass `context.getCaller().getIdentityAccountId()` in all handler StartWorkflowSteps
+- [x] Thread identity through workflow impls to activity interfaces
+- [x] Update Go activity stubs and workflow-runner activity to accept slim input
+- [x] Remove `runtime_env` fallback in workflow-runner (all executions use ExecutionContext)
+- [x] Resolve Go import cycle (moved shared input type to activities package)
+- [x] Build and validate (Bazel + Go + Python syntax)
 
 ### Notes
 - This is the bridge between stigmer-service (knows caller identity) and the runners (need it for x-on-behalf-of)
-- The Temporal workflow is started after `createAuthorizationTuples` in the handler pipeline
+- Workflow execution was a larger change: replaced full `WorkflowExecution` proto with slim input to keep secrets out of Temporal history
+- Agent execution already had slim input pattern — just added the new field
+- Go import cycle between `workflows` and `activities` packages resolved by placing shared type in `activities` (lower-level package in dependency graph)
+- Runners accept the identity parameter but do not use it yet (T05/T06 scope)
 
 ## Task 5: Agent runner — attach x-on-behalf-of to all gRPC calls
 
