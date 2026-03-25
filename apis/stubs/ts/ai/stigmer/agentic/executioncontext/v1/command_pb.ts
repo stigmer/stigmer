@@ -15,11 +15,18 @@ import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from
  * Describes the file ai/stigmer/agentic/executioncontext/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_executioncontext_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CjRhaS9zdGlnbWVyL2FnZW50aWMvZXhlY3V0aW9uY29udGV4dC92MS9jb21tYW5kLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MTLKBAohRXhlY3V0aW9uQ29udGV4dENvbW1hbmRDb250cm9sbGVyEnsKBWFwcGx5EjguYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uQ29udGV4dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHQS0AEKBmNyZWF0ZRI4LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHQaOC5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25Db250ZXh0IlLCuBhOCAUQHyo/dW5hdXRob3JpemVkIHRvIGNyZWF0ZSBFeGVjdXRpb24gQ29udGV4dCAob3BlcmF0b3Itb25seSBhY3Rpb24pMgdzdGlnbWVyEs4BCgZkZWxldGUSNi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VEZWxldGVJbnB1dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHQiUsK4GE4IBRAfKj91bmF1dGhvcml6ZWQgdG8gZGVsZXRlIEV4ZWN1dGlvbiBDb250ZXh0IChvcGVyYXRvci1vbmx5IGFjdGlvbikyB3N0aWdtZXIaBKD/KzZiBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_api, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("CjRhaS9zdGlnbWVyL2FnZW50aWMvZXhlY3V0aW9uY29udGV4dC92MS9jb21tYW5kLnByb3RvEiZhaS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MTKuAwohRXhlY3V0aW9uQ29udGV4dENvbW1hbmRDb250cm9sbGVyEnsKBWFwcGx5EjguYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uQ29udGV4dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHQSggEKBmNyZWF0ZRI4LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHQaOC5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25Db250ZXh0IgTQuBgBEoABCgZkZWxldGUSNi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VEZWxldGVJbnB1dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHQiBNC4GAEaBKD/KzZiBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_api, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
  * ExecutionContextCommandController provides write operations for ExecutionContext resources.
- * Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+ *
+ * Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+ * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+ * FGA model. Instead, authorization is derived from the parent execution:
+ *   - create: Authorized if caller has can_edit on parent agent_execution or workflow_execution
+ *   - delete: System-only cleanup (called when execution completes)
+ *
+ * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
  *
  * @generated from service ai.stigmer.agentic.executioncontext.v1.ExecutionContextCommandController
  */
@@ -37,7 +44,8 @@ export const ExecutionContextCommandController: GenService<{
     output: typeof ExecutionContextSchema;
   },
   /**
-   * Create a new ExecutionContext (typically called by execution engine).
+   * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+   * Handler-level auth: checks can_edit on parent agent_execution or workflow_execution.
    *
    * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextCommandController.create
    */
@@ -48,6 +56,7 @@ export const ExecutionContextCommandController: GenService<{
   },
   /**
    * Delete an ExecutionContext (called when execution completes).
+   * Handler-level auth: system-only cleanup operation.
    *
    * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextCommandController.delete
    */

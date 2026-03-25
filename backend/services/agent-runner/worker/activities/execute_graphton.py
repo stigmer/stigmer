@@ -1197,16 +1197,23 @@ async def _execute_graphton_impl(
     if not api_key:
         raise RuntimeError("API key not initialized")
     
-    # Shared gRPC channel for all clients in this activity invocation.
-    # This avoids opening 4+ TCP connections per activity and ensures
-    # keepalive PINGs are configured to match the Go server's enforcement.
-    grpc_provider = ChannelProvider(api_key)
-    ch = grpc_provider.channel
+    # Shared gRPC channels for all clients in this activity invocation.
+    # Two channels are maintained:
+    #   sys_ch  – machine-account only, for operator-level calls (updateStatus)
+    #   obo_ch  – adds x-on-behalf-of header, for user-facing reads
+    # When invoker_identity_account_id is absent (backward compat), both point
+    # to the same system channel.
+    grpc_provider = ChannelProvider(
+        api_key,
+        invoker_identity_account_id=invoker_identity_account_id,
+    )
+    sys_ch = grpc_provider.channel
+    obo_ch = grpc_provider.obo_channel if invoker_identity_account_id else sys_ch
 
-    session_client = SessionClient(api_key, channel=ch)
-    agent_instance_client = AgentInstanceClient(api_key, channel=ch)
-    agent_client = AgentClient(api_key, channel=ch)
-    execution_client = AgentExecutionClient(api_key, channel=ch)
+    session_client = SessionClient(api_key, channel=obo_ch)
+    agent_instance_client = AgentInstanceClient(api_key, channel=obo_ch)
+    agent_client = AgentClient(api_key, channel=obo_ch)
+    execution_client = AgentExecutionClient(api_key, channel=sys_ch)
     
     # ─────────────────────────────────────────────────────────────────────────────
     # Step 0: Hydrate AgentExecution from database via gRPC
@@ -1503,7 +1510,7 @@ async def _execute_graphton_impl(
         use_legacy_env_merge = True
         
         try:
-            execution_context_client = ExecutionContextClient(api_key, channel=ch)
+            execution_context_client = ExecutionContextClient(api_key, channel=obo_ch)
             exec_ctx = await execution_context_client.try_get_by_execution_id(execution_id)
             
             if exec_ctx and exec_ctx.spec.data:
@@ -1544,7 +1551,7 @@ async def _execute_graphton_impl(
                     f"{[ref.slug for ref in environment_refs]}"
                 )
                 try:
-                    environment_client = EnvironmentClient(api_key, channel=ch)
+                    environment_client = EnvironmentClient(api_key, channel=obo_ch)
                     environments = await environment_client.list_by_refs(list(environment_refs))
                     
                     for idx, env in enumerate(environments):
@@ -1694,7 +1701,7 @@ async def _execute_graphton_impl(
         skill_refs = merge_skill_refs(agent.spec.skill_refs, session.spec.skill_refs)
         
         # Create skill client (needed for both parent skills and subagent skills)
-        skill_client = SkillClient(api_key, channel=ch)
+        skill_client = SkillClient(api_key, channel=obo_ch)
         
         if skill_refs:
             
@@ -1949,7 +1956,7 @@ async def _execute_graphton_impl(
             
             try:
                 # Create MCP server client
-                mcp_server_client = McpServerClient(api_key, channel=ch)
+                mcp_server_client = McpServerClient(api_key, channel=obo_ch)
                 
                 # Extract refs from usages
                 mcp_server_refs = [usage.mcp_server_ref for usage in mcp_server_usages]

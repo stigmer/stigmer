@@ -30,15 +30,24 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // ExecutionContextCommandController provides write operations for ExecutionContext resources.
-// Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+//
+// Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+// ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+// FGA model. Instead, authorization is derived from the parent execution:
+//   - create: Authorized if caller has can_edit on parent agent_execution or workflow_execution
+//   - delete: System-only cleanup (called when execution completes)
+//
+// This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
 type ExecutionContextCommandControllerClient interface {
 	// Create or update an ExecutionContext.
 	// The authorization and state-operation are determined depending on whether the execution context
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(ctx context.Context, in *ExecutionContext, opts ...grpc.CallOption) (*ExecutionContext, error)
-	// Create a new ExecutionContext (typically called by execution engine).
+	// Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+	// Handler-level auth: checks can_edit on parent agent_execution or workflow_execution.
 	Create(ctx context.Context, in *ExecutionContext, opts ...grpc.CallOption) (*ExecutionContext, error)
 	// Delete an ExecutionContext (called when execution completes).
+	// Handler-level auth: system-only cleanup operation.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*ExecutionContext, error)
 }
 
@@ -85,15 +94,24 @@ func (c *executionContextCommandControllerClient) Delete(ctx context.Context, in
 // for forward compatibility.
 //
 // ExecutionContextCommandController provides write operations for ExecutionContext resources.
-// Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+//
+// Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+// ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+// FGA model. Instead, authorization is derived from the parent execution:
+//   - create: Authorized if caller has can_edit on parent agent_execution or workflow_execution
+//   - delete: System-only cleanup (called when execution completes)
+//
+// This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
 type ExecutionContextCommandControllerServer interface {
 	// Create or update an ExecutionContext.
 	// The authorization and state-operation are determined depending on whether the execution context
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(context.Context, *ExecutionContext) (*ExecutionContext, error)
-	// Create a new ExecutionContext (typically called by execution engine).
+	// Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+	// Handler-level auth: checks can_edit on parent agent_execution or workflow_execution.
 	Create(context.Context, *ExecutionContext) (*ExecutionContext, error)
 	// Delete an ExecutionContext (called when execution completes).
+	// Handler-level auth: system-only cleanup operation.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*ExecutionContext, error)
 }
 

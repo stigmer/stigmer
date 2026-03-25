@@ -37,6 +37,11 @@ type TemporalWorkflowInput struct {
 	// Used by activities that need organization context (e.g., agent calls).
 	// Extracted from WorkflowExecution.metadata.org.
 	OrgId string
+
+	// InvokerIdentityAccountID is the identity account ID of the user who
+	// triggered the workflow execution. Propagated to activities for
+	// on-behalf-of gRPC impersonation (x-on-behalf-of header).
+	InvokerIdentityAccountID string
 }
 
 // WorkflowMetadata contains workflow identification information

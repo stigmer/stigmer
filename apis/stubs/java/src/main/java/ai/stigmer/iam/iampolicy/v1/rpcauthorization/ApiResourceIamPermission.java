@@ -224,6 +224,14 @@ public enum ApiResourceIamPermission
    * <code>can_read_secrets = 25;</code>
    */
   can_read_secrets(25),
+  /**
+   * <pre>
+   * Status update permissions (system/operator-only)
+   * </pre>
+   *
+   * <code>can_update_status = 28;</code>
+   */
+  can_update_status(28),
   UNRECOGNIZED(-1),
   ;
 
@@ -444,6 +452,14 @@ public enum ApiResourceIamPermission
    * <code>can_read_secrets = 25;</code>
    */
   public static final int can_read_secrets_VALUE = 25;
+  /**
+   * <pre>
+   * Status update permissions (system/operator-only)
+   * </pre>
+   *
+   * <code>can_update_status = 28;</code>
+   */
+  public static final int can_update_status_VALUE = 28;
 
 
   public final int getNumber() {
@@ -498,6 +514,7 @@ public enum ApiResourceIamPermission
       case 27: return can_create_environment;
       case 22: return can_execute;
       case 25: return can_read_secrets;
+      case 28: return can_update_status;
       default: return null;
     }
   }

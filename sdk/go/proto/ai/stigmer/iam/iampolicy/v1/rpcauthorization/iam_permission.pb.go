@@ -62,6 +62,8 @@ const (
 	ApiResourceIamPermission_can_execute ApiResourceIamPermission = 22 // Permission to execute agent/session operations
 	// Secret access permissions
 	ApiResourceIamPermission_can_read_secrets ApiResourceIamPermission = 25 // Permission to read unredacted secret values (creator-only)
+	// Status update permissions (system/operator-only)
+	ApiResourceIamPermission_can_update_status ApiResourceIamPermission = 28 // Permission to update execution status (operator-only, used by runners)
 )
 
 // Enum value maps for ApiResourceIamPermission.
@@ -95,6 +97,7 @@ var (
 		27: "can_create_environment",
 		22: "can_execute",
 		25: "can_read_secrets",
+		28: "can_update_status",
 	}
 	ApiResourceIamPermission_value = map[string]int32{
 		"unspecified":             0,
@@ -125,6 +128,7 @@ var (
 		"can_create_environment":  27,
 		"can_execute":             22,
 		"can_read_secrets":        25,
+		"can_update_status":       28,
 	}
 )
 
@@ -159,7 +163,7 @@ var File_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission_proto proto
 
 const file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission_proto_rawDesc = "" +
 	"\n" +
-	"Aai/stigmer/iam/iampolicy/v1/rpcauthorization/iam_permission.proto\x12,ai.stigmer.iam.iampolicy.v1.rpcauthorization*\xa9\x04\n" +
+	"Aai/stigmer/iam/iampolicy/v1/rpcauthorization/iam_permission.proto\x12,ai.stigmer.iam.iampolicy.v1.rpcauthorization*\xc0\x04\n" +
 	"\x18ApiResourceIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\n" +
 	"\n" +
@@ -193,7 +197,8 @@ const file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission_proto_raw
 	"\x0ecan_create_idp\x10\x18\x12\x1a\n" +
 	"\x16can_create_environment\x10\x1b\x12\x0f\n" +
 	"\vcan_execute\x10\x16\x12\x14\n" +
-	"\x10can_read_secrets\x10\x19B\xf4\x02\n" +
+	"\x10can_read_secrets\x10\x19\x12\x15\n" +
+	"\x11can_update_status\x10\x1cB\xf4\x02\n" +
 	"0com.ai.stigmer.iam.iampolicy.v1.rpcauthorizationB\x12IamPermissionProtoP\x01ZTgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/iampolicy/v1/rpcauthorization\xa2\x02\x06ASIIVR\xaa\x02,Ai.Stigmer.Iam.Iampolicy.V1.Rpcauthorization\xca\x02,Ai\\Stigmer\\Iam\\Iampolicy\\V1\\Rpcauthorization\xe2\x028Ai\\Stigmer\\Iam\\Iampolicy\\V1\\Rpcauthorization\\GPBMetadata\xea\x021Ai::Stigmer::Iam::Iampolicy::V1::Rpcauthorizationb\x06proto3"
 
 var (

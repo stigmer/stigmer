@@ -8,7 +8,14 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 class ExecutionContextCommandControllerStub(object):
     """ExecutionContextCommandController provides write operations for ExecutionContext resources.
-    Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+
+    Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+    ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+    FGA model. Instead, authorization is derived from the parent execution:
+    - create: Authorized if caller has can_edit on parent agent_execution or workflow_execution
+    - delete: System-only cleanup (called when execution completes)
+
+    This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
     """
 
     def __init__(self, channel):
@@ -36,7 +43,14 @@ class ExecutionContextCommandControllerStub(object):
 
 class ExecutionContextCommandControllerServicer(object):
     """ExecutionContextCommandController provides write operations for ExecutionContext resources.
-    Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+
+    Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+    ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+    FGA model. Instead, authorization is derived from the parent execution:
+    - create: Authorized if caller has can_edit on parent agent_execution or workflow_execution
+    - delete: System-only cleanup (called when execution completes)
+
+    This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
     """
 
     def apply(self, request, context):
@@ -49,7 +63,8 @@ class ExecutionContextCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def create(self, request, context):
-        """Create a new ExecutionContext (typically called by execution engine).
+        """Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+        Handler-level auth: checks can_edit on parent agent_execution or workflow_execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -57,6 +72,7 @@ class ExecutionContextCommandControllerServicer(object):
 
     def delete(self, request, context):
         """Delete an ExecutionContext (called when execution completes).
+        Handler-level auth: system-only cleanup operation.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -90,7 +106,14 @@ def add_ExecutionContextCommandControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class ExecutionContextCommandController(object):
     """ExecutionContextCommandController provides write operations for ExecutionContext resources.
-    Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+
+    Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+    ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+    FGA model. Instead, authorization is derived from the parent execution:
+    - create: Authorized if caller has can_edit on parent agent_execution or workflow_execution
+    - delete: System-only cleanup (called when execution completes)
+
+    This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
     """
 
     @staticmethod

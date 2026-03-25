@@ -37,7 +37,7 @@ public final class IamPermissionProto extends com.google.protobuf.GeneratedFile 
     java.lang.String[] descriptorData = {
       "\nAai/stigmer/iam/iampolicy/v1/rpcauthori" +
       "zation/iam_permission.proto\022,ai.stigmer." +
-      "iam.iampolicy.v1.rpcauthorization*\251\004\n\030Ap" +
+      "iam.iampolicy.v1.rpcauthorization*\300\004\n\030Ap" +
       "iResourceIamPermission\022\017\n\013unspecified\020\000\022" +
       "\n\n\006create\020\001\022\016\n\ncan_delete\020\002\022\014\n\010can_view\020" +
       "\003\022\014\n\010can_edit\020\004\022\014\n\010operator\020\005\022\014\n\010platfor" +
@@ -51,13 +51,14 @@ public final class IamPermissionProto extends com.google.protobuf.GeneratedFile 
       "reate_instance\020\024\022\024\n\020can_create_skill\020\025\022\026" +
       "\n\022can_create_project\020\027\022\022\n\016can_create_idp" +
       "\020\030\022\032\n\026can_create_environment\020\033\022\017\n\013can_ex" +
-      "ecute\020\026\022\024\n\020can_read_secrets\020\031B\354\001B\022IamPer" +
-      "missionProtoP\001\242\002\006ASIIVR\252\002,Ai.Stigmer.Iam" +
-      ".Iampolicy.V1.Rpcauthorization\312\002,Ai\\Stig" +
-      "mer\\Iam\\Iampolicy\\V1\\Rpcauthorization\342\0028" +
-      "Ai\\Stigmer\\Iam\\Iampolicy\\V1\\Rpcauthoriza" +
-      "tion\\GPBMetadata\352\0021Ai::Stigmer::Iam::Iam" +
-      "policy::V1::Rpcauthorizationb\006proto3"
+      "ecute\020\026\022\024\n\020can_read_secrets\020\031\022\025\n\021can_upd" +
+      "ate_status\020\034B\354\001B\022IamPermissionProtoP\001\242\002\006" +
+      "ASIIVR\252\002,Ai.Stigmer.Iam.Iampolicy.V1.Rpc" +
+      "authorization\312\002,Ai\\Stigmer\\Iam\\Iampolicy" +
+      "\\V1\\Rpcauthorization\342\0028Ai\\Stigmer\\Iam\\Ia" +
+      "mpolicy\\V1\\Rpcauthorization\\GPBMetadata\352" +
+      "\0021Ai::Stigmer::Iam::Iampolicy::V1::Rpcau" +
+      "thorizationb\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

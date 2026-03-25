@@ -139,10 +139,13 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		return nil, fmt.Errorf("execution ID is required")
 	}
 
+	// OBO context for user-facing reads; falls back to plain ctx when identity is absent.
+	oboCtx := grpc_client.WithOnBehalfOf(ctx, input.InvokerIdentityAccountID)
+
 	logger.Info("ExecuteWorkflow activity started",
 		"execution_id", executionID)
 
-	// Update status to IN_PROGRESS
+	// Update status to IN_PROGRESS (system channel — operator-only permission)
 	_, err := a.workflowExecutionClient.UpdateStatus(ctx, executionID, &workflowexecutionv1.WorkflowExecutionStatus{
 		Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
 	})
@@ -166,10 +169,10 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		return nil, fmt.Errorf("input must have either workflow_instance_id or workflow_id")
 	}
 
-	// Step 2: Query WorkflowInstance
+	// Step 2: Query WorkflowInstance (OBO — user-facing read)
 	var instance *workflowinstancev1.WorkflowInstance
 	if workflowInstanceID != "" {
-		instance, err = a.workflowInstanceClient.Get(ctx, workflowInstanceID)
+		instance, err = a.workflowInstanceClient.Get(oboCtx, workflowInstanceID)
 		if err != nil {
 			logger.Error("Failed to query workflow instance",
 				"instance_id", workflowInstanceID,
@@ -184,7 +187,7 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		}
 		workflowID = instance.Spec.WorkflowId
 	} else {
-		workflow, err := a.workflowClient.Get(ctx, workflowID)
+		workflow, err := a.workflowClient.Get(oboCtx, workflowID)
 		if err != nil {
 			logger.Error("Failed to query workflow",
 				"workflow_id", workflowID,
@@ -211,7 +214,7 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		}
 
 		workflowInstanceID = workflow.Status.DefaultInstanceId
-		instance, err = a.workflowInstanceClient.Get(ctx, workflowInstanceID)
+		instance, err = a.workflowInstanceClient.Get(oboCtx, workflowInstanceID)
 		if err != nil {
 			logger.Error("Failed to query default workflow instance",
 				"instance_id", workflowInstanceID,
@@ -231,8 +234,8 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		"instance_name", instance.Metadata.Name,
 		"workflow_id", workflowID)
 
-	// Step 3: Query Workflow (template)
-	workflow, err := a.workflowClient.Get(ctx, workflowID)
+	// Step 3: Query Workflow template (OBO — user-facing read)
+	workflow, err := a.workflowClient.Get(oboCtx, workflowID)
 	if err != nil {
 		logger.Error("Failed to query workflow",
 			"workflow_id", workflowID,
@@ -278,7 +281,7 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 	// Build runtime environment from ExecutionContext (pre-merged and pre-decrypted)
 	runtimeEnv := make(map[string]any)
 
-	execCtx, err := a.executionContextClient.GetByExecutionId(ctx, executionID)
+	execCtx, err := a.executionContextClient.GetByExecutionId(oboCtx, executionID)
 	if err == nil && execCtx != nil && execCtx.Spec != nil && len(execCtx.Spec.Data) > 0 {
 		logger.Info("Using merged environment from ExecutionContext",
 			"execution_id", executionID,
@@ -325,11 +328,12 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 	}
 
 	workflowInput := &types.TemporalWorkflowInput{
-		WorkflowExecutionID: executionID,
-		WorkflowYaml:        workflowYAML,
-		InitialData:         map[string]interface{}{},
-		EnvVars:             runtimeEnv,
-		OrgId:               input.OrgID,
+		WorkflowExecutionID:      executionID,
+		WorkflowYaml:             workflowYAML,
+		InitialData:              map[string]interface{}{},
+		EnvVars:                  runtimeEnv,
+		OrgId:                    input.OrgID,
+		InvokerIdentityAccountID: input.InvokerIdentityAccountID,
 	}
 
 	// Start the workflow

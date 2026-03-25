@@ -49,4 +49,7 @@ enum ApiResourceIamPermission {
 
   // Secret access permissions
   can_read_secrets = 25; // Permission to read unredacted secret values (creator-only)
+
+  // Status update permissions (system/operator-only)
+  can_update_status = 28; // Permission to update execution status (operator-only, used by runners)
 }

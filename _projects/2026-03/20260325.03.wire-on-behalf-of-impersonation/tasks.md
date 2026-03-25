@@ -92,40 +92,46 @@ Add timestamps and notes to track your progress.
 
 ## Task 5: Agent runner — attach x-on-behalf-of to all gRPC calls
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-25 11:59
+**Completed**: 2026-03-25
 **Repo**: stigmer (Python)
 
 ### Subtasks
-- [ ] Read invoker identity from Temporal workflow/activity input in `execute_graphton.py`
-- [ ] Modify `AuthClientInterceptor` (or create new interceptor) to attach `x-on-behalf-of` metadata key alongside `authorization`
-- [ ] Thread the identity through to all gRPC client instantiations (`ChannelProvider` or interceptor-level)
-- [ ] Verify all 8 gRPC clients get the header: ExecutionContext, AgentExecution, Agent, AgentInstance, Session, Environment, Skill, McpServer
-- [ ] Also cover `generate_session_subject.py` and `sandbox_manager.py` activity paths
+- [x] Read invoker identity from Temporal workflow/activity input in `execute_graphton.py`
+- [x] Create new `OnBehalfOfInterceptor` for `x-on-behalf-of` header injection
+- [x] Extend `ChannelProvider` with dual-channel support: `channel` (system) + `obo_channel` (impersonated)
+- [x] Wire OBO channel for all read clients (Session, Agent, AgentInstance, ExecutionContext, Environment, Skill, McpServer)
+- [x] Keep `execution_client` on system channel for `updateStatus` (operator-only)
+- [x] Wire OBO in `generate_session_subject.py` + update Java activity interface
 - [ ] Test locally
 
 ### Notes
-- The metadata key is `x-on-behalf-of` (defined in `OnBehalfOfMetadata.java`)
-- Best approach: add to `AuthClientInterceptor` so all clients get it automatically
-- The `STIGMER_API_KEY` (Bearer token) stays — it authenticates the machine account; the OBO header overrides the effective identity
+- Created `OnBehalfOfInterceptor` in `grpc_client/auth/on_behalf_of_interceptor.py`
+- Architectural decision: separate interceptor (not merged into `AuthClientInterceptor`) keeps system auth clean
+- Dual-channel pattern: system channel for writes/status, OBO channel for user-scoped reads
+- Added `can_update_status` FGA permission for operator-only status updates
 
 ## Task 6: Workflow runner — attach x-on-behalf-of to all gRPC calls
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-25 11:59
+**Completed**: 2026-03-25
 **Repo**: stigmer (Go)
 
 ### Subtasks
-- [ ] Read invoker identity from Temporal workflow/activity input in `execute_workflow_activity.go`
-- [ ] Add `x-on-behalf-of` to gRPC metadata in all client calls (via shared interceptor or per-client metadata append)
-- [ ] Verify all clients get the header: ExecutionContext, Workflow, WorkflowInstance, WorkflowExecution (UpdateStatus)
-- [ ] Also cover `progress_interceptor.go` (UpdateStatus on each task step)
-- [ ] Cover `task_builder_call_agent_activities.go` (GetByReference, Create AgentExecution)
+- [x] Create `WithOnBehalfOf` context helper in `pkg/grpc_client/on_behalf_of.go`
+- [x] Wire OBO in `execute_workflow_activity.go`: `oboCtx` for reads, plain `ctx` for `updateStatus`
+- [x] Fix missing auth headers in `task_builder_call_agent_activities.go` + wire OBO via `buildAuthenticatedContext`
+- [x] Thread `InvokerIdentityAccountID` through `TemporalWorkflowInput` and workflow state
+- [x] Wire identity from state to `CallAgentActivity` in `task_builder_call_agent.go`
 - [ ] Test locally
 
 ### Notes
-- Go clients use `metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+apiKey)` — add `x-on-behalf-of` alongside it
-- `task_builder_call_agent_activities.go` has its own `initGrpcConnection` that doesn't use `pkg/grpc_client` — needs separate handling
+- Created `pkg/grpc_client/on_behalf_of.go` with `WithOnBehalfOf` helper (appends metadata to context)
+- `execute_workflow_activity.go`: `oboCtx` used for all reads (WorkflowInstance, Workflow, ExecutionContext); `updateStatus` stays on system context
+- `task_builder_call_agent_activities.go`: discovered missing auth headers on gRPC clients, fixed with `buildAuthenticatedContext` helper that adds both `authorization` and `x-on-behalf-of`
+- Identity stored in Zigflow workflow state as `__stigmer_invoker_identity_account`, retrieved by task builders
 
 ## Task 7: Simplify agent_execution.fga
 
@@ -146,23 +152,24 @@ Add timestamps and notes to track your progress.
 
 ## Task 8: Evaluate and add execution_context FGA type
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE (decided against dedicated FGA model — derived auth instead)
 **Created**: 2026-03-25 11:59
-**Repo**: stigmer-cloud
+**Completed**: 2026-03-25
+**Repo**: stigmer, stigmer-cloud
 
 ### Subtasks
-- [ ] Confirm no `type execution_context` exists in any `.fga` file (verified in analysis)
-- [ ] Design FGA type: child of agent_execution OR workflow_execution with inherited view/edit
-- [ ] Create `execution_context.fga` in `fga/model/agentic/`
-- [ ] Update proto `AuthorizationConfig` for execution_context kind to use PARENT scope
-- [ ] Wire into `CreateAuthorizationTuplesStepV2` flow
-- [ ] Run FGA model validation tests
+- [x] Evaluate architectural trade-offs for dedicated FGA model vs derived auth
+- [x] Decision: ExecutionContext is ephemeral (1:1 with parent, short-lived) — full FGA model is over-engineering
+- [x] Set `is_skip_authorization=true` on all ExecutionContext RPCs (command + query protos)
+- [x] Implement handler-level derived auth in `ExecutionContextGetByExecutionIdHandler`: check `can_view` on parent execution
+- [x] Reorder creation pipelines: `createAuthorizationTuples → createExecutionContext → persist`
 
 ### Notes
-- ExecutionContext holds decrypted secrets — most sensitive resource in the system
-- Currently has zero FGA protection (relies on transport-level auth only)
-- Proposed model: `session` as parent for agent-exec contexts, `organization` scope for workflow-exec contexts
-- Alternative: single parent relation to either agent_execution or workflow_execution
+- Architectural decision (collaborative with user): ExecutionContext is temporary data with 1:1 relationship to parent execution. A dedicated FGA model with tuple creation/deletion adds overhead for no practical benefit
+- Solution: derive authorization from parent execution — `can_view` on parent `agent_execution` or `workflow_execution`
+- `getByExecutionId` handler tries `agent_execution` auth first, falls back to `workflow_execution`
+- All other ExecutionContext RPCs are system-only (create/delete during execution lifecycle)
+- Pipeline reorder ensures FGA tuples exist before ExecutionContext creation, and `runtime_env` is cleared before persist
 
 
 ## Project Completion Checklist

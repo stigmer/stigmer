@@ -57,7 +57,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "tigmer.agentic.workflowexecution.v1.Work" +
       "flowExecutionUpdateStatusInput\032:.ai.stig" +
       "mer.agentic.workflowexecution.v1.Workflo" +
-      "wExecution\"H\302\270\030D\010\004\0204\"\014execution_id*0unau" +
+      "wExecution\"H\302\270\030D\010\034\0204\"\014execution_id*0unau" +
       "thorized to update workflow execution st" +
       "atus\022\342\001\n\016submitApproval\022D.ai.stigmer.age" +
       "ntic.workflowexecution.v1.SubmitWorkflow" +

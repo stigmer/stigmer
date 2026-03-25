@@ -30,7 +30,7 @@ const file_ai_stigmer_agentic_workflowexecution_v1_command_proto_rawDesc = "" +
 	"\"WorkflowExecutionCommandController\x12\x86\x01\n" +
 	"\x06create\x12:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"\x04и\x18\x01\x12\xc2\x01\n" +
 	"\x06update\x12:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"@¸\x18<\b\x04\x104\"\vmetadata.id*)unauthorized to update workflow execution\x12\xe1\x01\n" +
-	"\fupdateStatus\x12K.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"H¸\x18D\b\x04\x104\"\fexecution_id*0unauthorized to update workflow execution status\x12\xe2\x01\n" +
+	"\fupdateStatus\x12K.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionUpdateStatusInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"H¸\x18D\b\x1c\x104\"\fexecution_id*0unauthorized to update workflow execution status\x12\xe2\x01\n" +
 	"\x0esubmitApproval\x12D.ai.stigmer.agentic.workflowexecution.v1.SubmitWorkflowApprovalInput\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\"N¸\x18J\b\x04\x104\"\fexecution_id*6unauthorized to submit approval for workflow execution\x12\xaf\x01\n" +
 	"\x06delete\x12-.ai.stigmer.commons.apiresource.ApiResourceId\x1a:.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution\":¸\x186\b\x04\x104\"\x05value*)unauthorized to delete workflow execution\x12\xcd\x01\n" +
 	"\n" +

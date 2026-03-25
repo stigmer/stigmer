@@ -37,7 +37,7 @@ service AgentExecutionCommandController {
   // This RPC is optimized for frequent status updates and merges status fields with existing state.
   rpc updateStatus(AgentExecutionUpdateStatusInput) returns (AgentExecution) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_update_status;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "execution_id";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update agent execution status";
   }

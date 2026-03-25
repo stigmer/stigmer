@@ -43,31 +43,24 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
       "mer/commons/apiresource/io.proto\0328ai/sti" +
       "gmer/commons/apiresource/rpc_service_opt" +
       "ions.proto\032Aai/stigmer/iam/iampolicy/v1/" +
-      "rpcauthorization/method_options.proto2\321\005" +
-      "\n\037ExecutionContextQueryController\022\314\001\n\003ge" +
+      "rpcauthorization/method_options.proto2\323\003" +
+      "\n\037ExecutionContextQueryController\022\201\001\n\003ge" +
       "t\022:.ai.stigmer.agentic.executioncontext." +
       "v1.ExecutionContextId\0328.ai.stigmer.agent" +
       "ic.executioncontext.v1.ExecutionContext\"" +
-      "O\302\270\030K\010\005\020\037*<unauthorized to get Execution" +
-      " Context (operator-only action)2\007stigmer" +
-      "\022\336\001\n\016getByReference\0224.ai.stigmer.commons" +
-      ".apiresource.ApiResourceReference\0328.ai.s" +
-      "tigmer.agentic.executioncontext.v1.Execu" +
-      "tionContext\"\\\302\270\030X\010\005\020\037*Iunauthorized to g" +
-      "et Execution Context by reference (opera" +
-      "tor-only action)2\007stigmer\022\367\001\n\020getByExecu" +
-      "tionId\022H.ai.stigmer.agentic.executioncon" +
-      "text.v1.ExecutionContextExecutionIdInput" +
-      "\0328.ai.stigmer.agentic.executioncontext.v" +
-      "1.ExecutionContext\"_\302\270\030[\010\005\020\037*Lunauthoriz" +
-      "ed to get Execution Context by execution" +
-      " ID (operator-only action)2\007stigmer\032\004\240\377+" +
-      "6B\311\001B\nQueryProtoP\001\242\002\004ASAE\252\002&Ai.Stigmer.A" +
-      "gentic.Executioncontext.V1\312\002&Ai\\Stigmer\\" +
-      "Agentic\\Executioncontext\\V1\342\0022Ai\\Stigmer" +
-      "\\Agentic\\Executioncontext\\V1\\GPBMetadata" +
-      "\352\002*Ai::Stigmer::Agentic::Executioncontex" +
-      "t::V1b\006proto3"
+      "\004\320\270\030\001\022\206\001\n\016getByReference\0224.ai.stigmer.co" +
+      "mmons.apiresource.ApiResourceReference\0328" +
+      ".ai.stigmer.agentic.executioncontext.v1." +
+      "ExecutionContext\"\004\320\270\030\001\022\234\001\n\020getByExecutio" +
+      "nId\022H.ai.stigmer.agentic.executioncontex" +
+      "t.v1.ExecutionContextExecutionIdInput\0328." +
+      "ai.stigmer.agentic.executioncontext.v1.E" +
+      "xecutionContext\"\004\320\270\030\001\032\004\240\377+6B\311\001B\nQueryPro" +
+      "toP\001\242\002\004ASAE\252\002&Ai.Stigmer.Agentic.Executi" +
+      "oncontext.V1\312\002&Ai\\Stigmer\\Agentic\\Execut" +
+      "ioncontext\\V1\342\0022Ai\\Stigmer\\Agentic\\Execu" +
+      "tioncontext\\V1\\GPBMetadata\352\002*Ai::Stigmer" +
+      "::Agentic::Executioncontext::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -87,7 +80,7 @@ public final class QueryProto extends com.google.protobuf.GeneratedFile {
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();
     registry.add(ai.stigmer.commons.apiresource.RpcServiceOptionsProto.apiResourceKind);
-    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.config);
+    registry.add(ai.stigmer.iam.iampolicy.v1.rpcauthorization.MethodOptionsProto.isSkipAuthorization);
     com.google.protobuf.Descriptors.FileDescriptor
         .internalUpdateFileDescriptor(descriptor, registry);
   }
