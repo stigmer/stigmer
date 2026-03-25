@@ -79,7 +79,7 @@ spec:
           STIGMER_CHECKPOINTER_MONGODB_URI:
             value: $secrets-group/stigmer-mongodb-credentials/prod.checkpointer-uri
   availability:
-    minReplicas: 3
+    minReplicas: 1
     # Zero-downtime deployment strategy
     deploymentStrategy:
       maxUnavailable: "0"
