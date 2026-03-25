@@ -7,7 +7,7 @@ sent (via :class:`AuthClientInterceptor`); the server verifies the machine
 account has ``can_impersonate`` before accepting the OBO header.
 """
 
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import grpc

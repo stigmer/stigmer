@@ -6,7 +6,8 @@ session persistence, state-aware recovery, and cleanup.
 
 import logging
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 try:
     from daytona import (
@@ -322,7 +323,7 @@ class SandboxManager:
             # Poll until ready (max 180 seconds).
             # Heartbeat every ~30 s (every 15th iteration of the 2 s loop)
             # to keep the Temporal activity alive during this synchronous wait.
-            _HEARTBEAT_EVERY = 15  # 15 × 2 s = 30 s
+            heartbeat_every = 15  # 15 × 2 s = 30 s
             for attempt in range(90):
                 try:
                     result = sandbox.process.exec("echo ready", timeout=5)
@@ -333,7 +334,7 @@ class SandboxManager:
                     if attempt % 10 == 0:
                         logger.debug(f"Daytona sandbox not ready yet (attempt {attempt}/90): {e}")
                 
-                if heartbeat_fn and attempt > 0 and attempt % _HEARTBEAT_EVERY == 0:
+                if heartbeat_fn and attempt > 0 and attempt % heartbeat_every == 0:
                     heartbeat_fn(f"sandbox_polling:{sandbox.id}:{attempt * 2}s")
 
                 time.sleep(2)
