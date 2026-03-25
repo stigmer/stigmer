@@ -44,6 +44,7 @@ export default function OidcAuthProvider({
   const managerRef = useRef(createUserManager(config));
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [callbackError, setCallbackError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -119,10 +120,25 @@ export default function OidcAuthProvider({
     managerRef.current.signinRedirect();
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    setIsLoggingOut(true);
     setAuthToken(null);
-    managerRef.current.signoutRedirect();
-  }, []);
+    try {
+      await managerRef.current.signoutRedirect();
+    } catch (err) {
+      console.error("[auth] signoutRedirect failed, falling back:", err);
+      // Fallback: manually navigate to Auth0's OIDC logout endpoint.
+      // This handles cases where oidc-client-ts can't construct the
+      // request (e.g. missing id_token_hint or stale metadata).
+      const issuer = config.issuer.replace(/\/+$/, "");
+      const params = new URLSearchParams({
+        client_id: config.clientId,
+        post_logout_redirect_uri: window.location.origin,
+        returnTo: window.location.origin,
+      });
+      window.location.replace(`${issuer}/v2/logout?${params}`);
+    }
+  }, [config.issuer, config.clientId]);
 
   const authUser = useMemo<AuthUser | null>(() => {
     if (!user?.profile) return null;
@@ -136,13 +152,13 @@ export default function OidcAuthProvider({
   const state = useMemo<AuthState>(
     () => ({
       isAuthenticated: user !== null && !user.expired,
-      isLoading,
+      isLoading: isLoading || isLoggingOut,
       user: authUser,
       accessToken: user?.access_token ?? null,
       login,
       logout,
     }),
-    [user, isLoading, authUser, login, logout],
+    [user, isLoading, isLoggingOut, authUser, login, logout],
   );
 
   // If the callback exchange failed, show the error with a retry action
