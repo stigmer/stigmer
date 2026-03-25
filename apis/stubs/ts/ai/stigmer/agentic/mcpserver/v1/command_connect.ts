@@ -5,7 +5,7 @@
 
 import { McpServer } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
-import { ApiResourceDeleteInput } from "../../../commons/apiresource/io_pb.js";
+import { ApiResourceDeleteInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pb.js";
 import { UpdateDiscoveredCapabilitiesInput } from "./io_pb.js";
 
 /**
@@ -115,6 +115,24 @@ export const McpServerCommandController = {
     delete: {
       name: "delete",
       I: ApiResourceDeleteInput,
+      O: McpServer,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Update the visibility of an existing MCP server.
+     *
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make an MCP server publicly accessible (marketplace-style sharing) or to
+     * revoke public access without sending the entire resource.
+     *
+     * Authorization: Requires can_edit permission on the mcp_server resource.
+     *
+     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.updateVisibility
+     */
+    updateVisibility: {
+      name: "updateVisibility",
+      I: UpdateVisibilityInput,
       O: McpServer,
       kind: MethodKind.Unary,
     },

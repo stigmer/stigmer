@@ -8,6 +8,7 @@ import ai.stigmer.agentic.mcpserver.v1.McpServerQueryControllerGrpc;
 import ai.stigmer.agentic.mcpserver.v1.UpdateDiscoveredCapabilitiesInput;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
+import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.commons.rpc.PageInfo;
 import ai.stigmer.search.v1.SearchRequest;
@@ -55,6 +56,12 @@ public final class McpServerClient {
                 req.setVersionMessage(input.getVersionMessage());
             }
             return command.delete(req.build());
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public McpServer updateVisibility(UpdateVisibilityInput input) {
+        try {
+            return command.updateVisibility(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

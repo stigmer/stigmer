@@ -39,4 +39,13 @@ export type {
   PushSkillParams,
 } from "./useApplyResource";
 
+export { VisibilityToggle } from "./VisibilityToggle";
+export type { VisibilityToggleProps } from "./VisibilityToggle";
+
+export { useUpdateVisibility } from "./useUpdateVisibility";
+export type {
+  VisibilityResourceKind,
+  UseUpdateVisibilityReturn,
+} from "./useUpdateVisibility";
+
 export type { ResourceListScope } from "../search";

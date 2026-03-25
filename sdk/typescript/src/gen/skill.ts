@@ -11,7 +11,7 @@ import { SkillIdSchema, PushSkillRequestSchema, PushSkillFromExecutionArtifactRe
 import { SkillQueryController } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/query_pb";
 import { SkillSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/skill/v1/spec_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
+import { ApiResourceReferenceSchema, type UpdateVisibilityInput } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { PageInfoSchema } from "@stigmer/protos/ai/stigmer/commons/rpc/pagination_pb";
 import { SearchRequestSchema } from "@stigmer/protos/ai/stigmer/search/v1/io_pb";
@@ -38,6 +38,12 @@ export class SkillClient {
   async pushFromExecutionArtifact(input: PushSkillFromExecutionArtifactRequest): Promise<Skill> {
     try {
       return await this.command.pushFromExecutionArtifact(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async updateVisibility(input: UpdateVisibilityInput): Promise<Skill> {
+    try {
+      return await this.command.updateVisibility(input);
     } catch (e) { throw wrapError(e); }
   }
 

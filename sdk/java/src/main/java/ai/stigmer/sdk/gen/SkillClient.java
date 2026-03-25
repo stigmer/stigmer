@@ -10,6 +10,7 @@ import ai.stigmer.agentic.skill.v1.Skill;
 import ai.stigmer.agentic.skill.v1.SkillCommandControllerGrpc;
 import ai.stigmer.agentic.skill.v1.SkillId;
 import ai.stigmer.agentic.skill.v1.SkillQueryControllerGrpc;
+import ai.stigmer.commons.apiresource.UpdateVisibilityInput;
 import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.commons.rpc.PageInfo;
 import ai.stigmer.search.v1.SearchRequest;
@@ -39,6 +40,12 @@ public final class SkillClient {
     public Skill pushFromExecutionArtifact(PushSkillFromExecutionArtifactRequest input) {
         try {
             return command.pushFromExecutionArtifact(input);
+        } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
+    }
+
+    public Skill updateVisibility(UpdateVisibilityInput input) {
+        try {
+            return command.updateVisibility(input);
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

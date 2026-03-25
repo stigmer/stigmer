@@ -46,6 +46,11 @@ class McpServerCommandControllerStub(object):
                 request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
                 _registered_method=True)
+        self.updateVisibility = channel.unary_unary(
+                '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateVisibility',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
+                _registered_method=True)
         self.updateDiscoveredCapabilities = channel.unary_unary(
                 '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateDiscoveredCapabilities',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_io__pb2.UpdateDiscoveredCapabilitiesInput.SerializeToString,
@@ -143,6 +148,20 @@ class McpServerCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def updateVisibility(self, request, context):
+        """Update the visibility of an existing MCP server.
+
+        This is a targeted metadata update — it only modifies metadata.visibility,
+        leaving spec, status, and other metadata fields untouched. Use this to
+        make an MCP server publicly accessible (marketplace-style sharing) or to
+        revoke public access without sending the entire resource.
+
+        Authorization: Requires can_edit permission on the mcp_server resource.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def updateDiscoveredCapabilities(self, request, context):
         """Update the discovered capabilities (tools and resource templates) for an MCP server.
 
@@ -184,6 +203,11 @@ def add_McpServerCommandControllerServicer_to_server(servicer, server):
             'delete': grpc.unary_unary_rpc_method_handler(
                     servicer.delete,
                     request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.SerializeToString,
+            ),
+            'updateVisibility': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateVisibility,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.SerializeToString,
             ),
             'updateDiscoveredCapabilities': grpc.unary_unary_rpc_method_handler(
@@ -309,6 +333,33 @@ class McpServerCommandController(object):
             target,
             '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/delete',
             ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.ApiResourceDeleteInput.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updateVisibility(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.mcpserver.v1.McpServerCommandController/updateVisibility',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_mcpserver_dot_v1_dot_api__pb2.McpServer.FromString,
             options,
             channel_credentials,

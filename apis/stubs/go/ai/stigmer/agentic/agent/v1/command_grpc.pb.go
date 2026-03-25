@@ -8,6 +8,7 @@ package agentv1
 
 import (
 	context "context"
+	apiresource "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -19,10 +20,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AgentCommandController_Apply_FullMethodName  = "/ai.stigmer.agentic.agent.v1.AgentCommandController/apply"
-	AgentCommandController_Create_FullMethodName = "/ai.stigmer.agentic.agent.v1.AgentCommandController/create"
-	AgentCommandController_Update_FullMethodName = "/ai.stigmer.agentic.agent.v1.AgentCommandController/update"
-	AgentCommandController_Delete_FullMethodName = "/ai.stigmer.agentic.agent.v1.AgentCommandController/delete"
+	AgentCommandController_Apply_FullMethodName            = "/ai.stigmer.agentic.agent.v1.AgentCommandController/apply"
+	AgentCommandController_Create_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/create"
+	AgentCommandController_Update_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/update"
+	AgentCommandController_UpdateVisibility_FullMethodName = "/ai.stigmer.agentic.agent.v1.AgentCommandController/updateVisibility"
+	AgentCommandController_Delete_FullMethodName           = "/ai.stigmer.agentic.agent.v1.AgentCommandController/delete"
 )
 
 // AgentCommandControllerClient is the client API for AgentCommandController service.
@@ -43,6 +45,15 @@ type AgentCommandControllerClient interface {
 	Create(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error)
 	// Update an existing agent.
 	Update(ctx context.Context, in *Agent, opts ...grpc.CallOption) (*Agent, error)
+	// Update the visibility of an existing agent.
+	//
+	// This is a targeted metadata update — it only modifies metadata.visibility,
+	// leaving spec, status, and other metadata fields untouched. Use this to
+	// make an agent publicly accessible or to revoke public access without
+	// sending the entire agent resource (avoiding read-modify-write races).
+	//
+	// Authorization: Requires can_edit permission on the agent resource.
+	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Agent, error)
 	// Delete an agent.
 	Delete(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error)
 }
@@ -85,6 +96,16 @@ func (c *agentCommandControllerClient) Update(ctx context.Context, in *Agent, op
 	return out, nil
 }
 
+func (c *agentCommandControllerClient) UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Agent, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Agent)
+	err := c.cc.Invoke(ctx, AgentCommandController_UpdateVisibility_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *agentCommandControllerClient) Delete(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Agent)
@@ -113,6 +134,15 @@ type AgentCommandControllerServer interface {
 	Create(context.Context, *Agent) (*Agent, error)
 	// Update an existing agent.
 	Update(context.Context, *Agent) (*Agent, error)
+	// Update the visibility of an existing agent.
+	//
+	// This is a targeted metadata update — it only modifies metadata.visibility,
+	// leaving spec, status, and other metadata fields untouched. Use this to
+	// make an agent publicly accessible or to revoke public access without
+	// sending the entire agent resource (avoiding read-modify-write races).
+	//
+	// Authorization: Requires can_edit permission on the agent resource.
+	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Agent, error)
 	// Delete an agent.
 	Delete(context.Context, *AgentId) (*Agent, error)
 }
@@ -132,6 +162,9 @@ func (UnimplementedAgentCommandControllerServer) Create(context.Context, *Agent)
 }
 func (UnimplementedAgentCommandControllerServer) Update(context.Context, *Agent) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedAgentCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Agent, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateVisibility not implemented")
 }
 func (UnimplementedAgentCommandControllerServer) Delete(context.Context, *AgentId) (*Agent, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -210,6 +243,24 @@ func _AgentCommandController_Update_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AgentCommandController_UpdateVisibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(apiresource.UpdateVisibilityInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentCommandControllerServer).UpdateVisibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentCommandController_UpdateVisibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentCommandControllerServer).UpdateVisibility(ctx, req.(*apiresource.UpdateVisibilityInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AgentCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AgentId)
 	if err := dec(in); err != nil {
@@ -246,6 +297,10 @@ var AgentCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "update",
 			Handler:    _AgentCommandController_Update_Handler,
+		},
+		{
+			MethodName: "updateVisibility",
+			Handler:    _AgentCommandController_UpdateVisibility_Handler,
 		},
 		{
 			MethodName: "delete",

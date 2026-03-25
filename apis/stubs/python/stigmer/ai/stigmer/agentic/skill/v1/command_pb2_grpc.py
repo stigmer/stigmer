@@ -4,6 +4,7 @@ import grpc
 
 from ai.stigmer.agentic.skill.v1 import api_pb2 as ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2
 from ai.stigmer.agentic.skill.v1 import io_pb2 as ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2
+from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2
 
 
 class SkillCommandControllerStub(object):
@@ -24,6 +25,11 @@ class SkillCommandControllerStub(object):
         self.pushFromExecutionArtifact = channel.unary_unary(
                 '/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromExecutionArtifact',
                 request_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromExecutionArtifactRequest.SerializeToString,
+                response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
+                _registered_method=True)
+        self.updateVisibility = channel.unary_unary(
+                '/ai.stigmer.agentic.skill.v1.SkillCommandController/updateVisibility',
+                request_serializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
                 response_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
                 _registered_method=True)
         self.delete = channel.unary_unary(
@@ -79,6 +85,20 @@ class SkillCommandControllerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def updateVisibility(self, request, context):
+        """Update the visibility of an existing skill.
+
+        This is a targeted metadata update — it only modifies metadata.visibility,
+        leaving spec, status, and other metadata fields untouched. Skills default
+        to visibility_private on push; use this RPC to make a skill publicly
+        accessible (marketplace-style sharing) or to revoke public access.
+
+        Authorization: Requires can_edit permission on the skill resource.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def delete(self, request, context):
         """Delete a skill and all its versions.
         This removes the skill from the main collection but preserves audit history.
@@ -98,6 +118,11 @@ def add_SkillCommandControllerServicer_to_server(servicer, server):
             'pushFromExecutionArtifact': grpc.unary_unary_rpc_method_handler(
                     servicer.pushFromExecutionArtifact,
                     request_deserializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromExecutionArtifactRequest.FromString,
+                    response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
+            ),
+            'updateVisibility': grpc.unary_unary_rpc_method_handler(
+                    servicer.updateVisibility,
+                    request_deserializer=ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.FromString,
                     response_serializer=ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.SerializeToString,
             ),
             'delete': grpc.unary_unary_rpc_method_handler(
@@ -160,6 +185,33 @@ class SkillCommandController(object):
             target,
             '/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromExecutionArtifact',
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_io__pb2.PushSkillFromExecutionArtifactRequest.SerializeToString,
+            ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def updateVisibility(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ai.stigmer.agentic.skill.v1.SkillCommandController/updateVisibility',
+            ai_dot_stigmer_dot_commons_dot_apiresource_dot_io__pb2.UpdateVisibilityInput.SerializeToString,
             ai_dot_stigmer_dot_agentic_dot_skill_dot_v1_dot_api__pb2.Skill.FromString,
             options,
             channel_credentials,

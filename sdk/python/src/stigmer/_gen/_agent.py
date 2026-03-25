@@ -48,6 +48,12 @@ class AgentClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def update_visibility(self, input: io_pb2.UpdateVisibilityInput) -> api_pb2.Agent:
+        try:
+            return self._command.updateVisibility(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def delete(self, id: str) -> api_pb2.Agent:
         try:
             return self._command.delete(io_pb2.AgentId(value=id))

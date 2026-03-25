@@ -52,6 +52,11 @@ func (m *McpServerClient) Delete(ctx context.Context, input *DeleteResourceInput
 	return resp, wrapErr(err)
 }
 
+func (m *McpServerClient) UpdateVisibility(ctx context.Context, input *apiresource.UpdateVisibilityInput) (*mcpserverv1.McpServer, error) {
+	resp, err := m.command.UpdateVisibility(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (m *McpServerClient) UpdateDiscoveredCapabilities(ctx context.Context, input *mcpserverv1.UpdateDiscoveredCapabilitiesInput) (*mcpserverv1.McpServer, error) {
 	resp, err := m.command.UpdateDiscoveredCapabilities(ctx, input)
 	return resp, wrapErr(err)

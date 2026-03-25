@@ -5,6 +5,7 @@
 
 import { Agent } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
+import { UpdateVisibilityInput } from "../../../commons/apiresource/io_pb.js";
 import { AgentId } from "./io_pb.js";
 
 /**
@@ -51,6 +52,24 @@ export const AgentCommandController = {
     update: {
       name: "update",
       I: Agent,
+      O: Agent,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Update the visibility of an existing agent.
+     *
+     * This is a targeted metadata update — it only modifies metadata.visibility,
+     * leaving spec, status, and other metadata fields untouched. Use this to
+     * make an agent publicly accessible or to revoke public access without
+     * sending the entire agent resource (avoiding read-modify-write races).
+     *
+     * Authorization: Requires can_edit permission on the agent resource.
+     *
+     * @generated from rpc ai.stigmer.agentic.agent.v1.AgentCommandController.updateVisibility
+     */
+    updateVisibility: {
+      name: "updateVisibility",
+      I: UpdateVisibilityInput,
       O: Agent,
       kind: MethodKind.Unary,
     },

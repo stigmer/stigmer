@@ -8,7 +8,7 @@ import type { McpServerSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_mcpserver_v1_api } from "./api_pb";
 import type { UpdateDiscoveredCapabilitiesInputSchema } from "./io_pb";
 import { file_ai_stigmer_agentic_mcpserver_v1_io } from "./io_pb";
-import type { ApiResourceDeleteInputSchema } from "../../../commons/apiresource/io_pb";
+import type { ApiResourceDeleteInputSchema, UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_rpc_service_options } from "../../../commons/apiresource/rpc_service_options_pb";
 import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from "../../../iam/iampolicy/v1/rpcauthorization/method_options_pb";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from
  * Describes the file ai/stigmer/agentic/mcpserver/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2NvbW1hbmQucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEyiwYKGk1jcFNlcnZlckNvbW1hbmRDb250cm9sbGVyEl8KBWFwcGx5EiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchJmCgZjcmVhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBEpoBCgZ1cGRhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIjjCuBg0CAQQLCILbWV0YWRhdGEuaWQqIXVuYXV0aG9yaXplZCB0byB1cGRhdGUgbWNwIHNlcnZlchKmAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlciI4wrgYNAgCECwiC3Jlc291cmNlX2lkKiF1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIG1jcCBzZXJ2ZXIS1wEKHHVwZGF0ZURpc2NvdmVyZWRDYXBhYmlsaXRpZXMSQi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlVwZGF0ZURpc2NvdmVyZWRDYXBhYmlsaXRpZXNJbnB1dBoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIkfCuBhDCAQQLCINbWNwX3NlcnZlcl9pZCoudW5hdXRob3JpemVkIHRvIHVwZGF0ZSBtY3Agc2VydmVyIGNhcGFiaWxpdGllcxoEoP8rLGIGcHJvdG8z", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_agentic_mcpserver_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2NvbW1hbmQucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEyyAcKGk1jcFNlcnZlckNvbW1hbmRDb250cm9sbGVyEl8KBWFwcGx5EiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchJmCgZjcmVhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBEpoBCgZ1cGRhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIjjCuBg0CAQQLCILbWV0YWRhdGEuaWQqIXVuYXV0aG9yaXplZCB0byB1cGRhdGUgbWNwIHNlcnZlchKmAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlciI4wrgYNAgCECwiC3Jlc291cmNlX2lkKiF1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIG1jcCBzZXJ2ZXISugEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIiQ8K4GD8IBBAsIgtyZXNvdXJjZV9pZCosdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBtY3Agc2VydmVyIHZpc2liaWxpdHkS1wEKHHVwZGF0ZURpc2NvdmVyZWRDYXBhYmlsaXRpZXMSQi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlVwZGF0ZURpc2NvdmVyZWRDYXBhYmlsaXRpZXNJbnB1dBoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIkfCuBhDCAQQLCINbWNwX3NlcnZlcl9pZCoudW5hdXRob3JpemVkIHRvIHVwZGF0ZSBtY3Agc2VydmVyIGNhcGFiaWxpdGllcxoEoP8rLGIGcHJvdG8z", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_agentic_mcpserver_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
  * McpServerCommandController provides write operations for MCP server resources.
@@ -121,6 +121,23 @@ export const McpServerCommandController: GenService<{
   delete: {
     methodKind: "unary";
     input: typeof ApiResourceDeleteInputSchema;
+    output: typeof McpServerSchema;
+  },
+  /**
+   * Update the visibility of an existing MCP server.
+   *
+   * This is a targeted metadata update — it only modifies metadata.visibility,
+   * leaving spec, status, and other metadata fields untouched. Use this to
+   * make an MCP server publicly accessible (marketplace-style sharing) or to
+   * revoke public access without sending the entire resource.
+   *
+   * Authorization: Requires can_edit permission on the mcp_server resource.
+   *
+   * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.updateVisibility
+   */
+  updateVisibility: {
+    methodKind: "unary";
+    input: typeof UpdateVisibilityInputSchema;
     output: typeof McpServerSchema;
   },
   /**

@@ -8,6 +8,7 @@ package skillv1
 
 import (
 	context "context"
+	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -21,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	SkillCommandController_Push_FullMethodName                      = "/ai.stigmer.agentic.skill.v1.SkillCommandController/push"
 	SkillCommandController_PushFromExecutionArtifact_FullMethodName = "/ai.stigmer.agentic.skill.v1.SkillCommandController/pushFromExecutionArtifact"
+	SkillCommandController_UpdateVisibility_FullMethodName          = "/ai.stigmer.agentic.skill.v1.SkillCommandController/updateVisibility"
 	SkillCommandController_Delete_FullMethodName                    = "/ai.stigmer.agentic.skill.v1.SkillCommandController/delete"
 )
 
@@ -62,6 +64,15 @@ type SkillCommandControllerClient interface {
 	//
 	// Returns: The created or updated Skill resource
 	PushFromExecutionArtifact(ctx context.Context, in *PushSkillFromExecutionArtifactRequest, opts ...grpc.CallOption) (*Skill, error)
+	// Update the visibility of an existing skill.
+	//
+	// This is a targeted metadata update — it only modifies metadata.visibility,
+	// leaving spec, status, and other metadata fields untouched. Skills default
+	// to visibility_private on push; use this RPC to make a skill publicly
+	// accessible (marketplace-style sharing) or to revoke public access.
+	//
+	// Authorization: Requires can_edit permission on the skill resource.
+	UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Skill, error)
 	// Delete a skill and all its versions.
 	// This removes the skill from the main collection but preserves audit history.
 	Delete(ctx context.Context, in *SkillId, opts ...grpc.CallOption) (*Skill, error)
@@ -89,6 +100,16 @@ func (c *skillCommandControllerClient) PushFromExecutionArtifact(ctx context.Con
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Skill)
 	err := c.cc.Invoke(ctx, SkillCommandController_PushFromExecutionArtifact_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *skillCommandControllerClient) UpdateVisibility(ctx context.Context, in *apiresource.UpdateVisibilityInput, opts ...grpc.CallOption) (*Skill, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Skill)
+	err := c.cc.Invoke(ctx, SkillCommandController_UpdateVisibility_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -143,6 +164,15 @@ type SkillCommandControllerServer interface {
 	//
 	// Returns: The created or updated Skill resource
 	PushFromExecutionArtifact(context.Context, *PushSkillFromExecutionArtifactRequest) (*Skill, error)
+	// Update the visibility of an existing skill.
+	//
+	// This is a targeted metadata update — it only modifies metadata.visibility,
+	// leaving spec, status, and other metadata fields untouched. Skills default
+	// to visibility_private on push; use this RPC to make a skill publicly
+	// accessible (marketplace-style sharing) or to revoke public access.
+	//
+	// Authorization: Requires can_edit permission on the skill resource.
+	UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Skill, error)
 	// Delete a skill and all its versions.
 	// This removes the skill from the main collection but preserves audit history.
 	Delete(context.Context, *SkillId) (*Skill, error)
@@ -160,6 +190,9 @@ func (UnimplementedSkillCommandControllerServer) Push(context.Context, *PushSkil
 }
 func (UnimplementedSkillCommandControllerServer) PushFromExecutionArtifact(context.Context, *PushSkillFromExecutionArtifactRequest) (*Skill, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PushFromExecutionArtifact not implemented")
+}
+func (UnimplementedSkillCommandControllerServer) UpdateVisibility(context.Context, *apiresource.UpdateVisibilityInput) (*Skill, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateVisibility not implemented")
 }
 func (UnimplementedSkillCommandControllerServer) Delete(context.Context, *SkillId) (*Skill, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -220,6 +253,24 @@ func _SkillCommandController_PushFromExecutionArtifact_Handler(srv interface{}, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SkillCommandController_UpdateVisibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(apiresource.UpdateVisibilityInput)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SkillCommandControllerServer).UpdateVisibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SkillCommandController_UpdateVisibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SkillCommandControllerServer).UpdateVisibility(ctx, req.(*apiresource.UpdateVisibilityInput))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SkillCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SkillId)
 	if err := dec(in); err != nil {
@@ -252,6 +303,10 @@ var SkillCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "pushFromExecutionArtifact",
 			Handler:    _SkillCommandController_PushFromExecutionArtifact_Handler,
+		},
+		{
+			MethodName: "updateVisibility",
+			Handler:    _SkillCommandController_UpdateVisibility_Handler,
 		},
 		{
 			MethodName: "delete",

@@ -347,7 +347,7 @@ export type {
 export { ErrorMessage, SecretFlowErrorGuide, isSecretFlowError } from "./error";
 export type { ErrorMessageProps, SecretFlowErrorGuideProps } from "./error";
 
-// Library — cross-resource UI components, resource detection, apply flow, and browsing
+// Library — cross-resource UI components, resource detection, apply flow, browsing, and visibility management
 export {
   ScopeToggle,
   ResourceListView,
@@ -361,6 +361,8 @@ export {
   serializeAgentYaml,
   serializeMcpServerYaml,
   useApplyResource,
+  VisibilityToggle,
+  useUpdateVisibility,
 } from "./library";
 export type {
   ScopeToggleProps,
@@ -375,6 +377,9 @@ export type {
   UseApplyResourceReturn,
   ApplyResourceResult,
   PushSkillParams,
+  VisibilityToggleProps,
+  VisibilityResourceKind,
+  UseUpdateVisibilityReturn,
 } from "./library";
 
 // Agent Instance — data hooks, list hook, personal convenience hook, and behavior hook
