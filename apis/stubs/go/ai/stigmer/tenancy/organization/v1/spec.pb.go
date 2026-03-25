@@ -47,6 +47,10 @@ type OrganizationSpec struct {
 	// own org ID so the platform can look up the corresponding Stigmer org even if
 	// the Stigmer slug differs from the platform's original slug due to availability.
 	ExternalOrgId string `protobuf:"bytes,5,opt,name=external_org_id,json=externalOrgId,proto3" json:"external_org_id,omitempty"`
+	// Whether this is a personal organization, auto-created during identity provisioning.
+	// Personal orgs serve as the user's default workspace (like GitHub personal accounts).
+	// Immutable after creation. Set by the server — clients cannot set this to true.
+	IsPersonal    bool `protobuf:"varint,6,opt,name=is_personal,json=isPersonal,proto3" json:"is_personal,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -116,17 +120,26 @@ func (x *OrganizationSpec) GetExternalOrgId() string {
 	return ""
 }
 
+func (x *OrganizationSpec) GetIsPersonal() bool {
+	if x != nil {
+		return x.IsPersonal
+	}
+	return false
+}
+
 var File_ai_stigmer_tenancy_organization_v1_spec_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_tenancy_organization_v1_spec_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a-ai/stigmer/tenancy/organization/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xd2\x02\n" +
+	"-ai/stigmer/tenancy/organization/v1/spec.proto\x12\"ai.stigmer.tenancy.organization.v1\x1a'ai/stigmer/commons/apiresource/io.proto\x1a-ai/stigmer/tenancy/organization/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xf3\x02\n" +
 	"\x10OrganizationSpec\x12*\n" +
 	"\vdescription\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xf4\x03R\vdescription\x12#\n" +
 	"\blogo_url\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\alogoUrl\x12[\n" +
 	"\x0fmanagement_mode\x18\x03 \x01(\x0e22.ai.stigmer.tenancy.organization.v1.ManagementModeR\x0emanagementMode\x12h\n" +
 	"\x15identity_provider_ref\x18\x04 \x01(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceR\x13identityProviderRef\x12&\n" +
-	"\x0fexternal_org_id\x18\x05 \x01(\tR\rexternalOrgIdB\xbc\x02\n" +
+	"\x0fexternal_org_id\x18\x05 \x01(\tR\rexternalOrgId\x12\x1f\n" +
+	"\vis_personal\x18\x06 \x01(\bR\n" +
+	"isPersonalB\xbc\x02\n" +
 	"&com.ai.stigmer.tenancy.organization.v1B\tSpecProtoP\x01ZZgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/tenancy/organization/v1;organizationv1\xa2\x02\x04ASTO\xaa\x02\"Ai.Stigmer.Tenancy.Organization.V1\xca\x02\"Ai\\Stigmer\\Tenancy\\Organization\\V1\xe2\x02.Ai\\Stigmer\\Tenancy\\Organization\\V1\\GPBMetadata\xea\x02&Ai::Stigmer::Tenancy::Organization::V1b\x06proto3"
 
 var (

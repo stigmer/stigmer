@@ -66,6 +66,16 @@
       },
       "description": "External platform's organization identifier for reverse mapping.\n Set only for platform_managed organizations. Stores the integrating platform's\n own org ID so the platform can look up the corresponding Stigmer org even if\n the Stigmer slug differs from the platform's original slug due to availability.",
       "required": false
+    },
+    {
+      "name": "IsPersonal",
+      "jsonName": "isPersonal",
+      "protoField": "is_personal",
+      "type": {
+        "kind": "bool"
+      },
+      "description": "Whether this is a personal organization, auto-created during identity provisioning.\n Personal orgs serve as the user's default workspace (like GitHub personal accounts).\n Immutable after creation. Set by the server — clients cannot set this to true.",
+      "required": false
     }
   ]
 }
