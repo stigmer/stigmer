@@ -73,7 +73,7 @@ This project depends on `20260325.02.sp.on-behalf-of-grpc-channel` (COMPLETE). A
 ## Current Status
 
 **Last Updated**: 2026-03-25
-**Status**: In Progress — Operator propagation removed; remaining work is build validation + end-to-end testing
+**Status**: In Progress — OBO audit complete; all runner wiring verified correct; remaining work is build validation + end-to-end testing
 
 ### Completed (Sessions 1–3 — OBO Infrastructure + Wiring)
 - **T07**: Simplified `agent_execution.fga` owner relation (removed redundant `operator from session`)
@@ -137,6 +137,31 @@ Removed the entire transitive `operator` propagation chain from the FGA model. T
 #### Commits
 - `3c2b21e3` (stigmer): `refactor(apis): remove operator propagation from FGA authorization model`
 - `43926471` (stigmer-cloud): `refactor(backend): remove operator propagation from FGA model and Java backend`
+
+### Completed (Session 6 — Comprehensive OBO Audit)
+
+Full audit of both Workflow Runner (Go) and Agent Runner (Python) against the original OBO plan (`wire_obo_t05-t06_2922e9a4.plan.md`).
+
+#### Workflow Runner (Go) — All Items Verified
+- `WithOnBehalfOf` helper: implemented in `on_behalf_of.go`
+- `execute_workflow_activity.go`: OBO for reads, system for `UpdateStatus` — correct
+- `task_builder_call_agent_activities.go`: auth via `buildAuthenticatedContext`, OBO for resolve/create, system for approval — correct
+- `TemporalWorkflowInput.InvokerIdentityAccountID`: field exists, threaded through activities
+- Continue-as-new: `OrgId` and `InvokerIdentityAccountID` now preserved in `continuedInput` (fixed in Session 5, commit `3c2b21e3`)
+- `progress_interceptor.go`: no OBO (system telemetry only) — correct
+
+#### Agent Runner (Python) — All Items Verified
+- `OnBehalfOfInterceptor`: appends `x-on-behalf-of` header — correct
+- `ChannelProvider`: stacks OBO interceptor after auth — correct
+- `execute_graphton.py`: `invoker_identity_account_id` threaded into `_execute_graphton_impl` (fixed in Session 5, commit `3c2b21e3`); OBO for all reads, system for `updateStatus` — correct
+- `generate_session_subject.py`: OBO for all reads + session update — correct
+- Top-level error handler: auth-only channel (no OBO) — correct
+
+#### FGA/Proto Foundations — Intentional Divergence from Original Plan
+The original plan proposed per-resource `operator` + `can_update_status` on `agent_execution` and `workflow_execution` FGA types. The implementation took a different (better) path:
+- `updateStatus` RPCs use `platform:stigmer#can_update_execution_status` (platform-level check)
+- `execution_context` uses derived auth from parent execution (no dedicated FGA type)
+- This is simpler, more maintainable, and avoids operator tuple proliferation
 
 ### Remaining Work
 - Build and validate all changes (Bazel for Java, Go vet, Python syntax)
