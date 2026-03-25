@@ -104,7 +104,7 @@ enum ApiResourceKind {
     not_search_indexed: false
     tier: cloud_only
     authorization: {
-      scope_type: AUTHORIZATION_SCOPE_TYPE_PLATFORM
+      scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
       owner_type: OWNER_ATTRIBUTION_TYPE_SELF
     }
   }];
@@ -151,7 +151,7 @@ enum ApiResourceKind {
     not_search_indexed: false
     tier: open_source
     authorization: {
-      scope_type: AUTHORIZATION_SCOPE_TYPE_PLATFORM
+      scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
       owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
     }
   }];

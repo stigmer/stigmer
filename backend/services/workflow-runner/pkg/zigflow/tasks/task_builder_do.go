@@ -246,11 +246,13 @@ func (t *DoTaskBuilder) continueAsNew(
 		// Create a copy and update with current state
 		// Don't modify the original stored in state
 		continuedInput := &types.TemporalWorkflowInput{
-			WorkflowExecutionID: originalInput.WorkflowExecutionID,
-			WorkflowYaml:        originalInput.WorkflowYaml,
-			Metadata:            originalInput.Metadata,
-			EnvVars:             originalInput.EnvVars,
-			InitialData:         state.Data, // Use current state data (includes CANStartFrom)
+			WorkflowExecutionID:      originalInput.WorkflowExecutionID,
+			WorkflowYaml:             originalInput.WorkflowYaml,
+			Metadata:                 originalInput.Metadata,
+			EnvVars:                  originalInput.EnvVars,
+			InitialData:              state.Data,
+			OrgId:                    originalInput.OrgId,
+			InvokerIdentityAccountID: originalInput.InvokerIdentityAccountID,
 		}
 
 		// Log with safe metadata access
