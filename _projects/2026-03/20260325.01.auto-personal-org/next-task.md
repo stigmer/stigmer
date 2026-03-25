@@ -1,11 +1,32 @@
 # Next Task: 20260325.01.auto-personal-org
 
 ## Current State
-- **Status**: Tasks 1 + 2 complete (proto change + server-side auto-creation)
-- **Last Session**: March 25, 2026 — Implemented all 7 tasks from the plan
-- **Active Task**: None — all planned tasks completed
+- **Status**: Tasks 1, 2, and 4 complete (proto change + server-side auto-creation + lazy backfill)
+- **Last Session**: March 25, 2026 — Implemented Task 4 (lazy backfill on login)
+- **Active Task**: None — ready for Task 3 (UI/UX) or Task 5 (testing)
 
-## Session Progress (2026-03-25)
+## Session Progress (2026-03-25, Session 2)
+
+### Accomplished
+- Implemented Task 4: lazy personal org backfill on login
+- Added version-gated backfill check to the existing-account early-return path in `CreateIdentityAccountFromAuth0WorkflowImpl`
+- The backfill piggybacks on existing infrastructure — the auth0-webhooks-receiver Worker already forwards login events (`s`) to the same Temporal workflow, which finds the existing identity and returns early. The backfill adds a personal org check before that return.
+
+### Key Decisions
+- **No new infrastructure**: The backfill reuses `PersonalOrganizationActivities` (already registered with Temporal worker), `createOnBehalfOf`, and the existing idempotency in `PersonalOrganizationActivitiesImpl`.
+- **Email source**: Uses `existing.getSpec().getEmail()` from the IdentityAccount proto (field 2) — avoids an Auth0 Management API call. This is the key difference from the new-account path (Step 7) which loads email from Auth0 in Step 4.
+- **Separate Temporal version key**: `"backfill-personal-org"` is distinct from the existing `"add-personal-org"` in Step 7. Each version gate is independent — in-flight workflows continue unaffected.
+- **Non-fatal**: Wrapped in try/catch. If backfill fails, the user can still log in normally. Retries on next login.
+
+### Key Discovery
+- The auth0-webhooks-receiver Cloudflare Worker forwards **both** `ss` (Success Signup) **and** `s` (Success Login) events to the same `CreateIdentityAccountFromAuth0Workflow`. Every login already triggers a Temporal workflow execution (with unique timestamp-based workflow ID). The workflow checks if the identity account exists and returns early — the backfill is just one more step before that return.
+
+### Files Modified
+
+**stigmer-cloud repo:**
+- `CreateIdentityAccountFromAuth0WorkflowImpl.java` — added version-gated backfill check in existing-account early-return path (lines 86-102), renumbered step comments (Steps 3-7)
+
+## Previous Session Progress (2026-03-25, Session 1)
 
 ### Accomplished
 - Added `bool is_personal = 6` to `OrganizationSpec` proto + regenerated stubs in both repos
@@ -23,36 +44,17 @@
 - **Machine accounts**: Skipped — only human Auth0 signups get personal orgs. `IsMachineAccountVerifier.verify()` check in workflow.
 - **Idempotency**: Activity queries MongoDB for existing personal org by `spec.isPersonal=true` AND `status.audit.createdBy.id` matching the identity account ID.
 
-### Files Modified
-
-**stigmer repo:**
-- `apis/ai/stigmer/tenancy/organization/v1/spec.proto` — added `is_personal` field
-- All generated stubs (Go, Java, TS, Python, MCP server, SDKs)
-
-**stigmer-cloud repo:**
-- `RequestCallerIdentity.java` — added `isImpersonated` field
-- `GrpcRequestContextBuilderInterceptor.java` — sets `isImpersonated=true` on on-behalf-of override
-- `IdentityAccountTemporalWorkerConfig.java` — registers `PersonalOrganizationActivitiesImpl`
-- `CreateIdentityAccountFromAuth0WorkflowImpl.java` — versioned personal org creation step
-- `OrganizationCreateHandler.java` — `NormalizeIsPersonal` pipeline step
-- `OrganizationDeleteHandler.java` — `RejectPersonalOrgDeletion` pipeline step
-- `OrganizationUpdateHandler.java` — `is_personal` immutability in `EnforceImmutableFields`
-- NEW: `PersonalOrgSlugGenerator.java`
-- NEW: `PersonalOrganizationActivities.java`
-- NEW: `PersonalOrganizationActivitiesImpl.java`
-- NEW: `CreatePersonalOrgInput.java`
-- Generated stubs (Go, Java, TS, Python, Dart)
-
 ## Next Steps
-1. Remaining tasks from `tasks.md` (Tasks 3-6) — UI/UX changes for org gate, org switcher, etc.
-2. Task 4: Lazy backfill on login — safety net for users who signed up before this change
-3. Integration testing of the end-to-end signup flow
+1. Task 3: Web console updates — OrgGate fallback, OrgSwitcher personal org distinction (~0.5-1 day)
+2. Task 5: Testing and validation — unit tests for slug gen, deletion guard, immutability, integration tests (~1 day)
+3. Integration testing of the end-to-end signup flow + backfill flow
 
 ## Context for Resume
 - Both repos are on branch `feat/auto-create-org`
 - Sub-project `20260325.02.sp.on-behalf-of-grpc-channel` (on-behalf-of gRPC infrastructure) is COMPLETE
 - The `OrganizationGrpcRepo` with `createOnBehalfOf()` was created in the sub-project
 - The `isImpersonated` field on `RequestCallerIdentity` is a deviation from the original plan — needed because on-behalf-of calls set `isMachineAccount=false`
+- Task 4 (lazy backfill) is complete — the workflow now ensures personal orgs exist for both new signups AND existing users on login
 
 ## Quick Resume
 To continue this project, drag this file into chat:
