@@ -11,6 +11,7 @@ go_library(
         "push.go",
         "push_from_execution_artifact.go",
         "skill_controller.go",
+        "update_visibility.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/skill/controller",
     visibility = ["//visibility:public"],

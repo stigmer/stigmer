@@ -11,6 +11,7 @@ go_library(
         "mcpserver_controller.go",
         "update.go",
         "update_discovered_capabilities.go",
+        "update_visibility.go",
     ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller",
     visibility = ["//visibility:public"],

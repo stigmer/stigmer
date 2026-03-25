@@ -236,13 +236,13 @@ type pyImports struct {
 	needsIoPb2 bool
 	needsSpec  bool
 
-	needsApiResIo       bool
-	needsMetadata       bool
-	needsEmptyPb2       bool
-	needsSearch         bool
-	needsApiResKind     bool
-	needsEnvV1          bool
-	needsExecCtxV1      bool
+	needsApiResIo   bool
+	needsMetadata   bool
+	needsEmptyPb2   bool
+	needsSearch     bool
+	needsApiResKind bool
+	needsEnvV1      bool
+	needsExecCtxV1  bool
 
 	typesNames         map[string]bool
 	crossResourceTypes map[string][]string // "._agent" -> ["McpServerUsageInput", ...]
