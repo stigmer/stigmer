@@ -120,7 +120,7 @@ class AgentRunner:
         from pymongo import MongoClient
         from pymongo.errors import ConnectionFailure, OperationFailure
         
-        client = MongoClient(
+        client: MongoClient[dict[str, object]] = MongoClient(
             self.config.checkpointer.mongodb_uri,
             serverSelectionTimeoutMS=5000,
         )

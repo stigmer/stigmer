@@ -20,9 +20,9 @@ Public API — provisioning layer (Phase 2):
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Callable
 from typing import Any
 
 from worker.workspace.backend import ExecuteResult, WorkspaceBackend
