@@ -11,7 +11,7 @@ Tests cover:
 Test Categories:
 1. Memory Checkpointer Tests - MemorySaver creation
 2. SQLite Checkpointer Tests - AsyncSqliteSaver creation with context manager
-3. MongoDB Checkpointer Tests - AsyncMongoDBSaver creation with client cleanup
+3. MongoDB Checkpointer Tests - MongoDBSaver creation with client cleanup
 4. Error Handling Tests - Missing deps, connection failures
 5. Utility Function Tests - URI masking
 """
@@ -193,10 +193,9 @@ class TestMongoDBCheckpointer:
         """Test that mongodb without URI raises error."""
         config = CheckpointerConfig(type="mongodb", mongodb_uri=None)
         
-        mock_mongodb_aio = MagicMock()
+        mock_mongodb = MagicMock()
         with patch.dict("sys.modules", {
-            "langgraph.checkpoint.mongodb": MagicMock(),
-            "langgraph.checkpoint.mongodb.aio": mock_mongodb_aio,
+            "langgraph.checkpoint.mongodb": mock_mongodb,
         }):
             with pytest.raises(CheckpointerCreationError) as exc_info:
                 async with create_checkpointer(config) as _:
@@ -207,25 +206,23 @@ class TestMongoDBCheckpointer:
 
     @pytest.mark.asyncio
     async def test_mongodb_passes_config_to_saver(self, mongodb_config):
-        """Test that mongodb config is passed correctly to AsyncMongoDBSaver."""
-        mock_mongodb_aio = MagicMock()
-        mock_motor_asyncio = MagicMock()
+        """Test that mongodb config is passed correctly to MongoDBSaver."""
+        mock_mongodb = MagicMock()
+        mock_pymongo = MagicMock()
         
         mock_client = MagicMock()
         mock_client.close = MagicMock()
-        mock_motor_asyncio.AsyncIOMotorClient.return_value = mock_client
+        mock_pymongo.MongoClient.return_value = mock_client
         mock_saver = MagicMock()
-        mock_mongodb_aio.AsyncMongoDBSaver.return_value = mock_saver
+        mock_mongodb.MongoDBSaver.return_value = mock_saver
         
         with patch.dict("sys.modules", {
-            "langgraph.checkpoint.mongodb": MagicMock(),
-            "langgraph.checkpoint.mongodb.aio": mock_mongodb_aio,
-            "motor": MagicMock(),
-            "motor.motor_asyncio": mock_motor_asyncio,
+            "langgraph.checkpoint.mongodb": mock_mongodb,
+            "pymongo": mock_pymongo,
         }):
             async with create_checkpointer(mongodb_config) as checkpointer:
-                mock_mongodb_aio.AsyncMongoDBSaver.assert_called_once_with(
-                    client=mock_client,
+                mock_mongodb.MongoDBSaver.assert_called_once_with(
+                    mock_client,
                     db_name="test_checkpoints",
                     ttl=3600,
                 )
@@ -235,20 +232,18 @@ class TestMongoDBCheckpointer:
 
     @pytest.mark.asyncio
     async def test_mongodb_client_closed_on_exit(self, mongodb_config):
-        """Test that MongoDB Motor client is properly closed when context exits."""
-        mock_mongodb_aio = MagicMock()
-        mock_motor_asyncio = MagicMock()
+        """Test that MongoDB client is properly closed when context exits."""
+        mock_mongodb = MagicMock()
+        mock_pymongo = MagicMock()
         
         mock_client = MagicMock()
         mock_client.close = MagicMock()
-        mock_motor_asyncio.AsyncIOMotorClient.return_value = mock_client
-        mock_mongodb_aio.AsyncMongoDBSaver.return_value = MagicMock()
+        mock_pymongo.MongoClient.return_value = mock_client
+        mock_mongodb.MongoDBSaver.return_value = MagicMock()
         
         with patch.dict("sys.modules", {
-            "langgraph.checkpoint.mongodb": MagicMock(),
-            "langgraph.checkpoint.mongodb.aio": mock_mongodb_aio,
-            "motor": MagicMock(),
-            "motor.motor_asyncio": mock_motor_asyncio,
+            "langgraph.checkpoint.mongodb": mock_mongodb,
+            "pymongo": mock_pymongo,
         }):
             async with create_checkpointer(mongodb_config):
                 mock_client.close.assert_not_called()
@@ -257,20 +252,18 @@ class TestMongoDBCheckpointer:
 
     @pytest.mark.asyncio
     async def test_mongodb_client_closed_on_error(self, mongodb_config):
-        """Test that MongoDB Motor client is closed even if an error occurs during use."""
-        mock_mongodb_aio = MagicMock()
-        mock_motor_asyncio = MagicMock()
+        """Test that MongoDB client is closed even if an error occurs during use."""
+        mock_mongodb = MagicMock()
+        mock_pymongo = MagicMock()
         
         mock_client = MagicMock()
         mock_client.close = MagicMock()
-        mock_motor_asyncio.AsyncIOMotorClient.return_value = mock_client
-        mock_mongodb_aio.AsyncMongoDBSaver.return_value = MagicMock()
+        mock_pymongo.MongoClient.return_value = mock_client
+        mock_mongodb.MongoDBSaver.return_value = MagicMock()
         
         with patch.dict("sys.modules", {
-            "langgraph.checkpoint.mongodb": MagicMock(),
-            "langgraph.checkpoint.mongodb.aio": mock_mongodb_aio,
-            "motor": MagicMock(),
-            "motor.motor_asyncio": mock_motor_asyncio,
+            "langgraph.checkpoint.mongodb": mock_mongodb,
+            "pymongo": mock_pymongo,
         }):
             with pytest.raises((RuntimeError, CheckpointerCreationError)):
                 async with create_checkpointer(mongodb_config):
@@ -281,15 +274,13 @@ class TestMongoDBCheckpointer:
     @pytest.mark.asyncio
     async def test_mongodb_connection_failure_handling(self, mongodb_config):
         """Test graceful handling of MongoDB connection failures."""
-        mock_mongodb_aio = MagicMock()
-        mock_motor_asyncio = MagicMock()
-        mock_motor_asyncio.AsyncIOMotorClient.side_effect = Exception("Connection refused")
+        mock_mongodb = MagicMock()
+        mock_pymongo = MagicMock()
+        mock_pymongo.MongoClient.side_effect = Exception("Connection refused")
         
         with patch.dict("sys.modules", {
-            "langgraph.checkpoint.mongodb": MagicMock(),
-            "langgraph.checkpoint.mongodb.aio": mock_mongodb_aio,
-            "motor": MagicMock(),
-            "motor.motor_asyncio": mock_motor_asyncio,
+            "langgraph.checkpoint.mongodb": mock_mongodb,
+            "pymongo": mock_pymongo,
         }):
             with pytest.raises(CheckpointerCreationError) as exc_info:
                 async with create_checkpointer(mongodb_config) as _:
