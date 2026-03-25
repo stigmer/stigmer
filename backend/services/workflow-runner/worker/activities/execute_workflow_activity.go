@@ -33,13 +33,18 @@ import (
 
 // ExecuteWorkflowActivity implements the ExecuteWorkflowActivity interface from Java.
 //
-// This is a Temporal activity that executes Zigflow workflows from WorkflowExecution proto.
-// It's called from the Java Temporal workflow (InvokeWorkflowExecutionWorkflowImpl).
+// This is a Temporal activity that executes Zigflow workflows from slim orchestration
+// coordinates. It's called from the Java Temporal workflow (InvokeWorkflowExecutionWorkflowImpl).
+//
+// Slim-Input Pattern:
+// The activity receives only IDs and orchestration coordinates (not the full
+// WorkflowExecution proto). This keeps secrets (runtime_env) out of Temporal's
+// durable workflow history. The activity hydrates the full context via gRPC.
 //
 // Flow:
-// 1. Query ExecutionContext for merged environment variables (if available)
-// 2. Query Stigmer service for complete workflow context (execution → instance → workflow)
-// 3. Convert WorkflowSpec proto → YAML (Phase 2 converter)
+// 1. Query ExecutionContext for merged environment variables
+// 2. Query Stigmer service for complete workflow context (instance -> workflow)
+// 3. Convert WorkflowSpec proto -> YAML (Phase 2 converter)
 // 4. Start ExecuteServerlessWorkflow on zigflow_execution queue
 // 5. Wait for workflow completion
 // 6. Return final status
@@ -91,40 +96,56 @@ func NewExecuteWorkflowActivity(
 	}, nil
 }
 
-// ExecuteWorkflow executes a Zigflow workflow from WorkflowExecution proto.
+// InvokeWorkflowExecutionWorkflowInput is the slim input for the workflow execution
+// activity. It mirrors the Java InvokeWorkflowExecutionWorkflowInput record and the
+// Go struct in stigmer-server. The same type is used for both the Temporal workflow
+// input and the activity input.
+//
+// This type is defined here (in addition to stigmer-server) because the workflow-runner
+// is a separate Go module that does not import stigmer-server.
+type InvokeWorkflowExecutionWorkflowInput struct {
+	ExecutionID              string `json:"execution_id"`
+	WorkflowInstanceID       string `json:"workflow_instance_id,omitempty"`
+	WorkflowID               string `json:"workflow_id,omitempty"`
+	OrgID                    string `json:"org_id,omitempty"`
+	CallbackToken            []byte `json:"callback_token,omitempty"`
+	InvokerIdentityAccountID string `json:"invoker_identity_account_id,omitempty"`
+}
+
+// ExecuteWorkflow executes a Zigflow workflow from slim orchestration coordinates.
 //
 // This method signature matches the Java interface:
 //
 //	@ActivityMethod(name = "ExecuteWorkflow")
-//	WorkflowExecutionStatus executeWorkflow(WorkflowExecution execution);
+//	WorkflowExecutionStatus executeWorkflow(InvokeWorkflowExecutionWorkflowInput input);
 //
 // Implementation steps:
-// 1. Extract execution ID and workflow instance ID from input
+// 1. Extract execution ID and workflow instance/workflow IDs from input
 // 2. Query Stigmer service for WorkflowInstance (contains Workflow reference)
 // 3. Query Stigmer service for Workflow (contains WorkflowSpec)
-// 4. Convert WorkflowSpec proto to YAML (using Phase 2 converter)
-// 5. Execute workflow via Zigflow engine
-// 6. Send progressive status updates via gRPC callbacks
-// 7. Return final status to Temporal workflow
+// 4. Query ExecutionContext for merged environment variables
+// 5. Convert WorkflowSpec proto to YAML (using Phase 2 converter)
+// 6. Execute workflow via Zigflow engine
+// 7. Send progressive status updates via gRPC callbacks
+// 8. Return final status to Temporal workflow
 func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 	ctx context.Context,
-	execution *workflowexecutionv1.WorkflowExecution,
+	input *InvokeWorkflowExecutionWorkflowInput,
 ) (*workflowexecutionv1.WorkflowExecutionStatus, error) {
 	logger := activity.GetLogger(ctx)
 
-	// Extract execution ID
-	if execution.Metadata == nil {
-		return nil, fmt.Errorf("execution metadata is required")
-	}
-	executionID := execution.Metadata.Id
+	executionID := input.ExecutionID
 	if executionID == "" {
 		return nil, fmt.Errorf("execution ID is required")
 	}
 
+	// OBO context for user-facing reads; falls back to plain ctx when identity is absent.
+	oboCtx := grpc_client.WithOnBehalfOf(ctx, input.InvokerIdentityAccountID)
+
 	logger.Info("ExecuteWorkflow activity started",
 		"execution_id", executionID)
 
-	// Update status to IN_PROGRESS
+	// Update status to IN_PROGRESS (system channel — operator-only permission)
 	_, err := a.workflowExecutionClient.UpdateStatus(ctx, executionID, &workflowexecutionv1.WorkflowExecutionStatus{
 		Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
 	})
@@ -132,33 +153,26 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		logger.Warn("Failed to update status to IN_PROGRESS", "error", err)
 	}
 
-	// Step 1: Resolve WorkflowInstance from execution
-	// WorkflowExecution.spec can have either workflow_instance_id OR workflow_id
-	if execution.Spec == nil {
-		return nil, fmt.Errorf("execution spec is required")
-	}
-
+	// Step 1: Resolve WorkflowInstance from input IDs
 	var workflowInstanceID string
 	var workflowID string
 
-	// Check if workflow_instance_id is provided
-	if execution.Spec.WorkflowInstanceId != "" {
-		workflowInstanceID = execution.Spec.WorkflowInstanceId
-		logger.Info("Using workflow_instance_id from execution",
+	if input.WorkflowInstanceID != "" {
+		workflowInstanceID = input.WorkflowInstanceID
+		logger.Info("Using workflow_instance_id from input",
 			"instance_id", workflowInstanceID)
-	} else if execution.Spec.WorkflowId != "" {
-		workflowID = execution.Spec.WorkflowId
-		logger.Info("Using workflow_id from execution (will resolve to default instance)",
+	} else if input.WorkflowID != "" {
+		workflowID = input.WorkflowID
+		logger.Info("Using workflow_id from input (will resolve to default instance)",
 			"workflow_id", workflowID)
 	} else {
-		return nil, fmt.Errorf("execution must have either workflow_instance_id or workflow_id")
+		return nil, fmt.Errorf("input must have either workflow_instance_id or workflow_id")
 	}
 
-	// Step 2: Query WorkflowInstance
+	// Step 2: Query WorkflowInstance (OBO — user-facing read)
 	var instance *workflowinstancev1.WorkflowInstance
 	if workflowInstanceID != "" {
-		// Direct instance reference
-		instance, err = a.workflowInstanceClient.Get(ctx, workflowInstanceID)
+		instance, err = a.workflowInstanceClient.Get(oboCtx, workflowInstanceID)
 		if err != nil {
 			logger.Error("Failed to query workflow instance",
 				"instance_id", workflowInstanceID,
@@ -173,10 +187,7 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		}
 		workflowID = instance.Spec.WorkflowId
 	} else {
-		// Resolve from workflow_id (backend will auto-create default instance)
-		// For now, we need to query the workflow's default_instance_id
-		// In the future, backend should handle this resolution
-		workflow, err := a.workflowClient.Get(ctx, workflowID)
+		workflow, err := a.workflowClient.Get(oboCtx, workflowID)
 		if err != nil {
 			logger.Error("Failed to query workflow",
 				"workflow_id", workflowID,
@@ -190,10 +201,7 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 			return nil, fmt.Errorf("failed to query workflow %s: %w", workflowID, err)
 		}
 
-		// Check if workflow has a default instance
 		if workflow.Status == nil || workflow.Status.DefaultInstanceId == "" {
-			// No default instance - this should be handled by backend in the future
-			// For now, return an error
 			err := fmt.Errorf("workflow %s has no default instance configured", workflowID)
 			logger.Error("Workflow missing default instance", "workflow_id", workflowID)
 
@@ -205,9 +213,8 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 			return nil, err
 		}
 
-		// Query the default instance
 		workflowInstanceID = workflow.Status.DefaultInstanceId
-		instance, err = a.workflowInstanceClient.Get(ctx, workflowInstanceID)
+		instance, err = a.workflowInstanceClient.Get(oboCtx, workflowInstanceID)
 		if err != nil {
 			logger.Error("Failed to query default workflow instance",
 				"instance_id", workflowInstanceID,
@@ -227,8 +234,8 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		"instance_name", instance.Metadata.Name,
 		"workflow_id", workflowID)
 
-	// Step 3: Query Workflow (template)
-	workflow, err := a.workflowClient.Get(ctx, workflowID)
+	// Step 3: Query Workflow template (OBO — user-facing read)
+	workflow, err := a.workflowClient.Get(oboCtx, workflowID)
 	if err != nil {
 		logger.Error("Failed to query workflow",
 			"workflow_id", workflowID,
@@ -247,7 +254,7 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		"workflow_name", workflow.Metadata.Name,
 		"task_count", len(workflow.Spec.Tasks))
 
-	// Step 4: Convert Workflow.spec proto → YAML (Phase 2)
+	// Step 4: Convert Workflow.spec proto -> YAML (Phase 2)
 	converter := converter.NewConverter()
 	workflowYAML, err := converter.ProtoToYAML(workflow.Spec)
 	if err != nil {
@@ -271,17 +278,11 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 		"execution_id", executionID,
 		"task_queue", a.executionTaskQueue)
 
-	// Build runtime environment - try ExecutionContext first, fall back to execution.Spec.RuntimeEnv
-	// ExecutionContext contains pre-merged and pre-decrypted environment variables from:
-	// 1. Workflow template env_spec (defaults)
-	// 2. WorkflowInstance env_refs (layered configs)
-	// 3. WorkflowExecution runtime_env (overrides)
+	// Build runtime environment from ExecutionContext (pre-merged and pre-decrypted)
 	runtimeEnv := make(map[string]any)
 
-	// Try to get merged environment from ExecutionContext (new flow)
-	execCtx, err := a.executionContextClient.GetByExecutionId(ctx, executionID)
+	execCtx, err := a.executionContextClient.GetByExecutionId(oboCtx, executionID)
 	if err == nil && execCtx != nil && execCtx.Spec != nil && len(execCtx.Spec.Data) > 0 {
-		// Use pre-merged environment from ExecutionContext
 		logger.Info("Using merged environment from ExecutionContext",
 			"execution_id", executionID,
 			"context_id", execCtx.Metadata.Id,
@@ -292,14 +293,11 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 				continue
 			}
 
-			// Store as map with value and metadata
-			// Values are already decrypted by the service
 			runtimeEnv[key] = map[string]interface{}{
 				"value":     execValue.Value,
 				"is_secret": execValue.IsSecret,
 			}
 
-			// Log non-secret values for debugging (NEVER log secret values!)
 			if !execValue.IsSecret {
 				logger.Debug("ExecutionContext env (non-secret)",
 					"execution_id", executionID,
@@ -312,47 +310,13 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 			}
 		}
 	} else {
-		// Fall back to execution.Spec.RuntimeEnv (backward compatibility)
-		// This path handles executions created before ExecutionContext support
 		if err != nil && err != grpc_client.ErrExecutionContextNotFound {
-			logger.Warn("Failed to get ExecutionContext, falling back to runtime_env",
+			logger.Warn("Failed to get ExecutionContext",
 				"execution_id", executionID,
 				"error", err)
 		}
-
-		if execution.Spec != nil && execution.Spec.RuntimeEnv != nil {
-			logger.Info("Using fallback runtime environment from execution spec",
-				"execution_id", executionID,
-				"env_count", len(execution.Spec.RuntimeEnv))
-
-			for key, execValue := range execution.Spec.RuntimeEnv {
-				if execValue == nil {
-					logger.Warn("Skipping nil runtime env value",
-						"execution_id", executionID,
-						"key", key)
-					continue
-				}
-
-				// Store as map with value and metadata
-				// The is_secret flag is preserved for JIT resolution
-				runtimeEnv[key] = map[string]interface{}{
-					"value":     execValue.Value,
-					"is_secret": execValue.IsSecret,
-				}
-
-				// Log non-secret values for debugging (NEVER log secret values!)
-				if !execValue.IsSecret {
-					logger.Debug("Runtime env value (non-secret)",
-						"execution_id", executionID,
-						"key", key,
-						"value", execValue.Value)
-				} else {
-					logger.Debug("Runtime env value (secret - value hidden)",
-						"execution_id", executionID,
-						"key", key)
-				}
-			}
-		}
+		logger.Info("No ExecutionContext found, proceeding with empty environment",
+			"execution_id", executionID)
 	}
 
 	// Start ExecuteServerlessWorkflow on zigflow_execution queue
@@ -364,11 +328,12 @@ func (a *ExecuteWorkflowActivityImpl) ExecuteWorkflow(
 	}
 
 	workflowInput := &types.TemporalWorkflowInput{
-		WorkflowExecutionID: executionID,
-		WorkflowYaml:        workflowYAML,
-		InitialData:         map[string]interface{}{},
-		EnvVars:             runtimeEnv,             // ✅ Now populated with runtime environment
-		OrgId:               execution.Metadata.Org, // ✅ Organization context from workflow execution
+		WorkflowExecutionID:      executionID,
+		WorkflowYaml:             workflowYAML,
+		InitialData:              map[string]interface{}{},
+		EnvVars:                  runtimeEnv,
+		OrgId:                    input.OrgID,
+		InvokerIdentityAccountID: input.InvokerIdentityAccountID,
 	}
 
 	// Start the workflow

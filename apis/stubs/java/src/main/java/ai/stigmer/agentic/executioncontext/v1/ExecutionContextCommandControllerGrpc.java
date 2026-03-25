@@ -5,7 +5,12 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * ExecutionContextCommandController provides write operations for ExecutionContext resources.
- * Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+ * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
+ * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+ * FGA model. Authorization is derived from the parent execution:
+ *   - create: Caller must have can_edit on parent agent_execution or workflow_execution
+ *   - delete: Caller must have can_edit on parent agent_execution or workflow_execution
+ * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -171,7 +176,12 @@ public final class ExecutionContextCommandControllerGrpc {
   /**
    * <pre>
    * ExecutionContextCommandController provides write operations for ExecutionContext resources.
-   * Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+   * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
+   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+   * FGA model. Authorization is derived from the parent execution:
+   *   - create: Caller must have can_edit on parent agent_execution or workflow_execution
+   *   - delete: Caller must have can_edit on parent agent_execution or workflow_execution
+   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
    * </pre>
    */
   public interface AsyncService {
@@ -190,7 +200,8 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext (typically called by execution engine).
+     * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
     default void create(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request,
@@ -201,6 +212,7 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Delete an ExecutionContext (called when execution completes).
+     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -213,7 +225,12 @@ public final class ExecutionContextCommandControllerGrpc {
    * Base class for the server implementation of the service ExecutionContextCommandController.
    * <pre>
    * ExecutionContextCommandController provides write operations for ExecutionContext resources.
-   * Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+   * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
+   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+   * FGA model. Authorization is derived from the parent execution:
+   *   - create: Caller must have can_edit on parent agent_execution or workflow_execution
+   *   - delete: Caller must have can_edit on parent agent_execution or workflow_execution
+   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
    * </pre>
    */
   public static abstract class ExecutionContextCommandControllerImplBase
@@ -228,7 +245,12 @@ public final class ExecutionContextCommandControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service ExecutionContextCommandController.
    * <pre>
    * ExecutionContextCommandController provides write operations for ExecutionContext resources.
-   * Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+   * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
+   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+   * FGA model. Authorization is derived from the parent execution:
+   *   - create: Caller must have can_edit on parent agent_execution or workflow_execution
+   *   - delete: Caller must have can_edit on parent agent_execution or workflow_execution
+   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
    * </pre>
    */
   public static final class ExecutionContextCommandControllerStub
@@ -259,7 +281,8 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext (typically called by execution engine).
+     * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
     public void create(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request,
@@ -271,6 +294,7 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Delete an ExecutionContext (called when execution completes).
+     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -284,7 +308,12 @@ public final class ExecutionContextCommandControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service ExecutionContextCommandController.
    * <pre>
    * ExecutionContextCommandController provides write operations for ExecutionContext resources.
-   * Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+   * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
+   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+   * FGA model. Authorization is derived from the parent execution:
+   *   - create: Caller must have can_edit on parent agent_execution or workflow_execution
+   *   - delete: Caller must have can_edit on parent agent_execution or workflow_execution
+   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
    * </pre>
    */
   public static final class ExecutionContextCommandControllerBlockingV2Stub
@@ -314,7 +343,8 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext (typically called by execution engine).
+     * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext create(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request) throws io.grpc.StatusException {
@@ -325,6 +355,7 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Delete an ExecutionContext (called when execution completes).
+     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -337,7 +368,12 @@ public final class ExecutionContextCommandControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service ExecutionContextCommandController.
    * <pre>
    * ExecutionContextCommandController provides write operations for ExecutionContext resources.
-   * Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+   * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
+   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+   * FGA model. Authorization is derived from the parent execution:
+   *   - create: Caller must have can_edit on parent agent_execution or workflow_execution
+   *   - delete: Caller must have can_edit on parent agent_execution or workflow_execution
+   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
    * </pre>
    */
   public static final class ExecutionContextCommandControllerBlockingStub
@@ -367,7 +403,8 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext (typically called by execution engine).
+     * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext create(ai.stigmer.agentic.executioncontext.v1.ExecutionContext request) {
@@ -378,6 +415,7 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Delete an ExecutionContext (called when execution completes).
+     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -390,7 +428,12 @@ public final class ExecutionContextCommandControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ExecutionContextCommandController.
    * <pre>
    * ExecutionContextCommandController provides write operations for ExecutionContext resources.
-   * Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+   * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
+   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+   * FGA model. Authorization is derived from the parent execution:
+   *   - create: Caller must have can_edit on parent agent_execution or workflow_execution
+   *   - delete: Caller must have can_edit on parent agent_execution or workflow_execution
+   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
    * </pre>
    */
   public static final class ExecutionContextCommandControllerFutureStub
@@ -421,7 +464,8 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext (typically called by execution engine).
+     * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> create(
@@ -433,6 +477,7 @@ public final class ExecutionContextCommandControllerGrpc {
     /**
      * <pre>
      * Delete an ExecutionContext (called when execution completes).
+     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> delete(

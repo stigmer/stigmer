@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/tenancy/organization/v1/spec.proto.
  */
 export const file_ai_stigmer_tenancy_organization_v1_spec: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEiiAIKEE9yZ2FuaXphdGlvblNwZWMSHQoLZGVzY3JpcHRpb24YASABKAlCCLpIBXIDGPQDEhoKCGxvZ29fdXJsGAIgASgJQgi6SAVyAxiAEBJLCg9tYW5hZ2VtZW50X21vZGUYAyABKA4yMi5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk1hbmFnZW1lbnRNb2RlElMKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgEIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRIXCg9leHRlcm5hbF9vcmdfaWQYBSABKAliBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_tenancy_organization_v1_enum, file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3NwZWMucHJvdG8SImFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEinQIKEE9yZ2FuaXphdGlvblNwZWMSHQoLZGVzY3JpcHRpb24YASABKAlCCLpIBXIDGPQDEhoKCGxvZ29fdXJsGAIgASgJQgi6SAVyAxiAEBJLCg9tYW5hZ2VtZW50X21vZGUYAyABKA4yMi5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk1hbmFnZW1lbnRNb2RlElMKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgEIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZRIXCg9leHRlcm5hbF9vcmdfaWQYBSABKAkSEwoLaXNfcGVyc29uYWwYBiABKAhiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_tenancy_organization_v1_enum, file_buf_validate_validate]);
 
 /**
  * OrganizationSpec defines the configuration for an organization.
@@ -68,6 +68,15 @@ export type OrganizationSpec = Message<"ai.stigmer.tenancy.organization.v1.Organ
    * @generated from field: string external_org_id = 5;
    */
   externalOrgId: string;
+
+  /**
+   * Whether this is a personal organization, auto-created during identity provisioning.
+   * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
+   * Immutable after creation. Set by the server — clients cannot set this to true.
+   *
+   * @generated from field: bool is_personal = 6;
+   */
+  isPersonal: boolean;
 };
 
 /**

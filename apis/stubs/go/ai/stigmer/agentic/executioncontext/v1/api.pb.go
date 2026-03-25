@@ -33,7 +33,7 @@ type ExecutionContext struct {
 	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	// Standard resource metadata including name, id, labels, and tags.
-	// ExecutionContext is operator-managed and belongs to an organization.
+	// ExecutionContext is ephemeral and authorization is derived from the parent execution.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	// ExecutionContext-specific configuration.
 	Spec *ExecutionContextSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`

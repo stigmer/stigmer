@@ -75,6 +75,7 @@ type OrganizationInput struct {
 	ManagementMode      organizationv1.ManagementMode
 	IdentityProviderRef ResourceRef
 	ExternalOrgId       string
+	IsPersonal          bool
 }
 
 func (i *OrganizationInput) toProto() *organizationv1.Organization {
@@ -96,5 +97,6 @@ func (i *OrganizationInput) toProto() *organizationv1.Organization {
 		resource.Spec.IdentityProviderRef = i.IdentityProviderRef.toProto()
 	}
 	resource.Spec.ExternalOrgId = i.ExternalOrgId
+	resource.Spec.IsPersonal = i.IsPersonal
 	return resource
 }

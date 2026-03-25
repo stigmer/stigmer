@@ -9,24 +9,28 @@ import "ai/stigmer/commons/apiresource/rpc_service_options.proto";
 import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
 
 // ExecutionContextQueryController provides read operations for ExecutionContext resources.
+//
+// Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
+// ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+// FGA model. Authorization is derived from the parent execution:
+//   - All read operations check can_view on parent agent_execution or workflow_execution
+//
+// The handler loads the ExecutionContext, extracts the execution_id from spec,
+// and verifies the caller has permission on whichever parent type matches.
+// This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
 service ExecutionContextQueryController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = execution_context;
 
   // Get an ExecutionContext by ID.
-  // Note: Only the execution engine should typically need to read these.
+  // Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
   rpc get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId) returns (ExecutionContext) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = operator;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get Execution Context (operator-only action)";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
-  // Get an ExecutionContext by reference (operator-only).
+  // Get an ExecutionContext by reference (slug-based lookup).
+  // Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (ExecutionContext) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = operator;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get Execution Context by reference (operator-only action)";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
   // Get an ExecutionContext by the execution ID it belongs to.
@@ -34,16 +38,8 @@ service ExecutionContextQueryController {
   // environment variables during workflow/agent execution. The returned context
   // contains decrypted secrets for runner consumption.
   //
-  // Use cases:
-  // - Go workflow-runner queries for merged env vars before executing workflow
-  // - Python agent-runner queries for merged env vars before executing agent
-  //
-  // Security: Operator-only access ensures only internal services (runners) can
-  // retrieve decrypted secrets. Public APIs use get/getByReference which redact secrets.
+  // Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
   rpc getByExecutionId(ExecutionContextExecutionIdInput) returns (ExecutionContext) {
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = platform;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = operator;
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_id = "stigmer";
-    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get Execution Context by execution ID (operator-only action)";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 }

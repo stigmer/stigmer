@@ -42,7 +42,10 @@ activity_logger = logging.getLogger(__name__)
 
 
 @activity.defn(name="GenerateSessionSubject")
-async def generate_session_subject(execution_id: str) -> None:
+async def generate_session_subject(
+    execution_id: str,
+    invoker_identity_account_id: str | None = None,
+) -> None:
     """Generate and update session subject from the user's first message.
 
     Follows the slim-payload pattern: receives only ``execution_id`` and
@@ -53,20 +56,25 @@ async def generate_session_subject(execution_id: str) -> None:
 
     Args:
         execution_id: The agent execution ID to derive context from.
+        invoker_identity_account_id: Identity account ID of the user who
+            triggered the execution, for on-behalf-of gRPC impersonation.
     """
     activity_logger.info(
         "GenerateSessionSubject started for execution: %s", execution_id
     )
 
     try:
-        await _generate_and_update_subject(execution_id)
+        await _generate_and_update_subject(execution_id, invoker_identity_account_id)
     except Exception:
         activity_logger.exception(
             "Failed to generate session subject for execution %s", execution_id
         )
 
 
-async def _generate_and_update_subject(execution_id: str) -> None:
+async def _generate_and_update_subject(
+    execution_id: str,
+    invoker_identity_account_id: str | None = None,
+) -> None:
     """Core implementation, separated for clean exception boundary."""
     api_key = get_api_key()
     if not api_key:
@@ -75,12 +83,16 @@ async def _generate_and_update_subject(execution_id: str) -> None:
         )
         return
 
-    grpc_provider = ChannelProvider(api_key)
-    ch = grpc_provider.channel
+    grpc_provider = ChannelProvider(
+        api_key,
+        invoker_identity_account_id=invoker_identity_account_id,
+    )
+    sys_ch = grpc_provider.channel
+    obo_ch = grpc_provider.obo_channel if invoker_identity_account_id else sys_ch
 
     try:
-        # Step 1: Hydrate execution
-        execution_client = AgentExecutionClient(api_key, channel=ch)
+        # Step 1: Hydrate execution (OBO channel — user has can_view via session ownership)
+        execution_client = AgentExecutionClient(api_key, channel=obo_ch)
         execution = await execution_client.get(execution_id)
 
         session_id = execution.spec.session_id
@@ -100,7 +112,7 @@ async def _generate_and_update_subject(execution_id: str) -> None:
             return
 
         # Step 2: Check if subject still has the auto-created sentinel value
-        session_client = SessionClient(api_key, channel=ch)
+        session_client = SessionClient(api_key, channel=obo_ch)
         session = await session_client.get(session_id)
 
         if session.spec.subject != _AUTO_CREATED_SUBJECT:
@@ -112,7 +124,9 @@ async def _generate_and_update_subject(execution_id: str) -> None:
 
         # Step 3: Resolve agent_id -- prefer execution spec, fall back to session chain
         if not agent_id:
-            agent_id = await _resolve_agent_id_from_session(api_key, session, channel=ch)
+            agent_id = await _resolve_agent_id_from_session(
+                api_key, session, channel=obo_ch
+            )
         if not agent_id:
             activity_logger.warning(
                 "Cannot resolve agent_id for execution %s, skipping subject generation",
@@ -121,7 +135,7 @@ async def _generate_and_update_subject(execution_id: str) -> None:
             return
 
         # Step 4: Fetch agent metadata for prompt context
-        agent_client = AgentClient(api_key, channel=ch)
+        agent_client = AgentClient(api_key, channel=obo_ch)
         agent = await agent_client.get(agent_id)
         agent_name = agent.metadata.name
         agent_description = agent.spec.description or ""
@@ -135,7 +149,7 @@ async def _generate_and_update_subject(execution_id: str) -> None:
             activity_logger.warning("LLM returned empty subject, skipping update")
             return
 
-        # Step 6: Update session
+        # Step 6: Update session (OBO channel — user is session owner, has can_edit)
         session.spec.subject = generated_subject
         await session_client.update(session)
 

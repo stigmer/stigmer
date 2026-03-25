@@ -104,63 +104,21 @@ export const IamPolicyCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Create platform link policy (operator-only)
-     *
-     * Creates a platform link policy that associates an identity account with the platform.
-     * This is a privileged operation that can only be called by platform operators.
-     *
-     * The operation:
-     * 1. Validates that caller has operator permission on platform:stigmer
-     * 2. Validates the input is a platform link (principal=platform, relation=platform)
-     * 3. Checks for duplicates (idempotent if already exists)
-     * 4. Creates the policy in the database with auto-generated ID and metadata
-     * 5. Writes the corresponding tuple to OpenFGA
-     *
-     * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
-     * - This is typically only granted to machine accounts (service-to-service)
-     *
-     * Use Cases:
-     * - Bootstrapping new identity accounts
-     * - Initial permission setup when standard authorization cannot work yet
-     * - Establishing platform-level relationships for new resources
-     *
-     * Example:
-     * Input:
-     *   principal: {kind: "platform", id: "stigmer"}
-     *   resource: {kind: "identity_account", id: "ida-alice-123"}
-     *   relation: "platform"
-     * Result:
-     *   Created IamPolicy linking the identity account to the platform
-     *   Machine accounts with operator permission can now manage this account
-     *
-     * Input: IamPolicySpec with principal=platform:stigmer, relation=platform, resource=identity_account:{id}
-     * Output: The created IamPolicy with generated ID and metadata
-     *
-     * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.createPlatformLink
-     */
-    createPlatformLink: {
-      name: "createPlatformLink",
-      I: IamPolicySpec,
-      O: IamPolicy,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * Bootstrap IAM policy during resource creation (operator-only)
+     * Bootstrap IAM policy during resource creation
      *
      * Creates IAM policies during resource creation when standard authorization cannot work yet
      * because no tuples exist. This solves the chicken-and-egg problem where creating the first
      * policy for a resource requires authorization, but authorization requires that first policy.
      *
      * The operation:
-     * 1. Validates that caller has operator permission on platform:stigmer
+     * 1. Validates that caller has can_bootstrap_iam permission on platform:stigmer
      * 2. Validates the input (principal, resource, relation are all valid)
      * 3. Checks for duplicates (skips if the exact policy already exists, idempotent)
      * 4. Creates the policy in the database with auto-generated ID and metadata
      * 5. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
      *
      * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
      * - This is typically only called by resource creation handlers running as machine accounts
      *
      * Use Cases:
@@ -192,7 +150,7 @@ export const IamPolicyCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Cleanup all IAM policies for a deleted resource (operator-only)
+     * Cleanup all IAM policies for a deleted resource
      *
      * This is a system-level cleanup operation that removes all IAM policies
      * associated with a deleted resource. It performs bidirectional cleanup:
@@ -200,14 +158,14 @@ export const IamPolicyCommandController = {
      * 2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)
      *
      * The operation:
-     * 1. Validates operator permission on platform:stigmer
+     * 1. Validates can_bootstrap_iam permission on platform:stigmer
      * 2. Finds all policies where resource_id appears (as principal OR resource)
      * 3. Deletes all matching policies from MongoDB
      * 4. Removes all corresponding tuples from OpenFGA
      * 5. Returns Empty (idempotent if no policies exist)
      *
      * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
      * - This is typically only granted to platform services
      *
      * Use Cases:

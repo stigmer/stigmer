@@ -33,4 +33,9 @@ message OrganizationSpec {
   // own org ID so the platform can look up the corresponding Stigmer org even if
   // the Stigmer slug differs from the platform's original slug due to availability.
   string external_org_id = 5;
+
+  // Whether this is a personal organization, auto-created during identity provisioning.
+  // Personal orgs serve as the user's default workspace (like GitHub personal accounts).
+  // Immutable after creation. Set by the server — clients cannot set this to true.
+  bool is_personal = 6;
 }

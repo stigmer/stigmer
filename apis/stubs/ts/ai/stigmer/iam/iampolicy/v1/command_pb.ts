@@ -17,7 +17,7 @@ import { file_google_protobuf_empty } from "@bufbuild/protobuf/wkt";
  * Describes the file ai/stigmer/iam/iampolicy/v1/command.proto.
  */
 export const file_ai_stigmer_iam_iampolicy_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("CilhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxMuoGChpJYW1Qb2xpY3lDb21tYW5kQ29udHJvbGxlchKCAQoGY3JlYXRlEiouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeVNwZWMaJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5IiTCuBggCAgqHHVuYXV0aG9yaXplZCB0byBncmFudCBhY2Nlc3MSgwEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5JYW1Qb2xpY3lTcGVjGiYuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeSIlwrgYIQgIKh11bmF1dGhvcml6ZWQgdG8gcmV2b2tlIGFjY2VzcxLAAQoSY3JlYXRlUGxhdGZvcm1MaW5rEiouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeVNwZWMaJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5IlbCuBhSCAUQHypDdW5hdXRob3JpemVkIHRvIGNyZWF0ZSBwbGF0Zm9ybSBsaW5rIC0gb3BlcmF0b3IgcGVybWlzc2lvbiByZXF1aXJlZDIHc3RpZ21lchK5AQoPYm9vdHN0cmFwUG9saWN5EiouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeVNwZWMaJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5IlLCuBhOCAUQHyo/dW5hdXRob3JpemVkIHRvIGJvb3RzdHJhcCBwb2xpY3kgLSBvcGVyYXRvciBwZXJtaXNzaW9uIHJlcXVpcmVkMgdzdGlnbWVyErsBChdjbGVhbnVwUmVzb3VyY2VQb2xpY2llcxIrLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZhoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eSJbwrgYVwgFEB8qSHVuYXV0aG9yaXplZCB0byBjbGVhbnVwIHJlc291cmNlIHBvbGljaWVzIC0gb3BlcmF0b3IgcGVybWlzc2lvbiByZXF1aXJlZDIHc3RpZ21lchoEoP8rCmIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_api, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_ai_stigmer_iam_iampolicy_v1_spec, file_google_protobuf_empty]);
+  fileDesc("CilhaS9zdGlnbWVyL2lhbS9pYW1wb2xpY3kvdjEvY29tbWFuZC5wcm90bxIbYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxMrkFChpJYW1Qb2xpY3lDb21tYW5kQ29udHJvbGxlchKCAQoGY3JlYXRlEiouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeVNwZWMaJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5IiTCuBggCAgqHHVuYXV0aG9yaXplZCB0byBncmFudCBhY2Nlc3MSgwEKBmRlbGV0ZRIqLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5JYW1Qb2xpY3lTcGVjGiYuYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeSIlwrgYIQgIKh11bmF1dGhvcml6ZWQgdG8gcmV2b2tlIGFjY2VzcxLCAQoPYm9vdHN0cmFwUG9saWN5EiouYWkuc3RpZ21lci5pYW0uaWFtcG9saWN5LnYxLklhbVBvbGljeVNwZWMaJi5haS5zdGlnbWVyLmlhbS5pYW1wb2xpY3kudjEuSWFtUG9saWN5IlvCuBhXCB0QHypIdW5hdXRob3JpemVkIHRvIGJvb3RzdHJhcCBwb2xpY3kgLSBjYW5fYm9vdHN0cmFwX2lhbSBwZXJtaXNzaW9uIHJlcXVpcmVkMgdzdGlnbWVyEsQBChdjbGVhbnVwUmVzb3VyY2VQb2xpY2llcxIrLmFpLnN0aWdtZXIuaWFtLmlhbXBvbGljeS52MS5BcGlSZXNvdXJjZVJlZhoWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eSJkwrgYYAgdEB8qUXVuYXV0aG9yaXplZCB0byBjbGVhbnVwIHJlc291cmNlIHBvbGljaWVzIC0gY2FuX2Jvb3RzdHJhcF9pYW0gcGVybWlzc2lvbiByZXF1aXJlZDIHc3RpZ21lchoEoP8rCmIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_api, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_ai_stigmer_iam_iampolicy_v1_spec, file_google_protobuf_empty]);
 
 /**
  * IAM Policy Command Controller
@@ -112,62 +112,21 @@ export const IamPolicyCommandController: GenService<{
     output: typeof IamPolicySchema;
   },
   /**
-   * Create platform link policy (operator-only)
-   *
-   * Creates a platform link policy that associates an identity account with the platform.
-   * This is a privileged operation that can only be called by platform operators.
-   *
-   * The operation:
-   * 1. Validates that caller has operator permission on platform:stigmer
-   * 2. Validates the input is a platform link (principal=platform, relation=platform)
-   * 3. Checks for duplicates (idempotent if already exists)
-   * 4. Creates the policy in the database with auto-generated ID and metadata
-   * 5. Writes the corresponding tuple to OpenFGA
-   *
-   * Authorization:
-   * - Caller must have 'operator' permission on platform:stigmer
-   * - This is typically only granted to machine accounts (service-to-service)
-   *
-   * Use Cases:
-   * - Bootstrapping new identity accounts
-   * - Initial permission setup when standard authorization cannot work yet
-   * - Establishing platform-level relationships for new resources
-   *
-   * Example:
-   * Input:
-   *   principal: {kind: "platform", id: "stigmer"}
-   *   resource: {kind: "identity_account", id: "ida-alice-123"}
-   *   relation: "platform"
-   * Result:
-   *   Created IamPolicy linking the identity account to the platform
-   *   Machine accounts with operator permission can now manage this account
-   *
-   * Input: IamPolicySpec with principal=platform:stigmer, relation=platform, resource=identity_account:{id}
-   * Output: The created IamPolicy with generated ID and metadata
-   *
-   * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyCommandController.createPlatformLink
-   */
-  createPlatformLink: {
-    methodKind: "unary";
-    input: typeof IamPolicySpecSchema;
-    output: typeof IamPolicySchema;
-  },
-  /**
-   * Bootstrap IAM policy during resource creation (operator-only)
+   * Bootstrap IAM policy during resource creation
    *
    * Creates IAM policies during resource creation when standard authorization cannot work yet
    * because no tuples exist. This solves the chicken-and-egg problem where creating the first
    * policy for a resource requires authorization, but authorization requires that first policy.
    *
    * The operation:
-   * 1. Validates that caller has operator permission on platform:stigmer
+   * 1. Validates that caller has can_bootstrap_iam permission on platform:stigmer
    * 2. Validates the input (principal, resource, relation are all valid)
    * 3. Checks for duplicates (skips if the exact policy already exists, idempotent)
    * 4. Creates the policy in the database with auto-generated ID and metadata
    * 5. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
    *
    * Authorization:
-   * - Caller must have 'operator' permission on platform:stigmer
+   * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
    * - This is typically only called by resource creation handlers running as machine accounts
    *
    * Use Cases:
@@ -198,7 +157,7 @@ export const IamPolicyCommandController: GenService<{
     output: typeof IamPolicySchema;
   },
   /**
-   * Cleanup all IAM policies for a deleted resource (operator-only)
+   * Cleanup all IAM policies for a deleted resource
    *
    * This is a system-level cleanup operation that removes all IAM policies
    * associated with a deleted resource. It performs bidirectional cleanup:
@@ -206,14 +165,14 @@ export const IamPolicyCommandController: GenService<{
    * 2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)
    *
    * The operation:
-   * 1. Validates operator permission on platform:stigmer
+   * 1. Validates can_bootstrap_iam permission on platform:stigmer
    * 2. Finds all policies where resource_id appears (as principal OR resource)
    * 3. Deletes all matching policies from MongoDB
    * 4. Removes all corresponding tuples from OpenFGA
    * 5. Returns Empty (idempotent if no policies exist)
    *
    * Authorization:
-   * - Caller must have 'operator' permission on platform:stigmer
+   * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
    * - This is typically only granted to platform services
    *
    * Use Cases:
