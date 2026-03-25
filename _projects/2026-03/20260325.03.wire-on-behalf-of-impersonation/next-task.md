@@ -95,8 +95,29 @@ T07-T08 are independent and can be done anytime.
 
 ## Current Status
 
-**Last Updated**: Check tasks.md for most recent status
-**Current Focus**: See which task is marked 🚧 IN PROGRESS in tasks.md
+**Last Updated**: 2026-03-25
+**Status**: In Progress (4 of 8 tasks complete)
+
+### Completed (this session)
+- **T07**: Simplified `agent_execution.fga` owner relation (removed redundant `operator from session`)
+- **T01**: Converted ExecutionContext creation to `createOnBehalfOf` (2 call sites)
+- **T02**: Converted AgentInstance auto-creation to `createOnBehalfOf` (3 call sites)
+- **T03**: Added `createOnBehalfOf` to WorkflowInstanceGrpcRepo + converted callers (2 repo files + 2 call sites)
+
+### Commits
+- `e0547c56` (stigmer-cloud): `feat(backend/stigmer-service): wire on-behalf-of impersonation into all createAsSystem call sites`
+- `4f00e47a` (stigmer): `docs(projects): update wire-on-behalf-of task status and add changelog`
+
+### Remaining Tasks
+- **T04**: Add invoker identity to Temporal workflow inputs (bridge task, cross-repo: stigmer protos + stigmer-cloud starters)
+- **T05**: Agent runner — attach `x-on-behalf-of` to all gRPC calls (Python)
+- **T06**: Workflow runner — attach `x-on-behalf-of` to all gRPC calls (Go)
+- **T08**: Evaluate and add `execution_context` FGA type (design decision needed)
+
+### Next Steps (when resuming)
+1. Start with T04 — add `invoker_identity_account_id` to Temporal workflow input types
+2. T05 and T06 depend on T04 and can be done in parallel after it
+3. T08 is independent but requires a design decision on parent relation
 
 ---
 
