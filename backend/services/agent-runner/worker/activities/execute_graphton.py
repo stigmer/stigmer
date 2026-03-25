@@ -1016,6 +1016,7 @@ async def execute_graphton(
     execution_id: str,
     thread_id: str,
     approval_decisions_wrapper: ApprovalDecisionList | None = None,
+    invoker_identity_account_id: str | None = None,
 ) -> AgentExecutionStatus:
     """
     Execute Graphton agent and return final status.
@@ -1042,6 +1043,9 @@ async def execute_graphton(
             Each entry carries a tool_call_id, action (APPROVE/SKIP/REJECT), and
             optional comment.  The activity correlates these with pending_approvals
             from the fetched execution to build the LangGraph Command(resume=...) dict.
+        invoker_identity_account_id: Identity account ID of the user who triggered
+            the execution. Used by the runner for on-behalf-of gRPC impersonation
+            (x-on-behalf-of header). None for backward compatibility.
         
     Returns:
         AgentExecutionStatus: Final status with messages, tool_calls, phase

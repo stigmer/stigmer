@@ -28,23 +28,21 @@ import (
 // - Real-time updates: gRPC calls from Go activity to stigmer-server
 // - Final state: Returned to workflow (for Temporal observability)
 //
-// Agent-Runner Pattern (Phases 1-3.5):
-// - Go workflow passes execution_id only (via WorkflowExecution proto)
-// - Go activity queries Stigmer service for WorkflowExecution → WorkflowInstance → Workflow
-// - Converts WorkflowSpec proto → YAML using Phase 2 converter
-// - Executes via Zigflow engine
-// - Reports progressive status via gRPC callbacks
+// Slim-Input Pattern:
+// - Go workflow receives slim orchestration coordinates (execution_id, IDs, org_id)
+// - Go activity hydrates full context via gRPC
+// - Secrets (runtime_env) are kept out of Temporal's durable workflow history
 type InvokeWorkflowExecutionWorkflowImpl struct{}
 
 // Run implements InvokeWorkflowExecutionWorkflow.Run
-func (w *InvokeWorkflowExecutionWorkflowImpl) Run(ctx workflow.Context, execution *workflowexecutionv1.WorkflowExecution) error {
+func (w *InvokeWorkflowExecutionWorkflowImpl) Run(ctx workflow.Context, input *activities.InvokeWorkflowExecutionWorkflowInput) error {
 	logger := workflow.GetLogger(ctx)
-	executionID := execution.GetMetadata().GetId()
+	executionID := input.ExecutionID
 
 	logger.Info("Starting workflow for execution", "execution_id", executionID)
 
 	// Execute the Zigflow workflow flow
-	if err := w.executeWorkflowFlow(ctx, execution); err != nil {
+	if err := w.executeWorkflowFlow(ctx, input); err != nil {
 		// Cancellation path: workflow was cancelled externally (user cancel, namespace timeout).
 		// All cleanup runs in a disconnected context to guarantee execution.
 		if temporal.IsCanceledError(ctx.Err()) {
@@ -76,34 +74,27 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) Run(ctx workflow.Context, executio
 //
 // Orchestrates:
 // 1. Go activity: Execute workflow (on "runner" queue)
-//   - Queries Stigmer for WorkflowExecution → WorkflowInstance → Workflow
-//   - Converts WorkflowSpec proto → YAML (Phase 2 converter)
+//   - Queries Stigmer for WorkflowInstance and Workflow via gRPC
+//   - Converts WorkflowSpec proto to YAML (Phase 2 converter)
 //   - Executes via Zigflow engine
 //   - Sends progressive status updates via gRPC
 //   - Returns final status for Temporal observability
-func (w *InvokeWorkflowExecutionWorkflowImpl) executeWorkflowFlow(ctx workflow.Context, execution *workflowexecutionv1.WorkflowExecution) error {
+func (w *InvokeWorkflowExecutionWorkflowImpl) executeWorkflowFlow(ctx workflow.Context, input *activities.InvokeWorkflowExecutionWorkflowInput) error {
 	logger := workflow.GetLogger(ctx)
 
-	executionID := execution.GetMetadata().GetId()
-	workflowInstanceID := execution.GetSpec().GetWorkflowInstanceId()
+	executionID := input.ExecutionID
+	workflowInstanceID := input.WorkflowInstanceID
 
 	logger.Info("Starting workflow execution", "execution_id", executionID, "instance_id", workflowInstanceID)
 
 	// Get activity task queue from workflow memo
 	activityTaskQueue := w.getActivityTaskQueue(ctx)
 
-	// Execute Zigflow workflow (Go activity)
-	// Go activity:
-	// - Queries Stigmer service for full context (execution → instance → workflow)
-	// - Converts WorkflowSpec proto → YAML (Phase 2 converter)
-	// - Executes via Zigflow and processes events
-	// - Sends progressive status updates via gRPC (real-time)
-	// - Returns final status to workflow (for observability)
 	logger.Info("Executing Zigflow workflow", "execution_id", executionID)
 	logger.Info("workflow-runner will send progressive status updates via gRPC during execution")
 
 	executeWorkflowActivity := activities.NewExecuteWorkflowActivityStub(ctx, activityTaskQueue)
-	finalStatus, err := executeWorkflowActivity.ExecuteWorkflow(execution)
+	finalStatus, err := executeWorkflowActivity.ExecuteWorkflow(input)
 	if err != nil {
 		return fmt.Errorf("failed to execute workflow: %w", err)
 	}
@@ -148,15 +139,11 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow
 
 	logger.Info("Updating execution status to FAILED", "execution_id", executionID)
 
-	// Create failed status with error details
-	// Only set phase and error - don't create artificial tasks
 	failedStatus := &workflowexecutionv1.WorkflowExecutionStatus{
 		Phase: workflowexecutionv1.ExecutionPhase_EXECUTION_FAILED,
 		Error: fmt.Sprintf("Workflow execution failed: %s", originalErr.Error()),
 	}
 
-	// Create local activity stub for status update (runs in-process)
-	// Local activities don't go through Temporal task queues, avoiding polyglot collision
 	localCtx := workflow.WithLocalActivityOptions(ctx, workflow.LocalActivityOptions{
 		ScheduleToCloseTimeout: 30 * time.Second,
 		RetryPolicy: &temporal.RetryPolicy{
@@ -165,7 +152,6 @@ func (w *InvokeWorkflowExecutionWorkflowImpl) updateStatusOnFailure(ctx workflow
 		},
 	})
 
-	// Call the update status activity (this should be registered as a local activity)
 	err := workflow.ExecuteLocalActivity(localCtx, activities.UpdateWorkflowExecutionStatusActivityName, executionID, failedStatus).Get(localCtx, nil)
 	if err != nil {
 		logger.Error("Failed to update execution status", "error", err.Error())

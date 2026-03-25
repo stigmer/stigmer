@@ -1,7 +1,7 @@
 package workflows
 
 import (
-	workflowexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/workflowexecution/v1"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/workflowexecution/temporal/activities"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -12,8 +12,11 @@ import (
 type InvokeWorkflowExecutionWorkflow interface {
 	// Run invokes a workflow execution (Zigflow workflow creation).
 	//
-	// execution: The execution resource containing spec (workflow_instance_id, trigger data)
-	Run(ctx workflow.Context, execution *workflowexecutionv1.WorkflowExecution) error
+	// input: Slim orchestration coordinates (execution_id, workflow_instance_id,
+	// workflow_id, org_id, callback_token, invoker_identity_account_id).
+	// Secrets and large payloads are excluded — they live in the
+	// ExecutionContext and the persisted WorkflowExecution, respectively.
+	Run(ctx workflow.Context, input *activities.InvokeWorkflowExecutionWorkflowInput) error
 }
 
 // InvokeWorkflowExecutionWorkflowName is the workflow name used for registration.
