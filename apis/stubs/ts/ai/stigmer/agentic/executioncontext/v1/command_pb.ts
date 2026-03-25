@@ -20,11 +20,11 @@ export const file_ai_stigmer_agentic_executioncontext_v1_command: GenFile = /*@_
 /**
  * ExecutionContextCommandController provides write operations for ExecutionContext resources.
  *
- * Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+ * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
  * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
- * FGA model. Instead, authorization is derived from the parent execution:
- *   - create: Authorized if caller has can_edit on parent agent_execution or workflow_execution
- *   - delete: System-only cleanup (called when execution completes)
+ * FGA model. Authorization is derived from the parent execution:
+ *   - create: Caller must have can_edit on parent agent_execution or workflow_execution
+ *   - delete: Caller must have can_edit on parent agent_execution or workflow_execution
  *
  * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
  *
@@ -45,7 +45,7 @@ export const ExecutionContextCommandController: GenService<{
   },
   /**
    * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
-   * Handler-level auth: checks can_edit on parent agent_execution or workflow_execution.
+   * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
    *
    * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextCommandController.create
    */
@@ -56,7 +56,7 @@ export const ExecutionContextCommandController: GenService<{
   },
   /**
    * Delete an ExecutionContext (called when execution completes).
-   * Handler-level auth: system-only cleanup operation.
+   * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
    *
    * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextCommandController.delete
    */

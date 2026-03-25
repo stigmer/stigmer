@@ -40,9 +40,9 @@ type InvokeWorkflowExecutionWorkflowInput struct {
 // Task Queue: "workflow_execution_runner"
 //
 // Slim-Payload Pattern:
-// - Receives slim orchestration coordinates (execution_id, workflow_instance_id,
-//   workflow_id, org_id, invoker_identity_account_id)
-// - Queries Stigmer service via gRPC to hydrate full context:
+//   - Receives slim orchestration coordinates (execution_id, workflow_instance_id,
+//     workflow_id, org_id, invoker_identity_account_id)
+//   - Queries Stigmer service via gRPC to hydrate full context:
 //   - GetWorkflowInstance from input.WorkflowInstanceID
 //   - GetWorkflow from instance.spec.workflow_id
 //   - GetExecutionContext by execution_id (merged environment)

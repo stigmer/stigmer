@@ -33,11 +33,6 @@ func (i *IamPolicyClient) Delete(ctx context.Context, input *iampolicyv1.IamPoli
 	return resp, wrapErr(err)
 }
 
-func (i *IamPolicyClient) CreatePlatformLink(ctx context.Context, input *iampolicyv1.IamPolicySpec) (*iampolicyv1.IamPolicy, error) {
-	resp, err := i.command.CreatePlatformLink(ctx, input)
-	return resp, wrapErr(err)
-}
-
 func (i *IamPolicyClient) BootstrapPolicy(ctx context.Context, input *iampolicyv1.IamPolicySpec) (*iampolicyv1.IamPolicy, error) {
 	resp, err := i.command.BootstrapPolicy(ctx, input)
 	return resp, wrapErr(err)

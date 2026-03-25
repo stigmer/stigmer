@@ -89,37 +89,6 @@ public final class IamPolicyCommandControllerGrpc {
   }
 
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.IamPolicySpec,
-      ai.stigmer.iam.iampolicy.v1.IamPolicy> getCreatePlatformLinkMethod;
-
-  @io.grpc.stub.annotations.RpcMethod(
-      fullMethodName = SERVICE_NAME + '/' + "createPlatformLink",
-      requestType = ai.stigmer.iam.iampolicy.v1.IamPolicySpec.class,
-      responseType = ai.stigmer.iam.iampolicy.v1.IamPolicy.class,
-      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
-  public static io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.IamPolicySpec,
-      ai.stigmer.iam.iampolicy.v1.IamPolicy> getCreatePlatformLinkMethod() {
-    io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.IamPolicySpec, ai.stigmer.iam.iampolicy.v1.IamPolicy> getCreatePlatformLinkMethod;
-    if ((getCreatePlatformLinkMethod = IamPolicyCommandControllerGrpc.getCreatePlatformLinkMethod) == null) {
-      synchronized (IamPolicyCommandControllerGrpc.class) {
-        if ((getCreatePlatformLinkMethod = IamPolicyCommandControllerGrpc.getCreatePlatformLinkMethod) == null) {
-          IamPolicyCommandControllerGrpc.getCreatePlatformLinkMethod = getCreatePlatformLinkMethod =
-              io.grpc.MethodDescriptor.<ai.stigmer.iam.iampolicy.v1.IamPolicySpec, ai.stigmer.iam.iampolicy.v1.IamPolicy>newBuilder()
-              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
-              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "createPlatformLink"))
-              .setSampledToLocalTracing(true)
-              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.iampolicy.v1.IamPolicySpec.getDefaultInstance()))
-              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
-                  ai.stigmer.iam.iampolicy.v1.IamPolicy.getDefaultInstance()))
-              .setSchemaDescriptor(new IamPolicyCommandControllerMethodDescriptorSupplier("createPlatformLink"))
-              .build();
-        }
-      }
-    }
-    return getCreatePlatformLinkMethod;
-  }
-
-  private static volatile io.grpc.MethodDescriptor<ai.stigmer.iam.iampolicy.v1.IamPolicySpec,
       ai.stigmer.iam.iampolicy.v1.IamPolicy> getBootstrapPolicyMethod;
 
   @io.grpc.stub.annotations.RpcMethod(
@@ -321,53 +290,18 @@ public final class IamPolicyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create platform link policy (operator-only)
-     * Creates a platform link policy that associates an identity account with the platform.
-     * This is a privileged operation that can only be called by platform operators.
-     * The operation:
-     * 1. Validates that caller has operator permission on platform:stigmer
-     * 2. Validates the input is a platform link (principal=platform, relation=platform)
-     * 3. Checks for duplicates (idempotent if already exists)
-     * 4. Creates the policy in the database with auto-generated ID and metadata
-     * 5. Writes the corresponding tuple to OpenFGA
-     * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
-     * - This is typically only granted to machine accounts (service-to-service)
-     * Use Cases:
-     * - Bootstrapping new identity accounts
-     * - Initial permission setup when standard authorization cannot work yet
-     * - Establishing platform-level relationships for new resources
-     * Example:
-     * Input:
-     *   principal: {kind: "platform", id: "stigmer"}
-     *   resource: {kind: "identity_account", id: "ida-alice-123"}
-     *   relation: "platform"
-     * Result:
-     *   Created IamPolicy linking the identity account to the platform
-     *   Machine accounts with operator permission can now manage this account
-     * Input: IamPolicySpec with principal=platform:stigmer, relation=platform, resource=identity_account:{id}
-     * Output: The created IamPolicy with generated ID and metadata
-     * </pre>
-     */
-    default void createPlatformLink(ai.stigmer.iam.iampolicy.v1.IamPolicySpec request,
-        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.IamPolicy> responseObserver) {
-      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getCreatePlatformLinkMethod(), responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Bootstrap IAM policy during resource creation (operator-only)
+     * Bootstrap IAM policy during resource creation
      * Creates IAM policies during resource creation when standard authorization cannot work yet
      * because no tuples exist. This solves the chicken-and-egg problem where creating the first
      * policy for a resource requires authorization, but authorization requires that first policy.
      * The operation:
-     * 1. Validates that caller has operator permission on platform:stigmer
+     * 1. Validates that caller has can_bootstrap_iam permission on platform:stigmer
      * 2. Validates the input (principal, resource, relation are all valid)
      * 3. Checks for duplicates (skips if the exact policy already exists, idempotent)
      * 4. Creates the policy in the database with auto-generated ID and metadata
      * 5. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
      * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
      * - This is typically only called by resource creation handlers running as machine accounts
      * Use Cases:
      * - Creating scope links (agent#organization&#64;organization:acme) during agent creation
@@ -394,19 +328,19 @@ public final class IamPolicyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Cleanup all IAM policies for a deleted resource (operator-only)
+     * Cleanup all IAM policies for a deleted resource
      * This is a system-level cleanup operation that removes all IAM policies
      * associated with a deleted resource. It performs bidirectional cleanup:
      * 1. Policies where resource is the TARGET (policies granting access TO this resource)
      * 2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)
      * The operation:
-     * 1. Validates operator permission on platform:stigmer
+     * 1. Validates can_bootstrap_iam permission on platform:stigmer
      * 2. Finds all policies where resource_id appears (as principal OR resource)
      * 3. Deletes all matching policies from MongoDB
      * 4. Removes all corresponding tuples from OpenFGA
      * 5. Returns Empty (idempotent if no policies exist)
      * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
      * - This is typically only granted to platform services
      * Use Cases:
      * - Resource deletion cleanup
@@ -545,54 +479,18 @@ public final class IamPolicyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create platform link policy (operator-only)
-     * Creates a platform link policy that associates an identity account with the platform.
-     * This is a privileged operation that can only be called by platform operators.
-     * The operation:
-     * 1. Validates that caller has operator permission on platform:stigmer
-     * 2. Validates the input is a platform link (principal=platform, relation=platform)
-     * 3. Checks for duplicates (idempotent if already exists)
-     * 4. Creates the policy in the database with auto-generated ID and metadata
-     * 5. Writes the corresponding tuple to OpenFGA
-     * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
-     * - This is typically only granted to machine accounts (service-to-service)
-     * Use Cases:
-     * - Bootstrapping new identity accounts
-     * - Initial permission setup when standard authorization cannot work yet
-     * - Establishing platform-level relationships for new resources
-     * Example:
-     * Input:
-     *   principal: {kind: "platform", id: "stigmer"}
-     *   resource: {kind: "identity_account", id: "ida-alice-123"}
-     *   relation: "platform"
-     * Result:
-     *   Created IamPolicy linking the identity account to the platform
-     *   Machine accounts with operator permission can now manage this account
-     * Input: IamPolicySpec with principal=platform:stigmer, relation=platform, resource=identity_account:{id}
-     * Output: The created IamPolicy with generated ID and metadata
-     * </pre>
-     */
-    public void createPlatformLink(ai.stigmer.iam.iampolicy.v1.IamPolicySpec request,
-        io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.IamPolicy> responseObserver) {
-      io.grpc.stub.ClientCalls.asyncUnaryCall(
-          getChannel().newCall(getCreatePlatformLinkMethod(), getCallOptions()), request, responseObserver);
-    }
-
-    /**
-     * <pre>
-     * Bootstrap IAM policy during resource creation (operator-only)
+     * Bootstrap IAM policy during resource creation
      * Creates IAM policies during resource creation when standard authorization cannot work yet
      * because no tuples exist. This solves the chicken-and-egg problem where creating the first
      * policy for a resource requires authorization, but authorization requires that first policy.
      * The operation:
-     * 1. Validates that caller has operator permission on platform:stigmer
+     * 1. Validates that caller has can_bootstrap_iam permission on platform:stigmer
      * 2. Validates the input (principal, resource, relation are all valid)
      * 3. Checks for duplicates (skips if the exact policy already exists, idempotent)
      * 4. Creates the policy in the database with auto-generated ID and metadata
      * 5. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
      * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
      * - This is typically only called by resource creation handlers running as machine accounts
      * Use Cases:
      * - Creating scope links (agent#organization&#64;organization:acme) during agent creation
@@ -620,19 +518,19 @@ public final class IamPolicyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Cleanup all IAM policies for a deleted resource (operator-only)
+     * Cleanup all IAM policies for a deleted resource
      * This is a system-level cleanup operation that removes all IAM policies
      * associated with a deleted resource. It performs bidirectional cleanup:
      * 1. Policies where resource is the TARGET (policies granting access TO this resource)
      * 2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)
      * The operation:
-     * 1. Validates operator permission on platform:stigmer
+     * 1. Validates can_bootstrap_iam permission on platform:stigmer
      * 2. Finds all policies where resource_id appears (as principal OR resource)
      * 3. Deletes all matching policies from MongoDB
      * 4. Removes all corresponding tuples from OpenFGA
      * 5. Returns Empty (idempotent if no policies exist)
      * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
      * - This is typically only granted to platform services
      * Use Cases:
      * - Resource deletion cleanup
@@ -745,53 +643,18 @@ public final class IamPolicyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create platform link policy (operator-only)
-     * Creates a platform link policy that associates an identity account with the platform.
-     * This is a privileged operation that can only be called by platform operators.
-     * The operation:
-     * 1. Validates that caller has operator permission on platform:stigmer
-     * 2. Validates the input is a platform link (principal=platform, relation=platform)
-     * 3. Checks for duplicates (idempotent if already exists)
-     * 4. Creates the policy in the database with auto-generated ID and metadata
-     * 5. Writes the corresponding tuple to OpenFGA
-     * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
-     * - This is typically only granted to machine accounts (service-to-service)
-     * Use Cases:
-     * - Bootstrapping new identity accounts
-     * - Initial permission setup when standard authorization cannot work yet
-     * - Establishing platform-level relationships for new resources
-     * Example:
-     * Input:
-     *   principal: {kind: "platform", id: "stigmer"}
-     *   resource: {kind: "identity_account", id: "ida-alice-123"}
-     *   relation: "platform"
-     * Result:
-     *   Created IamPolicy linking the identity account to the platform
-     *   Machine accounts with operator permission can now manage this account
-     * Input: IamPolicySpec with principal=platform:stigmer, relation=platform, resource=identity_account:{id}
-     * Output: The created IamPolicy with generated ID and metadata
-     * </pre>
-     */
-    public ai.stigmer.iam.iampolicy.v1.IamPolicy createPlatformLink(ai.stigmer.iam.iampolicy.v1.IamPolicySpec request) throws io.grpc.StatusException {
-      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
-          getChannel(), getCreatePlatformLinkMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Bootstrap IAM policy during resource creation (operator-only)
+     * Bootstrap IAM policy during resource creation
      * Creates IAM policies during resource creation when standard authorization cannot work yet
      * because no tuples exist. This solves the chicken-and-egg problem where creating the first
      * policy for a resource requires authorization, but authorization requires that first policy.
      * The operation:
-     * 1. Validates that caller has operator permission on platform:stigmer
+     * 1. Validates that caller has can_bootstrap_iam permission on platform:stigmer
      * 2. Validates the input (principal, resource, relation are all valid)
      * 3. Checks for duplicates (skips if the exact policy already exists, idempotent)
      * 4. Creates the policy in the database with auto-generated ID and metadata
      * 5. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
      * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
      * - This is typically only called by resource creation handlers running as machine accounts
      * Use Cases:
      * - Creating scope links (agent#organization&#64;organization:acme) during agent creation
@@ -818,19 +681,19 @@ public final class IamPolicyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Cleanup all IAM policies for a deleted resource (operator-only)
+     * Cleanup all IAM policies for a deleted resource
      * This is a system-level cleanup operation that removes all IAM policies
      * associated with a deleted resource. It performs bidirectional cleanup:
      * 1. Policies where resource is the TARGET (policies granting access TO this resource)
      * 2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)
      * The operation:
-     * 1. Validates operator permission on platform:stigmer
+     * 1. Validates can_bootstrap_iam permission on platform:stigmer
      * 2. Finds all policies where resource_id appears (as principal OR resource)
      * 3. Deletes all matching policies from MongoDB
      * 4. Removes all corresponding tuples from OpenFGA
      * 5. Returns Empty (idempotent if no policies exist)
      * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
      * - This is typically only granted to platform services
      * Use Cases:
      * - Resource deletion cleanup
@@ -942,53 +805,18 @@ public final class IamPolicyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create platform link policy (operator-only)
-     * Creates a platform link policy that associates an identity account with the platform.
-     * This is a privileged operation that can only be called by platform operators.
-     * The operation:
-     * 1. Validates that caller has operator permission on platform:stigmer
-     * 2. Validates the input is a platform link (principal=platform, relation=platform)
-     * 3. Checks for duplicates (idempotent if already exists)
-     * 4. Creates the policy in the database with auto-generated ID and metadata
-     * 5. Writes the corresponding tuple to OpenFGA
-     * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
-     * - This is typically only granted to machine accounts (service-to-service)
-     * Use Cases:
-     * - Bootstrapping new identity accounts
-     * - Initial permission setup when standard authorization cannot work yet
-     * - Establishing platform-level relationships for new resources
-     * Example:
-     * Input:
-     *   principal: {kind: "platform", id: "stigmer"}
-     *   resource: {kind: "identity_account", id: "ida-alice-123"}
-     *   relation: "platform"
-     * Result:
-     *   Created IamPolicy linking the identity account to the platform
-     *   Machine accounts with operator permission can now manage this account
-     * Input: IamPolicySpec with principal=platform:stigmer, relation=platform, resource=identity_account:{id}
-     * Output: The created IamPolicy with generated ID and metadata
-     * </pre>
-     */
-    public ai.stigmer.iam.iampolicy.v1.IamPolicy createPlatformLink(ai.stigmer.iam.iampolicy.v1.IamPolicySpec request) {
-      return io.grpc.stub.ClientCalls.blockingUnaryCall(
-          getChannel(), getCreatePlatformLinkMethod(), getCallOptions(), request);
-    }
-
-    /**
-     * <pre>
-     * Bootstrap IAM policy during resource creation (operator-only)
+     * Bootstrap IAM policy during resource creation
      * Creates IAM policies during resource creation when standard authorization cannot work yet
      * because no tuples exist. This solves the chicken-and-egg problem where creating the first
      * policy for a resource requires authorization, but authorization requires that first policy.
      * The operation:
-     * 1. Validates that caller has operator permission on platform:stigmer
+     * 1. Validates that caller has can_bootstrap_iam permission on platform:stigmer
      * 2. Validates the input (principal, resource, relation are all valid)
      * 3. Checks for duplicates (skips if the exact policy already exists, idempotent)
      * 4. Creates the policy in the database with auto-generated ID and metadata
      * 5. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
      * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
      * - This is typically only called by resource creation handlers running as machine accounts
      * Use Cases:
      * - Creating scope links (agent#organization&#64;organization:acme) during agent creation
@@ -1015,19 +843,19 @@ public final class IamPolicyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Cleanup all IAM policies for a deleted resource (operator-only)
+     * Cleanup all IAM policies for a deleted resource
      * This is a system-level cleanup operation that removes all IAM policies
      * associated with a deleted resource. It performs bidirectional cleanup:
      * 1. Policies where resource is the TARGET (policies granting access TO this resource)
      * 2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)
      * The operation:
-     * 1. Validates operator permission on platform:stigmer
+     * 1. Validates can_bootstrap_iam permission on platform:stigmer
      * 2. Finds all policies where resource_id appears (as principal OR resource)
      * 3. Deletes all matching policies from MongoDB
      * 4. Removes all corresponding tuples from OpenFGA
      * 5. Returns Empty (idempotent if no policies exist)
      * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
      * - This is typically only granted to platform services
      * Use Cases:
      * - Resource deletion cleanup
@@ -1141,54 +969,18 @@ public final class IamPolicyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create platform link policy (operator-only)
-     * Creates a platform link policy that associates an identity account with the platform.
-     * This is a privileged operation that can only be called by platform operators.
-     * The operation:
-     * 1. Validates that caller has operator permission on platform:stigmer
-     * 2. Validates the input is a platform link (principal=platform, relation=platform)
-     * 3. Checks for duplicates (idempotent if already exists)
-     * 4. Creates the policy in the database with auto-generated ID and metadata
-     * 5. Writes the corresponding tuple to OpenFGA
-     * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
-     * - This is typically only granted to machine accounts (service-to-service)
-     * Use Cases:
-     * - Bootstrapping new identity accounts
-     * - Initial permission setup when standard authorization cannot work yet
-     * - Establishing platform-level relationships for new resources
-     * Example:
-     * Input:
-     *   principal: {kind: "platform", id: "stigmer"}
-     *   resource: {kind: "identity_account", id: "ida-alice-123"}
-     *   relation: "platform"
-     * Result:
-     *   Created IamPolicy linking the identity account to the platform
-     *   Machine accounts with operator permission can now manage this account
-     * Input: IamPolicySpec with principal=platform:stigmer, relation=platform, resource=identity_account:{id}
-     * Output: The created IamPolicy with generated ID and metadata
-     * </pre>
-     */
-    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.IamPolicy> createPlatformLink(
-        ai.stigmer.iam.iampolicy.v1.IamPolicySpec request) {
-      return io.grpc.stub.ClientCalls.futureUnaryCall(
-          getChannel().newCall(getCreatePlatformLinkMethod(), getCallOptions()), request);
-    }
-
-    /**
-     * <pre>
-     * Bootstrap IAM policy during resource creation (operator-only)
+     * Bootstrap IAM policy during resource creation
      * Creates IAM policies during resource creation when standard authorization cannot work yet
      * because no tuples exist. This solves the chicken-and-egg problem where creating the first
      * policy for a resource requires authorization, but authorization requires that first policy.
      * The operation:
-     * 1. Validates that caller has operator permission on platform:stigmer
+     * 1. Validates that caller has can_bootstrap_iam permission on platform:stigmer
      * 2. Validates the input (principal, resource, relation are all valid)
      * 3. Checks for duplicates (skips if the exact policy already exists, idempotent)
      * 4. Creates the policy in the database with auto-generated ID and metadata
      * 5. Writes the corresponding tuple to OpenFGA (where authorization is enforced)
      * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
      * - This is typically only called by resource creation handlers running as machine accounts
      * Use Cases:
      * - Creating scope links (agent#organization&#64;organization:acme) during agent creation
@@ -1216,19 +1008,19 @@ public final class IamPolicyCommandControllerGrpc {
 
     /**
      * <pre>
-     * Cleanup all IAM policies for a deleted resource (operator-only)
+     * Cleanup all IAM policies for a deleted resource
      * This is a system-level cleanup operation that removes all IAM policies
      * associated with a deleted resource. It performs bidirectional cleanup:
      * 1. Policies where resource is the TARGET (policies granting access TO this resource)
      * 2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)
      * The operation:
-     * 1. Validates operator permission on platform:stigmer
+     * 1. Validates can_bootstrap_iam permission on platform:stigmer
      * 2. Finds all policies where resource_id appears (as principal OR resource)
      * 3. Deletes all matching policies from MongoDB
      * 4. Removes all corresponding tuples from OpenFGA
      * 5. Returns Empty (idempotent if no policies exist)
      * Authorization:
-     * - Caller must have 'operator' permission on platform:stigmer
+     * - Caller must have 'can_bootstrap_iam' permission on platform:stigmer
      * - This is typically only granted to platform services
      * Use Cases:
      * - Resource deletion cleanup
@@ -1250,9 +1042,8 @@ public final class IamPolicyCommandControllerGrpc {
 
   private static final int METHODID_CREATE = 0;
   private static final int METHODID_DELETE = 1;
-  private static final int METHODID_CREATE_PLATFORM_LINK = 2;
-  private static final int METHODID_BOOTSTRAP_POLICY = 3;
-  private static final int METHODID_CLEANUP_RESOURCE_POLICIES = 4;
+  private static final int METHODID_BOOTSTRAP_POLICY = 2;
+  private static final int METHODID_CLEANUP_RESOURCE_POLICIES = 3;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -1277,10 +1068,6 @@ public final class IamPolicyCommandControllerGrpc {
           break;
         case METHODID_DELETE:
           serviceImpl.delete((ai.stigmer.iam.iampolicy.v1.IamPolicySpec) request,
-              (io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.IamPolicy>) responseObserver);
-          break;
-        case METHODID_CREATE_PLATFORM_LINK:
-          serviceImpl.createPlatformLink((ai.stigmer.iam.iampolicy.v1.IamPolicySpec) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.iam.iampolicy.v1.IamPolicy>) responseObserver);
           break;
         case METHODID_BOOTSTRAP_POLICY:
@@ -1323,13 +1110,6 @@ public final class IamPolicyCommandControllerGrpc {
               ai.stigmer.iam.iampolicy.v1.IamPolicySpec,
               ai.stigmer.iam.iampolicy.v1.IamPolicy>(
                 service, METHODID_DELETE)))
-        .addMethod(
-          getCreatePlatformLinkMethod(),
-          io.grpc.stub.ServerCalls.asyncUnaryCall(
-            new MethodHandlers<
-              ai.stigmer.iam.iampolicy.v1.IamPolicySpec,
-              ai.stigmer.iam.iampolicy.v1.IamPolicy>(
-                service, METHODID_CREATE_PLATFORM_LINK)))
         .addMethod(
           getBootstrapPolicyMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -1394,7 +1174,6 @@ public final class IamPolicyCommandControllerGrpc {
               .setSchemaDescriptor(new IamPolicyCommandControllerFileDescriptorSupplier())
               .addMethod(getCreateMethod())
               .addMethod(getDeleteMethod())
-              .addMethod(getCreatePlatformLinkMethod())
               .addMethod(getBootstrapPolicyMethod())
               .addMethod(getCleanupResourcePoliciesMethod())
               .build();
