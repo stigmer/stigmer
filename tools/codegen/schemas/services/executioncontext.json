@@ -21,7 +21,7 @@
           "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Create a new ExecutionContext (called by execution pipeline on behalf of the user).\n Handler-level auth: checks can_edit on parent agent_execution or workflow_execution."
+          "description": "Create a new ExecutionContext (called by execution pipeline on behalf of the user).\n Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution."
         },
         {
           "name": "Delete",
@@ -29,7 +29,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceDeleteInput",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Delete an ExecutionContext (called when execution completes).\n Handler-level auth: system-only cleanup operation."
+          "description": "Delete an ExecutionContext (called when execution completes).\n Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution."
         }
       ]
     },
@@ -43,7 +43,7 @@
           "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextId",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Get an ExecutionContext by ID.\n Handler-level auth: system-only internal lookup."
+          "description": "Get an ExecutionContext by ID.\n Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution."
         },
         {
           "name": "GetByReference",
@@ -51,7 +51,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Get an ExecutionContext by reference.\n Handler-level auth: system-only internal lookup."
+          "description": "Get an ExecutionContext by reference (slug-based lookup).\n Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution."
         },
         {
           "name": "GetByExecutionId",
@@ -59,7 +59,7 @@
           "inputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput",
           "outputType": "ExecutionContext",
           "outputFullType": "ai.stigmer.agentic.executioncontext.v1.ExecutionContext",
-          "description": "Get an ExecutionContext by the execution ID it belongs to.\n This is the primary lookup method used by runners to retrieve the merged\n environment variables during workflow/agent execution. The returned context\n contains decrypted secrets for runner consumption.\n\n Handler-level auth: checks can_view on parent agent_execution or workflow_execution.\n The handler looks up the ExecutionContext, extracts the execution_id from spec,\n determines the parent resource kind, and verifies the caller has can_view permission."
+          "description": "Get an ExecutionContext by the execution ID it belongs to.\n This is the primary lookup method used by runners to retrieve the merged\n environment variables during workflow/agent execution. The returned context\n contains decrypted secrets for runner consumption.\n\n Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution."
         }
       ]
     }

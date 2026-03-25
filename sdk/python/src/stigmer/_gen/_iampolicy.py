@@ -35,12 +35,6 @@ class IamPolicyClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
-    def create_platform_link(self, input: io_pb2.IamPolicySpec) -> api_pb2.IamPolicy:
-        try:
-            return self._command.createPlatformLink(input)
-        except grpc.RpcError as e:
-            raise wrap_error(e) from e
-
     def bootstrap_policy(self, input: io_pb2.IamPolicySpec) -> api_pb2.IamPolicy:
         try:
             return self._command.bootstrapPolicy(input)

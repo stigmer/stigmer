@@ -9,11 +9,11 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 class ExecutionContextCommandControllerStub(object):
     """ExecutionContextCommandController provides write operations for ExecutionContext resources.
 
-    Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+    Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
     ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-    FGA model. Instead, authorization is derived from the parent execution:
-    - create: Authorized if caller has can_edit on parent agent_execution or workflow_execution
-    - delete: System-only cleanup (called when execution completes)
+    FGA model. Authorization is derived from the parent execution:
+    - create: Caller must have can_edit on parent agent_execution or workflow_execution
+    - delete: Caller must have can_edit on parent agent_execution or workflow_execution
 
     This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
     """
@@ -44,11 +44,11 @@ class ExecutionContextCommandControllerStub(object):
 class ExecutionContextCommandControllerServicer(object):
     """ExecutionContextCommandController provides write operations for ExecutionContext resources.
 
-    Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+    Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
     ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-    FGA model. Instead, authorization is derived from the parent execution:
-    - create: Authorized if caller has can_edit on parent agent_execution or workflow_execution
-    - delete: System-only cleanup (called when execution completes)
+    FGA model. Authorization is derived from the parent execution:
+    - create: Caller must have can_edit on parent agent_execution or workflow_execution
+    - delete: Caller must have can_edit on parent agent_execution or workflow_execution
 
     This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
     """
@@ -64,7 +64,7 @@ class ExecutionContextCommandControllerServicer(object):
 
     def create(self, request, context):
         """Create a new ExecutionContext (called by execution pipeline on behalf of the user).
-        Handler-level auth: checks can_edit on parent agent_execution or workflow_execution.
+        Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -72,7 +72,7 @@ class ExecutionContextCommandControllerServicer(object):
 
     def delete(self, request, context):
         """Delete an ExecutionContext (called when execution completes).
-        Handler-level auth: system-only cleanup operation.
+        Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -107,11 +107,11 @@ def add_ExecutionContextCommandControllerServicer_to_server(servicer, server):
 class ExecutionContextCommandController(object):
     """ExecutionContextCommandController provides write operations for ExecutionContext resources.
 
-    Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+    Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
     ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-    FGA model. Instead, authorization is derived from the parent execution:
-    - create: Authorized if caller has can_edit on parent agent_execution or workflow_execution
-    - delete: System-only cleanup (called when execution completes)
+    FGA model. Authorization is derived from the parent execution:
+    - create: Caller must have can_edit on parent agent_execution or workflow_execution
+    - delete: Caller must have can_edit on parent agent_execution or workflow_execution
 
     This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
     """

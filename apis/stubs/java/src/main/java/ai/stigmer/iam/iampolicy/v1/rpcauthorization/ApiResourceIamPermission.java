@@ -7,8 +7,10 @@ package ai.stigmer.iam.iampolicy.v1.rpcauthorization;
 
 /**
  * <pre>
- * ApiResourceIamPermission defines the core permissions used in the authorization model.
- * This is a simplified set for a demo project, containing only essential permissions.
+ * ApiResourceIamPermission defines the permissions and structural relations
+ * used in the Stigmer authorization model. Each value maps to an FGA relation
+ * name that appears either in RPC authorization annotations or in FGA tuple
+ * creation logic.
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.iam.iampolicy.v1.rpcauthorization.ApiResourceIamPermission}
@@ -45,38 +47,18 @@ public enum ApiResourceIamPermission
    * Platform-level permissions
    * </pre>
    *
-   * <code>operator = 5;</code>
-   */
-  operator(5),
-  /**
-   * <pre>
-   * Platform-level access
-   * </pre>
-   *
-   * <code>platform = 6;</code>
-   */
-  platform(6),
-  /**
-   * <pre>
-   * Permission to login to back office
-   * </pre>
-   *
    * <code>login_to_back_office = 7;</code>
    */
   login_to_back_office(7),
   /**
    * <pre>
-   * IAM policy management permissions (follows can_* pattern)
+   * IAM policy management permissions
    * </pre>
    *
    * <code>can_grant_access = 8;</code>
    */
   can_grant_access(8),
   /**
-   * <pre>
-   * Permission to view who has access (view IAM policies)
-   * </pre>
-   *
    * <code>can_view_access = 9;</code>
    */
   can_view_access(9),
@@ -89,18 +71,10 @@ public enum ApiResourceIamPermission
    */
   owner(10),
   /**
-   * <pre>
-   * Resource member (for teams, organizations)
-   * </pre>
-   *
    * <code>member = 11;</code>
    */
   member(11),
   /**
-   * <pre>
-   * Resource viewer (base relation for public visibility tuples)
-   * </pre>
-   *
    * <code>viewer = 26;</code>
    */
   viewer(26),
@@ -113,26 +87,14 @@ public enum ApiResourceIamPermission
    */
   identity_account(12),
   /**
-   * <pre>
-   * Link to organization (org-scoped parent)
-   * </pre>
-   *
    * <code>organization = 13;</code>
    */
   organization(13),
   /**
-   * <pre>
-   * Link to session (agent execution parent)
-   * </pre>
-   *
    * <code>session = 14;</code>
    */
   session(14),
   /**
-   * <pre>
-   * Link to agent (agent instance parent)
-   * </pre>
-   *
    * <code>agent = 15;</code>
    */
   agent(15),
@@ -145,66 +107,34 @@ public enum ApiResourceIamPermission
    */
   can_create_agent(16),
   /**
-   * <pre>
-   * Permission to create workflows in an organization
-   * </pre>
-   *
    * <code>can_create_workflow = 17;</code>
    */
   can_create_workflow(17),
   /**
-   * <pre>
-   * Permission to create sessions in an organization
-   * </pre>
-   *
    * <code>can_create_session = 18;</code>
    */
   can_create_session(18),
   /**
-   * <pre>
-   * Permission to create agent executions in a session
-   * </pre>
-   *
    * <code>can_create_execution_in = 19;</code>
    */
   can_create_execution_in(19),
   /**
-   * <pre>
-   * Permission to create agent instances (derived from can_execute on parent agent)
-   * </pre>
-   *
    * <code>can_create_instance = 20;</code>
    */
   can_create_instance(20),
   /**
-   * <pre>
-   * Permission to create skills in an organization
-   * </pre>
-   *
    * <code>can_create_skill = 21;</code>
    */
   can_create_skill(21),
   /**
-   * <pre>
-   * Permission to create projects in an organization
-   * </pre>
-   *
    * <code>can_create_project = 23;</code>
    */
   can_create_project(23),
   /**
-   * <pre>
-   * Permission to create identity providers in an organization
-   * </pre>
-   *
    * <code>can_create_idp = 24;</code>
    */
   can_create_idp(24),
   /**
-   * <pre>
-   * Permission to create environments in an organization
-   * </pre>
-   *
    * <code>can_create_environment = 27;</code>
    */
   can_create_environment(27),
@@ -226,12 +156,20 @@ public enum ApiResourceIamPermission
   can_read_secrets(25),
   /**
    * <pre>
-   * Status update permissions (system/operator-only)
+   * Platform-level operational permissions (checked against platform:stigmer)
    * </pre>
    *
-   * <code>can_update_status = 28;</code>
+   * <code>can_bootstrap_iam = 29;</code>
    */
-  can_update_status(28),
+  can_bootstrap_iam(29),
+  /**
+   * <code>can_manage_identity_accounts = 30;</code>
+   */
+  can_manage_identity_accounts(30),
+  /**
+   * <code>can_update_execution_status = 31;</code>
+   */
+  can_update_execution_status(31),
   UNRECOGNIZED(-1),
   ;
 
@@ -273,38 +211,18 @@ public enum ApiResourceIamPermission
    * Platform-level permissions
    * </pre>
    *
-   * <code>operator = 5;</code>
-   */
-  public static final int operator_VALUE = 5;
-  /**
-   * <pre>
-   * Platform-level access
-   * </pre>
-   *
-   * <code>platform = 6;</code>
-   */
-  public static final int platform_VALUE = 6;
-  /**
-   * <pre>
-   * Permission to login to back office
-   * </pre>
-   *
    * <code>login_to_back_office = 7;</code>
    */
   public static final int login_to_back_office_VALUE = 7;
   /**
    * <pre>
-   * IAM policy management permissions (follows can_* pattern)
+   * IAM policy management permissions
    * </pre>
    *
    * <code>can_grant_access = 8;</code>
    */
   public static final int can_grant_access_VALUE = 8;
   /**
-   * <pre>
-   * Permission to view who has access (view IAM policies)
-   * </pre>
-   *
    * <code>can_view_access = 9;</code>
    */
   public static final int can_view_access_VALUE = 9;
@@ -317,18 +235,10 @@ public enum ApiResourceIamPermission
    */
   public static final int owner_VALUE = 10;
   /**
-   * <pre>
-   * Resource member (for teams, organizations)
-   * </pre>
-   *
    * <code>member = 11;</code>
    */
   public static final int member_VALUE = 11;
   /**
-   * <pre>
-   * Resource viewer (base relation for public visibility tuples)
-   * </pre>
-   *
    * <code>viewer = 26;</code>
    */
   public static final int viewer_VALUE = 26;
@@ -341,26 +251,14 @@ public enum ApiResourceIamPermission
    */
   public static final int identity_account_VALUE = 12;
   /**
-   * <pre>
-   * Link to organization (org-scoped parent)
-   * </pre>
-   *
    * <code>organization = 13;</code>
    */
   public static final int organization_VALUE = 13;
   /**
-   * <pre>
-   * Link to session (agent execution parent)
-   * </pre>
-   *
    * <code>session = 14;</code>
    */
   public static final int session_VALUE = 14;
   /**
-   * <pre>
-   * Link to agent (agent instance parent)
-   * </pre>
-   *
    * <code>agent = 15;</code>
    */
   public static final int agent_VALUE = 15;
@@ -373,66 +271,34 @@ public enum ApiResourceIamPermission
    */
   public static final int can_create_agent_VALUE = 16;
   /**
-   * <pre>
-   * Permission to create workflows in an organization
-   * </pre>
-   *
    * <code>can_create_workflow = 17;</code>
    */
   public static final int can_create_workflow_VALUE = 17;
   /**
-   * <pre>
-   * Permission to create sessions in an organization
-   * </pre>
-   *
    * <code>can_create_session = 18;</code>
    */
   public static final int can_create_session_VALUE = 18;
   /**
-   * <pre>
-   * Permission to create agent executions in a session
-   * </pre>
-   *
    * <code>can_create_execution_in = 19;</code>
    */
   public static final int can_create_execution_in_VALUE = 19;
   /**
-   * <pre>
-   * Permission to create agent instances (derived from can_execute on parent agent)
-   * </pre>
-   *
    * <code>can_create_instance = 20;</code>
    */
   public static final int can_create_instance_VALUE = 20;
   /**
-   * <pre>
-   * Permission to create skills in an organization
-   * </pre>
-   *
    * <code>can_create_skill = 21;</code>
    */
   public static final int can_create_skill_VALUE = 21;
   /**
-   * <pre>
-   * Permission to create projects in an organization
-   * </pre>
-   *
    * <code>can_create_project = 23;</code>
    */
   public static final int can_create_project_VALUE = 23;
   /**
-   * <pre>
-   * Permission to create identity providers in an organization
-   * </pre>
-   *
    * <code>can_create_idp = 24;</code>
    */
   public static final int can_create_idp_VALUE = 24;
   /**
-   * <pre>
-   * Permission to create environments in an organization
-   * </pre>
-   *
    * <code>can_create_environment = 27;</code>
    */
   public static final int can_create_environment_VALUE = 27;
@@ -454,12 +320,20 @@ public enum ApiResourceIamPermission
   public static final int can_read_secrets_VALUE = 25;
   /**
    * <pre>
-   * Status update permissions (system/operator-only)
+   * Platform-level operational permissions (checked against platform:stigmer)
    * </pre>
    *
-   * <code>can_update_status = 28;</code>
+   * <code>can_bootstrap_iam = 29;</code>
    */
-  public static final int can_update_status_VALUE = 28;
+  public static final int can_bootstrap_iam_VALUE = 29;
+  /**
+   * <code>can_manage_identity_accounts = 30;</code>
+   */
+  public static final int can_manage_identity_accounts_VALUE = 30;
+  /**
+   * <code>can_update_execution_status = 31;</code>
+   */
+  public static final int can_update_execution_status_VALUE = 31;
 
 
   public final int getNumber() {
@@ -491,8 +365,6 @@ public enum ApiResourceIamPermission
       case 2: return can_delete;
       case 3: return can_view;
       case 4: return can_edit;
-      case 5: return operator;
-      case 6: return platform;
       case 7: return login_to_back_office;
       case 8: return can_grant_access;
       case 9: return can_view_access;
@@ -514,7 +386,9 @@ public enum ApiResourceIamPermission
       case 27: return can_create_environment;
       case 22: return can_execute;
       case 25: return can_read_secrets;
-      case 28: return can_update_status;
+      case 29: return can_bootstrap_iam;
+      case 30: return can_manage_identity_accounts;
+      case 31: return can_update_execution_status;
       default: return null;
     }
   }

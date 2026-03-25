@@ -31,11 +31,11 @@ const (
 //
 // ExecutionContextCommandController provides write operations for ExecutionContext resources.
 //
-// Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+// Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
 // ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-// FGA model. Instead, authorization is derived from the parent execution:
-//   - create: Authorized if caller has can_edit on parent agent_execution or workflow_execution
-//   - delete: System-only cleanup (called when execution completes)
+// FGA model. Authorization is derived from the parent execution:
+//   - create: Caller must have can_edit on parent agent_execution or workflow_execution
+//   - delete: Caller must have can_edit on parent agent_execution or workflow_execution
 //
 // This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
 type ExecutionContextCommandControllerClient interface {
@@ -44,10 +44,10 @@ type ExecutionContextCommandControllerClient interface {
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(ctx context.Context, in *ExecutionContext, opts ...grpc.CallOption) (*ExecutionContext, error)
 	// Create a new ExecutionContext (called by execution pipeline on behalf of the user).
-	// Handler-level auth: checks can_edit on parent agent_execution or workflow_execution.
+	// Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
 	Create(ctx context.Context, in *ExecutionContext, opts ...grpc.CallOption) (*ExecutionContext, error)
 	// Delete an ExecutionContext (called when execution completes).
-	// Handler-level auth: system-only cleanup operation.
+	// Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*ExecutionContext, error)
 }
 
@@ -95,11 +95,11 @@ func (c *executionContextCommandControllerClient) Delete(ctx context.Context, in
 //
 // ExecutionContextCommandController provides write operations for ExecutionContext resources.
 //
-// Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+// Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
 // ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
-// FGA model. Instead, authorization is derived from the parent execution:
-//   - create: Authorized if caller has can_edit on parent agent_execution or workflow_execution
-//   - delete: System-only cleanup (called when execution completes)
+// FGA model. Authorization is derived from the parent execution:
+//   - create: Caller must have can_edit on parent agent_execution or workflow_execution
+//   - delete: Caller must have can_edit on parent agent_execution or workflow_execution
 //
 // This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
 type ExecutionContextCommandControllerServer interface {
@@ -108,10 +108,10 @@ type ExecutionContextCommandControllerServer interface {
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(context.Context, *ExecutionContext) (*ExecutionContext, error)
 	// Create a new ExecutionContext (called by execution pipeline on behalf of the user).
-	// Handler-level auth: checks can_edit on parent agent_execution or workflow_execution.
+	// Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
 	Create(context.Context, *ExecutionContext) (*ExecutionContext, error)
 	// Delete an ExecutionContext (called when execution completes).
-	// Handler-level auth: system-only cleanup operation.
+	// Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*ExecutionContext, error)
 }
 

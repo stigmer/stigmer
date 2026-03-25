@@ -43,7 +43,7 @@ export type ExecutionContext = Message<"ai.stigmer.agentic.executioncontext.v1.E
 
   /**
    * Standard resource metadata including name, id, labels, and tags.
-   * ExecutionContext is operator-managed and belongs to an organization.
+   * ExecutionContext is ephemeral and authorization is derived from the parent execution.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */

@@ -33,12 +33,6 @@ export class IamPolicyClient {
     } catch (e) { throw wrapError(e); }
   }
 
-  async createPlatformLink(input: IamPolicySpec): Promise<IamPolicy> {
-    try {
-      return await this.command.createPlatformLink(input);
-    } catch (e) { throw wrapError(e); }
-  }
-
   async bootstrapPolicy(input: IamPolicySpec): Promise<IamPolicy> {
     try {
       return await this.command.bootstrapPolicy(input);

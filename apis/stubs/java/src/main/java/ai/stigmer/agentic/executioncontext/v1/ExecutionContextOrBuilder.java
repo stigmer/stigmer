@@ -53,7 +53,7 @@ public interface ExecutionContextOrBuilder extends
   /**
    * <pre>
    * Standard resource metadata including name, id, labels, and tags.
-   * ExecutionContext is operator-managed and belongs to an organization.
+   * ExecutionContext is ephemeral and authorization is derived from the parent execution.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -63,7 +63,7 @@ public interface ExecutionContextOrBuilder extends
   /**
    * <pre>
    * Standard resource metadata including name, id, labels, and tags.
-   * ExecutionContext is operator-managed and belongs to an organization.
+   * ExecutionContext is ephemeral and authorization is derived from the parent execution.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -73,7 +73,7 @@ public interface ExecutionContextOrBuilder extends
   /**
    * <pre>
    * Standard resource metadata including name, id, labels, and tags.
-   * ExecutionContext is operator-managed and belongs to an organization.
+   * ExecutionContext is ephemeral and authorization is derived from the parent execution.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>

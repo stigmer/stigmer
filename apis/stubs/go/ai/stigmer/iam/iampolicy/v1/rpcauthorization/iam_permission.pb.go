@@ -21,8 +21,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ApiResourceIamPermission defines the core permissions used in the authorization model.
-// This is a simplified set for a demo project, containing only essential permissions.
+// ApiResourceIamPermission defines the permissions and structural relations
+// used in the Stigmer authorization model. Each value maps to an FGA relation
+// name that appears either in RPC authorization annotations or in FGA tuple
+// creation logic.
 type ApiResourceIamPermission int32
 
 const (
@@ -33,37 +35,37 @@ const (
 	ApiResourceIamPermission_can_view   ApiResourceIamPermission = 3
 	ApiResourceIamPermission_can_edit   ApiResourceIamPermission = 4
 	// Platform-level permissions
-	ApiResourceIamPermission_operator             ApiResourceIamPermission = 5 // Platform operator with elevated privileges
-	ApiResourceIamPermission_platform             ApiResourceIamPermission = 6 // Platform-level access
-	ApiResourceIamPermission_login_to_back_office ApiResourceIamPermission = 7 // Permission to login to back office
-	// IAM policy management permissions (follows can_* pattern)
-	ApiResourceIamPermission_can_grant_access ApiResourceIamPermission = 8 // Permission to grant/revoke access (create/delete IAM policies)
-	ApiResourceIamPermission_can_view_access  ApiResourceIamPermission = 9 // Permission to view who has access (view IAM policies)
+	ApiResourceIamPermission_login_to_back_office ApiResourceIamPermission = 7
+	// IAM policy management permissions
+	ApiResourceIamPermission_can_grant_access ApiResourceIamPermission = 8
+	ApiResourceIamPermission_can_view_access  ApiResourceIamPermission = 9
 	// Resource ownership and membership
-	ApiResourceIamPermission_owner  ApiResourceIamPermission = 10 // Resource owner
-	ApiResourceIamPermission_member ApiResourceIamPermission = 11 // Resource member (for teams, organizations)
-	ApiResourceIamPermission_viewer ApiResourceIamPermission = 26 // Resource viewer (base relation for public visibility tuples)
+	ApiResourceIamPermission_owner  ApiResourceIamPermission = 10
+	ApiResourceIamPermission_member ApiResourceIamPermission = 11
+	ApiResourceIamPermission_viewer ApiResourceIamPermission = 26
 	// Structural relations (parent links)
-	ApiResourceIamPermission_identity_account ApiResourceIamPermission = 12 // Link to identity account (user-scoped parent)
-	ApiResourceIamPermission_organization     ApiResourceIamPermission = 13 // Link to organization (org-scoped parent)
-	ApiResourceIamPermission_session          ApiResourceIamPermission = 14 // Link to session (agent execution parent)
-	ApiResourceIamPermission_agent            ApiResourceIamPermission = 15 // Link to agent (agent instance parent)
+	ApiResourceIamPermission_identity_account ApiResourceIamPermission = 12
+	ApiResourceIamPermission_organization     ApiResourceIamPermission = 13
+	ApiResourceIamPermission_session          ApiResourceIamPermission = 14
+	ApiResourceIamPermission_agent            ApiResourceIamPermission = 15
 	// Resource-specific creation permissions
-	ApiResourceIamPermission_can_create_agent        ApiResourceIamPermission = 16 // Permission to create agents in an organization
-	ApiResourceIamPermission_can_create_workflow     ApiResourceIamPermission = 17 // Permission to create workflows in an organization
-	ApiResourceIamPermission_can_create_session      ApiResourceIamPermission = 18 // Permission to create sessions in an organization
-	ApiResourceIamPermission_can_create_execution_in ApiResourceIamPermission = 19 // Permission to create agent executions in a session
-	ApiResourceIamPermission_can_create_instance     ApiResourceIamPermission = 20 // Permission to create agent instances (derived from can_execute on parent agent)
-	ApiResourceIamPermission_can_create_skill        ApiResourceIamPermission = 21 // Permission to create skills in an organization
-	ApiResourceIamPermission_can_create_project      ApiResourceIamPermission = 23 // Permission to create projects in an organization
-	ApiResourceIamPermission_can_create_idp          ApiResourceIamPermission = 24 // Permission to create identity providers in an organization
-	ApiResourceIamPermission_can_create_environment  ApiResourceIamPermission = 27 // Permission to create environments in an organization
+	ApiResourceIamPermission_can_create_agent        ApiResourceIamPermission = 16
+	ApiResourceIamPermission_can_create_workflow     ApiResourceIamPermission = 17
+	ApiResourceIamPermission_can_create_session      ApiResourceIamPermission = 18
+	ApiResourceIamPermission_can_create_execution_in ApiResourceIamPermission = 19
+	ApiResourceIamPermission_can_create_instance     ApiResourceIamPermission = 20
+	ApiResourceIamPermission_can_create_skill        ApiResourceIamPermission = 21
+	ApiResourceIamPermission_can_create_project      ApiResourceIamPermission = 23
+	ApiResourceIamPermission_can_create_idp          ApiResourceIamPermission = 24
+	ApiResourceIamPermission_can_create_environment  ApiResourceIamPermission = 27
 	// Resource-specific operation permissions
-	ApiResourceIamPermission_can_execute ApiResourceIamPermission = 22 // Permission to execute agent/session operations
+	ApiResourceIamPermission_can_execute ApiResourceIamPermission = 22
 	// Secret access permissions
-	ApiResourceIamPermission_can_read_secrets ApiResourceIamPermission = 25 // Permission to read unredacted secret values (creator-only)
-	// Status update permissions (system/operator-only)
-	ApiResourceIamPermission_can_update_status ApiResourceIamPermission = 28 // Permission to update execution status (operator-only, used by runners)
+	ApiResourceIamPermission_can_read_secrets ApiResourceIamPermission = 25
+	// Platform-level operational permissions (checked against platform:stigmer)
+	ApiResourceIamPermission_can_bootstrap_iam            ApiResourceIamPermission = 29
+	ApiResourceIamPermission_can_manage_identity_accounts ApiResourceIamPermission = 30
+	ApiResourceIamPermission_can_update_execution_status  ApiResourceIamPermission = 31
 )
 
 // Enum value maps for ApiResourceIamPermission.
@@ -74,8 +76,6 @@ var (
 		2:  "can_delete",
 		3:  "can_view",
 		4:  "can_edit",
-		5:  "operator",
-		6:  "platform",
 		7:  "login_to_back_office",
 		8:  "can_grant_access",
 		9:  "can_view_access",
@@ -97,38 +97,40 @@ var (
 		27: "can_create_environment",
 		22: "can_execute",
 		25: "can_read_secrets",
-		28: "can_update_status",
+		29: "can_bootstrap_iam",
+		30: "can_manage_identity_accounts",
+		31: "can_update_execution_status",
 	}
 	ApiResourceIamPermission_value = map[string]int32{
-		"unspecified":             0,
-		"create":                  1,
-		"can_delete":              2,
-		"can_view":                3,
-		"can_edit":                4,
-		"operator":                5,
-		"platform":                6,
-		"login_to_back_office":    7,
-		"can_grant_access":        8,
-		"can_view_access":         9,
-		"owner":                   10,
-		"member":                  11,
-		"viewer":                  26,
-		"identity_account":        12,
-		"organization":            13,
-		"session":                 14,
-		"agent":                   15,
-		"can_create_agent":        16,
-		"can_create_workflow":     17,
-		"can_create_session":      18,
-		"can_create_execution_in": 19,
-		"can_create_instance":     20,
-		"can_create_skill":        21,
-		"can_create_project":      23,
-		"can_create_idp":          24,
-		"can_create_environment":  27,
-		"can_execute":             22,
-		"can_read_secrets":        25,
-		"can_update_status":       28,
+		"unspecified":                  0,
+		"create":                       1,
+		"can_delete":                   2,
+		"can_view":                     3,
+		"can_edit":                     4,
+		"login_to_back_office":         7,
+		"can_grant_access":             8,
+		"can_view_access":              9,
+		"owner":                        10,
+		"member":                       11,
+		"viewer":                       26,
+		"identity_account":             12,
+		"organization":                 13,
+		"session":                      14,
+		"agent":                        15,
+		"can_create_agent":             16,
+		"can_create_workflow":          17,
+		"can_create_session":           18,
+		"can_create_execution_in":      19,
+		"can_create_instance":          20,
+		"can_create_skill":             21,
+		"can_create_project":           23,
+		"can_create_idp":               24,
+		"can_create_environment":       27,
+		"can_execute":                  22,
+		"can_read_secrets":             25,
+		"can_bootstrap_iam":            29,
+		"can_manage_identity_accounts": 30,
+		"can_update_execution_status":  31,
 	}
 )
 
@@ -163,7 +165,7 @@ var File_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission_proto proto
 
 const file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission_proto_rawDesc = "" +
 	"\n" +
-	"Aai/stigmer/iam/iampolicy/v1/rpcauthorization/iam_permission.proto\x12,ai.stigmer.iam.iampolicy.v1.rpcauthorization*\xc0\x04\n" +
+	"Aai/stigmer/iam/iampolicy/v1/rpcauthorization/iam_permission.proto\x12,ai.stigmer.iam.iampolicy.v1.rpcauthorization*\xa0\x05\n" +
 	"\x18ApiResourceIamPermission\x12\x0f\n" +
 	"\vunspecified\x10\x00\x12\n" +
 	"\n" +
@@ -171,9 +173,7 @@ const file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission_proto_raw
 	"\n" +
 	"can_delete\x10\x02\x12\f\n" +
 	"\bcan_view\x10\x03\x12\f\n" +
-	"\bcan_edit\x10\x04\x12\f\n" +
-	"\boperator\x10\x05\x12\f\n" +
-	"\bplatform\x10\x06\x12\x18\n" +
+	"\bcan_edit\x10\x04\x12\x18\n" +
 	"\x14login_to_back_office\x10\a\x12\x14\n" +
 	"\x10can_grant_access\x10\b\x12\x13\n" +
 	"\x0fcan_view_access\x10\t\x12\t\n" +
@@ -198,7 +198,9 @@ const file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_iam_permission_proto_raw
 	"\x16can_create_environment\x10\x1b\x12\x0f\n" +
 	"\vcan_execute\x10\x16\x12\x14\n" +
 	"\x10can_read_secrets\x10\x19\x12\x15\n" +
-	"\x11can_update_status\x10\x1cB\xf5\x02\n" +
+	"\x11can_bootstrap_iam\x10\x1d\x12 \n" +
+	"\x1ccan_manage_identity_accounts\x10\x1e\x12\x1f\n" +
+	"\x1bcan_update_execution_status\x10\x1f\"\x04\b\x05\x10\x05\"\x04\b\x06\x10\x06\"\x04\b\x1c\x10\x1c*\boperator*\bplatform*\x11can_update_statusB\xf5\x02\n" +
 	"0com.ai.stigmer.iam.iampolicy.v1.rpcauthorizationB\x12IamPermissionProtoP\x01ZUgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/iam/iampolicy/v1/rpcauthorization\xa2\x02\x06ASIIVR\xaa\x02,Ai.Stigmer.Iam.Iampolicy.V1.Rpcauthorization\xca\x02,Ai\\Stigmer\\Iam\\Iampolicy\\V1\\Rpcauthorization\xe2\x028Ai\\Stigmer\\Iam\\Iampolicy\\V1\\Rpcauthorization\\GPBMetadata\xea\x021Ai::Stigmer::Iam::Iampolicy::V1::Rpcauthorizationb\x06proto3"
 
 var (

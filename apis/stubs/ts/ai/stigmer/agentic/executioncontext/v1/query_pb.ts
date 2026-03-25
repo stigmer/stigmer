@@ -22,12 +22,13 @@ export const file_ai_stigmer_agentic_executioncontext_v1_query: GenFile = /*@__P
 /**
  * ExecutionContextQueryController provides read operations for ExecutionContext resources.
  *
- * Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+ * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
  * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
  * FGA model. Authorization is derived from the parent execution:
- *   - get/getByReference: System-only (internal service lookups)
- *   - getByExecutionId: Handler checks can_view on parent agent_execution or workflow_execution
+ *   - All read operations check can_view on parent agent_execution or workflow_execution
  *
+ * The handler loads the ExecutionContext, extracts the execution_id from spec,
+ * and verifies the caller has permission on whichever parent type matches.
  * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
  *
  * @generated from service ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController
@@ -35,7 +36,7 @@ export const file_ai_stigmer_agentic_executioncontext_v1_query: GenFile = /*@__P
 export const ExecutionContextQueryController: GenService<{
   /**
    * Get an ExecutionContext by ID.
-   * Handler-level auth: system-only internal lookup.
+   * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
    *
    * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.get
    */
@@ -45,8 +46,8 @@ export const ExecutionContextQueryController: GenService<{
     output: typeof ExecutionContextSchema;
   },
   /**
-   * Get an ExecutionContext by reference.
-   * Handler-level auth: system-only internal lookup.
+   * Get an ExecutionContext by reference (slug-based lookup).
+   * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
    *
    * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByReference
    */
@@ -61,9 +62,7 @@ export const ExecutionContextQueryController: GenService<{
    * environment variables during workflow/agent execution. The returned context
    * contains decrypted secrets for runner consumption.
    *
-   * Handler-level auth: checks can_view on parent agent_execution or workflow_execution.
-   * The handler looks up the ExecutionContext, extracts the execution_id from spec,
-   * determines the parent resource kind, and verifies the caller has can_view permission.
+   * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
    *
    * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByExecutionId
    */
