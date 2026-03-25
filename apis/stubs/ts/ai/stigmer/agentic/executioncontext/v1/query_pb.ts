@@ -17,17 +17,25 @@ import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from
  * Describes the file ai/stigmer/agentic/executioncontext/v1/query.proto.
  */
 export const file_ai_stigmer_agentic_executioncontext_v1_query: GenFile = /*@__PURE__*/
-  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvZXhlY3V0aW9uY29udGV4dC92MS9xdWVyeS5wcm90bxImYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEy0QUKH0V4ZWN1dGlvbkNvbnRleHRRdWVyeUNvbnRyb2xsZXISzAEKA2dldBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHRJZBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHQiT8K4GEsIBRAfKjx1bmF1dGhvcml6ZWQgdG8gZ2V0IEV4ZWN1dGlvbiBDb250ZXh0IChvcGVyYXRvci1vbmx5IGFjdGlvbikyB3N0aWdtZXIS3gEKDmdldEJ5UmVmZXJlbmNlEjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlGjguYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uQ29udGV4dCJcwrgYWAgFEB8qSXVuYXV0aG9yaXplZCB0byBnZXQgRXhlY3V0aW9uIENvbnRleHQgYnkgcmVmZXJlbmNlIChvcGVyYXRvci1vbmx5IGFjdGlvbikyB3N0aWdtZXIS9wEKEGdldEJ5RXhlY3V0aW9uSWQSSC5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25Db250ZXh0RXhlY3V0aW9uSWRJbnB1dBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHQiX8K4GFsIBRAfKkx1bmF1dGhvcml6ZWQgdG8gZ2V0IEV4ZWN1dGlvbiBDb250ZXh0IGJ5IGV4ZWN1dGlvbiBJRCAob3BlcmF0b3Itb25seSBhY3Rpb24pMgdzdGlnbWVyGgSg/ys2YgZwcm90bzM", [file_ai_stigmer_agentic_executioncontext_v1_api, file_ai_stigmer_agentic_executioncontext_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvZXhlY3V0aW9uY29udGV4dC92MS9xdWVyeS5wcm90bxImYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEy0wMKH0V4ZWN1dGlvbkNvbnRleHRRdWVyeUNvbnRyb2xsZXISgQEKA2dldBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHRJZBo4LmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHQiBNC4GAEShgEKDmdldEJ5UmVmZXJlbmNlEjQuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlUmVmZXJlbmNlGjguYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uQ29udGV4dCIE0LgYARKcAQoQZ2V0QnlFeGVjdXRpb25JZBJILmFpLnN0aWdtZXIuYWdlbnRpYy5leGVjdXRpb25jb250ZXh0LnYxLkV4ZWN1dGlvbkNvbnRleHRFeGVjdXRpb25JZElucHV0GjguYWkuc3RpZ21lci5hZ2VudGljLmV4ZWN1dGlvbmNvbnRleHQudjEuRXhlY3V0aW9uQ29udGV4dCIE0LgYARoEoP8rNmIGcHJvdG8z", [file_ai_stigmer_agentic_executioncontext_v1_api, file_ai_stigmer_agentic_executioncontext_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
  * ExecutionContextQueryController provides read operations for ExecutionContext resources.
+ *
+ * Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+ * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+ * FGA model. Authorization is derived from the parent execution:
+ *   - get/getByReference: System-only (internal service lookups)
+ *   - getByExecutionId: Handler checks can_view on parent agent_execution or workflow_execution
+ *
+ * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
  *
  * @generated from service ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController
  */
 export const ExecutionContextQueryController: GenService<{
   /**
    * Get an ExecutionContext by ID.
-   * Note: Only the execution engine should typically need to read these.
+   * Handler-level auth: system-only internal lookup.
    *
    * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.get
    */
@@ -37,7 +45,8 @@ export const ExecutionContextQueryController: GenService<{
     output: typeof ExecutionContextSchema;
   },
   /**
-   * Get an ExecutionContext by reference (operator-only).
+   * Get an ExecutionContext by reference.
+   * Handler-level auth: system-only internal lookup.
    *
    * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByReference
    */
@@ -52,12 +61,9 @@ export const ExecutionContextQueryController: GenService<{
    * environment variables during workflow/agent execution. The returned context
    * contains decrypted secrets for runner consumption.
    *
-   * Use cases:
-   * - Go workflow-runner queries for merged env vars before executing workflow
-   * - Python agent-runner queries for merged env vars before executing agent
-   *
-   * Security: Operator-only access ensures only internal services (runners) can
-   * retrieve decrypted secrets. Public APIs use get/getByReference which redact secrets.
+   * Handler-level auth: checks can_view on parent agent_execution or workflow_execution.
+   * The handler looks up the ExecutionContext, extracts the execution_id from spec,
+   * determines the parent resource kind, and verifies the caller has can_view permission.
    *
    * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByExecutionId
    */

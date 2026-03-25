@@ -34,6 +34,7 @@ class ApiResourceIamPermission(int, metaclass=_enum_type_wrapper.EnumTypeWrapper
     can_create_environment: _ClassVar[ApiResourceIamPermission]
     can_execute: _ClassVar[ApiResourceIamPermission]
     can_read_secrets: _ClassVar[ApiResourceIamPermission]
+    can_update_status: _ClassVar[ApiResourceIamPermission]
 unspecified: ApiResourceIamPermission
 create: ApiResourceIamPermission
 can_delete: ApiResourceIamPermission
@@ -62,3 +63,4 @@ can_create_idp: ApiResourceIamPermission
 can_create_environment: ApiResourceIamPermission
 can_execute: ApiResourceIamPermission
 can_read_secrets: ApiResourceIamPermission
+can_update_status: ApiResourceIamPermission

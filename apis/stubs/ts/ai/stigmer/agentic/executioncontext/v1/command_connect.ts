@@ -9,7 +9,14 @@ import { ApiResourceDeleteInput } from "../../../commons/apiresource/io_pb.js";
 
 /**
  * ExecutionContextCommandController provides write operations for ExecutionContext resources.
- * Note: ExecutionContext is typically created/deleted by the system, not directly by users.
+ *
+ * Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+ * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+ * FGA model. Instead, authorization is derived from the parent execution:
+ *   - create: Authorized if caller has can_edit on parent agent_execution or workflow_execution
+ *   - delete: System-only cleanup (called when execution completes)
+ *
+ * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
  *
  * @generated from service ai.stigmer.agentic.executioncontext.v1.ExecutionContextCommandController
  */
@@ -30,7 +37,8 @@ export const ExecutionContextCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Create a new ExecutionContext (typically called by execution engine).
+     * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+     * Handler-level auth: checks can_edit on parent agent_execution or workflow_execution.
      *
      * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextCommandController.create
      */
@@ -42,6 +50,7 @@ export const ExecutionContextCommandController = {
     },
     /**
      * Delete an ExecutionContext (called when execution completes).
+     * Handler-level auth: system-only cleanup operation.
      *
      * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextCommandController.delete
      */

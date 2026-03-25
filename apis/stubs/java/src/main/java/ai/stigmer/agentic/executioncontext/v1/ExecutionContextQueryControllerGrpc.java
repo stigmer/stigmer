@@ -5,6 +5,12 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 /**
  * <pre>
  * ExecutionContextQueryController provides read operations for ExecutionContext resources.
+ * Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+ * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+ * FGA model. Authorization is derived from the parent execution:
+ *   - get/getByReference: System-only (internal service lookups)
+ *   - getByExecutionId: Handler checks can_view on parent agent_execution or workflow_execution
+ * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -170,6 +176,12 @@ public final class ExecutionContextQueryControllerGrpc {
   /**
    * <pre>
    * ExecutionContextQueryController provides read operations for ExecutionContext resources.
+   * Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+   * FGA model. Authorization is derived from the parent execution:
+   *   - get/getByReference: System-only (internal service lookups)
+   *   - getByExecutionId: Handler checks can_view on parent agent_execution or workflow_execution
+   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
    * </pre>
    */
   public interface AsyncService {
@@ -177,7 +189,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
-     * Note: Only the execution engine should typically need to read these.
+     * Handler-level auth: system-only internal lookup.
      * </pre>
      */
     default void get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId request,
@@ -187,7 +199,8 @@ public final class ExecutionContextQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an ExecutionContext by reference (operator-only).
+     * Get an ExecutionContext by reference.
+     * Handler-level auth: system-only internal lookup.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -201,11 +214,9 @@ public final class ExecutionContextQueryControllerGrpc {
      * This is the primary lookup method used by runners to retrieve the merged
      * environment variables during workflow/agent execution. The returned context
      * contains decrypted secrets for runner consumption.
-     * Use cases:
-     * - Go workflow-runner queries for merged env vars before executing workflow
-     * - Python agent-runner queries for merged env vars before executing agent
-     * Security: Operator-only access ensures only internal services (runners) can
-     * retrieve decrypted secrets. Public APIs use get/getByReference which redact secrets.
+     * Handler-level auth: checks can_view on parent agent_execution or workflow_execution.
+     * The handler looks up the ExecutionContext, extracts the execution_id from spec,
+     * determines the parent resource kind, and verifies the caller has can_view permission.
      * </pre>
      */
     default void getByExecutionId(ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput request,
@@ -218,6 +229,12 @@ public final class ExecutionContextQueryControllerGrpc {
    * Base class for the server implementation of the service ExecutionContextQueryController.
    * <pre>
    * ExecutionContextQueryController provides read operations for ExecutionContext resources.
+   * Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+   * FGA model. Authorization is derived from the parent execution:
+   *   - get/getByReference: System-only (internal service lookups)
+   *   - getByExecutionId: Handler checks can_view on parent agent_execution or workflow_execution
+   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
    * </pre>
    */
   public static abstract class ExecutionContextQueryControllerImplBase
@@ -232,6 +249,12 @@ public final class ExecutionContextQueryControllerGrpc {
    * A stub to allow clients to do asynchronous rpc calls to service ExecutionContextQueryController.
    * <pre>
    * ExecutionContextQueryController provides read operations for ExecutionContext resources.
+   * Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+   * FGA model. Authorization is derived from the parent execution:
+   *   - get/getByReference: System-only (internal service lookups)
+   *   - getByExecutionId: Handler checks can_view on parent agent_execution or workflow_execution
+   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
    * </pre>
    */
   public static final class ExecutionContextQueryControllerStub
@@ -250,7 +273,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
-     * Note: Only the execution engine should typically need to read these.
+     * Handler-level auth: system-only internal lookup.
      * </pre>
      */
     public void get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId request,
@@ -261,7 +284,8 @@ public final class ExecutionContextQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an ExecutionContext by reference (operator-only).
+     * Get an ExecutionContext by reference.
+     * Handler-level auth: system-only internal lookup.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -276,11 +300,9 @@ public final class ExecutionContextQueryControllerGrpc {
      * This is the primary lookup method used by runners to retrieve the merged
      * environment variables during workflow/agent execution. The returned context
      * contains decrypted secrets for runner consumption.
-     * Use cases:
-     * - Go workflow-runner queries for merged env vars before executing workflow
-     * - Python agent-runner queries for merged env vars before executing agent
-     * Security: Operator-only access ensures only internal services (runners) can
-     * retrieve decrypted secrets. Public APIs use get/getByReference which redact secrets.
+     * Handler-level auth: checks can_view on parent agent_execution or workflow_execution.
+     * The handler looks up the ExecutionContext, extracts the execution_id from spec,
+     * determines the parent resource kind, and verifies the caller has can_view permission.
      * </pre>
      */
     public void getByExecutionId(ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput request,
@@ -294,6 +316,12 @@ public final class ExecutionContextQueryControllerGrpc {
    * A stub to allow clients to do synchronous rpc calls to service ExecutionContextQueryController.
    * <pre>
    * ExecutionContextQueryController provides read operations for ExecutionContext resources.
+   * Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+   * FGA model. Authorization is derived from the parent execution:
+   *   - get/getByReference: System-only (internal service lookups)
+   *   - getByExecutionId: Handler checks can_view on parent agent_execution or workflow_execution
+   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
    * </pre>
    */
   public static final class ExecutionContextQueryControllerBlockingV2Stub
@@ -312,7 +340,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
-     * Note: Only the execution engine should typically need to read these.
+     * Handler-level auth: system-only internal lookup.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId request) throws io.grpc.StatusException {
@@ -322,7 +350,8 @@ public final class ExecutionContextQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an ExecutionContext by reference (operator-only).
+     * Get an ExecutionContext by reference.
+     * Handler-level auth: system-only internal lookup.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -336,11 +365,9 @@ public final class ExecutionContextQueryControllerGrpc {
      * This is the primary lookup method used by runners to retrieve the merged
      * environment variables during workflow/agent execution. The returned context
      * contains decrypted secrets for runner consumption.
-     * Use cases:
-     * - Go workflow-runner queries for merged env vars before executing workflow
-     * - Python agent-runner queries for merged env vars before executing agent
-     * Security: Operator-only access ensures only internal services (runners) can
-     * retrieve decrypted secrets. Public APIs use get/getByReference which redact secrets.
+     * Handler-level auth: checks can_view on parent agent_execution or workflow_execution.
+     * The handler looks up the ExecutionContext, extracts the execution_id from spec,
+     * determines the parent resource kind, and verifies the caller has can_view permission.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext getByExecutionId(ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput request) throws io.grpc.StatusException {
@@ -353,6 +380,12 @@ public final class ExecutionContextQueryControllerGrpc {
    * A stub to allow clients to do limited synchronous rpc calls to service ExecutionContextQueryController.
    * <pre>
    * ExecutionContextQueryController provides read operations for ExecutionContext resources.
+   * Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+   * FGA model. Authorization is derived from the parent execution:
+   *   - get/getByReference: System-only (internal service lookups)
+   *   - getByExecutionId: Handler checks can_view on parent agent_execution or workflow_execution
+   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
    * </pre>
    */
   public static final class ExecutionContextQueryControllerBlockingStub
@@ -371,7 +404,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
-     * Note: Only the execution engine should typically need to read these.
+     * Handler-level auth: system-only internal lookup.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId request) {
@@ -381,7 +414,8 @@ public final class ExecutionContextQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an ExecutionContext by reference (operator-only).
+     * Get an ExecutionContext by reference.
+     * Handler-level auth: system-only internal lookup.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -395,11 +429,9 @@ public final class ExecutionContextQueryControllerGrpc {
      * This is the primary lookup method used by runners to retrieve the merged
      * environment variables during workflow/agent execution. The returned context
      * contains decrypted secrets for runner consumption.
-     * Use cases:
-     * - Go workflow-runner queries for merged env vars before executing workflow
-     * - Python agent-runner queries for merged env vars before executing agent
-     * Security: Operator-only access ensures only internal services (runners) can
-     * retrieve decrypted secrets. Public APIs use get/getByReference which redact secrets.
+     * Handler-level auth: checks can_view on parent agent_execution or workflow_execution.
+     * The handler looks up the ExecutionContext, extracts the execution_id from spec,
+     * determines the parent resource kind, and verifies the caller has can_view permission.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext getByExecutionId(ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput request) {
@@ -412,6 +444,12 @@ public final class ExecutionContextQueryControllerGrpc {
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ExecutionContextQueryController.
    * <pre>
    * ExecutionContextQueryController provides read operations for ExecutionContext resources.
+   * Authorization: All RPCs use is_skip_authorization with custom handler-level auth.
+   * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
+   * FGA model. Authorization is derived from the parent execution:
+   *   - get/getByReference: System-only (internal service lookups)
+   *   - getByExecutionId: Handler checks can_view on parent agent_execution or workflow_execution
+   * This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
    * </pre>
    */
   public static final class ExecutionContextQueryControllerFutureStub
@@ -430,7 +468,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
-     * Note: Only the execution engine should typically need to read these.
+     * Handler-level auth: system-only internal lookup.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> get(
@@ -441,7 +479,8 @@ public final class ExecutionContextQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get an ExecutionContext by reference (operator-only).
+     * Get an ExecutionContext by reference.
+     * Handler-level auth: system-only internal lookup.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> getByReference(
@@ -456,11 +495,9 @@ public final class ExecutionContextQueryControllerGrpc {
      * This is the primary lookup method used by runners to retrieve the merged
      * environment variables during workflow/agent execution. The returned context
      * contains decrypted secrets for runner consumption.
-     * Use cases:
-     * - Go workflow-runner queries for merged env vars before executing workflow
-     * - Python agent-runner queries for merged env vars before executing agent
-     * Security: Operator-only access ensures only internal services (runners) can
-     * retrieve decrypted secrets. Public APIs use get/getByReference which redact secrets.
+     * Handler-level auth: checks can_view on parent agent_execution or workflow_execution.
+     * The handler looks up the ExecutionContext, extracts the execution_id from spec,
+     * determines the parent resource kind, and verifies the caller has can_view permission.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> getByExecutionId(

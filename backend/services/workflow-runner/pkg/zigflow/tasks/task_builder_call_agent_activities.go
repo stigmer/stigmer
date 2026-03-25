@@ -38,6 +38,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -97,6 +98,7 @@ func (a *CallAgentActivities) CallAgentActivity(
 	input any,
 	runtimeEnv map[string]any,
 	parentWorkflowId string, // Phase 5.1: For events-based approval notification
+	invokerIdentityAccountID string,
 ) (any, error) {
 	logger := activity.GetLogger(ctx)
 	logger.Info("⏳ Starting agent call activity (async completion pattern)",
@@ -144,6 +146,13 @@ func (a *CallAgentActivities) CallAgentActivity(
 		logger.Debug("Runtime placeholders resolved successfully")
 	}
 
+	// Build authenticated context with API key and OBO header
+	authCtx, err := buildAuthenticatedContext(ctx, invokerIdentityAccountID)
+	if err != nil {
+		logger.Error("Failed to build authenticated context", "error", err)
+		return nil, fmt.Errorf("failed to build authenticated context: %w", err)
+	}
+
 	// **STEP 2: Agent Resolution**
 	// Get org from task config (set by workflow definition)
 	// Fall back to runtime environment if not explicitly set
@@ -156,8 +165,8 @@ func (a *CallAgentActivities) CallAgentActivity(
 		return nil, fmt.Errorf("organization ID not available in workflow execution context")
 	}
 
-	// Resolve agent org/slug to actual agent ID
-	agentId, err := a.resolveAgent(ctx, resolvedConfig.Agent, orgId)
+	// Resolve agent org/slug to actual agent ID (OBO context for user-facing read)
+	agentId, err := a.resolveAgent(authCtx, resolvedConfig.Agent, orgId)
 	if err != nil {
 		logger.Error("Failed to resolve agent", "agent", resolvedConfig.Agent, "org", orgId, "error", err)
 		return nil, fmt.Errorf("agent '%s' not found in org '%s': %w", resolvedConfig.Agent, orgId, err)
@@ -165,7 +174,8 @@ func (a *CallAgentActivities) CallAgentActivity(
 	logger.Debug("Agent resolved", "agent", resolvedConfig.Agent, "org", orgId, "agent_id", agentId)
 
 	// **STEP 3: Create Agent Execution** (with callback token and parent workflow ID)
-	execution, err := a.createAgentExecution(ctx, agentId, resolvedConfig, taskToken, parentWorkflowId)
+	// Uses authenticated context so the create call is attributed to the invoking user
+	execution, err := a.createAgentExecution(authCtx, agentId, resolvedConfig, taskToken, parentWorkflowId)
 	if err != nil {
 		logger.Error("❌ Failed to create agent execution", "error", err)
 		return nil, fmt.Errorf("failed to create agent execution: %w", err)
@@ -604,6 +614,23 @@ func (a *CallAgentActivities) ClearWorkflowApprovalStatus(
 		"execution_id", executionId)
 
 	return nil
+}
+
+// buildAuthenticatedContext creates a gRPC context with the machine-account API key
+// and, when provided, the x-on-behalf-of header for user impersonation.
+func buildAuthenticatedContext(ctx context.Context, invokerIdentityAccountID string) (context.Context, error) {
+	cfg, err := config.LoadStigmerConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load stigmer config: %w", err)
+	}
+
+	authCtx := ctx
+	if cfg.APIKey != "" {
+		authCtx = metadata.AppendToOutgoingContext(authCtx, "authorization", "Bearer "+cfg.APIKey)
+	}
+
+	authCtx = workflowexecclient.WithOnBehalfOf(authCtx, invokerIdentityAccountID)
+	return authCtx, nil
 }
 
 // gRPC client accessors

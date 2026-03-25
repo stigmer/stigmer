@@ -19,6 +19,7 @@ from __future__ import annotations
 import grpc
 
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
+from grpc_client.auth.on_behalf_of_interceptor import OnBehalfOfInterceptor
 from worker.config import Config
 
 # Channel options that match the Go server's keepalive configuration.
@@ -79,34 +80,74 @@ def create_channel(
 
 
 class ChannelProvider:
-    """Manages a single shared gRPC channel for an activity invocation.
+    """Manages shared gRPC channels for an activity invocation.
+
+    Provides two channel flavours:
+
+    * **system** (``channel``) – authenticated with the machine-account API key
+      only.  Used for privileged operations such as ``updateStatus``.
+    * **OBO** (``obo_channel``) – additionally carries the ``x-on-behalf-of``
+      header so the server attributes the request to the impersonated user.
+      Used for user-facing reads (e.g. get agent, get session).
 
     Usage within an activity::
 
-        provider = ChannelProvider(api_key)
+        provider = ChannelProvider(api_key, invoker_identity_account_id="idt_xxx")
         try:
-            agent_client = AgentClient(api_key, channel=provider.channel)
+            # user-facing reads via OBO
+            agent_client = AgentClient(api_key, channel=provider.obo_channel)
+            # system writes via machine-account
             exec_client  = AgentExecutionClient(api_key, channel=provider.channel)
             # ... use clients ...
         finally:
             await provider.close()
 
-    All clients share the same underlying TCP connection, avoiding per-client
-    channel churn while retaining keepalive health.
+    All clients sharing the same channel reuse a single TCP connection.
     """
 
-    def __init__(self, api_key: str) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        invoker_identity_account_id: str | None = None,
+    ) -> None:
         config = Config.load_from_env()
-        interceptor = AuthClientInterceptor(api_key)
+        auth_interceptor = AuthClientInterceptor(api_key)
+
         self._channel = create_channel(
             config.stigmer_backend_endpoint,
-            interceptors=[interceptor],
+            interceptors=[auth_interceptor],
         )
+
+        if invoker_identity_account_id:
+            obo_interceptor = OnBehalfOfInterceptor(invoker_identity_account_id)
+            self._obo_channel: grpc.aio.Channel | None = create_channel(
+                config.stigmer_backend_endpoint,
+                interceptors=[auth_interceptor, obo_interceptor],
+            )
+        else:
+            self._obo_channel = None
 
     @property
     def channel(self) -> grpc.aio.Channel:
+        """System channel (machine-account auth only)."""
         return self._channel
 
+    @property
+    def obo_channel(self) -> grpc.aio.Channel:
+        """OBO channel (machine-account auth + x-on-behalf-of header).
+
+        Raises ``ValueError`` if no ``invoker_identity_account_id`` was supplied
+        at construction time.
+        """
+        if self._obo_channel is None:
+            raise ValueError(
+                "OBO channel unavailable: no invoker_identity_account_id was provided "
+                "to ChannelProvider"
+            )
+        return self._obo_channel
+
     async def close(self) -> None:
-        """Close the underlying channel. Safe to call multiple times."""
+        """Close all underlying channels. Safe to call multiple times."""
         await self._channel.close()
+        if self._obo_channel is not None:
+            await self._obo_channel.close()

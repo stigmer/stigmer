@@ -56,7 +56,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "mer.agentic.agentexecution.v1.AgentExecu" +
       "tionUpdateStatusInput\0324.ai.stigmer.agent" +
       "ic.agentexecution.v1.AgentExecution\"E\302\270\030" +
-      "A\010\004\020)\"\014execution_id*-unauthorized to upd" +
+      "A\010\034\020)\"\014execution_id*-unauthorized to upd" +
       "ate agent execution status\022\246\001\n\006delete\022-." +
       "ai.stigmer.commons.apiresource.ApiResour" +
       "ceId\0324.ai.stigmer.agentic.agentexecution" +
