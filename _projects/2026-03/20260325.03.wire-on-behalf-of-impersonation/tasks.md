@@ -15,14 +15,15 @@ Add timestamps and notes to track your progress.
 
 ## Task 1: Convert ExecutionContext creation to createOnBehalfOf
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-25 11:59
+**Completed**: 2026-03-25
 **Repo**: stigmer-cloud
 
 ### Subtasks
-- [ ] In `agentexecution/request/step/CreateExecutionContextStep.java`: thread `callerIdentityAccountId` from pipeline context, change `createAsSystem` → `createOnBehalfOf(..., callerIdentityAccountId)` at line ~179
-- [ ] In `workflowexecution/request/step/CreateExecutionContextStep.java`: same change at line ~162
-- [ ] Verify pipeline context (`CreateContextV2`) provides `getCaller().getIdentityAccountId()`
+- [x] In `agentexecution/request/step/CreateExecutionContextStep.java`: thread `callerIdentityAccountId` from pipeline context, change `createAsSystem` → `createOnBehalfOf(..., callerIdentityAccountId)` at line ~179
+- [x] In `workflowexecution/request/step/CreateExecutionContextStep.java`: same change at line ~162
+- [x] Verify pipeline context (`CreateContextV2`) provides `getCaller().getIdentityAccountId()`
 - [ ] Build and validate
 
 ### Notes
@@ -31,15 +32,16 @@ Add timestamps and notes to track your progress.
 
 ## Task 2: Convert AgentInstance auto-creation to createOnBehalfOf
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-25 11:59
+**Completed**: 2026-03-25
 **Repo**: stigmer-cloud
 
 ### Subtasks
-- [ ] `AgentExecutionCreateHandler.java` line ~381: `agentInstanceGrpcRepo.createAsSystem(...)` → `createOnBehalfOf(..., callerIdentityAccountId)`
-- [ ] `SessionCreateHandler.java` line ~137: same conversion
-- [ ] `AgentCreateHandler.java` line ~129: same conversion
-- [ ] Verify all three handlers have `context.getCaller().getIdentityAccountId()` available in the step that creates the default instance
+- [x] `AgentExecutionCreateHandler.java` line ~381: `agentInstanceGrpcRepo.createAsSystem(...)` → `createOnBehalfOf(..., callerIdentityAccountId)`
+- [x] `SessionCreateHandler.java` line ~137: same conversion
+- [x] `AgentCreateHandler.java` line ~129: same conversion
+- [x] Verify all three handlers have `context.getCaller().getIdentityAccountId()` available in the step that creates the default instance
 - [ ] Build and validate
 
 ### Notes
@@ -48,15 +50,16 @@ Add timestamps and notes to track your progress.
 
 ## Task 3: Add createOnBehalfOf to WorkflowInstanceGrpcRepo and convert callers
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-25 11:59
+**Completed**: 2026-03-25
 **Repo**: stigmer-cloud
 
 ### Subtasks
-- [ ] Add `WorkflowInstance createOnBehalfOf(WorkflowInstance instance, String identityAccountId)` to `WorkflowInstanceGrpcRepo.java` interface
-- [ ] Implement in `WorkflowInstanceGrpcRepoImpl.java` — inject `ImpersonatedChannelFactory`, follow `AgentInstanceGrpcRepoImpl` pattern
-- [ ] Convert `WorkflowExecutionCreateHandler.java` line ~225: `createAsSystem` → `createOnBehalfOf`
-- [ ] Convert `WorkflowCreateHandler.java` line ~217: `createAsSystem` → `createOnBehalfOf`
+- [x] Add `WorkflowInstance createOnBehalfOf(WorkflowInstance instance, String identityAccountId)` to `WorkflowInstanceGrpcRepo.java` interface
+- [x] Implement in `WorkflowInstanceGrpcRepoImpl.java` — inject `ImpersonatedChannelFactory`, follow `AgentInstanceGrpcRepoImpl` pattern
+- [x] Convert `WorkflowExecutionCreateHandler.java` line ~225: `createAsSystem` → `createOnBehalfOf`
+- [x] Convert `WorkflowCreateHandler.java` line ~217: `createAsSystem` → `createOnBehalfOf`
 - [ ] Build and validate
 
 ### Notes
@@ -118,13 +121,14 @@ Add timestamps and notes to track your progress.
 
 ## Task 7: Simplify agent_execution.fga
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-25 11:59
+**Completed**: 2026-03-25
 **Repo**: stigmer-cloud
 
 ### Subtasks
-- [ ] Change `owner: owner from session or operator from session` → `owner: owner from session`
-- [ ] Verify: `session.owner = [identity_account] or operator` already includes operator, confirming redundancy
+- [x] Change `owner: owner from session or operator from session` → `owner: owner from session`
+- [x] Verify: `session.owner = [identity_account] or operator` already includes operator, confirming redundancy
 - [ ] Run FGA model validation tests
 - [ ] Validate no authorization regressions
 
