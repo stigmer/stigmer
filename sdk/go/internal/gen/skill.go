@@ -53,8 +53,9 @@ func (s *SkillClient) Get(ctx context.Context, id string) (*skillv1.Skill, error
 	return resp, wrapErr(err)
 }
 
-func (s *SkillClient) GetByReference(ctx context.Context, input *apiresource.ApiResourceReference) (*skillv1.Skill, error) {
-	resp, err := s.query.GetByReference(ctx, input)
+func (s *SkillClient) GetByReference(ctx context.Context, ref ResourceRef) (*skillv1.Skill, error) {
+	ref.Kind = apiresourcekind.ApiResourceKind_skill
+	resp, err := s.query.GetByReference(ctx, ref.toProto())
 	return resp, wrapErr(err)
 }
 

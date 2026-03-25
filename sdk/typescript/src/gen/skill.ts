@@ -61,7 +61,7 @@ export class SkillClient {
 
   async getByReference(ref: ResourceRef): Promise<Skill> {
     try {
-      return await this.query.getByReference(create(ApiResourceReferenceSchema, ref));
+      return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.skill }));
     } catch (e) { throw wrapError(e); }
   }
 

@@ -236,12 +236,13 @@ type pyImports struct {
 	needsIoPb2 bool
 	needsSpec  bool
 
-	needsApiResIo  bool
-	needsMetadata  bool
-	needsEmptyPb2  bool
-	needsSearch    bool
-	needsEnvV1     bool
-	needsExecCtxV1 bool
+	needsApiResIo       bool
+	needsMetadata       bool
+	needsEmptyPb2       bool
+	needsSearch         bool
+	needsApiResKind     bool
+	needsEnvV1          bool
+	needsExecCtxV1      bool
 
 	typesNames         map[string]bool
 	crossResourceTypes map[string][]string // "._agent" -> ["McpServerUsageInput", ...]
@@ -334,10 +335,12 @@ func (p *pyImports) emit(buf *bytes.Buffer) {
 	if p.needsExecCtxV1 {
 		buf.WriteString("from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as executioncontext_spec_pb2\n")
 	}
+	if p.needsSearch || p.needsApiResKind {
+		buf.WriteString("from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2\n")
+	}
 	if p.needsSearch {
 		buf.WriteString("from ai.stigmer.search.v1 import query_pb2_grpc as search_query_pb2_grpc\n")
 		buf.WriteString("from ai.stigmer.search.v1 import io_pb2 as search_io_pb2\n")
-		buf.WriteString("from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2\n")
 		buf.WriteString("from ai.stigmer.commons.rpc import pagination_pb2\n")
 	}
 	if len(p.crossProtoPackages) > 0 {
@@ -491,6 +494,7 @@ func generatePythonResourceClient(schema *ServiceSchemaFile, cfg sdkResourceConf
 			}
 			if m.InputType == "ApiResourceReference" {
 				imports.addTypesImport("ResourceRef")
+				imports.needsApiResKind = true
 			}
 			if m.InputType == "ApiResourceDeleteInput" {
 				imports.addTypesImport("DeleteResourceInput")
@@ -687,9 +691,12 @@ func generatePythonMethod(buf *bytes.Buffer, m *MethodSchema, svc *ServiceDefini
 		fmt.Fprintf(buf, "            raise wrap_error(e) from e\n\n")
 
 	case isApiResourceRefInput:
+		kindConst := pascalToSnake(cfg.protoResType)
 		fmt.Fprintf(buf, "    def %s(self, ref: ResourceRef) -> %s:\n", methodName, outputAnnotation)
 		fmt.Fprintf(buf, "        try:\n")
-		fmt.Fprintf(buf, "            %sself._%s.%s(ref._to_proto())\n", returnKw, svc.Role, stubMethod)
+		fmt.Fprintf(buf, "            proto = ref._to_proto()\n")
+		fmt.Fprintf(buf, "            proto.kind = api_resource_kind_pb2.%s\n", kindConst)
+		fmt.Fprintf(buf, "            %sself._%s.%s(proto)\n", returnKw, svc.Role, stubMethod)
 		fmt.Fprintf(buf, "        except grpc.RpcError as e:\n")
 		fmt.Fprintf(buf, "            raise wrap_error(e) from e\n\n")
 

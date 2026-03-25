@@ -8,6 +8,7 @@ import ai.stigmer.agentic.executioncontext.v1.ExecutionContextExecutionIdInput;
 import ai.stigmer.agentic.executioncontext.v1.ExecutionContextId;
 import ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryControllerGrpc;
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -53,7 +54,7 @@ public final class ExecutionContextClient {
 
     public ExecutionContext getByReference(ResourceRef ref) {
         try {
-            return query.getByReference(ref.toProto());
+            return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.execution_context).build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

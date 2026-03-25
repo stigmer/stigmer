@@ -6,6 +6,7 @@ import (
 	"context"
 
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	identityproviderv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/iam/identityprovider/v1"
 	"google.golang.org/grpc"
 )
@@ -52,8 +53,9 @@ func (i *IdentityProviderClient) Get(ctx context.Context, id string) (*identityp
 	return resp, wrapErr(err)
 }
 
-func (i *IdentityProviderClient) GetByReference(ctx context.Context, input *apiresource.ApiResourceReference) (*identityproviderv1.IdentityProvider, error) {
-	resp, err := i.query.GetByReference(ctx, input)
+func (i *IdentityProviderClient) GetByReference(ctx context.Context, ref ResourceRef) (*identityproviderv1.IdentityProvider, error) {
+	ref.Kind = apiresourcekind.ApiResourceKind_identity_provider
+	resp, err := i.query.GetByReference(ctx, ref.toProto())
 	return resp, wrapErr(err)
 }
 

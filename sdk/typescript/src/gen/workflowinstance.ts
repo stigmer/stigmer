@@ -10,6 +10,7 @@ import { WorkflowInstanceCommandController } from "@stigmer/protos/ai/stigmer/ag
 import { WorkflowInstanceIdSchema, GetWorkflowInstancesByWorkflowRequestSchema, WorkflowInstanceListSchema, type GetWorkflowInstancesByWorkflowRequest, type WorkflowInstanceList } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/io_pb";
 import { WorkflowInstanceQueryController } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/query_pb";
 import { WorkflowInstanceSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/workflowinstance/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -61,7 +62,7 @@ export class WorkflowInstanceClient {
 
   async getByReference(ref: ResourceRef): Promise<WorkflowInstance> {
     try {
-      return await this.query.getByReference(create(ApiResourceReferenceSchema, ref));
+      return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.workflow_instance }));
     } catch (e) { throw wrapError(e); }
   }
 }

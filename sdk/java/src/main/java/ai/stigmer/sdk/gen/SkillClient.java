@@ -63,7 +63,7 @@ public final class SkillClient {
 
     public Skill getByReference(ResourceRef ref) {
         try {
-            return query.getByReference(ref.toProto());
+            return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.skill).build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 

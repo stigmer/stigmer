@@ -10,6 +10,7 @@ import { ExecutionContextCommandController } from "@stigmer/protos/ai/stigmer/ag
 import { ExecutionContextIdSchema, ExecutionContextExecutionIdInputSchema, type ExecutionContextExecutionIdInput } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/io_pb";
 import { ExecutionContextQueryController } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/query_pb";
 import { ExecutionContextSpecSchema, ExecutionValueSchema } from "@stigmer/protos/ai/stigmer/agentic/executioncontext/v1/spec_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema, ApiResourceDeleteInputSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 
@@ -53,7 +54,7 @@ export class ExecutionContextClient {
 
   async getByReference(ref: ResourceRef): Promise<ExecutionContext> {
     try {
-      return await this.query.getByReference(create(ApiResourceReferenceSchema, ref));
+      return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.execution_context }));
     } catch (e) { throw wrapError(e); }
   }
 

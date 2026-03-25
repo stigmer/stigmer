@@ -5,6 +5,7 @@ import { stripUndefined } from "./proto-utils";
 import { type ResourceRef } from "./types";
 import { create } from "@bufbuild/protobuf";
 import { createClient, type Client, type Transport } from "@connectrpc/connect";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import { ProjectSchema, type Project } from "@stigmer/protos/ai/stigmer/tenancy/project/v1/api_pb";
@@ -55,7 +56,7 @@ export class ProjectClient {
 
   async getByReference(ref: ResourceRef): Promise<Project> {
     try {
-      return await this.query.getByReference(create(ApiResourceReferenceSchema, ref));
+      return await this.query.getByReference(create(ApiResourceReferenceSchema, { ...ref, kind: ApiResourceKind.project }));
     } catch (e) { throw wrapError(e); }
   }
 }

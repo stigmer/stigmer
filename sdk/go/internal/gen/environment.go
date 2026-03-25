@@ -7,6 +7,7 @@ import (
 
 	environmentv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/environment/v1"
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	"google.golang.org/grpc"
 )
 
@@ -62,8 +63,9 @@ func (e *EnvironmentClient) Get(ctx context.Context, id string) (*environmentv1.
 	return resp, wrapErr(err)
 }
 
-func (e *EnvironmentClient) GetByReference(ctx context.Context, input *apiresource.ApiResourceReference) (*environmentv1.Environment, error) {
-	resp, err := e.query.GetByReference(ctx, input)
+func (e *EnvironmentClient) GetByReference(ctx context.Context, ref ResourceRef) (*environmentv1.Environment, error) {
+	ref.Kind = apiresourcekind.ApiResourceKind_environment
+	resp, err := e.query.GetByReference(ctx, ref.toProto())
 	return resp, wrapErr(err)
 }
 

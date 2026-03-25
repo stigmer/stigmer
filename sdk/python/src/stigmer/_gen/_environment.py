@@ -14,6 +14,7 @@ from ai.stigmer.agentic.environment.v1 import spec_pb2
 from ai.stigmer.commons.apiresource import io_pb2 as apiresource_io_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2
 from ai.stigmer.agentic.environment.v1 import spec_pb2 as environment_spec_pb2
+from ai.stigmer.commons.apiresource.apiresourcekind import api_resource_kind_pb2
 
 from ._errors import wrap_error
 from ._types import DeleteResourceInput, EnvVarInput, ResourceRef
@@ -70,7 +71,9 @@ class EnvironmentClient:
 
     def get_by_reference(self, ref: ResourceRef) -> api_pb2.Environment:
         try:
-            return self._query.getByReference(ref._to_proto())
+            proto = ref._to_proto()
+            proto.kind = api_resource_kind_pb2.environment
+            return self._query.getByReference(proto)
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 

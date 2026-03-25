@@ -2,6 +2,7 @@
 
 package ai.stigmer.sdk.gen;
 
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.tenancy.project.v1.Project;
 import ai.stigmer.tenancy.project.v1.ProjectCommandControllerGrpc;
 import ai.stigmer.tenancy.project.v1.ProjectId;
@@ -51,7 +52,7 @@ public final class ProjectClient {
 
     public Project getByReference(ResourceRef ref) {
         try {
-            return query.getByReference(ref.toProto());
+            return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.project).build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

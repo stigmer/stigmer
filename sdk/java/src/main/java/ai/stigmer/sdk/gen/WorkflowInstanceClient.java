@@ -8,6 +8,7 @@ import ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceCommandControllerG
 import ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId;
 import ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList;
 import ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceQueryControllerGrpc;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import io.grpc.Channel;
 import io.grpc.StatusRuntimeException;
 
@@ -59,7 +60,7 @@ public final class WorkflowInstanceClient {
 
     public WorkflowInstance getByReference(ResourceRef ref) {
         try {
-            return query.getByReference(ref.toProto());
+            return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.workflow_instance).build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

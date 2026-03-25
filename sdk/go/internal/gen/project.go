@@ -6,6 +6,7 @@ import (
 	"context"
 
 	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
+	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 	projectv1 "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/tenancy/project/v1"
 	"google.golang.org/grpc"
 )
@@ -48,8 +49,9 @@ func (p *ProjectClient) Get(ctx context.Context, id string) (*projectv1.Project,
 	return resp, wrapErr(err)
 }
 
-func (p *ProjectClient) GetByReference(ctx context.Context, input *apiresource.ApiResourceReference) (*projectv1.Project, error) {
-	resp, err := p.query.GetByReference(ctx, input)
+func (p *ProjectClient) GetByReference(ctx context.Context, ref ResourceRef) (*projectv1.Project, error) {
+	ref.Kind = apiresourcekind.ApiResourceKind_project
+	resp, err := p.query.GetByReference(ctx, ref.toProto())
 	return resp, wrapErr(err)
 }
 

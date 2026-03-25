@@ -4,6 +4,7 @@ package ai.stigmer.sdk.gen;
 
 import ai.stigmer.commons.apiresource.ApiResourceDeleteInput;
 import ai.stigmer.commons.apiresource.ApiResourceId;
+import ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind;
 import ai.stigmer.iam.identityprovider.v1.IdentityProvider;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviderCommandControllerGrpc;
 import ai.stigmer.iam.identityprovider.v1.IdentityProviderQueryControllerGrpc;
@@ -58,7 +59,7 @@ public final class IdentityProviderClient {
 
     public IdentityProvider getByReference(ResourceRef ref) {
         try {
-            return query.getByReference(ref.toProto());
+            return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.identity_provider).build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 }

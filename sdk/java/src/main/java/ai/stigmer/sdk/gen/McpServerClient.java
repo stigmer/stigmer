@@ -79,7 +79,7 @@ public final class McpServerClient {
 
     public McpServer getByReference(ResourceRef ref) {
         try {
-            return query.getByReference(ref.toProto());
+            return query.getByReference(ref.toProto().toBuilder().setKind(ApiResourceKind.mcp_server).build());
         } catch (StatusRuntimeException e) { throw StigmerException.wrap(e); }
     }
 
