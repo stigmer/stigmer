@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2, AlertCircle, RefreshCw, Building2, LogOut } from "lucide-react";
 import { CreateOrganizationForm } from "@stigmer/react";
 import type { Organization } from "@stigmer/protos/ai/stigmer/tenancy/organization/v1/api_pb";
@@ -32,29 +32,22 @@ const PROVISIONING_TIMEOUT_MS = 10_000;
  */
 export function OrgGate({ children }: { children: React.ReactNode }) {
   const { orgs, isLoading, error, retry, refresh } = useOrg();
-  const [isProvisioning, setIsProvisioning] = useState(false);
-  const provisioningAttemptedRef = useRef(false);
+  const [provisioningStarted, setProvisioningStarted] = useState(false);
+  const [provisioningTimedOut, setProvisioningTimedOut] = useState(false);
 
-  // Enter provisioning once when the initial load returns empty in OIDC mode.
-  // The ref guard prevents re-entry after the timeout expires.
-  useEffect(() => {
-    if (
-      !isLoading &&
-      orgs.length === 0 &&
-      !error &&
-      !provisioningAttemptedRef.current &&
-      getRuntimeConfig().authMode === "oidc"
-    ) {
-      provisioningAttemptedRef.current = true;
-      setIsProvisioning(true);
-    }
-  }, [isLoading, orgs.length, error]);
+  // React-sanctioned "adjust state during render" pattern: the guard on
+  // `!provisioningStarted` prevents infinite re-render loops.
+  if (
+    !provisioningStarted &&
+    !isLoading &&
+    orgs.length === 0 &&
+    !error &&
+    getRuntimeConfig().authMode === "oidc"
+  ) {
+    setProvisioningStarted(true);
+  }
 
-  useEffect(() => {
-    if (orgs.length > 0 && isProvisioning) {
-      setIsProvisioning(false);
-    }
-  }, [orgs.length, isProvisioning]);
+  const isProvisioning = provisioningStarted && orgs.length === 0 && !provisioningTimedOut;
 
   // Poll for the personal org while provisioning is in progress.
   // Errors from refresh() are absorbed — transient failures (identity not
@@ -64,7 +57,7 @@ export function OrgGate({ children }: { children: React.ReactNode }) {
 
     const interval = setInterval(() => refresh(), PROVISIONING_POLL_MS);
     const timeout = setTimeout(
-      () => setIsProvisioning(false),
+      () => setProvisioningTimedOut(true),
       PROVISIONING_TIMEOUT_MS,
     );
 

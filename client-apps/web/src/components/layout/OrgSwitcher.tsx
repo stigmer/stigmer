@@ -41,6 +41,15 @@ export function OrgSwitcher() {
     [refresh],
   );
 
+  const personalOrgs = useMemo(
+    () => orgs.filter((o) => o.spec?.isPersonal),
+    [orgs],
+  );
+  const teamOrgs = useMemo(
+    () => orgs.filter((o) => !o.spec?.isPersonal),
+    [orgs],
+  );
+
   if (isLoading) {
     return <OrgSwitcherSkeleton />;
   }
@@ -65,15 +74,6 @@ export function OrgSwitcher() {
   const orgLabel = hasOrgs
     ? activeOrg.metadata?.name || activeOrg.metadata?.slug
     : "No organizations";
-
-  const personalOrgs = useMemo(
-    () => orgs.filter((o) => o.spec?.isPersonal),
-    [orgs],
-  );
-  const teamOrgs = useMemo(
-    () => orgs.filter((o) => !o.spec?.isPersonal),
-    [orgs],
-  );
 
   const TriggerIcon = activeOrg?.spec?.isPersonal ? User : Building2;
 
