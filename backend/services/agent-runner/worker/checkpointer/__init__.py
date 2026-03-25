@@ -9,7 +9,7 @@ Supported Checkpointers:
 -----------------------
 - MemorySaver: In-memory (ephemeral, fast, zero setup)
 - AsyncSqliteSaver: File-based (persistent, single-instance)
-- AsyncMongoDBSaver: Database (persistent, multi-instance safe)
+- MongoDBSaver: Database (persistent, multi-instance safe)
 
 Usage:
 ------

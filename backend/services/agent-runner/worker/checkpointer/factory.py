@@ -82,7 +82,7 @@ async def create_checkpointer(
       - Single-instance only (file locking)
       - Best for: open source, local persistence
       
-    - mongodb: Database storage using AsyncMongoDBSaver
+    - mongodb: Database storage using MongoDBSaver
       - Persistent across restarts
       - Multi-instance safe (shared state)
       - Best for: cloud deployments, horizontal scaling
@@ -217,25 +217,25 @@ async def _mongodb_checkpointer(
 ) -> AsyncIterator[BaseCheckpointSaver]:
     """Create and manage MongoDB-based checkpointer lifecycle.
     
-    AsyncMongoDBSaver stores state in MongoDB. Persistent and
-    multi-instance safe, suitable for cloud deployments with
-    horizontal scaling.
+    MongoDBSaver stores state in MongoDB. Persistent and multi-instance
+    safe, suitable for cloud deployments with horizontal scaling.
     
-    The Motor client is created on entry and closed on exit,
-    preventing connection leaks in long-running Temporal workers.
+    MongoDBSaver uses pymongo (sync driver) internally and provides async
+    methods via run_in_executor. The pymongo MongoClient is created on
+    entry and closed on exit, preventing connection leaks in long-running
+    Temporal workers.
     
     Args:
         config: CheckpointerConfig with mongodb_uri and mongodb_db_name
         
     Yields:
-        AsyncMongoDBSaver instance with an active MongoDB connection
+        MongoDBSaver instance with an active MongoDB connection
         
     Raises:
         CheckpointerCreationError: If MongoDB connection fails
     """
     try:
-        # Lazy import to avoid requiring mongodb dependency when not used
-        from langgraph.checkpoint.mongodb.aio import AsyncMongoDBSaver
+        from langgraph.checkpoint.mongodb import MongoDBSaver
     except ImportError as e:
         raise CheckpointerCreationError(
             checkpointer_type="mongodb",
@@ -253,31 +253,28 @@ async def _mongodb_checkpointer(
         )
     
     try:
-        # Create async MongoDB client
-        from motor.motor_asyncio import AsyncIOMotorClient
+        from pymongo import MongoClient
         
-        client: Any = AsyncIOMotorClient(config.mongodb_uri)
+        client: Any = MongoClient(config.mongodb_uri)
         
         try:
-            # Create the checkpointer with optional TTL
-            checkpointer = AsyncMongoDBSaver(
-                client=client,
+            checkpointer = MongoDBSaver(
+                client,
                 db_name=config.mongodb_db_name,
                 ttl=config.mongodb_ttl_seconds,
             )
             
-            # Log configuration (mask sensitive URI parts)
             masked_uri = _mask_mongodb_uri(config.mongodb_uri)
             ttl_info = f", ttl={config.mongodb_ttl_seconds}s" if config.mongodb_ttl_seconds else ""
             
             logger.info(
-                f"Created AsyncMongoDBSaver checkpointer "
+                f"Created MongoDBSaver checkpointer "
                 f"(persistent, db={config.mongodb_db_name}, uri={masked_uri}{ttl_info})"
             )
             yield checkpointer
         finally:
             client.close()
-            logger.debug("MongoDB Motor client closed")
+            logger.debug("MongoDB client closed")
         
     except CheckpointerCreationError:
         raise

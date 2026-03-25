@@ -67,6 +67,17 @@ from deepagents.middleware.filesystem import FilesystemMiddleware; \
 from deepagents import create_deep_agent; \
 print('deepagents import verification passed')"
 
+# Verify all LangGraph checkpointer backends are importable.
+# langgraph-checkpoint-mongodb and langgraph-checkpoint-sqlite are separate
+# pip packages that share the langgraph.checkpoint namespace. If a version
+# upgrade breaks namespace package resolution, this gate catches it at build
+# time instead of causing a runtime crash loop in production.
+RUN .venv/bin/python -c "\
+from langgraph.checkpoint.memory import MemorySaver; \
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver; \
+from langgraph.checkpoint.mongodb import MongoDBSaver; \
+print('checkpointer import verification passed')"
+
 # ---------- Runtime Image ----------
 FROM python:3.11-slim
 

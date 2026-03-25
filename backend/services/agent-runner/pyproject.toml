@@ -22,9 +22,8 @@ langchain-core = ">=1.0.0"
 # SQLite: file-based persistence for local/open-source deployments
 langgraph-checkpoint-sqlite = "^3.0.0"
 # MongoDB: database persistence for cloud deployments (multi-instance safe)
+# MongoDBSaver uses pymongo internally (pulled transitively)
 langgraph-checkpoint-mongodb = "^0.3.0"
-# Motor: async MongoDB driver (required by AsyncMongoDBSaver)
-motor = "^3.0.0"
 
 # LangMem for context window summarization
 langmem = ">=0.0.30"
