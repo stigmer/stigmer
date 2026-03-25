@@ -60,7 +60,7 @@ spec:
           cpu: 60m
           memory: 100Mi
   availability:
-    minReplicas: 3  # More replicas for production
+    minReplicas: 1
     # Zero-downtime deployment strategy
     deploymentStrategy:
       maxUnavailable: "0"
