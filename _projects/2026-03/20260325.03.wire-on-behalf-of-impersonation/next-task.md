@@ -73,7 +73,7 @@ This project depends on `20260325.02.sp.on-behalf-of-grpc-channel` (COMPLETE). A
 ## Current Status
 
 **Last Updated**: 2026-03-25
-**Status**: In Progress — All code changes complete; remaining work is build validation + end-to-end testing
+**Status**: In Progress — Operator propagation removed; remaining work is build validation + end-to-end testing
 
 ### Completed (Sessions 1–3 — OBO Infrastructure + Wiring)
 - **T07**: Simplified `agent_execution.fga` owner relation (removed redundant `operator from session`)
@@ -122,12 +122,28 @@ checkpoints/2026-03-25-session-4.md
 - `7d4e384d` (stigmer-cloud): `feat(backend/stigmer-service): thread invoker identity through Temporal workflow inputs`
 - *(pending)* Session 4 changes — uncommitted across both repos
 
+### Completed (Session 5 — Remove Operator Propagation)
+
+Removed the entire transitive `operator` propagation chain from the FGA model. This was a natural extension of the OBO work — with impersonation in place, operator propagation to every resource was redundant.
+
+- Rewrote `platform.fga` with 4 explicit platform-level permissions
+- Simplified all 16 FGA type definitions (removed `operator` relation, `or operator` unions)
+- Deleted `createPlatformLink` RPC, handler, and service method
+- Updated `ApiResourceIamPermission` enum (reserved `operator`/`platform`/`can_update_status`, added `can_bootstrap_iam`/`can_manage_identity_accounts`/`can_update_execution_status`)
+- Changed `updateStatus` RPCs to platform-level `can_update_execution_status` check
+- Updated bootstrap migration, handlers, tests, and Javadoc
+- **Net result**: 165 lines added, 868 lines deleted across stigmer-cloud; 53 added, 85 deleted in stigmer
+
+#### Commits
+- `3c2b21e3` (stigmer): `refactor(apis): remove operator propagation from FGA authorization model`
+- `43926471` (stigmer-cloud): `refactor(backend): remove operator propagation from FGA model and Java backend`
+
 ### Remaining Work
-- Commit Session 4 changes (both repos)
 - Build and validate all changes (Bazel for Java, Go vet, Python syntax)
 - End-to-end test: trigger agent execution and verify OBO + derived auth flows through
 - End-to-end test: trigger workflow execution and verify OBO + derived auth flows through
-- Verify `can_update_status` FGA permission resolves correctly for operator
+- Verify `can_update_execution_status` FGA permission resolves correctly for operator (platform-level check now)
+- Follow-up: data migration to clean stale platform-link tuples from FGA store
 
 ---
 
