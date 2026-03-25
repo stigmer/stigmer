@@ -1,9 +1,32 @@
 # Next Task: 20260325.01.auto-personal-org
 
 ## Current State
-- **Status**: Tasks 1, 2, 3, and 4 complete (proto + server-side + web console + lazy backfill)
-- **Last Session**: March 25, 2026 — Implemented Task 3 (web console updates)
-- **Active Task**: None — ready for Task 5 (testing)
+- **Status**: Tasks 1–5 complete (proto + server-side + web console + lazy backfill + automated tests)
+- **Last Session**: March 25, 2026 — Implemented Task 5 (automated tests)
+- **Active Task**: None — ready for manual validation (Task 5 subtasks 7–8)
+
+## Session Progress (2026-03-25, Session 4)
+
+### Accomplished
+- Implemented Task 5: automated unit and integration tests for all auto-personal-org components
+- Created 5 new test files + modified 1 existing test file in `stigmer-cloud`
+- Total: ~43 test cases covering slug generation, deletion guard, immutability enforcement, NormalizeIsPersonal guard, Temporal activity implementation, and Temporal workflow orchestration
+
+### Test Files Created/Modified
+
+**stigmer-cloud repo:**
+- `...organization/service/PersonalOrgSlugGeneratorTest.java` (NEW) — 14 tests: deterministic transformations (standard email, special chars, uppercase, leading digits, truncation, no-@ input), fallback/padding (null, blank, empty, only special chars, single char), appendConflictSuffix (short/long slugs, trailing hyphens, randomness), structural invariants across all inputs
+- `...organization/request/handler/OrganizationUpdateHandlerImmutabilityTest.java` (MODIFIED) — +4 tests in new `@Nested` class: rejects `false→true` mutation, no false positive on proto3 default, preserves `is_personal=true` and `false` from existing; doc comment updated from "three" to "four" immutable fields; added `buildPersonalOrg()` helper
+- `...organization/request/handler/OrganizationDeleteHandlerRejectPersonalOrgTest.java` (NEW) — 3 tests: FAILED_PRECONDITION on personal org, success on team org, null-safety
+- `...organization/request/handler/OrganizationCreateHandlerNormalizeIsPersonalTest.java` (NEW) — 5 tests: no-op for non-personal, stripping from regular users, allowance for machine accounts, impersonated callers, both flags combined
+- `...identityaccount/temporal/activities/PersonalOrganizationActivitiesImplTest.java` (NEW) — 10 tests: idempotency (existing org check + MongoDB query criteria), proto construction, display name resolution (4 fallback paths), slug conflict retry (success/exhaustion/non-ALREADY_EXISTS propagation)
+- `...identityaccount/temporal/workflows/CreateIdentityAccountFromAuth0WorkflowTest.java` (NEW) — 7 tests using TestWorkflowEnvironment: new signup happy path + machine account skip + non-fatal failure; backfill on login + machine account skip + non-fatal failure; idempotency
+
+### Key Decisions
+- **IDE-first test pattern**: Followed existing codebase convention (52 of 57 tests are IDE-only, not registered in BUILD.bazel). Mockito and temporal-testing are not in MODULE.bazel. Bazel registration is a separate task if CI coverage is desired.
+- **Pattern-based assertions for random paths**: `PersonalOrgSlugGenerator` uses `ThreadLocalRandom` for suffixes — tests verify structure (regex + length bounds) rather than exact values.
+- **Asymmetric immutability check documented**: The `is_personal` immutability check only detects `false→true` (not `true→false`) because proto3 default `false` is indistinguishable from "not set". The preservation step is the actual guard. Tests explicitly document this design.
+- **TestWorkflowEnvironment for workflow tests**: `Workflow.getVersion()` returns latest version in test env, so both version-gated paths (backfill + new-account) execute in all tests.
 
 ## Session Progress (2026-03-25, Session 3)
 
@@ -66,17 +89,17 @@
 - **Idempotency**: Activity queries MongoDB for existing personal org by `spec.isPersonal=true` AND `status.audit.createdBy.id` matching the identity account ID.
 
 ## Next Steps
-1. Task 5: Testing and validation — unit tests for slug gen, deletion guard, immutability, integration tests (~1 day)
-2. Integration testing of the end-to-end signup flow + backfill flow
-3. Manual validation: web console flow (sign up -> provisioning screen -> land in workspace)
+1. Manual validation: web console flow (sign up -> provisioning screen -> land in workspace)
+2. Manual validation: CLI flow (login -> context auto-set to personal org)
+3. Optional: Register test targets in `BUILD.bazel` + add Mockito/temporal-testing to `MODULE.bazel` for Bazel CI coverage
 
 ## Context for Resume
 - Both repos are on branch `feat/auto-create-org`
 - Sub-project `20260325.02.sp.on-behalf-of-grpc-channel` (on-behalf-of gRPC infrastructure) is COMPLETE
-- The `OrganizationGrpcRepo` with `createOnBehalfOf()` was created in the sub-project
+- Tasks 1–5 are all complete (automated tests done, manual validation remaining)
+- 43 automated test cases across 6 test files in stigmer-cloud
+- Tests follow IDE-first pattern (not registered in BUILD.bazel — same as 52 of 57 existing tests)
 - The `isImpersonated` field on `RequestCallerIdentity` is a deviation from the original plan — needed because on-behalf-of calls set `isMachineAccount=false`
-- Task 4 (lazy backfill) is complete — the workflow now ensures personal orgs exist for both new signups AND existing users on login
-- Task 3 (web console) is complete — OrgGate has provisioning-aware loading, OrgSwitcher distinguishes personal vs team orgs
 
 ## Quick Resume
 To continue this project, drag this file into chat:
