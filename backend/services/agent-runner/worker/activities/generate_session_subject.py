@@ -91,8 +91,8 @@ async def _generate_and_update_subject(
     obo_ch = grpc_provider.obo_channel if invoker_identity_account_id else sys_ch
 
     try:
-        # Step 1: Hydrate execution (system channel — operator can read via FGA chain)
-        execution_client = AgentExecutionClient(api_key, channel=sys_ch)
+        # Step 1: Hydrate execution (OBO channel — user has can_view via session ownership)
+        execution_client = AgentExecutionClient(api_key, channel=obo_ch)
         execution = await execution_client.get(execution_id)
 
         session_id = execution.spec.session_id
@@ -149,10 +149,9 @@ async def _generate_and_update_subject(
             activity_logger.warning("LLM returned empty subject, skipping update")
             return
 
-        # Step 6: Update session (system channel — session update is a write)
-        update_client = SessionClient(api_key, channel=sys_ch)
+        # Step 6: Update session (OBO channel — user is session owner, has can_edit)
         session.spec.subject = generated_subject
-        await update_client.update(session)
+        await session_client.update(session)
 
         activity_logger.info(
             "Updated session %s subject to '%s'", session_id, generated_subject

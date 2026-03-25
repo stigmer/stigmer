@@ -1200,7 +1200,7 @@ async def _execute_graphton_impl(
     # Shared gRPC channels for all clients in this activity invocation.
     # Two channels are maintained:
     #   sys_ch  – machine-account only, for operator-level calls (updateStatus)
-    #   obo_ch  – adds x-on-behalf-of header, for user-facing reads
+    #   obo_ch  – adds x-on-behalf-of header, for user-scoped reads and writes
     # When invoker_identity_account_id is absent (backward compat), both point
     # to the same system channel.
     grpc_provider = ChannelProvider(
@@ -1213,6 +1213,7 @@ async def _execute_graphton_impl(
     session_client = SessionClient(api_key, channel=obo_ch)
     agent_instance_client = AgentInstanceClient(api_key, channel=obo_ch)
     agent_client = AgentClient(api_key, channel=obo_ch)
+    execution_query_client = AgentExecutionClient(api_key, channel=obo_ch)
     execution_client = AgentExecutionClient(api_key, channel=sys_ch)
     
     # ─────────────────────────────────────────────────────────────────────────────
@@ -1226,7 +1227,7 @@ async def _execute_graphton_impl(
     # ─────────────────────────────────────────────────────────────────────────────
     setup_timer.start("execution_fetch")
     activity_logger.info(f"Fetching execution {execution_id} from database via gRPC")
-    execution = await execution_client.get(execution_id)
+    execution = await execution_query_client.get(execution_id)
     
     agent_id = execution.spec.agent_id
     user_message = execution.spec.message
