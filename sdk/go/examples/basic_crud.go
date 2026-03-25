@@ -10,8 +10,6 @@ import (
 	"log"
 
 	stigmer "github.com/stigmer/stigmer/sdk/go"
-	apiresource "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource"
-	apiresourcekind "github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 func BasicCRUD() {
@@ -49,9 +47,8 @@ func BasicCRUD() {
 	}
 
 	// Get by reference (org + slug)
-	agent, err = client.Agent.GetByReference(ctx, &apiresource.ApiResourceReference{
+	agent, err = client.Agent.GetByReference(ctx, stigmer.ResourceRef{
 		Org:  "acme",
-		Kind: apiresourcekind.ApiResourceKind_agent,
 		Slug: "code-reviewer",
 	})
 	if err != nil && !stigmer.IsNotFound(err) {
