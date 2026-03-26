@@ -272,26 +272,16 @@ class SandboxManager:
         
         snapshot_id = config.get("snapshot_id")
         
-        # Build volume mounts for workspace persistence
+        # Volume mounts disabled — sandbox uses local overlay filesystem.
+        # FUSE+S3 volumes have ~1 file/s write throughput which causes
+        # git checkout to take ~149 min for repos with thousands of files,
+        # exceeding the 300s clone timeout.  Cloning to local overlay
+        # completes in ~4s.  Volume support is preserved as dead code
+        # below for future re-enablement if a concrete use case arises.
         volume_mounts: list[Any] = []
-        if self._volume_id and session_id:
-            volume_mounts.append(
-                VolumeMount(
-                    volume_id=self._volume_id,
-                    mount_path=DAYTONA_WORKSPACE_MOUNT_PATH,
-                    subpath=f"sessions/{session_id}",
-                )
-            )
+        if not session_id:
             logger.info(
-                "Volume mount configured: volume=%s, "
-                "mount_path=%s, subpath=sessions/%s",
-                self._volume_id,
-                DAYTONA_WORKSPACE_MOUNT_PATH,
-                session_id,
-            )
-        elif not session_id:
-            logger.info(
-                "No session_id -- creating sandbox without volume mount (ephemeral)"
+                "No session_id -- creating ephemeral sandbox"
             )
         
         try:
@@ -300,21 +290,12 @@ class SandboxManager:
                 logger.info(f"Creating Daytona sandbox from snapshot: {snapshot_id}")
                 params = CreateSandboxFromSnapshotParams(
                     snapshot=snapshot_id,
-                    volumes=volume_mounts if volume_mounts else None,
                     auto_delete_interval=-1,  # Never auto-delete; we manage lifecycle
                 )
                 sandbox = self._daytona.create(params=params)
             else:
-                if volume_mounts:
-                    logger.info("Creating Daytona sandbox with volume mount")
-                    params = CreateSandboxFromSnapshotParams(
-                        volumes=volume_mounts,
-                        auto_delete_interval=-1,  # Never auto-delete; we manage lifecycle
-                    )
-                    sandbox = self._daytona.create(params=params)
-                else:
-                    logger.info("Creating vanilla Daytona sandbox (no snapshot, no volume)")
-                    sandbox = self._daytona.create()
+                logger.info("Creating vanilla Daytona sandbox (no snapshot)")
+                sandbox = self._daytona.create()
             
             logger.info(f"Daytona sandbox created: {sandbox.id}, waiting for readiness...")
             

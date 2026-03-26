@@ -116,10 +116,7 @@ async def initialize_workspace(
         A :class:`WorkspaceInitResult` with the backend, optional sandbox,
         and the platform directory path (when the virtual mount is active).
     """
-    from worker.sandbox_manager import (
-        DAYTONA_WORKSPACE_MOUNT_PATH,
-        get_daytona_volume_id,
-    )
+    from worker.sandbox_manager import DAYTONA_WORKSPACE_MOUNT_PATH
 
     log = activity_logger or logger
 
@@ -177,31 +174,14 @@ async def initialize_workspace(
         sandbox.id,
     )
 
-    # Compute the authoritative workspace root.  When a persistent
-    # volume is mounted (volume_id + session_id), the root is the
-    # volume mount path.  Otherwise fall back to the SDK's discovery.
-    volume_id = get_daytona_volume_id()
-    if volume_id and session_id:
-        workspace_root = DAYTONA_WORKSPACE_MOUNT_PATH
-        log.info(
-            "Volume-backed workspace: workspace_root=%s "
-            "(volume_id=%s, session_id=%s)",
-            workspace_root,
-            volume_id,
-            session_id,
-        )
-    else:
-        try:
-            workspace_root = sandbox.get_work_dir().rstrip("/")
-            log.info("Sandbox workspace root (get_work_dir): %s", workspace_root)
-        except Exception as exc:
-            workspace_root = "/home/daytona"
-            log.warning(
-                "sandbox.get_work_dir() failed (%s); "
-                "falling back to %s",
-                exc,
-                workspace_root,
-            )
+    # Workspace root lives on the sandbox's local overlay filesystem.
+    # No volume mount — local overlay is ~2,360x faster than FUSE+S3
+    # for file-creation-heavy workloads like git checkout.
+    workspace_root = DAYTONA_WORKSPACE_MOUNT_PATH
+    log.info(
+        "Local-overlay workspace: workspace_root=%s",
+        workspace_root,
+    )
 
     backend = DaytonaWorkspaceBackend(
         sandbox=sandbox, workspace_root=workspace_root,
