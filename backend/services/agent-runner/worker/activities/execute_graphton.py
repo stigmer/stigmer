@@ -2875,8 +2875,8 @@ async def _execute_graphton_impl(
                     decision.action, ToolCallStatus.TOOL_CALL_RUNNING
                 )
                 status_builder._update_tool_call_on_ai_message(
-                    status_builder.current_status.messages,
                     tc_id,
+                    status_builder.current_status.messages,
                     status=new_status,
                 )
             for sa in status_builder.current_status.sub_agent_executions:
@@ -2885,8 +2885,8 @@ async def _execute_graphton_impl(
                         decision.action, ToolCallStatus.TOOL_CALL_RUNNING
                     )
                     status_builder._update_tool_call_on_ai_message(
-                        sa.messages,
                         tc_id,
+                        sa.messages,
                         status=new_status,
                     )
             
@@ -2939,16 +2939,16 @@ async def _execute_graphton_impl(
                 for tc in status_builder.current_status.tool_calls:
                     if tc.status == ToolCallStatus.TOOL_CALL_SKIPPED:
                         status_builder._update_tool_call_on_ai_message(
-                            status_builder.current_status.messages,
                             tc.id,
+                            status_builder.current_status.messages,
                             status=ToolCallStatus.TOOL_CALL_SKIPPED,
                         )
                 for sa in status_builder.current_status.sub_agent_executions:
                     for tc in sa.tool_calls:
                         if tc.status == ToolCallStatus.TOOL_CALL_SKIPPED:
                             status_builder._update_tool_call_on_ai_message(
-                                sa.messages,
                                 tc.id,
+                                sa.messages,
                                 status=ToolCallStatus.TOOL_CALL_SKIPPED,
                             )
             
