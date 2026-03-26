@@ -117,15 +117,21 @@ class _GitBackend:
 class _CloudGitBackend(_GitBackend):
     """_GitBackend pre-configured with responses for cloud mode.
 
-    Adds responses for FUSE volume compat configuration and
-    separate git-dir operations that are only issued when
-    ``is_local_mode=False``.
+    Adds responses for FUSE volume compat configuration,
+    separate git-dir operations, and credential store commands
+    that are only issued when ``is_local_mode=False``.
     """
 
     def __init__(self, tmp_path, *, clone_response=None, responses=None):
         cloud_responses: dict[str, ExecuteResult] = {
             "safe.directory": ExecuteResult(exit_code=0, stdout="", stderr=""),
             "mkdir -p /home/daytona/.git-repos": ExecuteResult(
+                exit_code=0, stdout="", stderr="",
+            ),
+            "git remote set-url": ExecuteResult(
+                exit_code=0, stdout="", stderr="",
+            ),
+            "credential.helper": ExecuteResult(
                 exit_code=0, stdout="", stderr="",
             ),
         }
@@ -1050,6 +1056,209 @@ class TestStaleGitPointer:
         result = git_source.provision(source, file_backend, {})
         assert not any("git clone" in c for c in file_backend.commands)
         assert any("sed 's/gitdir: //'" in c for c in file_backend.commands)
+
+
+# ---------------------------------------------------------------------------
+# Git credential persistence (cloud mode)
+# ---------------------------------------------------------------------------
+
+
+class TestCredentialHelper:
+    """Credential store configuration in cloud mode."""
+
+    def test_credential_commands_issued_in_cloud_mode(self, tmp_path):
+        """Cloud + GitHub token -> remote URL, credential helper, and file write."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        assert any("git remote set-url" in c for c in backend.commands)
+        assert any("credential.helper" in c for c in backend.commands)
+        assert any(".git-credentials" in c for c in backend.commands)
+
+    def test_remote_url_cleaned_to_tokenless_url(self, tmp_path):
+        """git remote set-url uses the clean URL (no embedded token)."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        set_url_cmd = _find_command(backend.commands, "git remote set-url")
+        assert "https://github.com/org/repo.git" in set_url_cmd
+        assert "ghp_tok" not in set_url_cmd
+
+    def test_credential_file_has_correct_format(self, tmp_path):
+        """Credential file written with git-credential-store format."""
+        token = "ghp_testtoken123"
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {"GITHUB_TOKEN": token}, is_local_mode=False,
+        )
+
+        cred_write_cmds = [
+            c for c in backend.commands
+            if ".git-credentials" in c and ">" in c
+        ]
+        assert cred_write_cmds, "No credential file write command found"
+        cred_cmd = cred_write_cmds[0]
+        assert f"x-access-token:{token}@github.com" in cred_cmd
+        assert "chmod 600" in cred_cmd
+
+    def test_git_credentials_configured_true_on_result(self, tmp_path):
+        """GitMetadata.git_credentials_configured is True after successful setup."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        result = git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is True
+
+    def test_skipped_in_local_mode(self, tmp_path):
+        """Local mode + token -> no credential commands, field is False."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path)
+
+        result = git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=True,
+        )
+
+        assert not any("git remote set-url" in c for c in backend.commands)
+        assert not any("credential.helper" in c for c in backend.commands)
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is False
+
+    def test_skipped_without_token(self, tmp_path):
+        """Cloud + no token -> no credential commands, field is False."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        result = git_source.provision(
+            source, backend, {}, is_local_mode=False,
+        )
+
+        assert not any("git remote set-url" in c for c in backend.commands)
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is False
+
+    def test_skipped_for_non_github_url(self, tmp_path):
+        """Non-GitHub URL + token -> no credential commands."""
+        source = _MockGitRepoSource(url="https://gitlab.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        assert not any("git remote set-url" in c for c in backend.commands)
+        assert not any("credential.helper" in c for c in backend.commands)
+
+    def test_configured_on_existing_repo(self, tmp_path):
+        """Idempotent path + cloud + token -> credentials configured."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path, responses={
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="dir\n", stderr="",
+            ),
+        })
+
+        result = git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        assert not any("git clone" in c for c in backend.commands)
+        assert any("git remote set-url" in c for c in backend.commands)
+        assert any("credential.helper" in c for c in backend.commands)
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is True
+
+    def test_existing_repo_no_credentials_in_local_mode(self, tmp_path):
+        """Idempotent + local mode + token -> no credential setup."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path, responses={
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="dir\n", stderr="",
+            ),
+        })
+
+        result = git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=True,
+        )
+
+        assert not any("git remote set-url" in c for c in backend.commands)
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is False
+
+    def test_non_fatal_on_remote_url_cleanup_failure(self, tmp_path):
+        """Remote URL cleanup failure -> clone succeeds, field is False."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path, responses={
+            "git remote set-url": ExecuteResult(
+                exit_code=1, stdout="", stderr="error: could not set url",
+            ),
+        })
+
+        result = git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        assert result.source_type is SourceType.GIT_REPO
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is False
+
+    def test_non_fatal_on_credential_config_failure(self, tmp_path):
+        """Credential helper config failure -> clone succeeds, field is False."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path, responses={
+            "credential.helper": ExecuteResult(
+                exit_code=1, stdout="", stderr="error: could not lock config",
+            ),
+        })
+
+        result = git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        assert result.source_type is SourceType.GIT_REPO
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is False
+
+    def test_credential_setup_runs_after_clone_and_excludes(self, tmp_path):
+        """Credential commands come after clone and excludes in command order."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        clone_idx = None
+        excludes_idx = None
+        cred_idx = None
+        for i, cmd in enumerate(backend.commands):
+            if "git clone" in cmd and clone_idx is None:
+                clone_idx = i
+            if "--absolute-git-dir" in cmd and excludes_idx is None:
+                excludes_idx = i
+            if "git remote set-url" in cmd and cred_idx is None:
+                cred_idx = i
+
+        assert clone_idx is not None, "git clone not found"
+        assert excludes_idx is not None, "excludes setup not found"
+        assert cred_idx is not None, "credential setup not found"
+        assert clone_idx < excludes_idx < cred_idx, (
+            f"Expected clone ({clone_idx}) < excludes ({excludes_idx}) "
+            f"< credentials ({cred_idx})"
+        )
 
 
 # ---------------------------------------------------------------------------
