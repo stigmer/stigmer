@@ -18,6 +18,7 @@ import { isTerminalPhase } from "./execution-phases";
 import { MessageEntry } from "./MessageEntry";
 import { ToolCallGroup } from "./ToolCallGroup";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
+import { SetupProgress } from "./SetupProgress";
 import { ApprovalCard } from "./ApprovalCard";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
@@ -101,7 +102,17 @@ type ThreadItem =
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
   | { readonly kind: "pending-message"; readonly content: string; readonly key: string }
-  | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string };
+  | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
+  | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly key: string };
+
+function hasAiMessages(execution: AgentExecution): boolean {
+  const messages = execution.status?.messages;
+  if (!messages || messages.length === 0) return false;
+  return messages.some(
+    (m) =>
+      m.type === MessageType.MESSAGE_AI && (m.content.trim() || m.toolCalls.length > 0),
+  );
+}
 
 function buildThreadItems(
   executions: readonly AgentExecution[],
@@ -109,6 +120,7 @@ function buildThreadItems(
   pendingUserMessage: string | null | undefined,
   includeApprovals: boolean,
   dismissedApprovalIds: ReadonlySet<string> | undefined,
+  workspaceEntries: readonly WorkspaceEntry[] | undefined,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
   const allExecutions = activeStreamExecution
@@ -167,6 +179,19 @@ function buildThreadItems(
   const lastExec = allExecutions[allExecutions.length - 1];
   const lastPhase =
     lastExec?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
+
+  if (
+    activeStreamExecution &&
+    (lastPhase === ExecutionPhase.EXECUTION_PENDING ||
+      lastPhase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) &&
+    !hasAiMessages(activeStreamExecution)
+  ) {
+    items.push({
+      kind: "setup-progress",
+      workspaceEntries: workspaceEntries ?? [],
+      key: "setup-progress",
+    });
+  }
 
   if (
     isTerminalPhase(lastPhase) &&
@@ -247,8 +272,8 @@ export function MessageThread({
 
   const includeApprovals = onApprovalSubmit != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, dismissedApprovalIds),
-    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, dismissedApprovalIds],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, dismissedApprovalIds, workspaceEntries),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, dismissedApprovalIds, workspaceEntries],
   );
 
   const handleScroll = useCallback(() => {
@@ -320,6 +345,13 @@ export function MessageThread({
                   }
                   isSubmitting={submittingApprovalIds?.has(item.pendingApproval.toolCallId) ?? false}
                   className="mx-4"
+                />
+              );
+            case "setup-progress":
+              return (
+                <SetupProgress
+                  key={item.key}
+                  workspaceEntries={item.workspaceEntries}
                 />
               );
             case "pending-message":

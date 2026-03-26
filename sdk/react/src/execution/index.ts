@@ -29,6 +29,9 @@ export {
 export { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 export type { ExecutionPhaseBadgeProps } from "./ExecutionPhaseBadge";
 
+export { SetupProgress } from "./SetupProgress";
+export type { SetupProgressProps } from "./SetupProgress";
+
 export { ToolCallGroup } from "./ToolCallGroup";
 export type { ToolCallGroupProps } from "./ToolCallGroup";
 
