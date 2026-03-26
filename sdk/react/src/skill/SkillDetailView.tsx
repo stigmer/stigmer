@@ -11,7 +11,7 @@ import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apires
 import { useSkill } from "./useSkill";
 import { ErrorMessage } from "../error/ErrorMessage";
 import { VisibilityToggle } from "../library/VisibilityToggle";
-import { MARKDOWN_COMPONENTS, REMARK_PLUGINS } from "../internal/markdown-components";
+import { MARKDOWN_COMPONENTS, REMARK_PLUGINS, stripFrontmatter } from "../internal/markdown-components";
 
 export interface SkillDetailViewProps {
   /** Organization slug that owns the skill. */
@@ -246,7 +246,7 @@ function SkillContentSection({ content }: { readonly content: string }) {
           remarkPlugins={REMARK_PLUGINS}
           components={MARKDOWN_COMPONENTS}
         >
-          {content}
+          {stripFrontmatter(content)}
         </Markdown>
       </div>
     </Section>

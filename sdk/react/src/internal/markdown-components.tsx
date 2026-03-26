@@ -11,6 +11,21 @@ type MdProps<T extends keyof JSX.IntrinsicElements> = ComponentProps<T>;
  */
 export const REMARK_PLUGINS = [remarkGfm];
 
+const FRONTMATTER_RE = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/;
+
+/**
+ * Strips YAML frontmatter from markdown content.
+ *
+ * SKILL.md files store metadata (`name`, `description`) in a `---` delimited
+ * YAML block at the top. The backend extracts these into separate proto fields,
+ * but the raw `skill_md` still contains the block. `react-markdown` does not
+ * understand frontmatter and renders it as a plain paragraph — this utility
+ * removes it before rendering.
+ */
+export function stripFrontmatter(content: string): string {
+  return content.replace(FRONTMATTER_RE, "");
+}
+
 /**
  * Styled react-markdown component overrides for SDK markdown surfaces.
  *
