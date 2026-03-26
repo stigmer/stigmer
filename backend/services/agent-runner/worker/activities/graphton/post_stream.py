@@ -1,0 +1,265 @@
+"""Post-stream processing for Graphton agent execution.
+
+After the LangGraph event stream completes, this module handles:
+  - Silent completion detection (final message type check)
+  - Auto-publish safety net (file-modifying tool calls -> artifacts)
+  - Checkpoint query and validation
+  - Interrupt capture (via hitl.InterruptCapture)
+  - Phase decision (checkpoint-validated)
+  - Finalization (timestamp, usage, gRPC persist)
+
+Extracted from ``execute_graphton.py``.
+"""
+
+from __future__ import annotations
+
+import dataclasses
+import logging
+from typing import TYPE_CHECKING, Any, cast
+
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+    ExecutionPhase,
+    MessageType,
+)
+from langchain_core.runnables import RunnableConfig
+
+from worker.activities.graphton.checkpoint_validator import (
+    build_error_from_validation,
+    validate_against_checkpoint,
+)
+from worker.activities.graphton.hitl import (
+    ApprovalStateManager,
+    InterruptCapture,
+)
+from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
+
+if TYPE_CHECKING:
+    from worker.storage import ArtifactStorage
+    from worker.workspace import WorkspaceBackend
+
+
+@dataclasses.dataclass(frozen=True)
+class PostStreamResult:
+    """Output of :func:`process_post_stream`."""
+
+    final_phase_name: str
+
+
+async def process_post_stream(
+    *,
+    status_builder: StatusBuilder,
+    execution_id: str,
+    agent_graph: Any,
+    config: dict[str, Any],
+    sandbox: Any,
+    artifact_storage: "ArtifactStorage",
+    workspace_backend: "WorkspaceBackend",
+    merged_env_vars: dict[str, str],
+    secret_keys: set[str],
+    auto_publish_fn: Any,
+    resolve_platform_tool_name: Any,
+    humanize_platform_refs: Any,
+    resolve_display_env_vars: Any,
+    logger: logging.Logger,
+) -> PostStreamResult:
+    """Run post-stream validation, interrupt capture, and phase decision.
+
+    Mutates ``status_builder.current_status`` in place.
+    """
+    # Detect silent completions
+    messages = status_builder.current_status.messages
+    if messages:
+        last_message = messages[-1]
+        if last_message.type == MessageType.MESSAGE_TOOL:
+            logger.warning(
+                "[POST_STREAM] execution=%s — Stream ended with a tool "
+                "message as the last message (tool_calls=%d). "
+                "The agent may not have produced a final summary.",
+                execution_id, len(last_message.tool_calls),
+            )
+
+    # Auto-publish safety net
+    if not status_builder._artifacts:
+        logger.info(
+            "[POST_STREAM] execution=%s — No artifacts were published. "
+            "Checking for modified files to auto-publish.",
+            execution_id,
+        )
+        current_phase = status_builder.current_status.phase
+        if current_phase not in (
+            ExecutionPhase.EXECUTION_FAILED,
+            ExecutionPhase.EXECUTION_PAUSED,
+            ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        ):
+            try:
+                await auto_publish_fn(
+                    tool_calls=status_builder.current_status.tool_calls,
+                    sandbox=sandbox,
+                    storage=artifact_storage,
+                    execution_id=execution_id,
+                    status_builder=status_builder,
+                    local_root=(
+                        workspace_backend.root_dir if sandbox is None else None
+                    ),
+                    logger=logger,
+                    path_normalizer=(
+                        workspace_backend._normalize
+                        if hasattr(workspace_backend, "_normalize")
+                        else None
+                    ),
+                )
+            except Exception as auto_pub_err:
+                logger.warning(
+                    "[AUTO_PUBLISH] execution=%s — "
+                    "auto-publish failed (non-fatal): %s",
+                    execution_id, auto_pub_err,
+                )
+
+    status_builder.finalize_context_info()
+
+    # Checkpoint query
+    graph_state = None
+    try:
+        graph_state = await agent_graph.aget_state(
+            cast(RunnableConfig, config)
+        )
+    except Exception as state_err:
+        logger.warning(
+            "[CHECKPOINT_QUERY] execution=%s — "
+            "aget_state() failed (non-fatal, validation skipped): %s",
+            execution_id, state_err,
+        )
+
+    # Checkpoint validation
+    status_ai_message_count = sum(
+        1
+        for m in status_builder.current_status.messages
+        if m.type == MessageType.MESSAGE_AI
+    )
+
+    validation = validate_against_checkpoint(
+        graph_state=graph_state,
+        active_sub_agent_count=len(status_builder._active_sub_agents),
+        status_ai_message_count=status_ai_message_count,
+        execution_phase=status_builder.current_status.phase,
+        waiting_for_approval_phase=ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+        paused_phase=ExecutionPhase.EXECUTION_PAUSED,
+    )
+
+    for d in validation.discrepancies:
+        log_fn = logger.error if d.severity == "error" else logger.warning
+        log_fn(
+            "[CHECKPOINT_VALIDATION] execution=%s %s: %s",
+            execution_id, d.category, d.description,
+        )
+
+    if not validation.discrepancies:
+        logger.info(
+            "[CHECKPOINT_VALIDATION] execution=%s — all checks passed",
+            execution_id,
+        )
+
+    # Interrupt capture
+    try:
+        interrupt_capture = InterruptCapture(
+            execution_id=execution_id,
+            status_builder=status_builder,
+            state_manager=ApprovalStateManager(
+                execution_id=execution_id, logger=logger,
+            ),
+            logger=logger,
+            resolve_platform_tool_name=resolve_platform_tool_name,
+        )
+        interrupt_capture.capture(
+            graph_state=graph_state,
+            humanize_platform_refs=humanize_platform_refs,
+            resolve_display_env_vars=resolve_display_env_vars,
+            merged_env_vars=merged_env_vars,
+            secret_keys=secret_keys,
+        )
+    except Exception as capture_err:
+        logger.warning(
+            "[INTERRUPT_CAPTURE] execution=%s "
+            "failed to capture interrupt IDs from graph state: %s.",
+            execution_id, capture_err,
+        )
+
+    # Phase decision
+    current_phase = status_builder.current_status.phase
+
+    if current_phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
+        logger.info(
+            "Stream ended with WAITING_FOR_APPROVAL phase for execution %s. "
+            "Not setting COMPLETED.",
+            execution_id,
+        )
+    elif current_phase == ExecutionPhase.EXECUTION_PAUSED:
+        logger.info(
+            "Stream ended with PAUSED phase for execution %s. "
+            "Not setting COMPLETED.",
+            execution_id,
+        )
+    elif validation.has_errors:
+        logger.error(
+            "[CHECKPOINT_VALIDATION] execution=%s — "
+            "Checkpoint confirms abnormal termination. Errors: %s",
+            execution_id,
+            [d.description for d in validation.discrepancies if d.severity == "error"],
+        )
+        finalized_count = (
+            status_builder.finalize_sub_agents_from_checkpoint_validation(
+                missed_event_count=validation.missed_event_count,
+                confirmed_orphan_count=validation.confirmed_orphan_count,
+                error_context="Checkpoint validation: execution terminated abnormally",
+            )
+        )
+        status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+        status_builder.current_status.error = build_error_from_validation(validation)
+        logger.info(
+            "[CHECKPOINT_VALIDATION] execution=%s — "
+            "Finalized %d sub-agent(s), phase set to EXECUTION_FAILED.",
+            execution_id, finalized_count,
+        )
+    elif validation.missed_event_count > 0:
+        logger.info(
+            "[CHECKPOINT_VALIDATION] execution=%s — "
+            "Checkpoint confirms %d sub-agent(s) completed "
+            "(StatusBuilder missed events). Execution completed normally.",
+            execution_id, validation.missed_event_count,
+        )
+        status_builder.finalize_sub_agents_from_checkpoint_validation(
+            missed_event_count=validation.missed_event_count,
+            confirmed_orphan_count=0,
+            error_context="",
+        )
+        status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
+    elif status_builder.has_orphaned_sub_agents:
+        diag = status_builder.get_orphaned_sub_agents_diagnostic()
+        logger.error(
+            "[RECONCILIATION] execution=%s — "
+            "Checkpoint validation found no errors but StatusBuilder "
+            "still tracks %d active sub-agent(s). Details: %s",
+            execution_id, diag["total"], diag,
+        )
+        status_builder.finalize_active_sub_agents_differentiated(
+            error_context="Parent execution terminated abnormally"
+        )
+        status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+        status_builder.current_status.error = (
+            f"Execution terminated with {diag['total']} sub-agent(s) "
+            f"still in progress "
+            f"({diag['zero_message_count']} never started, "
+            f"{diag['mid_execution_count']} mid-execution). "
+            f"The graph ended without producing a final response."
+        )
+    else:
+        status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
+
+    # Finalize
+    if not status_builder.current_status.completed_at:
+        status_builder.current_status.completed_at = _utc_timestamp()
+    status_builder.finalize_usage()
+
+    return PostStreamResult(
+        final_phase_name=ExecutionPhase.Name(status_builder.current_status.phase),
+    )

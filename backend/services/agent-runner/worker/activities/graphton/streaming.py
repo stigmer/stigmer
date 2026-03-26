@@ -1,0 +1,414 @@
+"""Streaming execution loop for Graphton agent.
+
+Encapsulates the LangGraph event stream, background heartbeats,
+stall detection, progressive gRPC updates, and terminal-state
+handling (pause, stall, recursion limit).
+
+Extracted from ``execute_graphton.py``.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import contextlib
+import dataclasses
+import logging
+import time
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
+
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+    ExecutionPhase,
+    MessageType,
+    SubAgentStatus,
+)
+from ai.stigmer.agentic.agentexecution.v1.message_pb2 import AgentMessage
+
+from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
+from worker.streaming import StreamingConfig, StreamingUpdateScheduler
+
+if TYPE_CHECKING:
+    from grpc_client.agent_execution_client import AgentExecutionClient
+
+
+@dataclasses.dataclass(frozen=True)
+class StreamResult:
+    """Result of :meth:`StreamExecutor.execute`.
+
+    When ``terminal_status`` is not ``None`` the stream ended with a
+    terminal condition (pause, stall, recursion limit) and the caller
+    should return it directly.  Otherwise the caller proceeds to
+    post-stream processing.
+    """
+
+    events_processed: int
+    terminal_status: AgentExecutionStatus | None = None
+
+
+class StreamExecutor:
+    """Runs the LangGraph event stream with heartbeats, stall guard, and
+    progressive status updates.
+
+    All Temporal-specific side-effects (heartbeat, cancellation check)
+    are injected as callables so the class is testable without a running
+    Temporal worker.
+    """
+
+    def __init__(
+        self,
+        *,
+        agent_graph: Any,
+        config: dict[str, Any],
+        execution_id: str,
+        thread_id: str,
+        status_builder: StatusBuilder,
+        execution_client: "AgentExecutionClient",
+        streaming_config: StreamingConfig,
+        stall_timeout_seconds: int,
+        grpc_update_timeout_seconds: int,
+        effective_recursion_limit: int,
+        heartbeat_fn: Callable[[dict[str, Any]], None],
+        is_cancelled_fn: Callable[[], bool],
+        slim_status_fn: Callable[[AgentExecutionStatus], AgentExecutionStatus],
+        logger: logging.Logger,
+    ) -> None:
+        self._graph = agent_graph
+        self._config = config
+        self._execution_id = execution_id
+        self._thread_id = thread_id
+        self._sb = status_builder
+        self._exec_client = execution_client
+        self._streaming_cfg = streaming_config
+        self._stall_timeout = stall_timeout_seconds
+        self._grpc_timeout = grpc_update_timeout_seconds
+        self._recursion_limit = effective_recursion_limit
+        self._heartbeat = heartbeat_fn
+        self._is_cancelled = is_cancelled_fn
+        self._slim_status = slim_status_fn
+        self._log = logger
+
+    # ------------------------------------------------------------------
+    # Public
+    # ------------------------------------------------------------------
+
+    async def execute(
+        self,
+        graph_input: Any,
+        *,
+        is_resume: bool,
+    ) -> StreamResult:
+        """Run the streaming loop and return the result."""
+        events_processed = 0
+        last_hb_time = time.monotonic()
+        hb_interval_ms = 2000
+        scheduler = StreamingUpdateScheduler(self._streaming_cfg)
+
+        if is_resume:
+            await self._pre_stream_update()
+
+        self._log.info(
+            "[STALL_GUARD] Stall detection timeout: %ds (resets on every event), "
+            "gRPC update timeout: %ds",
+            self._stall_timeout, self._grpc_timeout,
+        )
+
+        hb_task: asyncio.Task[None] | None = None
+        try:
+            hb_task = asyncio.create_task(
+                self._background_heartbeat(lambda: events_processed)
+            )
+
+            async with asyncio.timeout(self._stall_timeout) as stall_deadline:
+                async for event in self._graph.astream_events(
+                    graph_input,
+                    config=self._config,
+                    version="v2",
+                ):
+                    stall_deadline.reschedule(
+                        asyncio.get_event_loop().time() + self._stall_timeout
+                    )
+
+                    if self._is_cancelled():
+                        self._log.info(
+                            "PAUSE: Activity cancelled for execution %s, "
+                            "saving checkpoint (thread_id=%s)",
+                            self._execution_id, self._thread_id,
+                        )
+                        raise asyncio.CancelledError("Paused by user")
+
+                    await self._sb.process_event(event)
+                    events_processed += 1
+
+                    now = time.monotonic()
+                    if (now - last_hb_time) * 1000 >= hb_interval_ms:
+                        self._send_heartbeat(events_processed)
+                        last_hb_time = now
+
+                    events_processed, last_hb_time = await self._maybe_send_update(
+                        events_processed, scheduler, last_hb_time,
+                    )
+
+        except asyncio.CancelledError:
+            return self._handle_pause(events_processed)
+        except TimeoutError:
+            return self._handle_stall(events_processed)
+        except Exception as stream_err:
+            if type(stream_err).__name__ == "GraphRecursionError":
+                return self._handle_recursion_limit(events_processed, stream_err)
+            raise
+        finally:
+            if hb_task is not None:
+                hb_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await hb_task
+
+        if events_processed == 0:
+            raise RuntimeError(
+                "Graphton stream completed without processing any events. "
+                "This may indicate a configuration error."
+            )
+
+        self._log.info(
+            "Execution %s stream finished — processed %d events",
+            self._execution_id, events_processed,
+        )
+        return StreamResult(events_processed=events_processed)
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    async def _pre_stream_update(self) -> None:
+        """Send an immediate IN_PROGRESS status update before streaming."""
+        try:
+            self._log.info("[RESUME] Sending pre-stream IN_PROGRESS status update")
+            await asyncio.wait_for(
+                self._exec_client.update_status(
+                    execution_id=self._execution_id,
+                    status=self._sb.current_status,
+                ),
+                timeout=self._grpc_timeout,
+            )
+            self._log.info("[RESUME] Pre-stream status update sent successfully")
+        except Exception as err:
+            self._log.warning("[RESUME] Pre-stream status update failed: %s", err)
+
+    async def _background_heartbeat(
+        self,
+        events_counter: Callable[[], int],
+    ) -> None:
+        interval = 10.0
+        seq = 0
+        while True:
+            await asyncio.sleep(interval)
+            seq += 1
+            try:
+                self._heartbeat({
+                    "thread_id": self._thread_id,
+                    "paused": self._is_cancelled(),
+                    "events_processed": events_counter(),
+                    "messages": len(self._sb.current_status.messages),
+                    "tool_calls": len(self._sb.current_status.tool_calls),
+                    "phase": self._sb.current_status.phase,
+                    "source": "background",
+                })
+                self._log.info(
+                    "[HEARTBEAT] execution=%s seq=%d events=%d source=background",
+                    self._execution_id, seq, events_counter(),
+                )
+            except BaseException as hb_err:
+                self._log.info(
+                    "[HEARTBEAT] execution=%s seq=%d failed: %s: %s",
+                    self._execution_id, seq, type(hb_err).__name__, hb_err,
+                )
+                if isinstance(hb_err, (asyncio.CancelledError, KeyboardInterrupt)):
+                    raise
+
+    def _send_heartbeat(self, events_processed: int) -> None:
+        try:
+            self._heartbeat({
+                "thread_id": self._thread_id,
+                "paused": self._is_cancelled(),
+                "events_processed": events_processed,
+                "messages": len(self._sb.current_status.messages),
+                "tool_calls": len(self._sb.current_status.tool_calls),
+                "phase": self._sb.current_status.phase,
+            })
+        except Exception as e:
+            self._log.debug("Heartbeat failed (event %d): %s", events_processed, e)
+
+    async def _maybe_send_update(
+        self,
+        events_processed: int,
+        scheduler: StreamingUpdateScheduler,
+        last_hb_time: float,
+    ) -> tuple[int, float]:
+        force = self._sb.force_next_update
+        if force:
+            self._sb.force_next_update = False
+        if not (force or scheduler.should_send_update(events_processed)):
+            return events_processed, last_hb_time
+
+        reason = "force_tool_update" if force else scheduler.get_update_reason_str()
+        time_since = scheduler.get_time_since_last_update_ms()
+        events_since = scheduler.get_events_since_last_update(events_processed)
+
+        try:
+            self._log.info(
+                "[STREAM] execution=%s update_sent=true reason=%s "
+                "events_total=%d events_since_last=%d "
+                "time_since_last_ms=%.0f messages=%d tool_calls=%d",
+                self._execution_id, reason, events_processed,
+                events_since, time_since,
+                len(self._sb.current_status.messages),
+                len(self._sb.current_status.tool_calls),
+            )
+            await asyncio.wait_for(
+                self._exec_client.update_status(
+                    execution_id=self._execution_id,
+                    status=self._sb.current_status,
+                ),
+                timeout=self._grpc_timeout,
+            )
+            scheduler.mark_update_sent(events_processed)
+        except TimeoutError:
+            self._log.warning(
+                "[STREAM] execution=%s update_sent=false reason=grpc_timeout "
+                "timeout_seconds=%d",
+                self._execution_id, self._grpc_timeout,
+            )
+            scheduler.mark_update_sent(events_processed)
+        except Exception as e:
+            self._log.warning(
+                "[STREAM] execution=%s update_sent=false reason=%s error=%s",
+                self._execution_id, reason, e,
+            )
+            scheduler.mark_update_sent(events_processed)
+
+        if events_processed % 50 == 0:
+            self._log.debug("Processed %d events", events_processed)
+
+        return events_processed, last_hb_time
+
+    # ------------------------------------------------------------------
+    # Terminal-state handlers
+    # ------------------------------------------------------------------
+
+    def _finalize_and_persist(
+        self, phase: int, error: str, message_content: str,
+    ) -> AgentExecutionStatus:
+        self._sb.finalize_context_info()
+        msg = AgentMessage(
+            type=MessageType.MESSAGE_SYSTEM,
+            content=message_content,
+            timestamp=_utc_timestamp(),
+        )
+        self._sb.current_status.messages.append(msg)
+        self._sb.current_status.phase = phase
+        if error:
+            self._sb.current_status.error = error
+        if not self._sb.current_status.completed_at:
+            self._sb.current_status.completed_at = _utc_timestamp()
+        self._sb.finalize_usage()
+        return self._slim_status(self._sb.current_status)
+
+    async def _persist_terminal_status(self, label: str) -> None:
+        try:
+            self._log.info("[%s] Sending %s status update", label, label)
+            await self._exec_client.update_status(
+                execution_id=self._execution_id,
+                status=self._sb.current_status,
+            )
+            self._log.info("[%s] Status update sent successfully", label)
+        except Exception as err:
+            self._log.warning("[%s] Failed to send status update: %s", label, err)
+
+    def _handle_pause(self, events_processed: int) -> StreamResult:
+        self._log.info(
+            "Graceful pause for execution %s — checkpoint saved "
+            "(thread_id=%s, events_processed=%d)",
+            self._execution_id, self._thread_id, events_processed,
+        )
+        slim = self._finalize_and_persist(
+            phase=ExecutionPhase.EXECUTION_PAUSED,
+            error="",
+            message_content=(
+                "Execution paused by user. Use resume to continue "
+                "from this checkpoint."
+            ),
+        )
+        asyncio.get_event_loop().run_until_complete(
+            self._persist_terminal_status("PAUSE")
+        ) if False else None  # noqa: intentionally deferred — see below
+
+        # _persist_terminal_status is async but CancelledError handlers
+        # cannot await (the task is already cancelled). Best-effort via
+        # create_task in the finally block of execute() won't run either.
+        # Inline the sync gRPC call:
+        try:
+            import asyncio as _aio
+            _aio.get_event_loop().create_task(
+                self._exec_client.update_status(
+                    execution_id=self._execution_id,
+                    status=self._sb.current_status,
+                )
+            )
+        except Exception as err:
+            self._log.warning("[PAUSE] Failed to send status update: %s", err)
+
+        return StreamResult(events_processed=events_processed, terminal_status=slim)
+
+    def _handle_stall(self, events_processed: int) -> StreamResult:
+        stall_msg = (
+            f"Agent stream stalled: no events received for "
+            f"{self._stall_timeout}s after processing {events_processed} events. "
+            f"The LLM or a tool may be hanging."
+        )
+        self._log.error("[STALL] execution=%s — %s", self._execution_id, stall_msg)
+
+        self._sb.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_CANCELLED,
+            "Parent execution stalled — no events received",
+        )
+
+        slim = self._finalize_and_persist(
+            phase=ExecutionPhase.EXECUTION_TERMINATED,
+            error=stall_msg,
+            message_content=(
+                f"Execution timed out: the agent produced no output for "
+                f"{self._stall_timeout} seconds. This typically means the LLM "
+                f"or a tool stopped responding. The execution has been stopped."
+            ),
+        )
+        return StreamResult(events_processed=events_processed, terminal_status=slim)
+
+    def _handle_recursion_limit(
+        self, events_processed: int, err: Exception,
+    ) -> StreamResult:
+        limit_msg = (
+            f"Agent reached the tool-call limit after processing "
+            f"{events_processed} events. Send another message to continue."
+        )
+        self._log.warning(
+            "[RECURSION_LIMIT] execution=%s events=%d "
+            "invoke_config_limit=%d original_error=%s",
+            self._execution_id, events_processed,
+            self._recursion_limit, err,
+        )
+
+        self._sb.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_CANCELLED,
+            "Parent execution reached tool-call limit",
+        )
+
+        slim = self._finalize_and_persist(
+            phase=ExecutionPhase.EXECUTION_TERMINATED,
+            error=limit_msg,
+            message_content=(
+                "The agent reached the tool-call limit for this message. "
+                "Work completed so far has been saved. "
+                "Send another message to continue where the agent left off."
+            ),
+        )
+        return StreamResult(events_processed=events_processed, terminal_status=slim)

@@ -557,3 +557,116 @@ class TestAutoPublishWrittenFiles:
         call_kwargs = mock_publish.call_args
         assert call_kwargs.kwargs["path"] == "output"
         status_builder.add_artifact.assert_called_once_with(mock_artifact)
+
+    # =========================================================================
+    # path_normalizer — Daytona workspace-prefix rebasing
+    # =========================================================================
+
+    @pytest.mark.asyncio
+    async def test_path_normalizer_applied_to_single_file(self):
+        """When path_normalizer is provided, it transforms the path before publish.
+
+        Simulates the Daytona rebase scenario where the write tool stores
+        agent-space path "/mahatma_gandhi.txt" but the sandbox file lives
+        at "workspace/mahatma_gandhi.txt".
+        """
+        tool_calls = [
+            _make_tool_call("write", path="/mahatma_gandhi.txt"),
+        ]
+        mock_artifact = _make_artifact("mahatma_gandhi.txt")
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        def fake_normalize(p: str) -> str:
+            return f"workspace/{p.lstrip('/')}"
+
+        with patch(
+            "worker.activities.execute_graphton.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=mock_artifact,
+        ) as mock_publish:
+            count = await _auto_publish_written_files(
+                tool_calls=tool_calls,
+                sandbox=MagicMock(),
+                storage=MagicMock(),
+                execution_id="exec-norm-1",
+                status_builder=status_builder,
+                local_root=None,
+                logger=logger,
+                path_normalizer=fake_normalize,
+            )
+
+        assert count == 1
+        call_kwargs = mock_publish.call_args
+        assert call_kwargs.kwargs["path"] == "workspace/mahatma_gandhi.txt"
+        assert call_kwargs.kwargs["name"] == "mahatma_gandhi.txt"
+        status_builder.add_artifact.assert_called_once_with(mock_artifact)
+
+    @pytest.mark.asyncio
+    async def test_path_normalizer_applied_to_multiple_files(self):
+        """path_normalizer is applied to all paths before grouping/publish."""
+        tool_calls = [
+            _make_tool_call("write", path="/project/SKILL.md"),
+            _make_tool_call("write", path="/project/scripts/run.sh"),
+        ]
+        mock_artifact = _make_artifact("workspace/project")
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        def fake_normalize(p: str) -> str:
+            return f"workspace/{p.lstrip('/')}"
+
+        with patch(
+            "worker.activities.execute_graphton.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=mock_artifact,
+        ) as mock_publish:
+            count = await _auto_publish_written_files(
+                tool_calls=tool_calls,
+                sandbox=MagicMock(),
+                storage=MagicMock(),
+                execution_id="exec-norm-2",
+                status_builder=status_builder,
+                local_root=None,
+                logger=logger,
+                path_normalizer=fake_normalize,
+            )
+
+        assert count == 1
+        call_kwargs = mock_publish.call_args
+        assert call_kwargs.kwargs["path"] == "workspace/project"
+        assert call_kwargs.kwargs["name"] == "project"
+        status_builder.add_artifact.assert_called_once_with(mock_artifact)
+
+    @pytest.mark.asyncio
+    async def test_no_path_normalizer_strips_slashes_only(self):
+        """Without path_normalizer, paths are only stripped of leading slashes.
+
+        This is the local-mode fallback and the pre-fix behaviour.
+        """
+        tool_calls = [
+            _make_tool_call("write", path="/output.txt"),
+        ]
+        mock_artifact = _make_artifact("output.txt")
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        with patch(
+            "worker.activities.execute_graphton.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=mock_artifact,
+        ) as mock_publish:
+            count = await _auto_publish_written_files(
+                tool_calls=tool_calls,
+                sandbox=None,
+                storage=MagicMock(),
+                execution_id="exec-norm-3",
+                status_builder=status_builder,
+                local_root="/workspace",
+                logger=logger,
+                path_normalizer=None,
+            )
+
+        assert count == 1
+        call_kwargs = mock_publish.call_args
+        assert call_kwargs.kwargs["path"] == "output.txt"
