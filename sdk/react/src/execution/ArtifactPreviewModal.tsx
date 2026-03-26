@@ -1,21 +1,12 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { ExecutionArtifactKind } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { useArtifactContent } from "./useArtifactContent";
-import {
-  isTextArtifact,
-  formatArtifactSize,
-  getArtifactExtension,
-} from "./artifact-utils";
+import { isTextArtifact, formatArtifactSize } from "./artifact-utils";
+import { ArtifactContentRenderer } from "./ArtifactContentRenderer";
 import { useDetectStigmerResource } from "../library/useDetectStigmerResource";
 import { useDetectSkillPackage } from "../library/useDetectSkillPackage";
 import type { SkillPackageDetection } from "../library/detect-skill-package";
@@ -66,8 +57,9 @@ export interface ArtifactPreviewModalProps {
  * Internally orchestrates the same detection pipeline as {@link ArtifactCard}:
  *
  * - **FILE artifacts**: Fetches text content via {@link useArtifactContent},
- *   displays with CSS-only YAML highlighting, and detects Agent/McpServer
- *   resources via {@link useDetectStigmerResource}.
+ *   renders via {@link ArtifactContentRenderer} (markdown, YAML, JSON, or
+ *   plain text based on file type), and detects Agent/McpServer resources
+ *   via {@link useDetectStigmerResource}.
  *
  * - **DIRECTORY artifacts**: Shows the file listing from
  *   `artifact.entries` and detects skill packages via
@@ -253,14 +245,6 @@ export function ArtifactPreviewModal({
     if (!open) setCopied(false);
   }, [open]);
 
-  // ---------------------------------------------------------------------------
-  // Content mode
-  // ---------------------------------------------------------------------------
-
-  const ext = getArtifactExtension(artifact);
-  const isYaml =
-    ext === "yaml" || ext === "yml" || (contentType?.includes("yaml") ?? false);
-
   let ctaLabel: string | null = null;
   if (yamlDetection.detected) {
     ctaLabel = `Apply to ${org}`;
@@ -278,7 +262,7 @@ export function ArtifactPreviewModal({
       onCancel={handleCancel}
       aria-label={`Preview ${artifact.name}`}
       className={cn(
-        "w-full max-w-2xl rounded-lg border border-border bg-background p-0 text-foreground shadow-lg outline-none",
+        "fixed inset-0 m-auto w-full max-w-3xl rounded-lg border border-border bg-background p-0 text-foreground shadow-lg outline-none",
         "[&::backdrop]:bg-black/50",
         className,
       )}
@@ -299,12 +283,13 @@ export function ArtifactPreviewModal({
               skillDetection={skillDetection}
             />
           ) : (
-            <FileContentView
+            <FileContentStateView
+              artifact={artifact}
               content={content}
+              contentType={contentType}
               isLoading={isContentLoading}
               error={contentError}
               isTruncated={isTruncated}
-              isYaml={isYaml}
             />
           )}
         </div>
@@ -406,23 +391,25 @@ function ModalHeader({
 }
 
 // ---------------------------------------------------------------------------
-// FileContentView (internal)
+// FileContentStateView (internal — loading/error/empty states + renderer)
 // ---------------------------------------------------------------------------
 
 const SKELETON_LINE_WIDTHS = [85, 72, 90, 65, 78, 88, 70, 82] as const;
 
-function FileContentView({
+function FileContentStateView({
+  artifact,
   content,
+  contentType,
   isLoading,
   error,
   isTruncated,
-  isYaml,
 }: {
+  readonly artifact: ExecutionArtifact;
   readonly content: string | null;
+  readonly contentType: string | null;
   readonly isLoading: boolean;
   readonly error: string | null;
   readonly isTruncated: boolean;
-  readonly isYaml: boolean;
 }) {
   if (isLoading) {
     return (
@@ -457,16 +444,12 @@ function FileContentView({
   }
 
   return (
-    <div>
-      <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-foreground">
-        <code>{isYaml ? highlightYaml(content) : content}</code>
-      </pre>
-      {isTruncated && (
-        <div className="border-t border-border bg-warning/10 px-4 py-2 text-xs text-warning">
-          Content was truncated. Download the full file for complete content.
-        </div>
-      )}
-    </div>
+    <ArtifactContentRenderer
+      content={content}
+      fileName={artifact.name}
+      contentType={contentType}
+      isTruncated={isTruncated}
+    />
   );
 }
 
@@ -667,81 +650,6 @@ function ApplyButton({
       )}
     </button>
   );
-}
-
-// ---------------------------------------------------------------------------
-// YAML syntax highlighting (CSS-only, zero dependencies)
-// ---------------------------------------------------------------------------
-
-/**
- * Applies lightweight CSS-only highlighting to YAML content.
- *
- * Processes content line-by-line, wrapping structural tokens in styled
- * `<span>` elements using `--stgm-*` theme tokens:
- *
- * - Keys → `text-primary`
- * - Comments → `text-muted-foreground italic`
- * - Document separators (`---`) → `text-muted-foreground`
- * - Boolean/null values → `font-medium`
- * - Multi-line scalar indicators → `text-muted-foreground`
- *
- * Values and block scalar content render in the default `text-foreground`.
- * Non-YAML content passes through unstyled.
- */
-function highlightYaml(content: string): ReactNode {
-  return content.split("\n").map((line, i) => (
-    <span key={i}>
-      {i > 0 && "\n"}
-      {highlightYamlLine(line)}
-    </span>
-  ));
-}
-
-function highlightYamlLine(line: string): ReactNode {
-  if (!line.trim()) return line;
-
-  if (/^---\s*$/.test(line) || /^\.\.\.\s*$/.test(line)) {
-    return <span className="text-muted-foreground">{line}</span>;
-  }
-
-  const commentMatch = line.match(/^(\s*)(#.*)$/);
-  if (commentMatch) {
-    return (
-      <>
-        {commentMatch[1]}
-        <span className="text-muted-foreground italic">{commentMatch[2]}</span>
-      </>
-    );
-  }
-
-  const kvMatch = line.match(/^(\s*(?:-\s+)?)([\w][\w.-]*)(:(?:\s|$))(.*)/);
-  if (kvMatch) {
-    const [, indent, key, colon, value] = kvMatch;
-    return (
-      <>
-        {indent}
-        <span className="text-primary">{key}</span>
-        <span className="text-muted-foreground">{colon}</span>
-        {value ? highlightYamlValue(value) : null}
-      </>
-    );
-  }
-
-  return <>{line}</>;
-}
-
-function highlightYamlValue(value: string): ReactNode {
-  const trimmed = value.trim();
-
-  if (/^[|>][-+]?\s*$/.test(trimmed)) {
-    return <span className="text-muted-foreground">{value}</span>;
-  }
-
-  if (/^(true|false|null|~)$/.test(trimmed)) {
-    return <span className="font-medium">{value}</span>;
-  }
-
-  return <>{value}</>;
 }
 
 // ---------------------------------------------------------------------------

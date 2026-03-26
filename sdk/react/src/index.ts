@@ -89,6 +89,7 @@ export {
   FollowUpInput,
   ApprovalCard,
   ArtifactCard,
+  ArtifactContentRenderer,
   ArtifactPreviewModal,
   ArtifactsWidget,
   FilePathLink,
@@ -104,6 +105,8 @@ export {
   isArtifactExpired,
   formatArtifactSize,
   getArtifactExtension,
+  getFileExtension,
+  getArtifactRenderMode,
 } from "./execution";
 export type {
   CreateAgentExecutionInput,
@@ -125,6 +128,8 @@ export type {
   FollowUpInputProps,
   ApprovalCardProps,
   ArtifactCardProps,
+  ArtifactContentRendererProps,
+  ArtifactRenderMode,
   ArtifactPreviewModalProps,
   ArtifactsWidgetProps,
   FilePathLinkProps,

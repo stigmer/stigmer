@@ -72,6 +72,7 @@ go_test(
     name = "controller_test",
     srcs = [
         "agentexecution_controller_test.go",
+        "submit_approval_contract_test.go",
         "usage_aggregation_test.go",
     ],
     embed = [":controller"],

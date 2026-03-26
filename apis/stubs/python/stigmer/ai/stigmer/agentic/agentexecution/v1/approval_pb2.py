@@ -22,9 +22,10 @@ _runtime_version.ValidateProtobufRuntimeVersion(
 _sym_db = _symbol_database.Default()
 
 
+from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as ai_dot_stigmer_dot_agentic_dot_agentexecution_dot_v1_dot_enum__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\"\xd8\x02\n\x0fPendingApproval\x12 \n\x0ctool_call_id\x18\x01 \x01(\tR\ntoolCallId\x12\x1b\n\ttool_name\x18\x02 \x01(\tR\x08toolName\x12\x18\n\x07message\x18\x03 \x01(\tR\x07message\x12!\n\x0c\x61rgs_preview\x18\x04 \x01(\tR\x0b\x61rgsPreview\x12!\n\x0crequested_at\x18\x05 \x01(\tR\x0brequestedAt\x12$\n\x0e\x66rom_sub_agent\x18\x06 \x01(\x08R\x0c\x66romSubAgent\x12$\n\x0esub_agent_name\x18\x07 \x01(\tR\x0csubAgentName\x12\x37\n\x18\x63hild_agent_execution_id\x18\x08 \x01(\tR\x15\x63hildAgentExecutionId\x12!\n\x0cinterrupt_id\x18\t \x01(\tR\x0binterruptId\"\xa2\x01\n\x19\x43hildApprovalNotification\x12!\n\x0c\x65xecution_id\x18\x01 \x01(\tR\x0b\x65xecutionId\x12\x62\n\x11pending_approvals\x18\x02 \x03(\x0b\x32\x35.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovalsB\xee\x01\n(com.ai.stigmer.agentic.agentexecution.v1B\rApprovalProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\"\xd0\x04\n\x0fPendingApproval\x12 \n\x0ctool_call_id\x18\x01 \x01(\tR\ntoolCallId\x12\x1b\n\ttool_name\x18\x02 \x01(\tR\x08toolName\x12\x18\n\x07message\x18\x03 \x01(\tR\x07message\x12!\n\x0c\x61rgs_preview\x18\x04 \x01(\tR\x0b\x61rgsPreview\x12!\n\x0crequested_at\x18\x05 \x01(\tR\x0brequestedAt\x12$\n\x0e\x66rom_sub_agent\x18\x06 \x01(\x08R\x0c\x66romSubAgent\x12$\n\x0esub_agent_name\x18\x07 \x01(\tR\x0csubAgentName\x12\x37\n\x18\x63hild_agent_execution_id\x18\x08 \x01(\tR\x15\x63hildAgentExecutionId\x12!\n\x0cinterrupt_id\x18\t \x01(\tR\x0binterruptId\x12\x65\n\x0flifecycle_state\x18\n \x01(\x0e\x32<.ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleStateR\x0elifecycleState\x12]\n\x0f\x64\x65\x63ision_action\x18\x0b \x01(\x0e\x32\x34.ai.stigmer.agentic.agentexecution.v1.ApprovalActionR\x0e\x64\x65\x63isionAction\x12\x30\n\x14\x64\x65\x63ision_recorded_at\x18\x0c \x01(\tR\x12\x64\x65\x63isionRecordedAt\"\xa2\x01\n\x19\x43hildApprovalNotification\x12!\n\x0c\x65xecution_id\x18\x01 \x01(\tR\x0b\x65xecutionId\x12\x62\n\x11pending_approvals\x18\x02 \x03(\x0b\x32\x35.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals*\xfd\x01\n\x16\x41pprovalLifecycleState\x12\"\n\x1e\x41PPROVAL_LIFECYCLE_UNSPECIFIED\x10\x00\x12 \n\x1c\x41PPROVAL_LIFECYCLE_REQUESTED\x10\x01\x12)\n%APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED\x10\x02\x12(\n$APPROVAL_LIFECYCLE_DECISION_RECORDED\x10\x03\x12(\n$APPROVAL_LIFECYCLE_RESUME_RECONCILED\x10\x04\x12\x1e\n\x1a\x41PPROVAL_LIFECYCLE_CLEARED\x10\x05\x42\xee\x01\n(com.ai.stigmer.agentic.agentexecution.v1B\rApprovalProtoP\x01\xa2\x02\x04\x41SAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x02\x30\x41i\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,8 +33,10 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'ai.stigmer.agentic.agentexe
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n(com.ai.stigmer.agentic.agentexecution.v1B\rApprovalProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agentexecution.V1\312\002$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\352\002(Ai::Stigmer::Agentic::Agentexecution::V1'
-  _globals['_PENDINGAPPROVAL']._serialized_start=94
-  _globals['_PENDINGAPPROVAL']._serialized_end=438
-  _globals['_CHILDAPPROVALNOTIFICATION']._serialized_start=441
-  _globals['_CHILDAPPROVALNOTIFICATION']._serialized_end=603
+  _globals['_APPROVALLIFECYCLESTATE']._serialized_start=903
+  _globals['_APPROVALLIFECYCLESTATE']._serialized_end=1156
+  _globals['_PENDINGAPPROVAL']._serialized_start=143
+  _globals['_PENDINGAPPROVAL']._serialized_end=735
+  _globals['_CHILDAPPROVALNOTIFICATION']._serialized_start=738
+  _globals['_CHILDAPPROVALNOTIFICATION']._serialized_end=900
 # @@protoc_insertion_point(module_scope)
