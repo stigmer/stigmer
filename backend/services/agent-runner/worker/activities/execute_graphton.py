@@ -3702,6 +3702,48 @@ async def _execute_graphton_impl(
                             for pa in status_builder.current_status.pending_approvals
                         )
                     )
+
+                    # Reset stale approval_action on ToolCalls whose tc_id
+                    # reappears in the new pending_approvals. This prevents
+                    # the Java SubmitApprovalHandler from treating a fresh
+                    # approval in a new HITL cycle as idempotent due to a
+                    # stale approval_action from a previous cycle.
+                    pending_tc_ids = {
+                        pa.tool_call_id
+                        for pa in status_builder.current_status.pending_approvals
+                        if pa.tool_call_id
+                    }
+                    if pending_tc_ids:
+                        stale_reset_count = 0
+                        for tc in status_builder.current_status.tool_calls:
+                            if (tc.id in pending_tc_ids
+                                    and tc.approval_action != ApprovalAction.APPROVAL_ACTION_UNSPECIFIED):
+                                activity_logger.info(
+                                    f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                                    f"resetting stale approval_action={ApprovalAction.Name(tc.approval_action)} "
+                                    f"on tool_call={tc.id} (now pending again in new cycle)"
+                                )
+                                tc.approval_action = ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+                                tc.approval_decided_at = ""
+                                stale_reset_count += 1
+                        for sa in status_builder.current_status.sub_agent_executions:
+                            for tc in sa.tool_calls:
+                                if (tc.id in pending_tc_ids
+                                        and tc.approval_action != ApprovalAction.APPROVAL_ACTION_UNSPECIFIED):
+                                    activity_logger.info(
+                                        f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                                        f"resetting stale approval_action={ApprovalAction.Name(tc.approval_action)} "
+                                        f"on sub-agent tool_call={tc.id} (now pending again in new cycle)"
+                                    )
+                                    tc.approval_action = ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+                                    tc.approval_decided_at = ""
+                                    stale_reset_count += 1
+                        if stale_reset_count > 0:
+                            activity_logger.info(
+                                f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                                f"reset {stale_reset_count} stale approval_action(s) "
+                                f"on ToolCalls that are pending again in a new cycle"
+                            )
                 else:
                     activity_logger.debug(
                         f"[INTERRUPT_CAPTURE] execution={execution_id} "
