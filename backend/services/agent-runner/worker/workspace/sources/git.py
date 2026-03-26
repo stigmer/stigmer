@@ -56,6 +56,20 @@ Security:
     - ``GITHUB_TOKEN`` is reported in ``consumed_keys`` so the caller
       can strip it from the agent's runtime environment (AD-05).
 
+Credential persistence (cloud mode only):
+    After a successful clone (or when reusing an existing repo), the
+    remote URL is cleaned to remove the embedded token and a git
+    credential store is configured at ``/home/daytona/.git-credentials``.
+    This enables ``git push``/``fetch`` without the token being visible
+    via ``git remote -v`` or present in shell environment variables.
+
+    The credential file lives on the local sandbox filesystem (not the
+    FUSE+S3 volume) and does not survive sandbox restarts — but neither
+    does the separated git directory, so re-provisioning handles both.
+
+    Credential persistence is skipped in local mode to avoid modifying
+    the user's own git configuration.
+
 Git excludes:
     After provisioning (fresh clone or detected existing repo),
     platform directories (``.stigmer``) are added to
@@ -67,6 +81,7 @@ Git excludes:
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import os
 import re
@@ -89,6 +104,14 @@ _POST_CLONE_TIMEOUT = 30
 _CLEANUP_TIMEOUT = 60
 
 _PLATFORM_EXCLUDES = (".stigmer",)
+
+_CREDENTIAL_FILE = "/home/daytona/.git-credentials"
+"""Path for the git credential store on Daytona sandboxes.
+
+Lives on the local sandbox filesystem (not the FUSE+S3 volume) so that
+``git push``/``fetch`` can authenticate without the token being exposed
+in shell environment variables or the remote URL.
+"""
 
 _GIT_DIR_BASE = "/home/daytona/.git-repos"
 """Base path for separated git metadata directories on Daytona sandboxes.
@@ -147,6 +170,99 @@ def _configure_fuse_volume_compat(backend: WorkspaceBackend) -> None:
             "Failed to configure FUSE volume compat (non-fatal): %s",
             result.stderr.strip(),
         )
+
+
+# ---------------------------------------------------------------------------
+# Git credential persistence (cloud mode)
+# ---------------------------------------------------------------------------
+
+
+def _configure_git_credentials(
+    backend: WorkspaceBackend,
+    url: str,
+    token: str,
+    *,
+    target_subdir: str | None = None,
+) -> bool:
+    """Configure a git credential store and clean the remote URL.
+
+    After clone, the remote URL embeds the token
+    (``https://x-access-token:{token}@github.com/…``).  This function:
+
+    1. Replaces the remote URL with the clean (tokenless) URL so the
+       token is not visible via ``git remote -v``.
+    2. Configures the global git credential helper to use a file-based
+       store at ``_CREDENTIAL_FILE``.
+    3. Writes the token into the credential store in the standard
+       git-credential-store format.
+
+    Only acts on ``github.com`` URLs, consistent with ``_build_auth_url``.
+
+    Non-fatal: returns ``False`` on any failure so the caller can still
+    return a valid ``ProvisionResult`` (the workspace is usable, just
+    without push capability).
+
+    Args:
+        backend: Workspace backend for command execution.
+        url: The clean (tokenless) clone URL.
+        token: The ``GITHUB_TOKEN`` value.
+        target_subdir: Subdirectory for ``git remote set-url`` (must
+            run inside the repo).  ``None`` for single-entry workspaces.
+
+    Returns:
+        ``True`` if all credential steps succeeded.
+    """
+    parsed = urlparse(url)
+    if not parsed.hostname or parsed.hostname.lower() != "github.com":
+        logger.debug(
+            "Skipping credential store — host '%s' is not github.com",
+            parsed.hostname,
+        )
+        return False
+
+    # 1. Clean the remote URL (remove embedded token from clone).
+    result = backend.execute(
+        f"git remote set-url origin {url}",
+        cwd=target_subdir,
+        timeout=5,
+    )
+    if result.exit_code != 0:
+        logger.warning(
+            "Failed to clean remote URL (non-fatal): %s",
+            _scrub_token(result.stderr.strip(), token),
+        )
+        return False
+
+    # 2. Configure the global credential helper.
+    result = backend.execute(
+        f"git config --global credential.helper 'store --file={_CREDENTIAL_FILE}'",
+        timeout=5,
+    )
+    if result.exit_code != 0:
+        logger.warning(
+            "Failed to configure credential helper (non-fatal): %s",
+            _scrub_token(result.stderr.strip(), token),
+        )
+        return False
+
+    # 3. Write the credential entry and restrict permissions.
+    #    The token appears in the command string — same security level
+    #    as the clone URL passed to backend.execute() during clone.
+    cred_entry = f"https://x-access-token:{token}@github.com"
+    result = backend.execute(
+        f"printf '%s\\n' '{cred_entry}' > {_CREDENTIAL_FILE} "
+        f"&& chmod 600 {_CREDENTIAL_FILE}",
+        timeout=5,
+    )
+    if result.exit_code != 0:
+        logger.warning(
+            "Failed to write credential file (non-fatal): %s",
+            _scrub_token(result.stderr.strip(), token),
+        )
+        return False
+
+    logger.info("Git credential store configured at %s", _CREDENTIAL_FILE)
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -226,6 +342,20 @@ def provision(
     existing = _detect_existing_repo(backend, url, token, target_subdir=target_subdir)
     if existing is not None:
         _setup_git_excludes(backend, target_subdir=target_subdir)
+
+        if token and not is_local_mode:
+            creds_ok = _configure_git_credentials(
+                backend, url, token, target_subdir=target_subdir,
+            )
+            if creds_ok and existing.git_metadata:
+                existing = dataclasses.replace(
+                    existing,
+                    git_metadata=dataclasses.replace(
+                        existing.git_metadata,
+                        git_credentials_configured=True,
+                    ),
+                )
+
         return existing
 
     _recover_non_empty_workspace(backend, target_subdir=target_subdir)
@@ -263,6 +393,12 @@ def provision(
 
     _setup_git_excludes(backend, target_subdir=target_subdir)
 
+    creds_configured = False
+    if token and not is_local_mode:
+        creds_configured = _configure_git_credentials(
+            backend, url, token, target_subdir=target_subdir,
+        )
+
     return ProvisionResult(
         root_dir=root_dir,
         source_type=_SOURCE,
@@ -272,6 +408,7 @@ def provision(
             repo_url=url,
             branch=resolved_branch,
             base_commit=head_sha,
+            git_credentials_configured=creds_configured,
         ),
     )
 
