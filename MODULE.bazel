@@ -65,7 +65,6 @@ use_repo(
     "com_github_stigmer_stigmer_backend_services_stigmer_server",
     "com_github_stigmer_stigmer_backend_services_workflow_runner",
     "com_github_stigmer_stigmer_client_apps_cli",
-    "com_github_stigmer_stigmer_mcp_server",
     "com_github_stigmer_stigmer_seedpack",
     "com_github_stretchr_testify",
     "in_gopkg_yaml_v3",  # keep: Required for CLI YAML config
