@@ -62,10 +62,63 @@ jobs:
           echo "should_release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
           echo "Building version: $VERSION (release: $SHOULD_RELEASE)"
 
+  # Generate all proto stubs once and share with downstream jobs.
+  # Consolidates BSR requests to a single job to avoid rate limiting.
+  generate-protos:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache buf modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/buf
+          key: buf-${{ hashFiles('apis/buf.lock') }}
+          restore-keys: buf-
+
+      - name: Generate proto stubs
+        env:
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
+        run: make protos
+
+      - name: Package generated stubs
+        run: |
+          tar -czf proto-stubs.tar.gz \
+            apis/stubs/ \
+            sdk/go/proto/ \
+            sdk/go/internal/gen/ \
+            mcp-server/proto/ \
+            mcp-server/gen/ \
+            tools/codegen/schemas/ \
+            sdk/typescript/src/gen/ \
+            sdk/python/src/stigmer/_gen/ \
+            sdk/java/src/main/java/ai/stigmer/sdk/gen/
+
+      - name: Upload proto stubs
+        uses: actions/upload-artifact@v4
+        with:
+          name: proto-stubs
+          path: proto-stubs.tar.gz
+          retention-days: 1
+
   # Lint and type-check agent-runner (Python)
   # Gates the CLI build to prevent shipping broken code.
   lint-and-typecheck-agent-runner:
-    needs: determine-version
+    needs: [determine-version, generate-protos]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -81,13 +134,13 @@ jobs:
       - name: Install Poetry
         run: pip install poetry
 
-      - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
+      - name: Download proto stubs
+        uses: actions/download-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          name: proto-stubs
 
-      - name: Generate proto stubs
-        run: make protos
+      - name: Extract proto stubs
+        run: tar -xzf proto-stubs.tar.gz
 
       - name: Install dependencies
         working-directory: backend/services/agent-runner
@@ -103,7 +156,7 @@ jobs:
 
   # Build web console static assets (platform-independent, built once and shared)
   build-web-console:
-    needs: determine-version
+    needs: [determine-version, generate-protos]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -111,13 +164,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
+      - name: Download proto stubs
+        uses: actions/download-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          name: proto-stubs
 
-      - name: Generate TypeScript proto stubs
-        run: make -C apis ts-stubs
+      - name: Extract proto stubs
+        run: tar -xzf proto-stubs.tar.gz
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -143,7 +196,7 @@ jobs:
 
   # Build for macOS Apple Silicon
   build-darwin-arm64:
-    needs: [determine-version, lint-and-typecheck-agent-runner, build-web-console]
+    needs: [determine-version, generate-protos, lint-and-typecheck-agent-runner, build-web-console]
     runs-on: macos-latest  # macOS 14 (M1)
     steps:
       - name: Checkout
@@ -156,13 +209,13 @@ jobs:
         with:
           go-version: '1.25'
 
-      - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
+      - name: Download proto stubs
+        uses: actions/download-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          name: proto-stubs
 
-      - name: Generate proto stubs
-        run: make protos
+      - name: Extract proto stubs
+        run: tar -xzf proto-stubs.tar.gz
 
       - name: Sync agent-runner source for embedding
         run: |
@@ -214,7 +267,7 @@ jobs:
 
   # Build CLI for Intel Mac (cross-compiled from ARM runner)
   build-darwin-amd64:
-    needs: [determine-version, lint-and-typecheck-agent-runner, build-web-console]
+    needs: [determine-version, generate-protos, lint-and-typecheck-agent-runner, build-web-console]
     runs-on: macos-latest  # ARM Mac (cross-compile Go CLI to Intel)
     steps:
       - name: Checkout
@@ -227,13 +280,13 @@ jobs:
         with:
           go-version: '1.25'
 
-      - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
+      - name: Download proto stubs
+        uses: actions/download-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          name: proto-stubs
 
-      - name: Generate proto stubs
-        run: make protos
+      - name: Extract proto stubs
+        run: tar -xzf proto-stubs.tar.gz
 
       - name: Sync agent-runner source for embedding
         run: |
@@ -287,7 +340,7 @@ jobs:
 
   # Build for Linux
   build-linux-amd64:
-    needs: [determine-version, lint-and-typecheck-agent-runner, build-web-console]
+    needs: [determine-version, generate-protos, lint-and-typecheck-agent-runner, build-web-console]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -300,13 +353,13 @@ jobs:
         with:
           go-version: '1.25'
 
-      - name: Set up Buf
-        uses: bufbuild/buf-setup-action@v1
+      - name: Download proto stubs
+        uses: actions/download-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          name: proto-stubs
 
-      - name: Generate proto stubs
-        run: make protos
+      - name: Extract proto stubs
+        run: tar -xzf proto-stubs.tar.gz
 
       - name: Sync agent-runner source for embedding
         run: |
