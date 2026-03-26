@@ -61,7 +61,7 @@ export function ToolCallItem({
 }: ToolCallItemProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
-  const status = mapToolCallStatus(toolCall.status);
+  const status = mapToolCallStatus(toolCall);
   const StatusIcon = STATUS_ICON[status];
   const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
   const isSubAgent = subAgentExecution != null;
@@ -220,11 +220,18 @@ function getApprovalBadge(toolCall: ToolCall): ApprovalBadgeInfo | null {
 
 type ItemStatus = "running" | "waiting" | "failed" | "completed" | "pending";
 
-function mapToolCallStatus(status: ToolCallStatus): ItemStatus {
-  switch (status) {
+function mapToolCallStatus(toolCall: ToolCall): ItemStatus {
+  switch (toolCall.status) {
     case ToolCallStatus.TOOL_CALL_RUNNING:
       return "running";
     case ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
+      if (
+        toolCall.approvalAction === ApprovalAction.APPROVE ||
+        toolCall.approvalAction === ApprovalAction.SKIP ||
+        toolCall.approvalAction === ApprovalAction.REJECT
+      ) {
+        return "completed";
+      }
       return "waiting";
     case ToolCallStatus.TOOL_CALL_FAILED:
       return "failed";
