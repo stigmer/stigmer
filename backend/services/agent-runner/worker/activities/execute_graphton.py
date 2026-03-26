@@ -1253,6 +1253,11 @@ async def _execute_graphton_impl(
     # See Step 5.6 below.
     # Initialize to None here so error handler can check if it was created.
     status_builder = None
+
+    # Workspace backend is initialized inside the try block but referenced
+    # in the finally block for cleanup (close() deletes the Daytona process
+    # session used for sandbox command execution).
+    workspace_backend = None
     
     # AsyncExitStack manages the checkpointer lifecycle (SQLite connection,
     # MongoDB client, etc.) across the entire activity execution. Created
@@ -3936,6 +3941,11 @@ async def _execute_graphton_impl(
         return _slim_status_for_temporal(failed_status)
     
     finally:
+        # Clean up workspace backend (deletes the Daytona process session used
+        # for sandbox command execution, if one was created).
+        if workspace_backend is not None:
+            workspace_backend.close()
+
         # Clean up checkpointer resources (SQLite connection, MongoDB client, etc.)
         # This runs regardless of success or failure, ensuring no resource leaks.
         await exit_stack.aclose()
