@@ -41,6 +41,7 @@ const TEXT_EXTENSIONS = new Set([
  * Extracts the lowercase file extension from an artifact's name.
  *
  * Returns `null` when the name has no extension or is empty.
+ * Delegates to {@link getFileExtension} for the actual parsing.
  *
  * @example
  * ```ts
@@ -51,10 +52,7 @@ const TEXT_EXTENSIONS = new Set([
 export function getArtifactExtension(
   artifact: ExecutionArtifact,
 ): string | null {
-  const name = artifact.name;
-  const lastDot = name.lastIndexOf(".");
-  if (lastDot === -1 || lastDot === name.length - 1) return null;
-  return name.slice(lastDot + 1).toLowerCase();
+  return getFileExtension(artifact.name);
 }
 
 /**
@@ -99,6 +97,92 @@ export function isArtifactExpired(artifact: ExecutionArtifact): boolean {
 
   return Date.now() >= expiresMs;
 }
+
+// ---------------------------------------------------------------------------
+// Render mode classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Content rendering strategy for artifact file preview.
+ *
+ * Used by {@link ArtifactContentRenderer} to dispatch to the correct
+ * renderer, and by platform builders who want to implement custom
+ * rendering logic based on file type.
+ *
+ * - `"markdown"` — rendered HTML via `react-markdown` with themed components
+ * - `"yaml"` — CSS-only YAML syntax highlighting
+ * - `"json"` — pretty-printed JSON with key/value coloring
+ * - `"text"` — monospace plain text with line numbers
+ */
+export type ArtifactRenderMode = "markdown" | "yaml" | "json" | "text";
+
+const YAML_EXTENSIONS = new Set(["yaml", "yml"]);
+const JSON_EXTENSIONS = new Set(["json"]);
+const MARKDOWN_EXTENSIONS = new Set(["md", "mdx"]);
+
+/**
+ * Extracts the lowercase file extension from a file name string.
+ *
+ * Returns `null` when the name has no extension or is empty.
+ * Unlike {@link getArtifactExtension}, this operates on a plain
+ * string — usable without a full `ExecutionArtifact` object.
+ *
+ * @example
+ * ```ts
+ * getFileExtension("agent.yaml");      // "yaml"
+ * getFileExtension("README.md");       // "md"
+ * getFileExtension("Makefile");        // null
+ * ```
+ */
+export function getFileExtension(fileName: string): string | null {
+  const lastDot = fileName.lastIndexOf(".");
+  if (lastDot === -1 || lastDot === fileName.length - 1) return null;
+  return fileName.slice(lastDot + 1).toLowerCase();
+}
+
+/**
+ * Determines the optimal rendering strategy for a text artifact.
+ *
+ * Inspects the file extension first, then falls back to the optional
+ * `contentType` MIME string returned by the server. Platform builders
+ * can use this to implement custom rendering or to display a mode
+ * indicator in their UI.
+ *
+ * @param fileName - Artifact file name (e.g., `"README.md"`, `"config.yaml"`)
+ * @param contentType - Optional MIME content type from the server response
+ *
+ * @example
+ * ```ts
+ * getArtifactRenderMode("README.md");                   // "markdown"
+ * getArtifactRenderMode("config.yaml");                 // "yaml"
+ * getArtifactRenderMode("data.json");                   // "json"
+ * getArtifactRenderMode("script.py");                   // "text"
+ * getArtifactRenderMode("unknown", "application/json"); // "json"
+ * ```
+ */
+export function getArtifactRenderMode(
+  fileName: string,
+  contentType?: string | null,
+): ArtifactRenderMode {
+  const ext = getFileExtension(fileName);
+
+  if (ext && MARKDOWN_EXTENSIONS.has(ext)) return "markdown";
+  if (ext && YAML_EXTENSIONS.has(ext)) return "yaml";
+  if (ext && JSON_EXTENSIONS.has(ext)) return "json";
+
+  if (contentType) {
+    const ct = contentType.toLowerCase();
+    if (ct.includes("markdown")) return "markdown";
+    if (ct.includes("yaml")) return "yaml";
+    if (ct.includes("json")) return "json";
+  }
+
+  return "text";
+}
+
+// ---------------------------------------------------------------------------
+// Size formatting
+// ---------------------------------------------------------------------------
 
 const SIZE_UNITS = ["B", "KB", "MB", "GB", "TB"] as const;
 
