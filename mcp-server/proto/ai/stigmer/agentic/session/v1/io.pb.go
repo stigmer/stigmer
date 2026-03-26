@@ -295,6 +295,125 @@ func (x *ListSessionsByAgentRequest) GetPageToken() string {
 	return ""
 }
 
+// UpdateSessionSubjectRequest sets the conversation title for a session.
+//
+// This is a field-level update that atomically modifies only the subject
+// field, avoiding the lost-update race condition that occurs when multiple
+// activities (e.g., GenerateSessionSubject and sandbox_manager) concurrently
+// perform full-resource updates on the same session.
+type UpdateSessionSubjectRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Session ID to update.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// New subject value. Empty string clears the subject.
+	Subject       string `protobuf:"bytes,2,opt,name=subject,proto3" json:"subject,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateSessionSubjectRequest) Reset() {
+	*x = UpdateSessionSubjectRequest{}
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateSessionSubjectRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateSessionSubjectRequest) ProtoMessage() {}
+
+func (x *UpdateSessionSubjectRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateSessionSubjectRequest.ProtoReflect.Descriptor instead.
+func (*UpdateSessionSubjectRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UpdateSessionSubjectRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateSessionSubjectRequest) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
+}
+
+// UpdateSessionSandboxIdRequest sets the Daytona sandbox ID for a session.
+//
+// This is a field-level update that atomically modifies only the sandbox_id
+// field, avoiding the lost-update race condition that occurs when multiple
+// activities concurrently perform full-resource updates on the same session.
+type UpdateSessionSandboxIdRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Session ID to update.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// New sandbox ID.
+	SandboxId     string `protobuf:"bytes,2,opt,name=sandbox_id,json=sandboxId,proto3" json:"sandbox_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateSessionSandboxIdRequest) Reset() {
+	*x = UpdateSessionSandboxIdRequest{}
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateSessionSandboxIdRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateSessionSandboxIdRequest) ProtoMessage() {}
+
+func (x *UpdateSessionSandboxIdRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_session_v1_io_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateSessionSandboxIdRequest.ProtoReflect.Descriptor instead.
+func (*UpdateSessionSandboxIdRequest) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *UpdateSessionSandboxIdRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateSessionSandboxIdRequest) GetSandboxId() string {
+	if x != nil {
+		return x.SandboxId
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_session_v1_io_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_io_proto_rawDesc = "" +
@@ -317,7 +436,14 @@ const file_ai_stigmer_agentic_session_v1_io_proto_rawDesc = "" +
 	"\bagent_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\aagentId\x12\x1b\n" +
 	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tR\tpageTokenB\x9a\x02\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"O\n" +
+	"\x1bUpdateSessionSubjectRequest\x12\x16\n" +
+	"\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x18\n" +
+	"\asubject\x18\x02 \x01(\tR\asubject\"V\n" +
+	"\x1dUpdateSessionSandboxIdRequest\x12\x16\n" +
+	"\x02id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x02id\x12\x1d\n" +
+	"\n" +
+	"sandbox_id\x18\x02 \x01(\tR\tsandboxIdB\x9a\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\aIoProtoP\x01ZSgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
@@ -332,17 +458,19 @@ func file_ai_stigmer_agentic_session_v1_io_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_io_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_ai_stigmer_agentic_session_v1_io_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ai_stigmer_agentic_session_v1_io_proto_goTypes = []any{
-	(*SessionId)(nil),                  // 0: ai.stigmer.agentic.session.v1.SessionId
-	(*AgentId)(nil),                    // 1: ai.stigmer.agentic.session.v1.AgentId
-	(*SessionList)(nil),                // 2: ai.stigmer.agentic.session.v1.SessionList
-	(*ListSessionsRequest)(nil),        // 3: ai.stigmer.agentic.session.v1.ListSessionsRequest
-	(*ListSessionsByAgentRequest)(nil), // 4: ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest
-	(*Session)(nil),                    // 5: ai.stigmer.agentic.session.v1.Session
+	(*SessionId)(nil),                     // 0: ai.stigmer.agentic.session.v1.SessionId
+	(*AgentId)(nil),                       // 1: ai.stigmer.agentic.session.v1.AgentId
+	(*SessionList)(nil),                   // 2: ai.stigmer.agentic.session.v1.SessionList
+	(*ListSessionsRequest)(nil),           // 3: ai.stigmer.agentic.session.v1.ListSessionsRequest
+	(*ListSessionsByAgentRequest)(nil),    // 4: ai.stigmer.agentic.session.v1.ListSessionsByAgentRequest
+	(*UpdateSessionSubjectRequest)(nil),   // 5: ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest
+	(*UpdateSessionSandboxIdRequest)(nil), // 6: ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest
+	(*Session)(nil),                       // 7: ai.stigmer.agentic.session.v1.Session
 }
 var file_ai_stigmer_agentic_session_v1_io_proto_depIdxs = []int32{
-	5, // 0: ai.stigmer.agentic.session.v1.SessionList.entries:type_name -> ai.stigmer.agentic.session.v1.Session
+	7, // 0: ai.stigmer.agentic.session.v1.SessionList.entries:type_name -> ai.stigmer.agentic.session.v1.Session
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -362,7 +490,7 @@ func file_ai_stigmer_agentic_session_v1_io_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_io_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_io_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

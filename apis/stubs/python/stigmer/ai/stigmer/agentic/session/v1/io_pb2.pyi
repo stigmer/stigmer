@@ -47,3 +47,19 @@ class ListSessionsByAgentRequest(_message.Message):
     page_size: int
     page_token: str
     def __init__(self, agent_id: _Optional[str] = ..., page_size: _Optional[int] = ..., page_token: _Optional[str] = ...) -> None: ...
+
+class UpdateSessionSubjectRequest(_message.Message):
+    __slots__ = ("id", "subject")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    SUBJECT_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    subject: str
+    def __init__(self, id: _Optional[str] = ..., subject: _Optional[str] = ...) -> None: ...
+
+class UpdateSessionSandboxIdRequest(_message.Message):
+    __slots__ = ("id", "sandbox_id")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    SANDBOX_ID_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    sandbox_id: str
+    def __init__(self, id: _Optional[str] = ..., sandbox_id: _Optional[str] = ...) -> None: ...

@@ -32,11 +32,17 @@ export function Sidebar() {
   useEffect(() => {
     refetch();
 
-    // LLM subject generation runs async after session creation.
-    // A single delayed refetch picks up the updated subject without polling.
     if (!activeSessionId) return;
-    const timer = setTimeout(refetch, 5_000);
-    return () => clearTimeout(timer);
+
+    // LLM subject generation runs async after session creation and
+    // typically completes within 5-15 seconds. Two staggered refetches
+    // cover the common case and the slow-LLM tail without polling.
+    const t1 = setTimeout(refetch, 8_000);
+    const t2 = setTimeout(refetch, 18_000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [pathname, activeSessionId, refetch]);
 
   const groups = useMemo(

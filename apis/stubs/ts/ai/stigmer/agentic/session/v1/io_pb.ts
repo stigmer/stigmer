@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIlsKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkoKE0xpc3RTZXNzaW9uc1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgFEhIKCnBhZ2VfdG9rZW4YAiABKAkSDAoEdGFncxgDIAMoCSJdChpMaXN0U2Vzc2lvbnNCeUFnZW50UmVxdWVzdBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_buf_validate_validate]);
+  fileDesc("CiZhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9pby5wcm90bxIdYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEiIgoJU2Vzc2lvbklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiIAoHQWdlbnRJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBIlsKC1Nlc3Npb25MaXN0EhMKC3RvdGFsX3BhZ2VzGAEgASgFEjcKB2VudHJpZXMYAiADKAsyJi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5TZXNzaW9uIkoKE0xpc3RTZXNzaW9uc1JlcXVlc3QSEQoJcGFnZV9zaXplGAEgASgFEhIKCnBhZ2VfdG9rZW4YAiABKAkSDAoEdGFncxgDIAMoCSJdChpMaXN0U2Vzc2lvbnNCeUFnZW50UmVxdWVzdBIYCghhZ2VudF9pZBgBIAEoCUIGukgDyAEBEhEKCXBhZ2Vfc2l6ZRgCIAEoBRISCgpwYWdlX3Rva2VuGAMgASgJIkIKG1VwZGF0ZVNlc3Npb25TdWJqZWN0UmVxdWVzdBISCgJpZBgBIAEoCUIGukgDyAEBEg8KB3N1YmplY3QYAiABKAkiRwodVXBkYXRlU2Vzc2lvblNhbmRib3hJZFJlcXVlc3QSEgoCaWQYASABKAlCBrpIA8gBARISCgpzYW5kYm94X2lkGAIgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_session_v1_api, file_buf_validate_validate]);
 
 /**
  * SessionId wraps a session identifier.
@@ -150,4 +150,69 @@ export type ListSessionsByAgentRequest = Message<"ai.stigmer.agentic.session.v1.
  */
 export const ListSessionsByAgentRequestSchema: GenMessage<ListSessionsByAgentRequest> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_session_v1_io, 4);
+
+/**
+ * UpdateSessionSubjectRequest sets the conversation title for a session.
+ *
+ * This is a field-level update that atomically modifies only the subject
+ * field, avoiding the lost-update race condition that occurs when multiple
+ * activities (e.g., GenerateSessionSubject and sandbox_manager) concurrently
+ * perform full-resource updates on the same session.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest
+ */
+export type UpdateSessionSubjectRequest = Message<"ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest"> & {
+  /**
+   * Session ID to update.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * New subject value. Empty string clears the subject.
+   *
+   * @generated from field: string subject = 2;
+   */
+  subject: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest.
+ * Use `create(UpdateSessionSubjectRequestSchema)` to create a new message.
+ */
+export const UpdateSessionSubjectRequestSchema: GenMessage<UpdateSessionSubjectRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 5);
+
+/**
+ * UpdateSessionSandboxIdRequest sets the Daytona sandbox ID for a session.
+ *
+ * This is a field-level update that atomically modifies only the sandbox_id
+ * field, avoiding the lost-update race condition that occurs when multiple
+ * activities concurrently perform full-resource updates on the same session.
+ *
+ * @generated from message ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest
+ */
+export type UpdateSessionSandboxIdRequest = Message<"ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest"> & {
+  /**
+   * Session ID to update.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * New sandbox ID.
+   *
+   * @generated from field: string sandbox_id = 2;
+   */
+  sandboxId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest.
+ * Use `create(UpdateSessionSandboxIdRequestSchema)` to create a new message.
+ */
+export const UpdateSessionSandboxIdRequestSchema: GenMessage<UpdateSessionSandboxIdRequest> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_session_v1_io, 6);
 

@@ -19,10 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SessionCommandController_Apply_FullMethodName  = "/ai.stigmer.agentic.session.v1.SessionCommandController/apply"
-	SessionCommandController_Create_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionCommandController/create"
-	SessionCommandController_Update_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionCommandController/update"
-	SessionCommandController_Delete_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionCommandController/delete"
+	SessionCommandController_Apply_FullMethodName           = "/ai.stigmer.agentic.session.v1.SessionCommandController/apply"
+	SessionCommandController_Create_FullMethodName          = "/ai.stigmer.agentic.session.v1.SessionCommandController/create"
+	SessionCommandController_Update_FullMethodName          = "/ai.stigmer.agentic.session.v1.SessionCommandController/update"
+	SessionCommandController_UpdateSubject_FullMethodName   = "/ai.stigmer.agentic.session.v1.SessionCommandController/updateSubject"
+	SessionCommandController_UpdateSandboxId_FullMethodName = "/ai.stigmer.agentic.session.v1.SessionCommandController/updateSandboxId"
+	SessionCommandController_Delete_FullMethodName          = "/ai.stigmer.agentic.session.v1.SessionCommandController/delete"
 )
 
 // SessionCommandControllerClient is the client API for SessionCommandController service.
@@ -40,6 +42,20 @@ type SessionCommandControllerClient interface {
 	Create(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Session, error)
 	// Update an existing session (e.g., subject, thread_id, sandbox_id).
 	Update(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Session, error)
+	// Set the session subject (server-side field-level update, race-safe).
+	//
+	// Unlike the full update RPC, this atomically modifies only spec.subject
+	// without touching other fields. This eliminates the lost-update race
+	// between GenerateSessionSubject and sandbox_manager, which both run in
+	// parallel during agent execution.
+	UpdateSubject(ctx context.Context, in *UpdateSessionSubjectRequest, opts ...grpc.CallOption) (*Session, error)
+	// Set the session sandbox ID (server-side field-level update, race-safe).
+	//
+	// Unlike the full update RPC, this atomically modifies only spec.sandbox_id
+	// without touching other fields. This eliminates the lost-update race
+	// between sandbox_manager and GenerateSessionSubject, which both run in
+	// parallel during agent execution.
+	UpdateSandboxId(ctx context.Context, in *UpdateSessionSandboxIdRequest, opts ...grpc.CallOption) (*Session, error)
 	// Delete a session (also cleans up thread and sandbox).
 	Delete(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error)
 }
@@ -82,6 +98,26 @@ func (c *sessionCommandControllerClient) Update(ctx context.Context, in *Session
 	return out, nil
 }
 
+func (c *sessionCommandControllerClient) UpdateSubject(ctx context.Context, in *UpdateSessionSubjectRequest, opts ...grpc.CallOption) (*Session, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Session)
+	err := c.cc.Invoke(ctx, SessionCommandController_UpdateSubject_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *sessionCommandControllerClient) UpdateSandboxId(ctx context.Context, in *UpdateSessionSandboxIdRequest, opts ...grpc.CallOption) (*Session, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Session)
+	err := c.cc.Invoke(ctx, SessionCommandController_UpdateSandboxId_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *sessionCommandControllerClient) Delete(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Session)
@@ -107,6 +143,20 @@ type SessionCommandControllerServer interface {
 	Create(context.Context, *Session) (*Session, error)
 	// Update an existing session (e.g., subject, thread_id, sandbox_id).
 	Update(context.Context, *Session) (*Session, error)
+	// Set the session subject (server-side field-level update, race-safe).
+	//
+	// Unlike the full update RPC, this atomically modifies only spec.subject
+	// without touching other fields. This eliminates the lost-update race
+	// between GenerateSessionSubject and sandbox_manager, which both run in
+	// parallel during agent execution.
+	UpdateSubject(context.Context, *UpdateSessionSubjectRequest) (*Session, error)
+	// Set the session sandbox ID (server-side field-level update, race-safe).
+	//
+	// Unlike the full update RPC, this atomically modifies only spec.sandbox_id
+	// without touching other fields. This eliminates the lost-update race
+	// between sandbox_manager and GenerateSessionSubject, which both run in
+	// parallel during agent execution.
+	UpdateSandboxId(context.Context, *UpdateSessionSandboxIdRequest) (*Session, error)
 	// Delete a session (also cleans up thread and sandbox).
 	Delete(context.Context, *SessionId) (*Session, error)
 }
@@ -126,6 +176,12 @@ func (UnimplementedSessionCommandControllerServer) Create(context.Context, *Sess
 }
 func (UnimplementedSessionCommandControllerServer) Update(context.Context, *Session) (*Session, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedSessionCommandControllerServer) UpdateSubject(context.Context, *UpdateSessionSubjectRequest) (*Session, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateSubject not implemented")
+}
+func (UnimplementedSessionCommandControllerServer) UpdateSandboxId(context.Context, *UpdateSessionSandboxIdRequest) (*Session, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateSandboxId not implemented")
 }
 func (UnimplementedSessionCommandControllerServer) Delete(context.Context, *SessionId) (*Session, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
@@ -204,6 +260,42 @@ func _SessionCommandController_Update_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SessionCommandController_UpdateSubject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateSessionSubjectRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionCommandControllerServer).UpdateSubject(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionCommandController_UpdateSubject_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionCommandControllerServer).UpdateSubject(ctx, req.(*UpdateSessionSubjectRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SessionCommandController_UpdateSandboxId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateSessionSandboxIdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionCommandControllerServer).UpdateSandboxId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionCommandController_UpdateSandboxId_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionCommandControllerServer).UpdateSandboxId(ctx, req.(*UpdateSessionSandboxIdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SessionCommandController_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SessionId)
 	if err := dec(in); err != nil {
@@ -240,6 +332,14 @@ var SessionCommandController_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "update",
 			Handler:    _SessionCommandController_Update_Handler,
+		},
+		{
+			MethodName: "updateSubject",
+			Handler:    _SessionCommandController_UpdateSubject_Handler,
+		},
+		{
+			MethodName: "updateSandboxId",
+			Handler:    _SessionCommandController_UpdateSandboxId_Handler,
 		},
 		{
 			MethodName: "delete",

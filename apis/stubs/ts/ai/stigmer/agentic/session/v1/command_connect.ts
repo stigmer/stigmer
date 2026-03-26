@@ -5,7 +5,7 @@
 
 import { Session } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
-import { SessionId } from "./io_pb.js";
+import { SessionId, UpdateSessionSandboxIdRequest, UpdateSessionSubjectRequest } from "./io_pb.js";
 
 /**
  * SessionCommandController handles write operations for agent sessions.
@@ -48,6 +48,38 @@ export const SessionCommandController = {
     update: {
       name: "update",
       I: Session,
+      O: Session,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Set the session subject (server-side field-level update, race-safe).
+     *
+     * Unlike the full update RPC, this atomically modifies only spec.subject
+     * without touching other fields. This eliminates the lost-update race
+     * between GenerateSessionSubject and sandbox_manager, which both run in
+     * parallel during agent execution.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.updateSubject
+     */
+    updateSubject: {
+      name: "updateSubject",
+      I: UpdateSessionSubjectRequest,
+      O: Session,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Set the session sandbox ID (server-side field-level update, race-safe).
+     *
+     * Unlike the full update RPC, this atomically modifies only spec.sandbox_id
+     * without touching other fields. This eliminates the lost-update race
+     * between sandbox_manager and GenerateSessionSubject, which both run in
+     * parallel during agent execution.
+     *
+     * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.updateSandboxId
+     */
+    updateSandboxId: {
+      name: "updateSandboxId",
+      I: UpdateSessionSandboxIdRequest,
       O: Session,
       kind: MethodKind.Unary,
     },

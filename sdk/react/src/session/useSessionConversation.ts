@@ -16,6 +16,7 @@ import type {
   WorkspaceEntryInput,
 } from "@stigmer/sdk";
 import { isTerminalPhase } from "../execution/execution-phases";
+import { useStigmer } from "../hooks";
 import { useCreateAgentExecution } from "../execution/useCreateAgentExecution";
 import { useExecutionStream } from "../execution/useExecutionStream";
 import { useSubmitApproval } from "../execution/useSubmitApproval";
@@ -183,8 +184,13 @@ export function useSessionConversation(
   sessionId: string | null,
   org: string,
 ): UseSessionConversationReturn {
-  const { session, isLoading: sessionLoading, error: sessionError } =
-    useSession(sessionId);
+  const stigmer = useStigmer();
+  const {
+    session,
+    isLoading: sessionLoading,
+    error: sessionError,
+    refetch: refetchSession,
+  } = useSession(sessionId);
   const {
     executions,
     isLoading: executionsLoading,
@@ -312,14 +318,19 @@ export function useSessionConversation(
           options?.skillRefs !== undefined;
 
         if (needsSessionUpdate) {
+          // Fetch the latest session to avoid overwriting fields that were
+          // modified server-side (e.g., LLM-generated subject, sandbox_id)
+          // since the React state was last loaded.
+          const freshSession = await stigmer.session.get(sessionId);
           await updateSession(
-            buildUpdateInput(session, {
+            buildUpdateInput(freshSession, {
               agentInstanceId: options?.agentInstanceId,
               workspaceEntries: options?.workspaceEntries,
               mcpServerUsages: options?.mcpServerUsages,
               skillRefs: options?.skillRefs,
             }),
           );
+          refetchSession();
         }
 
         const result = await create({
@@ -336,7 +347,7 @@ export function useSessionConversation(
         setPendingUserMessage(null);
       }
     },
-    [sessionId, session, org, create, updateSession, refetch],
+    [sessionId, session, org, stigmer, create, updateSession, refetch, refetchSession],
   );
 
   const pendingApprovals = useMemo<readonly PendingApproval[]>(() => {

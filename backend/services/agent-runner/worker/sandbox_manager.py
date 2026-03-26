@@ -221,12 +221,13 @@ class SandboxManager:
         )
         logger.info(f"✨ Created new Daytona sandbox: {sandbox.id}")
         
-        # Store in session if exists
+        # Store sandbox_id in session via field-level RPC (race-safe).
+        # This atomically sets only spec.sandbox_id on the server, avoiding
+        # the lost-update race with GenerateSessionSubject which concurrently
+        # updates spec.subject on the same session.
         if session_id and session_client:
             try:
-                session = await session_client.get(session_id)
-                session.spec.sandbox_id = sandbox.id
-                await session_client.update(session)
+                await session_client.update_sandbox_id(session_id, sandbox.id)
                 logger.info(f"💾 Stored sandbox {sandbox.id} in session {session_id}")
             except Exception as e:
                 logger.error(

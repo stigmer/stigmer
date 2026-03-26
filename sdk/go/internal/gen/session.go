@@ -38,6 +38,16 @@ func (s *SessionClient) Update(ctx context.Context, input *SessionInput) (*sessi
 	return resp, wrapErr(err)
 }
 
+func (s *SessionClient) UpdateSubject(ctx context.Context, input *sessionv1.UpdateSessionSubjectRequest) (*sessionv1.Session, error) {
+	resp, err := s.command.UpdateSubject(ctx, input)
+	return resp, wrapErr(err)
+}
+
+func (s *SessionClient) UpdateSandboxId(ctx context.Context, input *sessionv1.UpdateSessionSandboxIdRequest) (*sessionv1.Session, error) {
+	resp, err := s.command.UpdateSandboxId(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (s *SessionClient) Delete(ctx context.Context, id string) (*sessionv1.Session, error) {
 	resp, err := s.command.Delete(ctx, &sessionv1.SessionId{Value: id})
 	return resp, wrapErr(err)

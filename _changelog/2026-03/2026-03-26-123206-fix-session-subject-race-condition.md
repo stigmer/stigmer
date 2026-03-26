@@ -1,0 +1,79 @@
+# Fix Session Subject Lost-Update Race Condition
+
+**Date**: March 26, 2026
+
+## Summary
+
+Introduced field-level update RPCs (`updateSubject`, `updateSandboxId`) for sessions to eliminate the lost-update race condition that caused LLM-generated session subjects to silently disappear. Migrated all backend callers to the new RPCs and hardened the frontend against stale-state overwrites during follow-up messages.
+
+## Problem Statement
+
+Session subjects generated asynchronously by the LLM were not appearing on the frontend despite being successfully generated and logged in the backend. The root cause was a classic **lost-update race condition**: two Temporal activities (`GenerateSessionSubject` and `sandbox_manager`) ran in parallel, both performing full-resource replacement updates on the same session. Whichever wrote last would silently overwrite the other's changes.
+
+### Pain Points
+
+- `GenerateSessionSubject` would set `spec.subject` to the LLM output, then `sandbox_manager` would overwrite it back to the default by replacing the entire spec with a stale copy.
+- The full `update()` RPC used `BuildUpdateStateStep` semantics: the client sends a complete resource spec, and the server replaces the stored spec wholesale.
+- The frontend's single 5-second delayed refetch was too early for LLM-generated subjects that take 8-15 seconds.
+- `useSessionConversation.ts` could overwrite backend-generated fields by building update inputs from stale React state.
+
+## Solution
+
+Replaced the full-resource replacement pattern with **server-side field-level update RPCs** that atomically modify only the targeted field. The server loads the current session, sets the single field, updates audit timestamps, persists, and returns the updated session — all in one server-side read-modify-write cycle that cannot be interrupted by concurrent callers.
+
+## Implementation Details
+
+### New Protobuf API surface
+
+- `UpdateSessionSubjectRequest { id, subject }` — targeted request for subject-only updates
+- `UpdateSessionSandboxIdRequest { id, sandbox_id }` — targeted request for sandbox-ID-only updates
+- `updateSubject` and `updateSandboxId` RPCs on `SessionCommandController` with IAM authorization
+
+### Server-side handlers (Go)
+
+- `update_subject.go`: Loads session → sets `spec.subject` → updates `spec_audit.updated_at` → persists → refreshes FTS5 search index (subject is searchable)
+- `update_sandbox_id.go`: Loads session → sets `spec.sandbox_id` → updates `spec_audit.updated_at` → persists (no search index — sandbox ID is not searchable)
+- Shared `updateSpecAuditTimestamp` helper ensures consistent audit trail
+
+### Python agent-runner
+
+- Added `update_subject()` and `update_sandbox_id()` to `SessionClient`, invoking the new RPCs through the existing OBO-authenticated gRPC channel
+- `generate_session_subject.py`: Replaced `session_client.update(session)` with `session_client.update_subject(session_id, subject)`
+- `sandbox_manager.py`: Replaced `session_client.get()` + `session_client.update(session)` with a single `session_client.update_sandbox_id(session_id, sandbox.id)`, eliminating an unnecessary GET call
+
+### Frontend hardening
+
+- **Sidebar.tsx**: Replaced single 5s `setTimeout` with staggered 8s + 18s refetches to catch LLM-generated subjects at different generation speeds
+- **useSession.ts**: Exposed `refetch()` callback for explicit session re-reads
+- **useSessionConversation.ts**: Before building update inputs for follow-up messages, fetches the latest session from the server via `stigmer.session.get(sessionId)` to prevent stale React state from overwriting backend-generated fields
+
+### Generated code (cascading)
+
+- Go, Java, Python, TypeScript proto stubs regenerated for session service
+- All SDK clients (Go, Java, Python, TypeScript, React) received auto-generated `updateSubject` / `updateSandboxId` methods
+- Codegen schema updated with new RPC definitions
+
+## Benefits
+
+- **Race condition eliminated**: Concurrent field-level updates can no longer overwrite each other's unrelated fields
+- **Reduced network overhead**: `sandbox_manager` no longer performs a GET before update — the field-level RPC is self-contained
+- **Correct audit trail**: Each field-level update properly stamps `spec_audit.updated_at` and `event = "updated"`
+- **Search index consistency**: Subject changes update the FTS5 index, ensuring search results reflect the latest generated title
+- **Frontend resilience**: Follow-up messages always fetch fresh server state, and the sidebar has better coverage of async subject generation timing
+
+## Impact
+
+- **Backend API**: Two new RPCs on the session command controller — additive, non-breaking
+- **Agent execution**: `GenerateSessionSubject` and `sandbox_manager` activities both migrated to the new RPCs
+- **All SDKs**: Go, Java, Python, TypeScript, and React SDK clients now expose `updateSubject`/`updateSandboxId` for third-party consumers
+- **End users**: Session subjects generated by the LLM will now reliably appear in the sidebar and session views
+
+## Related Work
+
+- Architectural principles from `_roles/001_architect.md` (DDD, aggregate boundaries, ubiquitous language)
+- Pattern can be extended to other session spec fields that may face similar concurrent-update scenarios
+
+---
+
+**Status**: ✅ Production Ready
+**Timeline**: ~3 hours (investigation, planning, implementation, verification)
