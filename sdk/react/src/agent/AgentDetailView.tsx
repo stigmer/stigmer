@@ -81,8 +81,8 @@ export interface AgentDetailViewProps {
  * <AgentDetailView
  *   org={org}
  *   slug={slug}
- *   onMcpServerClick={({ slug }) => router.push(`/library/mcp-servers/${slug}`)}
- *   onSkillClick={({ slug }) => router.push(`/library/skills/${slug}`)}
+ *   onMcpServerClick={({ org, slug }) => router.push(`/library/mcp-servers/${org}/${slug}`)}
+ *   onSkillClick={({ org, slug }) => router.push(`/library/skills/${org}/${slug}`)}
  * />
  * ```
  */

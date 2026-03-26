@@ -65,7 +65,7 @@ export function SkillListPage() {
         scope={scope}
         onScopeChange={handleScopeChange}
         onPageChange={setPage}
-        onItemClick={(item) => navigateTo(`/library/skills/${item.slug}`)}
+        onItemClick={(item) => navigateTo(`/library/skills/${item.org}/${item.slug}`)}
         emptyIcon={<Sparkles className="size-10" aria-hidden="true" />}
         emptyTitle="No skills found"
         onRetry={refetch}

@@ -66,7 +66,7 @@ export function McpServerListPage() {
         onScopeChange={handleScopeChange}
         onPageChange={setPage}
         onItemClick={(item) =>
-          navigateTo(`/library/mcp-servers/${item.slug}`)
+          navigateTo(`/library/mcp-servers/${item.org}/${item.slug}`)
         }
         emptyIcon={<Server className="size-10" aria-hidden="true" />}
         emptyTitle="No MCP servers found"

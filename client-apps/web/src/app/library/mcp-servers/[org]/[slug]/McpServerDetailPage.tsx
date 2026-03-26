@@ -2,13 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { McpServerDetailView, useUpdateVisibility } from "@stigmer/react";
-import { useActiveOrgSlug } from "@/contexts/org-context";
 import { useStaticRouteParam } from "@/hooks/useStaticRouteParam";
-import { useBreadcrumbOverride } from "../../LibraryBreadcrumbContext";
+import { useBreadcrumbOverride } from "../../../LibraryBreadcrumbContext";
 
 export function McpServerDetailPage() {
+  const org = useStaticRouteParam("org", 2);
   const slug = useStaticRouteParam("slug");
-  const org = useActiveOrgSlug();
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
 
@@ -27,7 +26,7 @@ export function McpServerDetailPage() {
     [setLabel],
   );
 
-  if (!slug) return null;
+  if (!org || !slug) return null;
 
   return (
     <McpServerDetailView
