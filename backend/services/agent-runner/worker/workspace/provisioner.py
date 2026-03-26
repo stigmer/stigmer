@@ -133,6 +133,9 @@ class WorkspaceProvisionError(Exception):
     Attributes:
         source_type: The source variant that failed.
         cause:       The underlying exception, if any.
+        transient:   When ``True``, the error is likely recoverable on
+                     retry (e.g. a network timeout to the sandbox proxy).
+                     Callers may use this flag to decide whether to retry.
     """
 
     def __init__(
@@ -141,9 +144,11 @@ class WorkspaceProvisionError(Exception):
         message: str,
         *,
         cause: Exception | None = None,
+        transient: bool = False,
     ) -> None:
         self.source_type = source_type
         self.cause = cause
+        self.transient = transient
         super().__init__(f"[{source_type.value}] {message}")
 
 
