@@ -193,8 +193,8 @@ class InterruptCapture:
             )
 
             if not matched_tool_call_id:
-                fallback_enriched = _try_enrich_phase1_entry(
-                    self._sb, tool_name, from_sub_agent, intr.id,
+                fallback_enriched = self._try_enrich_phase1_entry(
+                    tool_name, from_sub_agent, intr.id,
                 )
                 if fallback_enriched:
                     enriched_count += 1
@@ -224,7 +224,11 @@ class InterruptCapture:
             if matched_tool_call_id in phase1_by_tc_id:
                 existing_pa = phase1_by_tc_id[matched_tool_call_id]
                 existing_pa.interrupt_id = intr.id
-                existing_pa.lifecycle_state = ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED
+                self._sm.advance(
+                    existing_pa,
+                    target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+                    service="InterruptCapture",
+                )
                 enriched_count += 1
             else:
                 stale_phase1 = [
@@ -255,9 +259,14 @@ class InterruptCapture:
                     from_sub_agent=from_sub_agent,
                     sub_agent_name=sub_agent_name,
                     interrupt_id=intr.id,
-                    lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+                    lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED,
                 )
                 self._sb.current_status.pending_approvals.append(pa)
+                self._sm.advance(
+                    pa,
+                    target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+                    service="InterruptCapture",
+                )
                 added_count += 1
 
         self._sb.sync_sub_agent_pending_approvals()
@@ -412,6 +421,44 @@ class InterruptCapture:
 
         return ""
 
+    def _try_enrich_phase1_entry(
+        self,
+        tool_name: str,
+        from_sub_agent: bool,
+        interrupt_id: str,
+    ) -> bool:
+        """Fallback enrichment when the interrupt could not be matched by run_id or fingerprint.
+
+        Searches ``current_status.pending_approvals`` for a Phase 1 entry that
+        matches ``tool_name`` and does not already have an ``interrupt_id``.
+
+        If found, sets the ``interrupt_id`` and advances lifecycle to
+        INTERRUPT_CAPTURED via the state manager.
+        """
+        for pa in self._sb.current_status.pending_approvals:
+            if (
+                pa.tool_name == tool_name
+                and pa.from_sub_agent == from_sub_agent
+                and not pa.interrupt_id
+            ):
+                pa.interrupt_id = interrupt_id
+                self._sm.advance(
+                    pa,
+                    target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+                    service="InterruptCapture",
+                )
+                return True
+        for pa in self._sb.current_status.pending_approvals:
+            if pa.tool_name == tool_name and not pa.interrupt_id:
+                pa.interrupt_id = interrupt_id
+                self._sm.advance(
+                    pa,
+                    target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+                    service="InterruptCapture",
+                )
+                return True
+        return False
+
     def _reset_stale_approval_actions(self) -> None:
         """Reset stale approval_action on ToolCalls that re-entered pending_approvals."""
         pending_tc_ids = {
@@ -491,10 +538,12 @@ class ResumeReconciler:
         *,
         execution_id: str,
         status_builder: StatusBuilder,
+        state_manager: ApprovalStateManager,
         logger: logging.Logger,
     ) -> None:
         self._execution_id = execution_id
         self._sb = status_builder
+        self._sm = state_manager
         self._logger = logger
 
     def reconcile(
@@ -581,7 +630,11 @@ class ResumeReconciler:
         # Advance pending_approvals to RESUME_RECONCILED, then clear
         for pa in self._sb.current_status.pending_approvals:
             if pa.tool_call_id:
-                pa.lifecycle_state = ApprovalLifecycleState.APPROVAL_LIFECYCLE_RESUME_RECONCILED
+                self._sm.advance(
+                    pa,
+                    target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_RESUME_RECONCILED,
+                    service="ResumeReconciler",
+                )
         del self._sb.current_status.pending_approvals[:]
         self._sb.current_status.pending_approvals.append(
             PendingApproval(
@@ -760,31 +813,3 @@ class CheckpointFallback:
         return resume_dict
 
 
-def _try_enrich_phase1_entry(
-    status_builder: StatusBuilder,
-    tool_name: str,
-    from_sub_agent: bool,
-    interrupt_id: str,
-) -> bool:
-    """Fallback enrichment when the interrupt could not be matched by run_id or name.
-
-    Searches ``current_status.pending_approvals`` for a Phase 1 entry that
-    matches ``tool_name`` and does not already have an ``interrupt_id``.
-
-    If found, sets the ``interrupt_id`` and advances lifecycle to INTERRUPT_CAPTURED.
-    """
-    for pa in status_builder.current_status.pending_approvals:
-        if (
-            pa.tool_name == tool_name
-            and pa.from_sub_agent == from_sub_agent
-            and not pa.interrupt_id
-        ):
-            pa.interrupt_id = interrupt_id
-            pa.lifecycle_state = ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED
-            return True
-    for pa in status_builder.current_status.pending_approvals:
-        if pa.tool_name == tool_name and not pa.interrupt_id:
-            pa.interrupt_id = interrupt_id
-            pa.lifecycle_state = ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED
-            return True
-    return False

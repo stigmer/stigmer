@@ -14,7 +14,7 @@ Each test constructs the minimal proto state that one service would produce
 and asserts the invariants the consuming service depends on.
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import (
     ApprovalLifecycleState,
@@ -29,8 +29,8 @@ from ai.stigmer.agentic.agentexecution.v1.io_pb2 import SubmitApprovalInput
 
 from worker.activities.graphton.hitl import (
     ApprovalStateManager,
+    InterruptCapture,
     ResumeReconciler,
-    _try_enrich_phase1_entry,
 )
 
 
@@ -97,6 +97,23 @@ def _make_logger():
     return logging.getLogger("test_hitl_contracts")
 
 
+def _make_state_manager(execution_id: str = "test_exec"):
+    return ApprovalStateManager(
+        execution_id=execution_id, logger=_make_logger(),
+    )
+
+
+def _make_interrupt_capture(*, status_builder=None, state_manager=None):
+    """Create an InterruptCapture with sensible test defaults."""
+    return InterruptCapture(
+        execution_id="test_exec",
+        status_builder=status_builder or _make_status_builder(),
+        state_manager=state_manager or _make_state_manager(),
+        logger=_make_logger(),
+        resolve_platform_tool_name=lambda name: name,
+    )
+
+
 # =============================================================================
 # Contract 1: Python -> Go/Java (INTERRUPT_CAPTURE output)
 # =============================================================================
@@ -109,8 +126,9 @@ class TestInterruptCaptureContract:
     def test_pending_approval_has_interrupt_id_after_enrichment(self):
         pa = _make_pending_approval(lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED)
         sb = _make_status_builder(pending_approvals=[pa])
+        ic = _make_interrupt_capture(status_builder=sb)
 
-        result = _try_enrich_phase1_entry(sb, "delete_file", False, "intr_001")
+        result = ic._try_enrich_phase1_entry("delete_file", False, "intr_001")
 
         assert result is True
         assert pa.interrupt_id == "intr_001"
@@ -119,16 +137,18 @@ class TestInterruptCaptureContract:
     def test_lifecycle_advanced_to_interrupt_captured(self):
         pa = _make_pending_approval()
         sb = _make_status_builder(pending_approvals=[pa])
+        ic = _make_interrupt_capture(status_builder=sb)
 
-        _try_enrich_phase1_entry(sb, "delete_file", False, "intr_002")
+        ic._try_enrich_phase1_entry("delete_file", False, "intr_002")
 
         assert pa.lifecycle_state == ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED
 
     def test_tool_call_id_preserved_after_enrichment(self):
         pa = _make_pending_approval(tool_call_id="call_original")
         sb = _make_status_builder(pending_approvals=[pa])
+        ic = _make_interrupt_capture(status_builder=sb)
 
-        _try_enrich_phase1_entry(sb, "delete_file", False, "intr_003")
+        ic._try_enrich_phase1_entry("delete_file", False, "intr_003")
 
         assert pa.tool_call_id == "call_original"
 
@@ -193,6 +213,7 @@ class TestClearSignalContract:
         reconciler = ResumeReconciler(
             execution_id="test_exec",
             status_builder=sb,
+            state_manager=_make_state_manager(),
             logger=_make_logger(),
         )
         decision = SubmitApprovalInput(
@@ -222,6 +243,7 @@ class TestClearSignalContract:
         reconciler = ResumeReconciler(
             execution_id="test_exec",
             status_builder=sb,
+            state_manager=_make_state_manager(),
             logger=_make_logger(),
         )
         decision = SubmitApprovalInput(
@@ -249,6 +271,7 @@ class TestClearSignalContract:
         reconciler = ResumeReconciler(
             execution_id="test_exec",
             status_builder=sb,
+            state_manager=_make_state_manager(),
             logger=_make_logger(),
         )
         decision = SubmitApprovalInput(
@@ -349,6 +372,98 @@ class TestLifecycleForwardOnly:
                 pa,
                 target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED,
                 service="test",
+            )
+
+
+# =============================================================================
+# Contract 6: advance() enforcement — no direct lifecycle_state assignment
+# =============================================================================
+
+
+class TestAdvanceEnforcement:
+    """Verify that InterruptCapture and ResumeReconciler route all lifecycle
+    mutations through ApprovalStateManager.advance(), never via direct
+    assignment to pa.lifecycle_state."""
+
+    def test_interrupt_capture_enrichment_calls_advance(self):
+        """_try_enrich_phase1_entry must route through advance()."""
+        pa = _make_pending_approval(
+            lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED,
+        )
+        sb = _make_status_builder(pending_approvals=[pa])
+        sm = _make_state_manager()
+        ic = _make_interrupt_capture(status_builder=sb, state_manager=sm)
+
+        with patch.object(sm, "advance", wraps=sm.advance) as spy:
+            ic._try_enrich_phase1_entry("delete_file", False, "intr_001")
+
+            spy.assert_called_once_with(
+                pa,
+                target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+                service="InterruptCapture",
+            )
+        assert pa.lifecycle_state == ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED
+
+    def test_resume_reconciler_calls_advance_for_each_pending_approval(self):
+        """reconcile() must advance each real PA to RESUME_RECONCILED."""
+        pa = _make_pending_approval(
+            interrupt_id="intr_001",
+            lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+        )
+        tc = _make_tool_call()
+        sb = _make_status_builder(pending_approvals=[pa], tool_calls=[tc])
+        sm = _make_state_manager()
+
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=sb,
+            state_manager=sm,
+            logger=_make_logger(),
+        )
+
+        with patch.object(sm, "advance", wraps=sm.advance) as spy:
+            reconciler.reconcile(
+                approval_decisions=[
+                    SubmitApprovalInput(
+                        agent_execution_id="test_exec",
+                        tool_call_id="call_abc123",
+                        action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+                    ),
+                ],
+            )
+
+            spy.assert_called_once_with(
+                pa,
+                target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_RESUME_RECONCILED,
+                service="ResumeReconciler",
+            )
+
+    def test_resume_reconciler_rejects_backward_transition(self):
+        """If a PA is already CLEARED, advance() must raise on RESUME_RECONCILED."""
+        pa = _make_pending_approval(
+            interrupt_id="intr_001",
+            lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_CLEARED,
+        )
+        tc = _make_tool_call()
+        sb = _make_status_builder(pending_approvals=[pa], tool_calls=[tc])
+
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=sb,
+            state_manager=_make_state_manager(),
+            logger=_make_logger(),
+        )
+
+        import pytest
+        with pytest.raises(ValueError, match="Cannot move PendingApproval lifecycle backward"):
+            reconciler.reconcile(
+                approval_decisions=[
+                    SubmitApprovalInput(
+                        agent_execution_id="test_exec",
+                        tool_call_id="call_abc123",
+                        action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+                    ),
+                ],
             )
 
 
