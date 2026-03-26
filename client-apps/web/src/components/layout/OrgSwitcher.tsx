@@ -71,10 +71,6 @@ export function OrgSwitcher() {
   }
 
   const hasOrgs = orgs.length > 0 && activeOrg;
-  const orgLabel = hasOrgs
-    ? activeOrg.metadata?.name || activeOrg.metadata?.slug
-    : "No organizations";
-
   const TriggerIcon = activeOrg?.spec?.isPersonal ? User : Building2;
 
   return (
@@ -82,13 +78,17 @@ export function OrgSwitcher() {
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label="Organization menu"
-          className="hover:bg-sidebar-accent flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors focus:outline-none"
+          className="hover:bg-sidebar-accent flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors focus:outline-none"
         >
-          <TriggerIcon className="text-sidebar-muted-foreground size-4 shrink-0" />
-          <span className={hasOrgs ? "truncate" : "text-sidebar-muted-foreground truncate"}>
-            {orgLabel}
-          </span>
-          <ChevronsUpDown className="text-sidebar-muted-foreground ml-auto size-3.5 shrink-0" />
+          <TriggerIcon className="text-sidebar-muted-foreground size-4 shrink-0 self-start mt-0.5" />
+          {hasOrgs ? (
+            <OrgLabel org={activeOrg} />
+          ) : (
+            <span className="text-sidebar-muted-foreground truncate">
+              No organizations
+            </span>
+          )}
+          <ChevronsUpDown className="text-sidebar-muted-foreground ml-auto size-3.5 shrink-0 self-start mt-0.5" />
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" side="bottom" sideOffset={4}>
@@ -104,9 +104,10 @@ export function OrgSwitcher() {
                 <DropdownMenuRadioItem
                   key={org.metadata?.slug}
                   value={org.metadata?.slug ?? ""}
+                  className="items-start"
                 >
-                  <User className="size-3.5 shrink-0" />
-                  {org.metadata?.name || org.metadata?.slug}
+                  <User className="size-3.5 shrink-0 mt-0.5" />
+                  <OrgLabel org={org} />
                 </DropdownMenuRadioItem>
               ))}
               {personalOrgs.length > 0 && teamOrgs.length > 0 && (
@@ -116,9 +117,10 @@ export function OrgSwitcher() {
                 <DropdownMenuRadioItem
                   key={org.metadata?.slug}
                   value={org.metadata?.slug ?? ""}
+                  className="items-start"
                 >
-                  <Building2 className="size-3.5 shrink-0" />
-                  {org.metadata?.name || org.metadata?.slug}
+                  <Building2 className="size-3.5 shrink-0 mt-0.5" />
+                  <OrgLabel org={org} />
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>
@@ -147,6 +149,24 @@ export function OrgSwitcher() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function OrgLabel({ org }: { org: Organization }) {
+  const name = org.metadata?.name || org.metadata?.slug;
+  const slug = org.metadata?.slug;
+
+  return (
+    <span className="min-w-0 flex-1">
+      <span className="block truncate text-sm font-medium leading-tight">
+        {name}
+      </span>
+      {slug && (
+        <span className="text-sidebar-muted-foreground block truncate text-xs leading-tight">
+          {slug}
+        </span>
+      )}
+    </span>
   );
 }
 
