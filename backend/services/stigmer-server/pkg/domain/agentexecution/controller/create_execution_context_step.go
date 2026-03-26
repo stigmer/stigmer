@@ -1,6 +1,7 @@
 package agentexecution
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/rs/zerolog/log"
@@ -112,10 +113,14 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 	}
 
 	// 6.5 Re-inject workspace-provisioning keys that were excluded by env_spec
-	// filtering. GITHUB_TOKEN is needed by the agent-runner to clone private
-	// repos, but it is a session-level workspace concern, not an agent-declared
-	// tool dependency. Without this passthrough, agents with a non-empty
-	// env_spec that omit GITHUB_TOKEN silently lose it.
+	// filtering, and fall back to the caller's personal environment for keys
+	// that were never in the merge chain at all.
+	//
+	// GITHUB_TOKEN is needed by the agent-runner to clone private repos, but
+	// it is a session-level workspace concern, not an agent-declared tool
+	// dependency. The token typically lives in the caller's personal
+	// environment (stored via GitHub OAuth), which is not part of the
+	// standard 3-layer merge (agent env_spec, environment_refs, runtime_env).
 	sessionID := execution.GetSpec().GetSessionId()
 	if sessionID != "" {
 		sess, sessErr := s.sessionClient.Get(ctx.Context(), sessionID)
@@ -125,6 +130,9 @@ func (s *createExecutionContextStep) Execute(ctx *pipeline.RequestContext[*agent
 				Msg("Failed to load session for workspace provisioning key injection (non-fatal)")
 		} else {
 			filtered = injectWorkspaceProvisioningKeys(filtered, merged, sess, executionID)
+			filtered = injectFromPersonalEnvironment(
+				ctx.Context(), filtered, sess, executionOrg, executionID, s.environmentClient,
+			)
 		}
 	}
 
@@ -256,6 +264,120 @@ func injectWorkspaceProvisioningKeys(
 			Str("key", key).
 			Msg("Re-injected workspace-provisioning key after env_spec filter (session has git_repo entries)")
 	}
+	return filtered
+}
+
+// personalEnvLabel is the well-known metadata label that identifies a user's
+// personal environment resource.
+const personalEnvLabel = "stigmer.ai/personal"
+
+// injectFromPersonalEnvironment is the fallback for workspace-provisioning
+// keys that were absent from the standard 3-layer merge entirely. When the
+// session has git_repo workspace entries and a required key (e.g.
+// GITHUB_TOKEN) is still missing after the merged-map re-injection, this
+// function looks up the caller's personal environment via gRPC and injects
+// the decrypted secret value.
+//
+// All failures are non-fatal: if the personal environment does not exist, does
+// not contain the key, or the gRPC call fails, execution continues without the
+// key. The downstream git clone will fail with a clear authentication error if
+// the token is truly required.
+func injectFromPersonalEnvironment(
+	ctx context.Context,
+	filtered map[string]*executioncontextv1.ExecutionValue,
+	sess *sessionv1.Session,
+	executionOrg string,
+	executionID string,
+	envClient *environment.Client,
+) map[string]*executioncontextv1.ExecutionValue {
+	// Only relevant when the session has git_repo workspace entries.
+	hasGitRepo := false
+	for _, entry := range sess.GetSpec().GetWorkspaceEntries() {
+		if entry.GetSource().GetGitRepo() != nil {
+			hasGitRepo = true
+			break
+		}
+	}
+	if !hasGitRepo {
+		return filtered
+	}
+
+	// Collect keys that are still missing after the merged-map re-injection.
+	var missing []string
+	for _, key := range workspaceProvisioningKeys {
+		if _, present := filtered[key]; !present {
+			missing = append(missing, key)
+		}
+	}
+	if len(missing) == 0 {
+		return filtered
+	}
+
+	// Look up the caller's personal environment by org + label.
+	listResp, err := envClient.List(ctx, &environmentv1.ListEnvironmentsRequest{
+		Org:    executionOrg,
+		Labels: map[string]string{personalEnvLabel: "true"},
+	})
+	if err != nil {
+		log.Warn().Err(err).
+			Str("execution_id", executionID).
+			Msg("Failed to list personal environments for provisioning key injection (non-fatal)")
+		return filtered
+	}
+	if listResp.GetTotalCount() == 0 || len(listResp.GetItems()) == 0 {
+		log.Debug().
+			Str("execution_id", executionID).
+			Str("org", executionOrg).
+			Msg("No personal environment found — skipping provisioning key injection from personal env")
+		return filtered
+	}
+
+	personalEnv := listResp.GetItems()[0]
+	personalEnvID := personalEnv.GetMetadata().GetId()
+
+	injected := false
+	for _, key := range missing {
+		// The personal env's spec.data keys are present even when redacted,
+		// so we can check existence before making the GetSecretValue call.
+		if _, hasKey := personalEnv.GetSpec().GetData()[key]; !hasKey {
+			continue
+		}
+
+		secretVal, err := envClient.GetSecretValue(ctx, &environmentv1.EnvironmentSecretValueInput{
+			EnvironmentId: personalEnvID,
+			Key:           key,
+		})
+		if err != nil {
+			log.Warn().Err(err).
+				Str("execution_id", executionID).
+				Str("key", key).
+				Str("personal_env_id", personalEnvID).
+				Msg("Failed to retrieve secret from personal environment (non-fatal)")
+			continue
+		}
+		if secretVal.GetValue() == "" {
+			continue
+		}
+
+		if !injected {
+			cp := make(map[string]*executioncontextv1.ExecutionValue, len(filtered)+len(missing))
+			for k, v := range filtered {
+				cp[k] = v
+			}
+			filtered = cp
+			injected = true
+		}
+		filtered[key] = &executioncontextv1.ExecutionValue{
+			Value:    secretVal.GetValue(),
+			IsSecret: true,
+		}
+		log.Info().
+			Str("execution_id", executionID).
+			Str("key", key).
+			Str("personal_env_id", personalEnvID).
+			Msg("Injected workspace-provisioning key from caller's personal environment")
+	}
+
 	return filtered
 }
 

@@ -79,6 +79,68 @@ func (c *Client) GetByReference(ctx context.Context, ref *apiresource.ApiResourc
 	return env, nil
 }
 
+// List retrieves environments filtered by organization and optional labels.
+//
+// This makes an in-process gRPC call to EnvironmentQueryController.List()
+// ensuring all gRPC interceptors run before reaching the handler.
+//
+// Use case: During execution context creation, the caller's personal
+// environment (labeled stigmer.ai/personal=true) is looked up so that
+// workspace-provisioning keys like GITHUB_TOKEN can be injected.
+func (c *Client) List(ctx context.Context, req *environmentv1.ListEnvironmentsRequest) (*environmentv1.EnvironmentList, error) {
+	log.Debug().
+		Str("org", req.GetOrg()).
+		Int("label_count", len(req.GetLabels())).
+		Msg("Listing environments via in-process gRPC")
+
+	list, err := c.queryClient.List(ctx, req)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("org", req.GetOrg()).
+			Msg("Failed to list environments")
+		return nil, err
+	}
+
+	log.Debug().
+		Int32("total_count", list.GetTotalCount()).
+		Msg("Successfully listed environments")
+
+	return list, nil
+}
+
+// GetSecretValue retrieves a single unredacted secret value from an environment.
+//
+// This makes an in-process gRPC call to EnvironmentQueryController.GetSecretValue()
+// ensuring all gRPC interceptors run before reaching the handler.
+//
+// Use case: After locating the caller's personal environment, the decrypted
+// GITHUB_TOKEN is retrieved so it can be injected into the ExecutionContext
+// for workspace provisioning (git clone of private repositories).
+func (c *Client) GetSecretValue(ctx context.Context, input *environmentv1.EnvironmentSecretValueInput) (*environmentv1.EnvironmentValue, error) {
+	log.Debug().
+		Str("environment_id", input.GetEnvironmentId()).
+		Str("key", input.GetKey()).
+		Msg("Getting secret value via in-process gRPC")
+
+	val, err := c.queryClient.GetSecretValue(ctx, input)
+	if err != nil {
+		log.Error().
+			Err(err).
+			Str("environment_id", input.GetEnvironmentId()).
+			Str("key", input.GetKey()).
+			Msg("Failed to get secret value")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("environment_id", input.GetEnvironmentId()).
+		Str("key", input.GetKey()).
+		Msg("Successfully retrieved secret value")
+
+	return val, nil
+}
+
 // Close closes the underlying gRPC connection.
 func (c *Client) Close() error {
 	if c.conn != nil {
