@@ -31,6 +31,11 @@ export function LibraryBreadcrumb() {
         {segments.map((segment, i) => {
           const isLast = i === segments.length - 1;
           const isKnownCategory = segment in SEGMENT_LABELS;
+
+          // Skip intermediate segments (e.g. the [org] in /skills/[org]/[slug])
+          // that are not a known category and not the final segment.
+          if (!isLast && !isKnownCategory) return null;
+
           const label =
             isLast && !isKnownCategory && overrideLabel
               ? overrideLabel

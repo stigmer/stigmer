@@ -4,15 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
 import { AgentDetailView, useUpdateVisibility } from "@stigmer/react";
-import { useActiveOrgSlug } from "@/contexts/org-context";
 import { getEditSessionUrl } from "@/utils/draft-session";
 import { navigateTo } from "@/utils/navigation";
 import { useStaticRouteParam } from "@/hooks/useStaticRouteParam";
-import { useBreadcrumbOverride } from "../../LibraryBreadcrumbContext";
+import { useBreadcrumbOverride } from "../../../LibraryBreadcrumbContext";
 
 export function AgentDetailPage() {
+  const org = useStaticRouteParam("org", 2);
   const slug = useStaticRouteParam("slug");
-  const org = useActiveOrgSlug();
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
 
@@ -31,7 +30,7 @@ export function AgentDetailPage() {
     [setLabel],
   );
 
-  if (!slug) return null;
+  if (!org || !slug) return null;
 
   return (
     <div className="space-y-4">
@@ -49,10 +48,12 @@ export function AgentDetailPage() {
         org={org}
         slug={slug}
         onResourceLoad={handleResourceLoad}
-        onMcpServerClick={({ slug: s }) =>
-          navigateTo(`/library/mcp-servers/${s}`)
+        onMcpServerClick={({ org: o, slug: s }) =>
+          navigateTo(`/library/mcp-servers/${o}/${s}`)
         }
-        onSkillClick={({ slug: s }) => navigateTo(`/library/skills/${s}`)}
+        onSkillClick={({ org: o, slug: s }) =>
+          navigateTo(`/library/skills/${o}/${s}`)
+        }
         onVisibilityChange={updateVisibility}
         isVisibilityPending={isPending}
       />

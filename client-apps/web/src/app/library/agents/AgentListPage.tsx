@@ -66,7 +66,7 @@ export function AgentListPage() {
         onScopeChange={handleScopeChange}
         onPageChange={setPage}
         emptyIcon={<Bot className="size-10" aria-hidden="true" />}
-        onItemClick={(item) => navigateTo(`/library/agents/${item.slug}`)}
+        onItemClick={(item) => navigateTo(`/library/agents/${item.org}/${item.slug}`)}
         emptyTitle="No agents found"
         onRetry={refetch}
         aria-label="Agent list"
