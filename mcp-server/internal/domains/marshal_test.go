@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/mcp-server/internal/domains"
+	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
 func TestMarshalJSON_validMessage(t *testing.T) {

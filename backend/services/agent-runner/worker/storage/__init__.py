@@ -174,6 +174,11 @@ def create_artifact_storage(config: ArtifactStorageConfig) -> ArtifactStorage:
     """
     if config.storage_type == "r2":
         logger.info("Creating R2 artifact storage")
+        # Narrow Optional types -- validate() guarantees non-None for r2 mode
+        assert config.r2_endpoint is not None
+        assert config.r2_access_key is not None
+        assert config.r2_secret_key is not None
+        assert config.r2_bucket is not None
         return R2ArtifactStorage(
             endpoint=config.r2_endpoint,
             access_key=config.r2_access_key,

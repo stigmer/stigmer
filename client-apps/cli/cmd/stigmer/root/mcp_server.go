@@ -1,20 +1,31 @@
 package root
 
 import (
-	"log/slog"
+	"fmt"
 	"os"
-	"os/signal"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/config"
-	"github.com/stigmer/stigmer/mcp-server/pkg/mcpserver"
+	"github.com/stigmer/stigmer/client-apps/cli/internal/cli/daemon"
+	"github.com/stigmer/stigmer/client-apps/cli/pkg/climsg"
 )
+
+const mcpServerBinaryName = "mcp-server-stigmer"
 
 // NewMCPServerCommand creates the top-level command that starts the MCP
 // server as a foreground process. MCP clients like Cursor and Claude Desktop
 // can spawn the Stigmer CLI with this command instead of requiring a separate
 // mcp-server-stigmer binary.
+//
+// Rather than importing the mcp-server Go module (which would pull in a
+// second copy of the protobuf stubs and cause registration panics), this
+// command resolves the standalone mcp-server-stigmer binary, bridges CLI
+// config and flags into the environment variables the binary expects, and
+// exec's it.
 func NewMCPServerCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mcp-server",
@@ -56,20 +67,16 @@ Examples:
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			cfg, err := mcpserver.DefaultConfig()
+			bridgeCLIConfigToEnv()
+			bridgeFlagsToEnv(cmd)
+
+			binPath, err := resolveMCPServerBinary()
 			if err != nil {
 				return err
 			}
 
-			applyCLIConfigDefaults(cfg)
-			applyFlagOverrides(cmd, cfg)
-
-			ctx, cancel := signal.NotifyContext(
-				cmd.Context(), os.Interrupt, syscall.SIGTERM,
-			)
-			defer cancel()
-
-			return mcpserver.Run(ctx, cfg)
+			args := buildMCPServerArgs(cmd)
+			return execMCPServer(binPath, args)
 		},
 	}
 
@@ -83,66 +90,125 @@ Examples:
 	return cmd
 }
 
-// applyCLIConfigDefaults fills MCP config fields from ~/.stigmer/config.yaml
-// when the corresponding environment variables are not set. This bridges the
-// CLI's backend configuration into the MCP server so that users who have
-// already authenticated via "stigmer config backend" get a zero-config experience.
-//
-// Precedence: CLI flags > env vars > CLI config > MCP defaults.
-// This function covers the "CLI config" layer; env vars are already applied
-// by DefaultConfig(), and flags are applied afterward by applyFlagOverrides().
-func applyCLIConfigDefaults(cfg *mcpserver.Config) {
+// bridgeCLIConfigToEnv reads ~/.stigmer/config.yaml and sets environment
+// variables so the standalone MCP server binary picks them up. Only sets a
+// variable when the corresponding env var is not already set, preserving the
+// precedence: env vars > CLI config > MCP defaults.
+func bridgeCLIConfigToEnv() {
 	cliCfg, err := config.Load()
 	if err != nil {
-		slog.Debug("CLI config not available, skipping config bridging", "err", err)
 		return
 	}
-	applyCLIConfig(cfg, cliCfg)
+	applyCLIConfigEnv(cliCfg)
 }
 
-// applyCLIConfig applies settings from a CLI config to the MCP server config.
-// Fields are only set when the corresponding environment variable is unset,
-// preserving the precedence: env vars > CLI config > MCP defaults.
-func applyCLIConfig(cfg *mcpserver.Config, cliCfg *config.Config) {
+// applyCLIConfigEnv applies settings from a CLI config to environment
+// variables. Extracted for testability.
+func applyCLIConfigEnv(cliCfg *config.Config) {
 	switch cliCfg.Backend.Type {
 	case config.BackendTypeLocal:
-		if os.Getenv("STIGMER_SERVER_ADDRESS") == "" {
-			cfg.StigmerServerAddress = "localhost:7234"
-		}
+		setEnvIfEmpty("STIGMER_SERVER_ADDRESS", "localhost:7234")
 
 	case config.BackendTypeCloud:
 		if cliCfg.Backend.Cloud == nil {
 			return
 		}
-		if os.Getenv("STIGMER_SERVER_ADDRESS") == "" && cliCfg.Backend.Cloud.Endpoint != "" {
-			cfg.StigmerServerAddress = cliCfg.Backend.Cloud.Endpoint
-		}
-		if os.Getenv("STIGMER_API_KEY") == "" && cliCfg.Backend.Cloud.Token != "" {
-			cfg.APIKey = cliCfg.Backend.Cloud.Token
+		setEnvIfEmpty("STIGMER_SERVER_ADDRESS", cliCfg.Backend.Cloud.Endpoint)
+		setEnvIfEmpty("STIGMER_API_KEY", cliCfg.Backend.Cloud.Token)
+	}
+}
+
+// bridgeFlagsToEnv maps explicitly-set CLI flags to the MCP server's
+// environment variables. Flags that were not set by the user are skipped.
+func bridgeFlagsToEnv(cmd *cobra.Command) {
+	flagEnvMap := []struct {
+		flag string
+		env  string
+	}{
+		{"transport", "STIGMER_MCP_TRANSPORT"},
+		{"port", "STIGMER_MCP_HTTP_PORT"},
+		{"server-address", "STIGMER_SERVER_ADDRESS"},
+		{"api-key", "STIGMER_API_KEY"},
+		{"log-format", "STIGMER_MCP_LOG_FORMAT"},
+		{"log-level", "STIGMER_MCP_LOG_LEVEL"},
+	}
+
+	for _, m := range flagEnvMap {
+		if v, _ := cmd.Flags().GetString(m.flag); v != "" {
+			os.Setenv(m.env, v)
 		}
 	}
 }
 
-// applyFlagOverrides sets Config fields from CLI flags that were explicitly
-// provided. Flags that were not set by the user are left at their env-var
-// default values.
-func applyFlagOverrides(cmd *cobra.Command, cfg *mcpserver.Config) {
+// setEnvIfEmpty sets key=value only when key is currently unset or empty.
+func setEnvIfEmpty(key, value string) {
+	if value != "" && os.Getenv(key) == "" {
+		os.Setenv(key, value)
+	}
+}
+
+// resolveMCPServerBinary finds the mcp-server-stigmer binary.
+//
+// Resolution order:
+//  1. ~/.stigmer/bin/mcp-server-stigmer (managed install location)
+//  2. mcp-server-stigmer on PATH
+//  3. Auto-download from GitHub releases to ~/.stigmer/bin/
+func resolveMCPServerBinary() (string, error) {
+	home, _ := os.UserHomeDir()
+	if home != "" {
+		managed := filepath.Join(home, ".stigmer", "bin", mcpServerBinaryName)
+		if isExecutable(managed) {
+			return managed, nil
+		}
+	}
+
+	if path, err := exec.LookPath(mcpServerBinaryName); err == nil {
+		return path, nil
+	}
+
+	climsg.Info("mcp-server-stigmer not found, downloading from GitHub releases...")
+	path, err := daemon.DownloadMCPServerBinary()
+	if err != nil {
+		return "", fmt.Errorf(
+			"%s not found and auto-download failed: %w\n\n"+
+				"Install manually with:\n"+
+				"  go install github.com/stigmer/stigmer/mcp-server/cmd/mcp-server-stigmer@latest\n\n"+
+				"Or download from: https://github.com/stigmer/stigmer/releases",
+			mcpServerBinaryName, err,
+		)
+	}
+
+	return path, nil
+}
+
+func isExecutable(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return !info.IsDir() && info.Mode()&0111 != 0
+}
+
+// buildMCPServerArgs constructs the argv for the MCP server binary.
+// The binary accepts an optional positional transport subcommand.
+func buildMCPServerArgs(cmd *cobra.Command) []string {
+	args := []string{mcpServerBinaryName}
 	if v, _ := cmd.Flags().GetString("transport"); v != "" {
-		cfg.Transport = v
+		args = append(args, v)
 	}
-	if v, _ := cmd.Flags().GetString("port"); v != "" {
-		cfg.HTTPPort = v
+	return args
+}
+
+// execMCPServer replaces the current process with the MCP server binary.
+// On Unix this uses syscall.Exec for seamless STDIO passthrough; on Windows
+// it falls back to exec.Command with inherited file descriptors.
+func execMCPServer(binPath string, args []string) error {
+	if runtime.GOOS == "windows" {
+		cmd := exec.Command(binPath, args[1:]...)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		return cmd.Run()
 	}
-	if v, _ := cmd.Flags().GetString("server-address"); v != "" {
-		cfg.StigmerServerAddress = v
-	}
-	if v, _ := cmd.Flags().GetString("api-key"); v != "" {
-		cfg.APIKey = v
-	}
-	if v, _ := cmd.Flags().GetString("log-format"); v != "" {
-		cfg.LogFormat = v
-	}
-	if v, _ := cmd.Flags().GetString("log-level"); v != "" {
-		cfg.LogLevel = v
-	}
+	return syscall.Exec(binPath, args, os.Environ())
 }

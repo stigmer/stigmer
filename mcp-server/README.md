@@ -466,8 +466,7 @@ tools and resources in
 
 ### Docker
 
-The Docker build must be invoked from the repository root (the build context
-needs `apis/stubs/go` for the Go module replace directive):
+The Docker build must be invoked from the repository root:
 
 ```bash
 cd <repo-root>
