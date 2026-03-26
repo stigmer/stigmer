@@ -20,8 +20,9 @@ from worker.workspace.daytona import DaytonaWorkspaceBackend
 def _make_sandbox(*, exec_exit_code: int = 0, exec_output: str = ""):
     """Build a mock Daytona sandbox.
 
-    Mocks both ``process.exec`` (used by mkdir, file_exists, write_file)
-    and ``process.execute_session_command`` (used by execute()).
+    Mocks both ``process.exec`` (used by mkdir, file_exists, write_file,
+    and workspace-root bootstrapping) and
+    ``process.execute_session_command`` (used by execute()).
     """
     sandbox = MagicMock()
 
@@ -82,6 +83,14 @@ class TestConstruction:
             sandbox=sandbox, workspace_root="/home/daytona/workspace/",
         )
         assert backend.root_dir == "/home/daytona/workspace"
+
+    def test_creates_workspace_root_directory(self):
+        sandbox = _make_sandbox()
+        DaytonaWorkspaceBackend(
+            sandbox=sandbox, workspace_root="/home/daytona/workspace",
+        )
+        first_exec_call = sandbox.process.exec.call_args_list[0]
+        assert first_exec_call[0][0] == "mkdir -p /home/daytona/workspace"
 
     def test_satisfies_protocol(self):
         backend = DaytonaWorkspaceBackend(
@@ -198,6 +207,7 @@ class TestMkdir:
         backend = DaytonaWorkspaceBackend(
             sandbox=sandbox, workspace_root="/ws",
         )
+        sandbox.process.exec.reset_mock()
         backend.mkdir("a/b/c")
         sandbox.process.exec.assert_called_once()
         cmd = sandbox.process.exec.call_args[0][0]
