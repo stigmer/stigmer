@@ -2,7 +2,6 @@
 
 import asyncio
 import contextlib
-import logging
 import os
 import time
 import traceback
@@ -72,6 +71,7 @@ from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.token_manager import get_api_key
 from worker.tools import publish_artifact
 from worker.workspace import (
+    GitMetadata,
     LocalWorkspaceBackend,
     ProvisionResult,
     SourceType,
@@ -750,6 +750,37 @@ def build_workspace_prompt_section(
     return _build_multi_workspace_section(provision_results, container_root)
 
 
+def _git_writeback_guidance(
+    meta: GitMetadata | None,
+    *,
+    heading_level: int = 3,
+) -> str:
+    """Return a prompt section telling the agent it can push changes.
+
+    Returns an empty string when *meta* is ``None`` or credentials
+    were not configured, so callers can unconditionally append the
+    result.
+    """
+    if meta is None or not meta.git_credentials_configured:
+        return ""
+
+    heading = "#" * heading_level
+    return (
+        f"\n\n{heading} Git Write-Back\n\n"
+        "Git credentials are configured — you can push changes to "
+        "the remote repository.\n\n"
+        "**Rules:**\n"
+        "- Create a new branch for your changes (never push directly "
+        "to the default branch).\n"
+        "- Write clear, meaningful commit messages.\n"
+        "- Push your branch and report the branch name when done.\n"
+        "- After pushing, use `create_pull_request` to open a PR. "
+        "It reads credentials and repo info automatically.\n"
+        "- Do NOT read, echo, or reference credential files "
+        "(e.g. `~/.git-credentials`)."
+    )
+
+
 def _build_single_workspace_section(result: ProvisionResult) -> str:
     """Format the workspace section for a single entry (legacy compat)."""
     if not result.workspace_description:
@@ -759,6 +790,8 @@ def _build_single_workspace_section(result: ProvisionResult) -> str:
 
     if result.file_tree:
         section += "\n\n" + result.file_tree
+
+    section += _git_writeback_guidance(result.git_metadata)
 
     return section
 
@@ -829,13 +862,15 @@ def _format_entry_description(result: ProvisionResult) -> str:
             if len(meta.base_commit) >= 7
             else meta.base_commit
         )
-        return (
+        desc = (
             f"Workspace entry **{name}** was initialized from "
             f"{meta.repo_url} (branch: {meta.branch}, "
             f"commit: {short_sha}).\n"
             "Changes you make will be captured as artifacts when "
             "execution completes."
         )
+        desc += _git_writeback_guidance(meta, heading_level=4)
+        return desc
 
     if result.source_type == SourceType.EMPTY:
         return (
@@ -904,111 +939,6 @@ def build_referenced_files_prompt_section(
             section += f"- `{ref_path}`\n"
 
     return section
-
-
-def _generate_git_diff_artifact(
-    workspace_backend: WorkspaceBackend,
-    provision_result: ProvisionResult,
-    execution_id: str,
-    storage: ArtifactStorage,
-    status_builder: "StatusBuilder",
-    logger_: logging.Logger,
-) -> bool:
-    """Generate a ``.patch`` artifact from ``git diff`` for git-backed workspaces.
-
-    When the virtual platform mount is active (``platform_dir`` set),
-    platform files don't exist in the workspace tree, so no pathspec
-    exclusions are needed.  When it is not active (backward compat),
-    the old exclusions for ``.stigmer`` are applied.
-
-    For multi-entry sessions, the ``git diff`` is scoped to the
-    entry's subdirectory via ``cwd``, and the patch filename includes
-    the entry name to distinguish per-repo artifacts.
-
-    Returns ``True`` if an artifact was generated, ``False`` otherwise.
-    This function is intentionally non-fatal: failures are logged but
-    never propagate.
-    """
-    from datetime import UTC, datetime, timedelta
-
-    from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
-    from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionArtifactKind
-
-    if provision_result.source_type != SourceType.GIT_REPO:
-        return False
-
-    if workspace_backend.platform_dir:
-        diff_cmd = "git diff"
-    else:
-        diff_cmd = "git diff -- ':!.stigmer' ':!.stigmer-inputs' ':!bin/skills'"
-
-    # Scope git diff to the entry's directory when it differs from
-    # the backend root (multi-entry subdirectory layout).
-    rel = os.path.relpath(provision_result.root_dir, workspace_backend.root_dir)
-    cwd = rel if rel != "." else None
-
-    try:
-        result = workspace_backend.execute(
-            diff_cmd,
-            cwd=cwd,
-            timeout=30,
-        )
-    except Exception as exc:
-        logger_.warning("[GIT_DIFF] git diff command failed: %s", exc)
-        return False
-
-    if result.exit_code != 0:
-        logger_.info(
-            "[GIT_DIFF] git diff exited with %d: %s",
-            result.exit_code,
-            result.stderr.strip()[:200],
-        )
-        return False
-
-    diff_text = result.stdout.strip()
-    if not diff_text:
-        logger_.info("[GIT_DIFF] No changes detected in workspace")
-        return False
-
-    patch_bytes = diff_text.encode("utf-8")
-    if provision_result.entry_name:
-        filename = f"{execution_id}-{provision_result.entry_name}.patch"
-    else:
-        filename = f"{execution_id}.patch"
-    storage_key = f"artifacts/{execution_id}/{filename}"
-
-    try:
-        storage.upload(storage_key, patch_bytes, "text/x-diff")
-        download_url = storage.get_download_url(storage_key, 7 * 24 * 3600)
-
-        now = datetime.now(UTC)
-        expires_at = now + timedelta(seconds=7 * 24 * 3600)
-
-        artifact = ExecutionArtifact(
-            name=filename,
-            sandbox_path=filename,
-            kind=ExecutionArtifactKind.EXECUTION_ARTIFACT_KIND_FILE,
-            size_bytes=len(patch_bytes),
-            storage_key=storage_key,
-            download_url=download_url,
-            created_at=now.isoformat(),
-            expires_at=expires_at.isoformat(),
-        )
-        status_builder.add_artifact(artifact)
-
-        logger_.info(
-            "[GIT_DIFF] Published patch artifact: %s (%d bytes)",
-            storage_key,
-            len(patch_bytes),
-        )
-        return True
-
-    except Exception as exc:
-        logger_.warning(
-            "[GIT_DIFF] Failed to upload patch artifact (non-fatal): %s",
-            exc,
-        )
-        return False
 
 
 @activity.defn(name="ExecuteGraphton")
@@ -3351,16 +3281,6 @@ async def _execute_graphton_impl(
                 ExecutionPhase.EXECUTION_PAUSED,
                 ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
             ):
-                for pr in provision_results:
-                    _generate_git_diff_artifact(
-                        workspace_backend=workspace_backend,
-                        provision_result=pr,
-                        execution_id=execution_id,
-                        storage=artifact_storage,
-                        status_builder=status_builder,
-                        logger_=activity_logger,
-                    )
-                
                 try:
                     await _auto_publish_written_files(
                         tool_calls=status_builder.current_status.tool_calls,

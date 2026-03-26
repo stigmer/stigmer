@@ -18,16 +18,33 @@ from worker.workspace.daytona import DaytonaWorkspaceBackend
 
 
 def _make_sandbox(*, exec_exit_code: int = 0, exec_output: str = ""):
-    """Build a mock Daytona sandbox."""
+    """Build a mock Daytona sandbox.
+
+    Mocks both ``process.exec`` (used by mkdir, file_exists, write_file)
+    and ``process.execute_session_command`` (used by execute()).
+    """
     sandbox = MagicMock()
-    result = MagicMock()
-    result.exit_code = exec_exit_code
-    result.output = exec_output
-    result.stderr = ""
-    sandbox.process.exec.return_value = result
+
+    exec_result = MagicMock()
+    exec_result.exit_code = exec_exit_code
+    exec_result.output = exec_output
+    exec_result.stderr = ""
+    sandbox.process.exec.return_value = exec_result
+
+    session_result = MagicMock()
+    session_result.exit_code = exec_exit_code
+    session_result.stdout = exec_output
+    session_result.stderr = ""
+    sandbox.process.execute_session_command.return_value = session_result
+
     sandbox.fs.upload_files = MagicMock()
     sandbox.fs.download_file = MagicMock()
     return sandbox
+
+
+def _last_session_command(sandbox) -> str:
+    """Extract the command string from the last ``execute_session_command`` call."""
+    return sandbox.process.execute_session_command.call_args[0][1].command
 
 
 # ---------------------------------------------------------------------------
@@ -193,7 +210,7 @@ class TestMkdir:
 
 
 class TestExecute:
-    """execute() via sandbox.process.exec."""
+    """execute() via sandbox.process.execute_session_command."""
 
     def test_basic_command(self):
         sandbox = _make_sandbox(exec_exit_code=0, exec_output="hello")
@@ -211,8 +228,7 @@ class TestExecute:
             sandbox=sandbox, workspace_root="/ws",
         )
         backend.execute("ls", cwd="sub")
-        cmd = sandbox.process.exec.call_args[0][0]
-        assert "cd /ws/sub" in cmd
+        assert "cd /ws/sub" in _last_session_command(sandbox)
 
     def test_default_cwd_is_root(self):
         sandbox = _make_sandbox()
@@ -220,12 +236,13 @@ class TestExecute:
             sandbox=sandbox, workspace_root="/ws",
         )
         backend.execute("ls")
-        cmd = sandbox.process.exec.call_args[0][0]
-        assert "cd /ws" in cmd
+        assert "cd /ws" in _last_session_command(sandbox)
 
     def test_exec_failure_returns_error(self):
         sandbox = MagicMock()
-        sandbox.process.exec.side_effect = RuntimeError("connection lost")
+        sandbox.process.execute_session_command.side_effect = RuntimeError(
+            "connection lost",
+        )
         backend = DaytonaWorkspaceBackend(
             sandbox=sandbox, workspace_root="/ws",
         )
@@ -256,7 +273,7 @@ class TestCwdConformance:
         )
         backend.execute("git diff", cwd="my-repo")
 
-        cmd = sandbox.process.exec.call_args[0][0]
+        cmd = _last_session_command(sandbox)
         assert cmd == "cd /home/daytona/workspace/my-repo && git diff"
 
     def test_no_cwd_runs_in_root(self):
@@ -267,7 +284,7 @@ class TestCwdConformance:
         )
         backend.execute("ls -la")
 
-        cmd = sandbox.process.exec.call_args[0][0]
+        cmd = _last_session_command(sandbox)
         assert cmd == "cd /home/daytona/workspace && ls -la"
 
     def test_cwd_strips_leading_slash(self):
@@ -278,7 +295,7 @@ class TestCwdConformance:
         )
         backend.execute("find .", cwd="/my-repo")
 
-        cmd = sandbox.process.exec.call_args[0][0]
+        cmd = _last_session_command(sandbox)
         assert cmd == "cd /workspace/my-repo && find ."
 
     def test_cwd_nested_subdirectory(self):
@@ -289,5 +306,5 @@ class TestCwdConformance:
         )
         backend.execute("cat README.md", cwd="services/api")
 
-        cmd = sandbox.process.exec.call_args[0][0]
+        cmd = _last_session_command(sandbox)
         assert cmd == "cd /workspace/services/api && cat README.md"

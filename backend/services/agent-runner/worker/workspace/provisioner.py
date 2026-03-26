@@ -72,11 +72,17 @@ class GitMetadata:
         branch:      Branch that was checked out (resolved from the
                      remote default when not explicitly requested).
         base_commit: Full SHA of HEAD at clone time.
+        git_credentials_configured:
+                     Whether a git credential store was configured in
+                     the sandbox for push/fetch access.  Only ``True``
+                     in cloud mode when a ``GITHUB_TOKEN`` was available
+                     and the credential helper was successfully set up.
     """
 
     repo_url: str
     branch: str
     base_commit: str
+    git_credentials_configured: bool = False
 
 
 @dataclass(frozen=True)
@@ -335,6 +341,7 @@ class WorkspaceProvisioner:
                 backend,
                 merged_env,
                 target_subdir=target_subdir,
+                is_local_mode=is_local_mode,
             )
 
         if workspace_source.HasField("local_path"):  # type: ignore[attr-defined]
