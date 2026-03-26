@@ -757,9 +757,9 @@ class TestCreatePlatformToolWrappers:
         return backend
 
     def test_creates_platform_tools(self, mock_backend):
-        """Test that 11 tools are created (8 primary + 3 aliases)."""
+        """Test that 12 tools are created (9 primary + 3 aliases)."""
         tools = create_platform_tool_wrappers(mock_backend)
-        assert len(tools) == 11
+        assert len(tools) == 12
 
     def test_creates_tools_with_correct_names(self, mock_backend):
         """Test that tools have correct names."""
@@ -769,6 +769,7 @@ class TestCreatePlatformToolWrappers:
         expected_names = [
             "read", "ls", "glob", "grep", "search",
             "write", "edit", "execute",
+            "create_pull_request",
             "read_file", "write_file", "edit_file",
         ]
         for name in expected_names:
@@ -787,7 +788,7 @@ class TestCreatePlatformToolWrappers:
             return ApprovalRequirement(requires_approval=False)
         
         tools = create_platform_tool_wrappers(mock_backend, approval_checker=checker)
-        assert len(tools) == 11
+        assert len(tools) == 12
 
     def test_alias_tools_have_redirect_descriptions(self, mock_backend):
         """Alias tools should steer the LLM toward canonical names."""

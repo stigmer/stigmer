@@ -16,6 +16,12 @@ from worker.workspace.sources import git as git_source
 # Mock proto + backend helpers
 # ---------------------------------------------------------------------------
 
+_DETECT_CMD_KEY = "echo dir || (test -f"
+"""Unique substring of the detection command used by _detect_existing_repo.
+
+Matches: test -d .git && echo dir || (test -f .git && echo file) || echo none
+"""
+
 
 class _MockGitRepoSource:
     """Duck-typed ``GitRepoSource`` proto message."""
@@ -48,10 +54,11 @@ class _GitBackend:
     def __init__(self, tmp_path, *, clone_response=None, responses=None):
         self._inner = LocalWorkspaceBackend(root_dir=tmp_path)
         self.commands: list[str] = []
+        self._tmp_path = tmp_path
 
         self._responses: dict[str, ExecuteResult] = {
-            "test -d .git && echo yes || echo no": ExecuteResult(
-                exit_code=0, stdout="no\n", stderr="",
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="none\n", stderr="",
             ),
             "ls -A": ExecuteResult(exit_code=0, stdout="", stderr=""),
             "git clone": clone_response
@@ -65,6 +72,13 @@ class _GitBackend:
                 stderr="",
             ),
             "git checkout": ExecuteResult(exit_code=0, stdout="", stderr=""),
+            "--absolute-git-dir": ExecuteResult(
+                exit_code=0, stdout=f"{tmp_path}/.git\n", stderr="",
+            ),
+            "2>/dev/null || true": ExecuteResult(
+                exit_code=0, stdout="", stderr="",
+            ),
+            "printf": ExecuteResult(exit_code=0, stdout="", stderr=""),
         }
         if responses:
             self._responses.update(responses)
@@ -98,6 +112,34 @@ class _GitBackend:
             if key in command:
                 return response
         return ExecuteResult(exit_code=1, stdout="", stderr=f"unmatched: {command}")
+
+
+class _CloudGitBackend(_GitBackend):
+    """_GitBackend pre-configured with responses for cloud mode.
+
+    Adds responses for FUSE volume compat configuration,
+    separate git-dir operations, and credential store commands
+    that are only issued when ``is_local_mode=False``.
+    """
+
+    def __init__(self, tmp_path, *, clone_response=None, responses=None):
+        cloud_responses: dict[str, ExecuteResult] = {
+            "safe.directory": ExecuteResult(exit_code=0, stdout="", stderr=""),
+            "mkdir -p /home/daytona/.git-repos": ExecuteResult(
+                exit_code=0, stdout="", stderr="",
+            ),
+            "git remote set-url": ExecuteResult(
+                exit_code=0, stdout="", stderr="",
+            ),
+            "credential.helper": ExecuteResult(
+                exit_code=0, stdout="", stderr="",
+            ),
+        }
+        if responses:
+            cloud_responses.update(responses)
+        super().__init__(
+            tmp_path, clone_response=clone_response, responses=cloud_responses,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +243,15 @@ class TestCloneCommand:
 
         clone_cmd = _find_command(backend.commands, "git clone")
         assert clone_cmd.endswith(backend.root_dir)
+
+    def test_no_separate_git_dir_in_local_mode(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path)
+
+        git_source.provision(source, backend, {})
+
+        clone_cmd = _find_command(backend.commands, "git clone")
+        assert "--separate-git-dir" not in clone_cmd
 
 
 # ---------------------------------------------------------------------------
@@ -355,8 +406,8 @@ class TestIdempotentProvisioning:
     def test_existing_repo_returns_metadata_without_cloning(self, tmp_path):
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _GitBackend(tmp_path, responses={
-            "test -d .git && echo yes || echo no": ExecuteResult(
-                exit_code=0, stdout="yes\n", stderr="",
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="dir\n", stderr="",
             ),
         })
 
@@ -371,8 +422,8 @@ class TestIdempotentProvisioning:
     def test_existing_repo_reports_consumed_keys_when_token_present(self, tmp_path):
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _GitBackend(tmp_path, responses={
-            "test -d .git && echo yes || echo no": ExecuteResult(
-                exit_code=0, stdout="yes\n", stderr="",
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="dir\n", stderr="",
             ),
         })
 
@@ -383,8 +434,8 @@ class TestIdempotentProvisioning:
     def test_existing_repo_empty_consumed_keys_when_no_token(self, tmp_path):
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _GitBackend(tmp_path, responses={
-            "test -d .git && echo yes || echo no": ExecuteResult(
-                exit_code=0, stdout="yes\n", stderr="",
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="dir\n", stderr="",
             ),
         })
 
@@ -395,8 +446,8 @@ class TestIdempotentProvisioning:
     def test_corrupted_workspace_cleaned_and_recloned(self, tmp_path):
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _GitBackend(tmp_path, responses={
-            "test -d .git && echo yes || echo no": ExecuteResult(
-                exit_code=0, stdout="no\n", stderr="",
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="none\n", stderr="",
             ),
             "ls -A": ExecuteResult(
                 exit_code=0, stdout="partial-data\n", stderr="",
@@ -413,8 +464,8 @@ class TestIdempotentProvisioning:
     def test_empty_workspace_proceeds_to_clone(self, tmp_path):
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _GitBackend(tmp_path, responses={
-            "test -d .git && echo yes || echo no": ExecuteResult(
-                exit_code=0, stdout="no\n", stderr="",
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="none\n", stderr="",
             ),
             "ls -A": ExecuteResult(exit_code=0, stdout="", stderr=""),
         })
@@ -432,66 +483,77 @@ class TestIdempotentProvisioning:
 
 
 class TestGitExcludes:
-    """Platform directories added to .git/info/exclude."""
+    """Platform directories added to git exclude file."""
 
     def test_excludes_written_after_fresh_clone(self, tmp_path):
-        (tmp_path / ".git" / "info").mkdir(parents=True)
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _GitBackend(tmp_path)
 
         git_source.provision(source, backend, {})
 
-        exclude_content = (tmp_path / ".git" / "info" / "exclude").read_text()
-        assert ".stigmer" in exclude_content
+        assert any("--absolute-git-dir" in c for c in backend.commands)
+        printf_cmd = _find_command(backend.commands, "printf")
+        assert ".stigmer" in printf_cmd
 
     def test_excludes_written_for_existing_repo(self, tmp_path):
-        (tmp_path / ".git" / "info").mkdir(parents=True)
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _GitBackend(tmp_path, responses={
-            "test -d .git && echo yes || echo no": ExecuteResult(
-                exit_code=0, stdout="yes\n", stderr="",
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="dir\n", stderr="",
             ),
         })
 
         git_source.provision(source, backend, {})
 
-        exclude_content = (tmp_path / ".git" / "info" / "exclude").read_text()
-        assert ".stigmer" in exclude_content
+        printf_cmd = _find_command(backend.commands, "printf")
+        assert ".stigmer" in printf_cmd
 
     def test_excludes_idempotent_no_duplicates(self, tmp_path):
-        git_info = tmp_path / ".git" / "info"
-        git_info.mkdir(parents=True)
-        (git_info / "exclude").write_text(".stigmer\n")
-
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _GitBackend(tmp_path, responses={
-            "test -d .git && echo yes || echo no": ExecuteResult(
-                exit_code=0, stdout="yes\n", stderr="",
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="dir\n", stderr="",
+            ),
+            "2>/dev/null || true": ExecuteResult(
+                exit_code=0, stdout=".stigmer\n", stderr="",
             ),
         })
 
         git_source.provision(source, backend, {})
 
-        exclude_content = (git_info / "exclude").read_text()
-        assert exclude_content.count(".stigmer") == 1
+        assert not any("printf" in c for c in backend.commands)
 
     def test_excludes_appended_to_existing_content(self, tmp_path):
-        git_info = tmp_path / ".git" / "info"
-        git_info.mkdir(parents=True)
-        (git_info / "exclude").write_text("# git default excludes\n*.pyc\n")
-
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _GitBackend(tmp_path, responses={
-            "test -d .git && echo yes || echo no": ExecuteResult(
-                exit_code=0, stdout="yes\n", stderr="",
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="dir\n", stderr="",
+            ),
+            "2>/dev/null || true": ExecuteResult(
+                exit_code=0,
+                stdout="# git default excludes\n*.pyc\n",
+                stderr="",
             ),
         })
 
         git_source.provision(source, backend, {})
 
-        exclude_content = (git_info / "exclude").read_text()
-        assert "*.pyc" in exclude_content
-        assert ".stigmer" in exclude_content
+        printf_cmd = _find_command(backend.commands, "printf")
+        assert ".stigmer" in printf_cmd
+
+    def test_excludes_skipped_when_git_dir_unresolvable(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path, responses={
+            "--absolute-git-dir": ExecuteResult(
+                exit_code=128,
+                stdout="",
+                stderr="fatal: not a git repository",
+            ),
+        })
+
+        git_source.provision(source, backend, {})
+
+        assert not any("printf" in c for c in backend.commands)
 
 
 # ---------------------------------------------------------------------------
@@ -562,13 +624,29 @@ class TestErrors:
         with pytest.raises(WorkspaceProvisionError, match="network"):
             git_source.provision(source, backend, {})
 
+    def test_function_not_implemented(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(
+            tmp_path,
+            clone_response=ExecuteResult(
+                exit_code=128,
+                stdout="",
+                stderr="error: could not write config file .git/config: Function not implemented",
+            ),
+        )
+
+        with pytest.raises(WorkspaceProvisionError, match="filesystem") as exc_info:
+            git_source.provision(source, backend, {})
+
+        assert "FUSE" in str(exc_info.value) or "separate-git-dir" in str(exc_info.value)
+
     def test_non_empty_no_git_recovers_and_clones(self, tmp_path):
         """Non-empty workspace without .git is cleaned and re-provisioned."""
         (tmp_path / "partial-file.txt").write_text("leftover from crash")
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _GitBackend(tmp_path, responses={
-            "test -d .git && echo yes || echo no": ExecuteResult(
-                exit_code=0, stdout="no\n", stderr="",
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="none\n", stderr="",
             ),
             "ls -A": ExecuteResult(
                 exit_code=0, stdout="partial-file.txt\n", stderr="",
@@ -728,8 +806,8 @@ class TestSubdirectoryIdempotency:
     def test_existing_repo_in_subdir_detected(self, tmp_path):
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _CwdTrackingGitBackend(tmp_path, responses={
-            "test -d .git && echo yes || echo no": ExecuteResult(
-                exit_code=0, stdout="yes\n", stderr="",
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="dir\n", stderr="",
             ),
         })
 
@@ -743,15 +821,15 @@ class TestSubdirectoryIdempotency:
     def test_detect_uses_cwd(self, tmp_path):
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _CwdTrackingGitBackend(tmp_path, responses={
-            "test -d .git && echo yes || echo no": ExecuteResult(
-                exit_code=0, stdout="yes\n", stderr="",
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="dir\n", stderr="",
             ),
         })
 
         git_source.provision(source, backend, {}, target_subdir="my-app")
 
         for cmd, cwd in backend.command_records:
-            if "test -d .git" in cmd:
+            if _DETECT_CMD_KEY in cmd:
                 assert cwd == "my-app"
 
 
@@ -761,8 +839,8 @@ class TestSubdirectoryRecovery:
     def test_cleanup_uses_cwd(self, tmp_path):
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _CwdTrackingGitBackend(tmp_path, responses={
-            "test -d .git && echo yes || echo no": ExecuteResult(
-                exit_code=0, stdout="no\n", stderr="",
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="none\n", stderr="",
             ),
             "ls -A": ExecuteResult(
                 exit_code=0, stdout="partial-data\n", stderr="",
@@ -781,7 +859,7 @@ class TestSubdirectoryRecovery:
     def test_nonexistent_subdir_skips_cleanup(self, tmp_path):
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _CwdTrackingGitBackend(tmp_path, responses={
-            "test -d .git && echo yes || echo no": ExecuteResult(
+            _DETECT_CMD_KEY: ExecuteResult(
                 exit_code=1, stdout="", stderr="",
             ),
             "ls -A": ExecuteResult(
@@ -798,33 +876,389 @@ class TestSubdirectoryRecovery:
 
 
 class TestSubdirectoryExcludes:
-    """Git excludes written to subdirectory's .git/info/exclude."""
+    """Git excludes resolved correctly with subdirectories."""
 
-    def test_excludes_written_in_subdirectory(self, tmp_path):
-        subdir = tmp_path / "my-app"
-        subdir.mkdir()
-        (subdir / ".git" / "info").mkdir(parents=True)
-
+    def test_excludes_resolve_git_dir_in_subdirectory(self, tmp_path):
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _CwdTrackingGitBackend(tmp_path)
 
         git_source.provision(source, backend, {}, target_subdir="my-app")
 
-        exclude_content = (subdir / ".git" / "info" / "exclude").read_text()
-        assert ".stigmer" in exclude_content
+        for cmd, cwd in backend.command_records:
+            if "--absolute-git-dir" in cmd:
+                assert cwd == "my-app", (
+                    f"git rev-parse should use cwd='my-app', got {cwd!r}"
+                )
 
-    def test_excludes_not_written_to_parent(self, tmp_path):
-        subdir = tmp_path / "my-app"
-        subdir.mkdir()
-        (subdir / ".git" / "info").mkdir(parents=True)
 
+# ---------------------------------------------------------------------------
+# Cloud mode: FUSE+S3 volume compatibility
+# ---------------------------------------------------------------------------
+
+
+class TestCloudModeSeparateGitDir:
+    """Cloud mode (is_local_mode=False) uses --separate-git-dir."""
+
+    def test_clone_includes_separate_git_dir(self, tmp_path):
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
-        backend = _CwdTrackingGitBackend(tmp_path)
+        backend = _CloudGitBackend(tmp_path)
 
-        git_source.provision(source, backend, {}, target_subdir="my-app")
+        git_source.provision(
+            source, backend, {}, is_local_mode=False,
+        )
 
-        root_exclude = tmp_path / ".git" / "info" / "exclude"
-        assert not root_exclude.exists()
+        clone_cmd = _find_command(backend.commands, "git clone")
+        assert "--separate-git-dir" in clone_cmd
+        assert "/home/daytona/.git-repos/default" in clone_cmd
+
+    def test_subdir_clone_uses_entry_name_in_git_dir(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {}, target_subdir="my-app", is_local_mode=False,
+        )
+
+        clone_cmd = _find_command(backend.commands, "git clone")
+        assert "/home/daytona/.git-repos/my-app" in clone_cmd
+
+    def test_fuse_compat_configured_before_clone(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {}, is_local_mode=False,
+        )
+
+        config_idx = None
+        clone_idx = None
+        for i, cmd in enumerate(backend.commands):
+            if "safe.directory" in cmd and config_idx is None:
+                config_idx = i
+            if "git clone" in cmd and clone_idx is None:
+                clone_idx = i
+
+        assert config_idx is not None, "safe.directory config not found"
+        assert clone_idx is not None, "git clone not found"
+        assert config_idx < clone_idx, (
+            "safe.directory must be configured before clone"
+        )
+
+    def test_git_dir_parent_created_before_clone(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {}, is_local_mode=False,
+        )
+
+        mkdir_cmd = _find_command(
+            backend.commands, "mkdir -p /home/daytona/.git-repos",
+        )
+        assert mkdir_cmd is not None
+
+        mkdir_idx = backend.commands.index(mkdir_cmd)
+        clone_cmd = _find_command(backend.commands, "git clone")
+        clone_idx = backend.commands.index(clone_cmd)
+        assert mkdir_idx < clone_idx
+
+    def test_local_mode_skips_fuse_compat(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path)
+
+        git_source.provision(source, backend, {}, is_local_mode=True)
+
+        assert not any("safe.directory" in c for c in backend.commands)
+        assert not any(
+            "mkdir -p /home/daytona/.git-repos" in c for c in backend.commands
+        )
+
+    def test_cloud_mode_configures_safe_directory_and_filemode(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {}, is_local_mode=False,
+        )
+
+        config_cmd = _find_command(backend.commands, "safe.directory")
+        assert "core.fileMode false" in config_cmd
+
+
+# ---------------------------------------------------------------------------
+# Stale .git pointer detection (separate-git-dir recovery)
+# ---------------------------------------------------------------------------
+
+
+class TestStaleGitPointer:
+    """When .git is a file but the target dir is gone, re-provision."""
+
+    def test_stale_pointer_triggers_reclone(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path, responses={
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="file\n", stderr="",
+            ),
+            "sed 's/gitdir: //'": ExecuteResult(
+                exit_code=0, stdout="stale\n", stderr="",
+            ),
+            "ls -A": ExecuteResult(
+                exit_code=0, stdout=".git\nREADME.md\n", stderr="",
+            ),
+            "rm -rf": ExecuteResult(exit_code=0, stdout="", stderr=""),
+        })
+
+        result = git_source.provision(
+            source, backend, {}, is_local_mode=False,
+        )
+
+        assert result.source_type is SourceType.GIT_REPO
+        assert any("git clone" in c for c in backend.commands)
+        assert any("rm -rf" in c for c in backend.commands)
+
+    def test_valid_pointer_reuses_existing_repo(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path, responses={
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="file\n", stderr="",
+            ),
+            "sed 's/gitdir: //'": ExecuteResult(
+                exit_code=0, stdout="valid\n", stderr="",
+            ),
+        })
+
+        result = git_source.provision(
+            source, backend, {}, is_local_mode=False,
+        )
+
+        assert result.source_type is SourceType.GIT_REPO
+        assert not any("git clone" in c for c in backend.commands)
+
+    def test_git_dir_detection_distinguishes_dir_and_file(self, tmp_path):
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+
+        dir_backend = _GitBackend(tmp_path, responses={
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="dir\n", stderr="",
+            ),
+        })
+        git_source.provision(source, dir_backend, {})
+        assert not any("git clone" in c for c in dir_backend.commands)
+
+        file_backend = _GitBackend(tmp_path, responses={
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="file\n", stderr="",
+            ),
+            "sed 's/gitdir: //'": ExecuteResult(
+                exit_code=0, stdout="valid\n", stderr="",
+            ),
+        })
+        git_source.provision(source, file_backend, {})
+        assert not any("git clone" in c for c in file_backend.commands)
+        assert any("sed 's/gitdir: //'" in c for c in file_backend.commands)
+
+
+# ---------------------------------------------------------------------------
+# Git credential persistence (cloud mode)
+# ---------------------------------------------------------------------------
+
+
+class TestCredentialHelper:
+    """Credential store configuration in cloud mode."""
+
+    def test_credential_commands_issued_in_cloud_mode(self, tmp_path):
+        """Cloud + GitHub token -> remote URL, credential helper, and file write."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        assert any("git remote set-url" in c for c in backend.commands)
+        assert any("credential.helper" in c for c in backend.commands)
+        assert any(".git-credentials" in c for c in backend.commands)
+
+    def test_remote_url_cleaned_to_tokenless_url(self, tmp_path):
+        """git remote set-url uses the clean URL (no embedded token)."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        set_url_cmd = _find_command(backend.commands, "git remote set-url")
+        assert "https://github.com/org/repo.git" in set_url_cmd
+        assert "ghp_tok" not in set_url_cmd
+
+    def test_credential_file_has_correct_format(self, tmp_path):
+        """Credential file written with git-credential-store format."""
+        token = "ghp_testtoken123"
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {"GITHUB_TOKEN": token}, is_local_mode=False,
+        )
+
+        cred_write_cmds = [
+            c for c in backend.commands
+            if ".git-credentials" in c and ">" in c
+        ]
+        assert cred_write_cmds, "No credential file write command found"
+        cred_cmd = cred_write_cmds[0]
+        assert f"x-access-token:{token}@github.com" in cred_cmd
+        assert "chmod 600" in cred_cmd
+
+    def test_git_credentials_configured_true_on_result(self, tmp_path):
+        """GitMetadata.git_credentials_configured is True after successful setup."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        result = git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is True
+
+    def test_skipped_in_local_mode(self, tmp_path):
+        """Local mode + token -> no credential commands, field is False."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path)
+
+        result = git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=True,
+        )
+
+        assert not any("git remote set-url" in c for c in backend.commands)
+        assert not any("credential.helper" in c for c in backend.commands)
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is False
+
+    def test_skipped_without_token(self, tmp_path):
+        """Cloud + no token -> no credential commands, field is False."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        result = git_source.provision(
+            source, backend, {}, is_local_mode=False,
+        )
+
+        assert not any("git remote set-url" in c for c in backend.commands)
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is False
+
+    def test_skipped_for_non_github_url(self, tmp_path):
+        """Non-GitHub URL + token -> no credential commands."""
+        source = _MockGitRepoSource(url="https://gitlab.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        assert not any("git remote set-url" in c for c in backend.commands)
+        assert not any("credential.helper" in c for c in backend.commands)
+
+    def test_configured_on_existing_repo(self, tmp_path):
+        """Idempotent path + cloud + token -> credentials configured."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path, responses={
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="dir\n", stderr="",
+            ),
+        })
+
+        result = git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        assert not any("git clone" in c for c in backend.commands)
+        assert any("git remote set-url" in c for c in backend.commands)
+        assert any("credential.helper" in c for c in backend.commands)
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is True
+
+    def test_existing_repo_no_credentials_in_local_mode(self, tmp_path):
+        """Idempotent + local mode + token -> no credential setup."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _GitBackend(tmp_path, responses={
+            _DETECT_CMD_KEY: ExecuteResult(
+                exit_code=0, stdout="dir\n", stderr="",
+            ),
+        })
+
+        result = git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=True,
+        )
+
+        assert not any("git remote set-url" in c for c in backend.commands)
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is False
+
+    def test_non_fatal_on_remote_url_cleanup_failure(self, tmp_path):
+        """Remote URL cleanup failure -> clone succeeds, field is False."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path, responses={
+            "git remote set-url": ExecuteResult(
+                exit_code=1, stdout="", stderr="error: could not set url",
+            ),
+        })
+
+        result = git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        assert result.source_type is SourceType.GIT_REPO
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is False
+
+    def test_non_fatal_on_credential_config_failure(self, tmp_path):
+        """Credential helper config failure -> clone succeeds, field is False."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path, responses={
+            "credential.helper": ExecuteResult(
+                exit_code=1, stdout="", stderr="error: could not lock config",
+            ),
+        })
+
+        result = git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        assert result.source_type is SourceType.GIT_REPO
+        assert result.git_metadata is not None
+        assert result.git_metadata.git_credentials_configured is False
+
+    def test_credential_setup_runs_after_clone_and_excludes(self, tmp_path):
+        """Credential commands come after clone and excludes in command order."""
+        source = _MockGitRepoSource(url="https://github.com/org/repo.git")
+        backend = _CloudGitBackend(tmp_path)
+
+        git_source.provision(
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+        )
+
+        clone_idx = None
+        excludes_idx = None
+        cred_idx = None
+        for i, cmd in enumerate(backend.commands):
+            if "git clone" in cmd and clone_idx is None:
+                clone_idx = i
+            if "--absolute-git-dir" in cmd and excludes_idx is None:
+                excludes_idx = i
+            if "git remote set-url" in cmd and cred_idx is None:
+                cred_idx = i
+
+        assert clone_idx is not None, "git clone not found"
+        assert excludes_idx is not None, "excludes setup not found"
+        assert cred_idx is not None, "credential setup not found"
+        assert clone_idx < excludes_idx < cred_idx, (
+            f"Expected clone ({clone_idx}) < excludes ({excludes_idx}) "
+            f"< credentials ({cred_idx})"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -833,10 +1267,10 @@ class TestSubdirectoryExcludes:
 
 
 def _find_command(commands: list[str], prefix: str) -> str:
-    """Find the first command starting with *prefix*."""
+    """Find the first command containing *prefix*."""
     for cmd in commands:
-        if cmd.startswith(prefix):
+        if prefix in cmd:
             return cmd
     raise AssertionError(
-        f"No command starting with '{prefix}' found in: {commands}"
+        f"No command containing '{prefix}' found in: {commands}"
     )

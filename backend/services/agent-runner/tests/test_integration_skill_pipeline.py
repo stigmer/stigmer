@@ -1003,8 +1003,11 @@ class TestToolAliasSkillReads:
                 "edit_file alias must be present to override deepagents' in-memory tool"
             )
 
-            # Total: 8 primary + 3 aliases = 11
-            assert len(tools) == 11
+            # Git tools
+            assert "create_pull_request" in tool_names
+
+            # Total: 9 primary + 3 aliases = 12
+            assert len(tools) == 12
 
     @pytest.mark.asyncio
     async def test_read_tool_reads_skill_relative_path(self, skill_and_backend):

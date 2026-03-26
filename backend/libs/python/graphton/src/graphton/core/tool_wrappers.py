@@ -505,7 +505,7 @@ def create_platform_tool_wrappers(
 ) -> list[Callable[..., Any]]:
     """Create approval-aware wrappers for platform tools (sandbox/filesystem tools).
     
-    This function creates LangChain-compatible tool wrappers for all 8 platform tools
+    This function creates LangChain-compatible tool wrappers for all 9 platform tools
     that delegate to a backend (FilesystemBackend, DaytonaBackend, etc.).
     
     Platform tools are divided into two categories:
@@ -521,6 +521,9 @@ def create_platform_tool_wrappers(
     - write: Write content to a file
     - edit: Edit a file by replacing text
     - execute: Execute shell commands
+    
+    **Git tools** (external API calls, no approval needed by default):
+    - create_pull_request: Create a GitHub pull request
     
     **Aliases** (override deepagents' in-memory tools with filesystem-backed ones):
     - read_file: Alias for read (overrides deepagents' in-memory read_file)
@@ -539,7 +542,7 @@ def create_platform_tool_wrappers(
             If None, tools execute without approval check.
         
     Returns:
-        List of 11 @tool decorated functions for platform tools (8 primary + 3 aliases)
+        List of 12 @tool decorated functions for platform tools (9 primary + 3 aliases)
         
     Example:
         >>> from graphton.core.sandbox_factory import create_sandbox_backend
@@ -548,9 +551,9 @@ def create_platform_tool_wrappers(
         >>> backend = create_sandbox_backend({"type": "filesystem", "root_dir": "/workspace"})
         >>> tools = create_platform_tool_wrappers(backend, approval_checker=my_checker)
         >>> # tools contains: read, ls, glob, grep, search, write, edit, execute,
-        >>> #                  read_file, write_file, edit_file
+        >>> #                  create_pull_request, read_file, write_file, edit_file
         >>> len(tools)
-        11
+        12
     
     """
     tools: list[Callable[..., Any]] = []
@@ -604,6 +607,33 @@ def create_platform_tool_wrappers(
     # Alias descriptions are set to redirect the LLM toward the canonical name
     # so it does not waste turns deliberating between duplicate tools.
     
+    # =========================================================================
+    # Git tools (external API calls, no approval needed by default)
+    # =========================================================================
+
+    from graphton.core.git_tools import _create_create_pull_request_tool
+
+    tools.append(
+        _create_create_pull_request_tool(backend, approval_checker, sub_agent_name=sub_agent_name)
+    )
+
+    # =========================================================================
+    # Aliases matching deepagents tool names (read_file, write_file, edit_file)
+    # =========================================================================
+    #
+    # deepagents 0.4.x internally creates its own FilesystemMiddleware with an
+    # in-memory StateBackend, registering tools named read_file, write_file,
+    # edit_file.  Those in-memory tools do NOT have access to files written to
+    # the real filesystem (e.g. skills written by SkillWriter).
+    #
+    # By registering our own filesystem-backed tools with the SAME names, we
+    # ensure that LangChain's ToolNode resolves to our versions (explicit tools
+    # take precedence over middleware-created tools).  This eliminates the tool
+    # selection conflict regardless of which name the LLM picks.
+    #
+    # Alias descriptions are set to redirect the LLM toward the canonical name
+    # so it does not waste turns deliberating between duplicate tools.
+
     _register_alias(_create_read_tool, "read_file", "read", backend, approval_checker, tools, sub_agent_name=sub_agent_name)
     _register_alias(_create_write_tool, "write_file", "write", backend, approval_checker, tools, sub_agent_name=sub_agent_name)
     _register_alias(_create_edit_tool, "edit_file", "edit", backend, approval_checker, tools, sub_agent_name=sub_agent_name)
