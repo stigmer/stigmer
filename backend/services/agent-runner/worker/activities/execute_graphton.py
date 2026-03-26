@@ -55,9 +55,9 @@ from worker.activities.graphton.attachments import (
     inject_attachments,
 )
 from worker.activities.graphton.hitl import (
+    ApprovalStateManager,
     CheckpointFallback,
     ResumeReconciler,
-    _try_enrich_phase1_entry,
 )
 from worker.activities.graphton.temporal_helpers import (
     SetupTimer,
@@ -111,9 +111,6 @@ from worker.workspace import (
 
 
 
-# _try_enrich_phase1_entry is imported from worker.activities.graphton.hitl
-# Re-exported here for backward compatibility with existing test imports.
-#
 # _slim_status_for_temporal, SetupTimer, heartbeat_during_setup, and
 # _run_sync_with_heartbeat are imported from
 # worker.activities.graphton.temporal_helpers and re-exported at module
@@ -1713,6 +1710,9 @@ async def _execute_graphton_impl(
             resume_reconciler = ResumeReconciler(
                 execution_id=execution_id,
                 status_builder=status_builder,
+                state_manager=ApprovalStateManager(
+                    execution_id=execution_id, logger=activity_logger,
+                ),
                 logger=activity_logger,
             )
             resume_reconciler.reconcile(approval_decisions=approval_decisions)

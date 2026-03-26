@@ -6492,7 +6492,7 @@ class TestPartialJsonHelpers:
 
 
 # =============================================================================
-# _try_enrich_phase1_entry Tests
+# InterruptCapture._try_enrich_phase1_entry Tests
 # =============================================================================
 
 
@@ -6507,12 +6507,25 @@ class TestTryEnrichPhase1Entry:
         )
         return sb
 
+    def _make_capture(self, status_builder):
+        """Create an InterruptCapture wired to the given status_builder."""
+        import logging
+        from worker.activities.graphton.hitl import ApprovalStateManager, InterruptCapture
+        _logger = logging.getLogger("test_status_builder")
+        return InterruptCapture(
+            execution_id="test-enrich",
+            status_builder=status_builder,
+            state_manager=ApprovalStateManager(
+                execution_id="test-enrich", logger=_logger,
+            ),
+            logger=_logger,
+            resolve_platform_tool_name=lambda name: name,
+        )
+
     def test_enriches_matching_entry(self, status_builder):
         """When a Phase 1 entry matches tool_name + from_sub_agent, its
         interrupt_id is set and the function returns True."""
         from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
-
-        from worker.activities.execute_graphton import _try_enrich_phase1_entry
 
         pa = PendingApproval(
             tool_call_id="early-toolu_abc123",
@@ -6523,8 +6536,8 @@ class TestTryEnrichPhase1Entry:
         )
         status_builder.current_status.pending_approvals.append(pa)
 
-        result = _try_enrich_phase1_entry(
-            status_builder, "execute", True, "intr-001",
+        result = self._make_capture(status_builder)._try_enrich_phase1_entry(
+            "execute", True, "intr-001",
         )
 
         assert result is True
@@ -6535,8 +6548,6 @@ class TestTryEnrichPhase1Entry:
         """Entries that already have an interrupt_id are not overwritten."""
         from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
-        from worker.activities.execute_graphton import _try_enrich_phase1_entry
-
         pa = PendingApproval(
             tool_call_id="early-toolu_abc123",
             tool_name="execute",
@@ -6546,8 +6557,8 @@ class TestTryEnrichPhase1Entry:
         )
         status_builder.current_status.pending_approvals.append(pa)
 
-        result = _try_enrich_phase1_entry(
-            status_builder, "execute", True, "new-intr",
+        result = self._make_capture(status_builder)._try_enrich_phase1_entry(
+            "execute", True, "new-intr",
         )
 
         assert result is False
@@ -6557,8 +6568,6 @@ class TestTryEnrichPhase1Entry:
         """Returns False when no Phase 1 entry matches the criteria."""
         from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
-        from worker.activities.execute_graphton import _try_enrich_phase1_entry
-
         pa = PendingApproval(
             tool_call_id="early-toolu_abc123",
             tool_name="read_file",
@@ -6567,8 +6576,8 @@ class TestTryEnrichPhase1Entry:
         )
         status_builder.current_status.pending_approvals.append(pa)
 
-        result = _try_enrich_phase1_entry(
-            status_builder, "execute", True, "intr-001",
+        result = self._make_capture(status_builder)._try_enrich_phase1_entry(
+            "execute", True, "intr-001",
         )
 
         assert result is False
@@ -6578,8 +6587,6 @@ class TestTryEnrichPhase1Entry:
         """Relaxed pass enriches main-agent entry even when from_sub_agent differs."""
         from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
-        from worker.activities.execute_graphton import _try_enrich_phase1_entry
-
         pa = PendingApproval(
             tool_call_id="early-toolu_abc123",
             tool_name="execute",
@@ -6588,8 +6595,8 @@ class TestTryEnrichPhase1Entry:
         )
         status_builder.current_status.pending_approvals.append(pa)
 
-        result = _try_enrich_phase1_entry(
-            status_builder, "execute", True, "intr-001",
+        result = self._make_capture(status_builder)._try_enrich_phase1_entry(
+            "execute", True, "intr-001",
         )
 
         assert result is True
@@ -6599,8 +6606,6 @@ class TestTryEnrichPhase1Entry:
         """Enrichment must never overwrite the existing tool_call_id."""
         from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
-        from worker.activities.execute_graphton import _try_enrich_phase1_entry
-
         original_tc_id = "early-toolu_preserve_me"
         pa = PendingApproval(
             tool_call_id=original_tc_id,
@@ -6609,18 +6614,16 @@ class TestTryEnrichPhase1Entry:
         )
         status_builder.current_status.pending_approvals.append(pa)
 
-        _try_enrich_phase1_entry(
-            status_builder, "execute", True, "intr-001",
+        self._make_capture(status_builder)._try_enrich_phase1_entry(
+            "execute", True, "intr-001",
         )
 
         assert status_builder.current_status.pending_approvals[0].tool_call_id == original_tc_id
 
     def test_empty_pending_approvals_returns_false(self, status_builder):
         """Returns False when there are no Phase 1 entries at all."""
-        from worker.activities.execute_graphton import _try_enrich_phase1_entry
-
-        result = _try_enrich_phase1_entry(
-            status_builder, "execute", True, "intr-001",
+        result = self._make_capture(status_builder)._try_enrich_phase1_entry(
+            "execute", True, "intr-001",
         )
 
         assert result is False
