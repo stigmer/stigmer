@@ -37,7 +37,6 @@ from dataclasses import dataclass
 
 from worker.storage.base import ArtifactStorage
 from worker.storage.local import LocalArtifactStorage
-from worker.storage.r2 import R2ArtifactStorage
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +48,14 @@ __all__ = [
     "ArtifactStorageConfig",
     "create_artifact_storage",
 ]
+
+
+def __getattr__(name: str):
+    """Lazy import for R2ArtifactStorage to avoid requiring boto3 in local mode."""
+    if name == "R2ArtifactStorage":
+        from worker.storage.r2 import R2ArtifactStorage
+        return R2ArtifactStorage
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 @dataclass
@@ -174,6 +181,7 @@ def create_artifact_storage(config: ArtifactStorageConfig) -> ArtifactStorage:
     """
     if config.storage_type == "r2":
         logger.info("Creating R2 artifact storage")
+        from worker.storage.r2 import R2ArtifactStorage
         # Narrow Optional types -- validate() guarantees non-None for r2 mode
         assert config.r2_endpoint is not None
         assert config.r2_access_key is not None
