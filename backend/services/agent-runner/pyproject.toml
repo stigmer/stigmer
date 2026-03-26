@@ -49,6 +49,9 @@ authlib = "^1.3.0"
 httpx = "^0.28.1"
 pyjwt = "^2.8.0"
 
+# Cloudflare R2 artifact storage (S3-compatible API, default for cloud mode)
+boto3 = "^1.35.0"
+
 # Redis
 redis = "^5.0.0"
 

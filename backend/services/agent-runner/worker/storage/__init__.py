@@ -34,10 +34,10 @@ Configuration:
 import logging
 import os
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 from worker.storage.base import ArtifactStorage
 from worker.storage.local import LocalArtifactStorage
+from worker.storage.r2 import R2ArtifactStorage
 
 logger = logging.getLogger(__name__)
 
@@ -49,18 +49,6 @@ __all__ = [
     "ArtifactStorageConfig",
     "create_artifact_storage",
 ]
-
-
-# Lazy import R2 storage to make boto3 optional
-def _get_r2_storage_class():
-    """Lazily import R2ArtifactStorage to make boto3 optional."""
-    from worker.storage.r2 import R2ArtifactStorage
-    return R2ArtifactStorage
-
-
-# For type hints only
-if TYPE_CHECKING:
-    from worker.storage.r2 import R2ArtifactStorage
 
 
 @dataclass
@@ -183,11 +171,9 @@ def create_artifact_storage(config: ArtifactStorageConfig) -> ArtifactStorage:
         
     Raises:
         ValueError: If storage type is invalid
-        ImportError: If boto3 is not installed for R2 storage
     """
     if config.storage_type == "r2":
         logger.info("Creating R2 artifact storage")
-        R2ArtifactStorage = _get_r2_storage_class()  # noqa: N806 — class reference
         return R2ArtifactStorage(
             endpoint=config.r2_endpoint,
             access_key=config.r2_access_key,
