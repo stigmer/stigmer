@@ -22,7 +22,6 @@ from graphton.core.git_tools import (
     _parse_token_from_credentials,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -174,12 +173,12 @@ class TestCreatePullRequest:
         mock_response.json.return_value = _PR_RESPONSE
         mock_response.raise_for_status = MagicMock()
 
-        with patch("graphton.core.git_tools.httpx.AsyncClient") as MockClient:
+        with patch("graphton.core.git_tools.httpx.AsyncClient") as mock_client:
             instance = AsyncMock()
             instance.post.return_value = mock_response
             instance.__aenter__ = AsyncMock(return_value=instance)
             instance.__aexit__ = AsyncMock(return_value=False)
-            MockClient.return_value = instance
+            mock_client.return_value = instance
 
             result = await tool.ainvoke(
                 {"title": "Add feature X", "body": "Does cool stuff"},
@@ -201,12 +200,12 @@ class TestCreatePullRequest:
         mock_response.json.return_value = _PR_RESPONSE
         mock_response.raise_for_status = MagicMock()
 
-        with patch("graphton.core.git_tools.httpx.AsyncClient") as MockClient:
+        with patch("graphton.core.git_tools.httpx.AsyncClient") as mock_client:
             instance = AsyncMock()
             instance.post.return_value = mock_response
             instance.__aenter__ = AsyncMock(return_value=instance)
             instance.__aexit__ = AsyncMock(return_value=False)
-            MockClient.return_value = instance
+            mock_client.return_value = instance
 
             result = await tool.ainvoke(
                 {
@@ -275,12 +274,12 @@ class TestCreatePullRequest:
         mock_response.json.return_value = _PR_RESPONSE
         mock_response.raise_for_status = MagicMock()
 
-        with patch("graphton.core.git_tools.httpx.AsyncClient") as MockClient:
+        with patch("graphton.core.git_tools.httpx.AsyncClient") as mock_client:
             instance = AsyncMock()
             instance.post.return_value = mock_response
             instance.__aenter__ = AsyncMock(return_value=instance)
             instance.__aexit__ = AsyncMock(return_value=False)
-            MockClient.return_value = instance
+            mock_client.return_value = instance
 
             result = await tool.ainvoke(
                 {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
@@ -304,12 +303,12 @@ class TestCreatePullRequest:
             "422", request=MagicMock(), response=error_resp,
         )
 
-        with patch("graphton.core.git_tools.httpx.AsyncClient") as MockClient:
+        with patch("graphton.core.git_tools.httpx.AsyncClient") as mock_client:
             instance = AsyncMock()
             instance.post.side_effect = exc
             instance.__aenter__ = AsyncMock(return_value=instance)
             instance.__aexit__ = AsyncMock(return_value=False)
-            MockClient.return_value = instance
+            mock_client.return_value = instance
 
             result = await tool.ainvoke(
                 {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
@@ -331,12 +330,12 @@ class TestCreatePullRequest:
             "422", request=MagicMock(), response=error_resp,
         )
 
-        with patch("graphton.core.git_tools.httpx.AsyncClient") as MockClient:
+        with patch("graphton.core.git_tools.httpx.AsyncClient") as mock_client:
             instance = AsyncMock()
             instance.post.side_effect = exc
             instance.__aenter__ = AsyncMock(return_value=instance)
             instance.__aexit__ = AsyncMock(return_value=False)
-            MockClient.return_value = instance
+            mock_client.return_value = instance
 
             result = await tool.ainvoke(
                 {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
@@ -348,12 +347,12 @@ class TestCreatePullRequest:
     async def test_github_api_timeout(self):
         tool = _create_create_pull_request_tool(_backend())
 
-        with patch("graphton.core.git_tools.httpx.AsyncClient") as MockClient:
+        with patch("graphton.core.git_tools.httpx.AsyncClient") as mock_client:
             instance = AsyncMock()
             instance.post.side_effect = httpx.TimeoutException("timed out")
             instance.__aenter__ = AsyncMock(return_value=instance)
             instance.__aexit__ = AsyncMock(return_value=False)
-            MockClient.return_value = instance
+            mock_client.return_value = instance
 
             result = await tool.ainvoke(
                 {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
@@ -375,12 +374,12 @@ class TestCreatePullRequest:
             "403", request=MagicMock(), response=error_resp,
         )
 
-        with patch("graphton.core.git_tools.httpx.AsyncClient") as MockClient:
+        with patch("graphton.core.git_tools.httpx.AsyncClient") as mock_client:
             instance = AsyncMock()
             instance.post.side_effect = exc
             instance.__aenter__ = AsyncMock(return_value=instance)
             instance.__aexit__ = AsyncMock(return_value=False)
-            MockClient.return_value = instance
+            mock_client.return_value = instance
 
             result = await tool.ainvoke(
                 {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
@@ -422,12 +421,12 @@ class TestRepoDirParameter:
         mock_response.json.return_value = _PR_RESPONSE
         mock_response.raise_for_status = MagicMock()
 
-        with patch("graphton.core.git_tools.httpx.AsyncClient") as MockClient:
+        with patch("graphton.core.git_tools.httpx.AsyncClient") as mock_client:
             instance = AsyncMock()
             instance.post.return_value = mock_response
             instance.__aenter__ = AsyncMock(return_value=instance)
             instance.__aexit__ = AsyncMock(return_value=False)
-            MockClient.return_value = instance
+            mock_client.return_value = instance
 
             await tool.ainvoke(
                 {"title": "T", "body": "B", "repo_dir": "/workspace/my-app"},
