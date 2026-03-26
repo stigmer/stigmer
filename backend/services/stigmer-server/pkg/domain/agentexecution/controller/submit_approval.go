@@ -40,14 +40,18 @@ const (
 //
 // ## Immediate State Transitions (in this handler)
 //
-//   - The matching PendingApproval entry is removed from status.pending_approvals
 //   - ToolCall.approval_action = submitted action
 //   - ToolCall.approval_decided_at = current timestamp
 //   - Updated state is persisted and broadcast to subscribers
 //
+// pending_approvals are intentionally PRESERVED in the DB. The re-invoked
+// Python activity reads them to discover interrupt_ids for LangGraph resume.
+// Cleanup happens via the clear-signal mechanism: the Python activity sends a
+// PendingApproval with empty tool_call_id through UpdateStatus after resume.
+//
 // The execution phase remains WAITING_FOR_APPROVAL until the Python activity
 // resumes and transitions it to IN_PROGRESS. This handler owns the approval
-// resolution; the phase transition is owned by the agent runner.
+// decision recording; the phase transition is owned by the agent runner.
 //
 // ## Idempotency
 //
@@ -79,18 +83,18 @@ func (c *AgentExecutionController) SubmitApproval(ctx context.Context, input *ag
 // buildSubmitApprovalPipeline constructs the pipeline for submit-approval operations.
 //
 // Pipeline steps:
-//  1. ValidateProto            - Validate input constraints (tool_call_id, action required)
-//  2. LoadExisting             - Load AgentExecution from store
-//  3. ValidateApproval         - Validate phase, tool_call_id match, idempotency
-//  4. ResolvePendingApproval   - Remove resolved entry from DB, broadcast to subscribers
-//  5. SignalWorkflow           - Send Temporal signal to running workflow
-//  6. BuildResponse            - Return current execution state (with audit log)
+//  1. ValidateProto              - Validate input constraints (tool_call_id, action required)
+//  2. LoadExisting               - Load AgentExecution from store
+//  3. ValidateApproval           - Validate phase, tool_call_id match, idempotency
+//  4. RecordApprovalDecision     - Record decision on ToolCall, broadcast to subscribers
+//  5. SignalWorkflow             - Send Temporal signal to running workflow
+//  6. BuildResponse              - Return current execution state (with audit log)
 func (c *AgentExecutionController) buildSubmitApprovalPipeline() *pipeline.Pipeline[*agentexecutionv1.SubmitApprovalInput] {
 	return pipeline.NewPipeline[*agentexecutionv1.SubmitApprovalInput]("agent-execution-submit-approval").
 		AddStep(steps.NewValidateProtoStep[*agentexecutionv1.SubmitApprovalInput]()). // 1. Validate input
 		AddStep(newLoadExistingForApprovalStep(c.store)).                             // 2. Load execution
 		AddStep(newValidateApprovalStep()).                                           // 3. Validate approval
-		AddStep(newResolvePendingApprovalStep(c.store, c.streamBroker)).              // 4. Resolve pending approval
+		AddStep(newRecordApprovalDecisionStep(c.store, c.streamBroker)).              // 4. Record approval decision
 		AddStep(newSignalWorkflowStep(c.workflowCreator, c.store)).                   // 5. Signal workflow
 		AddStep(newBuildApprovalResponseStep()).                                      // 6. Build response
 		Build()
@@ -260,35 +264,35 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 	return nil
 }
 
-// resolvePendingApprovalStep removes the resolved pending_approval entry from the
-// execution status, records the decision on the matching ToolCall, persists the
-// updated state to the DB, and broadcasts to active subscribers.
+// recordApprovalDecisionStep records the user's approval decision on the matching
+// ToolCall, persists the updated state to the DB, and broadcasts to subscribers.
 //
-// This step ensures the DB immediately reflects the user's approval decision.
-// Without it, pending_approvals persist in the DB after execution completes
-// because Python clears them in memory but protobuf3 serializes empty repeated
-// fields identically to absent fields, causing the Go merge logic in UpdateStatus
-// to preserve the stale entries.
+// pending_approvals are intentionally NOT removed. The re-invoked Python activity
+// reads them to discover the LangGraph interrupt_id for each approved tool call
+// and build Command(resume={interrupt_id: decision}). If we removed them here,
+// the activity would find an empty list and start a fresh LangGraph execution
+// instead of resuming the interrupted one -- causing the LLM to regenerate the
+// same tool call in an infinite loop.
 //
-// The step runs before SignalWorkflow so the DB is clean before the Temporal
-// workflow even receives the signal. No race condition exists because the Python
-// activity has already returned (the workflow is blocked on signal receipt).
-type resolvePendingApprovalStep struct {
+// Cleanup of pending_approvals happens later via the Python activity's
+// RESUME_RECONCILE phase, which sends a clear-signal (PendingApproval with
+// empty tool_call_id) through the UpdateStatus handler.
+type recordApprovalDecisionStep struct {
 	store        store.Store
 	streamBroker *StreamBroker
 }
 
-func newResolvePendingApprovalStep(s store.Store, broker *StreamBroker) *resolvePendingApprovalStep {
-	return &resolvePendingApprovalStep{store: s, streamBroker: broker}
+func newRecordApprovalDecisionStep(s store.Store, broker *StreamBroker) *recordApprovalDecisionStep {
+	return &recordApprovalDecisionStep{store: s, streamBroker: broker}
 }
 
-func (s *resolvePendingApprovalStep) Name() string {
-	return "ResolvePendingApproval"
+func (s *recordApprovalDecisionStep) Name() string {
+	return "RecordApprovalDecision"
 }
 
-func (s *resolvePendingApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.SubmitApprovalInput]) error {
+func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.SubmitApprovalInput]) error {
 	if isIdempotent, ok := ctx.Get(IsIdempotentRequestKey).(bool); ok && isIdempotent {
-		log.Debug().Msg("Skipping pending approval resolution for idempotent request")
+		log.Debug().Msg("Skipping approval decision recording for idempotent request")
 		return nil
 	}
 
@@ -301,24 +305,6 @@ func (s *resolvePendingApprovalStep) Execute(ctx *pipeline.RequestContext[*agent
 	updated := proto.Clone(execution).(*agentexecutionv1.AgentExecution)
 	if updated.Status == nil {
 		updated.Status = &agentexecutionv1.AgentExecutionStatus{}
-	}
-
-	// Remove the matching PendingApproval from the top-level list.
-	removed := removePendingApprovalByToolCallId(updated.Status, toolCallId)
-
-	if !removed {
-		// pending_approvals might be empty due to DB consistency lag (validated
-		// earlier as a warning). Nothing to remove -- proceed to signal.
-		log.Debug().
-			Str("execution_id", executionID).
-			Str("tool_call_id", toolCallId).
-			Msg("PendingApproval entry not found in status -- skipping removal (DB consistency lag)")
-		return nil
-	}
-
-	// Also remove from dual-surfaced SubAgentExecution.PendingApprovals.
-	for _, sa := range updated.Status.SubAgentExecutions {
-		removePendingApprovalByToolCallId(sa, toolCallId)
 	}
 
 	// Record the approval decision on the matching ToolCall for immediate UI
@@ -334,54 +320,25 @@ func (s *resolvePendingApprovalStep) Execute(ctx *pipeline.RequestContext[*agent
 		Str("execution_id", executionID).
 		Str("tool_call_id", toolCallId).
 		Str("action", action.String()).
-		Int("remaining_pending", len(updated.Status.PendingApprovals)).
-		Msg("Resolved pending approval entry")
+		Int("pending_approvals", len(updated.Status.PendingApprovals)).
+		Msg("Recorded approval decision on ToolCall (pending_approvals preserved for Python resume)")
 
 	if err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_agent_execution, executionID, updated); err != nil {
 		log.Error().
 			Err(err).
 			Str("execution_id", executionID).
-			Msg("Failed to persist resolved approval state")
-		return grpclib.InternalError(err, "failed to persist resolved approval state")
+			Msg("Failed to persist approval decision")
+		return grpclib.InternalError(err, "failed to persist approval decision")
 	}
 
 	if s.streamBroker != nil {
 		s.streamBroker.Broadcast(updated)
 	}
 
-	// Update context so downstream steps see the resolved state.
+	// Update context so downstream steps see the updated state.
 	ctx.Set(steps.TargetResourceKey, updated)
 
 	return nil
-}
-
-// pendingApprovalHolder is satisfied by any proto that carries a PendingApprovals
-// repeated field (AgentExecutionStatus and SubAgentExecution).
-type pendingApprovalHolder interface {
-	GetPendingApprovals() []*agentexecutionv1.PendingApproval
-}
-
-// removePendingApprovalByToolCallId removes the PendingApproval entry matching
-// toolCallId from the holder's list. Returns true if an entry was removed.
-//
-// Uses a type switch because AgentExecutionStatus and SubAgentExecution are
-// distinct generated types that both carry PendingApprovals but share no
-// settable interface for the field.
-func removePendingApprovalByToolCallId(holder pendingApprovalHolder, toolCallId string) bool {
-	approvals := holder.GetPendingApprovals()
-	for i, pa := range approvals {
-		if pa.GetToolCallId() == toolCallId {
-			remaining := append(approvals[:i], approvals[i+1:]...)
-			switch h := holder.(type) {
-			case *agentexecutionv1.AgentExecutionStatus:
-				h.PendingApprovals = remaining
-			case *agentexecutionv1.SubAgentExecution:
-				h.PendingApprovals = remaining
-			}
-			return true
-		}
-	}
-	return false
 }
 
 // signalWorkflowStep sends a Temporal signal to the running workflow.
@@ -543,9 +500,9 @@ func (s *buildApprovalResponseStep) Execute(ctx *pipeline.RequestContext[*agente
 		Str("comment", comment).
 		Msg("AUDIT: Approval decision submitted")
 
-	// The execution state in context reflects the resolved approval from
-	// ResolvePendingApprovalStep. Clients receive the cleaned state immediately;
-	// further updates arrive via the Subscribe stream as Python resumes.
+	// The execution state in context reflects the recorded approval decision from
+	// RecordApprovalDecisionStep. Clients see the ToolCall's approval_action
+	// immediately; further updates arrive via the Subscribe stream as Python resumes.
 
 	return nil
 }

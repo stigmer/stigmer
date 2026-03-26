@@ -2693,6 +2693,94 @@ async def _execute_graphton_impl(
                         f"{len(resume_dict)} already-resolved interrupt(s)."
                     )
             
+            # ── Defense-in-depth: checkpoint-based interrupt discovery ──────
+            #
+            # When approval_decisions is non-empty but pending_approvals was
+            # completely empty (e.g., cleared by the Go/Java handler before
+            # this activity was re-invoked), discover interrupt IDs directly
+            # from the LangGraph checkpoint -- the source of truth for
+            # in-flight interrupts.
+            if not resume_dict and not loop_aborted:
+                activity_logger.warning(
+                    "[RESUME_CHECKPOINT_FALLBACK] pending_approvals empty but "
+                    "%d approval_decision(s) present. Attempting interrupt "
+                    "discovery from LangGraph checkpoint.",
+                    len(approval_decisions),
+                )
+                try:
+                    graph_state = await agent_graph.aget_state(
+                        cast(RunnableConfig, config)
+                    )
+                    if graph_state and graph_state.interrupts:
+                        activity_logger.info(
+                            "[RESUME_CHECKPOINT_FALLBACK] Found %d interrupt(s) "
+                            "in checkpoint: %s",
+                            len(graph_state.interrupts),
+                            ", ".join(
+                                f"id={i.id} tool={i.value.get('tool_name', '') if isinstance(i.value, dict) else ''}"
+                                for i in graph_state.interrupts
+                            ),
+                        )
+                        remaining_decisions = dict(decisions_by_tool_call)
+                        for intr in graph_state.interrupts:
+                            if not remaining_decisions:
+                                break
+                            intr_value = (
+                                intr.value if isinstance(intr.value, dict) else {}
+                            )
+                            intr_tool = intr_value.get("tool_name", "")
+                            # Match by tool_name against remaining decisions
+                            matched_tc_id = None
+                            for tc_id, dec in remaining_decisions.items():
+                                if intr_tool and intr_tool == (
+                                    next(
+                                        (
+                                            pa.tool_name
+                                            for pa in execution.status.pending_approvals
+                                            if pa.tool_call_id == tc_id
+                                        ),
+                                        "",
+                                    )
+                                ):
+                                    matched_tc_id = tc_id
+                                    break
+                            # If tool_name matching failed but counts align 1:1
+                            if (
+                                matched_tc_id is None
+                                and len(graph_state.interrupts) == 1
+                                and len(remaining_decisions) == 1
+                            ):
+                                matched_tc_id = next(iter(remaining_decisions))
+                            if matched_tc_id is not None:
+                                dec = remaining_decisions.pop(matched_tc_id)
+                                action_str = _action_map.get(
+                                    dec.action, "unknown"
+                                )
+                                dv: dict[str, str] = {"action": action_str}
+                                if dec.comment:
+                                    dv["comment"] = dec.comment
+                                resume_dict[intr.id] = dv
+                                activity_logger.info(
+                                    "[RESUME_CHECKPOINT_FALLBACK] Matched "
+                                    "interrupt_id=%s to tool_call_id=%s "
+                                    "(tool=%s) via checkpoint",
+                                    intr.id,
+                                    matched_tc_id,
+                                    intr_tool,
+                                )
+                    else:
+                        activity_logger.warning(
+                            "[RESUME_CHECKPOINT_FALLBACK] No interrupts in "
+                            "checkpoint. LangGraph may have already processed "
+                            "the resume. Proceeding with fresh execution."
+                        )
+                except Exception as e:
+                    activity_logger.warning(
+                        "[RESUME_CHECKPOINT_FALLBACK] Checkpoint query failed: "
+                        "%s. Proceeding with fresh execution.",
+                        e,
+                    )
+            
             if resume_dict:
                 is_resume_from_approval = True
                 resume_decision = resume_dict
@@ -2864,8 +2952,18 @@ async def _execute_graphton_impl(
                                 status=ToolCallStatus.TOOL_CALL_SKIPPED,
                             )
             
-            # Clear stale pending_approvals — they are no longer pending
+            # Clear stale pending_approvals — they are no longer pending.
             del status_builder.current_status.pending_approvals[:]
+            
+            # Add clear-signal so the Go/Java UpdateStatus handler clears
+            # pending_approvals from the DB.  Protobuf3 treats an empty repeated
+            # field as absent, so the merge logic would otherwise preserve the
+            # stale entries.  A single PendingApproval with empty tool_call_id
+            # is the established sentinel that triggers the "clear" path in
+            # BuildNewStateWithStatusStep.
+            status_builder.current_status.pending_approvals.append(
+                PendingApproval(tool_call_id="")
+            )
             
             # Pre-populate fingerprints from existing tool calls to prevent
             # duplicates when LangGraph re-fires on_tool_start for resumed tools
@@ -2875,7 +2973,7 @@ async def _execute_graphton_impl(
                 f"[RESUME_RECONCILE] execution={execution_id} "
                 f"reconciled {reconciled_count} tool call(s), "
                 f"synced message-embedded copies, "
-                f"cleared pending_approvals, "
+                f"queued pending_approvals clear-signal, "
                 f"populated {len(status_builder.tool_call_fingerprints)} fingerprint(s)"
             )
         
