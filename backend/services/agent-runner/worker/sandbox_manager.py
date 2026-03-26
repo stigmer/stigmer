@@ -28,23 +28,26 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Daytona workspace constants
 # ---------------------------------------------------------------------------
-# DAYTONA_WORKSPACE_MOUNT_PATH is the absolute path inside the sandbox where
-# the persistent Daytona volume is mounted.  All workspace files (skills,
-# attachments, agent work products) live under this path so they survive
-# sandbox lifecycle events.  Consumers that need to know the agent's
-# workspace root should import this constant rather than hard-coding paths.
+# DAYTONA_WORKSPACE_MOUNT_PATH is the absolute path inside the sandbox used
+# as the workspace root for all agent file operations (skills, attachments,
+# git clones, agent work products).  The directory lives on the sandbox's
+# local overlay filesystem — volume mounts were removed because FUSE+S3
+# throughput (~1 file/s) made git checkout infeasible for large repos.
+# DaytonaWorkspaceBackend creates this directory at construction time.
+# Consumers that need the agent's workspace root should import this
+# constant rather than hard-coding paths.
 # ---------------------------------------------------------------------------
 
 DAYTONA_WORKSPACE_MOUNT_PATH: str = "/home/daytona/workspace"
-"""Absolute mount path for the persistent Daytona volume inside sandboxes."""
+"""Absolute workspace root path inside Daytona sandboxes (local overlay)."""
 
 
 # ---------------------------------------------------------------------------
-# Worker-level Daytona volume state
+# Worker-level Daytona volume state (DEAD CODE — preserved for future use)
 # ---------------------------------------------------------------------------
-# Initialized once at runner startup via initialize_daytona_volume(), then
-# read by activity code via get_daytona_volume_id().  Follows the same
-# module-level store pattern as token_manager.py (API key).
+# Volume mounts are disabled in production.  The functions below are retained
+# so volume support can be re-enabled without reimplementation if a concrete
+# use case arises.  See _create_daytona_sandbox() for the disable rationale.
 # ---------------------------------------------------------------------------
 
 _daytona_volume_id: str | None = None

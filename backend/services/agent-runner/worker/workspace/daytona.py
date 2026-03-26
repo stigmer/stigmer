@@ -43,6 +43,8 @@ class DaytonaWorkspaceBackend:
         - ``sandbox`` is not ``None``.
         - ``workspace_root`` is a non-empty absolute path inside the
           sandbox (e.g. ``/home/daytona/workspace``).
+        - ``workspace_root`` directory exists in the sandbox (created
+          via ``mkdir -p`` if absent).
 
     Lifecycle:
         Callers **must** call :meth:`close` when the backend is no longer
@@ -63,6 +65,8 @@ class DaytonaWorkspaceBackend:
 
         self._sandbox = sandbox
         self._workspace_root = workspace_root.rstrip("/")
+
+        self._ensure_workspace_root()
 
         self._session_id = f"ws-provision-{uuid4().hex[:12]}"
         self._session_created = False
@@ -195,6 +199,22 @@ class DaytonaWorkspaceBackend:
             )
 
     # -- Internal helpers -----------------------------------------------------
+
+    def _ensure_workspace_root(self) -> None:
+        """Guarantee the workspace root directory exists in the sandbox.
+
+        Previously this directory was created implicitly by a Daytona
+        volume mount.  With volumes removed (local overlay is ~2,360x
+        faster for file-creation workloads), the backend must create it
+        explicitly.  Uses ``sandbox.process.exec`` (not the session API)
+        because the process session has not been created yet at this point.
+        """
+        self._sandbox.process.exec(
+            f"mkdir -p {self._workspace_root}", timeout=5,
+        )
+        logger.debug(
+            "Ensured workspace root exists: %s", self._workspace_root,
+        )
 
     def _ensure_session(self) -> None:
         """Create the Daytona process session on first use.
