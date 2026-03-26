@@ -1,9 +1,9 @@
 # Next Task: 20260326.01.sandbox-github-pr
 
 ## Current State
-- **Status**: in-progress
-- **Last Session**: March 26, 2026 — Phase 3 (create_pull_request tool) completed
-- **Active Task**: Phase 3 complete. Next: Phase 4 (artifact + polish) from the project README
+- **Status**: complete
+- **Last Session**: March 26, 2026 — Phase 4 (cleanup) completed
+- **Active Task**: All phases complete. Remaining: E2E validation and optional `read` tool deny-list.
 
 ## Session Progress (2026-03-26, Session 4)
 
@@ -39,7 +39,25 @@
 - `backend/services/agent-runner/tests/test_workspace_prompt_section.py` — 2 new tests
 - `backend/services/agent-runner/tests/test_integration_skill_pipeline.py` — tool count 11→12
 
-## Cumulative Progress (Phases 0–3)
+## Session Progress (2026-03-26, Session 5)
+
+### Phase 4: Cleanup — Remove `.patch` Artifact — COMPLETE
+- **Decision**: PR URL artifact dropped — agent already communicates PR URL in its conversational response. The artifact system only supports `FILE` and `DIRECTORY` kinds; a `LINK` kind would be over-engineering for zero user value.
+- **Decision**: `.patch` artifact removed — it was a stopgap from before PR creation existed. The `_auto_publish_written_files` safety net remains for write/edit tool outputs.
+- Removed `_generate_git_diff_artifact` function from `execute_graphton.py` (~100 lines)
+- Removed the call site in the post-stream safety net (the `_auto_publish_written_files` safety net is unchanged)
+- Deleted `tests/workspace/test_git_diff_artifact.py` (11 tests)
+- Removed redundant `test_git_diff_with_no_platform_dir` from `test_platform_mount_integration.py`
+- Full test suite: Graphton 1191 passed / Agent-runner 1273 passed, zero regressions
+
+### Files Modified
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` — removed function + call site
+- `backend/services/agent-runner/tests/workspace/test_platform_mount_integration.py` — removed redundant test
+
+### Files Deleted
+- `backend/services/agent-runner/tests/workspace/test_git_diff_artifact.py`
+
+## Cumulative Progress (Phases 0–4)
 
 ### Phase 0: FUSE+S3 Volume Compatibility — COMPLETE (Session 1)
 - `--separate-git-dir` for FUSE volumes, global git config, stale pointer recovery
@@ -53,19 +71,19 @@
 ### Phase 3: `create_pull_request` Platform Tool — COMPLETE (Session 4)
 - Graphton platform tool, GitHub REST API via httpx, self-discovering, auto-approved, 30 new tests
 
+### Phase 4: Cleanup — Remove `.patch` Artifact — COMPLETE (Session 5)
+- Removed `_generate_git_diff_artifact` and associated tests. PR URL communicated via agent response, not artifact system.
+
 ## Next Steps
-1. **Phase 4: Artifact + Polish** — Capture PR URL as execution artifact in `status_builder.py`
-2. **Deploy and E2E validate** — Run a real agent execution with a `git_repo` workspace to confirm clone + push + PR works end-to-end
-3. **Optional: `read` tool deny-list** — Block agent from reading `~/.git-credentials` via the `read` platform tool
+1. **Deploy and E2E validate** — Run a real agent execution with a `git_repo` workspace to confirm clone + push + PR works end-to-end
+2. **Optional: `read` tool deny-list** — Block agent from reading `~/.git-credentials` via the `read` platform tool
 
 ## Context for Resume
-- Phase 4 involves `backend/services/agent-runner/worker/activities/graphton/status_builder.py`
-- The artifact system already has `_generate_git_diff_artifact` that creates `.patch` artifacts — PR URL artifact follows the same pattern
 - Pre-existing failures in `test_daytona_backend.py` (8 tests) are unrelated MagicMock setup issues
-- The `create_pull_request` tool returns PR URL in its result string — Phase 4 could emit a custom event or store it as a structured artifact
+- The `create_pull_request` tool returns PR URL in its result string — the agent includes this in its conversational response
 
 ## Blockers
-- None. Phase 4 can proceed immediately.
+- None. All implementation phases (0–4) are complete. Remaining work is deployment and validation.
 
 ## Quick Resume
 To continue this project, drag this file into chat:

@@ -252,12 +252,6 @@ class TestBackwardCompatNoVirtualMount:
         backend = LocalWorkspaceBackend(root_dir=tmp_path)
         assert backend.platform_dir is None
 
-    def test_git_diff_with_no_platform_dir(self, tmp_path):
-        """Without platform_dir, git diff should still exclude old paths."""
-        # This verifies the backward compat logic in _generate_git_diff_artifact
-        backend = LocalWorkspaceBackend(root_dir=tmp_path)
-        assert backend.platform_dir is None
-
 
 # =============================================================================
 # Agent-runtime FilesystemBackend integration
