@@ -3,7 +3,7 @@ package convert
 import (
 	"testing"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
 )
 
 func TestGenerateSlug(t *testing.T) {

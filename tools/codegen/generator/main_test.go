@@ -76,7 +76,7 @@ func TestProtoTypeToGoImportPath(t *testing.T) {
 		{
 			"ai.stigmer.agentic.session.v1.Session",
 			mcpProtoPrefix,
-			"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1",
+			"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/session/v1",
 		},
 		{"foo.bar.Baz", sdkProtoPrefix, ""},
 		{"too.short", sdkProtoPrefix, ""},

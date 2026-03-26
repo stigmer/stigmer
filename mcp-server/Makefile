@@ -1,4 +1,4 @@
-.PHONY: build test docker-build tidy vet lint fmt clean codegen-schemas codegen-mcp codegen
+.PHONY: build test docker-build tidy vet lint fmt clean codegen-stubs codegen-schemas codegen-mcp codegen
 
 BINARY  := mcp-server-stigmer
 CMD     := ./cmd/mcp-server-stigmer
@@ -41,8 +41,17 @@ lint:
 fmt:
 	go fmt ./...
 
-# Protobuf Go code lives in apis/stubs/go (shared with backend/CLI). Run
-# `make -C apis build` to regenerate stubs; do not duplicate them under mcp-server/proto.
+# Generate proto stubs inside the MCP server module (mirrors sdk/go pattern).
+codegen-stubs:
+	@echo "Generating proto stubs into proto/..."
+	@rm -rf proto
+	@mkdir -p proto
+	@cd ../apis && buf generate --template buf.gen.mcp-server.yaml
+	@if [ -d "proto/github.com" ]; then \
+		mv proto/github.com/stigmer/stigmer/mcp-server/proto/* proto/ 2>/dev/null || true; \
+		rm -rf proto/github.com; \
+	fi
+	@echo "Proto stubs generated in proto/"
 
 # Generate JSON schemas from all proto files.
 codegen-schemas:
@@ -59,7 +68,7 @@ codegen-mcp:
 		--comprehensive --schema-dir=../tools/codegen/schemas --output-dir=gen --target=mcp
 
 # Full pipeline: proto stubs + schemas + MCP input types.
-codegen: codegen-schemas codegen-mcp
+codegen: codegen-stubs codegen-schemas codegen-mcp
 
 # Remove build artifacts.
 clean:

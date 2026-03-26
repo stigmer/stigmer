@@ -1,8 +1,7 @@
 # Multi-stage Docker build for mcp-server-stigmer.
 #
-# IMPORTANT: This Dockerfile must be built from the *repository root* so that
-# the build context includes both mcp-server/ and apis/stubs/go/ (required by
-# the Go module's replace directive).
+# Proto stubs live inside the mcp-server module (mcp-server/proto/), so the
+# build context only needs the mcp-server/ directory.
 #
 #   docker build -f mcp-server/Dockerfile -t mcp-server-stigmer .
 #
@@ -13,14 +12,11 @@ RUN apk add --no-cache git
 
 WORKDIR /build
 
-# Copy the API stubs that the replace directive points to.
-COPY apis/stubs/go/ apis/stubs/go/
-
 # Copy module files first for better layer caching.
 COPY mcp-server/go.mod mcp-server/go.sum mcp-server/
 RUN cd mcp-server && go mod download
 
-# Copy the MCP server source.
+# Copy the MCP server source (includes proto/ stubs).
 COPY mcp-server/ mcp-server/
 
 # Build a statically linked binary.

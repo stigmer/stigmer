@@ -6,7 +6,7 @@ package convert
 import (
 	"strings"
 
-	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
+	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
 )
 
 // GenerateSlug converts a human-readable name to a URL-friendly slug.
