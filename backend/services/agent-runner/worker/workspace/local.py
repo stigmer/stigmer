@@ -96,6 +96,11 @@ class LocalWorkspaceBackend:
     def mkdir(self, rel_path: str) -> None:
         self._resolve(rel_path).mkdir(parents=True, exist_ok=True)
 
+    # -- Lifecycle -------------------------------------------------------------
+
+    def close(self) -> None:
+        pass
+
     # -- Process execution ----------------------------------------------------
 
     def execute(

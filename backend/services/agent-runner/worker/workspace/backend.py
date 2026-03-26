@@ -158,3 +158,12 @@ class WorkspaceBackend(Protocol):
             An ``ExecuteResult`` with exit code, stdout, and stderr.
         """
         ...
+
+    def close(self) -> None:
+        """Release resources held by the backend.
+
+        Called when the backend is no longer needed.  Implementations that
+        allocate external resources (e.g. Daytona process sessions) override
+        this to clean up.  The default is a no-op.
+        """
+        return
