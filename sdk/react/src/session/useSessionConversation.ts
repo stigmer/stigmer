@@ -79,6 +79,13 @@ export interface UseSessionConversationReturn {
   readonly activePhase: ExecutionPhase | null;
   /** True while the active execution's stream is delivering updates. */
   readonly isStreaming: boolean;
+  /**
+   * True after the stream subscription starts but before the first
+   * snapshot arrives from the server. Platform builders can use this
+   * to differentiate between "connecting to stream" and "execution is
+   * PENDING but stream is established."
+   */
+  readonly isConnecting: boolean;
 
   /**
    * Submit a follow-up message. Internally creates an execution and
@@ -382,6 +389,7 @@ export function useSessionConversation(
     activeStreamExecution,
     activePhase,
     isStreaming: stream.isStreaming,
+    isConnecting: stream.isConnecting,
 
     sendFollowUp,
     canSendFollowUp,

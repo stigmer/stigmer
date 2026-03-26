@@ -19,7 +19,7 @@ const PHASE_CONFIG: ReadonlyMap<ExecutionPhase, PhaseConfig> = new Map([
     ExecutionPhase.EXECUTION_PENDING,
     {
       label: "Pending",
-      icon: DotIcon,
+      icon: PulseDotIcon,
       colorClass: "text-muted-foreground",
     },
   ],
