@@ -335,6 +335,7 @@ class WorkspaceProvisioner:
                 backend,
                 merged_env,
                 target_subdir=target_subdir,
+                is_local_mode=is_local_mode,
             )
 
         if workspace_source.HasField("local_path"):  # type: ignore[attr-defined]
