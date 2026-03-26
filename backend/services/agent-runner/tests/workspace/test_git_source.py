@@ -1042,7 +1042,7 @@ class TestStaleGitPointer:
                 exit_code=0, stdout="dir\n", stderr="",
             ),
         })
-        result = git_source.provision(source, dir_backend, {})
+        git_source.provision(source, dir_backend, {})
         assert not any("git clone" in c for c in dir_backend.commands)
 
         file_backend = _GitBackend(tmp_path, responses={
@@ -1053,7 +1053,7 @@ class TestStaleGitPointer:
                 exit_code=0, stdout="valid\n", stderr="",
             ),
         })
-        result = git_source.provision(source, file_backend, {})
+        git_source.provision(source, file_backend, {})
         assert not any("git clone" in c for c in file_backend.commands)
         assert any("sed 's/gitdir: //'" in c for c in file_backend.commands)
 
