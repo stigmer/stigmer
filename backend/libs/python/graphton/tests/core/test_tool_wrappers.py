@@ -1295,6 +1295,43 @@ class TestExecuteToolWrapper:
 
         assert "Command failed" in result_str
 
+    @pytest.mark.asyncio
+    async def test_execute_with_output_only_backend(self):
+        """Execute tool handles backends that return .output instead of .stdout/.stderr.
+
+        This reproduces the 'ExecuteResponse has no attribute stdout' crash
+        that occurs when the backend is a Daytona sandbox (deepagents'
+        DaytonaBackend returns ExecuteResponse with .output, not .stdout).
+        """
+        backend = MagicMock(spec=["execute"])
+        result = MagicMock(spec=["output", "exit_code", "truncated"])
+        result.output = "file1.txt\nfile2.txt"
+        result.exit_code = 0
+        result.truncated = False
+        backend.execute.return_value = result
+
+        tool = _create_execute_tool(backend)
+        result_str = await tool.ainvoke({"command": "ls"})
+
+        assert "file1.txt" in result_str
+        assert "file2.txt" in result_str
+
+    @pytest.mark.asyncio
+    async def test_execute_with_output_only_backend_failure(self):
+        """Execute tool formats failure correctly for .output-only backends."""
+        backend = MagicMock(spec=["execute"])
+        result = MagicMock(spec=["output", "exit_code", "truncated"])
+        result.output = "permission denied"
+        result.exit_code = 1
+        result.truncated = False
+        backend.execute.return_value = result
+
+        tool = _create_execute_tool(backend)
+        result_str = await tool.ainvoke({"command": "rm /protected"})
+
+        assert "Command failed" in result_str
+        assert "permission denied" in result_str
+
 
 # =============================================================================
 # Shell output formatting helpers

@@ -1,19 +1,24 @@
-"""Unit tests for WorkspaceNormalizingBackend.
+"""Unit tests for WorkspaceNormalizingBackend and execution result translation.
 
 Tests that the normalising wrapper correctly:
 1. Strips workspace-root prefixes from paths before delegating to the inner
    backend, preventing the double-prefix bug (e.g. /workspace/workspace/...).
 2. Rebases paths when the agent workspace root is a subdirectory of the
    sandbox root (volume-mount scenario).
+3. Translates inner-backend execution responses into graphton's canonical
+   ``ExecutionResult`` type (fixes the ``'ExecuteResponse' object has no
+   attribute 'stdout'`` crash).
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from unittest.mock import MagicMock
 
 import pytest
 
 from graphton.core.backends.daytona import WorkspaceNormalizingBackend
+from graphton.core.backends.types import ExecutionResult, to_execution_result
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -470,3 +475,131 @@ class TestDirectoryCache:
         w.write("new_dir/file.txt", "x")
         assert w.is_directory("new_dir") is True
         assert inner_backend.is_directory.call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# to_execution_result() normalisation
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _FakeExecuteResponse:
+    """Mimics deepagents' ExecuteResponse (has .output, no .stdout/.stderr)."""
+
+    output: str
+    exit_code: int
+    truncated: bool = False
+
+
+class TestToExecutionResult:
+    """Tests for the to_execution_result() normalisation helper."""
+
+    def test_passthrough_execution_result(self) -> None:
+        original = ExecutionResult(exit_code=0, stdout="hello", stderr="")
+        result = to_execution_result(original)
+        assert result is original
+
+    def test_translates_execute_response_output(self) -> None:
+        raw = _FakeExecuteResponse(output="listing\nfiles", exit_code=0)
+        result = to_execution_result(raw)
+        assert isinstance(result, ExecutionResult)
+        assert result.stdout == "listing\nfiles"
+        assert result.stderr == ""
+        assert result.exit_code == 0
+
+    def test_translates_execute_response_failure(self) -> None:
+        raw = _FakeExecuteResponse(output="not found", exit_code=127)
+        result = to_execution_result(raw)
+        assert result.exit_code == 127
+        assert result.stdout == "not found"
+
+    def test_prefers_stdout_over_output(self) -> None:
+        raw = MagicMock()
+        raw.stdout = "real stdout"
+        raw.stderr = "real stderr"
+        raw.output = "combined"
+        raw.exit_code = 0
+        result = to_execution_result(raw)
+        assert result.stdout == "real stdout"
+        assert result.stderr == "real stderr"
+
+    def test_falls_back_to_output_when_stdout_empty(self) -> None:
+        raw = MagicMock()
+        raw.stdout = ""
+        raw.stderr = ""
+        raw.output = "combined output"
+        raw.exit_code = 0
+        result = to_execution_result(raw)
+        assert result.stdout == "combined output"
+
+    def test_handles_none_exit_code(self) -> None:
+        raw = _FakeExecuteResponse(output="ok", exit_code=None)  # type: ignore[arg-type]
+        result = to_execution_result(raw)
+        assert result.exit_code == 0
+
+    def test_handles_minimal_object(self) -> None:
+        raw = MagicMock(spec=[])
+        result = to_execution_result(raw)
+        assert result.exit_code == 1  # unknown exit code defaults to failure
+        assert result.stdout == ""
+        assert result.stderr == ""
+
+
+# ---------------------------------------------------------------------------
+# WorkspaceNormalizingBackend.execute() result translation
+# ---------------------------------------------------------------------------
+
+
+class TestExecuteResultTranslation:
+    """Tests that execute() translates inner-backend responses to ExecutionResult."""
+
+    def test_translates_execute_response_to_execution_result(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        """Inner backend returning ExecuteResponse-like object is normalised."""
+        inner_backend.execute.return_value = _FakeExecuteResponse(
+            output="drwxr-xr-x 5 user staff", exit_code=0,
+        )
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+        result = w.execute("ls -la")
+        assert isinstance(result, ExecutionResult)
+        assert result.stdout == "drwxr-xr-x 5 user staff"
+        assert result.stderr == ""
+        assert result.exit_code == 0
+
+    def test_passes_through_execution_result(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        """Inner backend returning ExecutionResult is passed through."""
+        inner_result = ExecutionResult(exit_code=0, stdout="ok", stderr="")
+        inner_backend.execute.return_value = inner_result
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+        result = w.execute("echo ok")
+        assert result is inner_result
+
+    def test_translates_failure_response(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        inner_backend.execute.return_value = _FakeExecuteResponse(
+            output="command not found", exit_code=127,
+        )
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+        result = w.execute("nonexistent")
+        assert result.exit_code == 127
+        assert result.stdout == "command not found"
+
+    def test_env_vars_injected_before_translation(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        inner_backend.execute.return_value = _FakeExecuteResponse(
+            output="token=secret", exit_code=0,
+        )
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/workspace",
+            env_vars={"TOKEN": "secret"},
+        )
+        result = w.execute("echo $TOKEN")
+        assert isinstance(result, ExecutionResult)
+        call_args = inner_backend.execute.call_args[0][0]
+        assert "export TOKEN=" in call_args

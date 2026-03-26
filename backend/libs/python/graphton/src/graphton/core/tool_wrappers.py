@@ -1235,13 +1235,20 @@ def _create_execute_tool(
             else:
                 result = backend.execute(command, timeout=timeout)
 
+            stdout = getattr(result, "stdout", "") or ""
+            if not stdout:
+                output_val = getattr(result, "output", "")
+                if isinstance(output_val, str):
+                    stdout = output_val
+            stderr = getattr(result, "stderr", "") or ""
+
             if result.exit_code == 0:
                 logger.info("✅ Command completed successfully")
-                return _format_shell_success(result.stdout, result.stderr)
+                return _format_shell_success(stdout, stderr)
             else:
                 logger.warning(f"⚠️  Command exited with code {result.exit_code}")
                 return _format_shell_failure(
-                    result.exit_code, result.stdout, result.stderr,
+                    result.exit_code, stdout, stderr,
                 )
         except Exception as e:
             logger.warning(f"⚠️  execute tool failed: {e}")

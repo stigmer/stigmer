@@ -19,7 +19,6 @@ import os
 import subprocess
 import sys
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -29,8 +28,11 @@ from graphton.core.backends.platform_mount import (
     STIGMER_PLATFORM_DIR_ENV,
     classify_platform_path,
 )
+from graphton.core.backends.types import ExecutionResult
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["ExecutionResult", "FilesystemBackend"]
 
 
 def _human_readable_size(size_bytes: int) -> str:
@@ -40,20 +42,6 @@ def _human_readable_size(size_bytes: int) -> str:
     if size_bytes < 1024 * 1024:
         return f"{size_bytes / 1024:.1f} KB"
     return f"{size_bytes / (1024 * 1024):.1f} MB"
-
-
-@dataclass
-class ExecutionResult:
-    """Result of a shell command execution.
-
-    Attributes:
-        exit_code: Command exit code (0 for success)
-        stdout: Standard output from the command
-        stderr: Standard error from the command
-    """
-    exit_code: int
-    stdout: str
-    stderr: str
 
 
 class FilesystemBackend:

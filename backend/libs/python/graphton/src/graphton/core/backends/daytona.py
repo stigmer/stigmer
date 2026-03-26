@@ -31,6 +31,7 @@ from typing import Any
 from deepagents.backends.protocol import BackendProtocol  # type: ignore[import-untyped]
 
 from graphton.core.backends.gitignore_filter import GitIgnoreFilter
+from graphton.core.backends.types import ExecutionResult, to_execution_result
 
 logger = logging.getLogger(__name__)
 
@@ -295,12 +296,19 @@ class WorkspaceNormalizingBackend:
         self._path_type_cache[norm_path] = result
         return result
 
-    def execute(self, command: str, **kwargs: Any) -> Any:  # noqa: ANN401
+    def execute(self, command: str, **kwargs: Any) -> ExecutionResult:
         """Execute shell command with injected env vars.
 
         When ``env_vars`` were provided at construction, each variable is
         exported before the user command so it is available in the remote
         sandbox shell.
+
+        The inner backend may return different result types depending on
+        its implementation (e.g. ``ExecutionResult`` from
+        ``FilesystemBackend``, ``ExecuteResponse`` from deepagents'
+        ``DaytonaBackend``).  This method normalises the response into
+        graphton's canonical ``ExecutionResult`` so downstream consumers
+        always see ``.stdout``, ``.stderr``, and ``.exit_code``.
         """
         self._invalidate_cache()
         if self._env_vars:
@@ -309,7 +317,8 @@ class WorkspaceNormalizingBackend:
                 for k, v in self._env_vars.items()
             )
             command = f"{exports}; {command}"
-        return self._inner.execute(command, **kwargs)
+        raw = self._inner.execute(command, **kwargs)
+        return to_execution_result(raw)
 
     # -- transparent delegation for everything else -------------------------
 

@@ -11,11 +11,14 @@ from graphton.core.backends.daytona import (
 from graphton.core.backends.deepagents_adapter import DeepAgentsBackendAdapter
 from graphton.core.backends.filesystem import FilesystemBackend
 from graphton.core.backends.gitignore_filter import GitIgnoreFilter
+from graphton.core.backends.types import ExecutionResult, to_execution_result
 
 __all__ = [
     "DeepAgentsBackendAdapter",
+    "ExecutionResult",
     "FilesystemBackend",
     "GitIgnoreFilter",
     "WorkspaceNormalizingBackend",
     "create_daytona_backend",
+    "to_execution_result",
 ]
