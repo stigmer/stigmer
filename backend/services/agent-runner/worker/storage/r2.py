@@ -24,14 +24,11 @@ workflow-runner/pkg/claimcheck/r2_store.go
 """
 
 import logging
-from typing import TYPE_CHECKING
+
+import boto3
+from botocore.config import Config as BotoConfig
 
 logger = logging.getLogger(__name__)
-
-# Lazy import boto3 to make it optional
-# Only required when R2 storage is actually used
-if TYPE_CHECKING:
-    pass
 
 
 class R2ArtifactStorage:
@@ -61,34 +58,20 @@ class R2ArtifactStorage:
             secret_key: R2 secret access key
             bucket: R2 bucket name
             region: AWS region (default "auto" for R2)
-            
-        Raises:
-            ImportError: If boto3 is not installed
         """
-        try:
-            import boto3
-            from botocore.config import Config
-        except ImportError:
-            raise ImportError(
-                "boto3 is required for R2 storage. "
-                "Install it with: pip install boto3"
-            )
-        
         self.bucket = bucket
         self.endpoint = endpoint
         
-        # Configure boto3 client for R2
-        # R2 uses path-style addressing
         self.client = boto3.client(
             's3',
             endpoint_url=endpoint,
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
             region_name=region,
-            config=Config(
+            config=BotoConfig(
                 s3={'addressing_style': 'path'},
                 signature_version='s3v4',
-            )
+            ),
         )
         
         logger.info(f"R2ArtifactStorage initialized for bucket {bucket}")
