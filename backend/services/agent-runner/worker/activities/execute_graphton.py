@@ -72,6 +72,7 @@ from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.token_manager import get_api_key
 from worker.tools import publish_artifact
 from worker.workspace import (
+    GitMetadata,
     LocalWorkspaceBackend,
     ProvisionResult,
     SourceType,
@@ -750,6 +751,35 @@ def build_workspace_prompt_section(
     return _build_multi_workspace_section(provision_results, container_root)
 
 
+def _git_writeback_guidance(
+    meta: GitMetadata | None,
+    *,
+    heading_level: int = 3,
+) -> str:
+    """Return a prompt section telling the agent it can push changes.
+
+    Returns an empty string when *meta* is ``None`` or credentials
+    were not configured, so callers can unconditionally append the
+    result.
+    """
+    if meta is None or not meta.git_credentials_configured:
+        return ""
+
+    heading = "#" * heading_level
+    return (
+        f"\n\n{heading} Git Write-Back\n\n"
+        "Git credentials are configured — you can push changes to "
+        "the remote repository.\n\n"
+        "**Rules:**\n"
+        "- Create a new branch for your changes (never push directly "
+        "to the default branch).\n"
+        "- Write clear, meaningful commit messages.\n"
+        "- Push your branch and report the branch name when done.\n"
+        "- Do NOT read, echo, or reference credential files "
+        "(e.g. `~/.git-credentials`)."
+    )
+
+
 def _build_single_workspace_section(result: ProvisionResult) -> str:
     """Format the workspace section for a single entry (legacy compat)."""
     if not result.workspace_description:
@@ -759,6 +789,8 @@ def _build_single_workspace_section(result: ProvisionResult) -> str:
 
     if result.file_tree:
         section += "\n\n" + result.file_tree
+
+    section += _git_writeback_guidance(result.git_metadata)
 
     return section
 
@@ -829,13 +861,15 @@ def _format_entry_description(result: ProvisionResult) -> str:
             if len(meta.base_commit) >= 7
             else meta.base_commit
         )
-        return (
+        desc = (
             f"Workspace entry **{name}** was initialized from "
             f"{meta.repo_url} (branch: {meta.branch}, "
             f"commit: {short_sha}).\n"
             "Changes you make will be captured as artifacts when "
             "execution completes."
         )
+        desc += _git_writeback_guidance(meta, heading_level=4)
+        return desc
 
     if result.source_type == SourceType.EMPTY:
         return (
