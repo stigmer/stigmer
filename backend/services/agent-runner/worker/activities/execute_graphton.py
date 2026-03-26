@@ -2775,6 +2775,47 @@ async def _execute_graphton_impl(
                 for tc in sa.tool_calls:
                     _reconcile_tool_call(tc, context=f"sub-agent:{sa.name}")
             
+            # Sync message-embedded tool call copies.
+            # Protobuf repeated-field append creates independent copies,
+            # so the ToolCall on the AI message and the one in the flat
+            # tool_calls list are separate objects.  RESUME_RECONCILE must
+            # update both to prevent stale WAITING_APPROVAL status from
+            # persisting in the message-embedded copies (which are sent
+            # to the DB via update_status and rendered by the UI).
+            for tc_id, decision in decisions_by_tc.items():
+                new_status = _approval_to_tool_status.get(
+                    decision.action, ToolCallStatus.TOOL_CALL_RUNNING
+                )
+                status_builder._update_tool_call_on_ai_message(
+                    status_builder.current_status.messages,
+                    tc_id,
+                    status=new_status,
+                )
+            for sa in status_builder.current_status.sub_agent_executions:
+                for tc_id, decision in decisions_by_tc.items():
+                    new_status = _approval_to_tool_status.get(
+                        decision.action, ToolCallStatus.TOOL_CALL_RUNNING
+                    )
+                    status_builder._update_tool_call_on_ai_message(
+                        sa.messages,
+                        tc_id,
+                        status=new_status,
+                    )
+            
+            # Defensive: warn about any WAITING_APPROVAL tool calls that
+            # were not reconciled.  This catches edge cases where the
+            # decision's tool_call_id doesn't match due to encoding
+            # differences, truncation, or other mismatches.
+            for tc in status_builder.current_status.tool_calls:
+                if tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
+                    activity_logger.warning(
+                        f"[RESUME_RECONCILE] execution={execution_id} "
+                        f"tool_call={tc.id} name={tc.name} still "
+                        f"WAITING_APPROVAL after reconciliation — "
+                        f"no matching decision found "
+                        f"(decisions: {list(decisions_by_tc.keys())})"
+                    )
+            
             # Auto-skip remaining WAITING_APPROVAL tools when a REJECT was
             # in the batch.  The Go workflow short-circuits signal collection
             # on REJECT, so these tools never received a decision.  Mark them
@@ -2805,6 +2846,23 @@ async def _execute_graphton_impl(
                 for sa in status_builder.current_status.sub_agent_executions:
                     for tc in sa.tool_calls:
                         _auto_skip_tool_call(tc, context=f"sub-agent:{sa.name}")
+                
+                # Sync auto-skip to message-embedded copies
+                for tc in status_builder.current_status.tool_calls:
+                    if tc.status == ToolCallStatus.TOOL_CALL_SKIPPED:
+                        status_builder._update_tool_call_on_ai_message(
+                            status_builder.current_status.messages,
+                            tc.id,
+                            status=ToolCallStatus.TOOL_CALL_SKIPPED,
+                        )
+                for sa in status_builder.current_status.sub_agent_executions:
+                    for tc in sa.tool_calls:
+                        if tc.status == ToolCallStatus.TOOL_CALL_SKIPPED:
+                            status_builder._update_tool_call_on_ai_message(
+                                sa.messages,
+                                tc.id,
+                                status=ToolCallStatus.TOOL_CALL_SKIPPED,
+                            )
             
             # Clear stale pending_approvals — they are no longer pending
             del status_builder.current_status.pending_approvals[:]
@@ -2816,6 +2874,7 @@ async def _execute_graphton_impl(
             activity_logger.info(
                 f"[RESUME_RECONCILE] execution={execution_id} "
                 f"reconciled {reconciled_count} tool call(s), "
+                f"synced message-embedded copies, "
                 f"cleared pending_approvals, "
                 f"populated {len(status_builder.tool_call_fingerprints)} fingerprint(s)"
             )
@@ -3555,20 +3614,92 @@ async def _execute_graphton_impl(
 
                         matched_tool_call_id = ""
 
-                        # Prefer direct run_id-based matching: the interrupt
-                        # payload carries the LangGraph run_id which maps to
-                        # the early-toolu_... tool_call_id via _run_id_aliases.
+                        # ── Priority 1: run_id-based matching ──
+                        # The interrupt payload carries the LangGraph run_id
+                        # which maps to the early-toolu_... tool_call_id via
+                        # _run_id_aliases.
                         if intr_run_id:
                             resolved = status_builder._run_id_aliases.get(intr_run_id, intr_run_id)
                             if resolved not in matched_tc_ids:
                                 matched_tool_call_id = resolved
                                 matched_tc_ids.add(resolved)
+                            else:
+                                activity_logger.info(
+                                    f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                                    f"run_id={intr_run_id} resolved={resolved} "
+                                    f"already in matched_tc_ids — falling through"
+                                )
+                        elif tool_name:
+                            activity_logger.info(
+                                f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                                f"interrupt {intr.id} tool={tool_name} has empty "
+                                f"run_id — falling through to fingerprint/name matching"
+                            )
 
-                        # Fallback: name-based matching scoped by from_sub_agent
-                        # to prevent cross-level mismatches. When from_sub_agent
-                        # is True, search sub-agent tool calls first; when False,
-                        # search only top-level tool calls.
+                        # ── Priority 2: fingerprint-based matching ──
+                        # Compute a fingerprint from the interrupt's tool_args
+                        # and look up _fingerprint_to_tool_call_id.  This handles
+                        # the resume-after-approval case where run_id matching
+                        # fails but the tool's args uniquely identify the correct
+                        # tool call (different content = different fingerprint).
+                        if not matched_tool_call_id and tool_args:
+                            intr_fp = status_builder._get_tool_fingerprint(
+                                tool_name, tool_args,
+                            )
+                            fp_tc_id = status_builder._fingerprint_to_tool_call_id.get(
+                                intr_fp, "",
+                            )
+                            if fp_tc_id and fp_tc_id not in matched_tc_ids:
+                                # Verify the tool call exists and is WAITING_APPROVAL
+                                _fp_verified = False
+                                for tc in status_builder.current_status.tool_calls:
+                                    if (
+                                        tc.id == fp_tc_id
+                                        and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                                    ):
+                                        _fp_verified = True
+                                        break
+                                if not _fp_verified:
+                                    for sa in status_builder.current_status.sub_agent_executions:
+                                        for tc in sa.tool_calls:
+                                            if (
+                                                tc.id == fp_tc_id
+                                                and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                                            ):
+                                                _fp_verified = True
+                                                break
+                                        if _fp_verified:
+                                            break
+                                if _fp_verified:
+                                    matched_tool_call_id = fp_tc_id
+                                    matched_tc_ids.add(fp_tc_id)
+                                    activity_logger.info(
+                                        f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                                        f"interrupt {intr.id} matched via fingerprint: "
+                                        f"tool={tool_name} tc_id={fp_tc_id}"
+                                    )
+
+                        # ── Priority 3: name-based matching ──
+                        # Scoped by from_sub_agent to prevent cross-level
+                        # mismatches.  When from_sub_agent is True, search
+                        # sub-agent tool calls first; when False, search only
+                        # top-level tool calls.
                         if not matched_tool_call_id:
+                            if tool_name:
+                                _candidates = [
+                                    tc.id
+                                    for tc in status_builder.current_status.tool_calls
+                                    if (tc.name == tool_name
+                                        or resolve_platform_tool_name(tc.name) == tool_name)
+                                    and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                                    and tc.id not in matched_tc_ids
+                                ]
+                                activity_logger.info(
+                                    f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                                    f"interrupt {intr.id} falling back to name matching: "
+                                    f"tool={tool_name} from_sub_agent={from_sub_agent} "
+                                    f"candidates={_candidates}"
+                                )
                             if from_sub_agent:
                                 for sa in status_builder.current_status.sub_agent_executions:
                                     for tc in sa.tool_calls:
@@ -3673,8 +3804,31 @@ async def _execute_graphton_impl(
                             existing_pa.interrupt_id = intr.id
                             enriched_count += 1
                         else:
-                            # Genuinely new entry (not in Phase 1) with a valid
-                            # tool_call_id — append without destroying existing.
+                            # Phase 2 matched a tool_call_id that Phase 1 didn't
+                            # create an entry for.  Before appending, check if
+                            # Phase 1 has a DIFFERENT tool_call_id for the same
+                            # tool_name — that stale entry must be removed to
+                            # prevent dual pending approvals that confuse the
+                            # Temporal workflow's signal validation.
+                            stale_phase1 = [
+                                pa for pa in phase1_by_tc_id.values()
+                                if pa.tool_name == tool_name
+                                and pa.tool_call_id != matched_tool_call_id
+                            ]
+                            if stale_phase1:
+                                for stale_pa in stale_phase1:
+                                    activity_logger.warning(
+                                        f"[INTERRUPT_CAPTURE] execution={execution_id} "
+                                        f"Phase 1 has tc_id={stale_pa.tool_call_id} "
+                                        f"but interrupt matched tc_id={matched_tool_call_id} "
+                                        f"for tool={tool_name} — removing stale Phase 1 entry"
+                                    )
+                                    try:
+                                        status_builder.current_status.pending_approvals.remove(
+                                            stale_pa,
+                                        )
+                                    except ValueError:
+                                        pass
                             pa = PendingApproval(
                                 tool_call_id=matched_tool_call_id,
                                 tool_name=tool_name,

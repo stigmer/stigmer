@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
-import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import {
+  ApprovalAction,
+  ToolCallStatus,
+} from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 import { ToolCallItem } from "./ToolCallItem";
 import { resolveToolCategory, extractPrimaryArg } from "./tool-categories";
@@ -32,6 +35,14 @@ export interface ToolCallGroupProps {
 
 type AggregateStatus = "running" | "waiting" | "failed" | "completed" | "pending";
 
+function isResolvedApproval(tc: ToolCall): boolean {
+  return (
+    tc.approvalAction === ApprovalAction.APPROVE ||
+    tc.approvalAction === ApprovalAction.SKIP ||
+    tc.approvalAction === ApprovalAction.REJECT
+  );
+}
+
 function deriveAggregateStatus(toolCalls: readonly ToolCall[]): AggregateStatus {
   let hasRunning = false;
   let hasWaiting = false;
@@ -45,6 +56,9 @@ function deriveAggregateStatus(toolCalls: readonly ToolCall[]): AggregateStatus 
         allTerminal = false;
         break;
       case ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
+        if (isResolvedApproval(tc)) {
+          break;
+        }
         hasWaiting = true;
         allTerminal = false;
         break;
