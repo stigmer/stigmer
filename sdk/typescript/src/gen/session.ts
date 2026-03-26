@@ -8,7 +8,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ToolApprovalOverrideSchema, McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
-import { SessionIdSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
+import { SessionIdSchema, UpdateSessionSubjectRequestSchema, UpdateSessionSandboxIdRequestSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, type UpdateSessionSubjectRequest, type UpdateSessionSandboxIdRequest, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
 import { GitRepoSourceSchema, LocalPathSourceSchema, WorkspaceSourceSchema, WorkspaceEntrySchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -40,6 +40,18 @@ export class SessionClient {
   async update(input: SessionInput): Promise<Session> {
     try {
       return await this.command.update(buildSessionProto(input));
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async updateSubject(input: UpdateSessionSubjectRequest): Promise<Session> {
+    try {
+      return await this.command.updateSubject(input);
+    } catch (e) { throw wrapError(e); }
+  }
+
+  async updateSandboxId(input: UpdateSessionSandboxIdRequest): Promise<Session> {
+    try {
+      return await this.command.updateSandboxId(input);
     } catch (e) { throw wrapError(e); }
   }
 

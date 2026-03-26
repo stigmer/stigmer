@@ -108,6 +108,68 @@ public final class SessionCommandControllerGrpc {
     return getUpdateMethod;
   }
 
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest,
+      ai.stigmer.agentic.session.v1.Session> getUpdateSubjectMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateSubject",
+      requestType = ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest.class,
+      responseType = ai.stigmer.agentic.session.v1.Session.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest,
+      ai.stigmer.agentic.session.v1.Session> getUpdateSubjectMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest, ai.stigmer.agentic.session.v1.Session> getUpdateSubjectMethod;
+    if ((getUpdateSubjectMethod = SessionCommandControllerGrpc.getUpdateSubjectMethod) == null) {
+      synchronized (SessionCommandControllerGrpc.class) {
+        if ((getUpdateSubjectMethod = SessionCommandControllerGrpc.getUpdateSubjectMethod) == null) {
+          SessionCommandControllerGrpc.getUpdateSubjectMethod = getUpdateSubjectMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest, ai.stigmer.agentic.session.v1.Session>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateSubject"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.Session.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("updateSubject"))
+              .build();
+        }
+      }
+    }
+    return getUpdateSubjectMethod;
+  }
+
+  private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest,
+      ai.stigmer.agentic.session.v1.Session> getUpdateSandboxIdMethod;
+
+  @io.grpc.stub.annotations.RpcMethod(
+      fullMethodName = SERVICE_NAME + '/' + "updateSandboxId",
+      requestType = ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest.class,
+      responseType = ai.stigmer.agentic.session.v1.Session.class,
+      methodType = io.grpc.MethodDescriptor.MethodType.UNARY)
+  public static io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest,
+      ai.stigmer.agentic.session.v1.Session> getUpdateSandboxIdMethod() {
+    io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest, ai.stigmer.agentic.session.v1.Session> getUpdateSandboxIdMethod;
+    if ((getUpdateSandboxIdMethod = SessionCommandControllerGrpc.getUpdateSandboxIdMethod) == null) {
+      synchronized (SessionCommandControllerGrpc.class) {
+        if ((getUpdateSandboxIdMethod = SessionCommandControllerGrpc.getUpdateSandboxIdMethod) == null) {
+          SessionCommandControllerGrpc.getUpdateSandboxIdMethod = getUpdateSandboxIdMethod =
+              io.grpc.MethodDescriptor.<ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest, ai.stigmer.agentic.session.v1.Session>newBuilder()
+              .setType(io.grpc.MethodDescriptor.MethodType.UNARY)
+              .setFullMethodName(generateFullMethodName(SERVICE_NAME, "updateSandboxId"))
+              .setSampledToLocalTracing(true)
+              .setRequestMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest.getDefaultInstance()))
+              .setResponseMarshaller(io.grpc.protobuf.ProtoUtils.marshaller(
+                  ai.stigmer.agentic.session.v1.Session.getDefaultInstance()))
+              .setSchemaDescriptor(new SessionCommandControllerMethodDescriptorSupplier("updateSandboxId"))
+              .build();
+        }
+      }
+    }
+    return getUpdateSandboxIdMethod;
+  }
+
   private static volatile io.grpc.MethodDescriptor<ai.stigmer.agentic.session.v1.SessionId,
       ai.stigmer.agentic.session.v1.Session> getDeleteMethod;
 
@@ -240,6 +302,34 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Set the session subject (server-side field-level update, race-safe).
+     * Unlike the full update RPC, this atomically modifies only spec.subject
+     * without touching other fields. This eliminates the lost-update race
+     * between GenerateSessionSubject and sandbox_manager, which both run in
+     * parallel during agent execution.
+     * </pre>
+     */
+    default void updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateSubjectMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Set the session sandbox ID (server-side field-level update, race-safe).
+     * Unlike the full update RPC, this atomically modifies only spec.sandbox_id
+     * without touching other fields. This eliminates the lost-update race
+     * between sandbox_manager and GenerateSessionSubject, which both run in
+     * parallel during agent execution.
+     * </pre>
+     */
+    default void updateSandboxId(ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session> responseObserver) {
+      io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall(getUpdateSandboxIdMethod(), responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a session (also cleans up thread and sandbox).
      * </pre>
      */
@@ -320,6 +410,36 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Set the session subject (server-side field-level update, race-safe).
+     * Unlike the full update RPC, this atomically modifies only spec.subject
+     * without touching other fields. This eliminates the lost-update race
+     * between GenerateSessionSubject and sandbox_manager, which both run in
+     * parallel during agent execution.
+     * </pre>
+     */
+    public void updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateSubjectMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
+     * Set the session sandbox ID (server-side field-level update, race-safe).
+     * Unlike the full update RPC, this atomically modifies only spec.sandbox_id
+     * without touching other fields. This eliminates the lost-update race
+     * between sandbox_manager and GenerateSessionSubject, which both run in
+     * parallel during agent execution.
+     * </pre>
+     */
+    public void updateSandboxId(ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest request,
+        io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session> responseObserver) {
+      io.grpc.stub.ClientCalls.asyncUnaryCall(
+          getChannel().newCall(getUpdateSandboxIdMethod(), getCallOptions()), request, responseObserver);
+    }
+
+    /**
+     * <pre>
      * Delete a session (also cleans up thread and sandbox).
      * </pre>
      */
@@ -384,6 +504,34 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Set the session subject (server-side field-level update, race-safe).
+     * Unlike the full update RPC, this atomically modifies only spec.subject
+     * without touching other fields. This eliminates the lost-update race
+     * between GenerateSessionSubject and sandbox_manager, which both run in
+     * parallel during agent execution.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.Session updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateSubjectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Set the session sandbox ID (server-side field-level update, race-safe).
+     * Unlike the full update RPC, this atomically modifies only spec.sandbox_id
+     * without touching other fields. This eliminates the lost-update race
+     * between sandbox_manager and GenerateSessionSubject, which both run in
+     * parallel during agent execution.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.Session updateSandboxId(ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest request) throws io.grpc.StatusException {
+      return io.grpc.stub.ClientCalls.blockingV2UnaryCall(
+          getChannel(), getUpdateSandboxIdMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
      * Delete a session (also cleans up thread and sandbox).
      * </pre>
      */
@@ -443,6 +591,34 @@ public final class SessionCommandControllerGrpc {
     public ai.stigmer.agentic.session.v1.Session update(ai.stigmer.agentic.session.v1.Session request) {
       return io.grpc.stub.ClientCalls.blockingUnaryCall(
           getChannel(), getUpdateMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Set the session subject (server-side field-level update, race-safe).
+     * Unlike the full update RPC, this atomically modifies only spec.subject
+     * without touching other fields. This eliminates the lost-update race
+     * between GenerateSessionSubject and sandbox_manager, which both run in
+     * parallel during agent execution.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.Session updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateSubjectMethod(), getCallOptions(), request);
+    }
+
+    /**
+     * <pre>
+     * Set the session sandbox ID (server-side field-level update, race-safe).
+     * Unlike the full update RPC, this atomically modifies only spec.sandbox_id
+     * without touching other fields. This eliminates the lost-update race
+     * between sandbox_manager and GenerateSessionSubject, which both run in
+     * parallel during agent execution.
+     * </pre>
+     */
+    public ai.stigmer.agentic.session.v1.Session updateSandboxId(ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest request) {
+      return io.grpc.stub.ClientCalls.blockingUnaryCall(
+          getChannel(), getUpdateSandboxIdMethod(), getCallOptions(), request);
     }
 
     /**
@@ -513,6 +689,36 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
+     * Set the session subject (server-side field-level update, race-safe).
+     * Unlike the full update RPC, this atomically modifies only spec.subject
+     * without touching other fields. This eliminates the lost-update race
+     * between GenerateSessionSubject and sandbox_manager, which both run in
+     * parallel during agent execution.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.Session> updateSubject(
+        ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateSubjectMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
+     * Set the session sandbox ID (server-side field-level update, race-safe).
+     * Unlike the full update RPC, this atomically modifies only spec.sandbox_id
+     * without touching other fields. This eliminates the lost-update race
+     * between sandbox_manager and GenerateSessionSubject, which both run in
+     * parallel during agent execution.
+     * </pre>
+     */
+    public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.Session> updateSandboxId(
+        ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest request) {
+      return io.grpc.stub.ClientCalls.futureUnaryCall(
+          getChannel().newCall(getUpdateSandboxIdMethod(), getCallOptions()), request);
+    }
+
+    /**
+     * <pre>
      * Delete a session (also cleans up thread and sandbox).
      * </pre>
      */
@@ -526,7 +732,9 @@ public final class SessionCommandControllerGrpc {
   private static final int METHODID_APPLY = 0;
   private static final int METHODID_CREATE = 1;
   private static final int METHODID_UPDATE = 2;
-  private static final int METHODID_DELETE = 3;
+  private static final int METHODID_UPDATE_SUBJECT = 3;
+  private static final int METHODID_UPDATE_SANDBOX_ID = 4;
+  private static final int METHODID_DELETE = 5;
 
   private static final class MethodHandlers<Req, Resp> implements
       io.grpc.stub.ServerCalls.UnaryMethod<Req, Resp>,
@@ -555,6 +763,14 @@ public final class SessionCommandControllerGrpc {
           break;
         case METHODID_UPDATE:
           serviceImpl.update((ai.stigmer.agentic.session.v1.Session) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session>) responseObserver);
+          break;
+        case METHODID_UPDATE_SUBJECT:
+          serviceImpl.updateSubject((ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest) request,
+              (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session>) responseObserver);
+          break;
+        case METHODID_UPDATE_SANDBOX_ID:
+          serviceImpl.updateSandboxId((ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest) request,
               (io.grpc.stub.StreamObserver<ai.stigmer.agentic.session.v1.Session>) responseObserver);
           break;
         case METHODID_DELETE:
@@ -600,6 +816,20 @@ public final class SessionCommandControllerGrpc {
               ai.stigmer.agentic.session.v1.Session,
               ai.stigmer.agentic.session.v1.Session>(
                 service, METHODID_UPDATE)))
+        .addMethod(
+          getUpdateSubjectMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest,
+              ai.stigmer.agentic.session.v1.Session>(
+                service, METHODID_UPDATE_SUBJECT)))
+        .addMethod(
+          getUpdateSandboxIdMethod(),
+          io.grpc.stub.ServerCalls.asyncUnaryCall(
+            new MethodHandlers<
+              ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest,
+              ai.stigmer.agentic.session.v1.Session>(
+                service, METHODID_UPDATE_SANDBOX_ID)))
         .addMethod(
           getDeleteMethod(),
           io.grpc.stub.ServerCalls.asyncUnaryCall(
@@ -658,6 +888,8 @@ public final class SessionCommandControllerGrpc {
               .addMethod(getApplyMethod())
               .addMethod(getCreateMethod())
               .addMethod(getUpdateMethod())
+              .addMethod(getUpdateSubjectMethod())
+              .addMethod(getUpdateSandboxIdMethod())
               .addMethod(getDeleteMethod())
               .build();
         }

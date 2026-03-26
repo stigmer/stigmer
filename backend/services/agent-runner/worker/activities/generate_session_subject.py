@@ -149,9 +149,11 @@ async def _generate_and_update_subject(
             activity_logger.warning("LLM returned empty subject, skipping update")
             return
 
-        # Step 6: Update session (OBO channel — user is session owner, has can_edit)
-        session.spec.subject = generated_subject
-        await session_client.update(session)
+        # Step 6: Update subject via field-level RPC (race-safe).
+        # This atomically sets only spec.subject on the server, avoiding
+        # the lost-update race with sandbox_manager which concurrently
+        # updates spec.sandbox_id on the same session.
+        await session_client.update_subject(session_id, generated_subject)
 
         activity_logger.info(
             "Updated session %s subject to '%s'", session_id, generated_subject

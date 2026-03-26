@@ -43,6 +43,18 @@ class SessionClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def update_subject(self, input: io_pb2.UpdateSessionSubjectRequest) -> api_pb2.Session:
+        try:
+            return self._command.updateSubject(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
+    def update_sandbox_id(self, input: io_pb2.UpdateSessionSandboxIdRequest) -> api_pb2.Session:
+        try:
+            return self._command.updateSandboxId(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def delete(self, id: str) -> api_pb2.Session:
         try:
             return self._command.delete(io_pb2.SessionId(value=id))
