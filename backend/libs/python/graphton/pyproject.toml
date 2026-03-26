@@ -32,6 +32,8 @@ langmem = ">=0.0.30,<1.0.0"
 tiktoken = ">=0.7.0,<1.0.0"
 # .gitignore pattern matching (used by FilesystemBackend, tree generation)
 pathspec = ">=0.12.0,<1.0.0"
+# HTTP client for platform tools that call external APIs (e.g. GitHub PR creation)
+httpx = ">=0.28.0,<1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = ">=0.6.0"

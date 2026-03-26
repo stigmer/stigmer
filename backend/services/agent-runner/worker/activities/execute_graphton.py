@@ -775,6 +775,8 @@ def _git_writeback_guidance(
         "to the default branch).\n"
         "- Write clear, meaningful commit messages.\n"
         "- Push your branch and report the branch name when done.\n"
+        "- After pushing, use `create_pull_request` to open a PR. "
+        "It reads credentials and repo info automatically.\n"
         "- Do NOT read, echo, or reference credential files "
         "(e.g. `~/.git-credentials`)."
     )

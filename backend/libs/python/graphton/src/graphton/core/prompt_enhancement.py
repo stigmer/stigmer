@@ -115,6 +115,11 @@ shell commands using the `execute` tool. Use this for:
 
 The sandbox is isolated - changes don't affect the host system. Check command output
 for errors and handle them appropriately.
+
+**Pull Request Tool**: When git credentials are configured, you can create GitHub
+pull requests with `create_pull_request`. First push your branch via `execute`,
+then call `create_pull_request` with a title and body. It discovers the repo and
+credentials automatically.
 """
 
 THINK_CAPABILITY = """
