@@ -85,6 +85,7 @@ import dataclasses
 import logging
 import os
 import re
+import time
 from urllib.parse import urlparse
 
 from worker.workspace.backend import ExecuteResult, WorkspaceBackend
@@ -102,6 +103,25 @@ _TOKEN_KEY = "GITHUB_TOKEN"
 _CLONE_TIMEOUT = 300  # 5 minutes — large repos need headroom
 _POST_CLONE_TIMEOUT = 30
 _CLEANUP_TIMEOUT = 60
+
+_CLONE_MAX_ATTEMPTS = 3
+_CLONE_RETRY_DELAY_S = 5
+"""Seconds to wait between clone retry attempts.  Kept short because the
+clone timeout itself (5 min) provides substantial natural back-off."""
+
+_TRANSIENT_PATTERNS: tuple[str, ...] = (
+    "read timed out",
+    "connectionreset",
+    "remotedisconnected",
+    "connectionerror",
+    "connection aborted",
+    "connection refused",
+    "econnreset",
+    "broken pipe",
+    "timed out",
+)
+"""Substrings in lower-cased error output that indicate a transient
+network or proxy failure suitable for automatic retry."""
 
 _PLATFORM_EXCLUDES = (".stigmer",)
 
@@ -369,7 +389,11 @@ def provision(
         auth_url, branch, has_depth, depth, root_dir,
         separate_git_dir=separate_git_dir,
     )
-    _run_git(backend, clone_cmd, token, timeout=_CLONE_TIMEOUT, context="clone")
+    _clone_with_retry(
+        backend, clone_cmd, token,
+        target_subdir=target_subdir,
+        separate_git_dir=separate_git_dir,
+    )
 
     if commit:
         _run_git(
@@ -589,6 +613,68 @@ def _build_clone_command(
 
 
 # ---------------------------------------------------------------------------
+# Clone with retry for transient failures
+# ---------------------------------------------------------------------------
+
+
+def _clone_with_retry(
+    backend: WorkspaceBackend,
+    clone_cmd: str,
+    token: str | None,
+    *,
+    target_subdir: str | None,
+    separate_git_dir: str | None,
+) -> None:
+    """Execute a git clone command, retrying on transient failures.
+
+    Transient failures — sandbox proxy timeouts, connection resets, and
+    similar network errors — are retried up to ``_CLONE_MAX_ATTEMPTS``
+    times with a short delay between attempts.  Non-transient errors
+    (authentication, repo-not-found, bad branch) fail immediately.
+
+    Between retries, partial state left by the failed clone (working
+    tree and, in cloud mode, the separated git-dir) is cleaned so the
+    next attempt starts from a clean slate.
+    """
+    last_err: WorkspaceProvisionError | None = None
+
+    for attempt in range(1, _CLONE_MAX_ATTEMPTS + 1):
+        try:
+            _run_git(
+                backend, clone_cmd, token,
+                timeout=_CLONE_TIMEOUT, context="clone",
+            )
+            if attempt > 1:
+                logger.info(
+                    "Git clone succeeded on attempt %d/%d",
+                    attempt, _CLONE_MAX_ATTEMPTS,
+                )
+            return
+        except WorkspaceProvisionError as err:
+            last_err = err
+            if not err.transient or attempt == _CLONE_MAX_ATTEMPTS:
+                raise
+
+            logger.warning(
+                "Git clone failed (attempt %d/%d, transient): %s — "
+                "retrying in %ds",
+                attempt,
+                _CLONE_MAX_ATTEMPTS,
+                err,
+                _CLONE_RETRY_DELAY_S,
+            )
+
+            _recover_non_empty_workspace(backend, target_subdir=target_subdir)
+            if separate_git_dir:
+                _prepare_separate_git_dir(backend, separate_git_dir)
+
+            time.sleep(_CLONE_RETRY_DELAY_S)
+
+    assert last_err is not None  # unreachable; satisfies type checker
+    raise last_err
+
+
+# ---------------------------------------------------------------------------
 # Git command execution with token scrubbing
 # ---------------------------------------------------------------------------
 
@@ -617,6 +703,12 @@ def _scrub_token(text: str, token: str | None) -> str:
     if not token or not text:
         return text
     return text.replace(token, "***")
+
+
+def _is_transient_error(lower: str) -> bool:
+    """Return ``True`` if *lower* (already lower-cased) matches a known
+    transient network/proxy pattern suitable for automatic retry."""
+    return any(pat in lower for pat in _TRANSIENT_PATTERNS)
 
 
 def _classify_error(stderr: str, context: str) -> WorkspaceProvisionError:
@@ -663,6 +755,16 @@ def _classify_error(stderr: str, context: str) -> WorkspaceProvisionError:
             "FUSE/S3-backed volume).  Git metadata must be placed on a "
             "POSIX-compatible filesystem via --separate-git-dir.\n"
             f"Detail: {stderr.strip()}",
+        )
+
+    if _is_transient_error(lower):
+        return WorkspaceProvisionError(
+            _SOURCE,
+            f"Git {context} failed: transient network/proxy error.  "
+            "The sandbox proxy or network connection timed out.  "
+            "This is usually temporary and succeeds on retry.\n"
+            f"Detail: {stderr.strip()}",
+            transient=True,
         )
 
     return WorkspaceProvisionError(

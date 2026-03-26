@@ -2,10 +2,13 @@
 
 import asyncio
 import contextlib
+import functools
+import logging
 import os
 import time
 import traceback
-from typing import Any, cast
+from collections.abc import Callable
+from typing import Any, TypeVar, cast
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
 from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
@@ -215,21 +218,122 @@ class SetupTimer:
 
 
 def heartbeat_during_setup(phase_name: str, details: dict | None = None) -> None:
-    """Send heartbeat with setup phase info to prevent timeout during initialization.
-    
-    The ExecuteGraphton activity has a 30-second heartbeat timeout. Without heartbeats
-    during the setup phase (Steps 1-8), long-running operations like gRPC calls,
-    skill fetching, or attachment downloads can cause Temporal to mark the activity
-    as failed.
-    
+    """Send a heartbeat with setup-phase context between discrete setup steps.
+
+    The ExecuteGraphton activity is configured with a **2-minute**
+    heartbeat timeout (``HeartbeatTimeout`` in
+    ``InvokeAgentExecutionWorkflowImpl.java``).  Calling this function
+    between setup steps (Steps 1-8) ensures Temporal sees liveness
+    signals during initialisation.
+
+    For long-running *blocking* operations within a single step (e.g.,
+    git clone via Daytona), use :func:`_run_sync_with_heartbeat` instead
+    — it dispatches the work to a thread and heartbeats continuously
+    while waiting.
+
     Args:
-        phase_name: Human-readable name of the current setup phase (e.g., "chain_resolution")
-        details: Optional dict with additional context (e.g., counts, IDs)
+        phase_name: Human-readable name of the current setup phase
+            (e.g., ``"chain_resolution"``).
+        details: Optional dict with additional context (e.g., counts, IDs).
     """
     activity.heartbeat({
         "setup_phase": phase_name,
         "details": details or {},
     })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Async wrapper for long-running synchronous operations
+# ─────────────────────────────────────────────────────────────────────────────
+
+_T = TypeVar("_T")
+
+_HEARTBEAT_INTERVAL_S: float = 30.0
+"""Default interval (seconds) between heartbeats while waiting for a
+synchronous callable.  Must be well below the Temporal HeartbeatTimeout
+(currently 2 minutes) to guarantee at least 3 heartbeats per window."""
+
+_heartbeat_logger = logging.getLogger(f"{__name__}.sync_heartbeat")
+
+
+async def _run_sync_with_heartbeat(
+    fn: Callable[..., _T],
+    *args: Any,
+    heartbeat_interval_s: float = _HEARTBEAT_INTERVAL_S,
+    phase_name: str,
+    log: logging.Logger | None = None,
+    **kwargs: Any,
+) -> _T:
+    """Run a synchronous callable in a thread, heartbeating periodically.
+
+    Prevents Temporal heartbeat timeout during long-running synchronous
+    operations (e.g., git clone via Daytona API) that would otherwise
+    block the asyncio event loop and starve heartbeat delivery.
+
+    The callable is dispatched via ``asyncio.to_thread`` so the event
+    loop remains free.  Every *heartbeat_interval_s* seconds, a Temporal
+    heartbeat is sent with progress information.  Between heartbeats the
+    activity cancellation flag is checked — if the Temporal server has
+    already cancelled the activity (e.g., due to a prior heartbeat
+    timeout on a different attempt), the wrapper stops waiting and
+    raises ``asyncio.CancelledError`` so the worker can clean up
+    promptly instead of blocking until the callable returns.
+
+    Args:
+        fn: Synchronous callable to execute.
+        *args: Positional arguments forwarded to *fn*.
+        heartbeat_interval_s: Seconds between heartbeats (default 30).
+        phase_name: Label included in each heartbeat payload for
+            observability (e.g., ``"workspace_provisioning"``).
+        log: Optional logger; falls back to a module-level logger.
+        **kwargs: Keyword arguments forwarded to *fn*.
+
+    Returns:
+        The return value of *fn*.
+
+    Raises:
+        asyncio.CancelledError: If the Temporal activity is cancelled
+            while waiting.
+        Exception: Any exception raised by *fn* is re-raised.
+    """
+    _log = log or _heartbeat_logger
+    task = asyncio.ensure_future(
+        asyncio.to_thread(functools.partial(fn, *args, **kwargs))
+    )
+    heartbeat_count = 0
+    start = time.monotonic()
+
+    while not task.done():
+        done, _ = await asyncio.wait({task}, timeout=heartbeat_interval_s)
+        if done:
+            break
+
+        heartbeat_count += 1
+        elapsed_s = time.monotonic() - start
+        _log.info(
+            "[HEARTBEAT] %s — heartbeat #%d (%.0fs elapsed)",
+            phase_name,
+            heartbeat_count,
+            elapsed_s,
+        )
+        activity.heartbeat({
+            "setup_phase": phase_name,
+            "heartbeat_count": heartbeat_count,
+            "elapsed_s": round(elapsed_s, 1),
+        })
+
+        if activity.is_cancelled():
+            _log.warning(
+                "[HEARTBEAT] %s — activity cancelled by Temporal after %.0fs; "
+                "abandoning wait (background thread will finish independently)",
+                phase_name,
+                elapsed_s,
+            )
+            raise asyncio.CancelledError(
+                f"Activity cancelled during {phase_name}"
+            )
+
+    return task.result()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1531,6 +1635,13 @@ async def _execute_graphton_impl(
         # Credential stripping (AD-05): keys consumed by provisioning
         # (e.g. GITHUB_TOKEN) are removed from merged_env_vars so they
         # do not leak into MCP config placeholders or status reporting.
+        #
+        # Provisioning runs in a background thread via
+        # _run_sync_with_heartbeat so that Temporal heartbeats continue
+        # flowing while long-running synchronous operations (git clone
+        # through the Daytona HTTP API) block.  Without this, a clone
+        # exceeding the 2-minute heartbeat timeout would cause Temporal
+        # to kill the activity even though the clone is still in progress.
         # ─────────────────────────────────────────────────────────────────────────────
         provision_results: list[ProvisionResult] = []
         
@@ -1538,11 +1649,14 @@ async def _execute_graphton_impl(
             setup_timer.start("workspace_provisioning")
             try:
                 provisioner = WorkspaceProvisioner(log=activity_logger)
-                provision_results = provisioner.provision_all(
+                provision_results = await _run_sync_with_heartbeat(
+                    provisioner.provision_all,
                     entries=session.spec.workspace_entries,
                     backend=workspace_backend,
                     merged_env=merged_env_vars,
                     is_local_mode=worker_config.is_local_mode(),
+                    phase_name="workspace_provisioning",
+                    log=activity_logger,
                 )
                 
                 if provision_results:
