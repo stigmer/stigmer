@@ -257,6 +257,14 @@ class TestBuildWorkspacePromptSection:
         assert "Do NOT read" in section
         assert ".git-credentials" in section
 
+    def test_writeback_mentions_create_pull_request_tool(self):
+        section = build_workspace_prompt_section([_git_provision_with_creds()])
+        assert "create_pull_request" in section
+
+    def test_no_create_pull_request_without_credentials(self):
+        section = build_workspace_prompt_section([_git_provision()])
+        assert "create_pull_request" not in section
+
 
 # =============================================================================
 # TestPromptAssemblyOrdering — section ordering within the enhanced prompt

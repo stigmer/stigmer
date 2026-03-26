@@ -2,30 +2,44 @@
 
 ## Current State
 - **Status**: in-progress
-- **Last Session**: March 26, 2026 — Phase 2 (write-back prompt) completed
-- **Active Task**: Phase 2 complete. Next: Phase 3 (create_pr platform tool) from the project README
+- **Last Session**: March 26, 2026 — Phase 3 (create_pull_request tool) completed
+- **Active Task**: Phase 3 complete. Next: Phase 4 (artifact + polish) from the project README
 
-## Session Progress (2026-03-26, Session 3)
+## Session Progress (2026-03-26, Session 4)
 
-### Phase 2: Git Write-Back Prompt — COMPLETE
-- Added `_git_writeback_guidance()` to `execute_graphton.py` — conditionally appends push guidance when `git_credentials_configured` is True
-- Wired into both single-entry (`_build_single_workspace_section`) and multi-entry (`_format_entry_description`) paths
-- Heading level parameterized: `###` for single-entry, `####` for multi-entry
-- Prompt content covers: branch rules, commit guidance, credential file warning
-- No changes to `git.py` or `provisioner.py` — data plumbing was already done in Phase 1
-- 9 new tests: creds-on, creds-off, ordering (desc < tree < write-back), branch rule, credential warning, multi-entry creds, mixed-creds, direct `_format_entry_description`
-- Full test suite: 1280 tests, zero regressions
+### Phase 3: `create_pull_request` Platform Tool — COMPLETE
+- New module `git_tools.py` in Graphton core — tool factory, GitHub API integration, credential reading, URL parsing
+- Tool self-discovers repo, branch, and credentials from sandbox at invocation time (stateless)
+- Worker-side GitHub API call via `httpx.AsyncClient` — not curl-in-sandbox
+- Wired into `create_platform_tool_wrappers()` — 12 tools total (9 primary + 3 aliases)
+- Auto-approved by default (`requires_approval: False`) — PR is a non-destructive proposal
+- Prompt updated: `_git_writeback_guidance()` mentions tool, `EXECUTE_CAPABILITY` describes it
+- 30 new tests (URL parsing, credential parsing, end-to-end with mocked API, error scenarios)
+- 2 new prompt section tests, 3 existing test files updated for new tool count
+- Full test suite: Graphton 1191 passed / Agent-runner 1297 passed, zero regressions
 
 ### Key Decisions
-- **Prompt builder owns all agent-facing text**: Write-back guidance lives in `execute_graphton.py`, not in `_build_description` in `git.py`. Keeps provisioner focused on metadata.
-- **Per-entry granularity**: In multi-workspace sessions, only entries with configured credentials get write-back guidance
-- **Unconditional append pattern**: `_git_writeback_guidance()` returns `""` when credentials are absent, so callers append without conditional checks
+- **Separate file (`git_tools.py`)**: Tool calls external HTTP API, different from sandbox-only tools. Follows `think_tool.py`/`resource_tools.py` pattern.
+- **Self-discovering, not pre-configured**: No repo URL or token at creation time. Runs git commands in sandbox at invocation.
+- **No HITL by default**: Push is already gated via `execute`. PR is a proposal. Override mechanism still available.
+- **No auto-commit/push**: Tool only creates PR. Agent handles git workflow.
+- **`core/git_tools.py` not `core/tools/git_tools.py`**: No `tools/` subdirectory exists; stayed flat.
+
+### Files Created
+- `backend/libs/python/graphton/src/graphton/core/git_tools.py` — tool implementation
+- `backend/libs/python/graphton/tests/core/test_git_tools.py` — 30 tests
 
 ### Files Modified
-- `backend/services/agent-runner/worker/activities/execute_graphton.py` — `GitMetadata` import, `_git_writeback_guidance()`, wiring into both prompt paths
-- `backend/services/agent-runner/tests/test_workspace_prompt_section.py` — `_git_provision_with_creds()` helper, `_two_git_entries_with_creds()` fixture, 9 new tests
+- `backend/libs/python/graphton/pyproject.toml` — httpx dependency
+- `backend/libs/python/graphton/src/graphton/core/tool_wrappers.py` — register tool
+- `backend/libs/python/graphton/src/graphton/core/prompt_enhancement.py` — PR tool in capabilities
+- `backend/libs/python/graphton/tests/core/test_tool_wrappers.py` — tool count 11→12
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` — write-back prompt update
+- `backend/services/agent-runner/worker/activities/graphton/approval_policy.py` — platform default
+- `backend/services/agent-runner/tests/test_workspace_prompt_section.py` — 2 new tests
+- `backend/services/agent-runner/tests/test_integration_skill_pipeline.py` — tool count 11→12
 
-## Cumulative Progress (Phases 0–2)
+## Cumulative Progress (Phases 0–3)
 
 ### Phase 0: FUSE+S3 Volume Compatibility — COMPLETE (Session 1)
 - `--separate-git-dir` for FUSE volumes, global git config, stale pointer recovery
@@ -36,21 +50,22 @@
 ### Phase 2: Write-Back Prompt — COMPLETE (Session 3)
 - Conditional `### Git Write-Back` prompt section, branch/commit/push guidance, credential file warning
 
+### Phase 3: `create_pull_request` Platform Tool — COMPLETE (Session 4)
+- Graphton platform tool, GitHub REST API via httpx, self-discovering, auto-approved, 30 new tests
+
 ## Next Steps
-1. **Phase 3: create_pr platform tool** — Add a platform-provided `create_pull_request` tool for structured PR creation (Gap 3 + Gap 4 from plan)
-2. **Phase 4: HITL gating for push** — Gate push/PR operations with human-in-the-loop approval
-3. **Deploy and E2E validate** — Run a real agent execution with a `git_repo` workspace to confirm clone + push + prompt works end-to-end
+1. **Phase 4: Artifact + Polish** — Capture PR URL as execution artifact in `status_builder.py`
+2. **Deploy and E2E validate** — Run a real agent execution with a `git_repo` workspace to confirm clone + push + PR works end-to-end
+3. **Optional: `read` tool deny-list** — Block agent from reading `~/.git-credentials` via the `read` platform tool
 
 ## Context for Resume
-- Phase 3 involves new files in Graphton library: `backend/libs/python/graphton/src/graphton/core/tools/git_tools.py`
-- The platform tool needs to read the token from `~/.git-credentials` (or the credential store) — it should NOT receive the token as a parameter
-- The tool should be HITL-gated by default (existing tool approval infrastructure)
-- The tool interface: `create_pull_request(title, body, base_branch?, head_branch?)` → returns PR URL
-- The prompt builder (Phase 2) does NOT mention the `create_pull_request` tool — that will be added when Phase 3 is complete
+- Phase 4 involves `backend/services/agent-runner/worker/activities/graphton/status_builder.py`
+- The artifact system already has `_generate_git_diff_artifact` that creates `.patch` artifacts — PR URL artifact follows the same pattern
 - Pre-existing failures in `test_daytona_backend.py` (8 tests) are unrelated MagicMock setup issues
+- The `create_pull_request` tool returns PR URL in its result string — Phase 4 could emit a custom event or store it as a structured artifact
 
 ## Blockers
-- None. Phase 3 can proceed immediately.
+- None. Phase 4 can proceed immediately.
 
 ## Quick Resume
 To continue this project, drag this file into chat:
