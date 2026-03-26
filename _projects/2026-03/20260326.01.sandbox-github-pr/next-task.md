@@ -2,51 +2,55 @@
 
 ## Current State
 - **Status**: in-progress
-- **Last Session**: March 26, 2026 — Phase 1 (credential persistence) completed
-- **Active Task**: Phase 1 complete. Next: Phase 2 (write-back prompt) from the project README
+- **Last Session**: March 26, 2026 — Phase 2 (write-back prompt) completed
+- **Active Task**: Phase 2 complete. Next: Phase 3 (create_pr platform tool) from the project README
 
-## Session Progress (2026-03-26, Session 2)
+## Session Progress (2026-03-26, Session 3)
 
-### Phase 1: Git Credential Persistence via Credential Store — COMPLETE
-- Discovered that push already works via token-in-URL (the original plan's assumption that AD-05 "kills push" was incorrect — the token is embedded in `remote.origin.url` by `_build_auth_url`)
-- Implemented credential store approach for security hygiene: remote URL is cleaned, token moves to `~/.git-credentials`
-- Added `git_credentials_configured` field to `GitMetadata` for downstream consumption (Phase 2 prompt)
-- New `_configure_git_credentials()` function in `git.py` — three-step process: clean URL, configure helper, write credential file
-- Wired into both fresh-clone and idempotent (existing repo) paths, gated on `token and not is_local_mode`
-- 12 new tests in `TestCredentialHelper` class, all passing
-- Full test suite: 73 tests in `test_git_source.py` (was 61), plus 119 related tests — zero regressions
+### Phase 2: Git Write-Back Prompt — COMPLETE
+- Added `_git_writeback_guidance()` to `execute_graphton.py` — conditionally appends push guidance when `git_credentials_configured` is True
+- Wired into both single-entry (`_build_single_workspace_section`) and multi-entry (`_format_entry_description`) paths
+- Heading level parameterized: `###` for single-entry, `####` for multi-entry
+- Prompt content covers: branch rules, commit guidance, credential file warning
+- No changes to `git.py` or `provisioner.py` — data plumbing was already done in Phase 1
+- 9 new tests: creds-on, creds-off, ordering (desc < tree < write-back), branch rule, credential warning, multi-entry creds, mixed-creds, direct `_format_entry_description`
+- Full test suite: 1280 tests, zero regressions
 
 ### Key Decisions
-- **Cloud-only**: Credential helper is only configured in cloud mode (`is_local_mode=False`); local mode preserves user's own git config
-- **GitHub-only scope**: Consistent with `_build_auth_url` — only acts on `github.com` URLs
-- **Non-fatal failures**: Credential setup failure logs a warning but does not fail provisioning (same pattern as `_setup_git_excludes`)
-- **Field on `GitMetadata`**: `git_credentials_configured: bool` lives on `GitMetadata` (not `ProvisionResult`) since it's git-specific metadata
-- **Remote URL cleanup**: After clone, `git remote set-url origin <clean_url>` removes the embedded token so `git remote -v` doesn't leak it
-
-### Discovery: Original Plan Assumption Was Wrong
-The T01_0_plan.md stated: "AD-05 strips GITHUB_TOKEN from merged_env_vars after clone... this kills push capability." This is incorrect. `_build_auth_url()` embeds the token into the clone URL, and git stores it as `remote.origin.url`. Push already works via the URL-embedded token. Phase 1's credential store is a security hygiene improvement (preventing accidental token exposure via `git remote -v`), not a functionality enabler.
+- **Prompt builder owns all agent-facing text**: Write-back guidance lives in `execute_graphton.py`, not in `_build_description` in `git.py`. Keeps provisioner focused on metadata.
+- **Per-entry granularity**: In multi-workspace sessions, only entries with configured credentials get write-back guidance
+- **Unconditional append pattern**: `_git_writeback_guidance()` returns `""` when credentials are absent, so callers append without conditional checks
 
 ### Files Modified
-- `backend/services/agent-runner/worker/workspace/provisioner.py` — added `git_credentials_configured` field to `GitMetadata`
-- `backend/services/agent-runner/worker/workspace/sources/git.py` — `_configure_git_credentials()`, `_CREDENTIAL_FILE` constant, module docstring update, both call sites in `provision()`
-- `backend/services/agent-runner/tests/workspace/test_git_source.py` — `_CloudGitBackend` updated, 12 new tests in `TestCredentialHelper`
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` — `GitMetadata` import, `_git_writeback_guidance()`, wiring into both prompt paths
+- `backend/services/agent-runner/tests/test_workspace_prompt_section.py` — `_git_provision_with_creds()` helper, `_two_git_entries_with_creds()` fixture, 9 new tests
+
+## Cumulative Progress (Phases 0–2)
+
+### Phase 0: FUSE+S3 Volume Compatibility — COMPLETE (Session 1)
+- `--separate-git-dir` for FUSE volumes, global git config, stale pointer recovery
+
+### Phase 1: Git Credential Persistence — COMPLETE (Session 2)
+- Credential store at `~/.git-credentials`, remote URL cleanup, `git_credentials_configured` field on `GitMetadata`
+
+### Phase 2: Write-Back Prompt — COMPLETE (Session 3)
+- Conditional `### Git Write-Back` prompt section, branch/commit/push guidance, credential file warning
 
 ## Next Steps
-1. **Phase 2: Write-back prompt** — Extend `build_workspace_prompt_section` to tell the agent it can push when `git_credentials_configured` is True
-2. **Phase 3: create_pr platform tool** — Add a platform-provided `create_pull_request` tool for structured PR creation
-3. **Phase 4: HITL gating for push** — Gate push/PR operations with human-in-the-loop approval
-4. **Deploy and E2E validate** — Run a real agent execution with a `git_repo` workspace to confirm clone + push works end-to-end
+1. **Phase 3: create_pr platform tool** — Add a platform-provided `create_pull_request` tool for structured PR creation (Gap 3 + Gap 4 from plan)
+2. **Phase 4: HITL gating for push** — Gate push/PR operations with human-in-the-loop approval
+3. **Deploy and E2E validate** — Run a real agent execution with a `git_repo` workspace to confirm clone + push + prompt works end-to-end
 
 ## Context for Resume
-- The Daytona volume diagnostic scripts are at `/tmp/daytona-diagnostic-*.py` (local machine only)
-- Daytona API key is in `stigmer-cloud/_ops/planton/service-hub/secrets-group/daytona.yaml`
-- The `daytona-small` snapshot (production) vs `daytona/sandbox:0.6.0` (diagnostic default) — both use the same FUSE+S3 volume driver; fix applies to both
+- Phase 3 involves new files in Graphton library: `backend/libs/python/graphton/src/graphton/core/tools/git_tools.py`
+- The platform tool needs to read the token from `~/.git-credentials` (or the credential store) — it should NOT receive the token as a parameter
+- The tool should be HITL-gated by default (existing tool approval infrastructure)
+- The tool interface: `create_pull_request(title, body, base_branch?, head_branch?)` → returns PR URL
+- The prompt builder (Phase 2) does NOT mention the `create_pull_request` tool — that will be added when Phase 3 is complete
 - Pre-existing failures in `test_daytona_backend.py` (8 tests) are unrelated MagicMock setup issues
-- Phase 2 will consume `git_metadata.git_credentials_configured` in `execute_graphton.py:build_workspace_prompt_section`
-- The prompt builder is at `backend/services/agent-runner/worker/activities/execute_graphton.py` (lines ~726–846)
 
 ## Blockers
-- None. Phase 2 can proceed immediately.
+- None. Phase 3 can proceed immediately.
 
 ## Quick Resume
 To continue this project, drag this file into chat:
