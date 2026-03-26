@@ -16,6 +16,31 @@ Multi-entry subdirectory mode:
     supports multi-workspace sessions where each git entry occupies
     its own subdirectory (e.g. ``{workspace_root}/my-app/``).
 
+FUSE+S3 volume compatibility:
+    Daytona volumes are FUSE-based mounts backed by S3-compatible object
+    storage.  They do not support ``rename()`` (returns ``ENOSYS``),
+    ``chmod()``, ``link()``, or ``symlink()`` — operations that git
+    requires for its internal metadata files (``.git/config``,
+    ``.git/index``, etc.).
+
+    In cloud mode, git is cloned with ``--separate-git-dir`` so that
+    the working tree (source files) lives on the volume while git
+    metadata lives on the local sandbox filesystem.  A small ``.git``
+    text file on the volume points git to the metadata location.
+    All standard git commands follow this pointer transparently.
+
+    Two global git config entries are required for volume compatibility:
+
+    ``safe.directory = *``
+        Volume files are owned by ``nobody:nogroup`` (FUSE default)
+        while git runs as ``daytona``.  Without this, git refuses to
+        operate due to CVE-2022-24765 ownership checks.
+
+    ``core.fileMode = false``
+        ``chmod()`` is not supported on the volume, so all files get
+        default ``rw-rw-rw-`` permissions.  Disabling fileMode tracking
+        prevents false-positive status changes.
+
 Authentication (AD-07, GitHub-only for MVP):
     If ``GITHUB_TOKEN`` is present in the merged environment **and** the
     clone URL points to ``github.com``, the token is injected into the
@@ -33,9 +58,11 @@ Security:
 
 Git excludes:
     After provisioning (fresh clone or detected existing repo),
-    platform directories (``.stigmer-inputs``, ``bin/skills``) are
-    added to ``.git/info/exclude`` so they do not appear in
-    ``git diff`` or ``git status``.
+    platform directories (``.stigmer``) are added to
+    ``.git/info/exclude`` so they do not appear in ``git diff`` or
+    ``git status``.  The exclude file location is resolved via
+    ``git rev-parse --absolute-git-dir``, which correctly follows
+    ``.git`` pointer files created by ``--separate-git-dir``.
 """
 
 from __future__ import annotations
@@ -63,6 +90,64 @@ _CLEANUP_TIMEOUT = 60
 
 _PLATFORM_EXCLUDES = (".stigmer",)
 
+_GIT_DIR_BASE = "/home/daytona/.git-repos"
+"""Base path for separated git metadata directories on Daytona sandboxes.
+
+On FUSE+S3 volumes, ``.git/`` internals cannot live on the volume because
+the filesystem does not support ``rename()``.  Git metadata is placed here
+(on the local sandbox filesystem) while the working tree stays on the
+volume for persistence across sandbox restarts within a session.
+"""
+
+
+# ---------------------------------------------------------------------------
+# Separate git-dir helpers (FUSE+S3 volume compatibility)
+# ---------------------------------------------------------------------------
+
+
+def _git_dir_path(target_subdir: str | None) -> str:
+    """Compute the deterministic git-dir path for a workspace entry.
+
+    Each workspace entry gets its own git metadata directory under
+    ``_GIT_DIR_BASE``.  Single-entry workspaces use ``"default"``.
+    """
+    name = target_subdir or "default"
+    return f"{_GIT_DIR_BASE}/{name}"
+
+
+def _prepare_separate_git_dir(
+    backend: WorkspaceBackend,
+    git_dir: str,
+) -> None:
+    """Create the parent directory for the separate git dir.
+
+    Only the **parent** is created — git itself creates the target
+    directory during ``clone --separate-git-dir``.  Pre-creating the
+    target would cause git to refuse with "already exists".
+    """
+    parent = os.path.dirname(git_dir)
+    backend.execute(f"mkdir -p {parent}", timeout=5)
+
+
+def _configure_fuse_volume_compat(backend: WorkspaceBackend) -> None:
+    """Configure git globally for FUSE+S3 volume compatibility.
+
+    Sets ``safe.directory`` and ``core.fileMode`` globally so all
+    subsequent git operations in this sandbox work correctly with
+    volume-mounted working trees.  Idempotent — safe to call multiple
+    times within the same sandbox.
+    """
+    result = backend.execute(
+        "git config --global --add safe.directory '*' && "
+        "git config --global core.fileMode false",
+        timeout=5,
+    )
+    if result.exit_code != 0:
+        logger.warning(
+            "Failed to configure FUSE volume compat (non-fatal): %s",
+            result.stderr.strip(),
+        )
+
 
 # ---------------------------------------------------------------------------
 # Subdirectory helpers
@@ -81,18 +166,6 @@ def _effective_root(backend_root: str, target_subdir: str | None) -> str:
     return backend_root
 
 
-def _scoped_path(rel_path: str, target_subdir: str | None) -> str:
-    """Prefix a workspace-relative path with the target subdirectory.
-
-    File I/O methods on ``WorkspaceBackend`` take paths relative to
-    ``root_dir``.  When the repo lives in a subdirectory, all paths
-    must include the subdirectory prefix.
-    """
-    if target_subdir:
-        return os.path.join(target_subdir, rel_path)
-    return rel_path
-
-
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -104,6 +177,7 @@ def provision(
     merged_env: dict[str, str],
     *,
     target_subdir: str | None = None,
+    is_local_mode: bool = True,
 ) -> ProvisionResult:
     """Clone a git repository into the workspace, or reuse an existing clone.
 
@@ -111,6 +185,11 @@ def provision(
     read from the existing repo and no clone is performed.  If the
     workspace is non-empty but has no ``.git`` (partial/corrupted state),
     the contents are cleaned and a fresh clone is done.
+
+    In cloud mode (``is_local_mode=False``), the clone uses
+    ``--separate-git-dir`` to place git metadata on the local sandbox
+    filesystem while keeping the working tree on the FUSE+S3 volume.
+    See the module docstring for the full rationale.
 
     Args:
         source: ``GitRepoSource`` proto message (duck-typed).
@@ -120,6 +199,9 @@ def provision(
             ``backend.root_dir`` instead of the root itself.  Used by
             multi-entry provisioning so each git repo occupies a named
             subdirectory (e.g. ``{workspace_root}/my-app/``).
+        is_local_mode: When ``True`` (default), uses standard git clone.
+            When ``False``, enables ``--separate-git-dir`` and FUSE
+            volume compatibility configuration.
 
     Returns:
         ``ProvisionResult`` with ``git_metadata`` populated.
@@ -136,6 +218,11 @@ def provision(
     token = merged_env.get(_TOKEN_KEY)
     root_dir = _effective_root(backend.root_dir, target_subdir)
 
+    separate_git_dir: str | None = None
+    if not is_local_mode:
+        separate_git_dir = _git_dir_path(target_subdir)
+        _configure_fuse_volume_compat(backend)
+
     existing = _detect_existing_repo(backend, url, token, target_subdir=target_subdir)
     if existing is not None:
         _setup_git_excludes(backend, target_subdir=target_subdir)
@@ -143,9 +230,15 @@ def provision(
 
     _recover_non_empty_workspace(backend, target_subdir=target_subdir)
 
+    if separate_git_dir:
+        _prepare_separate_git_dir(backend, separate_git_dir)
+
     auth_url = _build_auth_url(url, token)
 
-    clone_cmd = _build_clone_command(auth_url, branch, has_depth, depth, root_dir)
+    clone_cmd = _build_clone_command(
+        auth_url, branch, has_depth, depth, root_dir,
+        separate_git_dir=separate_git_dir,
+    )
     _run_git(backend, clone_cmd, token, timeout=_CLONE_TIMEOUT, context="clone")
 
     if commit:
@@ -197,24 +290,50 @@ def _detect_existing_repo(
 ) -> ProvisionResult | None:
     """Return a ``ProvisionResult`` if the workspace already contains a repo.
 
-    Checks for ``.git`` in the target directory (workspace root or a
-    named subdirectory).  When found, reads branch and HEAD from the
-    existing clone — no network operations, no auth.
+    Detects two forms of ``.git``:
+
+    - **Directory** (standard clone): ``test -d .git`` — the repo is
+      self-contained in the workspace.
+    - **File** (``--separate-git-dir`` clone): ``test -f .git`` — the
+      file contains a ``gitdir:`` pointer to the actual git metadata
+      directory on the local filesystem.  When the pointer target does
+      not exist (e.g. after a sandbox restart), the repo is considered
+      stale and ``None`` is returned so the caller can re-provision.
 
     Returns ``None`` if the directory is empty or has no ``.git``.
     """
     result = backend.execute(
-        "test -d .git && echo yes || echo no",
+        "test -d .git && echo dir || (test -f .git && echo file) || echo none",
         cwd=target_subdir,
         timeout=5,
     )
-    if result.exit_code != 0 or result.stdout.strip() != "yes":
+    git_state = result.stdout.strip() if result.exit_code == 0 else "none"
+
+    if git_state == "none":
         return None
+
+    if git_state == "file":
+        # .git is a pointer file from --separate-git-dir.  Verify the
+        # target git dir still exists (it won't after sandbox restart).
+        check = backend.execute(
+            "cat .git | sed 's/gitdir: //' | xargs test -d "
+            "&& echo valid || echo stale",
+            cwd=target_subdir,
+            timeout=5,
+        )
+        if check.stdout.strip() != "valid":
+            logger.warning(
+                "Stale .git pointer detected (separate git dir lost "
+                "after sandbox restart) — workspace will be "
+                "re-provisioned",
+            )
+            return None
 
     root_dir = _effective_root(backend.root_dir, target_subdir)
     logger.info(
-        "Workspace already provisioned (git repo detected), reusing: "
-        "root_dir=%s",
+        "Workspace already provisioned (git repo detected as %s), "
+        "reusing: root_dir=%s",
+        git_state,
         root_dir,
     )
 
@@ -310,8 +429,13 @@ def _build_clone_command(
     has_depth: bool,
     depth: int,
     target: str,
+    *,
+    separate_git_dir: str | None = None,
 ) -> str:
     parts = ["git", "clone"]
+
+    if separate_git_dir:
+        parts.extend(["--separate-git-dir", separate_git_dir])
 
     if not has_depth:
         parts.extend(["--depth", "1"])
@@ -394,6 +518,16 @@ def _classify_error(stderr: str, context: str) -> WorkspaceProvisionError:
             f"Detail: {stderr.strip()}",
         )
 
+    if "function not implemented" in lower:
+        return WorkspaceProvisionError(
+            _SOURCE,
+            f"Git {context} failed: the workspace filesystem does not "
+            "support an operation git requires (likely rename() on a "
+            "FUSE/S3-backed volume).  Git metadata must be placed on a "
+            "POSIX-compatible filesystem via --separate-git-dir.\n"
+            f"Detail: {stderr.strip()}",
+        )
+
     return WorkspaceProvisionError(
         _SOURCE,
         f"Git {context} failed (exit code non-zero).\n"
@@ -452,7 +586,7 @@ def _setup_git_excludes(
     *,
     target_subdir: str | None = None,
 ) -> None:
-    """Add platform directories to ``.git/info/exclude``.
+    """Add platform directories to the local git exclude file.
 
     When the virtual platform mount is active (``backend.platform_dir``
     is set), platform files don't exist in the workspace tree at all,
@@ -462,8 +596,11 @@ def _setup_git_excludes(
     project files are never modified.  Entries are appended only if not
     already present, making the function idempotent across executions.
 
-    When *target_subdir* is set, the ``.git`` directory is located
-    inside the subdirectory rather than at the workspace root.
+    The git directory is resolved via ``git rev-parse --absolute-git-dir``
+    which correctly follows ``.git`` pointer files created by
+    ``--separate-git-dir``.  This means the exclude file may live
+    outside the workspace root (on the local sandbox filesystem) when
+    a separate git dir is in use.
     """
     if backend.platform_dir:
         logger.info(
@@ -473,27 +610,42 @@ def _setup_git_excludes(
         )
         return
 
-    excludes_path = _scoped_path(".git/info/exclude", target_subdir)
+    git_dir_result = backend.execute(
+        "git rev-parse --absolute-git-dir",
+        cwd=target_subdir,
+        timeout=5,
+    )
+    if git_dir_result.exit_code != 0:
+        logger.warning(
+            "Cannot resolve git dir — skipping excludes setup: %s",
+            git_dir_result.stderr.strip(),
+        )
+        return
 
-    existing = ""
-    try:
-        existing = backend.read_file(excludes_path).decode("utf-8")
-    except FileNotFoundError:
-        pass
+    git_dir = git_dir_result.stdout.strip()
+    excludes_path = f"{git_dir}/info/exclude"
+
+    read_result = backend.execute(
+        f"cat {excludes_path} 2>/dev/null || true",
+        timeout=5,
+    )
+    existing = read_result.stdout
 
     existing_lines = set(existing.splitlines())
     needed = [e for e in _PLATFORM_EXCLUDES if e not in existing_lines]
     if not needed:
         return
 
-    separator = "" if existing.endswith("\n") or not existing else "\n"
-    new_content = existing + separator + "\n".join(needed) + "\n"
-
-    backend.mkdir(_scoped_path(".git/info", target_subdir))
-    backend.write_file(excludes_path, new_content.encode("utf-8"))
+    append_content = "\n".join(needed)
+    backend.execute(
+        f"mkdir -p {git_dir}/info && "
+        f"printf '%s\\n' '{append_content}' >> {excludes_path}",
+        timeout=5,
+    )
 
     logger.info(
-        "Added platform excludes to .git/info/exclude: %s",
+        "Added platform excludes to %s: %s",
+        excludes_path,
         ", ".join(needed),
     )
 
