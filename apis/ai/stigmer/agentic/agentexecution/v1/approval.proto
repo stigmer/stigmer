@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agentexecution.v1;
 
+import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Human-in-the-Loop (HITL) Approval Types
 //
@@ -9,18 +11,68 @@ package ai.stigmer.agentic.agentexecution.v1;
 // The ApprovalAction enum is in enum.proto alongside other package enums.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// PendingApproval surfaces the current approval request for UI display.
+// ApprovalLifecycleState tracks the progress of a single approval through
+// the distributed HITL pipeline.
+//
+// Each state transition is forward-only — no service may move the state
+// backward. This invariant is enforced at every service boundary and makes
+// the approval flow auditable and diagnosable.
+//
+// ## State Machine
+//
+//   UNSPECIFIED ──► REQUESTED ──► INTERRUPT_CAPTURED ──► DECISION_RECORDED ──► RESUME_RECONCILED ──► CLEARED
+//
+// ## Service Ownership
+//
+//   REQUESTED           — Python agent-runner (Phase 1: _populate_pending_approval)
+//   INTERRUPT_CAPTURED  — Python agent-runner (Phase 2: INTERRUPT_CAPTURE)
+//   DECISION_RECORDED   — Go/Java approval handler (RecordApprovalDecisionStep)
+//   RESUME_RECONCILED   — Python agent-runner (RESUME_RECONCILE)
+//   CLEARED             — Go/Java update-status handler (clear-signal sentinel)
+//
+// ## Diagnostic Value
+//
+// When an approval flow is stuck, lifecycle_state immediately shows which
+// service last touched the record and which transition failed — no log
+// correlation required.
+enum ApprovalLifecycleState {
+  APPROVAL_LIFECYCLE_UNSPECIFIED = 0;
+
+  // Phase 1: Tool detected as requiring approval, PendingApproval created.
+  // Set by Python agent-runner in _populate_pending_approval.
+  APPROVAL_LIFECYCLE_REQUESTED = 1;
+
+  // Phase 2: LangGraph interrupt_id linked to this PendingApproval.
+  // Set by Python agent-runner in INTERRUPT_CAPTURE after the event stream.
+  APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED = 2;
+
+  // User submitted a decision, ToolCall updated, Temporal signal sent.
+  // Set by Go/Java approval handler in RecordApprovalDecisionStep.
+  APPROVAL_LIFECYCLE_DECISION_RECORDED = 3;
+
+  // Python read the decision, built resume_dict, reconciled tool call status.
+  // Set by Python agent-runner in RESUME_RECONCILE.
+  APPROVAL_LIFECYCLE_RESUME_RECONCILED = 4;
+
+  // Clear-signal sentinel sent, DB cleared.
+  // Set by Python agent-runner when appending the empty-tool_call_id sentinel.
+  APPROVAL_LIFECYCLE_CLEARED = 5;
+}
+
+// PendingApproval is the single source of truth for approval state.
 //
 // ## Purpose
 //
-// This message provides all information needed for a UI to render an approval
-// dialog/card. It's populated when an execution enters WAITING_FOR_APPROVAL phase.
+// This message tracks the full lifecycle of a single tool approval request.
+// Every approval-related field on ToolCall (approval_action, approval_decided_at)
+// is a projection of the state recorded here. When in doubt, PendingApproval
+// is authoritative.
 //
-// ## Relationship to ToolCall
+// ## Lifecycle Tracking
 //
-// While ToolCall contains the canonical approval state, PendingApproval provides
-// a denormalized view optimized for UI consumption. The tool_call_id links back
-// to the authoritative ToolCall record.
+// The lifecycle_state field tracks exactly where this approval is in the
+// distributed pipeline (see ApprovalLifecycleState). Each service advances
+// the state forward-only, making the approval flow auditable and diagnosable.
 //
 // ## Sub-Agent Approvals
 //
@@ -107,6 +159,41 @@ message PendingApproval {
   //
   // @since Batch Approval (Multiple Interrupts)
   string interrupt_id = 9;
+
+  // Current lifecycle state of this approval.
+  //
+  // Tracks which service last advanced this approval and where it is in the
+  // distributed pipeline. Forward-only: no service may move the state backward.
+  //
+  // UI consumers:
+  //   - REQUESTED / INTERRUPT_CAPTURED: Show approval card (action available)
+  //   - DECISION_RECORDED: Show decision badge (approval submitted, awaiting resume)
+  //   - RESUME_RECONCILED / CLEARED: Hidden (approval fully processed)
+  //
+  // Defaults to UNSPECIFIED for backward compatibility with existing records.
+  //
+  // @since HITL Approval Flow Hardening
+  ApprovalLifecycleState lifecycle_state = 10;
+
+  // The approval decision recorded for this PendingApproval.
+  //
+  // Populated when lifecycle_state advances to DECISION_RECORDED (or later).
+  // This is the authoritative record of the user's decision. The
+  // ToolCall.approval_action field is a projection of this value.
+  //
+  // UNSPECIFIED when no decision has been made yet.
+  //
+  // @since HITL Approval Flow Hardening
+  ApprovalAction decision_action = 11;
+
+  // ISO 8601 timestamp when the approval decision was recorded.
+  //
+  // Populated alongside decision_action when lifecycle_state advances to
+  // DECISION_RECORDED. The ToolCall.approval_decided_at field is a projection
+  // of this value.
+  //
+  // @since HITL Approval Flow Hardening
+  string decision_recorded_at = 12;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

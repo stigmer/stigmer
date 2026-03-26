@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
-import { ApprovalAction, type ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalAction, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -362,6 +362,35 @@ export function useSessionConversation(
     if (dismissedApprovalIds.size === 0) return all;
     return all.filter((a) => !dismissedApprovalIds.has(a.toolCallId));
   }, [activeStreamExecution, dismissedApprovalIds]);
+
+  // Poll-based fallback: when the execution is WAITING_FOR_APPROVAL but
+  // pendingApprovals is empty, the streaming path may have failed to
+  // deliver the approval state. Refetch the execution directly so the
+  // user is never stuck without an action to take.
+  const approvalPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (approvalPollRef.current) {
+      clearTimeout(approvalPollRef.current);
+      approvalPollRef.current = null;
+    }
+
+    const isWaiting =
+      activePhase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+    const hasNoApprovals = pendingApprovals.length === 0;
+
+    if (!isWaiting || !hasNoApprovals || !activeExecutionId) return;
+
+    approvalPollRef.current = setTimeout(() => {
+      refetch();
+    }, 3000);
+
+    return () => {
+      if (approvalPollRef.current) {
+        clearTimeout(approvalPollRef.current);
+        approvalPollRef.current = null;
+      }
+    };
+  }, [activePhase, pendingApprovals.length, activeExecutionId, refetch]);
 
   const submitApproval = useCallback(
     async (

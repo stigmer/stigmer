@@ -16,7 +16,10 @@ from typing import Any
 from uuid import uuid4
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import TodoItem
-from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
+from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import (
+    ApprovalLifecycleState,
+    PendingApproval,
+)
 from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
 from ai.stigmer.agentic.agentexecution.v1.context_pb2 import (
     ContextInfo,
@@ -893,9 +896,9 @@ class StatusBuilder:
 
     def _update_tool_call_on_ai_message(
         self,
+        *,
         tool_call_id: str,
         messages_list: Any,
-        *,
         result: str | None = None,
         status: int | None = None,
         completed_at: str | None = None,
@@ -908,6 +911,9 @@ class StatusBuilder:
         AI message and the one in the flat ``tool_calls`` list are independent
         objects.  Callers must update both.  This method handles the message
         copy; callers update the flat copy directly.
+
+        All parameters are keyword-only to prevent argument-order regressions
+        (see 2026-03-26-194430-fix-hitl-resume-reconcile-argument-order.md).
         """
         for message in messages_list:
             if message.type != MessageType.MESSAGE_AI:
@@ -1062,9 +1068,9 @@ class StatusBuilder:
         messages_list = sub_agent.messages if sub_agent else self.current_status.messages
         flat_list = sub_agent.tool_calls if sub_agent else self.current_status.tool_calls
         
-        # Update the ToolCall copy on the parent AI message
         self._update_tool_call_on_ai_message(
-            resolved_id, messages_list,
+            tool_call_id=resolved_id,
+            messages_list=messages_list,
             result=persisted_result,
             status=ToolCallStatus.TOOL_CALL_COMPLETED,
             completed_at=completed_at,
@@ -2013,7 +2019,7 @@ class StatusBuilder:
 
         _, sub_agent = self._get_execution_context(ns_key)
         messages_list = sub_agent.messages if sub_agent else self.current_status.messages
-        self._update_tool_call_on_ai_message(tc_id, messages_list, result=buf)
+        self._update_tool_call_on_ai_message(tool_call_id=tc_id, messages_list=messages_list, result=buf)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Tool Input Streaming Helpers
@@ -2123,8 +2129,8 @@ class StatusBuilder:
                 tool_call.completed_at = completed_ts
 
                 self._update_tool_call_on_ai_message(
-                    tc_id,
-                    messages_list,
+                    tool_call_id=tc_id,
+                    messages_list=messages_list,
                     result="ok",
                     status=ToolCallStatus.TOOL_CALL_COMPLETED,
                     is_streaming=False,
@@ -2476,6 +2482,7 @@ class StatusBuilder:
             requested_at=_utc_timestamp(),
             from_sub_agent=from_sub_agent,
             sub_agent_name=sub_agent_name,
+            lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED,
         )
         self.current_status.pending_approvals.append(pa)
         
@@ -2489,7 +2496,7 @@ class StatusBuilder:
         self.logger.info(
             f"[APPROVAL] execution={self.execution_id} "
             f"tool={tool_name} run_id={run_id} tc_id={tc_id} "
-            f"status=WAITING_APPROVAL context={context_info} "
+            f"status=WAITING_APPROVAL lifecycle=REQUESTED context={context_info} "
             f"pending_count={pending_count} "
             f"pending_approvals_proto={len(self.current_status.pending_approvals)}"
         )

@@ -182,26 +182,71 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 	requestedAction := input.GetAction()
 	currentPhase := execution.GetStatus().GetPhase()
 
-	// Check for idempotency: If the tool call already has an approval action,
-	// and it matches the requested action, treat as no-op.
-	// Searches both top-level and sub-agent tool calls because approval-
-	// requiring tools may originate from sub-agents.
-	if tc := findToolCallInExecution(execution, requestedToolCallId); tc != nil {
-		existingAction := tc.GetApprovalAction()
-		if existingAction != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED {
-			if existingAction == requestedAction {
+	// ── Idempotency via lifecycle_state (preferred) ──
+	//
+	// Check pending_approvals FIRST. If the PendingApproval for this tool_call_id
+	// already has lifecycle_state >= DECISION_RECORDED and the action matches,
+	// this is an idempotent retry. Checking PendingApproval (the authoritative
+	// record) before ToolCall prevents the stale-approval-action bug where a
+	// tool_call_id reused across cycles carries a stale ToolCall.approval_action
+	// from the previous cycle.
+	pendingApprovals := execution.GetStatus().GetPendingApprovals()
+	var matchedPA *agentexecutionv1.PendingApproval
+	for _, pa := range pendingApprovals {
+		if pa.GetToolCallId() == requestedToolCallId {
+			matchedPA = pa
+			break
+		}
+	}
+
+	if matchedPA != nil {
+		paState := matchedPA.GetLifecycleState()
+		if paState >= agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_DECISION_RECORDED {
+			if matchedPA.GetDecisionAction() == requestedAction {
 				log.Info().
 					Str("execution_id", executionID).
 					Str("tool_call_id", requestedToolCallId).
 					Str("action", requestedAction.String()).
-					Msg("IDEMPOTENT: Tool call already has matching approval action")
+					Str("lifecycle_state", paState.String()).
+					Msg("IDEMPOTENT: PendingApproval already has matching decision")
 				ctx.Set(IsIdempotentRequestKey, true)
 				return nil
 			}
 			return grpclib.FailedPreconditionError(
-				"tool call %s already has approval action %s, cannot change to %s",
-				requestedToolCallId, existingAction.String(), requestedAction.String(),
+				"tool call %s already has approval decision %s (lifecycle=%s), cannot change to %s",
+				requestedToolCallId, matchedPA.GetDecisionAction().String(), paState.String(), requestedAction.String(),
 			)
+		}
+		// PendingApproval exists and is in REQUESTED or INTERRUPT_CAPTURED — proceed.
+	}
+
+	// ── Fallback idempotency via ToolCall.approval_action ──
+	//
+	// For backward compatibility with PendingApprovals that lack lifecycle_state
+	// (legacy records or records from before this change is deployed).
+	if matchedPA == nil || matchedPA.GetLifecycleState() == agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_UNSPECIFIED {
+		if tc := findToolCallInExecution(execution, requestedToolCallId); tc != nil {
+			existingAction := tc.GetApprovalAction()
+			if existingAction != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED {
+				// Only treat as idempotent if the tool_call_id is NOT in pending_approvals.
+				// If it IS in pending_approvals, the stale approval_action is from a
+				// previous cycle and this is a fresh approval request.
+				if matchedPA == nil {
+					if existingAction == requestedAction {
+						log.Info().
+							Str("execution_id", executionID).
+							Str("tool_call_id", requestedToolCallId).
+							Str("action", requestedAction.String()).
+							Msg("IDEMPOTENT: ToolCall already has matching approval action (legacy path)")
+						ctx.Set(IsIdempotentRequestKey, true)
+						return nil
+					}
+					return grpclib.FailedPreconditionError(
+						"tool call %s already has approval action %s, cannot change to %s",
+						requestedToolCallId, existingAction.String(), requestedAction.String(),
+					)
+				}
+			}
 		}
 	}
 
@@ -218,41 +263,25 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 	}
 
 	// Best-effort validation of tool_call_id against pending_approvals.
-	// The DB is an eventually-consistent read model; the Temporal workflow
-	// holds the actual source of truth. When pending_approvals is empty due
-	// to DB consistency lag, we proceed to signal the workflow rather than
-	// rejecting the request — the Python activity will correlate the decision
-	// against the actual LangGraph interrupts.
-	pendingApprovals := execution.GetStatus().GetPendingApprovals()
-
 	if len(pendingApprovals) == 0 {
 		log.Warn().
 			Str("execution_id", executionID).
 			Str("tool_call_id", requestedToolCallId).
 			Msg("pending_approvals empty in DB but phase is WAITING_FOR_APPROVAL -- proceeding with signal (DB consistency lag)")
-	} else {
-		found := false
+	} else if matchedPA == nil {
+		validIDs := make([]string, 0, len(pendingApprovals))
 		for _, pa := range pendingApprovals {
-			if pa.GetToolCallId() == requestedToolCallId {
-				found = true
-				break
-			}
+			validIDs = append(validIDs, pa.GetToolCallId())
 		}
-		if !found {
-			validIDs := make([]string, 0, len(pendingApprovals))
-			for _, pa := range pendingApprovals {
-				validIDs = append(validIDs, pa.GetToolCallId())
-			}
-			log.Debug().
-				Str("execution_id", executionID).
-				Str("requested_tool_call_id", requestedToolCallId).
-				Strs("valid_tool_call_ids", validIDs).
-				Msg("Tool call ID not found in pending_approvals")
-			return grpclib.InvalidArgumentError(
-				"tool_call_id %s not found in pending_approvals for execution %s",
-				requestedToolCallId, executionID,
-			)
-		}
+		log.Debug().
+			Str("execution_id", executionID).
+			Str("requested_tool_call_id", requestedToolCallId).
+			Strs("valid_tool_call_ids", validIDs).
+			Msg("Tool call ID not found in pending_approvals")
+		return grpclib.InvalidArgumentError(
+			"tool_call_id %s not found in pending_approvals for execution %s",
+			requestedToolCallId, executionID,
+		)
 	}
 
 	log.Debug().
@@ -316,12 +345,28 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 		tc.ApprovalDecidedAt = now
 	}
 
+	// Advance the matching PendingApproval's lifecycle to DECISION_RECORDED.
+	// This records the decision on the authoritative PendingApproval record,
+	// making ToolCall.approval_action a projection of this value.
+	for _, pa := range updated.Status.PendingApprovals {
+		if pa.GetToolCallId() == toolCallId {
+			pa.LifecycleState = agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_DECISION_RECORDED
+			pa.DecisionAction = action
+			pa.DecisionRecordedAt = now
+			break
+		}
+	}
+
 	log.Info().
 		Str("execution_id", executionID).
 		Str("tool_call_id", toolCallId).
 		Str("action", action.String()).
+		Str("lifecycle_state", "DECISION_RECORDED").
+		Str("from_state", "INTERRUPT_CAPTURED").
+		Str("to_state", "DECISION_RECORDED").
+		Str("service", "stigmer-server").
 		Int("pending_approvals", len(updated.Status.PendingApprovals)).
-		Msg("Recorded approval decision on ToolCall (pending_approvals preserved for Python resume)")
+		Msg("[LIFECYCLE] Recorded approval decision on ToolCall and PendingApproval")
 
 	if err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_agent_execution, executionID, updated); err != nil {
 		log.Error().

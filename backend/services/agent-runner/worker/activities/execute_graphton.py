@@ -11,7 +11,10 @@ from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
-from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
+from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import (
+    ApprovalLifecycleState,
+    PendingApproval,
+)
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
     ExecutionPhase,
@@ -154,11 +157,13 @@ def _try_enrich_phase1_entry(
             and not pa.interrupt_id
         ):
             pa.interrupt_id = interrupt_id
+            pa.lifecycle_state = ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED
             return True
     # Pass 2: relaxed match (tool_name only, ignore from_sub_agent)
     for pa in status_builder.current_status.pending_approvals:
         if pa.tool_name == tool_name and not pa.interrupt_id:
             pa.interrupt_id = interrupt_id
+            pa.lifecycle_state = ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED
             return True
     return False
 
@@ -584,6 +589,7 @@ async def _auto_publish_written_files(
     status_builder: "StatusBuilder",
     local_root: str | None,
     logger,
+    path_normalizer: Callable[[str], str] | None = None,
 ) -> int:
     """Publish workspace files as artifacts based on completed file-modifying tool calls.
 
@@ -615,6 +621,13 @@ async def _auto_publish_written_files(
         status_builder: StatusBuilder to track the new artifacts.
         local_root: Root path for local filesystem mode.
         logger: Activity logger.
+        path_normalizer: Converts agent-space paths (from tool call args)
+            into sandbox-relative paths that ``sandbox.fs`` can resolve.
+            Required for Daytona sandboxes where the workspace root differs
+            from the sandbox root (e.g. ``/home/daytona`` vs
+            ``/home/daytona/workspace``).  When ``None``, paths are only
+            stripped of leading slashes (sufficient for local mode and
+            sandboxes without a rebase prefix).
 
     Returns:
         Number of artifacts auto-published (0 if no file-modifying calls found).
@@ -682,8 +695,23 @@ async def _auto_publish_written_files(
     from collections import defaultdict
     from pathlib import PurePosixPath
 
-    # Normalise: strip leading slashes so paths are workspace-relative.
-    normalised = [p.lstrip("/") for p in written_paths]
+    # Normalise: convert agent-space paths to sandbox-relative paths.
+    #
+    # When a path_normalizer is provided (Daytona with rebase prefix), it
+    # translates agent-space paths like "/mahatma_gandhi.txt" into
+    # sandbox-relative paths like "workspace/mahatma_gandhi.txt".  Without
+    # the normalizer the file lookup in sandbox.fs would fail because the
+    # write tool wrote through DaytonaBackend._normalize() but this
+    # function receives the raw agent-space path from tc.args.
+    if path_normalizer is not None:
+        normalised = [path_normalizer(p) for p in written_paths]
+        logger.info(
+            f"[AUTO_PUBLISH] execution={execution_id} — "
+            f"normalized {len(written_paths)} path(s) via workspace backend: "
+            f"{list(zip(written_paths, normalised))}"
+        )
+    else:
+        normalised = [p.lstrip("/") for p in written_paths]
 
     # Single file — publish as an individual file artifact regardless of
     # depth.  Wrapping it in a directory artifact named after the parent
@@ -710,7 +738,9 @@ async def _auto_publish_written_files(
         except Exception as e:
             logger.warning(
                 f"[AUTO_PUBLISH] execution={execution_id} — "
-                f"failed to publish file '{rel_path}': {e}"
+                f"failed to publish file: sandbox_path='{rel_path}' "
+                f"agent_path='{written_paths[0]}' "
+                f"normalizer={'yes' if path_normalizer else 'no'}: {e}"
             )
             return 0
 
@@ -747,7 +777,8 @@ async def _auto_publish_written_files(
         except Exception as e:
             logger.warning(
                 f"[AUTO_PUBLISH] execution={execution_id} — "
-                f"failed to publish directory '{common_dir}': {e}"
+                f"failed to publish directory: sandbox_path='{common_dir}' "
+                f"normalizer={'yes' if path_normalizer else 'no'}: {e}"
             )
     else:
         # No single common directory — group by top-level directory and
@@ -792,7 +823,8 @@ async def _auto_publish_written_files(
             except Exception as e:
                 logger.warning(
                     f"[AUTO_PUBLISH] execution={execution_id} — "
-                    f"failed to publish directory '{group_common}': {e}"
+                    f"failed to publish directory: sandbox_path='{group_common}' "
+                    f"normalizer={'yes' if path_normalizer else 'no'}: {e}"
                 )
 
         # Publish root-level files individually (no directory to group).
@@ -816,7 +848,8 @@ async def _auto_publish_written_files(
             except Exception as e:
                 logger.warning(
                     f"[AUTO_PUBLISH] execution={execution_id} — "
-                    f"failed to publish root file '{rel_path}': {e}"
+                    f"failed to publish root file: sandbox_path='{rel_path}' "
+                    f"normalizer={'yes' if path_normalizer else 'no'}: {e}"
                 )
 
     logger.info(
@@ -2875,8 +2908,8 @@ async def _execute_graphton_impl(
                     decision.action, ToolCallStatus.TOOL_CALL_RUNNING
                 )
                 status_builder._update_tool_call_on_ai_message(
-                    tc_id,
-                    status_builder.current_status.messages,
+                    tool_call_id=tc_id,
+                    messages_list=status_builder.current_status.messages,
                     status=new_status,
                 )
             for sa in status_builder.current_status.sub_agent_executions:
@@ -2885,8 +2918,8 @@ async def _execute_graphton_impl(
                         decision.action, ToolCallStatus.TOOL_CALL_RUNNING
                     )
                     status_builder._update_tool_call_on_ai_message(
-                        tc_id,
-                        sa.messages,
+                        tool_call_id=tc_id,
+                        messages_list=sa.messages,
                         status=new_status,
                     )
             
@@ -2935,23 +2968,27 @@ async def _execute_graphton_impl(
                     for tc in sa.tool_calls:
                         _auto_skip_tool_call(tc, context=f"sub-agent:{sa.name}")
                 
-                # Sync auto-skip to message-embedded copies
                 for tc in status_builder.current_status.tool_calls:
                     if tc.status == ToolCallStatus.TOOL_CALL_SKIPPED:
                         status_builder._update_tool_call_on_ai_message(
-                            tc.id,
-                            status_builder.current_status.messages,
+                            tool_call_id=tc.id,
+                            messages_list=status_builder.current_status.messages,
                             status=ToolCallStatus.TOOL_CALL_SKIPPED,
                         )
                 for sa in status_builder.current_status.sub_agent_executions:
                     for tc in sa.tool_calls:
                         if tc.status == ToolCallStatus.TOOL_CALL_SKIPPED:
                             status_builder._update_tool_call_on_ai_message(
-                                tc.id,
-                                sa.messages,
+                                tool_call_id=tc.id,
+                                messages_list=sa.messages,
                                 status=ToolCallStatus.TOOL_CALL_SKIPPED,
                             )
             
+            # Advance all pending_approvals to RESUME_RECONCILED before clearing.
+            for pa in status_builder.current_status.pending_approvals:
+                if pa.tool_call_id:
+                    pa.lifecycle_state = ApprovalLifecycleState.APPROVAL_LIFECYCLE_RESUME_RECONCILED
+
             # Clear stale pending_approvals — they are no longer pending.
             del status_builder.current_status.pending_approvals[:]
             
@@ -2962,7 +2999,10 @@ async def _execute_graphton_impl(
             # is the established sentinel that triggers the "clear" path in
             # BuildNewStateWithStatusStep.
             status_builder.current_status.pending_approvals.append(
-                PendingApproval(tool_call_id="")
+                PendingApproval(
+                    tool_call_id="",
+                    lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_CLEARED,
+                )
             )
             
             # Pre-populate fingerprints from existing tool calls to prevent
@@ -3568,6 +3608,11 @@ async def _execute_graphton_impl(
                             else None
                         ),
                         logger=activity_logger,
+                        path_normalizer=(
+                            workspace_backend._normalize
+                            if hasattr(workspace_backend, "_normalize")
+                            else None
+                        ),
                     )
                 except Exception as auto_pub_err:
                     activity_logger.warning(
@@ -3897,9 +3942,9 @@ async def _execute_graphton_impl(
                         )
 
                         if matched_tool_call_id in phase1_by_tc_id:
-                            # Enrich the existing Phase 1 entry with interrupt_id
                             existing_pa = phase1_by_tc_id[matched_tool_call_id]
                             existing_pa.interrupt_id = intr.id
+                            existing_pa.lifecycle_state = ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED
                             enriched_count += 1
                         else:
                             # Phase 2 matched a tool_call_id that Phase 1 didn't
@@ -3936,6 +3981,7 @@ async def _execute_graphton_impl(
                                 from_sub_agent=from_sub_agent,
                                 sub_agent_name=sub_agent_name,
                                 interrupt_id=intr.id,
+                                lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
                             )
                             status_builder.current_status.pending_approvals.append(pa)
                             added_count += 1
@@ -4154,6 +4200,7 @@ async def _execute_graphton_impl(
         activity_logger.info(f"   tool_calls: {len(status_builder.current_status.tool_calls)}")
         activity_logger.info(f"   sub_agent_executions: {len(status_builder.current_status.sub_agent_executions)}")
         activity_logger.info(f"   todos: {len(status_builder.current_status.todos)}")
+        activity_logger.info(f"   artifacts: {len(status_builder.current_status.artifacts)}")
         activity_logger.info(f"   phase: {ExecutionPhase.Name(status_builder.current_status.phase)}")
         activity_logger.info("=" * 80)
         
