@@ -68,7 +68,7 @@ from worker.resilience import (
     GrpcRetryExhaustedError,
     RetryConfig,
 )
-from worker.sandbox_manager import SandboxManager, get_daytona_volume_id
+from worker.sandbox_manager import SandboxManager
 from worker.storage import ArtifactStorage, create_artifact_storage
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.token_manager import get_api_key
@@ -1505,7 +1505,6 @@ async def _execute_graphton_impl(
                 raise ValueError("DAYTONA_API_KEY environment variable required for cloud mode")
             sandbox_manager = SandboxManager(
                 daytona_api_key=daytona_api_key,
-                volume_id=get_daytona_volume_id(),
             )
             if snapshot_id := sandbox_config.get("snapshot_id"):
                 activity_logger.info(f"Using Daytona snapshot: {snapshot_id}")
@@ -1649,12 +1648,16 @@ async def _execute_graphton_impl(
             setup_timer.start("workspace_provisioning")
             try:
                 provisioner = WorkspaceProvisioner(log=activity_logger)
+                # Always use local-mode git provisioning: the workspace
+                # lives on the sandbox's local overlay filesystem (even in
+                # cloud mode), so --separate-git-dir and FUSE compat hacks
+                # are unnecessary.
                 provision_results = await _run_sync_with_heartbeat(
                     provisioner.provision_all,
                     entries=session.spec.workspace_entries,
                     backend=workspace_backend,
                     merged_env=merged_env_vars,
-                    is_local_mode=worker_config.is_local_mode(),
+                    is_local_mode=True,
                     phase_name="workspace_provisioning",
                     log=activity_logger,
                 )

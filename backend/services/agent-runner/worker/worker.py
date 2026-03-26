@@ -30,11 +30,10 @@ class AgentRunner:
         # Initialize cloud-mode infrastructure
         if not config.is_local_mode():
             self._initialize_redis()
-            self._initialize_daytona_volume()
             self._validate_mongodb_connectivity()
         else:
             self.logger.info(
-                "Local mode: Skipping Redis and Daytona volume initialization"
+                "Local mode: Skipping Redis initialization"
             )
     
     def _initialize_redis(self):
@@ -59,42 +58,6 @@ class AgentRunner:
             raise
         except Exception as e:
             self.logger.error(f"❌ Error initializing Redis: {e}")
-            raise
-    
-    def _initialize_daytona_volume(self):
-        """Initialize Daytona persistent volume for workspace persistence.
-        
-        Creates or retrieves the global workspace volume via the Daytona
-        API.  The volume ID is stored in a module-level store inside
-        ``sandbox_manager`` so that activity functions can read it via
-        :func:`~worker.sandbox_manager.get_daytona_volume_id`.
-        
-        Mirrors the pattern of :meth:`_initialize_redis` -- cloud-mode
-        infrastructure initialized once at worker startup, used by all
-        subsequent activities.
-        """
-        import os
-        
-        from worker.sandbox_manager import initialize_daytona_volume
-        
-        api_key = os.environ.get("DAYTONA_API_KEY", "")
-        if not api_key:
-            raise ValueError(
-                "DAYTONA_API_KEY required for cloud mode Daytona volume "
-                "initialization"
-            )
-        
-        volume_name = os.environ.get("DAYTONA_VOLUME_NAME", "stigmer-workspaces")
-        
-        try:
-            volume_id = initialize_daytona_volume(api_key, volume_name)
-            self.logger.info(
-                "✅ Daytona persistent volume ready: name='%s', id='%s'",
-                volume_name,
-                volume_id,
-            )
-        except Exception as e:
-            self.logger.error("❌ Failed to initialize Daytona volume: %s", e)
             raise
     
     def _validate_mongodb_connectivity(self):

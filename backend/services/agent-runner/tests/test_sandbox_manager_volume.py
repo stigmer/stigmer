@@ -135,10 +135,9 @@ class TestInitializeDaytonaVolume:
 class TestCreateDaytonaSandboxVolumeMount:
     """_create_daytona_sandbox() — volume mount construction."""
 
-    def test_volume_mount_with_volume_id_and_session_id(self):
-        """VolumeMount is passed when both volume_id and session_id are set."""
+    def test_no_volume_mount_even_with_volume_id_and_session_id(self):
+        """Volume mounts are disabled — sandbox uses local overlay filesystem."""
         mgr = _make_manager(volume_id="vol-abc")
-        # Make sandbox ready immediately
         ready_result = MagicMock(exit_code=0)
         sandbox = MagicMock()
         sandbox.id = "sbx-new"
@@ -150,17 +149,11 @@ class TestCreateDaytonaSandboxVolumeMount:
         )
 
         assert result is sandbox
-        # Verify create was called with params containing volume mount
+        # Verify create was called without volume mounts
         call_kwargs = mgr._daytona.create.call_args
         params = call_kwargs.kwargs.get("params") or call_kwargs[1].get("params")
-        assert params is not None
-        assert params.volumes is not None
-        assert len(params.volumes) == 1
-
-        mount = params.volumes[0]
-        assert mount.volume_id == "vol-abc"
-        assert mount.mount_path == DAYTONA_WORKSPACE_MOUNT_PATH
-        assert mount.subpath == "sessions/sess-001"
+        # No snapshot, no volume → vanilla create (no params)
+        mgr._daytona.create.assert_called_once_with()
 
     def test_no_volume_mount_without_session_id(self):
         """No VolumeMount when session_id is None (ephemeral sandbox)."""
@@ -208,8 +201,8 @@ class TestCreateDaytonaSandboxVolumeMount:
         assert params.auto_delete_interval == -1
         assert params.snapshot == "snap-123"
 
-    def test_auto_delete_disabled_without_snapshot(self):
-        """auto_delete_interval=-1 when creating with volume but no snapshot."""
+    def test_vanilla_create_without_snapshot(self):
+        """No snapshot, no volume → vanilla create() with no params."""
         mgr = _make_manager(volume_id="vol-no-snap")
         sandbox = MagicMock()
         sandbox.id = "sbx-no-snap"
@@ -220,9 +213,7 @@ class TestCreateDaytonaSandboxVolumeMount:
             {"type": "daytona"}, session_id="sess-004",
         )
 
-        call_kwargs = mgr._daytona.create.call_args
-        params = call_kwargs.kwargs.get("params") or call_kwargs[1].get("params")
-        assert params.auto_delete_interval == -1
+        mgr._daytona.create.assert_called_once_with()
 
     def test_rejects_non_daytona_type(self):
         """Raises ValueError for non-daytona sandbox type."""

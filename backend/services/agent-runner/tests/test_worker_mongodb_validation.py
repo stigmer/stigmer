@@ -41,7 +41,6 @@ def _make_agent_runner(checkpointer_type="mongodb", mongodb_uri="mongodb://local
     with (
         patch("worker.worker.set_api_key"),
         patch("worker.worker.AgentRunner._initialize_redis"),
-        patch("worker.worker.AgentRunner._initialize_daytona_volume"),
         patch("worker.worker.AgentRunner._validate_mongodb_connectivity"),
     ):
         from worker.worker import AgentRunner
