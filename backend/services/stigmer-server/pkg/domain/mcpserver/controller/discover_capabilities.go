@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
-	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
@@ -20,15 +19,17 @@ import (
 
 const (
 	discoverWorkflowName = "stigmer/mcp-server/discover"
-	personalEnvLabel     = "stigmer.ai/personal"
 	discoverTimeout      = 45 * time.Second
 )
 
 // discoverWorkflowInput matches the Python DiscoverMcpServerInput dataclass.
+//
+// Follows the slim-payload pattern: only reference IDs are passed through
+// Temporal. The Python activity resolves credentials just-in-time via gRPC,
+// keeping secrets out of Temporal's durable workflow history.
 type discoverWorkflowInput struct {
-	McpServerID              string            `json:"mcp_server_id"`
-	EnvVars                  map[string]string `json:"env_vars"`
-	InvokerIdentityAccountID string            `json:"invoker_identity_account_id,omitempty"`
+	McpServerID              string `json:"mcp_server_id"`
+	InvokerIdentityAccountID string `json:"invoker_identity_account_id,omitempty"`
 }
 
 // discoverWorkflowOutput matches the Python DiscoverMcpServerOutput dataclass.
@@ -51,15 +52,16 @@ type discoveredResourceTemplateResult struct {
 }
 
 // DiscoverCapabilities triggers server-side MCP discovery via a Temporal workflow
-// on the agent-runner. The handler resolves credentials from the user's personal
-// environment, starts the workflow, blocks until it completes, and stores the result.
+// on the agent-runner. The handler starts the workflow with only the MCP server ID
+// (no secrets), blocks until it completes, and stores the result. Credential
+// resolution happens inside the Python activity using the OBO impersonation flow.
 func (c *McpServerController) DiscoverCapabilities(
 	ctx context.Context,
 	input *mcpserverv1.DiscoverCapabilitiesInput,
 ) (*mcpserverv1.McpServer, error) {
-	if c.temporalClient == nil || c.envClient == nil {
+	if c.temporalClient == nil {
 		return nil, grpclib.FailedPreconditionError(
-			"server-side discovery is not available: Temporal or environment service not configured",
+			"server-side discovery is not available: Temporal not configured",
 		)
 	}
 
@@ -73,14 +75,8 @@ func (c *McpServerController) DiscoverCapabilities(
 		return nil, grpclib.NotFoundError("mcp_server", mcpServerID)
 	}
 
-	envVars, err := c.resolveEnvVars(ctx, mcpServer)
-	if err != nil {
-		return nil, err
-	}
-
 	wfInput := discoverWorkflowInput{
 		McpServerID: mcpServerID,
-		EnvVars:     envVars,
 	}
 
 	result, err := c.executeDiscoverWorkflow(ctx, mcpServerID, wfInput)
@@ -105,78 +101,6 @@ func (c *McpServerController) DiscoverCapabilities(
 		Msg("MCP server discovery completed and stored")
 
 	return mcpServer, nil
-}
-
-// resolveEnvVars reads the personal environment and extracts the env vars
-// required by the MCP server's env_spec. Returns an empty map if no env_spec
-// is defined. Returns FAILED_PRECONDITION if required vars are missing.
-func (c *McpServerController) resolveEnvVars(
-	ctx context.Context,
-	mcpServer *mcpserverv1.McpServer,
-) (map[string]string, error) {
-	envSpec := mcpServer.GetSpec().GetEnvSpec()
-	if envSpec == nil || len(envSpec.GetData()) == 0 {
-		return map[string]string{}, nil
-	}
-
-	listResp, err := c.envClient.List(ctx, &environmentv1.ListEnvironmentsRequest{
-		Org:    mcpServer.GetMetadata().GetOrg(),
-		Labels: map[string]string{personalEnvLabel: "true"},
-	})
-	if err != nil {
-		log.Warn().Err(err).Msg("Failed to list personal environments for discovery")
-		return map[string]string{}, nil
-	}
-
-	if listResp.GetTotalCount() == 0 || len(listResp.GetItems()) == 0 {
-		requiredKeys := make([]string, 0, len(envSpec.GetData()))
-		for k := range envSpec.GetData() {
-			requiredKeys = append(requiredKeys, k)
-		}
-		return nil, grpclib.FailedPreconditionError(
-			fmt.Sprintf("personal environment not found; required env vars: %v", requiredKeys),
-		)
-	}
-
-	personalEnv := listResp.GetItems()[0]
-	personalEnvID := personalEnv.GetMetadata().GetId()
-	result := make(map[string]string)
-	var missing []string
-
-	for key := range envSpec.GetData() {
-		storedData := personalEnv.GetSpec().GetData()
-		if storedData == nil {
-			missing = append(missing, key)
-			continue
-		}
-		if _, exists := storedData[key]; !exists {
-			missing = append(missing, key)
-			continue
-		}
-
-		val, err := c.envClient.GetSecretValue(ctx, &environmentv1.EnvironmentSecretValueInput{
-			EnvironmentId: personalEnvID,
-			Key:           key,
-		})
-		if err != nil {
-			log.Warn().Err(err).Str("key", key).Msg("Failed to get secret value for discovery")
-			missing = append(missing, key)
-			continue
-		}
-		if val.GetValue() != "" {
-			result[key] = val.GetValue()
-		} else {
-			missing = append(missing, key)
-		}
-	}
-
-	if len(missing) > 0 {
-		return nil, grpclib.FailedPreconditionError(
-			fmt.Sprintf("missing required credentials in personal environment: %v", missing),
-		)
-	}
-
-	return result, nil
 }
 
 // executeDiscoverWorkflow starts the Python DiscoverMcpServerWorkflow on
@@ -259,28 +183,22 @@ func convertToDiscoveredCapabilities(output *discoverWorkflowOutput) *mcpserverv
 // StartBestEffortDiscovery starts the discovery workflow asynchronously
 // without blocking. Used by the apply handler for auto-discovery.
 // Failures are logged but do not propagate.
+//
+// Uses context.Background() because this runs in a fire-and-forget goroutine
+// after the originating gRPC request has already returned. The Temporal client
+// does not need the gRPC request context — it connects to Temporal directly.
+// Credential resolution happens inside the Python activity, not here.
 func (c *McpServerController) StartBestEffortDiscovery(
-	ctx context.Context,
 	mcpServer *mcpserverv1.McpServer,
 ) {
-	if c.temporalClient == nil || c.envClient == nil {
+	if c.temporalClient == nil {
 		return
 	}
 
 	mcpServerID := mcpServer.GetMetadata().GetId()
 
-	envVars, err := c.resolveEnvVars(ctx, mcpServer)
-	if err != nil {
-		log.Debug().
-			Err(err).
-			Str("mcp_server_id", mcpServerID).
-			Msg("Skipping best-effort discovery: credentials not available")
-		return
-	}
-
 	wfInput := discoverWorkflowInput{
 		McpServerID: mcpServerID,
-		EnvVars:     envVars,
 	}
 
 	workflowID := fmt.Sprintf("%s/%s/%s", discoverWorkflowName, mcpServerID, uuid.New().String()[:8])
@@ -291,7 +209,7 @@ func (c *McpServerController) StartBestEffortDiscovery(
 		WorkflowRunTimeout: discoverTimeout,
 	}
 
-	_, err = c.temporalClient.ExecuteWorkflow(ctx, options, discoverWorkflowName, wfInput)
+	_, err := c.temporalClient.ExecuteWorkflow(context.Background(), options, discoverWorkflowName, wfInput)
 	if err != nil {
 		log.Warn().Err(err).
 			Str("mcp_server_id", mcpServerID).

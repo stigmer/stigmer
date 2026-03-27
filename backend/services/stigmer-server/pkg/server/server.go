@@ -449,12 +449,13 @@ func Run() error {
 	// Inject discovery dependencies into McpServerController.
 	// Uses the agent-runner queue for the Temporal workflow since discovery
 	// activities (and the wrapper workflow) run on the Python worker.
+	// Credential resolution is handled inside the Python activity (JIT via OBO),
+	// so the Go handler no longer needs an environment client.
 	if temporalClient != nil {
 		agentExecutionTemporalCfg := agentexecutiontemporal.NewConfig()
 		mcpServerController.SetDiscoveryDependencies(
 			temporalClient,
 			agentExecutionTemporalCfg.RunnerQueue,
-			environmentClient,
 		)
 		log.Info().
 			Str("runner_queue", agentExecutionTemporalCfg.RunnerQueue).
