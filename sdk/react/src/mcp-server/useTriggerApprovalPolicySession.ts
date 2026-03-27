@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { create } from "@bufbuild/protobuf";
+import { UploadAttachmentRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { PENDING_SUBJECT } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
@@ -95,11 +97,13 @@ export function useTriggerApprovalPolicySession(): UseTriggerApprovalPolicySessi
         const sessionId = session.metadata!.id;
         const fileName = `${mcpServerSlug}.yaml`;
 
-        const attachment = await stigmer.agentExecution.uploadAttachment({
-          sessionId,
-          fileName,
-          content: mcpServerYaml,
-        });
+        const attachment = await stigmer.agentExecution.uploadAttachment(
+          create(UploadAttachmentRequestSchema, {
+            filename: fileName,
+            content: new TextEncoder().encode(mcpServerYaml),
+            contentType: "application/x-yaml",
+          }),
+        );
 
         const prompt = buildApprovalPolicyPrompt(mcpServerSlug, org);
 
@@ -111,7 +115,7 @@ export function useTriggerApprovalPolicySession(): UseTriggerApprovalPolicySessi
           attachments: [
             {
               storageKey: attachment.storageKey,
-              fileName,
+              filename: fileName,
             },
           ],
         });

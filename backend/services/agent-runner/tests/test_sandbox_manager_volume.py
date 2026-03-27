@@ -11,7 +11,6 @@ import pytest
 from daytona import SandboxState
 
 from worker.sandbox_manager import (
-    DAYTONA_WORKSPACE_MOUNT_PATH,
     SandboxManager,
     get_daytona_volume_id,
     initialize_daytona_volume,
@@ -149,9 +148,6 @@ class TestCreateDaytonaSandboxVolumeMount:
         )
 
         assert result is sandbox
-        # Verify create was called without volume mounts
-        call_kwargs = mgr._daytona.create.call_args
-        params = call_kwargs.kwargs.get("params") or call_kwargs[1].get("params")
         # No snapshot, no volume → vanilla create (no params)
         mgr._daytona.create.assert_called_once_with()
 

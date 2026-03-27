@@ -155,7 +155,7 @@ async def inject_attachments(
     for attachment in attachments:
         content: bytes | None = None
 
-        if allow_local_path and getattr(attachment, "local_path", ""):
+        if allow_local_path and getattr(attachment, "local_path", None):
             local_file = Path(attachment.local_path)
             if local_file.is_file():
                 content = local_file.read_bytes()
@@ -242,7 +242,7 @@ async def auto_publish_written_files(
     sandbox: Any,
     storage: ArtifactStorage,
     execution_id: str,
-    status_builder: "StatusBuilder",
+    status_builder: StatusBuilder,
     local_root: str | None,
     logger: logging.Logger,
     path_normalizer: Callable[[str], str] | None = None,

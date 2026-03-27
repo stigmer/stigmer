@@ -65,7 +65,7 @@ class StreamExecutor:
         execution_id: str,
         thread_id: str,
         status_builder: StatusBuilder,
-        execution_client: "AgentExecutionClient",
+        execution_client: AgentExecutionClient,
         streaming_config: StreamingConfig,
         stall_timeout_seconds: int,
         grpc_update_timeout_seconds: int,

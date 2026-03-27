@@ -1,10 +1,7 @@
 """Temporal activity for executing Graphton agents."""
 
-import asyncio
 import contextlib
-import logging
 import os
-import time
 import traceback
 from typing import Any, cast
 
@@ -15,7 +12,6 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase,
     MessageType,
     SubAgentStatus,
-    ToolCallStatus,
 )
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
     ApprovalDecisionList,
@@ -48,22 +44,24 @@ from worker.activities.graphton.approval_policy import (
     resolve_platform_tool_name,
 )
 from worker.activities.graphton.attachments import (
-    _MAX_ZIP_EXTRACTED_SIZE,
-    _MAX_ZIP_FILES,
-    _validate_zip_for_extraction,
-    auto_publish_written_files as _auto_publish_written_files,
+    _MAX_ZIP_EXTRACTED_SIZE,  # noqa: F401 — re-exported for tests
+    _MAX_ZIP_FILES,  # noqa: F401 — re-exported for tests
+    _validate_zip_for_extraction,  # noqa: F401 — re-exported for tests
     inject_attachments,
+)
+from worker.activities.graphton.attachments import (
+    auto_publish_written_files as _auto_publish_written_files,
 )
 from worker.activities.graphton.hitl import (
     ApprovalStateManager,
     CheckpointFallback,
     ResumeReconciler,
 )
-from worker.activities.graphton.temporal_helpers import (
-    SetupTimer,
-    heartbeat_during_setup,
-    run_sync_with_heartbeat as _run_sync_with_heartbeat,
-    slim_status_for_temporal as _slim_status_for_temporal,
+from worker.activities.graphton.prompt_builder import (
+    _format_entry_description,  # noqa: F401 — re-exported for tests
+    build_referenced_files_prompt_section,  # noqa: F401 — re-exported for tests
+    build_workspace_prompt_section,  # noqa: F401 — re-exported for tests
+    enhance_system_prompt,
 )
 from worker.activities.graphton.session_context_merge import (
     merge_mcp_server_usages,
@@ -72,11 +70,15 @@ from worker.activities.graphton.session_context_merge import (
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
-from worker.activities.graphton.prompt_builder import (
-    build_referenced_files_prompt_section,
-    build_workspace_prompt_section,
-    enhance_system_prompt,
-    _format_entry_description,
+from worker.activities.graphton.temporal_helpers import (
+    SetupTimer,
+    heartbeat_during_setup,
+)
+from worker.activities.graphton.temporal_helpers import (
+    run_sync_with_heartbeat as _run_sync_with_heartbeat,
+)
+from worker.activities.graphton.temporal_helpers import (
+    slim_status_for_temporal as _slim_status_for_temporal,
 )
 from worker.activities.relevance import (
     WorkspaceRoot,
@@ -91,16 +93,21 @@ from worker.resilience import (
     RetryConfig,
 )
 from worker.sandbox_manager import SandboxManager
-from worker.storage import ArtifactStorage, create_artifact_storage
-from worker.streaming import StreamingConfig, StreamingUpdateScheduler
+from worker.storage import (  # noqa: F401 — ArtifactStorage re-exported for tests
+    ArtifactStorage,
+    create_artifact_storage,
+)
+from worker.streaming import (  # noqa: F401 — StreamingUpdateScheduler re-exported for tests
+    StreamingConfig,
+    StreamingUpdateScheduler,
+)
 from worker.token_manager import get_api_key
-
 from worker.tools import publish_artifact as _publish_artifact_to_storage
 from worker.workspace import (
     LocalWorkspaceBackend,
     ProvisionResult,
     SourceType,
-    WorkspaceBackend,
+    WorkspaceBackend,  # noqa: F401 — re-exported for tests
     WorkspaceProvisioner,
     WorkspaceProvisionError,
     initialize_workspace,
@@ -1845,8 +1852,7 @@ async def _execute_graphton_impl(
         )
         if stream_result.terminal_status is not None:
             return stream_result.terminal_status
-        events_processed = stream_result.events_processed
-        
+
         from worker.activities.graphton.post_stream import process_post_stream
         post_result = await process_post_stream(
             status_builder=status_builder,

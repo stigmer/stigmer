@@ -54,10 +54,10 @@ type McpServerController struct {
 	store store.Store
 
 	// Optional dependencies for discovery. Nil when Temporal is unavailable.
-	temporalClient       client.Client
-	runnerQueue          string
-	environmentClient    *environment.Client
-	executionCtxClient   *executioncontext.Client
+	temporalClient     client.Client
+	runnerQueue        string
+	environmentClient  *environment.Client
+	executionCtxClient *executioncontext.Client
 }
 
 // NewMcpServerController creates a new McpServerController with the given store.

@@ -32,7 +32,7 @@ from temporalio import activity, workflow
 from grpc_client.channel import ChannelProvider
 from grpc_client.execution_context_client import ExecutionContextClient
 from grpc_client.mcp_server_client import McpServerClient
-from worker.mcp.config_transformer import transform_mcp_config, _inject_platform_env
+from worker.mcp.config_transformer import _inject_platform_env, transform_mcp_config
 from worker.token_manager import get_api_key
 
 logger = logging.getLogger(__name__)
@@ -233,8 +233,8 @@ async def _connect_and_discover(
     """
     from langchain_mcp_adapters.client import MultiServerMCPClient
 
-    servers = {server_slug: config}
-    client = MultiServerMCPClient(servers)
+    servers: dict[str, Any] = {server_slug: config}
+    client = MultiServerMCPClient(servers)  # type: ignore[arg-type]
     tools: list[DiscoveredToolResult] = []
     resource_templates: list[DiscoveredResourceTemplateResult] = []
 
@@ -257,7 +257,7 @@ async def _connect_and_discover(
             ))
 
         try:
-            init_result = session.initialize_result
+            init_result = getattr(session, "initialize_result", None)
             if (
                 init_result
                 and init_result.capabilities
