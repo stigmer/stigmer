@@ -137,7 +137,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -169,7 +169,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -203,7 +203,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -237,7 +237,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             side_effect=[mock_artifact_1, mock_artifact_2],
         ) as mock_publish:
@@ -266,7 +266,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -296,7 +296,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             side_effect=[FileNotFoundError("not found"), mock_artifact],
         ):
@@ -325,7 +325,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -377,7 +377,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -411,7 +411,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -442,7 +442,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -475,7 +475,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -539,7 +539,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -581,7 +581,7 @@ class TestAutoPublishWrittenFiles:
             return f"workspace/{p.lstrip('/')}"
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -617,7 +617,7 @@ class TestAutoPublishWrittenFiles:
             return f"workspace/{p.lstrip('/')}"
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -652,7 +652,7 @@ class TestAutoPublishWrittenFiles:
         logger = logging.getLogger("test")
 
         with patch(
-            "worker.activities.execute_graphton.publish_artifact",
+            "worker.activities.graphton.attachments.publish_artifact",
             new_callable=AsyncMock,
             return_value=mock_artifact,
         ) as mock_publish:
@@ -670,3 +670,127 @@ class TestAutoPublishWrittenFiles:
         assert count == 1
         call_kwargs = mock_publish.call_args
         assert call_kwargs.kwargs["path"] == "output.txt"
+
+    # =========================================================================
+    # already_published_paths — inline-publish dedup
+    # =========================================================================
+
+    @pytest.mark.asyncio
+    async def test_already_published_single_file_skipped(self):
+        """A file already published inline is skipped entirely."""
+        tool_calls = [
+            _make_tool_call("write", path="output.txt"),
+        ]
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        with patch(
+            "worker.activities.graphton.attachments.publish_artifact",
+            new_callable=AsyncMock,
+        ) as mock_publish:
+            count = await _auto_publish_written_files(
+                tool_calls=tool_calls,
+                sandbox=None,
+                storage=MagicMock(),
+                execution_id="exec-dedup-1",
+                status_builder=status_builder,
+                local_root="/workspace",
+                logger=logger,
+                already_published_paths={"output.txt"},
+            )
+
+        assert count == 0
+        mock_publish.assert_not_called()
+        status_builder.add_artifact.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_already_published_partial_dedup(self):
+        """Only un-published files are uploaded when some are already inline."""
+        tool_calls = [
+            _make_tool_call("write", path="a/file1.txt"),
+            _make_tool_call("write", path="b/file2.txt"),
+        ]
+        mock_artifact = _make_artifact("file2.txt")
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        with patch(
+            "worker.activities.graphton.attachments.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=mock_artifact,
+        ) as mock_publish:
+            count = await _auto_publish_written_files(
+                tool_calls=tool_calls,
+                sandbox=None,
+                storage=MagicMock(),
+                execution_id="exec-dedup-2",
+                status_builder=status_builder,
+                local_root="/workspace",
+                logger=logger,
+                already_published_paths={"a/file1.txt"},
+            )
+
+        assert count == 1
+        mock_publish.assert_called_once()
+        call_kwargs = mock_publish.call_args
+        assert call_kwargs.kwargs["path"] == "b/file2.txt"
+        status_builder.add_artifact.assert_called_once_with(mock_artifact)
+
+    @pytest.mark.asyncio
+    async def test_already_published_all_skipped_returns_zero(self):
+        """When all paths are already published, returns 0 immediately."""
+        tool_calls = [
+            _make_tool_call("write", path="project/a.txt"),
+            _make_tool_call("edit", path="project/b.txt"),
+        ]
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        with patch(
+            "worker.activities.graphton.attachments.publish_artifact",
+            new_callable=AsyncMock,
+        ) as mock_publish:
+            count = await _auto_publish_written_files(
+                tool_calls=tool_calls,
+                sandbox=None,
+                storage=MagicMock(),
+                execution_id="exec-dedup-3",
+                status_builder=status_builder,
+                local_root="/workspace",
+                logger=logger,
+                already_published_paths={"project/a.txt", "project/b.txt"},
+            )
+
+        assert count == 0
+        mock_publish.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_already_published_with_normalizer(self):
+        """Dedup works correctly with a path normalizer."""
+        tool_calls = [
+            _make_tool_call("write", path="/file.txt"),
+        ]
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        def fake_normalize(p: str) -> str:
+            return f"workspace/{p.lstrip('/')}"
+
+        with patch(
+            "worker.activities.graphton.attachments.publish_artifact",
+            new_callable=AsyncMock,
+        ) as mock_publish:
+            count = await _auto_publish_written_files(
+                tool_calls=tool_calls,
+                sandbox=MagicMock(),
+                storage=MagicMock(),
+                execution_id="exec-dedup-4",
+                status_builder=status_builder,
+                local_root=None,
+                logger=logger,
+                path_normalizer=fake_normalize,
+                already_published_paths={"workspace/file.txt"},
+            )
+
+        assert count == 0
+        mock_publish.assert_not_called()

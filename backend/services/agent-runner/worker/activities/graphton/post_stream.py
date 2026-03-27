@@ -13,6 +13,7 @@ Extracted from ``execute_graphton.py``.
 
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 import logging
 from typing import TYPE_CHECKING, Any, cast
@@ -57,6 +58,7 @@ async def process_post_stream(
     merged_env_vars: dict[str, str],
     secret_keys: set[str],
     auto_publish_fn: Any,
+    pending_publish_tasks: set[asyncio.Task[None]] | None = None,
     resolve_platform_tool_name: Any,
     humanize_platform_refs: Any,
     resolve_display_env_vars: Any,
@@ -78,42 +80,63 @@ async def process_post_stream(
                 execution_id, len(last_message.tool_calls),
             )
 
-    # Auto-publish safety net
-    if not status_builder._artifacts:
+    # Drain in-flight inline publish tasks so their artifacts are
+    # available before the safety net decides what still needs publishing.
+    if pending_publish_tasks:
         logger.info(
-            "[POST_STREAM] execution=%s — No artifacts were published. "
-            "Checking for modified files to auto-publish.",
-            execution_id,
+            "[POST_STREAM] execution=%s — awaiting %d in-flight "
+            "inline publish task(s)",
+            execution_id, len(pending_publish_tasks),
         )
-        current_phase = status_builder.current_status.phase
-        if current_phase not in (
-            ExecutionPhase.EXECUTION_FAILED,
-            ExecutionPhase.EXECUTION_PAUSED,
-            ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
-        ):
+        done, _pending = await asyncio.wait(
+            pending_publish_tasks, timeout=10.0,
+        )
+        for t in done:
             try:
-                await auto_publish_fn(
-                    tool_calls=status_builder.current_status.tool_calls,
-                    sandbox=sandbox,
-                    storage=artifact_storage,
-                    execution_id=execution_id,
-                    status_builder=status_builder,
-                    local_root=(
-                        workspace_backend.root_dir if sandbox is None else None
-                    ),
-                    logger=logger,
-                    path_normalizer=(
-                        workspace_backend._normalize
-                        if hasattr(workspace_backend, "_normalize")
-                        else None
-                    ),
-                )
-            except Exception as auto_pub_err:
+                exc = t.exception()
+            except asyncio.CancelledError:
+                exc = None
+            if exc is not None:
                 logger.warning(
-                    "[AUTO_PUBLISH] execution=%s — "
-                    "auto-publish failed (non-fatal): %s",
-                    execution_id, auto_pub_err,
+                    "[POST_STREAM] execution=%s — inline publish task "
+                    "failed: %s", execution_id, exc,
                 )
+
+    # Auto-publish safety net: runs for all non-terminal phases and
+    # skips paths already published inline (dedup via sandbox_path).
+    already_published = {
+        a.sandbox_path for a in status_builder.current_status.artifacts
+    }
+    current_phase = status_builder.current_status.phase
+    if current_phase not in (
+        ExecutionPhase.EXECUTION_FAILED,
+        ExecutionPhase.EXECUTION_PAUSED,
+        ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+    ):
+        try:
+            await auto_publish_fn(
+                tool_calls=status_builder.current_status.tool_calls,
+                sandbox=sandbox,
+                storage=artifact_storage,
+                execution_id=execution_id,
+                status_builder=status_builder,
+                local_root=(
+                    workspace_backend.root_dir if sandbox is None else None
+                ),
+                logger=logger,
+                path_normalizer=(
+                    workspace_backend._normalize
+                    if hasattr(workspace_backend, "_normalize")
+                    else None
+                ),
+                already_published_paths=already_published,
+            )
+        except Exception as auto_pub_err:
+            logger.warning(
+                "[AUTO_PUBLISH] execution=%s — "
+                "auto-publish failed (non-fatal): %s",
+                execution_id, auto_pub_err,
+            )
 
     status_builder.finalize_context_info()
 
