@@ -1704,7 +1704,7 @@ class StatusBuilder:
         if self._thinking_buffers.get(ns_key):
             self._flush_thinking_buffer(ns_key, namespace)
 
-        temp_id = f"early-{tool_use_id or uuid4()}"
+        temp_id = tool_use_id or f"early-{uuid4()}"
 
         # On resume, LangGraph replays the AI message from the checkpoint.
         # The replayed tool_use blocks carry the same tool_use_id, so the
