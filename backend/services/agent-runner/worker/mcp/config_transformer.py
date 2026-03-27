@@ -97,6 +97,58 @@ def _inject_platform_env(
     return result
 
 
+def _filter_env_to_declared_keys(
+    spec: McpServerSpec,
+    env_vars: dict[str, str],
+    server_slug: str,
+) -> dict[str, str]:
+    """Restrict env_vars to only the keys declared in the server's env_spec.
+
+    Prevents secret over-sharing: an MCP server subprocess receives only
+    the environment variables it explicitly declares, not the entire
+    merged environment (which may contain LLM keys, DB URIs, etc. that
+    belong to other servers or the platform).
+
+    Args:
+        spec: The MCP server's spec containing env_spec declarations.
+        env_vars: The full (possibly platform-augmented) env dict.
+        server_slug: Used for log messages only.
+
+    Returns:
+        A new dict containing only the intersection of env_vars keys
+        with spec.env_spec.data keys. Empty dict when no env_spec is
+        declared (the server needs no environment variables).
+    """
+    if not spec.env_spec or not spec.env_spec.data:
+        if env_vars:
+            logger.debug(
+                "MCP server '%s' has no env_spec — dropping %d env var(s)",
+                server_slug, len(env_vars),
+            )
+        return {}
+
+    declared_keys = set(spec.env_spec.data)
+    filtered = {k: v for k, v in env_vars.items() if k in declared_keys}
+
+    dropped = len(env_vars) - len(filtered)
+    if dropped:
+        logger.info(
+            "MCP server '%s': passing %d declared env var(s), "
+            "filtered out %d undeclared key(s)",
+            server_slug, len(filtered), dropped,
+        )
+
+    missing = declared_keys - set(filtered)
+    if missing:
+        logger.warning(
+            "MCP server '%s': env_spec declares %s but they are not "
+            "present in the resolved environment",
+            server_slug, sorted(missing),
+        )
+
+    return filtered
+
+
 @dataclass
 class McpConfigResult:
     """Result of transforming MCP server configurations.
@@ -323,6 +375,7 @@ def transform_all_mcp_configs(
         
         try:
             server_env = _inject_platform_env(server.spec, env_vars)
+            server_env = _filter_env_to_declared_keys(server.spec, server_env, slug)
             enabled_tools = tools_by_slug.get(slug)
             config, tools = transform_mcp_config(
                 server_slug=slug,
