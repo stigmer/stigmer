@@ -252,7 +252,7 @@ async def _connect_and_discover(
                 stack.enter_async_context(client.session(server_slug)),
                 timeout=SESSION_INIT_TIMEOUT_SECONDS,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise TimeoutError(
                 f"MCP server '{server_slug}' did not respond within "
                 f"{SESSION_INIT_TIMEOUT_SECONDS}s. If this server requires "
