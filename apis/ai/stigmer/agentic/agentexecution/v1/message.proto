@@ -199,6 +199,15 @@ message ToolCall {
   // Used by CLI/UI to render a qualified tool name (e.g., "planton-cloud/search")
   // so users can distinguish tools with the same name from different servers.
   string mcp_server_slug = 17;
+
+  // Sanitized preview of tool arguments for UI display.
+  // Sensitive values (passwords, tokens, keys) are redacted.
+  // Populated at tool call creation time by the agent-runner.
+  // Used by the server-side ComputePendingApprovals projection
+  // and by CLI/UI for inline argument visibility.
+  //
+  // Example: '{"repository": "acme/repo", "force": true}'
+  string args_preview = 18;
 }
 
 // Metadata to guide frontend UI component rendering for tool calls.

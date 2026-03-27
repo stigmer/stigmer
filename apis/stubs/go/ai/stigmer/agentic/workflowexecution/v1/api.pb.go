@@ -416,42 +416,25 @@ type WorkflowExecutionStatus struct {
 	// This field is optional and only relevant when Temporal is used as the execution engine.
 	// Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
 	TemporalWorkflowId string `protobuf:"bytes,7,opt,name=temporal_workflow_id,json=temporalWorkflowId,proto3" json:"temporal_workflow_id,omitempty"`
-	// Pending approvals from child agent tool executions (HITL Phase 5).
+	// Pending approvals from child agent tool executions (HITL).
 	//
 	// Populated when workflow tasks invoke agents that enter
 	// EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
 	// requests at the workflow level for UI visibility.
 	//
-	// ## When This Is Populated
+	// ## Full-Replace Protocol
 	//
-	// - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-	// - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-	// - UI should display approval prompts to the user
-	// - User can submit approval via WorkflowExecution or AgentExecution API
-	//
-	// ## Lifecycle
-	//
-	// 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-	// 2. Child signals parent workflow via Temporal "child_approval_required"
-	// 3. Workflow updates task status and populates this field with all entries
-	// 4. Each entry's child_agent_execution_id identifies the originating child
-	// 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-	// 6. Entries are cleared when the child agent completes
+	// The workflow-runner always sends the complete set of pending approvals
+	// via UpdateStatus. The server replaces the stored list unconditionally:
+	// - Non-empty list: child agent(s) need approval
+	// - Empty list: all approvals resolved, clear the field
 	//
 	// ## Parallel Agents
 	//
 	// When multiple child agents run in parallel, entries from different children
 	// accumulate in this list. Each entry's child_agent_execution_id distinguishes
 	// the source.
-	//
-	// ## Type Reference
-	//
-	// Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-	// Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-	// child_agent_execution_id, interrupt_id.
-	//
-	// @since Phase 5.1 (Events-Based Approval Notification)
-	PendingApprovals []*v1.PendingApproval `protobuf:"bytes,9,rep,name=pending_approvals,json=pendingApprovals,proto3" json:"pending_approvals,omitempty"`
+	PendingApprovals []*WorkflowPendingApproval `protobuf:"bytes,9,rep,name=pending_approvals,json=pendingApprovals,proto3" json:"pending_approvals,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -542,11 +525,77 @@ func (x *WorkflowExecutionStatus) GetTemporalWorkflowId() string {
 	return ""
 }
 
-func (x *WorkflowExecutionStatus) GetPendingApprovals() []*v1.PendingApproval {
+func (x *WorkflowExecutionStatus) GetPendingApprovals() []*WorkflowPendingApproval {
 	if x != nil {
 		return x.PendingApprovals
 	}
 	return nil
+}
+
+// WorkflowPendingApproval wraps a PendingApproval from a child agent execution
+// with the routing information needed for workflow-level approval forwarding.
+//
+// PendingApproval is an agentexecution domain type — it describes what tool
+// needs approval. WorkflowPendingApproval adds the workflow-level concern:
+// which child agent execution the approval should be forwarded to.
+type WorkflowPendingApproval struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The approval details projected from the child agent's tool call state.
+	Approval *v1.PendingApproval `protobuf:"bytes,1,opt,name=approval,proto3" json:"approval,omitempty"`
+	// Child agent execution to forward the approval to.
+	//
+	// Set by the workflow-runner when surfacing child agent approvals
+	// at the workflow level. WorkflowExecution.SubmitApproval uses this
+	// to route the decision to the correct AgentExecution.SubmitApproval RPC.
+	//
+	// Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
+	ChildAgentExecutionId string `protobuf:"bytes,2,opt,name=child_agent_execution_id,json=childAgentExecutionId,proto3" json:"child_agent_execution_id,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *WorkflowPendingApproval) Reset() {
+	*x = WorkflowPendingApproval{}
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_api_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WorkflowPendingApproval) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WorkflowPendingApproval) ProtoMessage() {}
+
+func (x *WorkflowPendingApproval) ProtoReflect() protoreflect.Message {
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_api_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WorkflowPendingApproval.ProtoReflect.Descriptor instead.
+func (*WorkflowPendingApproval) Descriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *WorkflowPendingApproval) GetApproval() *v1.PendingApproval {
+	if x != nil {
+		return x.Approval
+	}
+	return nil
+}
+
+func (x *WorkflowPendingApproval) GetChildAgentExecutionId() string {
+	if x != nil {
+		return x.ChildAgentExecutionId
+	}
+	return ""
 }
 
 // WorkflowTask represents a single task within a workflow execution.
@@ -806,7 +855,7 @@ type WorkflowTask struct {
 
 func (x *WorkflowTask) Reset() {
 	*x = WorkflowTask{}
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_api_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_api_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -818,7 +867,7 @@ func (x *WorkflowTask) String() string {
 func (*WorkflowTask) ProtoMessage() {}
 
 func (x *WorkflowTask) ProtoReflect() protoreflect.Message {
-	mi := &file_ai_stigmer_agentic_workflowexecution_v1_api_proto_msgTypes[2]
+	mi := &file_ai_stigmer_agentic_workflowexecution_v1_api_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -831,7 +880,7 @@ func (x *WorkflowTask) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowTask.ProtoReflect.Descriptor instead.
 func (*WorkflowTask) Descriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDescGZIP(), []int{2}
+	return file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *WorkflowTask) GetTaskId() string {
@@ -917,7 +966,7 @@ const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
 	"\x11WorkflowExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12R\n" +
 	"\x04spec\x18\x04 \x01(\v2>.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpecR\x04spec\x12X\n" +
-	"\x06status\x18\x05 \x01(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusR\x06status\"\xa6\x04\n" +
+	"\x06status\x18\x05 \x01(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatusR\x06status\"\xb1\x04\n" +
 	"\x17WorkflowExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12W\n" +
 	"\x05phase\x18\x01 \x01(\x0e27.ai.stigmer.agentic.workflowexecution.v1.ExecutionPhaseB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05phase\x12K\n" +
@@ -927,8 +976,11 @@ const file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\x05 \x01(\tR\tstartedAt\x12!\n" +
 	"\fcompleted_at\x18\x06 \x01(\tR\vcompletedAt\x120\n" +
-	"\x14temporal_workflow_id\x18\a \x01(\tR\x12temporalWorkflowId\x12b\n" +
-	"\x11pending_approvals\x18\t \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals\"\xf2\x03\n" +
+	"\x14temporal_workflow_id\x18\a \x01(\tR\x12temporalWorkflowId\x12m\n" +
+	"\x11pending_approvals\x18\t \x03(\v2@.ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApprovalR\x10pendingApprovals\"\xa5\x01\n" +
+	"\x17WorkflowPendingApproval\x12Q\n" +
+	"\bapproval\x18\x01 \x01(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\bapproval\x127\n" +
+	"\x18child_agent_execution_id\x18\x02 \x01(\tR\x15childAgentExecutionId\"\xf2\x03\n" +
 	"\fWorkflowTask\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x1b\n" +
 	"\ttask_name\x18\x02 \x01(\tR\btaskName\x12`\n" +
@@ -956,39 +1008,41 @@ func file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDescGZIP() []byte
 	return file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_workflowexecution_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ai_stigmer_agentic_workflowexecution_v1_api_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_workflowexecution_v1_api_proto_goTypes = []any{
 	(*WorkflowExecution)(nil),               // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution
 	(*WorkflowExecutionStatus)(nil),         // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
-	(*WorkflowTask)(nil),                    // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
-	(*apiresource.ApiResourceMetadata)(nil), // 3: ai.stigmer.commons.apiresource.ApiResourceMetadata
-	(*WorkflowExecutionSpec)(nil),           // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec
-	(*apiresource.ApiResourceAudit)(nil),    // 5: ai.stigmer.commons.apiresource.ApiResourceAudit
-	(ExecutionPhase)(0),                     // 6: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	(*structpb.Struct)(nil),                 // 7: google.protobuf.Struct
-	(*v1.PendingApproval)(nil),              // 8: ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	(WorkflowTaskType)(0),                   // 9: ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType
-	(WorkflowTaskStatus)(0),                 // 10: ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus
+	(*WorkflowPendingApproval)(nil),         // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval
+	(*WorkflowTask)(nil),                    // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
+	(*apiresource.ApiResourceMetadata)(nil), // 4: ai.stigmer.commons.apiresource.ApiResourceMetadata
+	(*WorkflowExecutionSpec)(nil),           // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec
+	(*apiresource.ApiResourceAudit)(nil),    // 6: ai.stigmer.commons.apiresource.ApiResourceAudit
+	(ExecutionPhase)(0),                     // 7: ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	(*structpb.Struct)(nil),                 // 8: google.protobuf.Struct
+	(*v1.PendingApproval)(nil),              // 9: ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	(WorkflowTaskType)(0),                   // 10: ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType
+	(WorkflowTaskStatus)(0),                 // 11: ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus
 }
 var file_ai_stigmer_agentic_workflowexecution_v1_api_proto_depIdxs = []int32{
-	3,  // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
-	4,  // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution.spec:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec
+	4,  // 0: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
+	5,  // 1: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution.spec:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionSpec
 	1,  // 2: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecution.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus
-	5,  // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
-	6,  // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
-	2,  // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus.tasks:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
-	7,  // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus.output:type_name -> google.protobuf.Struct
-	8,  // 7: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	9,  // 8: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask.task_type:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType
-	7,  // 9: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask.input:type_name -> google.protobuf.Struct
-	7,  // 10: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask.output:type_name -> google.protobuf.Struct
-	10, // 11: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus
-	7,  // 12: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask.metadata:type_name -> google.protobuf.Struct
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	6,  // 3: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus.audit:type_name -> ai.stigmer.commons.apiresource.ApiResourceAudit
+	7,  // 4: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus.phase:type_name -> ai.stigmer.agentic.workflowexecution.v1.ExecutionPhase
+	3,  // 5: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus.tasks:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTask
+	8,  // 6: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus.output:type_name -> google.protobuf.Struct
+	2,  // 7: ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus.pending_approvals:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval
+	9,  // 8: ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.approval:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	10, // 9: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask.task_type:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskType
+	8,  // 10: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask.input:type_name -> google.protobuf.Struct
+	8,  // 11: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask.output:type_name -> google.protobuf.Struct
+	11, // 12: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask.status:type_name -> ai.stigmer.agentic.workflowexecution.v1.WorkflowTaskStatus
+	8,  // 13: ai.stigmer.agentic.workflowexecution.v1.WorkflowTask.metadata:type_name -> google.protobuf.Struct
+	14, // [14:14] is the sub-list for method output_type
+	14, // [14:14] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_workflowexecution_v1_api_proto_init() }
@@ -1004,7 +1058,7 @@ func file_ai_stigmer_agentic_workflowexecution_v1_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc), len(file_ai_stigmer_agentic_workflowexecution_v1_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

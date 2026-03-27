@@ -44,11 +44,11 @@ import asyncio
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 from langchain_core.callbacks import dispatch_custom_event
 from langchain_core.runnables import RunnableConfig
-from langchain_core.tools import tool
+from langchain_core.tools import InjectedToolCallId, tool
 
 from graphton.core.error_hints import enrich_error_message
 
@@ -248,6 +248,86 @@ def create_tool_wrapper(
     return wrapper  # type: ignore[return-value]
 
 
+def _approval_tool_kwargs_to_actual_args(
+    kwargs: dict[str, Any],
+    *,
+    tool_name: str,
+    injected_keys: set[str] | frozenset[str] | None,
+) -> Any:
+    """Strip LangChain-injected keys, then unwrap legacy ``kwargs`` / ``input`` shells.
+
+    ``InjectedToolCallId`` adds ``tool_call_id`` beside model args, so unwrapping must
+    run on the non-injected subset only.
+
+    When the MCP tool has no Pydantic schema, LangChain's ``@tool`` schema exposes a
+    single ``kwargs`` bucket; tool arguments arrive as ``kwargs`` -> inner dict.  Nested
+    ``input`` / ``kwargs`` wrappers (older call shapes) are peeled in a loop.
+    """
+    skip = set(injected_keys) if injected_keys else set()
+    bare = {k: v for k, v in kwargs.items() if k not in skip}
+    actual_args: Any = bare
+    while isinstance(actual_args, dict) and len(actual_args) == 1:
+        sole = next(iter(actual_args))
+        if sole == "input":
+            logger.debug(f"Unwrapping 'input' key for '{tool_name}'")
+            actual_args = actual_args["input"]
+        elif sole == "kwargs":
+            logger.debug(f"Unwrapping 'kwargs' key for '{tool_name}'")
+            actual_args = actual_args["kwargs"]
+        else:
+            break
+    return actual_args
+
+
+def _build_merged_schema(
+    tool_name: str,
+    actual_tool: Any,  # noqa: ANN401
+    wrapper_tool: Any,  # noqa: ANN401
+) -> type:
+    """Build a Pydantic schema merging MCP tool params with InjectedToolCallId.
+
+    The ``@tool`` decorator generates a schema that includes the
+    ``InjectedToolCallId`` field — required for runtime injection.
+    MCP tools carry their own ``args_schema`` describing the parameters
+    the LLM should provide.  Naively overwriting ``args_schema`` on the
+    wrapper destroys the injection metadata.
+
+    This helper creates a new Pydantic model that contains **both** the
+    MCP tool's fields (LLM-visible) and the ``InjectedToolCallId`` field
+    (LLM-hidden, runtime-injected).  If the MCP tool has no usable
+    schema, the wrapper's original schema is returned unchanged.
+    """
+    from pydantic import BaseModel, create_model
+
+    mcp_schema = getattr(actual_tool, "args_schema", None)
+    wrapper_schema = wrapper_tool.args_schema
+
+    if mcp_schema is None:
+        return wrapper_schema
+
+    if not (isinstance(mcp_schema, type) and issubclass(mcp_schema, BaseModel)):
+        return wrapper_schema
+
+    mcp_fields: dict[str, Any] = {}
+    for name, info in mcp_schema.model_fields.items():
+        mcp_fields[name] = (info.annotation, info)
+
+    injected_fields: dict[str, Any] = {}
+    for name, info in wrapper_schema.model_fields.items():
+        if name in (wrapper_tool._injected_args_keys or set()):
+            injected_fields[name] = (info.annotation, info)
+
+    if not injected_fields:
+        return mcp_schema
+
+    merged = create_model(
+        f"{tool_name}_ApprovalSchema",
+        **injected_fields,
+        **mcp_fields,
+    )
+    return merged
+
+
 def create_approval_aware_tool_wrapper(
     tool_name: str,
     middleware_instance: Any,  # noqa: ANN401
@@ -279,9 +359,10 @@ def create_approval_aware_tool_wrapper(
         approval_checker: Optional callable that checks if tool requires approval.
             Signature: (tool_name, tool_args) -> ApprovalRequirement
             If None, tool executes without approval check.
-        mcp_server_name: Name of the MCP server providing this tool (for context)
+        mcp_server_name: Name of the MCP server providing this tool (for context).
+            Retained for streaming event metadata; not included in interrupt payloads.
         sub_agent_name: Name of the sub-agent if this tool is used by a sub-agent.
-            When non-empty, the interrupt payload includes from_sub_agent=True.
+            Retained for streaming event metadata; not included in interrupt payloads.
         
     Returns:
         A @tool decorated function that checks approval before executing
@@ -325,40 +406,29 @@ def create_approval_aware_tool_wrapper(
     
     # Create the approval-aware wrapper function
     @tool
-    async def approval_wrapper(config: RunnableConfig, **kwargs: Any) -> Any:  # noqa: ANN401
-        """Auto-generated approval-aware wrapper for MCP tool.
-        
-        This wrapper:
-        - Checks if approval is required before execution
-        - Calls interrupt() if approval needed
-        - Handles approve/skip/reject decisions
-        - Executes the actual MCP tool if approved
-        """
+    async def approval_wrapper(
+        config: RunnableConfig,
+        tool_call_id: Annotated[str, InjectedToolCallId],
+        **kwargs: Any,
+    ) -> Any:  # noqa: ANN401
+        """Auto-generated approval-aware wrapper for MCP tool."""
         logger.debug(f"Invoking MCP tool '{tool_name}' (approval-aware mode)")
-        
-        # Unwrap double-nested arguments if present
-        actual_args = kwargs
-        if isinstance(kwargs, dict):
-            if len(kwargs) == 1 and 'input' in kwargs:
-                logger.debug(f"Unwrapping 'input' key for '{tool_name}'")
-                actual_args = kwargs['input']
-            elif len(kwargs) == 1 and 'kwargs' in kwargs:
-                logger.debug(f"Unwrapping 'kwargs' key for '{tool_name}'")
-                actual_args = kwargs['kwargs']
-        
-        tool_run_id = str(config.get("run_id", "")) if config else ""
-        
-        # Check if approval is required using the shared approval handler
-        # This handles interrupt/resume for HITL flow
-        is_sub_agent = bool(sub_agent_name)
+
+        injected = set(getattr(approval_wrapper, "_injected_args_keys", None) or ())
+        actual_args = _approval_tool_kwargs_to_actual_args(
+            kwargs,
+            tool_name=tool_name,
+            injected_keys=injected,
+        )
+        tool_args_for_approval: dict[str, Any] = (
+            actual_args if isinstance(actual_args, dict) else {}
+        )
+
         skip_result = _check_and_handle_approval(
             tool_name=tool_name,
-            tool_args=actual_args,
+            tool_args=tool_args_for_approval,
             approval_checker=approval_checker,
-            mcp_server=mcp_server_name,
-            from_sub_agent=is_sub_agent,
-            sub_agent_name=sub_agent_name if is_sub_agent else "",
-            run_id=tool_run_id,
+            tool_call_id=tool_call_id,
         )
         if skip_result is not None:
             return skip_result
@@ -387,14 +457,20 @@ def create_approval_aware_tool_wrapper(
                 exc_info=True,
             )
             return enrich_error_message(tool_name, str(cause))
-    
-    # Copy metadata from original tool for better LangChain integration
+
+    # Copy metadata from original tool for better LangChain integration.
+    # IMPORTANT: We must NOT blindly copy args_schema — the @tool decorator
+    # generated a schema that includes InjectedToolCallId, and overwriting it
+    # would break tool_call_id injection.  Instead, we build a merged schema
+    # that preserves both the MCP tool's parameters (LLM-visible) and the
+    # InjectedToolCallId field (runtime-injected, LLM-hidden).
     try:
         approval_wrapper.name = tool_name  # type: ignore[attr-defined]
         approval_wrapper.description = actual_tool.description  # type: ignore[attr-defined]
         
-        if hasattr(actual_tool, 'args_schema'):
-            approval_wrapper.args_schema = actual_tool.args_schema  # type: ignore[attr-defined]
+        approval_wrapper.args_schema = _build_merged_schema(  # type: ignore[attr-defined]
+            tool_name, actual_tool, approval_wrapper,
+        )
         
         logger.debug(
             f"Created approval-aware wrapper for MCP tool '{tool_name}' "
@@ -651,82 +727,52 @@ def _check_and_handle_approval(
     tool_name: str,
     tool_args: dict[str, Any],
     approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None,
-    mcp_server: str = "__platform__",
-    from_sub_agent: bool = False,
-    sub_agent_name: str = "",
-    run_id: str = "",
+    tool_call_id: str = "",
 ) -> str | None:
     """Unified approval handling for both MCP and platform tools.
-    
-    This function checks if a tool requires approval and handles the interrupt/resume
-    flow for HITL (human-in-the-loop) approval. It is used by both MCP tool wrappers
-    and platform tool wrappers to ensure consistent approval behavior.
-    
-    If approval is required, calls interrupt() and handles the response.
-    
+
+    Checks if a tool requires approval and handles the interrupt/resume flow for
+    HITL (human-in-the-loop) approval. Used by both MCP and platform tool wrappers.
+
+    The interrupt payload carries only ``tool_call_id`` and ``message``. All display
+    fields (tool_name, tool_args, mcp_server, sub_agent context) already exist on the
+    ``ToolCall`` in ``messages[].tool_calls[]``, created before ``interrupt()`` fires.
+
     Args:
-        tool_name: Name of the tool
-        tool_args: Arguments passed to the tool
-        approval_checker: Optional approval checker function.
-            Signature: (tool_name, tool_args) -> ApprovalRequirement
+        tool_name: Name of the tool (used to call approval_checker and in user messages).
+        tool_args: Arguments passed to the tool (used to call approval_checker).
+        approval_checker: Optional function ``(tool_name, tool_args) -> ApprovalRequirement``.
             If None, returns None immediately (no approval check).
-        mcp_server: Name of the MCP server providing this tool.
-            Use "__platform__" for platform/sandbox tools.
-        from_sub_agent: True if this tool is being invoked by a sub-agent.
-        sub_agent_name: Name of the sub-agent if from_sub_agent is True.
-        run_id: LangGraph run_id for this tool invocation. Used by the
-            interrupt capture to directly match this interrupt to the correct
-            ToolCall via _run_id_aliases, avoiding fragile name-based matching.
-        
+        tool_call_id: Model-assigned tool_call_id injected via ``InjectedToolCallId``.
+            Used by ``InterruptCapture`` to directly match this interrupt to the
+            corresponding ``ToolCall`` — no fuzzy matching needed.
+
     Returns:
-        - None: No approval needed OR user approved - proceed with execution
-        - str: Skip/reject message - return this instead of executing the tool.
-            Returned for skip, reject, and unknown actions.
-        
+        None if no approval needed or user approved (proceed with execution),
+        or a str skip/reject message to return instead of executing the tool.
+
     Raises:
-        RuntimeError: If langgraph is not available for HITL support
-        
-    Example:
-        >>> # For platform tools
-        >>> skip_msg = _check_and_handle_approval("write", {"path": "foo.txt"}, checker)
-        >>> if skip_msg:
-        ...     return skip_msg  # User skipped
-        >>> # Proceed with execution...
-        
-        >>> # For MCP tools with sub-agent context
-        >>> skip_msg = _check_and_handle_approval(
-        ...     "delete_file", args, checker,
-        ...     mcp_server="filesystem",
-        ...     from_sub_agent=True,
-        ...     sub_agent_name="code_assistant"
-        ... )
-    
+        RuntimeError: If langgraph is not available for HITL support.
+
     """
     if approval_checker is None:
         return None
-    
-    context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
+
     logger.info(
         f"[DIAG] _check_and_handle_approval entered: "
-        f"tool={tool_name} from_sub_agent={from_sub_agent} "
-        f"sub_agent_name={sub_agent_name} run_id={run_id} context={context_info}"
+        f"tool={tool_name} tool_call_id={tool_call_id}"
     )
-    
+
     requirement = approval_checker(tool_name, tool_args)
-    
+
     if not requirement.requires_approval:
         return None
-    
-    # Determine effective MCP server (use requirement's if available, else parameter)
-    effective_server = requirement.mcp_server or mcp_server
-    
+
     logger.info(
-        f"🔐 Tool '{tool_name}' requires approval "
-        f"(source={requirement.source}, server={effective_server}, context={context_info})"
+        f"Tool '{tool_name}' requires approval "
+        f"(source={requirement.source}, tool_call_id={tool_call_id})"
     )
-    
-    # Import interrupt here to avoid circular imports
-    # and to only require langgraph when actually using HITL
+
     try:
         from langgraph.types import interrupt
     except ImportError as e:
@@ -738,22 +784,16 @@ def _check_and_handle_approval(
             "HITL approval flow requires langgraph>=0.2.0. "
             f"Import error: {e}"
         ) from e
-    
-    # Prepare approval request payload
+
     approval_request = {
-        "tool_name": tool_name,
-        "tool_args": tool_args,
+        "tool_call_id": tool_call_id,
         "message": requirement.message,
-        "mcp_server": effective_server,
-        "source": requirement.source,
-        "from_sub_agent": from_sub_agent,
-        "sub_agent_name": sub_agent_name if from_sub_agent else "",
-        "run_id": run_id,
     }
-    
+
     logger.info(
-        f"⏸️  Interrupting execution for approval: "
-        f"tool={tool_name}, context={context_info}, message={requirement.message[:100]}..."
+        f"Interrupting execution for approval: "
+        f"tool={tool_name}, tool_call_id={tool_call_id}, "
+        f"message={requirement.message[:100]}..."
     )
     
     # Call interrupt() - this checkpoints state and pauses execution
@@ -945,17 +985,20 @@ def _create_read_tool(
     Args:
         backend: Backend instance with read() method
         approval_checker: Optional approval checker
-        sub_agent_name: If non-empty, marks interrupt payloads with
-            ``from_sub_agent=True`` so Phase 2 matching works correctly.
+        sub_agent_name: Retained for factory signature compatibility. Not used
+            in interrupt payloads (display fields come from the ToolCall proto).
 
     Returns:
         @tool decorated function for reading files
     """
-    _is_sub_agent = bool(sub_agent_name)
-    _sub_agent_name = sub_agent_name
-
     @tool
-    async def read(config: RunnableConfig, path: str, offset: int = 0, limit: int = 0) -> str:
+    async def read(
+        config: RunnableConfig,
+        tool_call_id: Annotated[str, InjectedToolCallId],
+        path: str,
+        offset: int = 0,
+        limit: int = 0,
+    ) -> str:
         """Read file contents from the workspace.
 
         Args:
@@ -970,13 +1013,10 @@ def _create_read_tool(
             line range with a position header.
         """
         tool_args = {"path": path}
-        tool_run_id = str(config.get("run_id", "")) if config else ""
 
         skip_result = _check_and_handle_approval(
             "read", tool_args, approval_checker,
-            from_sub_agent=_is_sub_agent,
-            sub_agent_name=_sub_agent_name,
-            run_id=tool_run_id,
+            tool_call_id=tool_call_id,
         )
         if skip_result is not None:
             return skip_result
@@ -1065,21 +1105,23 @@ def _create_write_tool(
     sub_agent_name: str = "",
 ) -> Callable[..., Any]:
     """Create approval-aware write tool wrapper.
-    
+
     Args:
         backend: Backend instance with write() method
         approval_checker: Optional approval checker
-        sub_agent_name: If non-empty, marks interrupt payloads with
-            ``from_sub_agent=True`` so Phase 2 matching works correctly.
-        
+        sub_agent_name: Retained for factory signature compatibility. Not used
+            in interrupt payloads (display fields come from the ToolCall proto).
+
     Returns:
         @tool decorated function for writing files
     """
-    _is_sub_agent = bool(sub_agent_name)
-    _sub_agent_name = sub_agent_name
-
     @tool
-    async def write(config: RunnableConfig, path: str, content: str) -> str:
+    async def write(
+        config: RunnableConfig,
+        tool_call_id: Annotated[str, InjectedToolCallId],
+        path: str,
+        content: str,
+    ) -> str:
         """Create a new file or overwrite an entire file in the workspace.
 
         This replaces the ENTIRE file content. For targeted changes to an
@@ -1098,13 +1140,10 @@ def _create_write_tool(
             Confirmation message
         """
         tool_args = {"path": path, "content": content}
-        tool_run_id = str(config.get("run_id", "")) if config else ""
-        
+
         skip_result = _check_and_handle_approval(
             "write", tool_args, approval_checker,
-            from_sub_agent=_is_sub_agent,
-            sub_agent_name=_sub_agent_name,
-            run_id=tool_run_id,
+            tool_call_id=tool_call_id,
         )
         if skip_result is not None:
             return skip_result
@@ -1183,35 +1222,35 @@ def _create_execute_tool(
     Args:
         backend: Backend instance with execute() method
         approval_checker: Optional approval checker
-        sub_agent_name: If non-empty, marks interrupt payloads with
-            ``from_sub_agent=True`` so Phase 2 matching works correctly.
+        sub_agent_name: Retained for factory signature compatibility. Not used
+            in interrupt payloads (display fields come from the ToolCall proto).
 
     Returns:
         @tool decorated function for executing shell commands
     """
     _supports_streaming = callable(getattr(backend, "execute_streaming", None))
-    _is_sub_agent = bool(sub_agent_name)
-    _sub_agent_name = sub_agent_name
 
     @tool
-    async def execute(config: RunnableConfig, command: str, timeout: int = 120) -> str:
+    async def execute(
+        config: RunnableConfig,
+        tool_call_id: Annotated[str, InjectedToolCallId],
+        command: str,
+        timeout: int = 120,
+    ) -> str:
         """Execute a shell command in the workspace.
-        
+
         Args:
             command: Shell command to execute
             timeout: Command timeout in seconds (default: 120)
-            
+
         Returns:
             Command output (stdout + stderr combined)
         """
         tool_args = {"command": command, "timeout": timeout}
-        tool_run_id = str(config.get("run_id", "")) if config else ""
-        
+
         skip_result = _check_and_handle_approval(
             "execute", tool_args, approval_checker,
-            from_sub_agent=_is_sub_agent,
-            sub_agent_name=_sub_agent_name,
-            run_id=tool_run_id,
+            tool_call_id=tool_call_id,
         )
         if skip_result is not None:
             return skip_result
@@ -1264,26 +1303,29 @@ def _create_edit_tool(
     sub_agent_name: str = "",
 ) -> Callable[..., Any]:
     """Create approval-aware edit tool wrapper.
-    
+
     The edit tool performs a text replacement in a file. It reads the file,
     replaces the first occurrence of old_text with new_text, and writes back.
-    
+
     This is a DANGEROUS operation that requires approval by default.
-    
+
     Args:
         backend: Backend instance with read() and write() methods
         approval_checker: Optional approval checker
-        sub_agent_name: If non-empty, marks interrupt payloads with
-            ``from_sub_agent=True`` so Phase 2 matching works correctly.
-        
+        sub_agent_name: Retained for factory signature compatibility. Not used
+            in interrupt payloads (display fields come from the ToolCall proto).
+
     Returns:
         @tool decorated function for editing files
     """
-    _is_sub_agent = bool(sub_agent_name)
-    _sub_agent_name = sub_agent_name
-
     @tool
-    async def edit(config: RunnableConfig, path: str, old_text: str, new_text: str) -> str:
+    async def edit(
+        config: RunnableConfig,
+        tool_call_id: Annotated[str, InjectedToolCallId],
+        path: str,
+        old_text: str,
+        new_text: str,
+    ) -> str:
         """Make a targeted change to an existing file by replacing specific text.
 
         Finds the first occurrence of old_text and replaces it with new_text.
@@ -1305,13 +1347,10 @@ def _create_edit_tool(
             Confirmation message with change details
         """
         tool_args = {"path": path, "old_text": old_text, "new_text": new_text}
-        tool_run_id = str(config.get("run_id", "")) if config else ""
-        
+
         skip_result = _check_and_handle_approval(
             "edit", tool_args, approval_checker,
-            from_sub_agent=_is_sub_agent,
-            sub_agent_name=_sub_agent_name,
-            run_id=tool_run_id,
+            tool_call_id=tool_call_id,
         )
         if skip_result is not None:
             return skip_result

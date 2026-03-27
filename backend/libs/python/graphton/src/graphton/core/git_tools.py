@@ -37,13 +37,13 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Callable
-from typing import Any
+from typing import Annotated, Any
 from urllib.parse import urlparse
 
 import httpx
 from langchain_core.callbacks import dispatch_custom_event
 from langchain_core.runnables import RunnableConfig
-from langchain_core.tools import tool
+from langchain_core.tools import InjectedToolCallId, tool
 
 from graphton.core.error_hints import enrich_error_message
 from graphton.core.tool_wrappers import ApprovalRequirement, _check_and_handle_approval
@@ -175,18 +175,17 @@ def _create_create_pull_request_tool(
     Args:
         backend: Sandbox backend with an ``execute()`` method.
         approval_checker: Optional HITL approval checker.
-        sub_agent_name: If non-empty, marks interrupt payloads with
-            ``from_sub_agent=True``.
+        sub_agent_name: Retained for factory signature compatibility. Not used
+            in interrupt payloads (display fields come from the ToolCall proto).
 
     Returns:
         A ``@tool``-decorated async function.
     """
-    _is_sub_agent = bool(sub_agent_name)
-    _sub_agent_name = sub_agent_name
 
     @tool
     async def create_pull_request(
         config: RunnableConfig,
+        tool_call_id: Annotated[str, InjectedToolCallId],
         title: str,
         body: str,
         base_branch: str = "",
@@ -220,15 +219,12 @@ def _create_create_pull_request_tool(
             "head_branch": head_branch,
             "repo_dir": repo_dir,
         }
-        tool_run_id = str(config.get("run_id", "")) if config else ""
 
         skip_result = _check_and_handle_approval(
             "create_pull_request",
             tool_args,
             approval_checker,
-            from_sub_agent=_is_sub_agent,
-            sub_agent_name=_sub_agent_name,
-            run_id=tool_run_id,
+            tool_call_id=tool_call_id,
         )
         if skip_result is not None:
             return skip_result

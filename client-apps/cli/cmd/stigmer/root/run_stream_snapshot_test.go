@@ -17,16 +17,17 @@ func drainEvents(ch <-chan executiontui.Event) []executiontui.Event {
 }
 
 // makeExecution creates a minimal AgentExecution proto for testing.
+// The third parameter (extraToolCalls) is ignored — tool calls should be
+// embedded in messages directly.
 func makeExecution(
 	phase agentexecutionv1.ExecutionPhase,
 	messages []*agentexecutionv1.AgentMessage,
-	toolCalls []*agentexecutionv1.ToolCall,
+	_ []*agentexecutionv1.ToolCall,
 ) *agentexecutionv1.AgentExecution {
 	return &agentexecutionv1.AgentExecution{
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			Phase:     phase,
-			Messages:  messages,
-			ToolCalls: toolCalls,
+			Phase:    phase,
+			Messages: messages,
 		},
 	}
 }
@@ -44,18 +45,11 @@ func TestEmitSnapshotEvents_EmitsToolAndMessageEvents(t *testing.T) {
 				Type:    agentexecutionv1.MessageType_MESSAGE_AI,
 				Content: "I'll read that file.",
 				ToolCalls: []*agentexecutionv1.ToolCall{
-					{Id: "tc-1", Name: "read_file"},
+					{Id: "tc-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, Result: "package main"},
 				},
 			},
 		},
-		[]*agentexecutionv1.ToolCall{
-			{
-				Id:     "tc-1",
-				Name:   "read_file",
-				Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED,
-				Result: "package main",
-			},
-		},
+		nil,
 	)
 	exec.Spec = &agentexecutionv1.AgentExecutionSpec{Message: "Hello"}
 
@@ -102,7 +96,7 @@ func TestEmitSnapshotEvents_ChronologicalOrdering(t *testing.T) {
 				Type:    agentexecutionv1.MessageType_MESSAGE_AI,
 				Content: "I'll read that file for you.",
 				ToolCalls: []*agentexecutionv1.ToolCall{
-					{Id: "tc-1", Name: "read_file"},
+					{Id: "tc-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, Result: "package main"},
 				},
 			},
 			{
@@ -114,14 +108,7 @@ func TestEmitSnapshotEvents_ChronologicalOrdering(t *testing.T) {
 			},
 			{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "Here's what I found in the file."},
 		},
-		[]*agentexecutionv1.ToolCall{
-			{
-				Id:     "tc-1",
-				Name:   "read_file",
-				Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED,
-				Result: "package main",
-			},
-		},
+		nil,
 	)
 	exec.Spec = &agentexecutionv1.AgentExecutionSpec{Message: "Read main.go"}
 
@@ -418,48 +405,30 @@ func TestEmitSnapshotEvents_ThinkingBlockBeforeAIMessage(t *testing.T) {
 		agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
 		[]*agentexecutionv1.AgentMessage{
 			{Type: agentexecutionv1.MessageType_MESSAGE_HUMAN, Content: "Create a skill", Timestamp: "2026-02-24T10:00:00Z"},
-			{Type: agentexecutionv1.MessageType_MESSAGE_AI, Content: "I'll create the skill for you.", Timestamp: "2026-02-24T10:00:05Z"},
+			{
+				Type:      agentexecutionv1.MessageType_MESSAGE_AI,
+				Content:   "I'll create the skill for you.",
+				Timestamp: "2026-02-24T10:00:05Z",
+				ToolCalls: []*agentexecutionv1.ToolCall{
+					{Id: "think-native-abc", Name: "think", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, Result: "ok", StartedAt: "2026-02-24T10:00:01Z", CompletedAt: "2026-02-24T10:00:04Z"},
+				},
+			},
 			{
 				Type:      agentexecutionv1.MessageType_MESSAGE_TOOL,
 				Timestamp: "2026-02-24T10:00:06Z",
 				ToolCalls: []*agentexecutionv1.ToolCall{
-					{Id: "tc-read-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+					{Id: "tc-read-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, Result: "file contents", StartedAt: "2026-02-24T10:00:06Z", CompletedAt: "2026-02-24T10:00:07Z"},
 				},
 			},
 			{
 				Type:      agentexecutionv1.MessageType_MESSAGE_TOOL,
 				Timestamp: "2026-02-24T10:00:08Z",
 				ToolCalls: []*agentexecutionv1.ToolCall{
-					{Id: "tc-write-1", Name: "write_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+					{Id: "tc-write-1", Name: "write_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, Result: "ok", StartedAt: "2026-02-24T10:00:08Z", CompletedAt: "2026-02-24T10:00:09Z"},
 				},
 			},
 		},
-		[]*agentexecutionv1.ToolCall{
-			{
-				Id:          "think-native-abc",
-				Name:        "think",
-				Status:      agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED,
-				Result:      "ok",
-				StartedAt:   "2026-02-24T10:00:01Z",
-				CompletedAt: "2026-02-24T10:00:04Z",
-			},
-			{
-				Id:          "tc-read-1",
-				Name:        "read_file",
-				Status:      agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED,
-				Result:      "file contents",
-				StartedAt:   "2026-02-24T10:00:06Z",
-				CompletedAt: "2026-02-24T10:00:07Z",
-			},
-			{
-				Id:          "tc-write-1",
-				Name:        "write_file",
-				Status:      agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED,
-				Result:      "ok",
-				StartedAt:   "2026-02-24T10:00:08Z",
-				CompletedAt: "2026-02-24T10:00:09Z",
-			},
-		},
+		nil,
 	)
 	exec.Spec = &agentexecutionv1.AgentExecutionSpec{Message: "Create a skill"}
 
@@ -699,18 +668,11 @@ func TestEmitSnapshotEvents_AIMessageTextOnly(t *testing.T) {
 				Type:    agentexecutionv1.MessageType_MESSAGE_AI,
 				Content: "I'll read that file.",
 				ToolCalls: []*agentexecutionv1.ToolCall{
-					{Id: "tc-1", Name: "read_file"},
+					{Id: "tc-1", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, Result: "package main"},
 				},
 			},
 		},
-		[]*agentexecutionv1.ToolCall{
-			{
-				Id:     "tc-1",
-				Name:   "read_file",
-				Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED,
-				Result: "package main",
-			},
-		},
+		nil,
 	)
 
 	events := make(chan executiontui.Event, 64)
@@ -719,8 +681,10 @@ func TestEmitSnapshotEvents_AIMessageTextOnly(t *testing.T) {
 
 	evts := drainEvents(events)
 
+	foundAI := false
 	for _, evt := range evts {
 		if ai, ok := evt.(executiontui.AIMessageEvent); ok {
+			foundAI = true
 			if len(ai.ToolCalls) > 0 {
 				t.Errorf("AI message should not include inline tool calls in snapshot mode; got %d tool calls", len(ai.ToolCalls))
 			}
@@ -728,6 +692,9 @@ func TestEmitSnapshotEvents_AIMessageTextOnly(t *testing.T) {
 				t.Errorf("AI message content mismatch: got %q", ai.Content)
 			}
 		}
+	}
+	if !foundAI {
+		t.Error("expected at least one AIMessageEvent")
 	}
 }
 

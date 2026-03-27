@@ -342,42 +342,45 @@ message WorkflowExecutionStatus {
   // Accumulates entries from ALL child agents (parallel agent scenario).
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // Pending approvals from child agent tool executions (HITL Phase 5).
+  // Pending approvals from child agent tool executions (HITL).
   //
   // Populated when workflow tasks invoke agents that enter
   // EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
   // requests at the workflow level for UI visibility.
   //
-  // ## When This Is Populated
+  // ## Full-Replace Protocol
   //
-  // - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-  // - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-  // - UI should display approval prompts to the user
-  // - User can submit approval via WorkflowExecution or AgentExecution API
-  //
-  // ## Lifecycle
-  //
-  // 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-  // 2. Child signals parent workflow via Temporal "child_approval_required"
-  // 3. Workflow updates task status and populates this field with all entries
-  // 4. Each entry's child_agent_execution_id identifies the originating child
-  // 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-  // 6. Entries are cleared when the child agent completes
+  // The workflow-runner always sends the complete set of pending approvals
+  // via UpdateStatus. The server replaces the stored list unconditionally:
+  // - Non-empty list: child agent(s) need approval
+  // - Empty list: all approvals resolved, clear the field
   //
   // ## Parallel Agents
   //
   // When multiple child agents run in parallel, entries from different children
   // accumulate in this list. Each entry's child_agent_execution_id distinguishes
   // the source.
+  repeated WorkflowPendingApproval pending_approvals = 9;
+}
+
+// WorkflowPendingApproval wraps a PendingApproval from a child agent execution
+// with the routing information needed for workflow-level approval forwarding.
+//
+// PendingApproval is an agentexecution domain type — it describes what tool
+// needs approval. WorkflowPendingApproval adds the workflow-level concern:
+// which child agent execution the approval should be forwarded to.
+message WorkflowPendingApproval {
+  // The approval details projected from the child agent's tool call state.
+  ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1;
+
+  // Child agent execution to forward the approval to.
   //
-  // ## Type Reference
+  // Set by the workflow-runner when surfacing child agent approvals
+  // at the workflow level. WorkflowExecution.SubmitApproval uses this
+  // to route the decision to the correct AgentExecution.SubmitApproval RPC.
   //
-  // Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-  // Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-  // child_agent_execution_id, interrupt_id.
-  //
-  // @since Phase 5.1 (Events-Based Approval Notification)
-  repeated ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9;
+  // Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
+  string child_agent_execution_id = 2;
 }
 
 // WorkflowTask represents a single task within a workflow execution.

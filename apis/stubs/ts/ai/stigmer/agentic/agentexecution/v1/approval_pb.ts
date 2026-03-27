@@ -2,46 +2,41 @@
 // @generated from file ai/stigmer/agentic/agentexecution/v1/approval.proto (package ai.stigmer.agentic.agentexecution.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ApprovalAction } from "./enum_pb";
-import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb";
+import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ai/stigmer/agentic/agentexecution/v1/approval.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_approval: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKjAwoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEiAKGGNoaWxkX2FnZW50X2V4ZWN1dGlvbl9pZBgIIAEoCRIUCgxpbnRlcnJ1cHRfaWQYCSABKAkSVQoPbGlmZWN5Y2xlX3N0YXRlGAogASgOMjwuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsTGlmZWN5Y2xlU3RhdGUSTQoPZGVjaXNpb25fYWN0aW9uGAsgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFwcHJvdmFsQWN0aW9uEhwKFGRlY2lzaW9uX3JlY29yZGVkX2F0GAwgASgJIoMBChlDaGlsZEFwcHJvdmFsTm90aWZpY2F0aW9uEhQKDGV4ZWN1dGlvbl9pZBgBIAEoCRJQChFwZW5kaW5nX2FwcHJvdmFscxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWwq/QEKFkFwcHJvdmFsTGlmZWN5Y2xlU3RhdGUSIgoeQVBQUk9WQUxfTElGRUNZQ0xFX1VOU1BFQ0lGSUVEEAASIAocQVBQUk9WQUxfTElGRUNZQ0xFX1JFUVVFU1RFRBABEikKJUFQUFJPVkFMX0xJRkVDWUNMRV9JTlRFUlJVUFRfQ0FQVFVSRUQQAhIoCiRBUFBST1ZBTF9MSUZFQ1lDTEVfREVDSVNJT05fUkVDT1JERUQQAxIoCiRBUFBST1ZBTF9MSUZFQ1lDTEVfUkVTVU1FX1JFQ09OQ0lMRUQQBBIeChpBUFBST1ZBTF9MSUZFQ1lDTEVfQ0xFQVJFRBAFYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum]);
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKtAQoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJSgQICBAJIoMBChlDaGlsZEFwcHJvdmFsTm90aWZpY2F0aW9uEhQKDGV4ZWN1dGlvbl9pZBgBIAEoCRJQChFwZW5kaW5nX2FwcHJvdmFscxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWxiBnByb3RvMw");
 
 /**
- * PendingApproval is the single source of truth for approval state.
+ * PendingApproval is a UI-facing projection computed server-side from tool
+ * call state in messages.
  *
- * ## Purpose
+ * ## How It Works
  *
- * This message tracks the full lifecycle of a single tool approval request.
- * Every approval-related field on ToolCall (approval_action, approval_decided_at)
- * is a projection of the state recorded here. When in doubt, PendingApproval
- * is authoritative.
- *
- * ## Lifecycle Tracking
- *
- * The lifecycle_state field tracks exactly where this approval is in the
- * distributed pipeline (see ApprovalLifecycleState). Each service advances
- * the state forward-only, making the approval flow auditable and diagnosable.
+ * The Go/Java UpdateStatus handlers recompute this projection on every write
+ * by scanning messages[].tool_calls (and sub_agent_executions[].messages[].tool_calls),
+ * collecting entries where status == WAITING_APPROVAL && requires_approval == true.
+ * Because the list is recomputed rather than merged, it is always consistent
+ * with the authoritative tool call state embedded in messages.
  *
  * ## Sub-Agent Approvals
  *
- * When a sub-agent's tool requires approval, the main agent's pending_approval
- * is populated with from_sub_agent=true. This allows UI to show:
+ * When a sub-agent's tool requires approval, the computed projection includes
+ * it with from_sub_agent=true and sub_agent_name set. This allows UI to show:
  * "Sub-agent 'code-reviewer' needs approval to execute 'delete_file'"
  *
  * ## Lifecycle
  *
  * 1. Tool with requires_approval=true is about to execute
- * 2. PendingApproval is populated, phase becomes WAITING_FOR_APPROVAL
- * 3. User calls SubmitApproval RPC with their decision
- * 4. PendingApproval is cleared, phase returns to IN_PROGRESS (or FAILED on REJECT)
+ * 2. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+ * 3. Server recomputes pending_approvals, entry appears
+ * 4. User calls SubmitApproval RPC with their decision
+ * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
  *
  * @generated from message ai.stigmer.agentic.agentexecution.v1.PendingApproval
  */
@@ -116,91 +111,6 @@ export type PendingApproval = Message<"ai.stigmer.agentic.agentexecution.v1.Pend
    * @generated from field: string sub_agent_name = 7;
    */
   subAgentName: string;
-
-  /**
-   * ID of the child agent execution (for workflow-level approvals only).
-   *
-   * Populated when this PendingApproval is surfaced at WorkflowExecution level.
-   * Empty when pending_approval is on AgentExecution directly.
-   *
-   * Use this ID to forward approvals from workflow to child agent via
-   * AgentExecution.submitApproval RPC.
-   *
-   * Format: "aex_abc123xyz456"
-   *
-   * @since Phase 5.3 (Approval Forwarding)
-   *
-   * @generated from field: string child_agent_execution_id = 8;
-   */
-  childAgentExecutionId: string;
-
-  /**
-   * LangGraph interrupt ID for targeted resume.
-   *
-   * When the LLM returns multiple tool calls requiring approval in a single
-   * response, LangGraph creates one interrupt per tool. Each interrupt receives
-   * a unique ID. On resume, `Command(resume={interrupt_id: value})` must target
-   * the specific interrupt; otherwise LangGraph raises
-   * "multiple pending interrupts, you must specify the interrupt id."
-   *
-   * Populated by the agent-runner after the event stream ends by querying
-   * `graph.get_state(config).interrupts`. Matched to the tool call via
-   * the interrupt's value payload (which contains tool_name).
-   *
-   * Empty for legacy executions or single-interrupt scenarios (backward compat).
-   *
-   * @since Batch Approval (Multiple Interrupts)
-   *
-   * @generated from field: string interrupt_id = 9;
-   */
-  interruptId: string;
-
-  /**
-   * Current lifecycle state of this approval.
-   *
-   * Tracks which service last advanced this approval and where it is in the
-   * distributed pipeline. Forward-only: no service may move the state backward.
-   *
-   * UI consumers:
-   *   - REQUESTED / INTERRUPT_CAPTURED: Show approval card (action available)
-   *   - DECISION_RECORDED: Show decision badge (approval submitted, awaiting resume)
-   *   - RESUME_RECONCILED / CLEARED: Hidden (approval fully processed)
-   *
-   * Defaults to UNSPECIFIED for backward compatibility with existing records.
-   *
-   * @since HITL Approval Flow Hardening
-   *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState lifecycle_state = 10;
-   */
-  lifecycleState: ApprovalLifecycleState;
-
-  /**
-   * The approval decision recorded for this PendingApproval.
-   *
-   * Populated when lifecycle_state advances to DECISION_RECORDED (or later).
-   * This is the authoritative record of the user's decision. The
-   * ToolCall.approval_action field is a projection of this value.
-   *
-   * UNSPECIFIED when no decision has been made yet.
-   *
-   * @since HITL Approval Flow Hardening
-   *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ApprovalAction decision_action = 11;
-   */
-  decisionAction: ApprovalAction;
-
-  /**
-   * ISO 8601 timestamp when the approval decision was recorded.
-   *
-   * Populated alongside decision_action when lifecycle_state advances to
-   * DECISION_RECORDED. The ToolCall.approval_decided_at field is a projection
-   * of this value.
-   *
-   * @since HITL Approval Flow Hardening
-   *
-   * @generated from field: string decision_recorded_at = 12;
-   */
-  decisionRecordedAt: string;
 };
 
 /**
@@ -259,10 +169,10 @@ export type ChildApprovalNotification = Message<"ai.stigmer.agentic.agentexecuti
    *
    * Contains one entry per tool call requiring approval. Each entry carries
    * the full PendingApproval details (tool_call_id, tool_name, message,
-   * args_preview, requested_at, interrupt_id).
+   * args_preview, requested_at).
    *
-   * The child_agent_execution_id on each entry is set to execution_id above
-   * so the parent can correlate approvals to the originating child.
+   * The parent workflow wraps each entry in a WorkflowPendingApproval with
+   * execution_id above as the child_agent_execution_id for routing.
    *
    * One signal, complete picture, no partial states.
    *
@@ -277,85 +187,4 @@ export type ChildApprovalNotification = Message<"ai.stigmer.agentic.agentexecuti
  */
 export const ChildApprovalNotificationSchema: GenMessage<ChildApprovalNotification> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 1);
-
-/**
- * ApprovalLifecycleState tracks the progress of a single approval through
- * the distributed HITL pipeline.
- *
- * Each state transition is forward-only — no service may move the state
- * backward. This invariant is enforced at every service boundary and makes
- * the approval flow auditable and diagnosable.
- *
- * ## State Machine
- *
- *   UNSPECIFIED ──► REQUESTED ──► INTERRUPT_CAPTURED ──► DECISION_RECORDED ──► RESUME_RECONCILED ──► CLEARED
- *
- * ## Service Ownership
- *
- *   REQUESTED           — Python agent-runner (Phase 1: _populate_pending_approval)
- *   INTERRUPT_CAPTURED  — Python agent-runner (Phase 2: INTERRUPT_CAPTURE)
- *   DECISION_RECORDED   — Go/Java approval handler (RecordApprovalDecisionStep)
- *   RESUME_RECONCILED   — Python agent-runner (RESUME_RECONCILE)
- *   CLEARED             — Go/Java update-status handler (clear-signal sentinel)
- *
- * ## Diagnostic Value
- *
- * When an approval flow is stuck, lifecycle_state immediately shows which
- * service last touched the record and which transition failed — no log
- * correlation required.
- *
- * @generated from enum ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState
- */
-export enum ApprovalLifecycleState {
-  /**
-   * @generated from enum value: APPROVAL_LIFECYCLE_UNSPECIFIED = 0;
-   */
-  APPROVAL_LIFECYCLE_UNSPECIFIED = 0,
-
-  /**
-   * Phase 1: Tool detected as requiring approval, PendingApproval created.
-   * Set by Python agent-runner in _populate_pending_approval.
-   *
-   * @generated from enum value: APPROVAL_LIFECYCLE_REQUESTED = 1;
-   */
-  APPROVAL_LIFECYCLE_REQUESTED = 1,
-
-  /**
-   * Phase 2: LangGraph interrupt_id linked to this PendingApproval.
-   * Set by Python agent-runner in INTERRUPT_CAPTURE after the event stream.
-   *
-   * @generated from enum value: APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED = 2;
-   */
-  APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED = 2,
-
-  /**
-   * User submitted a decision, ToolCall updated, Temporal signal sent.
-   * Set by Go/Java approval handler in RecordApprovalDecisionStep.
-   *
-   * @generated from enum value: APPROVAL_LIFECYCLE_DECISION_RECORDED = 3;
-   */
-  APPROVAL_LIFECYCLE_DECISION_RECORDED = 3,
-
-  /**
-   * Python read the decision, built resume_dict, reconciled tool call status.
-   * Set by Python agent-runner in RESUME_RECONCILE.
-   *
-   * @generated from enum value: APPROVAL_LIFECYCLE_RESUME_RECONCILED = 4;
-   */
-  APPROVAL_LIFECYCLE_RESUME_RECONCILED = 4,
-
-  /**
-   * Clear-signal sentinel sent, DB cleared.
-   * Set by Python agent-runner when appending the empty-tool_call_id sentinel.
-   *
-   * @generated from enum value: APPROVAL_LIFECYCLE_CLEARED = 5;
-   */
-  APPROVAL_LIFECYCLE_CLEARED = 5,
-}
-
-/**
- * Describes the enum ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState.
- */
-export const ApprovalLifecycleStateSchema: GenEnum<ApprovalLifecycleState> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_approval, 0);
 

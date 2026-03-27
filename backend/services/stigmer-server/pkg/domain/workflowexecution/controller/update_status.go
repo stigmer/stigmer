@@ -194,10 +194,15 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*work
 		updated.Status.TemporalWorkflowId = requestStatus.TemporalWorkflowId
 	}
 
+	// Full-replace pending_approvals: workflow-runner always sends the complete set.
+	// Empty list = clear all approvals (child completed).
+	updated.Status.PendingApprovals = requestStatus.PendingApprovals
+
 	log.Debug().
 		Str("execution_id", input.ExecutionId).
 		Str("phase", updated.Status.Phase.String()).
 		Int("tasks_count", len(updated.Status.Tasks)).
+		Int("pending_approvals_count", len(updated.Status.PendingApprovals)).
 		Msg("Merged status fields")
 
 	// Store merged execution in context for persist step

@@ -10,16 +10,12 @@ import hashlib
 import inspect
 import json
 import logging
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable, Coroutine, Iterator
 from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import TodoItem
-from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import (
-    ApprovalLifecycleState,
-    PendingApproval,
-)
 from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
 from ai.stigmer.agentic.agentexecution.v1.context_pb2 import (
     ContextInfo,
@@ -337,6 +333,12 @@ class StatusBuilder:
         # Track tool calls for deduplication
         self.tool_call_fingerprints: set = set()
         
+        # In-memory index from tool_call_id to the ToolCall proto reference
+        # inside a message's repeated field.  Mutations via these references
+        # propagate directly to the message-embedded copy — no sync needed.
+        # Replaces the removed flat ``tool_calls`` list on the proto.
+        self._tool_call_index: dict[str, ToolCall] = {}
+        
         # Track AI message generation timing for duration calculation
         # Key: message index in messages list, Value: start timestamp
         self._message_start_times: dict[int, datetime] = {}
@@ -581,6 +583,27 @@ class StatusBuilder:
         self._display_env_vars = env_vars
         self._secret_keys = secret_keys
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # Tool Call Index — public accessors
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def get_tool_call(self, tc_id: str) -> ToolCall | None:
+        """Look up a ToolCall by its ID.
+
+        Returns the reference stored inside the parent AI message's repeated
+        field, so mutations to the returned object propagate to the proto
+        status automatically.
+        """
+        return self._tool_call_index.get(tc_id)
+
+    def iter_all_tool_calls(self) -> Iterator[ToolCall]:
+        """Iterate over every tracked ToolCall (main agent + sub-agents)."""
+        return iter(self._tool_call_index.values())
+
+    def tool_call_count(self) -> int:
+        """Return the total number of tracked tool calls."""
+        return len(self._tool_call_index)
+
     async def process_event(self, event: dict[str, Any]) -> None:
         """
         Process astream_events v2 event and update local status.
@@ -660,6 +683,7 @@ class StatusBuilder:
                     f"(fingerprint dedup on resume path)"
                 )
             return
+
         self.tool_call_fingerprints.add(fingerprint)
 
         # Register namespace early — before any special-case handlers — so
@@ -703,28 +727,8 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────
         early_tc = self._reconcile_early_tool_call(tool_name, run_id, tool_args, namespace)
         if early_tc is not None:
-            # The flat-list copy was updated in place by _reconcile_early_tool_call.
-            # Sync the reconciled state to the AI message copy (proto copies
-            # are independent objects — mutations to one don't propagate).
-            ns_key = namespace or ""
-            _, sa = self._get_execution_context(namespace)
-            msgs = sa.messages if sa else self.current_status.messages
-            for message in msgs:
-                if message.type != MessageType.MESSAGE_AI:
-                    continue
-                for tc in message.tool_calls:
-                    if tc.id == early_tc.id:
-                        tc.result = early_tc.result
-                        tc.is_streaming = early_tc.is_streaming
-                        tc.status = early_tc.status
-                        tc.mcp_server_slug = early_tc.mcp_server_slug
-                        if early_tc.args.ByteSize() > 0:
-                            tc.args.CopyFrom(early_tc.args)
-                        if early_tc.requires_approval:
-                            tc.requires_approval = True
-                            tc.approval_message = early_tc.approval_message
-                            tc.approval_requested_at = early_tc.approval_requested_at
-                        break
+            # The index holds a reference INTO the message's repeated field,
+            # so _reconcile_early_tool_call already mutated the message copy.
             return
         
         # Create component metadata
@@ -761,6 +765,7 @@ class StatusBuilder:
             id=run_id,
             name=tool_name,
             args=args_struct,
+            args_preview=self._create_args_preview(tool_args),
             result="",
             status=initial_status,
             component_metadata=component_metadata,
@@ -791,49 +796,20 @@ class StatusBuilder:
         # Determine context info for logging
         status_name = ToolCallStatus.Name(initial_status)
         
-        # Attach tool call to the parent AI message (standard ownership model).
-        # The flat tool_calls list is kept as a queryable index.
+        # Attach tool call to the parent AI message — the single source of
+        # truth.  The in-memory _tool_call_index provides O(1) lookup by ID.
         parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
         parent_ai.tool_calls.append(tool_call)
+        self._tool_call_index[run_id] = parent_ai.tool_calls[-1]
         
-        if sub_agent:
-            sub_agent.tool_calls.append(tool_call)
-            self.logger.debug(
-                f"[TOOL] execution={self.execution_id} sub_agent={sub_agent.id} "
-                f"tool={tool_name} run_id={run_id} status={status_name}"
-            )
-        else:
-            self.current_status.tool_calls.append(tool_call)
-            self.logger.debug(
-                f"[TOOL] execution={self.execution_id} "
-                f"tool={tool_name} run_id={run_id} status={status_name}"
-            )
+        context_desc = f"sub_agent={sub_agent.id}" if sub_agent else "main_agent"
+        self.logger.debug(
+            f"[TOOL] execution={self.execution_id} {context_desc} "
+            f"tool={tool_name} run_id={run_id} status={status_name}"
+        )
         
-        # ─────────────────────────────────────────────────────────────────────
-        # Approval State Update (HITL Phase 2): Populate PendingApproval if needed
-        # ─────────────────────────────────────────────────────────────────────
         if approval_requirement.requires_approval:
-            # Now that tool_call is added to the lists, populate pending approval
-            # This must happen AFTER adding to lists so _find_tool_call_by_id works
-            rendered_message = render_approval_message(
-                template=approval_requirement.message,
-                tool_name=tool_name,
-                tool_args=tool_args,
-            )
-            
-            # Determine if this is from a sub-agent (for UI display)
-            from_sub_agent = sub_agent is not None
-            sub_agent_name = sub_agent.name if sub_agent else ""
-            
-            # Populate pending_approval and update execution phase
-            self._populate_pending_approval(
-                run_id=run_id,
-                tool_name=tool_name,
-                tool_args=tool_args,
-                approval_message=rendered_message,
-                from_sub_agent=from_sub_agent,
-                sub_agent_name=sub_agent_name,
-            )
+            self._set_waiting_for_approval_phase(tool_name, run_id)
     
     def _ensure_parent_ai_message(
         self,
@@ -894,44 +870,6 @@ class StatusBuilder:
         )
         return managed
 
-    def _update_tool_call_on_ai_message(
-        self,
-        *,
-        tool_call_id: str,
-        messages_list: Any,
-        result: str | None = None,
-        status: int | None = None,
-        completed_at: str | None = None,
-        is_streaming: bool | None = None,
-        args_struct: Any | None = None,
-    ) -> None:
-        """Find and update a ToolCall on its parent AI message.
-
-        Protobuf repeated-field append copies values, so the ToolCall on the
-        AI message and the one in the flat ``tool_calls`` list are independent
-        objects.  Callers must update both.  This method handles the message
-        copy; callers update the flat copy directly.
-
-        All parameters are keyword-only to prevent argument-order regressions
-        (see 2026-03-26-194430-fix-hitl-resume-reconcile-argument-order.md).
-        """
-        for message in messages_list:
-            if message.type != MessageType.MESSAGE_AI:
-                continue
-            for tc in message.tool_calls:
-                if tc.id == tool_call_id:
-                    if result is not None:
-                        tc.result = result
-                    if status is not None:
-                        tc.status = status
-                    if completed_at is not None:
-                        tc.completed_at = completed_at
-                    if is_streaming is not None:
-                        tc.is_streaming = is_streaming
-                    if args_struct is not None:
-                        tc.args.CopyFrom(args_struct)
-                    return
-    
     def _handle_tool_progress_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_custom_event with name='tool_progress'.
         
@@ -961,8 +899,7 @@ class StatusBuilder:
         # Resolve run-ID alias (resume-after-approval path)
         resolved_id = self._resolve_run_id(run_id)
         
-        # Find the ToolCall on the flat queryable list and update it.
-        tool_call = self._find_tool_call_by_id(resolved_id)
+        tool_call = self.get_tool_call(resolved_id)
         if tool_call is None:
             self.logger.debug(
                 f"[TOOL_PROGRESS] execution={self.execution_id} "
@@ -980,23 +917,6 @@ class StatusBuilder:
             if len(chunk) > remaining:
                 tool_call.result += "\n[output truncated for display]"
         tool_call.is_streaming = True
-        
-        # Also update the AI-message copy so the frontend sees streaming output.
-        context, sub_agent = self._get_execution_context(namespace)
-        messages_list = sub_agent.messages if sub_agent else self.current_status.messages
-        for message in messages_list:
-            if message.type != MessageType.MESSAGE_AI:
-                continue
-            for tc in message.tool_calls:
-                if tc.id == resolved_id:
-                    tc_len = len(tc.result)
-                    if tc_len < _MAX_STATUS_RESULT_CHARS:
-                        tc_remaining = _MAX_STATUS_RESULT_CHARS - tc_len
-                        tc.result += chunk[:tc_remaining]
-                        if len(chunk) > tc_remaining:
-                            tc.result += "\n[output truncated for display]"
-                    tc.is_streaming = True
-                    break
 
         if not was_streaming:
             self.force_next_update = True
@@ -1065,26 +985,13 @@ class StatusBuilder:
             self._usage_tracker.record_tool_duration(duration_ms, scope)
         
         completed_at = _utc_timestamp(now)
-        messages_list = sub_agent.messages if sub_agent else self.current_status.messages
-        flat_list = sub_agent.tool_calls if sub_agent else self.current_status.tool_calls
-        
-        self._update_tool_call_on_ai_message(
-            tool_call_id=resolved_id,
-            messages_list=messages_list,
-            result=persisted_result,
-            status=ToolCallStatus.TOOL_CALL_COMPLETED,
-            completed_at=completed_at,
-            is_streaming=False,
-        )
-        
-        # Update the ToolCall copy in the flat queryable list
-        for tool_call in flat_list:
-            if tool_call.id == resolved_id:
-                tool_call.result = persisted_result
-                tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                tool_call.completed_at = completed_at
-                tool_call.is_streaming = False
-                break
+
+        tool_call = self.get_tool_call(resolved_id)
+        if tool_call is not None:
+            tool_call.result = persisted_result
+            tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
+            tool_call.completed_at = completed_at
+            tool_call.is_streaming = False
         
         context_desc = f"sub_agent={sub_agent.id}" if sub_agent else "main_agent"
         self.logger.debug(
@@ -1598,54 +1505,36 @@ class StatusBuilder:
         return hashlib.sha256(fingerprint_data.encode()).hexdigest()
     
     def populate_fingerprints_from_existing_tool_calls(self) -> None:
-        """Pre-populate tool_call_fingerprints from tool calls in the loaded status.
-        
+        """Pre-populate fingerprints and the in-memory index from persisted messages.
+
         On the resume-after-approval path, the StatusBuilder is initialized with
-        the DB-persisted status that already contains tool calls from the previous
-        invocation.  LangGraph may re-fire ``on_tool_start`` events for resumed
-        tools, which would create duplicate entries in tool_calls because the
-        fingerprint set starts empty.
-        
-        Calling this method after initialization fills the set so that the
-        deduplication check in ``_handle_tool_start_event`` correctly skips
-        already-tracked tool calls.
-        
-        Also populates ``_fingerprint_to_tool_call_id`` so that when the
-        deduplication check fires, we can record a run-ID alias mapping from
-        the new (LangGraph-generated) run_id to the original tool call's id.
-        This enables ``_handle_tool_end_event`` to find and update the correct
-        tool call on the resume path.
+        the DB-persisted status that already contains tool calls embedded in
+        messages.  LangGraph may re-fire ``on_tool_start`` events for resumed
+        tools; pre-populating fingerprints prevents duplicate entries.
+
+        Also rebuilds ``_tool_call_index`` so that all subsequent lookups work
+        against the message-embedded references.
         """
-        for tc in self.current_status.tool_calls:
-            try:
-                args_dict: dict[str, Any] = {}
-                if tc.args:
-                    args_dict = dict(tc.args)
-                fingerprint = self._get_tool_fingerprint(tc.name, args_dict)
-                self.tool_call_fingerprints.add(fingerprint)
-                # Map fingerprint -> tool_call.id so _handle_tool_start_event
-                # can record run-ID aliases when deduplication fires.
-                if tc.id:
-                    self._fingerprint_to_tool_call_id[fingerprint] = tc.id
-            except Exception:
-                # Non-fatal: if we can't compute a fingerprint for an existing
-                # tool call (e.g. malformed args), skip it.  The worst case is
-                # a duplicate entry, which is cosmetic.
-                pass
-        
-        # Also populate from sub-agent tool calls
-        for sub_agent in self.current_status.sub_agent_executions:
-            for tc in sub_agent.tool_calls:
-                try:
-                    args_dict = {}
-                    if tc.args:
-                        args_dict = dict(tc.args)
-                    fingerprint = self._get_tool_fingerprint(tc.name, args_dict)
-                    self.tool_call_fingerprints.add(fingerprint)
+        def _index_tool_calls(messages: Any) -> None:
+            for message in messages:
+                if message.type != MessageType.MESSAGE_AI:
+                    continue
+                for i, tc in enumerate(message.tool_calls):
                     if tc.id:
-                        self._fingerprint_to_tool_call_id[fingerprint] = tc.id
-                except Exception:
-                    pass
+                        self._tool_call_index[tc.id] = message.tool_calls[i]
+                    try:
+                        args_dict: dict[str, Any] = dict(tc.args) if tc.args else {}
+                        fingerprint = self._get_tool_fingerprint(tc.name, args_dict)
+                        self.tool_call_fingerprints.add(fingerprint)
+                        if tc.id:
+                            self._fingerprint_to_tool_call_id[fingerprint] = tc.id
+                    except Exception:
+                        pass
+
+        _index_tool_calls(self.current_status.messages)
+
+        for sub_agent in self.current_status.sub_agent_executions:
+            _index_tool_calls(sub_agent.messages)
     
     def _extract_tool_result_content(self, result: Any) -> str:
         """Extract displayable content string from a tool result.
@@ -1817,6 +1706,18 @@ class StatusBuilder:
 
         temp_id = f"early-{tool_use_id or uuid4()}"
 
+        # On resume, LangGraph replays the AI message from the checkpoint.
+        # The replayed tool_use blocks carry the same tool_use_id, so the
+        # derived temp_id matches an existing ToolCall from the previous
+        # cycle.  Skip creation to avoid duplicate messages and tool calls.
+        if self._find_tool_call_by_id(temp_id) is not None:
+            self.logger.info(
+                "[RESUME_DEDUP] execution=%s skipping early tool call "
+                "creation for %s (id=%s already exists from prior cycle)",
+                self.execution_id, tool_name, temp_id,
+            )
+            return
+
         mcp_server_slug = ""
         if self._approval_config is not None:
             mcp_server_slug = self._approval_config.get_mcp_server_for_tool(tool_name)
@@ -1836,18 +1737,13 @@ class StatusBuilder:
             mcp_server_slug=mcp_server_slug,
         )
 
-        # Attach to the parent AI message (creates empty one if needed).
         parent_ai = self._ensure_parent_ai_message(
             ns_key, namespace, llm_run_id=llm_run_id,
         )
         parent_ai.tool_calls.append(tool_call)
+        self._tool_call_index[temp_id] = parent_ai.tool_calls[-1]
 
-        context, sub_agent = self._get_execution_context(namespace)
-        if sub_agent:
-            sub_agent.tool_calls.append(tool_call)
-        else:
-            self.current_status.tool_calls.append(tool_call)
-
+        _, sub_agent = self._get_execution_context(namespace)
         sa_id = sub_agent.id if sub_agent else None
         self._early_tool_call_queue.append((temp_id, sa_id))
         self._tool_start_times[temp_id] = now
@@ -1882,7 +1778,7 @@ class StatusBuilder:
         sa_id = sub_agent.id if sub_agent else None
 
         for idx, (temp_id, queued_sa_id) in enumerate(self._early_tool_call_queue):
-            existing = self._find_tool_call_by_id(temp_id)
+            existing = self.get_tool_call(temp_id)
             if existing is None or existing.name != tool_name:
                 continue
             if queued_sa_id != sa_id:
@@ -1898,6 +1794,7 @@ class StatusBuilder:
                 args_struct = Struct()
                 args_struct.update(display_args)
                 existing.args.CopyFrom(args_struct)
+                existing.args_preview = self._create_args_preview(tool_args)
 
             existing.is_streaming = False
 
@@ -1926,15 +1823,7 @@ class StatusBuilder:
             self._fingerprint_to_tool_call_id[fingerprint] = temp_id
 
             if approval.requires_approval:
-                _, sub_agent = self._get_execution_context(namespace)
-                self._populate_pending_approval(
-                    run_id=run_id,
-                    tool_name=tool_name,
-                    tool_args=tool_args,
-                    approval_message=existing.approval_message,
-                    from_sub_agent=sub_agent is not None,
-                    sub_agent_name=sub_agent.name if sub_agent else "",
-                )
+                self._set_waiting_for_approval_phase(tool_name, run_id)
 
             return existing
 
@@ -1977,18 +1866,11 @@ class StatusBuilder:
             started_at=_utc_timestamp(now),
         )
 
-        # Attach to parent AI message (creates empty one if none exists yet).
         parent_ai = self._ensure_parent_ai_message(
             ns_key, namespace, llm_run_id=llm_run_id,
         )
         parent_ai.tool_calls.append(tool_call)
-
-        # Flat index for quick lookup by ID.
-        _context, sub_agent = self._get_execution_context(namespace)
-        if sub_agent:
-            sub_agent.tool_calls.append(tool_call)
-        else:
-            self.current_status.tool_calls.append(tool_call)
+        self._tool_call_index[tc_id] = parent_ai.tool_calls[-1]
 
         self._thinking_tool_call_ids[ns_key] = tc_id
         self._thinking_started_at[ns_key] = now
@@ -2003,25 +1885,16 @@ class StatusBuilder:
         )
 
     def _update_thinking_stream(self, ns_key: str) -> None:
-        """Update the streaming think ToolCall with the latest accumulated content.
-
-        Finds the existing RUNNING ToolCall by its tracked ID and replaces
-        ``result`` with the full accumulated thinking buffer on both the flat
-        list copy and the AI message copy.
-        """
+        """Update the streaming think ToolCall with the latest accumulated content."""
         tc_id = self._thinking_tool_call_ids.get(ns_key)
         if not tc_id:
             return
 
         buf = self._thinking_buffers.get(ns_key, "")
 
-        tool_call = self._find_tool_call_by_id(tc_id)
+        tool_call = self.get_tool_call(tc_id)
         if tool_call is not None:
             tool_call.result = buf
-
-        _, sub_agent = self._get_execution_context(ns_key)
-        messages_list = sub_agent.messages if sub_agent else self.current_status.messages
-        self._update_tool_call_on_ai_message(tool_call_id=tc_id, messages_list=messages_list, result=buf)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Tool Input Streaming Helpers
@@ -2050,7 +1923,7 @@ class StatusBuilder:
 
         self._tool_input_buffers[temp_id] = buf + partial_json
 
-        tool_call = self._find_tool_call_by_id(temp_id)
+        tool_call = self.get_tool_call(temp_id)
         if tool_call is None:
             return
 
@@ -2118,27 +1991,16 @@ class StatusBuilder:
         args_struct.update({"thought": thinking_text})
 
         _, sub_agent = self._get_execution_context(namespace)
-        messages_list = sub_agent.messages if sub_agent else self.current_status.messages
         completed_ts = _utc_timestamp(now)
 
         if tc_id:
-            tool_call = self._find_tool_call_by_id(tc_id)
+            tool_call = self.get_tool_call(tc_id)
             if tool_call is not None:
                 tool_call.args.CopyFrom(args_struct)
                 tool_call.result = "ok"
                 tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
                 tool_call.is_streaming = False
                 tool_call.completed_at = completed_ts
-
-                self._update_tool_call_on_ai_message(
-                    tool_call_id=tc_id,
-                    messages_list=messages_list,
-                    result="ok",
-                    status=ToolCallStatus.TOOL_CALL_COMPLETED,
-                    is_streaming=False,
-                    completed_at=completed_ts,
-                    args_struct=args_struct,
-                )
 
                 self.logger.info(
                     "[THINK] execution=%s streaming_completed id=%s "
@@ -2168,11 +2030,7 @@ class StatusBuilder:
 
         parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
         parent_ai.tool_calls.append(fallback_tc)
-
-        if sub_agent:
-            sub_agent.tool_calls.append(fallback_tc)
-        else:
-            self.current_status.tool_calls.append(fallback_tc)
+        self._tool_call_index[fallback_tc.id] = parent_ai.tool_calls[-1]
 
         self.logger.info(
             "[THINK] execution=%s synthetic_think_tool_call "
@@ -2276,76 +2134,26 @@ class StatusBuilder:
     # ─────────────────────────────────────────────────────────────────────────────
 
     def clear_pending_approval(self) -> None:
-        """Clear ALL pending approval state and restore execution phase.
+        """Clear pending approval tracking state and restore execution phase.
 
-        Called when all approval decisions have been processed (or on reject)
-        to clean up state.  Restores the execution phase to what it was before
-        entering WAITING_FOR_APPROVAL (typically IN_PROGRESS).
-
-        Also clears ``pending_approvals`` from every ``SubAgentExecution`` so
-        that the dual-surfaced sub-agent view stays consistent.
+        Called when all approval decisions have been processed (or on reject).
+        Restores the execution phase to what it was before entering
+        WAITING_FOR_APPROVAL (typically IN_PROGRESS).
         """
         self._pending_tool_approvals.clear()
-        del self.current_status.pending_approvals[:]
 
-        for sa in self.current_status.sub_agent_executions:
-            del sa.pending_approvals[:]
-
-        # Record approval wait duration before restoring phase
         if self._approval_wait_started_at is not None:
             wait_ms = int(
                 (datetime.utcnow() - self._approval_wait_started_at).total_seconds() * 1000
             )
             self._usage_tracker.record_approval_wait(wait_ms, MAIN_SCOPE)
             self._approval_wait_started_at = None
-        
-        # Restore phase (default to IN_PROGRESS if not saved)
+
         if self._saved_phase_before_approval is not None:
             self.current_status.phase = self._saved_phase_before_approval
             self._saved_phase_before_approval = None
         else:
             self.current_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
-
-    def sync_sub_agent_pending_approvals(self) -> None:
-        """Dual-surface pending approvals onto their owning SubAgentExecutions.
-
-        For every ``PendingApproval`` on ``current_status.pending_approvals``
-        that originated from a sub-agent (``from_sub_agent == True``), this
-        method finds the owning ``SubAgentExecution`` by matching
-        ``tool_call_id`` against the sub-agent's ``tool_calls`` and appends
-        the approval to ``SubAgentExecution.pending_approvals``.
-
-        It also populates ``PendingApproval.child_agent_execution_id`` with
-        the sub-agent's ID so consumers can correlate without rescanning.
-
-        Must be called **after** the parent-level ``pending_approvals`` have
-        been set (i.e. after interrupt capture in ``execute_graphton.py``).
-        """
-        for sa in self.current_status.sub_agent_executions:
-            del sa.pending_approvals[:]
-
-        for pa in self.current_status.pending_approvals:
-            if not pa.from_sub_agent:
-                continue
-
-            matched = False
-            for sub_agent in self._active_sub_agents.values():
-                for tc in sub_agent.tool_calls:
-                    if tc.id == pa.tool_call_id:
-                        pa.child_agent_execution_id = sub_agent.id
-                        sub_agent.pending_approvals.append(pa)
-                        matched = True
-                        break
-                if matched:
-                    break
-
-            if not matched:
-                self.logger.warning(
-                    f"[APPROVAL] execution={self.execution_id} "
-                    f"could not match sub-agent PendingApproval "
-                    f"tool_call_id={pa.tool_call_id} tool={pa.tool_name} "
-                    f"to any active sub-agent"
-                )
 
     def _check_tool_approval_requirement(
         self,
@@ -2385,117 +2193,54 @@ class StatusBuilder:
             default_tool_approvals=default_policies,
         )
     
-    def _populate_pending_approval(
-        self,
-        run_id: str,
-        tool_name: str,
-        tool_args: dict[str, Any],
-        approval_message: str,
-        from_sub_agent: bool = False,
-        sub_agent_name: str = "",
+    def _set_waiting_for_approval_phase(
+        self, tool_name: str, run_id: str,
     ) -> None:
+        """Transition execution phase to WAITING_FOR_APPROVAL.
+
+        Saves the current phase (only on the first pending approval) so
+        ``clear_pending_approval()`` can restore it later.  Also tracks the
+        run_id in ``_pending_tool_approvals`` and forces an immediate gRPC push.
         """
-        Populate pending approval tracking and update execution phase.
-        
-        This is called after the ToolCall has already been created with
-        WAITING_APPROVAL status. It handles the execution-level state updates:
-        
-        1. Saves the pre-approval phase and transitions to WAITING_FOR_APPROVAL
-        2. Creates a PendingApproval proto and appends to current_status
-        3. Syncs sub-agent pending approvals for dual-surface display
-        4. Sets force_next_update so the next progressive gRPC push includes
-           the PendingApproval — preventing a race where the CLI sees
-           phase=WAITING but empty pending_approvals before the post-stream
-           interrupt capture runs.
-        
-        The interrupt_id is left empty here; the post-stream interrupt capture
-        in execute_graphton.py replaces these entries with enriched versions
-        that include the LangGraph-assigned interrupt_id.
-        
-        Unlike set_tool_waiting_approval(), this does not need to find and
-        update the ToolCall (already done during creation).
-        
-        Args:
-            run_id: The tool call's run_id
-            tool_name: Name of the tool requiring approval
-            tool_args: Tool arguments dictionary (for args_preview)
-            approval_message: Rendered approval message
-            from_sub_agent: True if this approval bubbles up from a sub-agent
-            sub_agent_name: Name of the sub-agent (when from_sub_agent=True)
-        """
-        # Save current phase (only on the FIRST pending approval) and
-        # transition to WAITING_FOR_APPROVAL.  When multiple tool calls
-        # require approval in a single LLM response, subsequent calls to
-        # this method must NOT overwrite the saved phase — it should stay
-        # as the pre-approval phase (typically IN_PROGRESS) so that
-        # clear_pending_approval() can restore it correctly.
+        post_approval_statuses = frozenset({
+            ToolCallStatus.TOOL_CALL_RUNNING,
+            ToolCallStatus.TOOL_CALL_COMPLETED,
+            ToolCallStatus.TOOL_CALL_FAILED,
+            ToolCallStatus.TOOL_CALL_SKIPPED,
+        })
+        tc_id = self._run_id_aliases.get(run_id, run_id)
+        existing_tc = self.get_tool_call(tc_id)
+        if existing_tc is not None and existing_tc.status in post_approval_statuses:
+            self.logger.warning(
+                "[APPROVAL_GUARD] execution=%s tool=%s tc_id=%s "
+                "skipping phase transition — tool call already in "
+                "post-approval state %s",
+                self.execution_id, tool_name, tc_id,
+                ToolCallStatus.Name(existing_tc.status),
+            )
+            return
+
         if self._saved_phase_before_approval is None:
             self._saved_phase_before_approval = self.current_status.phase
             self._approval_wait_started_at = datetime.utcnow()
         self.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
-        
-        # Track pending approval state
+
         self._pending_tool_approvals.append(run_id)
-        
-        # Resolve tool_call_id: in the reconciliation path the alias maps
-        # run_id → temp_id (the ToolCall.id).  In the normal path run_id
-        # IS the ToolCall.id.
-        tc_id = self._run_id_aliases.get(run_id, run_id)
-        
-        args_preview = self._create_args_preview(tool_args)
-        
-        pa = PendingApproval(
-            tool_call_id=tc_id,
-            tool_name=tool_name,
-            message=approval_message,
-            args_preview=args_preview,
-            requested_at=_utc_timestamp(),
-            from_sub_agent=from_sub_agent,
-            sub_agent_name=sub_agent_name,
-            lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED,
-        )
-        self.current_status.pending_approvals.append(pa)
-        
-        if from_sub_agent:
-            self.sync_sub_agent_pending_approvals()
-        
         self.force_next_update = True
-        
-        context_info = f"sub_agent={sub_agent_name}" if from_sub_agent else "main_agent"
-        pending_count = len(self._pending_tool_approvals)
+
         self.logger.info(
             f"[APPROVAL] execution={self.execution_id} "
             f"tool={tool_name} run_id={run_id} tc_id={tc_id} "
-            f"status=WAITING_APPROVAL lifecycle=REQUESTED context={context_info} "
-            f"pending_count={pending_count} "
-            f"pending_approvals_proto={len(self.current_status.pending_approvals)}"
+            f"status=WAITING_APPROVAL "
+            f"pending_count={len(self._pending_tool_approvals)}"
         )
     
     def _find_tool_call_by_id(self, run_id: str) -> ToolCall | None:
+        """Find a ToolCall by its run_id via the in-memory index.
+
+        Alias for :meth:`get_tool_call` retained for internal callers.
         """
-        Find a ToolCall by its run_id in the current execution context.
-        
-        Searches both main agent and sub-agent tool calls.
-        Returns the first match (there should only be one per run_id).
-        
-        Args:
-            run_id: The tool call's run_id to find
-            
-        Returns:
-            ToolCall proto if found, None otherwise
-        """
-        # Check main agent tool_calls
-        for tool_call in self.current_status.tool_calls:
-            if tool_call.id == run_id:
-                return tool_call
-        
-        # Check sub-agent tool_calls
-        for sub_agent in self.current_status.sub_agent_executions:
-            for tool_call in sub_agent.tool_calls:
-                if tool_call.id == run_id:
-                    return tool_call
-        
-        return None
+        return self._tool_call_index.get(run_id)
     
     def _humanize_args_for_display(self, tool_args: dict[str, Any]) -> dict[str, Any]:
         """Return a shallow copy of *tool_args* with string values humanized.
@@ -2882,12 +2627,13 @@ class StatusBuilder:
         mid_execution: list[dict] = []
 
         for run_id, sub_agent in self._active_sub_agents.items():
-            has_activity = len(sub_agent.messages) > 0 or len(sub_agent.tool_calls) > 0
+            tc_count = sum(len(m.tool_calls) for m in sub_agent.messages)
+            has_activity = len(sub_agent.messages) > 0
             entry = {
                 "run_id": run_id,
                 "subject": sub_agent.subject,
                 "message_count": len(sub_agent.messages),
-                "tool_call_count": len(sub_agent.tool_calls),
+                "tool_call_count": tc_count,
             }
             if has_activity:
                 mid_execution.append(entry)
@@ -2956,13 +2702,14 @@ class StatusBuilder:
         failed_ids: list[str] = []
 
         for run_id, sub_agent in list(self._active_sub_agents.items()):
-            has_activity = len(sub_agent.messages) > 0 or len(sub_agent.tool_calls) > 0
+            tc_count = sum(len(m.tool_calls) for m in sub_agent.messages)
+            has_activity = len(sub_agent.messages) > 0
             if has_activity:
                 sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
                 sub_agent.error = (
                     f"{error_context}: sub-agent was running "
                     f"({len(sub_agent.messages)} messages, "
-                    f"{len(sub_agent.tool_calls)} tool calls)"
+                    f"{tc_count} tool calls)"
                 )
                 failed_ids.append(run_id)
             else:
@@ -3047,16 +2794,17 @@ class StatusBuilder:
             failed_ids: list[str] = []
 
             for run_id, sub_agent in list(self._active_sub_agents.items()):
+                tc_count = sum(len(m.tool_calls) for m in sub_agent.messages)
                 has_activity = (
                     len(sub_agent.messages) > 0
-                    or len(sub_agent.tool_calls) > 0
+                    or tc_count > 0
                 )
                 if has_activity:
                     sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
                     sub_agent.error = (
                         f"{error_context}: sub-agent was running "
                         f"({len(sub_agent.messages)} messages, "
-                        f"{len(sub_agent.tool_calls)} tool calls)"
+                        f"{tc_count} tool calls)"
                     )
                     failed_ids.append(run_id)
                 else:

@@ -46,8 +46,16 @@ class WorkflowExecutionStatus(_message.Message):
     started_at: str
     completed_at: str
     temporal_workflow_id: str
-    pending_approvals: _containers.RepeatedCompositeFieldContainer[_approval_pb2.PendingApproval]
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., temporal_workflow_id: _Optional[str] = ..., pending_approvals: _Optional[_Iterable[_Union[_approval_pb2.PendingApproval, _Mapping]]] = ...) -> None: ...
+    pending_approvals: _containers.RepeatedCompositeFieldContainer[WorkflowPendingApproval]
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., tasks: _Optional[_Iterable[_Union[WorkflowTask, _Mapping]]] = ..., output: _Optional[_Union[_struct_pb2.Struct, _Mapping]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., temporal_workflow_id: _Optional[str] = ..., pending_approvals: _Optional[_Iterable[_Union[WorkflowPendingApproval, _Mapping]]] = ...) -> None: ...
+
+class WorkflowPendingApproval(_message.Message):
+    __slots__ = ("approval", "child_agent_execution_id")
+    APPROVAL_FIELD_NUMBER: _ClassVar[int]
+    CHILD_AGENT_EXECUTION_ID_FIELD_NUMBER: _ClassVar[int]
+    approval: _approval_pb2.PendingApproval
+    child_agent_execution_id: str
+    def __init__(self, approval: _Optional[_Union[_approval_pb2.PendingApproval, _Mapping]] = ..., child_agent_execution_id: _Optional[str] = ...) -> None: ...
 
 class WorkflowTask(_message.Message):
     __slots__ = ("task_id", "task_name", "task_type", "input", "output", "status", "started_at", "completed_at", "error", "metadata")

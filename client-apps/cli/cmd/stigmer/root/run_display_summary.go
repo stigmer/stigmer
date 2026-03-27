@@ -80,9 +80,10 @@ func displayAgentExecutionDetached(execution *agentexecutionv1.AgentExecution) {
 	sections = append(sections, fmt.Sprintf("Status:      %s", mapPhaseToString(execution.Status.Phase)))
 
 	// Snapshot stats at the time of detach.
+	allToolCalls := collectToolCallsFromMessages(execution.Status.GetMessages())
 	sections = append(sections, fmt.Sprintf("Messages:    %d", len(execution.Status.Messages)))
-	sections = append(sections, fmt.Sprintf("Tool calls:  %d", len(execution.Status.ToolCalls)))
-	if breakdown := formatToolCallBreakdown(execution.Status.ToolCalls); breakdown != "" {
+	sections = append(sections, fmt.Sprintf("Tool calls:  %d", len(allToolCalls)))
+	if breakdown := formatToolCallBreakdown(allToolCalls); breakdown != "" {
 		sections = append(sections, fmt.Sprintf("             %s", breakdown))
 	}
 
@@ -124,16 +125,17 @@ func buildAgentSummaryContent(execution *agentexecutionv1.AgentExecution) string
 	}
 
 	// Stats
+	allToolCalls := collectToolCallsFromMessages(execution.Status.GetMessages())
 	sections = append(sections, fmt.Sprintf("Messages:    %d", len(execution.Status.Messages)))
-	sections = append(sections, fmt.Sprintf("Tool calls:  %d", len(execution.Status.ToolCalls)))
+	sections = append(sections, fmt.Sprintf("Tool calls:  %d", len(allToolCalls)))
 
 	// Tool breakdown (e.g., "read x3, execute x2, write x1")
-	if breakdown := formatToolCallBreakdown(execution.Status.ToolCalls); breakdown != "" {
+	if breakdown := formatToolCallBreakdown(allToolCalls); breakdown != "" {
 		sections = append(sections, fmt.Sprintf("             %s", breakdown))
 	}
 
 	// Approval status
-	if hadApprovalWait(execution.Status.ToolCalls) {
+	if hadApprovalWait(allToolCalls) {
 		sections = append(sections, "Approval:    requested")
 	}
 
@@ -344,7 +346,7 @@ func resolveFailureError(execution *agentexecutionv1.AgentExecution) string {
 	}
 
 	// Fallback 2: first failed tool call's error
-	for _, tc := range execution.Status.ToolCalls {
+	for _, tc := range collectToolCallsFromMessages(execution.Status.GetMessages()) {
 		if tc.Status == agentexecutionv1.ToolCallStatus_TOOL_CALL_FAILED && tc.Error != "" {
 			return tc.Error
 		}

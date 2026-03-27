@@ -31,7 +31,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/workflowexecution/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_workflowexecution_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvYXBpLnByb3RvEidhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEi3QIKEVdvcmtmbG93RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiYKBGtpbmQYAiABKAlCGLpIFXITChFXb3JrZmxvd0V4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESTAoEc3BlYxgEIAEoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvblNwZWMSUAoGc3RhdHVzGAUgASgLMkAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uU3RhdHVzIsQDChdXb3JrZmxvd0V4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0ElAKBXBoYXNlGAEgASgOMjcuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlQgi6SAWCAQIQARJECgV0YXNrcxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1Rhc2sSJwoGb3V0cHV0GAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBINCgVlcnJvchgEIAEoCRISCgpzdGFydGVkX2F0GAUgASgJEhQKDGNvbXBsZXRlZF9hdBgGIAEoCRIcChR0ZW1wb3JhbF93b3JrZmxvd19pZBgHIAEoCRJQChFwZW5kaW5nX2FwcHJvdmFscxgJIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWwilgMKDFdvcmtmbG93VGFzaxIPCgd0YXNrX2lkGAEgASgJEhEKCXRhc2tfbmFtZRgCIAEoCRJWCgl0YXNrX3R5cGUYAyABKA4yOS5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dUYXNrVHlwZUIIukgFggECEAESJgoFaW5wdXQYBCABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EicKBm91dHB1dBgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSVQoGc3RhdHVzGAYgASgOMjsuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93VGFza1N0YXR1c0IIukgFggECEAESEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSDQoFZXJyb3IYCSABKAkSKQoIbWV0YWRhdGEYCiABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0YgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3dleGVjdXRpb24vdjEvYXBpLnByb3RvEidhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEi3QIKEVdvcmtmbG93RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiYKBGtpbmQYAiABKAlCGLpIFXITChFXb3JrZmxvd0V4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESTAoEc3BlYxgEIAEoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd0V4ZWN1dGlvblNwZWMSUAoGc3RhdHVzGAUgASgLMkAuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLldvcmtmbG93RXhlY3V0aW9uU3RhdHVzIs8DChdXb3JrZmxvd0V4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0ElAKBXBoYXNlGAEgASgOMjcuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93ZXhlY3V0aW9uLnYxLkV4ZWN1dGlvblBoYXNlQgi6SAWCAQIQARJECgV0YXNrcxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1Rhc2sSJwoGb3V0cHV0GAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBINCgVlcnJvchgEIAEoCRISCgpzdGFydGVkX2F0GAUgASgJEhQKDGNvbXBsZXRlZF9hdBgGIAEoCRIcChR0ZW1wb3JhbF93b3JrZmxvd19pZBgHIAEoCRJbChFwZW5kaW5nX2FwcHJvdmFscxgJIAMoCzJALmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1BlbmRpbmdBcHByb3ZhbCKEAQoXV29ya2Zsb3dQZW5kaW5nQXBwcm92YWwSRwoIYXBwcm92YWwYASABKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsEiAKGGNoaWxkX2FnZW50X2V4ZWN1dGlvbl9pZBgCIAEoCSKWAwoMV29ya2Zsb3dUYXNrEg8KB3Rhc2tfaWQYASABKAkSEQoJdGFza19uYW1lGAIgASgJElYKCXRhc2tfdHlwZRgDIAEoDjI5LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvd2V4ZWN1dGlvbi52MS5Xb3JrZmxvd1Rhc2tUeXBlQgi6SAWCAQIQARImCgVpbnB1dBgEIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSJwoGb3V0cHV0GAUgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBJVCgZzdGF0dXMYBiABKA4yOy5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3dleGVjdXRpb24udjEuV29ya2Zsb3dUYXNrU3RhdHVzQgi6SAWCAQIQARISCgpzdGFydGVkX2F0GAcgASgJEhQKDGNvbXBsZXRlZF9hdBgIIAEoCRINCgVlcnJvchgJIAEoCRIpCghtZXRhZGF0YRgKIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3RiBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_workflowexecution_v1_enum, file_ai_stigmer_agentic_workflowexecution_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * WorkflowExecution represents a single runtime invocation of a WorkflowInstance.
@@ -418,27 +418,18 @@ export type WorkflowExecutionStatus = Message<"ai.stigmer.agentic.workflowexecut
   temporalWorkflowId: string;
 
   /**
-   * Pending approvals from child agent tool executions (HITL Phase 5).
+   * Pending approvals from child agent tool executions (HITL).
    *
    * Populated when workflow tasks invoke agents that enter
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * ## When This Is Populated
+   * ## Full-Replace Protocol
    *
-   * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-   * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-   * - UI should display approval prompts to the user
-   * - User can submit approval via WorkflowExecution or AgentExecution API
-   *
-   * ## Lifecycle
-   *
-   * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-   * 2. Child signals parent workflow via Temporal "child_approval_required"
-   * 3. Workflow updates task status and populates this field with all entries
-   * 4. Each entry's child_agent_execution_id identifies the originating child
-   * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-   * 6. Entries are cleared when the child agent completes
+   * The workflow-runner always sends the complete set of pending approvals
+   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * - Non-empty list: child agent(s) need approval
+   * - Empty list: all approvals resolved, clear the field
    *
    * ## Parallel Agents
    *
@@ -446,17 +437,9 @@ export type WorkflowExecutionStatus = Message<"ai.stigmer.agentic.workflowexecut
    * accumulate in this list. Each entry's child_agent_execution_id distinguishes
    * the source.
    *
-   * ## Type Reference
-   *
-   * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-   * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-   * child_agent_execution_id, interrupt_id.
-   *
-   * @since Phase 5.1 (Events-Based Approval Notification)
-   *
-   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9;
+   * @generated from field: repeated ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9;
    */
-  pendingApprovals: PendingApproval[];
+  pendingApprovals: WorkflowPendingApproval[];
 };
 
 /**
@@ -465,6 +448,45 @@ export type WorkflowExecutionStatus = Message<"ai.stigmer.agentic.workflowexecut
  */
 export const WorkflowExecutionStatusSchema: GenMessage<WorkflowExecutionStatus> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_api, 1);
+
+/**
+ * WorkflowPendingApproval wraps a PendingApproval from a child agent execution
+ * with the routing information needed for workflow-level approval forwarding.
+ *
+ * PendingApproval is an agentexecution domain type — it describes what tool
+ * needs approval. WorkflowPendingApproval adds the workflow-level concern:
+ * which child agent execution the approval should be forwarded to.
+ *
+ * @generated from message ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval
+ */
+export type WorkflowPendingApproval = Message<"ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval"> & {
+  /**
+   * The approval details projected from the child agent's tool call state.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.PendingApproval approval = 1;
+   */
+  approval?: PendingApproval;
+
+  /**
+   * Child agent execution to forward the approval to.
+   *
+   * Set by the workflow-runner when surfacing child agent approvals
+   * at the workflow level. WorkflowExecution.SubmitApproval uses this
+   * to route the decision to the correct AgentExecution.SubmitApproval RPC.
+   *
+   * Format: AgentExecution.metadata.id (e.g., "aex_abc123xyz456")
+   *
+   * @generated from field: string child_agent_execution_id = 2;
+   */
+  childAgentExecutionId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.
+ * Use `create(WorkflowPendingApprovalSchema)` to create a new message.
+ */
+export const WorkflowPendingApprovalSchema: GenMessage<WorkflowPendingApproval> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_api, 2);
 
 /**
  * WorkflowTask represents a single task within a workflow execution.
@@ -766,5 +788,5 @@ export type WorkflowTask = Message<"ai.stigmer.agentic.workflowexecution.v1.Work
  * Use `create(WorkflowTaskSchema)` to create a new message.
  */
 export const WorkflowTaskSchema: GenMessage<WorkflowTask> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_api, 2);
+  messageDesc(file_ai_stigmer_agentic_workflowexecution_v1_api, 3);
 

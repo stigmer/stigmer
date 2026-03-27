@@ -30,6 +30,15 @@ from graphton.core.tool_wrappers import (
     create_platform_tool_wrappers,
 )
 
+
+def _tc(name: str, args: dict, tc_id: str = "call_test_001") -> dict:
+    """Build a ToolCall-format input dict for tool.ainvoke().
+
+    Tools with InjectedToolCallId require ToolCall-format invocation so the
+    framework can inject the tool_call_id.
+    """
+    return {"name": name, "args": args, "id": tc_id, "type": "tool_call"}
+
 # =============================================================================
 # TestApprovalRequirement - Tests for ApprovalRequirement dataclass
 # =============================================================================
@@ -180,9 +189,9 @@ class TestApprovalAwareWrapperExecution:
         )
         
         # Use ainvoke for StructuredTool
-        result = await wrapper.ainvoke({"arg1": "value1"})
+        result = await wrapper.ainvoke(_tc("test_tool", {"arg1": "value1"}))
         
-        assert result == "tool_result"
+        assert result.content == "tool_result"
         mock_middleware.get_tool.return_value.ainvoke.assert_called_once()
 
     @pytest.mark.asyncio
@@ -197,9 +206,9 @@ class TestApprovalAwareWrapperExecution:
             approval_checker=checker,
         )
         
-        result = await wrapper.ainvoke({"arg1": "value1"})
+        result = await wrapper.ainvoke(_tc("test_tool", {"arg1": "value1"}))
         
-        assert result == "tool_result"
+        assert result.content == "tool_result"
 
     @pytest.mark.asyncio
     async def test_calls_interrupt_when_approval_required(self, mock_middleware):
@@ -222,15 +231,14 @@ class TestApprovalAwareWrapperExecution:
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "approve", "approved_by": "user@test.com"}
             
-            result = await wrapper.ainvoke({"arg1": "value1"})
+            result = await wrapper.ainvoke(_tc("test_tool", {"arg1": "value1"}))
         
         # Verify interrupt was called with correct payload
         mock_interrupt.assert_called_once()
         call_args = mock_interrupt.call_args[0][0]
-        assert call_args["tool_name"] == "test_tool"
+        assert "tool_call_id" in call_args
         assert call_args["message"] == "Dangerous operation"
-        assert call_args["mcp_server"] == "test-server"
-        assert result == "tool_result"
+        assert result.content == "tool_result"
 
     @pytest.mark.asyncio
     async def test_returns_skip_message_on_skip_action(self, mock_middleware):
@@ -247,10 +255,10 @@ class TestApprovalAwareWrapperExecution:
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "skip", "approved_by": "user@test.com"}
             
-            result = await wrapper.ainvoke({"arg1": "value1"})
+            result = await wrapper.ainvoke(_tc("test_tool", {"arg1": "value1"}))
         
-        assert "skipped" in result.lower()
-        assert "test_tool" in result
+        assert "skipped" in result.content.lower()
+        assert "test_tool" in result.content
 
     @pytest.mark.asyncio
     async def test_returns_rejection_message_on_reject_action(self, mock_middleware):
@@ -267,11 +275,11 @@ class TestApprovalAwareWrapperExecution:
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "reject", "approved_by": "user@test.com"}
             
-            result = await wrapper.ainvoke({"arg1": "value1"})
+            result = await wrapper.ainvoke(_tc("test_tool", {"arg1": "value1"}))
         
-        assert "REJECTED" in result
-        assert "test_tool" in result
-        assert "Re-evaluate" in result
+        assert "REJECTED" in result.content
+        assert "test_tool" in result.content
+        assert "Re-evaluate" in result.content
 
     @pytest.mark.asyncio
     async def test_returns_rejection_message_on_unknown_action(self, mock_middleware):
@@ -288,11 +296,11 @@ class TestApprovalAwareWrapperExecution:
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "unknown_action"}
             
-            result = await wrapper.ainvoke({"arg1": "value1"})
+            result = await wrapper.ainvoke(_tc("test_tool", {"arg1": "value1"}))
         
-        assert "unknown_action" in result
-        assert "test_tool" in result
-        assert "Re-evaluate" in result
+        assert "unknown_action" in result.content
+        assert "test_tool" in result.content
+        assert "Re-evaluate" in result.content
 
 
 # =============================================================================
@@ -330,7 +338,9 @@ class TestApprovalAwareWrapperArgHandling:
             approval_checker=checker,
         )
         
-        await wrapper.ainvoke({"input": {"real_arg": "value"}})
+        await wrapper.ainvoke(
+            _tc("test_tool", {"kwargs": {"input": {"real_arg": "value"}}}),
+        )
         
         # Args should be unwrapped
         assert "real_arg" in captured_args
@@ -351,7 +361,7 @@ class TestApprovalAwareWrapperArgHandling:
             approval_checker=checker,
         )
         
-        await wrapper.ainvoke({"kwargs": {"real_arg": "value"}})
+        await wrapper.ainvoke(_tc("test_tool", {"kwargs": {"real_arg": "value"}}))
         
         # Args should be unwrapped
         assert "real_arg" in captured_args
@@ -372,7 +382,9 @@ class TestApprovalAwareWrapperArgHandling:
             approval_checker=checker,
         )
         
-        await wrapper.ainvoke({"arg1": "value1", "arg2": "value2"})
+        await wrapper.ainvoke(
+            _tc("test_tool", {"kwargs": {"arg1": "value1", "arg2": "value2"}}),
+        )
         
         assert captured_args["name"] == "test_tool"
         assert captured_args["args"]["arg1"] == "value1"
@@ -415,20 +427,47 @@ class TestApprovalAwareWrapperMetadata:
         
         assert wrapper.description == "This is a test tool for doing things"  # type: ignore[attr-defined]
 
-    def test_copies_args_schema(self):
-        """Test that args_schema is copied to wrapper."""
+    def test_preserves_injected_tool_call_id_in_schema(self):
+        """Test that InjectedToolCallId is preserved in wrapper schema."""
         mock_middleware = MagicMock()
         mock_tool = MagicMock()
         mock_tool.description = "Test"
-        mock_tool.args_schema = {"type": "object", "properties": {"arg1": {"type": "string"}}}
+        mock_tool.args_schema = None
         mock_middleware.get_tool.return_value = mock_tool
-        
+
         wrapper = create_approval_aware_tool_wrapper(
             tool_name="test_tool",
             middleware_instance=mock_middleware,
         )
-        
-        assert wrapper.args_schema == mock_tool.args_schema  # type: ignore[attr-defined]
+
+        assert "tool_call_id" in wrapper.args_schema.model_fields
+
+    def test_merges_mcp_schema_with_injected_tool_call_id(self):
+        """Test that MCP tool schema is merged with InjectedToolCallId."""
+        from langchain_core.utils.function_calling import convert_to_openai_function
+        from pydantic import BaseModel, Field
+
+        class TestSchema(BaseModel):
+            file_path: str = Field(description="Path to file")
+
+        mock_middleware = MagicMock()
+        mock_tool = MagicMock()
+        mock_tool.description = "Test"
+        mock_tool.args_schema = TestSchema
+        mock_middleware.get_tool.return_value = mock_tool
+
+        wrapper = create_approval_aware_tool_wrapper(
+            tool_name="test_tool",
+            middleware_instance=mock_middleware,
+        )
+
+        # LLM should see the MCP tool's params but NOT tool_call_id
+        llm_schema = convert_to_openai_function(wrapper)["parameters"]
+        assert "file_path" in llm_schema["properties"]
+        assert "tool_call_id" not in llm_schema["properties"]
+
+        # Internal schema should have tool_call_id for injection
+        assert "tool_call_id" in wrapper.args_schema.model_fields
 
 
 # =============================================================================
@@ -451,70 +490,69 @@ class TestApprovalAwareWrapperSubAgent:
         return middleware
 
     @pytest.mark.asyncio
-    async def test_main_agent_interrupt_has_from_sub_agent_false(self, mock_middleware):
-        """Test that main agent interrupt has from_sub_agent=False."""
+    async def test_main_agent_interrupt_payload_is_minimal(self, mock_middleware):
+        """Test that interrupt payload contains only tool_call_id and message."""
         def checker(name: str, args: dict) -> ApprovalRequirement:
             return ApprovalRequirement(requires_approval=True, message="Confirm?")
-        
+
         wrapper = create_approval_aware_tool_wrapper(
             tool_name="test_tool",
             middleware_instance=mock_middleware,
             approval_checker=checker,
-            sub_agent_name="",  # Empty = main agent
         )
-        
+
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "approve"}
-            await wrapper.ainvoke({})
-        
+            await wrapper.ainvoke(_tc("test_tool", {}))
+
         call_args = mock_interrupt.call_args[0][0]
-        assert call_args["from_sub_agent"] is False
-        assert call_args["sub_agent_name"] == ""
+        assert "tool_call_id" in call_args
+        assert call_args["message"] == "Confirm?"
+        assert "from_sub_agent" not in call_args
+        assert "sub_agent_name" not in call_args
 
     @pytest.mark.asyncio
-    async def test_sub_agent_interrupt_has_from_sub_agent_true(self, mock_middleware):
-        """Test that sub-agent interrupt has from_sub_agent=True."""
+    async def test_sub_agent_wrapper_interrupt_payload_is_minimal(self, mock_middleware):
+        """Test that sub-agent wrapper also uses minimal interrupt payload."""
         def checker(name: str, args: dict) -> ApprovalRequirement:
             return ApprovalRequirement(requires_approval=True, message="Confirm?")
-        
+
         wrapper = create_approval_aware_tool_wrapper(
             tool_name="test_tool",
             middleware_instance=mock_middleware,
             approval_checker=checker,
-            sub_agent_name="code-reviewer",  # Sub-agent name
+            sub_agent_name="code-reviewer",
         )
-        
+
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "approve"}
-            await wrapper.ainvoke({})
-        
+            await wrapper.ainvoke(_tc("test_tool", {}))
+
         call_args = mock_interrupt.call_args[0][0]
-        assert call_args["from_sub_agent"] is True
-        assert call_args["sub_agent_name"] == "code-reviewer"
+        assert "tool_call_id" in call_args
+        assert call_args["message"] == "Confirm?"
+        assert "from_sub_agent" not in call_args
 
     @pytest.mark.asyncio
     async def test_sub_agent_context_preserved_in_skip_flow(self, mock_middleware):
         """Test that sub-agent context is preserved even when skipping."""
         def checker(name: str, args: dict) -> ApprovalRequirement:
             return ApprovalRequirement(requires_approval=True, message="Confirm?")
-        
+
         wrapper = create_approval_aware_tool_wrapper(
             tool_name="test_tool",
             middleware_instance=mock_middleware,
             approval_checker=checker,
             sub_agent_name="researcher",
         )
-        
+
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "skip"}
-            result = await wrapper.ainvoke({})
-        
-        # Verify interrupt was called with sub-agent context
+            result = await wrapper.ainvoke(_tc("test_tool", {}))
+
         call_args = mock_interrupt.call_args[0][0]
-        assert call_args["from_sub_agent"] is True
-        assert call_args["sub_agent_name"] == "researcher"
-        # Skip message returned
-        assert "skipped" in result.lower()
+        assert "tool_call_id" in call_args
+        assert "skipped" in result.content.lower()
 
 
 class TestApprovalAwareWrapperIntegration:
@@ -558,7 +596,9 @@ class TestApprovalAwareWrapperIntegration:
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "approve", "approved_by": "admin@test.com"}
             
-            result = await wrapper.ainvoke({"resource_id": "res-123"})
+            result = await wrapper.ainvoke(
+                _tc("delete_resource", {"kwargs": {"resource_id": "res-123"}}),
+            )
         
         # Verify the full flow
         assert len(approval_log) == 1
@@ -566,8 +606,8 @@ class TestApprovalAwareWrapperIntegration:
         mock_interrupt.assert_called_once()
         interrupt_payload = mock_interrupt.call_args[0][0]
         assert "res-123" in interrupt_payload["message"]
-        assert "deleted" in result
-        assert "res-123" in result
+        assert "deleted" in result.content
+        assert "res-123" in result.content
 
     @pytest.mark.asyncio
     async def test_multiple_tools_different_policies(self, mock_middleware):
@@ -592,14 +632,14 @@ class TestApprovalAwareWrapperIntegration:
         )
         
         # list_resources should execute without interrupt
-        result = await list_wrapper.ainvoke({})
-        assert "deleted" in result
-        assert "res-123" in result
+        result = await list_wrapper.ainvoke(_tc("list_resources", {}))
+        assert "deleted" in result.content
+        assert "res-123" in result.content
         
         # delete_resource should require interrupt
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "approve"}
-            await delete_wrapper.ainvoke({})
+            await delete_wrapper.ainvoke(_tc("delete_resource", {}))
         
         mock_interrupt.assert_called_once()
 
@@ -645,6 +685,7 @@ class TestCheckAndHandleApproval:
                 tool_name="test_tool",
                 tool_args={"arg": "value"},
                 approval_checker=checker,
+                tool_call_id="call_test_001",
             )
         
         assert result is None
@@ -661,6 +702,7 @@ class TestCheckAndHandleApproval:
                 tool_name="test_tool",
                 tool_args={"arg": "value"},
                 approval_checker=checker,
+                tool_call_id="call_test_001",
             )
         
         assert result is not None
@@ -679,6 +721,7 @@ class TestCheckAndHandleApproval:
                 tool_name="test_tool",
                 tool_args={"arg": "value"},
                 approval_checker=checker,
+                tool_call_id="call_test_001",
             )
         
         assert result is not None
@@ -697,14 +740,15 @@ class TestCheckAndHandleApproval:
                 tool_name="test_tool",
                 tool_args={"arg": "value"},
                 approval_checker=checker,
+                tool_call_id="call_test_001",
             )
         
         assert result is not None
         assert "test_tool" in result
         assert "something_weird" in result
 
-    def test_includes_sub_agent_context_in_payload(self):
-        """Test that sub-agent context is included in interrupt payload."""
+    def test_includes_tool_call_id_in_payload(self):
+        """Test that tool_call_id is included in interrupt payload."""
         def checker(name: str, args: dict) -> ApprovalRequirement:
             return ApprovalRequirement(requires_approval=True, message="Confirm?")
         
@@ -715,18 +759,14 @@ class TestCheckAndHandleApproval:
                 tool_name="test_tool",
                 tool_args={"arg": "value"},
                 approval_checker=checker,
-                mcp_server="test-server",
-                from_sub_agent=True,
-                sub_agent_name="code_reviewer",
+                tool_call_id="call_test_001",
             )
         
         call_args = mock_interrupt.call_args[0][0]
-        assert call_args["from_sub_agent"] is True
-        assert call_args["sub_agent_name"] == "code_reviewer"
-        assert call_args["mcp_server"] == "test-server"
+        assert call_args["tool_call_id"] == "call_test_001"
 
-    def test_uses_platform_server_by_default(self):
-        """Test that __platform__ is used as default server."""
+    def test_payload_contains_tool_call_id_and_message(self):
+        """Test that interrupt payload contains tool_call_id and message."""
         def checker(name: str, args: dict) -> ApprovalRequirement:
             return ApprovalRequirement(requires_approval=True, message="Confirm?")
         
@@ -737,10 +777,12 @@ class TestCheckAndHandleApproval:
                 tool_name="write",
                 tool_args={"path": "test.txt"},
                 approval_checker=checker,
+                tool_call_id="call_write_001",
             )
         
         call_args = mock_interrupt.call_args[0][0]
-        assert call_args["mcp_server"] == "__platform__"
+        assert call_args["tool_call_id"] == "call_write_001"
+        assert call_args["message"] == "Confirm?"
 
 
 class TestCreatePlatformToolWrappers:
@@ -885,9 +927,9 @@ class TestReadToolWrapper:
     async def test_reads_file(self, mock_backend):
         """Test that read tool reads file correctly."""
         tool = _create_read_tool(mock_backend)
-        result = await tool.ainvoke({"path": "test.txt"})
+        result = await tool.ainvoke(_tc("read", {"path": "test.txt"}))
 
-        assert result == "Hello, world!"
+        assert result.content == "Hello, world!"
         mock_backend.read.assert_called_once_with("test.txt")
 
     @pytest.mark.asyncio
@@ -897,9 +939,9 @@ class TestReadToolWrapper:
             return ApprovalRequirement(requires_approval=False)
 
         tool = _create_read_tool(mock_backend, approval_checker=checker)
-        result = await tool.ainvoke({"path": "test.txt"})
+        result = await tool.ainvoke(_tc("read", {"path": "test.txt"}))
 
-        assert result == "Hello, world!"
+        assert result.content == "Hello, world!"
 
     @pytest.mark.asyncio
     async def test_read_returns_skip_message(self, mock_backend):
@@ -911,9 +953,9 @@ class TestReadToolWrapper:
 
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "skip"}
-            result = await tool.ainvoke({"path": "test.txt"})
+            result = await tool.ainvoke(_tc("read", {"path": "test.txt"}))
 
-        assert "skipped" in result.lower()
+        assert "skipped" in result.content.lower()
         mock_backend.read.assert_not_called()
 
     @pytest.mark.asyncio
@@ -923,12 +965,12 @@ class TestReadToolWrapper:
         backend.read.return_value = "a\nb\nc\nd\ne\n"
 
         tool = _create_read_tool(backend)
-        result = await tool.ainvoke({"path": "f.txt", "offset": 2, "limit": 2})
+        result = await tool.ainvoke(_tc("read", {"path": "f.txt", "offset": 2, "limit": 2}))
 
-        assert "[Lines 2-3 of 5 total]" in result
-        assert "b\n" in result
-        assert "c\n" in result
-        assert "a\n" not in result
+        assert "[Lines 2-3 of 5 total]" in result.content
+        assert "b\n" in result.content
+        assert "c\n" in result.content
+        assert "a\n" not in result.content
 
     @pytest.mark.asyncio
     async def test_read_defaults_return_full_content(self):
@@ -937,9 +979,9 @@ class TestReadToolWrapper:
         backend.read.return_value = "full content"
 
         tool = _create_read_tool(backend)
-        result = await tool.ainvoke({"path": "f.txt"})
+        result = await tool.ainvoke(_tc("read", {"path": "f.txt"}))
 
-        assert result == "full content"
+        assert result.content == "full content"
 
 
 class TestWriteToolWrapper:
@@ -955,9 +997,9 @@ class TestWriteToolWrapper:
     async def test_writes_file(self, mock_backend):
         """Test that write tool writes file correctly."""
         tool = _create_write_tool(mock_backend)
-        result = await tool.ainvoke({"path": "test.txt", "content": "Hello!"})
+        result = await tool.ainvoke(_tc("write", {"path": "test.txt", "content": "Hello!"}))
         
-        assert "Successfully wrote" in result
+        assert "Successfully wrote" in result.content
         mock_backend.write.assert_called_once_with("test.txt", "Hello!")
 
     @pytest.mark.asyncio
@@ -972,10 +1014,10 @@ class TestWriteToolWrapper:
         
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "approve"}
-            result = await tool.ainvoke({"path": "test.txt", "content": "Hello!"})
+            result = await tool.ainvoke(_tc("write", {"path": "test.txt", "content": "Hello!"}))
         
         mock_interrupt.assert_called_once()
-        assert "Successfully wrote" in result
+        assert "Successfully wrote" in result.content
 
 
 class TestStreamWriteContent:
@@ -1124,13 +1166,13 @@ class TestEditToolWrapper:
     async def test_edits_file(self, mock_backend):
         """Test that edit tool replaces text correctly."""
         tool = _create_edit_tool(mock_backend)
-        result = await tool.ainvoke({
+        result = await tool.ainvoke(_tc("edit", {
             "path": "test.txt",
             "old_text": "old",
-            "new_text": "new"
-        })
+            "new_text": "new",
+        }))
         
-        assert "Successfully edited" in result
+        assert "Successfully edited" in result.content
         mock_backend.read.assert_called_once_with("test.txt")
         mock_backend.write.assert_called_once_with("test.txt", "new text here")
 
@@ -1139,13 +1181,13 @@ class TestEditToolWrapper:
         """Test that edit returns error message when old_text not found."""
         tool = _create_edit_tool(mock_backend)
         
-        result = await tool.ainvoke({
+        result = await tool.ainvoke(_tc("edit", {
             "path": "test.txt",
             "old_text": "nonexistent",
-            "new_text": "new"
-        })
+            "new_text": "new",
+        }))
         
-        assert "not found" in result.lower()
+        assert "not found" in result.content.lower()
 
     @pytest.mark.asyncio
     async def test_edit_requires_approval(self, mock_backend):
@@ -1159,14 +1201,14 @@ class TestEditToolWrapper:
         
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "approve"}
-            result = await tool.ainvoke({
+            result = await tool.ainvoke(_tc("edit", {
                 "path": "test.txt",
                 "old_text": "old",
-                "new_text": "new"
-            })
+                "new_text": "new",
+            }))
         
         mock_interrupt.assert_called_once()
-        assert "Successfully edited" in result
+        assert "Successfully edited" in result.content
 
 
 class TestExecuteToolWrapper:
@@ -1186,16 +1228,16 @@ class TestExecuteToolWrapper:
     async def test_executes_command(self, mock_backend):
         """Test that execute tool runs command correctly."""
         tool = _create_execute_tool(mock_backend)
-        result = await tool.ainvoke({"command": "ls -la"})
+        result = await tool.ainvoke(_tc("execute", {"command": "ls -la"}))
         
-        assert result == "command output"
+        assert result.content == "command output"
         mock_backend.execute.assert_called_once_with("ls -la", timeout=120)
 
     @pytest.mark.asyncio
     async def test_execute_with_custom_timeout(self, mock_backend):
         """Test that execute uses custom timeout."""
         tool = _create_execute_tool(mock_backend)
-        await tool.ainvoke({"command": "sleep 10", "timeout": 30})
+        await tool.ainvoke(_tc("execute", {"command": "sleep 10", "timeout": 30}))
         
         mock_backend.execute.assert_called_once_with("sleep 10", timeout=30)
 
@@ -1211,10 +1253,10 @@ class TestExecuteToolWrapper:
         
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "approve"}
-            result = await tool.ainvoke({"command": "ls"})
+            result = await tool.ainvoke(_tc("execute", {"command": "ls"}))
         
         mock_interrupt.assert_called_once()
-        assert result == "command output"
+        assert result.content == "command output"
 
     @pytest.mark.asyncio
     async def test_uses_streaming_when_available(self):
@@ -1228,7 +1270,7 @@ class TestExecuteToolWrapper:
         backend.execute = MagicMock()
 
         tool = _create_execute_tool(backend)
-        await tool.ainvoke({"command": "ls"})
+        await tool.ainvoke(_tc("execute", {"command": "ls"}))
 
         backend.execute_streaming.assert_called_once()
         backend.execute.assert_not_called()
@@ -1244,7 +1286,7 @@ class TestExecuteToolWrapper:
         backend.execute.return_value = result
 
         tool = _create_execute_tool(backend)
-        await tool.ainvoke({"command": "ls"})
+        await tool.ainvoke(_tc("execute", {"command": "ls"}))
 
         backend.execute.assert_called_once_with("ls", timeout=120)
 
@@ -1269,7 +1311,7 @@ class TestExecuteToolWrapper:
             "graphton.core.tool_wrappers.dispatch_custom_event"
         ) as mock_dispatch:
             tool = _create_execute_tool(backend)
-            await tool.ainvoke({"command": "echo hello"})
+            await tool.ainvoke(_tc("execute", {"command": "echo hello"}))
 
         mock_dispatch.assert_any_call("tool_progress", {"chunk": "$ echo hello\n"})
         mock_dispatch.assert_any_call(
@@ -1291,9 +1333,9 @@ class TestExecuteToolWrapper:
         backend.execute_streaming = AsyncMock(return_value=result)
 
         tool = _create_execute_tool(backend)
-        result_str = await tool.ainvoke({"command": "false"})
+        result_str = await tool.ainvoke(_tc("execute", {"command": "false"}))
 
-        assert "Command failed" in result_str
+        assert "Command failed" in result_str.content
 
     @pytest.mark.asyncio
     async def test_execute_with_output_only_backend(self):
@@ -1311,10 +1353,10 @@ class TestExecuteToolWrapper:
         backend.execute.return_value = result
 
         tool = _create_execute_tool(backend)
-        result_str = await tool.ainvoke({"command": "ls"})
+        result_str = await tool.ainvoke(_tc("execute", {"command": "ls"}))
 
-        assert "file1.txt" in result_str
-        assert "file2.txt" in result_str
+        assert "file1.txt" in result_str.content
+        assert "file2.txt" in result_str.content
 
     @pytest.mark.asyncio
     async def test_execute_with_output_only_backend_failure(self):
@@ -1327,10 +1369,10 @@ class TestExecuteToolWrapper:
         backend.execute.return_value = result
 
         tool = _create_execute_tool(backend)
-        result_str = await tool.ainvoke({"command": "rm /protected"})
+        result_str = await tool.ainvoke(_tc("execute", {"command": "rm /protected"}))
 
-        assert "Command failed" in result_str
-        assert "permission denied" in result_str
+        assert "Command failed" in result_str.content
+        assert "permission denied" in result_str.content
 
 
 # =============================================================================
@@ -1415,47 +1457,47 @@ class TestExecuteToolOutputFormat:
     async def test_success_returns_raw_stdout(self):
         backend = self._make_backend(stdout="file1\nfile2\n")
         tool = _create_execute_tool(backend)
-        result = await tool.ainvoke({"command": "ls"})
-        assert result == "file1\nfile2\n"
+        result = await tool.ainvoke(_tc("execute", {"command": "ls"}))
+        assert result.content == "file1\nfile2\n"
 
     @pytest.mark.asyncio
     async def test_success_no_exit_code(self):
         backend = self._make_backend(stdout="ok")
         tool = _create_execute_tool(backend)
-        result = await tool.ainvoke({"command": "echo ok"})
-        assert "Exit code" not in result
-        assert "exit code" not in result
+        result = await tool.ainvoke(_tc("execute", {"command": "echo ok"}))
+        assert "Exit code" not in result.content
+        assert "exit code" not in result.content
 
     @pytest.mark.asyncio
     async def test_success_no_labels(self):
         backend = self._make_backend(stdout="data", stderr="warn")
         tool = _create_execute_tool(backend)
-        result = await tool.ainvoke({"command": "cmd"})
-        assert "STDOUT" not in result
-        assert "STDERR" not in result
+        result = await tool.ainvoke(_tc("execute", {"command": "cmd"}))
+        assert "STDOUT" not in result.content
+        assert "STDERR" not in result.content
 
     @pytest.mark.asyncio
     async def test_success_empty_output(self):
         backend = self._make_backend()
         tool = _create_execute_tool(backend)
-        result = await tool.ainvoke({"command": "true"})
-        assert result == "(no output)"
+        result = await tool.ainvoke(_tc("execute", {"command": "true"}))
+        assert result.content == "(no output)"
 
     @pytest.mark.asyncio
     async def test_failure_shows_exit_code(self):
         backend = self._make_backend(stderr="not found", exit_code=1)
         tool = _create_execute_tool(backend)
-        result = await tool.ainvoke({"command": "bad"})
-        assert "Command failed (exit code 1)" in result
-        assert "not found" in result
+        result = await tool.ainvoke(_tc("execute", {"command": "bad"}))
+        assert "Command failed (exit code 1)" in result.content
+        assert "not found" in result.content
 
     @pytest.mark.asyncio
     async def test_failure_no_labels(self):
         backend = self._make_backend(stdout="x", stderr="y", exit_code=2)
         tool = _create_execute_tool(backend)
-        result = await tool.ainvoke({"command": "fail"})
-        assert "STDOUT" not in result
-        assert "STDERR" not in result
+        result = await tool.ainvoke(_tc("execute", {"command": "fail"}))
+        assert "STDOUT" not in result.content
+        assert "STDERR" not in result.content
 
 
 class TestLsToolWrapper:
@@ -1746,9 +1788,9 @@ class TestPlatformToolApprovalIntegration:
         tool_dict = {getattr(t, 'name', ''): t for t in tools}
         
         # Execute each dangerous tool
-        await tool_dict["write"].ainvoke({"path": "test.txt", "content": "hi"})
-        await tool_dict["edit"].ainvoke({"path": "test.txt", "old_text": "old", "new_text": "new"})
-        await tool_dict["execute"].ainvoke({"command": "ls"})
+        await tool_dict["write"].ainvoke(_tc("write", {"path": "test.txt", "content": "hi"}))
+        await tool_dict["edit"].ainvoke(_tc("edit", {"path": "test.txt", "old_text": "old", "new_text": "new"}))
+        await tool_dict["execute"].ainvoke(_tc("execute", {"command": "ls"}))
         
         # All dangerous tools should have checked approval
         assert "write" in checked_tools
@@ -1764,7 +1806,7 @@ class TestPlatformToolApprovalIntegration:
         # Safe tools should work without interrupt
         with patch("langgraph.types.interrupt") as mock_interrupt:
             await tool_dict["ls"].ainvoke({"path": "."})
-            await tool_dict["read"].ainvoke({"path": "test.txt"})
+            await tool_dict["read"].ainvoke(_tc("read", {"path": "test.txt"}))
         
         # Interrupt should never be called for safe tools without approval_checker
         mock_interrupt.assert_not_called()
@@ -1813,11 +1855,10 @@ class TestPlatformToolSubAgentContext:
 
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "approve"}
-            await tool_dict[tool_name].ainvoke(invoke_args[tool_name])
+            await tool_dict[tool_name].ainvoke(_tc(tool_name, invoke_args[tool_name]))
 
         call_args = mock_interrupt.call_args[0][0]
-        assert call_args["from_sub_agent"] is True
-        assert call_args["sub_agent_name"] == "code-reviewer"
+        assert "tool_call_id" in call_args
 
     @pytest.mark.asyncio
     async def test_parent_agent_platform_tool_interrupt_has_from_sub_agent_false(
@@ -1835,11 +1876,10 @@ class TestPlatformToolSubAgentContext:
 
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "approve"}
-            await tool_dict["execute"].ainvoke({"command": "ls"})
+            await tool_dict["execute"].ainvoke(_tc("execute", {"command": "ls"}))
 
         call_args = mock_interrupt.call_args[0][0]
-        assert call_args["from_sub_agent"] is False
-        assert call_args["sub_agent_name"] == ""
+        assert "tool_call_id" in call_args
 
     @pytest.mark.asyncio
     async def test_alias_tools_inherit_sub_agent_context(self, mock_backend):
@@ -1856,8 +1896,144 @@ class TestPlatformToolSubAgentContext:
 
         with patch("langgraph.types.interrupt") as mock_interrupt:
             mock_interrupt.return_value = {"action": "approve"}
-            await tool_dict["write_file"].ainvoke({"path": "f.txt", "content": "hi"})
+            await tool_dict["write_file"].ainvoke(_tc("write_file", {"path": "f.txt", "content": "hi"}))
 
         call_args = mock_interrupt.call_args[0][0]
-        assert call_args["from_sub_agent"] is True
-        assert call_args["sub_agent_name"] == "shell-agent"
+        assert "tool_call_id" in call_args
+
+
+# =============================================================================
+# TestInjectedToolCallIdValidation - Validates InjectedToolCallId + **kwargs
+# =============================================================================
+
+
+class TestInjectedToolCallIdValidation:
+    """Validates that InjectedToolCallId works with the (config, tool_call_id, **kwargs) pattern.
+
+    This is a hard gate for T04: if injection fails with **kwargs (the pattern
+    used by MCP tool wrappers), the entire tool_call_id-in-interrupt approach
+    is invalid.
+
+    LangGraph invokes tools via BaseTool.invoke() with ToolCall-format dicts.
+    These tests validate that InjectedToolCallId is injected correctly in that
+    invocation path.
+    """
+
+    async def test_tool_call_id_injected_via_tool_call_format(self):
+        """BaseTool.ainvoke with ToolCall format injects tool_call_id correctly."""
+        from typing import Annotated
+
+        from langchain_core.runnables import RunnableConfig
+        from langchain_core.tools import InjectedToolCallId, tool
+
+        captured = {}
+
+        @tool
+        async def my_tool(
+            config: RunnableConfig,
+            tool_call_id: Annotated[str, InjectedToolCallId],
+            **kwargs,
+        ) -> str:
+            """A test tool that captures injected values."""
+            captured["tool_call_id"] = tool_call_id
+            captured["has_config"] = config is not None
+            return "ok"
+
+        result = await my_tool.ainvoke(
+            {
+                "name": "my_tool",
+                "args": {"x": 1, "y": "hello"},
+                "id": "call_abc123",
+                "type": "tool_call",
+            }
+        )
+
+        assert captured["tool_call_id"] == "call_abc123"
+        assert captured["has_config"] is True
+        assert result.content == "ok"
+        assert result.tool_call_id == "call_abc123"
+
+    async def test_tool_call_id_injected_with_explicit_params(self):
+        """InjectedToolCallId works alongside named params (platform tool pattern)."""
+        from typing import Annotated
+
+        from langchain_core.runnables import RunnableConfig
+        from langchain_core.tools import InjectedToolCallId, tool
+
+        captured = {}
+
+        @tool
+        async def read(
+            config: RunnableConfig,
+            tool_call_id: Annotated[str, InjectedToolCallId],
+            path: str,
+            offset: int = 0,
+        ) -> str:
+            """Read a file."""
+            captured["tool_call_id"] = tool_call_id
+            captured["path"] = path
+            captured["offset"] = offset
+            return "content"
+
+        await read.ainvoke(
+            {
+                "name": "read",
+                "args": {"path": "/tmp/test.txt", "offset": 10},
+                "id": "call_read_001",
+                "type": "tool_call",
+            }
+        )
+
+        assert captured["tool_call_id"] == "call_read_001"
+        assert captured["path"] == "/tmp/test.txt"
+        assert captured["offset"] == 10
+
+    async def test_tool_call_id_excluded_from_llm_schema(self):
+        """InjectedToolCallId is filtered from the schema the LLM sees."""
+        from typing import Annotated
+
+        from langchain_core.runnables import RunnableConfig
+        from langchain_core.tools import InjectedToolCallId, tool
+        from langchain_core.utils.function_calling import convert_to_openai_function
+
+        @tool
+        async def my_tool(
+            config: RunnableConfig,
+            tool_call_id: Annotated[str, InjectedToolCallId],
+            **kwargs,
+        ) -> str:
+            """A test tool."""
+            return "ok"
+
+        llm_schema = convert_to_openai_function(my_tool)
+        llm_params = llm_schema["parameters"].get("properties", {})
+        assert "tool_call_id" not in llm_params
+        assert "config" not in llm_params
+
+    async def test_tool_call_id_in_injected_args_keys(self):
+        """InjectedToolCallId is registered in _injected_args_keys for both patterns."""
+        from typing import Annotated
+
+        from langchain_core.runnables import RunnableConfig
+        from langchain_core.tools import InjectedToolCallId, tool
+
+        @tool
+        async def kwargs_tool(
+            config: RunnableConfig,
+            tool_call_id: Annotated[str, InjectedToolCallId],
+            **kwargs,
+        ) -> str:
+            """Tool with kwargs."""
+            return "ok"
+
+        @tool
+        async def explicit_tool(
+            config: RunnableConfig,
+            tool_call_id: Annotated[str, InjectedToolCallId],
+            path: str,
+        ) -> str:
+            """Tool with explicit params."""
+            return "ok"
+
+        assert "tool_call_id" in kwargs_tool._injected_args_keys
+        assert "tool_call_id" in explicit_tool._injected_args_keys

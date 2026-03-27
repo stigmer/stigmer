@@ -12,7 +12,7 @@ import type { ContextInfo, ResolvedExecutionContext } from "./context_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_context } from "./context_pb";
 import type { ExecutionPhase, TodoStatus } from "./enum_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb";
-import type { AgentMessage, ToolCall } from "./message_pb";
+import type { AgentMessage } from "./message_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_message } from "./message_pb";
 import type { AgentExecutionSpec } from "./spec_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_spec } from "./spec_pb";
@@ -31,7 +31,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBpLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEiywIKDkFnZW50RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiMKBGtpbmQYAiABKAlCFbpIEnIQCg5BZ2VudEV4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESRgoEc3BlYxgEIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BZ2VudEV4ZWN1dGlvblNwZWMSSgoGc3RhdHVzGAUgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3RhdHVzIpAIChRBZ2VudEV4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EkQKCG1lc3NhZ2VzGAEgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50TWVzc2FnZRJNCgVwaGFzZRgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZUIIukgFggECEAESQgoKdG9vbF9jYWxscxgDIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbBJVChRzdWJfYWdlbnRfZXhlY3V0aW9ucxgEIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5TdWJBZ2VudEV4ZWN1dGlvbhINCgVlcnJvchgGIAEoCRISCgpzdGFydGVkX2F0GAcgASgJEhQKDGNvbXBsZXRlZF9hdBgIIAEoCRJUCgV0b2RvcxgJIAMoCzJFLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BZ2VudEV4ZWN1dGlvblN0YXR1cy5Ub2Rvc0VudHJ5EhYKDmNhbGxiYWNrX3Rva2VuGAogASgMEkEKBXVzYWdlGAsgASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlVzYWdlTWV0cmljcxJYChByZXNvbHZlZF9jb250ZXh0GAwgASgLMj4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlJlc29sdmVkRXhlY3V0aW9uQ29udGV4dBJQChFwZW5kaW5nX2FwcHJvdmFscxgQIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWwSRwoMY29udGV4dF9pbmZvGA4gASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNvbnRleHRJbmZvEkoKCWFydGlmYWN0cxgPIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25BcnRpZmFjdBpcCgpUb2Rvc0VudHJ5EgsKA2tleRgBIAEoCRI9CgV2YWx1ZRgCIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub2RvSXRlbToCOAEikQEKCFRvZG9JdGVtEgoKAmlkGAEgASgJEg8KB2NvbnRlbnQYAiABKAkSQAoGc3RhdHVzGAMgASgOMjAuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlRvZG9TdGF0dXMSEgoKY3JlYXRlZF9hdBgEIAEoCRISCgp1cGRhdGVkX2F0GAUgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_agentexecution_v1_artifact, file_ai_stigmer_agentic_agentexecution_v1_context, file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message, file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_agentic_agentexecution_v1_subagent, file_ai_stigmer_agentic_agentexecution_v1_usage, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
+  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBpLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEiywIKDkFnZW50RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiMKBGtpbmQYAiABKAlCFbpIEnIQCg5BZ2VudEV4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESRgoEc3BlYxgEIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BZ2VudEV4ZWN1dGlvblNwZWMSSgoGc3RhdHVzGAUgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3RhdHVzIswHChRBZ2VudEV4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EkQKCG1lc3NhZ2VzGAEgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50TWVzc2FnZRJNCgVwaGFzZRgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZUIIukgFggECEAESVQoUc3ViX2FnZW50X2V4ZWN1dGlvbnMYBCADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU3ViQWdlbnRFeGVjdXRpb24SDQoFZXJyb3IYBiABKAkSEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSVAoFdG9kb3MYCSADKAsyRS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb25TdGF0dXMuVG9kb3NFbnRyeRIWCg5jYWxsYmFja190b2tlbhgKIAEoDBJBCgV1c2FnZRgLIAEoCzIyLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Vc2FnZU1ldHJpY3MSWAoQcmVzb2x2ZWRfY29udGV4dBgMIAEoCzI+LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5SZXNvbHZlZEV4ZWN1dGlvbkNvbnRleHQSUAoRcGVuZGluZ19hcHByb3ZhbHMYECADKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsEkcKDGNvbnRleHRfaW5mbxgOIAEoCzIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db250ZXh0SW5mbxJKCglhcnRpZmFjdHMYDyADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuRXhlY3V0aW9uQXJ0aWZhY3QaXAoKVG9kb3NFbnRyeRILCgNrZXkYASABKAkSPQoFdmFsdWUYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9kb0l0ZW06AjgBIpEBCghUb2RvSXRlbRIKCgJpZBgBIAEoCRIPCgdjb250ZW50GAIgASgJEkAKBnN0YXR1cxgDIAEoDjIwLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub2RvU3RhdHVzEhIKCmNyZWF0ZWRfYXQYBCABKAkSEgoKdXBkYXRlZF9hdBgFIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_agentexecution_v1_artifact, file_ai_stigmer_agentic_agentexecution_v1_context, file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message, file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_agentic_agentexecution_v1_subagent, file_ai_stigmer_agentic_agentexecution_v1_usage, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
 
 /**
  * AgentExecution represents a single agent execution instance (conversational).
@@ -72,7 +72,7 @@ export type AgentExecution = Message<"ai.stigmer.agentic.agentexecution.v1.Agent
 
   /**
    * System-managed execution state and results.
-   * Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+   * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
    *
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus status = 5;
    */
@@ -117,15 +117,6 @@ export type AgentExecutionStatus = Message<"ai.stigmer.agentic.agentexecution.v1
    * @generated from field: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase phase = 2;
    */
   phase: ExecutionPhase;
-
-  /**
-   * Tool calls made during this execution.
-   * Tracked separately for easier querying and display.
-   * Also referenced within messages[].tool_calls for conversation context.
-   *
-   * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3;
-   */
-  toolCalls: ToolCall[];
 
   /**
    * Sub-agent executions invoked during this execution.
@@ -224,20 +215,27 @@ export type AgentExecutionStatus = Message<"ai.stigmer.agentic.agentexecution.v1
   resolvedContext?: ResolvedExecutionContext;
 
   /**
-   * All pending approval requests for this execution.
+   * Active pending approval requests for this execution.
+   *
+   * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+   * The handler scans messages[].tool_calls and
+   * sub_agent_executions[].messages[].tool_calls, collecting entries where
+   * status == WAITING_APPROVAL && requires_approval == true, and projects
+   * them into PendingApproval entries.
+   *
+   * Because this field is recomputed (not merged), it is always consistent
+   * with the authoritative tool call state embedded in messages. No lifecycle
+   * state machine, no merge logic, no forward-only enforcement needed.
+   *
+   * Sub-agent approvals are included with from_sub_agent=true and
+   * sub_agent_name set, so the UI can attribute each approval to its origin.
    *
    * Lifecycle:
-   * 1. Populated after the event stream ends, by querying graph state for
-   *    pending interrupts. Each interrupt is matched to a tool call.
-   * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-   * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-   * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-   * 5. On resume, all decisions are sent to LangGraph in a single Command.
-   *
-   * When populated:
-   * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-   *   WAITING_APPROVAL
-   * - Each entry carries its interrupt_id for targeted resume
+   * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+   * 2. UpdateStatus handler recomputes this field, entry appears
+   * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+   * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+   * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
    *
    * Empty when no approvals are pending.
    *
