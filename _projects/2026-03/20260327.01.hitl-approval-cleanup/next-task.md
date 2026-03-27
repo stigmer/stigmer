@@ -72,7 +72,7 @@ When starting a new session:
 | **T01** | Research: tool_call_id availability at interrupt time | **COMPLETE** | — |
 | T02 | Proto changes (remove tool_calls, simplify PendingApproval) | Not started | — |
 | T03 | Python: single writer to messages, simplify HITL | Not started | T01, T02 |
-| T04 | Add tool_call_id to interrupt payload | Not started | T01 |
+| **T04** | Add tool_call_id to interrupt payload | **COMPLETE** | T01 |
 | T05 | Java/Go: compute pending_approvals on write, simplify SubmitApproval | Not started | T02, T03 |
 | T06 | React SDK: remove polling/staleness workarounds | Not started | T05 |
 | T07 | Tests: rewrite for new architecture | Not started | T03, T04, T05 |
@@ -80,39 +80,35 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-27
-**Current Task**: T01 COMPLETE. Next: T02 or T04 (both unblocked).
-**Status**: T01 Complete — tool_call_id available via InjectedToolCallId, interrupt payload reduced to {tool_call_id, message}
+**Current Task**: T01 + T04 COMPLETE. Next: T02 (unblocked, proto changes).
+**Status**: T04 Complete — `InjectedToolCallId` injection across all tool wrappers, minimal interrupt payload `{tool_call_id, message}`, fuzzy matching chain removed from InterruptCapture, all tests green (graphton 1209 passed, agent-runner 1351 passed)
 
-## Session Progress (2026-03-27)
+## Session Progress (2026-03-27, Session 2)
 
 ### Accomplished
-- Completed T01 research: confirmed `tool_call_id` is available via LangChain's `InjectedToolCallId` annotation
-- Validated compatibility with the `@tool(config: RunnableConfig, tool_call_id: Annotated[str, InjectedToolCallId], **kwargs)` signature pattern
-- Decided on minimal interrupt payload: `{tool_call_id, message}` — removed 6 redundant fields
-- Decided: no backward compatibility for `run_id` — clean break to `tool_call_id` as the single identity
-- Decided: `_check_and_handle_approval` signature simplified from 7 params to 4
-- Documented findings in `T01_2_execution.md` and design decision `002-minimal-interrupt-payload.md`
+- Completed T04: Add `tool_call_id` to interrupt payload — full implementation across production code and tests
+- Implemented `InjectedToolCallId` injection in all 6 tool wrapper call sites
+- Simplified `_check_and_handle_approval` from 7 params to 4; interrupt payload from 8 fields to 2
+- Eliminated fuzzy matching chain in `InterruptCapture` — direct `tool_call_id` lookup
+- Discovered and fixed `args_schema` copy + `InjectedToolCallId` conflict with merged schema approach
+- All tests passing: graphton (1209), agent-runner (1351)
 
 ### Key Decisions
-- **DD-002**: Interrupt payload reduced to `{tool_call_id, message}`. All display fields (`tool_name`, `tool_args`, `mcp_server`, `source`, `from_sub_agent`, `sub_agent_name`) already exist on the `ToolCall` in `messages[].tool_calls[]`. No duplication.
-- **No backward compat**: `run_id` deleted from interrupt payload entirely. One identity, one field.
-- **`message` stays temporarily**: The approval reason (`requirement.message`) stays in the interrupt payload because it's not yet on the `ToolCall` proto. Moves to `ToolCall.approval_message` in T02/T03.
-- **Sub-agent proxy unchanged**: `InterruptProxyRunnable._build_proxy_payload` forwards interrupt value dicts as-is; `tool_call_id` flows through automatically.
+- **DD-002** (from Session 1): Interrupt payload `{tool_call_id, message}` — confirmed and implemented
+- **Merged schema for MCP wrappers**: `_build_merged_schema()` creates Pydantic model with both MCP tool params (LLM-visible) and `InjectedToolCallId` (runtime-injected)
+- **Args unwrapping refactored**: `_approval_tool_kwargs_to_actual_args()` strips injected keys before unwrapping `kwargs`/`input` shells
 
-### Context for Resume
-- LangChain source was reviewed (upstream `main`, compatible with langchain-core 1.2.19). The `InjectedToolCallId` mechanism strips the param from the LLM schema, injects at invocation time via `_parse_input`.
-- The `_injected_args_keys` fallback path also handles `tool_call_id` by key name for dict-based schemas.
-- Recommend writing a unit test in T04 before changing all call sites to confirm end-to-end injection with `**kwargs`.
+### Surprise Found
+- `args_schema` copy on approval wrapper destroys `InjectedToolCallId` metadata — not anticipated in T01 research. Fixed with `_build_merged_schema()`.
 
 ## Next Steps
-1. **T02** (Proto changes): Remove `tool_calls` from `AgentExecutionStatus` and `SubAgentExecution`, simplify `PendingApproval`, delete `ApprovalLifecycleState`
-2. **T04** (Add tool_call_id to interrupt): Implement the changes specified in `T01_2_execution.md` — `InjectedToolCallId` in tool wrappers, minimal interrupt payload
-3. Both T02 and T04 are unblocked and can proceed in parallel
+1. **T02** (Proto changes): Remove `tool_calls` from `AgentExecutionStatus` and `SubAgentExecution`, simplify `PendingApproval`, delete `ApprovalLifecycleState` — this is the recommended next task
+2. T03 becomes unblocked after T02; T07 partially unblocked by T04 completion
 
 ## Quick Commands
 
 After loading context:
-- "Pick next task" - Choose between T02 or T04
+- "Pick next task" - T02 is the recommended next
 - "Show project status" - Get overview of progress
 - "Review design decisions" - Check DD-001 and DD-002
 

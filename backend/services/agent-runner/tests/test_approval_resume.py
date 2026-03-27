@@ -1,191 +1,166 @@
-"""Tests for approval resume fixes: Phase 2 enrichment and interrupt_id fallback.
+"""Tests for InterruptCapture tool_call_id-based interrupt matching.
 
-Tests cover:
-- InterruptCapture._try_enrich_phase1_entry relaxed matching (ignores from_sub_agent mismatch)
-- Phase 2 name-based matching broadened scope (searches sub_agent_executions)
-
-These tests verify the defense-in-depth changes that ensure sub-agent approval
-flows resume correctly even when the interrupt payload carries incorrect
-from_sub_agent metadata.
+Covers ``_match_interrupt``, ``_verify_waiting_approval``, and ``_find_tool_call``.
+Interrupts are matched directly by ``tool_call_id`` against tool calls in
+``WAITING_APPROVAL`` state (top-level and sub-agent executions).
 """
 
 import logging
 from unittest.mock import MagicMock
 
-from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import ApprovalLifecycleState
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
 
 from worker.activities.graphton.hitl import ApprovalStateManager, InterruptCapture
+
 
 # =============================================================================
 # Helpers
 # =============================================================================
 
 
-def _make_pending_approval(
-    tool_call_id: str = "tc-001",
-    tool_name: str = "execute",
-    from_sub_agent: bool = True,
-    interrupt_id: str = "",
-):
-    """Create a mock PendingApproval proto."""
-    pa = MagicMock()
-    pa.tool_call_id = tool_call_id
-    pa.tool_name = tool_name
-    pa.from_sub_agent = from_sub_agent
-    pa.interrupt_id = interrupt_id
-    pa.lifecycle_state = ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED
-    return pa
-
-
-def _make_status_builder(pending_approvals):
-    """Create a mock StatusBuilder with the given pending_approvals."""
+def _make_ic(tool_calls=None, sub_agent_executions=None):
+    logger = logging.getLogger("test_match_interrupt")
     sb = MagicMock()
-    sb.current_status.pending_approvals = list(pending_approvals)
-    return sb
-
-
-def _enrich(sb, tool_name, from_sub_agent, interrupt_id):
-    """Create an InterruptCapture and call _try_enrich_phase1_entry."""
-    _logger = logging.getLogger("test_approval_resume")
-    ic = InterruptCapture(
+    sb.current_status.tool_calls = list(tool_calls or [])
+    sb.current_status.sub_agent_executions = list(sub_agent_executions or [])
+    sb.current_status.pending_approvals = []
+    sm = ApprovalStateManager(execution_id="test", logger=logger)
+    return InterruptCapture(
         execution_id="test",
         status_builder=sb,
-        state_manager=ApprovalStateManager(execution_id="test", logger=_logger),
-        logger=_logger,
+        state_manager=sm,
+        logger=logger,
         resolve_platform_tool_name=lambda name: name,
     )
-    return ic._try_enrich_phase1_entry(tool_name, from_sub_agent, interrupt_id)
+
+
+def _make_tc(tc_id="call_001", status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL):
+    tc = MagicMock()
+    tc.id = tc_id
+    tc.status = status
+    return tc
+
+
+def _make_sub_agent(tool_calls=None):
+    sa = MagicMock()
+    sa.tool_calls = list(tool_calls or [])
+    return sa
 
 
 # =============================================================================
-# TestTryEnrichPhase1Entry — strict and relaxed matching
+# TestMatchInterrupt
 # =============================================================================
 
 
-class TestTryEnrichPhase1EntryStrictMatch:
-    """Tests for strict matching (tool_name + from_sub_agent)."""
+class TestMatchInterrupt:
+    """Tests for ``InterruptCapture._match_interrupt``."""
 
-    def test_strict_match_succeeds(self):
-        """Exact tool_name + from_sub_agent match sets interrupt_id."""
-        pa = _make_pending_approval(
-            tool_name="execute", from_sub_agent=True, interrupt_id="",
+    def test_returns_tool_call_id_when_valid(self):
+        ic = _make_ic(tool_calls=[_make_tc()])
+        matched: set[str] = set()
+        out = ic._match_interrupt(
+            tool_call_id="call_001",
+            matched_tc_ids=matched,
+            intr_id="intr-1",
         )
-        sb = _make_status_builder([pa])
+        assert out == "call_001"
 
-        result = _enrich(sb, "execute", True, "intr-abc")
-
-        assert result is True
-        assert pa.interrupt_id == "intr-abc"
-
-    def test_strict_match_skips_already_enriched(self):
-        """Entries with an existing interrupt_id are not overwritten."""
-        pa = _make_pending_approval(
-            tool_name="execute", from_sub_agent=True, interrupt_id="intr-existing",
+    def test_returns_empty_when_no_tool_call_id(self):
+        ic = _make_ic(tool_calls=[_make_tc()])
+        matched: set[str] = set()
+        out = ic._match_interrupt(
+            tool_call_id="",
+            matched_tc_ids=matched,
+            intr_id="intr-1",
         )
-        sb = _make_status_builder([pa])
+        assert out == ""
 
-        result = _enrich(sb, "execute", True, "intr-new")
-
-        assert result is False
-        assert pa.interrupt_id == "intr-existing"
-
-    def test_strict_match_wrong_tool_name(self):
-        """No match when tool_name differs."""
-        pa = _make_pending_approval(
-            tool_name="write", from_sub_agent=True, interrupt_id="",
+    def test_returns_empty_for_duplicate(self):
+        ic = _make_ic(tool_calls=[_make_tc()])
+        matched: set[str] = set()
+        first = ic._match_interrupt(
+            tool_call_id="call_001",
+            matched_tc_ids=matched,
+            intr_id="intr-1",
         )
-        sb = _make_status_builder([pa])
-
-        result = _enrich(sb, "execute", True, "intr-abc")
-
-        assert result is False
-        assert pa.interrupt_id == ""
-
-
-class TestTryEnrichPhase1EntryRelaxedMatch:
-    """Tests for relaxed matching (tool_name only, ignores from_sub_agent).
-
-    This is the defense-in-depth path: the interrupt payload says
-    from_sub_agent=False but Phase 1 recorded from_sub_agent=True.
-    Pass 1 (strict) fails, Pass 2 (relaxed) succeeds.
-    """
-
-    def test_relaxed_match_from_sub_agent_mismatch(self):
-        """Relaxed pass matches when from_sub_agent disagrees."""
-        pa = _make_pending_approval(
-            tool_name="execute", from_sub_agent=True, interrupt_id="",
+        second = ic._match_interrupt(
+            tool_call_id="call_001",
+            matched_tc_ids=matched,
+            intr_id="intr-2",
         )
-        sb = _make_status_builder([pa])
+        assert first == "call_001"
+        assert second == ""
 
-        result = _enrich(sb, "execute", False, "intr-xyz")
-
-        assert result is True
-        assert pa.interrupt_id == "intr-xyz"
-
-    def test_relaxed_match_reverse_mismatch(self):
-        """Relaxed pass matches with the opposite mismatch direction."""
-        pa = _make_pending_approval(
-            tool_name="write", from_sub_agent=False, interrupt_id="",
+    def test_returns_empty_when_not_waiting_approval(self):
+        ic = _make_ic(
+            tool_calls=[_make_tc(status=ToolCallStatus.TOOL_CALL_RUNNING)],
         )
-        sb = _make_status_builder([pa])
-
-        result = _enrich(sb, "write", True, "intr-rev")
-
-        assert result is True
-        assert pa.interrupt_id == "intr-rev"
-
-    def test_strict_takes_precedence_over_relaxed(self):
-        """When strict match exists, relaxed pass is not reached."""
-        pa_strict = _make_pending_approval(
-            tool_call_id="tc-strict",
-            tool_name="execute", from_sub_agent=False, interrupt_id="",
+        matched: set[str] = set()
+        out = ic._match_interrupt(
+            tool_call_id="call_001",
+            matched_tc_ids=matched,
+            intr_id="intr-1",
         )
-        pa_relaxed_candidate = _make_pending_approval(
-            tool_call_id="tc-relaxed",
-            tool_name="execute", from_sub_agent=True, interrupt_id="",
+        assert out == ""
+
+    def test_adds_to_matched_set(self):
+        ic = _make_ic(tool_calls=[_make_tc()])
+        matched: set[str] = set()
+        ic._match_interrupt(
+            tool_call_id="call_001",
+            matched_tc_ids=matched,
+            intr_id="intr-1",
         )
-        sb = _make_status_builder([pa_strict, pa_relaxed_candidate])
+        assert matched == {"call_001"}
 
-        result = _enrich(sb, "execute", False, "intr-abc")
 
-        assert result is True
-        assert pa_strict.interrupt_id == "intr-abc"
-        assert pa_relaxed_candidate.interrupt_id == ""
+# =============================================================================
+# TestVerifyWaitingApproval
+# =============================================================================
 
-    def test_no_match_at_all(self):
-        """Neither strict nor relaxed matches when tool_name differs."""
-        pa = _make_pending_approval(
-            tool_name="read", from_sub_agent=True, interrupt_id="",
+
+class TestVerifyWaitingApproval:
+    """Tests for ``InterruptCapture._verify_waiting_approval``."""
+
+    def test_finds_top_level_waiting(self):
+        ic = _make_ic(tool_calls=[_make_tc(tc_id="tc-top")])
+        assert ic._verify_waiting_approval("tc-top") is True
+
+    def test_finds_sub_agent_waiting(self):
+        sa = _make_sub_agent(tool_calls=[_make_tc(tc_id="tc-sub")])
+        ic = _make_ic(sub_agent_executions=[sa])
+        assert ic._verify_waiting_approval("tc-sub") is True
+
+    def test_rejects_running(self):
+        ic = _make_ic(
+            tool_calls=[_make_tc(tc_id="tc-run", status=ToolCallStatus.TOOL_CALL_RUNNING)],
         )
-        sb = _make_status_builder([pa])
+        assert ic._verify_waiting_approval("tc-run") is False
 
-        result = _enrich(sb, "execute", False, "intr-abc")
+    def test_rejects_missing(self):
+        ic = _make_ic(tool_calls=[])
+        assert ic._verify_waiting_approval("missing") is False
 
-        assert result is False
-        assert pa.interrupt_id == ""
 
-    def test_empty_pending_approvals(self):
-        """Returns False on empty pending_approvals."""
-        sb = _make_status_builder([])
+# =============================================================================
+# TestFindToolCall
+# =============================================================================
 
-        result = _enrich(sb, "execute", False, "intr-abc")
 
-        assert result is False
+class TestFindToolCall:
+    """Tests for ``InterruptCapture._find_tool_call``."""
 
-    def test_multiple_entries_first_match_wins(self):
-        """First matching entry in each pass gets the interrupt_id."""
-        pa1 = _make_pending_approval(
-            tool_call_id="tc-1",
-            tool_name="execute", from_sub_agent=True, interrupt_id="",
-        )
-        pa2 = _make_pending_approval(
-            tool_call_id="tc-2",
-            tool_name="execute", from_sub_agent=True, interrupt_id="",
-        )
-        sb = _make_status_builder([pa1, pa2])
+    def test_finds_top_level(self):
+        tc = _make_tc(tc_id="a1", status=ToolCallStatus.TOOL_CALL_RUNNING)
+        ic = _make_ic(tool_calls=[tc])
+        assert ic._find_tool_call("a1") is tc
 
-        result = _enrich(sb, "execute", True, "intr-first")
+    def test_finds_sub_agent(self):
+        tc = _make_tc(tc_id="b2")
+        sa = _make_sub_agent(tool_calls=[tc])
+        ic = _make_ic(sub_agent_executions=[sa])
+        assert ic._find_tool_call("b2") is tc
 
-        assert result is True
-        assert pa1.interrupt_id == "intr-first"
-        assert pa2.interrupt_id == ""
+    def test_returns_none_when_missing(self):
+        ic = _make_ic(tool_calls=[_make_tc(tc_id="only")])
+        assert ic._find_tool_call("other") is None

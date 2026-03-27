@@ -37,7 +37,6 @@ _LIFECYCLE_ORDER = {
     ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED: 2,
     ApprovalLifecycleState.APPROVAL_LIFECYCLE_DECISION_RECORDED: 3,
     ApprovalLifecycleState.APPROVAL_LIFECYCLE_RESUME_RECONCILED: 4,
-    ApprovalLifecycleState.APPROVAL_LIFECYCLE_CLEARED: 5,
 }
 
 
@@ -99,10 +98,9 @@ class InterruptCapture:
     this class iterates ``graph_state.interrupts`` and enriches Phase 1
     ``PendingApproval`` entries with the LangGraph-assigned ``interrupt_id``.
 
-    Priority chain:
-      1. run_id  — via ``status_builder._run_id_aliases``
-      2. fingerprint — via ``status_builder._fingerprint_to_tool_call_id``
-      3. name — first WAITING_APPROVAL tool with matching name
+    The interrupt payload carries ``tool_call_id`` (injected via
+    ``InjectedToolCallId``) which directly identifies the ``ToolCall``.
+    No fuzzy matching (run_id aliases, fingerprints, name fallback) is needed.
 
     Each match advances the PendingApproval lifecycle to INTERRUPT_CAPTURED.
     """
@@ -150,14 +148,10 @@ class InterruptCapture:
             _diag_val = _diag_intr.value if hasattr(_diag_intr, "value") else {}
             self._logger.info(
                 "[DIAG] Raw interrupt [%d]: "
-                "id=%s tool_name=%s from_sub_agent=%s "
-                "sub_agent_name=%s run_id=%s value_type=%s",
+                "id=%s tool_call_id=%s value_type=%s",
                 _diag_idx,
                 _diag_intr.id,
-                _diag_val.get("tool_name", "") if isinstance(_diag_val, dict) else "",
-                _diag_val.get("from_sub_agent", False) if isinstance(_diag_val, dict) else False,
-                _diag_val.get("sub_agent_name", "") if isinstance(_diag_val, dict) else "",
-                _diag_val.get("run_id", "") if isinstance(_diag_val, dict) else "",
+                _diag_val.get("tool_call_id", "") if isinstance(_diag_val, dict) else "",
                 type(_diag_val).__name__,
             )
 
@@ -176,46 +170,25 @@ class InterruptCapture:
 
         for intr in graph_state.interrupts:
             intr_value = intr.value if hasattr(intr, "value") else {}
-            tool_name = intr_value.get("tool_name", "") if isinstance(intr_value, dict) else ""
-            tool_args = intr_value.get("tool_args", {}) if isinstance(intr_value, dict) else {}
+            intr_tc_id = intr_value.get("tool_call_id", "") if isinstance(intr_value, dict) else ""
             message = intr_value.get("message", "") if isinstance(intr_value, dict) else ""
-            from_sub_agent = intr_value.get("from_sub_agent", False) if isinstance(intr_value, dict) else False
-            sub_agent_name = intr_value.get("sub_agent_name", "") if isinstance(intr_value, dict) else ""
-            intr_run_id = intr_value.get("run_id", "") if isinstance(intr_value, dict) else ""
 
             matched_tool_call_id = self._match_interrupt(
-                intr=intr,
-                tool_name=tool_name,
-                tool_args=tool_args,
-                from_sub_agent=from_sub_agent,
-                intr_run_id=intr_run_id,
+                tool_call_id=intr_tc_id,
                 matched_tc_ids=matched_tc_ids,
+                intr_id=intr.id,
             )
 
             if not matched_tool_call_id:
-                fallback_enriched = self._try_enrich_phase1_entry(
-                    tool_name, from_sub_agent, intr.id,
+                skipped_count += 1
+                self._logger.warning(
+                    "[INTERRUPT_CAPTURE] execution=%s "
+                    "cannot match interrupt %s tool_call_id=%s "
+                    "to any WAITING_APPROVAL tool call",
+                    self._execution_id, intr.id, intr_tc_id,
                 )
-                if fallback_enriched:
-                    enriched_count += 1
-                    self._logger.info(
-                        "[INTERRUPT_CAPTURE] execution=%s "
-                        "interrupt %s tool=%s from_sub_agent=%s — "
-                        "enriched Phase 1 entry via tool_name fallback",
-                        self._execution_id, intr.id, tool_name, from_sub_agent,
-                    )
-                else:
-                    skipped_count += 1
-                    self._logger.warning(
-                        "[INTERRUPT_CAPTURE] execution=%s "
-                        "cannot match interrupt %s tool=%s "
-                        "from_sub_agent=%s to any tool call — "
-                        "Phase 1 entries preserved",
-                        self._execution_id, intr.id, tool_name, from_sub_agent,
-                    )
                 continue
 
-            args_preview = self._sb._create_args_preview(tool_args)
             display_message = humanize_platform_refs(message)
             display_message = resolve_display_env_vars(
                 display_message, merged_env_vars, secret_keys,
@@ -231,24 +204,22 @@ class InterruptCapture:
                 )
                 enriched_count += 1
             else:
-                stale_phase1 = [
-                    pa for pa in phase1_by_tc_id.values()
-                    if pa.tool_name == tool_name
-                    and pa.tool_call_id != matched_tool_call_id
-                ]
-                if stale_phase1:
-                    for stale_pa in stale_phase1:
-                        self._logger.warning(
-                            "[INTERRUPT_CAPTURE] execution=%s "
-                            "Phase 1 has tc_id=%s but interrupt matched "
-                            "tc_id=%s for tool=%s — removing stale Phase 1 entry",
-                            self._execution_id, stale_pa.tool_call_id,
-                            matched_tool_call_id, tool_name,
-                        )
-                        try:
-                            self._sb.current_status.pending_approvals.remove(stale_pa)
-                        except ValueError:
-                            pass
+                tc = self._find_tool_call(matched_tool_call_id)
+                tool_name = tc.name if tc else ""
+                from_sub_agent = False
+                sub_agent_name = ""
+                args_preview = ""
+                if tc:
+                    args_preview = self._sb._create_args_preview(
+                        {f.key: f.value for f in tc.args}
+                        if hasattr(tc, "args") and tc.args
+                        else {}
+                    )
+                for sa in self._sb.current_status.sub_agent_executions:
+                    if any(sa_tc.id == matched_tool_call_id for sa_tc in sa.tool_calls):
+                        from_sub_agent = True
+                        sub_agent_name = sa.name
+                        break
 
                 pa = PendingApproval(
                     tool_call_id=matched_tool_call_id,
@@ -289,60 +260,37 @@ class InterruptCapture:
     def _match_interrupt(
         self,
         *,
-        intr: Any,
-        tool_name: str,
-        tool_args: dict[str, Any],
-        from_sub_agent: bool,
-        intr_run_id: str,
+        tool_call_id: str,
         matched_tc_ids: set[str],
+        intr_id: str,
     ) -> str:
-        """Run the Priority 1/2/3 matching chain. Returns matched tool_call_id or ""."""
-        matched = ""
+        """Match an interrupt to a tool call via ``tool_call_id``. Returns matched id or ""."""
+        if not tool_call_id:
+            self._logger.warning(
+                "[INTERRUPT_CAPTURE] execution=%s "
+                "interrupt %s has no tool_call_id — cannot match",
+                self._execution_id, intr_id,
+            )
+            return ""
 
-        # Priority 1: run_id
-        if intr_run_id:
-            resolved = self._sb._run_id_aliases.get(intr_run_id, intr_run_id)
-            if resolved not in matched_tc_ids:
-                matched = resolved
-                matched_tc_ids.add(resolved)
-            else:
-                self._logger.info(
-                    "[INTERRUPT_CAPTURE] execution=%s "
-                    "run_id=%s resolved=%s already in matched_tc_ids — falling through",
-                    self._execution_id, intr_run_id, resolved,
-                )
-        elif tool_name:
+        if tool_call_id in matched_tc_ids:
             self._logger.info(
                 "[INTERRUPT_CAPTURE] execution=%s "
-                "interrupt %s tool=%s has empty run_id — "
-                "falling through to fingerprint/name matching",
-                self._execution_id, intr.id, tool_name,
+                "tool_call_id=%s already matched — skipping duplicate",
+                self._execution_id, tool_call_id,
             )
+            return ""
 
-        # Priority 2: fingerprint
-        if not matched and tool_args:
-            intr_fp = self._sb._get_tool_fingerprint(tool_name, tool_args)
-            fp_tc_id = self._sb._fingerprint_to_tool_call_id.get(intr_fp, "")
-            if fp_tc_id and fp_tc_id not in matched_tc_ids:
-                if self._verify_waiting_approval(fp_tc_id):
-                    matched = fp_tc_id
-                    matched_tc_ids.add(fp_tc_id)
-                    self._logger.info(
-                        "[INTERRUPT_CAPTURE] execution=%s "
-                        "interrupt %s matched via fingerprint: tool=%s tc_id=%s",
-                        self._execution_id, intr.id, tool_name, fp_tc_id,
-                    )
-
-        # Priority 3: name
-        if not matched and tool_name:
-            matched = self._match_by_name(
-                tool_name=tool_name,
-                from_sub_agent=from_sub_agent,
-                matched_tc_ids=matched_tc_ids,
-                intr_id=intr.id,
+        if not self._verify_waiting_approval(tool_call_id):
+            self._logger.warning(
+                "[INTERRUPT_CAPTURE] execution=%s "
+                "tool_call_id=%s not found in WAITING_APPROVAL state",
+                self._execution_id, tool_call_id,
             )
+            return ""
 
-        return matched
+        matched_tc_ids.add(tool_call_id)
+        return tool_call_id
 
     def _verify_waiting_approval(self, tc_id: str) -> bool:
         """Check if a tool call exists and is WAITING_APPROVAL."""
@@ -355,109 +303,16 @@ class InterruptCapture:
                     return True
         return False
 
-    def _match_by_name(
-        self,
-        *,
-        tool_name: str,
-        from_sub_agent: bool,
-        matched_tc_ids: set[str],
-        intr_id: str,
-    ) -> str:
-        """Priority 3: name-based matching with sub-agent scope awareness."""
-        resolve = self._resolve_platform_tool_name
-
-        candidates = [
-            tc.id
-            for tc in self._sb.current_status.tool_calls
-            if (tc.name == tool_name or resolve(tc.name) == tool_name)
-            and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-            and tc.id not in matched_tc_ids
-        ]
-        self._logger.info(
-            "[INTERRUPT_CAPTURE] execution=%s "
-            "interrupt %s falling back to name matching: "
-            "tool=%s from_sub_agent=%s candidates=%s",
-            self._execution_id, intr_id, tool_name, from_sub_agent, candidates,
-        )
-
-        if from_sub_agent:
-            for sa in self._sb.current_status.sub_agent_executions:
-                for tc in sa.tool_calls:
-                    if (
-                        (tc.name == tool_name or resolve(tc.name) == tool_name)
-                        and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-                        and tc.id not in matched_tc_ids
-                    ):
-                        matched_tc_ids.add(tc.id)
-                        return tc.id
-            # Fallthrough: search top-level too
-            for tc in self._sb.current_status.tool_calls:
-                if (
-                    (tc.name == tool_name or resolve(tc.name) == tool_name)
-                    and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-                    and tc.id not in matched_tc_ids
-                ):
-                    matched_tc_ids.add(tc.id)
-                    return tc.id
-        else:
-            for tc in self._sb.current_status.tool_calls:
-                if (
-                    (tc.name == tool_name or resolve(tc.name) == tool_name)
-                    and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-                    and tc.id not in matched_tc_ids
-                ):
-                    matched_tc_ids.add(tc.id)
-                    return tc.id
-            # Defense-in-depth: search sub-agent tool calls too
-            for sa in self._sb.current_status.sub_agent_executions:
-                for tc in sa.tool_calls:
-                    if (
-                        (tc.name == tool_name or resolve(tc.name) == tool_name)
-                        and tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-                        and tc.id not in matched_tc_ids
-                    ):
-                        matched_tc_ids.add(tc.id)
-                        return tc.id
-
-        return ""
-
-    def _try_enrich_phase1_entry(
-        self,
-        tool_name: str,
-        from_sub_agent: bool,
-        interrupt_id: str,
-    ) -> bool:
-        """Fallback enrichment when the interrupt could not be matched by run_id or fingerprint.
-
-        Searches ``current_status.pending_approvals`` for a Phase 1 entry that
-        matches ``tool_name`` and does not already have an ``interrupt_id``.
-
-        If found, sets the ``interrupt_id`` and advances lifecycle to
-        INTERRUPT_CAPTURED via the state manager.
-        """
-        for pa in self._sb.current_status.pending_approvals:
-            if (
-                pa.tool_name == tool_name
-                and pa.from_sub_agent == from_sub_agent
-                and not pa.interrupt_id
-            ):
-                pa.interrupt_id = interrupt_id
-                self._sm.advance(
-                    pa,
-                    target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
-                    service="InterruptCapture",
-                )
-                return True
-        for pa in self._sb.current_status.pending_approvals:
-            if pa.tool_name == tool_name and not pa.interrupt_id:
-                pa.interrupt_id = interrupt_id
-                self._sm.advance(
-                    pa,
-                    target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
-                    service="InterruptCapture",
-                )
-                return True
-        return False
+    def _find_tool_call(self, tc_id: str) -> Any | None:
+        """Look up a ToolCall by id across top-level and sub-agent tool calls."""
+        for tc in self._sb.current_status.tool_calls:
+            if tc.id == tc_id:
+                return tc
+        for sa in self._sb.current_status.sub_agent_executions:
+            for tc in sa.tool_calls:
+                if tc.id == tc_id:
+                    return tc
+        return None
 
     def _reset_stale_approval_actions(self) -> None:
         """Reset stale approval_action on ToolCalls that re-entered pending_approvals."""
@@ -523,7 +378,7 @@ class ResumeReconciler:
        post-decision status
     2. Syncs message-embedded ToolCall copies
     3. Auto-skips remaining tools on REJECT
-    4. Clears pending_approvals with the clear-signal sentinel
+    4. Advances pending_approvals to RESUME_RECONCILED (pruned server-side)
     5. Pre-populates fingerprints for LangGraph replay
     """
 
@@ -627,7 +482,23 @@ class ResumeReconciler:
         if has_reject:
             self._auto_skip_remaining(decisions_by_tc)
 
-        # Advance pending_approvals to RESUME_RECONCILED, then clear
+        # Clear stale completed_at from the previous cycle.  The prior
+        # invocation may have reached a terminal phase that stamped
+        # completed_at.  Keeping it around while the execution re-enters
+        # IN_PROGRESS / WAITING_FOR_APPROVAL causes the frontend to show
+        # contradictory "completed" and "waiting" signals simultaneously.
+        if self._sb.current_status.completed_at:
+            self._logger.info(
+                "[RESUME_RECONCILE] execution=%s clearing stale "
+                "completed_at=%s from previous cycle",
+                self._execution_id,
+                self._sb.current_status.completed_at,
+            )
+            self._sb.current_status.completed_at = ""
+
+        # Advance pending_approvals to RESUME_RECONCILED.
+        # The server-side merge logic (Java/Go) will prune entries at this
+        # lifecycle state, keeping the field genuinely "pending" at rest.
         for pa in self._sb.current_status.pending_approvals:
             if pa.tool_call_id:
                 self._sm.advance(
@@ -635,13 +506,6 @@ class ResumeReconciler:
                     target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_RESUME_RECONCILED,
                     service="ResumeReconciler",
                 )
-        del self._sb.current_status.pending_approvals[:]
-        self._sb.current_status.pending_approvals.append(
-            PendingApproval(
-                tool_call_id="",
-                lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_CLEARED,
-            )
-        )
 
         self._sb.populate_fingerprints_from_existing_tool_calls()
 
@@ -649,7 +513,7 @@ class ResumeReconciler:
             "[RESUME_RECONCILE] execution=%s "
             "reconciled %d tool call(s), "
             "synced message-embedded copies, "
-            "queued pending_approvals clear-signal, "
+            "advanced pending_approvals to RESUME_RECONCILED, "
             "populated %d fingerprint(s)",
             self._execution_id, reconciled_count,
             len(self._sb.tool_call_fingerprints),
@@ -759,7 +623,7 @@ class CheckpointFallback:
                 "in checkpoint: %s",
                 len(graph_state.interrupts),
                 ", ".join(
-                    f"id={i.id} tool={i.value.get('tool_name', '') if isinstance(i.value, dict) else ''}"
+                    f"id={i.id} tool_call_id={i.value.get('tool_call_id', '') if isinstance(i.value, dict) else ''}"
                     for i in graph_state.interrupts
                 ),
             )
@@ -769,20 +633,11 @@ class CheckpointFallback:
                 if not remaining_decisions:
                     break
                 intr_value = intr.value if isinstance(intr.value, dict) else {}
-                intr_tool = intr_value.get("tool_name", "")
+                intr_tc_id = intr_value.get("tool_call_id", "")
 
                 matched_tc_id = None
-                for tc_id, dec in remaining_decisions.items():
-                    if intr_tool and intr_tool == next(
-                        (
-                            pa.tool_name
-                            for pa in pending_approvals
-                            if pa.tool_call_id == tc_id
-                        ),
-                        "",
-                    ):
-                        matched_tc_id = tc_id
-                        break
+                if intr_tc_id and intr_tc_id in remaining_decisions:
+                    matched_tc_id = intr_tc_id
 
                 if (
                     matched_tc_id is None
@@ -800,9 +655,8 @@ class CheckpointFallback:
                     resume_dict[intr.id] = dv
                     self._logger.info(
                         "[RESUME_CHECKPOINT_FALLBACK] Matched "
-                        "interrupt_id=%s to tool_call_id=%s "
-                        "(tool=%s) via checkpoint",
-                        intr.id, matched_tc_id, intr_tool,
+                        "interrupt_id=%s to tool_call_id=%s via checkpoint",
+                        intr.id, matched_tc_id,
                     )
 
         except Exception as e:

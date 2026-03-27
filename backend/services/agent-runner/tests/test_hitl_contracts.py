@@ -5,8 +5,8 @@ These tests verify the data contracts between services:
                      and lifecycle_state == INTERRUPT_CAPTURED
   Go/Java -> Python: After RecordApprovalDecision, PendingApprovals are preserved
                      with lifecycle_state == DECISION_RECORDED
-  Python -> Go/Java: After RESUME_RECONCILE, clear-signal sentinel is present
-                     with lifecycle_state == CLEARED
+  Python -> Go/Java: After RESUME_RECONCILE, PendingApprovals are at
+                     RESUME_RECONCILED (pruned by server-side merge logic)
   UI -> API:         When lifecycle_state < DECISION_RECORDED, approval is actionable;
                      when >= DECISION_RECORDED, approval is resolved
 
@@ -22,6 +22,7 @@ from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import (
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
+    ExecutionPhase,
     ToolCallStatus,
 )
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import SubmitApprovalInput
@@ -127,31 +128,78 @@ class TestInterruptCaptureContract:
     for the Go/Java approval handler to work correctly."""
 
     def test_pending_approval_has_interrupt_id_after_enrichment(self):
-        pa = _make_pending_approval(lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED)
-        sb = _make_status_builder(pending_approvals=[pa])
+        pa = _make_pending_approval(
+            tool_call_id="call_abc123",
+            lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED,
+        )
+        tc = _make_tool_call(tc_id="call_abc123")
+        sb = _make_status_builder(pending_approvals=[pa], tool_calls=[tc])
+        sb.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+        sb.sync_sub_agent_pending_approvals = MagicMock()
         ic = _make_interrupt_capture(status_builder=sb)
 
-        result = ic._try_enrich_phase1_entry("delete_file", False, "intr_001")
+        mock_intr = MagicMock()
+        mock_intr.id = "intr_001"
+        mock_intr.value = {"tool_call_id": "call_abc123", "message": "Confirm?"}
+        mock_gs = MagicMock()
+        mock_gs.interrupts = [mock_intr]
 
-        assert result is True
+        ic.capture(
+            graph_state=mock_gs,
+            humanize_platform_refs=lambda msg: msg,
+            resolve_display_env_vars=lambda msg, envs, secrets: msg,
+            merged_env_vars={},
+            secret_keys=set(),
+        )
+
         assert pa.interrupt_id == "intr_001"
         assert pa.lifecycle_state == ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED
 
     def test_lifecycle_advanced_to_interrupt_captured(self):
-        pa = _make_pending_approval()
-        sb = _make_status_builder(pending_approvals=[pa])
+        pa = _make_pending_approval(tool_call_id="call_abc123")
+        tc = _make_tool_call(tc_id="call_abc123")
+        sb = _make_status_builder(pending_approvals=[pa], tool_calls=[tc])
+        sb.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+        sb.sync_sub_agent_pending_approvals = MagicMock()
         ic = _make_interrupt_capture(status_builder=sb)
 
-        ic._try_enrich_phase1_entry("delete_file", False, "intr_002")
+        mock_intr = MagicMock()
+        mock_intr.id = "intr_002"
+        mock_intr.value = {"tool_call_id": "call_abc123", "message": "Confirm?"}
+        mock_gs = MagicMock()
+        mock_gs.interrupts = [mock_intr]
+
+        ic.capture(
+            graph_state=mock_gs,
+            humanize_platform_refs=lambda msg: msg,
+            resolve_display_env_vars=lambda msg, envs, secrets: msg,
+            merged_env_vars={},
+            secret_keys=set(),
+        )
 
         assert pa.lifecycle_state == ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED
 
     def test_tool_call_id_preserved_after_enrichment(self):
         pa = _make_pending_approval(tool_call_id="call_original")
-        sb = _make_status_builder(pending_approvals=[pa])
+        tc = _make_tool_call(tc_id="call_original")
+        sb = _make_status_builder(pending_approvals=[pa], tool_calls=[tc])
+        sb.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+        sb.sync_sub_agent_pending_approvals = MagicMock()
         ic = _make_interrupt_capture(status_builder=sb)
 
-        ic._try_enrich_phase1_entry("delete_file", False, "intr_003")
+        mock_intr = MagicMock()
+        mock_intr.id = "intr_003"
+        mock_intr.value = {"tool_call_id": "call_original", "message": "Confirm?"}
+        mock_gs = MagicMock()
+        mock_gs.interrupts = [mock_intr]
+
+        ic.capture(
+            graph_state=mock_gs,
+            humanize_platform_refs=lambda msg: msg,
+            resolve_display_env_vars=lambda msg, envs, secrets: msg,
+            merged_env_vars={},
+            secret_keys=set(),
+        )
 
         assert pa.tool_call_id == "call_original"
 
@@ -193,15 +241,15 @@ class TestDecisionRecordedContract:
 
 
 # =============================================================================
-# Contract 3: Python -> Go/Java (RESUME_RECONCILE clear-signal)
+# Contract 3: Python -> Go/Java (RESUME_RECONCILE)
 # =============================================================================
 
 
-class TestClearSignalContract:
-    """After RESUME_RECONCILE, the clear-signal sentinel must be present
-    for the Go/Java UpdateStatus handler to clear pending_approvals."""
+class TestResumeReconcileContract:
+    """After RESUME_RECONCILE, PendingApprovals must be at RESUME_RECONCILED
+    state. The server-side merge logic prunes entries at this state."""
 
-    def test_clear_signal_has_empty_tool_call_id(self):
+    def test_pending_approvals_at_resume_reconciled_after_reconcile(self):
         tc = _make_tool_call()
         sb = _make_status_builder(
             pending_approvals=[
@@ -228,8 +276,8 @@ class TestClearSignalContract:
 
         approvals = sb.current_status.pending_approvals
         assert len(approvals) == 1
-        assert approvals[0].tool_call_id == ""
-        assert approvals[0].lifecycle_state == ApprovalLifecycleState.APPROVAL_LIFECYCLE_CLEARED
+        assert approvals[0].tool_call_id == "call_abc123"
+        assert approvals[0].lifecycle_state == ApprovalLifecycleState.APPROVAL_LIFECYCLE_RESUME_RECONCILED
 
     def test_tool_call_status_transitions_to_running_on_approve(self):
         tc = _make_tool_call()
@@ -285,6 +333,38 @@ class TestClearSignalContract:
         reconciler.reconcile(approval_decisions=[decision])
 
         assert tc.status == ToolCallStatus.TOOL_CALL_SKIPPED
+
+    def test_no_sentinel_produced(self):
+        """After reconcile, there should be no sentinel entry (empty tool_call_id)."""
+        tc = _make_tool_call()
+        sb = _make_status_builder(
+            pending_approvals=[
+                _make_pending_approval(
+                    interrupt_id="intr_001",
+                    lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+                ),
+            ],
+            tool_calls=[tc],
+        )
+
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=sb,
+            state_manager=_make_state_manager(),
+            logger=_make_logger(),
+        )
+        decision = SubmitApprovalInput(
+            agent_execution_id="test_exec",
+            tool_call_id="call_abc123",
+            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+        )
+        reconciler.reconcile(approval_decisions=[decision])
+
+        sentinel_entries = [
+            pa for pa in sb.current_status.pending_approvals
+            if not pa.tool_call_id
+        ]
+        assert len(sentinel_entries) == 0, "No sentinel entries should be produced"
 
 
 # =============================================================================
@@ -389,16 +469,32 @@ class TestAdvanceEnforcement:
     assignment to pa.lifecycle_state."""
 
     def test_interrupt_capture_enrichment_calls_advance(self):
-        """_try_enrich_phase1_entry must route through advance()."""
+        """capture() must route lifecycle transitions through advance()."""
         pa = _make_pending_approval(
+            tool_call_id="call_abc123",
             lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED,
         )
-        sb = _make_status_builder(pending_approvals=[pa])
+        tc = _make_tool_call(tc_id="call_abc123")
+        sb = _make_status_builder(pending_approvals=[pa], tool_calls=[tc])
+        sb.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+        sb.sync_sub_agent_pending_approvals = MagicMock()
         sm = _make_state_manager()
         ic = _make_interrupt_capture(status_builder=sb, state_manager=sm)
 
+        mock_intr = MagicMock()
+        mock_intr.id = "intr_001"
+        mock_intr.value = {"tool_call_id": "call_abc123", "message": "Confirm?"}
+        mock_gs = MagicMock()
+        mock_gs.interrupts = [mock_intr]
+
         with patch.object(sm, "advance", wraps=sm.advance) as spy:
-            ic._try_enrich_phase1_entry("delete_file", False, "intr_001")
+            ic.capture(
+                graph_state=mock_gs,
+                humanize_platform_refs=lambda msg: msg,
+                resolve_display_env_vars=lambda msg, envs, secrets: msg,
+                merged_env_vars={},
+                secret_keys=set(),
+            )
 
             spy.assert_called_once_with(
                 pa,
@@ -442,10 +538,10 @@ class TestAdvanceEnforcement:
             )
 
     def test_resume_reconciler_rejects_backward_transition(self):
-        """If a PA is already CLEARED, advance() must raise on RESUME_RECONCILED."""
+        """If a PA is already RESUME_RECONCILED, advance() must raise on re-reconcile."""
         pa = _make_pending_approval(
             interrupt_id="intr_001",
-            lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_CLEARED,
+            lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_RESUME_RECONCILED,
         )
         tc = _make_tool_call()
         sb = _make_status_builder(pending_approvals=[pa], tool_calls=[tc])
@@ -585,7 +681,309 @@ def _is_actionable(pa: PendingApproval) -> bool:
 
     This mirrors the logic that the React UI should use:
     - UNSPECIFIED/REQUESTED/INTERRUPT_CAPTURED -> actionable (show approval card)
-    - DECISION_RECORDED/RESUME_RECONCILED/CLEARED -> resolved (show badge)
+    - DECISION_RECORDED/RESUME_RECONCILED -> resolved (pruned server-side)
     """
     state = pa.lifecycle_state
     return state < ApprovalLifecycleState.APPROVAL_LIFECYCLE_DECISION_RECORDED
+
+
+# =============================================================================
+# Resume flow: RESUME_RECONCILED entries sent to server for pruning
+# =============================================================================
+
+
+class TestResumeReconciledFlow:
+    """After reconcile, PendingApprovals at RESUME_RECONCILED are sent to
+    the server via pre-stream update. The server-side merge logic prunes them."""
+
+    def test_reconciled_pas_retained_for_server_delivery(self):
+        """After reconcile, RESUME_RECONCILED PAs remain in the list so
+        they can be sent to the server for pruning."""
+        tc = _make_tool_call()
+        sb = _make_status_builder(
+            pending_approvals=[
+                _make_pending_approval(
+                    interrupt_id="intr_001",
+                    lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+                ),
+            ],
+            tool_calls=[tc],
+        )
+
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=sb,
+            state_manager=_make_state_manager(),
+            logger=_make_logger(),
+        )
+        decision = SubmitApprovalInput(
+            agent_execution_id="test_exec",
+            tool_call_id="call_abc123",
+            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+        )
+        reconciler.reconcile(approval_decisions=[decision])
+
+        assert len(sb.current_status.pending_approvals) == 1
+        assert sb.current_status.pending_approvals[0].tool_call_id == "call_abc123"
+        assert sb.current_status.pending_approvals[0].lifecycle_state == \
+            ApprovalLifecycleState.APPROVAL_LIFECYCLE_RESUME_RECONCILED
+
+    def test_new_approvals_coexist_with_reconciled(self):
+        """New pending approvals appended during the stream coexist
+        with RESUME_RECONCILED entries. Server prunes only the resolved ones."""
+        tc = _make_tool_call()
+        sb = _make_status_builder(
+            pending_approvals=[
+                _make_pending_approval(
+                    interrupt_id="intr_001",
+                    lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+                ),
+            ],
+            tool_calls=[tc],
+        )
+
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=sb,
+            state_manager=_make_state_manager(),
+            logger=_make_logger(),
+        )
+        decision = SubmitApprovalInput(
+            agent_execution_id="test_exec",
+            tool_call_id="call_abc123",
+            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+        )
+        reconciler.reconcile(approval_decisions=[decision])
+
+        real_pa = _make_pending_approval(
+            tool_call_id="call_write_001",
+            tool_name="write",
+        )
+        sb.current_status.pending_approvals.append(real_pa)
+
+        assert len(sb.current_status.pending_approvals) == 2
+        reconciled = [
+            pa for pa in sb.current_status.pending_approvals
+            if pa.lifecycle_state == ApprovalLifecycleState.APPROVAL_LIFECYCLE_RESUME_RECONCILED
+        ]
+        pending = [
+            pa for pa in sb.current_status.pending_approvals
+            if pa.lifecycle_state == ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED
+        ]
+        assert len(reconciled) == 1
+        assert len(pending) == 1
+
+
+# =============================================================================
+# Fingerprint dedup: standard fingerprint match on resume
+# =============================================================================
+
+
+class TestFingerprintDedup:
+    """On resume, fingerprint dedup catches exact matches."""
+
+    def test_fingerprint_dedup_catches_exact_match(self):
+        """Standard dedup: exact fingerprint match aliases and returns."""
+        args = Struct()
+        args.update({"key": "value"})
+        tc = ToolCall(
+            id="call_original",
+            name="apply_mcp_server",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+
+        status = _make_initial_status(tool_calls=[tc])
+        builder = StatusBuilder("exec-ghost-1", status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        fingerprint = builder._get_tool_fingerprint("apply_mcp_server", {"key": "value"})
+        assert fingerprint in builder.tool_call_fingerprints
+        assert builder._fingerprint_to_tool_call_id.get(fingerprint) == "call_original"
+
+
+# =============================================================================
+# Fix 3: Guard _populate_pending_approval against post-approval tool calls
+# =============================================================================
+
+
+class TestPopulatePendingApprovalGuard:
+    """_populate_pending_approval must skip tool calls already in
+    post-approval states (RUNNING, COMPLETED, FAILED, SKIPPED)."""
+
+    def test_guard_skips_running_tool_call(self):
+        """A tool call already in RUNNING state should not get a new
+        pending approval entry."""
+        tc = ToolCall(
+            id="call_approved",
+            name="apply_mcp_server",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+
+        status = _make_initial_status(tool_calls=[tc])
+        builder = StatusBuilder("exec-guard-1", status)
+
+        initial_count = len(builder.current_status.pending_approvals)
+        builder._populate_pending_approval(
+            run_id="call_approved",
+            tool_name="apply_mcp_server",
+            tool_args={"key": "value"},
+            approval_message="Approve?",
+        )
+        assert len(builder.current_status.pending_approvals) == initial_count
+
+    def test_guard_skips_completed_tool_call(self):
+        tc = ToolCall(
+            id="call_done",
+            name="apply_mcp_server",
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+        )
+
+        status = _make_initial_status(tool_calls=[tc])
+        builder = StatusBuilder("exec-guard-2", status)
+
+        initial_count = len(builder.current_status.pending_approvals)
+        builder._populate_pending_approval(
+            run_id="call_done",
+            tool_name="apply_mcp_server",
+            tool_args={},
+            approval_message="Approve?",
+        )
+        assert len(builder.current_status.pending_approvals) == initial_count
+
+    def test_guard_allows_waiting_approval_tool_call(self):
+        """WAITING_APPROVAL is pre-approval — should proceed normally."""
+        tc = ToolCall(
+            id="call_pending",
+            name="write",
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+        )
+
+        status = _make_initial_status(tool_calls=[tc])
+        builder = StatusBuilder("exec-guard-3", status)
+
+        builder._populate_pending_approval(
+            run_id="call_pending",
+            tool_name="write",
+            tool_args={"content": "hello"},
+            approval_message="Allow write?",
+        )
+        assert len(builder.current_status.pending_approvals) == 1
+        assert builder.current_status.pending_approvals[0].tool_call_id == "call_pending"
+
+
+# =============================================================================
+# Fix 4: Clear stale completed_at on resume
+# =============================================================================
+
+
+class TestClearStaleCompletedAt:
+    """ResumeReconciler must clear completed_at from the previous cycle
+    so the frontend doesn't show conflicting completed + waiting states."""
+
+    def test_stale_completed_at_cleared_on_reconcile(self):
+        tc = _make_tool_call()
+        sb = _make_status_builder(
+            pending_approvals=[
+                _make_pending_approval(
+                    interrupt_id="intr_001",
+                    lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+                ),
+            ],
+            tool_calls=[tc],
+        )
+        sb.current_status.completed_at = "2026-03-27T10:22:52.724867Z"
+
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=sb,
+            state_manager=_make_state_manager(),
+            logger=_make_logger(),
+        )
+        decision = SubmitApprovalInput(
+            agent_execution_id="test_exec",
+            tool_call_id="call_abc123",
+            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+        )
+        reconciler.reconcile(approval_decisions=[decision])
+
+        assert sb.current_status.completed_at == ""
+
+    def test_no_completed_at_stays_unset(self):
+        tc = _make_tool_call()
+        sb = _make_status_builder(
+            pending_approvals=[
+                _make_pending_approval(
+                    interrupt_id="intr_001",
+                    lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+                ),
+            ],
+            tool_calls=[tc],
+        )
+        sb.current_status.completed_at = ""
+
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=sb,
+            state_manager=_make_state_manager(),
+            logger=_make_logger(),
+        )
+        decision = SubmitApprovalInput(
+            agent_execution_id="test_exec",
+            tool_call_id="call_abc123",
+            action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+        )
+        reconciler.reconcile(approval_decisions=[decision])
+
+        assert sb.current_status.completed_at == ""
+
+
+# =============================================================================
+# Fix 7: Early tool call dedup on resume
+# =============================================================================
+
+
+class TestEarlyToolCallResumeDedupe:
+    """On resume, _create_early_tool_call must skip creating duplicates
+    for tool_use blocks replayed from the checkpoint."""
+
+    def test_existing_early_tool_call_skipped(self):
+        """If a tool call with the derived early-ID already exists,
+        _create_early_tool_call should not create a duplicate."""
+        tc = ToolCall(
+            id="early-toolu_abc123",
+            name="apply_mcp_server",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+
+        status = _make_initial_status(tool_calls=[tc])
+        builder = StatusBuilder("exec-dedup-1", status)
+
+        initial_tc_count = len(builder.current_status.tool_calls)
+        initial_msg_count = len(builder.current_status.messages)
+
+        builder._create_early_tool_call(
+            tool_name="apply_mcp_server",
+            tool_use_id="toolu_abc123",
+            ns_key="",
+            namespace="",
+        )
+
+        assert len(builder.current_status.tool_calls) == initial_tc_count
+        assert len(builder.current_status.messages) == initial_msg_count
+
+    def test_new_tool_call_created_normally(self):
+        """When no existing tool call matches, creation proceeds normally."""
+        status = _make_initial_status()
+        builder = StatusBuilder("exec-dedup-2", status)
+
+        builder._create_early_tool_call(
+            tool_name="write",
+            tool_use_id="toolu_new123",
+            ns_key="",
+            namespace="",
+        )
+
+        assert len(builder.current_status.tool_calls) == 1
+        assert builder.current_status.tool_calls[0].id == "early-toolu_new123"
+        assert builder.current_status.tool_calls[0].name == "write"
