@@ -1,5 +1,5 @@
 # Build stage — compile the Next.js static export
-FROM node:22-alpine AS builder
+FROM public.ecr.aws/docker/library/node:22-alpine AS builder
 WORKDIR /app
 
 # No build args — all NEXT_PUBLIC_* configuration is injected at runtime
@@ -27,7 +27,7 @@ RUN npm ci && \
     npm run build -w client-apps/web
 
 # Runtime stage — nginx serves the static export + runtime config
-FROM nginx:alpine
+FROM public.ecr.aws/nginx/nginx:alpine
 
 LABEL org.opencontainers.image.source="https://github.com/stigmer/stigmer"
 LABEL org.opencontainers.image.vendor="Stigmer"
