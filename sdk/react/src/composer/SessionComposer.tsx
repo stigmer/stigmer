@@ -661,11 +661,11 @@ export function SessionComposer({
   const initialAgentHandled = useRef(false);
 
   useEffect(() => {
-    if (initialAgentRef && showAgent && !initialAgentHandled.current) {
+    if (initialAgentRef && showAgent && org && !initialAgentHandled.current) {
       initialAgentHandled.current = true;
       handleAgentSelectRef.current(initialAgentRef);
     }
-  }, [initialAgentRef, showAgent]);
+  }, [initialAgentRef, showAgent, org]);
 
   // ---------------------------------------------------------------------------
   // Initial attachments: upload files on mount when provided
