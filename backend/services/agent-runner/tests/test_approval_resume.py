@@ -10,10 +10,10 @@ from_sub_agent metadata.
 """
 
 import logging
-
 from unittest.mock import MagicMock
 
 from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import ApprovalLifecycleState
+
 from worker.activities.graphton.hitl import ApprovalStateManager, InterruptCapture
 
 # =============================================================================

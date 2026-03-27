@@ -1,54 +1,44 @@
 # Next Task: 20260326.02.hitl-approval-flow-hardening
 
 ## Current State
-- **Status**: in-progress (5 of 6 tasks complete)
-- **Last Session**: 2026-03-27 — Completed Tasks 3 + 4 (frontend resilience in useSessionConversation.ts)
-- **Active Task**: None — ready to pick next task
+- **Status**: near-complete (6 of 6 tasks done, manual E2E remaining)
+- **Last Session**: 2026-03-27 — Completed Task 6 automated validation, fixed lint regressions
+- **Active Task**: None — only manual E2E validation remains (owner: Suresh)
 - **Branch**: `hitl-flow-hardening` (pushed to origin)
 
-## Session Progress (2026-03-27, Session 4)
+## Session Progress (2026-03-27, Session 5)
 
 ### Completed
-- **Task 3**: Exponential backoff polling for missing approval data
-  - Replaced single-shot `setTimeout(3s)` with self-scheduling timeout chain (3s, 6s, 12s, 24s, 30s cap)
-  - Changed poll condition from filtered `pendingApprovals.length` to raw `activeStreamExecution?.status?.pendingApprovals?.length` — separates "server didn't deliver data" (Task 3) from "user dismissed but signal failed" (Task 4)
-  - Added 5 tests: backoff schedule, stops on data arrival, stops on phase change, skips when raw approvals exist but dismissed, cleanup on unmount
-  - Decided against adding a visible "loading" indicator — consumer can derive the state trivially
+- **Task 6 (automated)**: Ran all test suites + lint checks, fixed HITL-introduced lint issues
+  - **Python tests**: 325 passed across test_hitl_contracts (22), test_status_builder (279), test_checkpoint_validator (24)
+  - **React tests**: 95 passed across 7 test files (20 in useSessionConversation)
+  - **Ruff**: Fixed 5 issues — import sorting (I001) in 4 files, unused ExecutionPhase import (F401) in test_hitl_contracts.py
+  - **Mypy**: Fixed 2 type annotation issues — `target_state: int` → `ApprovalLifecycleState` in `ApprovalStateManager.advance()`, `action_map: dict[int, str]` → `dict[ApprovalAction, str]` in `CheckpointFallback.discover_interrupts()`
+  - **ESLint**: Clean, zero errors on client-apps/web
+  - **Changelogs**: Verified 2 entries cover all 5 tasks
 
-- **Task 4**: Staleness detection for optimistic dismissals
-  - Changed internal `dismissedApprovalIds` from `Set<string>` to `Map<string, number>` (toolCallId → timestamp)
-  - Derived `ReadonlySet<string>` via `useMemo` for the public API — zero breaking changes for platform builders
-  - Added staleness `useEffect` with `setInterval(5s)` that detects entries older than 15s and removes them (card reappears)
-  - Used `useRef` for latest-map sync pattern to avoid stale closures in interval callbacks
-  - Triggers `refetch()` when stale entries are detected to get fresh server state
-  - Added 5 tests: card reappearance, no check outside WAITING_FOR_APPROVAL, refetch on staleness, ReadonlySet type contract, reset on new execution
-  - All 95 SDK React tests pass (20 in useSessionConversation, up from 10)
+### Pre-existing Issues (not fixed, not caused by HITL work)
+- 2 test failures in `test_workspace_integrity_check.py` (Daytona sandbox tests)
+- 14 ruff errors in `execute_graphton.py` (unused imports: asyncio, logging, time, etc.)
+- 2 mypy errors in `discover_mcp_server.py` and `attachments.py`
 
-### Key Decisions
-- **Raw vs. filtered poll condition**: Task 3 polls when server genuinely hasn't delivered data (raw count = 0). Task 4 handles the dismissed-but-stuck case. Clean separation avoids wasteful network requests.
-- **Internal Map, public Set**: The Map with timestamps is an implementation detail. Platform builders see `ReadonlySet<string>` unchanged. MessageThread and all downstream consumers work without modification.
-- **No public API additions**: Both tasks are internal behavior improvements. No new fields on `UseSessionConversationReturn`. Consumers who need "loading approval details" state can derive it from `activePhase + pendingApprovals.length`.
-- **Strict greater-than threshold**: `now - ts > 15000` (not `>=`). First stale detection occurs at the 20s interval tick, not 15s. This avoids false positives from timing precision.
-
-## Cumulative Progress (Sessions 1-4)
+## Cumulative Progress (Sessions 1-5)
 - **Task 1** ✅: ApprovalStateManager lifecycle enforcement (4 bypass sites fixed, spy-based tests added)
 - **Task 2** ✅: Sub-agent fingerprint map population (2-line fix, 3 contract tests added)
 - **Task 3** ✅: Exponential backoff polling (self-scheduling timeout chain, raw approval condition)
 - **Task 4** ✅: Staleness detection (internal Map with timestamps, 15s threshold, card reappearance)
 - **Task 5** ✅: Dead code cleanup + batch resume visibility (method + test removed, user-visible abort message added)
+- **Task 6** ✅ (automated): All tests green, all lint clean on HITL files, changelogs verified
 
-## Next Steps
-1. **Task 6**: Validation — contract tests + manual E2E
-
-### Recommended Next Pick
-Task 6 (validation) is the only remaining task. All code changes have landed.
+## Remaining Manual Validation (Owner: Suresh)
+1. Manual test: approve a tool call in the UI and verify the full lifecycle completes
+2. Manual test: verify poll fallback fires multiple times (simulate slow DB)
 
 ## Context for Resume
-- All Python backend work is complete (Tasks 1, 2, 5)
-- All React/SDK frontend work is complete (Tasks 3, 4)
-- Only validation (Task 6) remains — contract tests + manual E2E
-- All 95 SDK React tests pass, all 278 status builder tests pass, all 22 HITL contract tests pass
-- Six state representations exist for approval status (see `notes.md`) — this is the root cause of most HITL bugs
+- All code changes are complete and validated by automated tests + lint
+- Only manual E2E validation remains — two specific test scenarios in tasks.md
+- All 325 Python tests pass, all 95 React tests pass
+- Lint is clean on all HITL-changed files (ruff, mypy, eslint)
 
 ## Blockers
 None.

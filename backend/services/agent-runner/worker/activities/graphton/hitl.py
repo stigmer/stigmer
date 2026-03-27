@@ -59,7 +59,7 @@ class ApprovalStateManager:
         self,
         pa: PendingApproval,
         *,
-        target_state: int,
+        target_state: ApprovalLifecycleState,
         service: str,
     ) -> None:
         """Advance ``pa.lifecycle_state`` to ``target_state``.
@@ -722,7 +722,7 @@ class CheckpointFallback:
         config: Any,
         approval_decisions: list[SubmitApprovalInput],
         pending_approvals: list[PendingApproval],
-        action_map: dict[int, str],
+        action_map: dict[ApprovalAction, str],
     ) -> dict[str, dict[str, str]]:
         """Query the LangGraph checkpoint and build a resume_dict.
 
@@ -742,6 +742,7 @@ class CheckpointFallback:
 
         try:
             from typing import cast
+
             from langchain_core.runnables import RunnableConfig
             graph_state = await agent_graph.aget_state(cast(RunnableConfig, config))
 
