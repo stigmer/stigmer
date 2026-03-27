@@ -71,7 +71,9 @@ func (c *McpServerController) Apply(ctx context.Context, mcpServer *mcpserverv1.
 	// Fire-and-forget best-effort discovery after successful apply.
 	// This mirrors the CLI's discoverAppliedMcpServers() behavior but
 	// runs server-side via the agent-runner Temporal workflow.
-	go c.StartBestEffortDiscovery(ctx, result)
+	// StartBestEffortDiscovery uses context.Background() internally since
+	// the originating gRPC ctx will be cancelled once Apply returns.
+	go c.StartBestEffortDiscovery(result)
 
 	return result, nil
 }

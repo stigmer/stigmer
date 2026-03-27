@@ -9,19 +9,27 @@ this activity, and the agent-runner executes it.
 The agent-runner container has all the runtimes needed for stdio MCP
 servers (Node.js/npx, Go, Docker CLI, uv/uvx), so discovery works for
 any transport type without polluting the Java/Go service containers.
+
+Security: Secrets are resolved just-in-time inside the activity via
+on-behalf-of gRPC calls to the environment service. The Temporal
+workflow input carries only ``mcp_server_id`` and an optional
+``invoker_identity_account_id`` — no secret values ever appear in
+Temporal's durable workflow history.
 """
 
 from __future__ import annotations
 
 import logging
 from contextlib import AsyncExitStack
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
 
+import grpc
 from temporalio import activity, workflow
 
 from grpc_client.channel import ChannelProvider
+from grpc_client.environment_client import EnvironmentClient
 from grpc_client.mcp_server_client import McpServerClient
 from worker.mcp.config_transformer import transform_mcp_config, _inject_platform_env
 from worker.token_manager import get_api_key
@@ -31,20 +39,28 @@ logger = logging.getLogger(__name__)
 ACTIVITY_NAME = "DiscoverMcpServerCapabilities"
 WORKFLOW_NAME = "stigmer/mcp-server/discover"
 
+_PERSONAL_ENV_LABEL = "stigmer.ai/personal"
+
 
 @dataclass
 class DiscoverMcpServerInput:
     """Input for the MCP server discovery activity.
 
-    Follows the slim-payload pattern: the activity hydrates the full
-    McpServer spec via gRPC using ``mcp_server_id``. Environment variables
-    (credentials) are pre-resolved by the backend from the user's personal
-    environment and passed directly.
+    Follows the slim-payload pattern established by
+    ``InvokeAgentExecutionWorkflowInput``: only reference IDs are passed
+    through Temporal. The activity hydrates the MCP server spec and
+    resolves credentials just-in-time via gRPC, keeping secrets out of
+    Temporal's durable workflow history.
+
+    ``env_vars`` is retained as an optional field for backward
+    compatibility during rolling deployments. When present it is
+    **ignored** — credentials are always resolved JIT from the personal
+    environment.
     """
 
     mcp_server_id: str
-    env_vars: dict[str, str]
     invoker_identity_account_id: str | None = None
+    env_vars: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -78,10 +94,11 @@ class DiscoverMcpServerOutput:
 async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServerOutput:
     """Discover capabilities of an MCP server by connecting to it.
 
-    1. Fetches the McpServer spec via gRPC
-    2. Transforms the spec into a MultiServerMCPClient-compatible config
-    3. Connects and lists tools + resource templates
-    4. Returns a serializable result for the backend to store
+    1. Fetches the McpServer spec via gRPC (OBO impersonation when available)
+    2. Resolves required credentials JIT from the user's personal environment
+    3. Transforms the spec into a MultiServerMCPClient-compatible config
+    4. Connects and lists tools + resource templates
+    5. Returns a serializable result for the backend to store
     """
     logger.info(
         "DiscoverMcpServerCapabilities started for mcp_server_id=%s",
@@ -113,8 +130,11 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
 
         slug = mcp_server.metadata.slug or input.mcp_server_id
         spec = mcp_server.spec
+        org = mcp_server.metadata.org
 
-        env_vars = _inject_platform_env(spec, input.env_vars)
+        env_client = EnvironmentClient(api_key, channel=obo_ch)
+        env_vars = await _resolve_env_vars(env_client, org, spec)
+        env_vars = _inject_platform_env(spec, env_vars)
 
         config, _ = transform_mcp_config(
             server_slug=slug,
@@ -139,6 +159,84 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
 
     finally:
         await grpc_provider.close()
+
+
+async def _resolve_env_vars(
+    env_client: EnvironmentClient,
+    org: str,
+    spec: Any,
+) -> dict[str, str]:
+    """Resolve required environment variables from the user's personal environment.
+
+    This is the just-in-time credential resolution that keeps secrets out
+    of the Temporal workflow history. The activity fetches each required
+    secret value individually via gRPC, so decrypted values exist only in
+    the activity's process memory.
+
+    Returns an empty dict when the MCP server has no ``env_spec``.
+    Raises ``ValueError`` with a clear message listing missing keys when
+    required credentials are not present.
+    """
+    env_spec = spec.env_spec
+    if not env_spec or not env_spec.data:
+        return {}
+
+    required_keys = list(env_spec.data.keys())
+    logger.info(
+        "Resolving %d env var(s) from personal environment: %s",
+        len(required_keys),
+        required_keys,
+    )
+
+    env_list = await env_client.list_environments(
+        org=org,
+        labels={_PERSONAL_ENV_LABEL: "true"},
+    )
+
+    if env_list.total_count == 0 or not env_list.items:
+        raise ValueError(
+            f"Personal environment not found for org '{org}'. "
+            f"Save required credentials first: {required_keys}"
+        )
+
+    personal_env = env_list.items[0]
+    personal_env_id = personal_env.metadata.id
+    stored_keys = set(personal_env.spec.data.keys()) if personal_env.spec.data else set()
+
+    result: dict[str, str] = {}
+    missing: list[str] = []
+
+    for key in required_keys:
+        if key not in stored_keys:
+            missing.append(key)
+            continue
+
+        try:
+            env_value = await env_client.get_secret_value(personal_env_id, key)
+            if env_value.value:
+                result[key] = env_value.value
+            else:
+                missing.append(key)
+        except (grpc.RpcError, ValueError) as exc:
+            logger.warning(
+                "Failed to get secret value for key '%s' from env '%s': %s",
+                key, personal_env_id, exc,
+            )
+            missing.append(key)
+
+    if missing:
+        raise ValueError(
+            f"Missing required credentials in personal environment: {missing}. "
+            "Save these credentials in your personal environment before "
+            "triggering discovery."
+        )
+
+    logger.info(
+        "Resolved %d env var(s) from personal environment '%s'",
+        len(result),
+        personal_env_id,
+    )
+    return result
 
 
 async def _connect_and_discover(
