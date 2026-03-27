@@ -16,7 +16,6 @@ from typing import Any
 from uuid import uuid4
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import TodoItem
-
 from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
 from ai.stigmer.agentic.agentexecution.v1.context_pb2 import (
     ContextInfo,
@@ -2203,7 +2202,7 @@ class StatusBuilder:
         ``clear_pending_approval()`` can restore it later.  Also tracks the
         run_id in ``_pending_tool_approvals`` and forces an immediate gRPC push.
         """
-        _POST_APPROVAL_STATUSES = frozenset({
+        post_approval_statuses = frozenset({
             ToolCallStatus.TOOL_CALL_RUNNING,
             ToolCallStatus.TOOL_CALL_COMPLETED,
             ToolCallStatus.TOOL_CALL_FAILED,
@@ -2211,7 +2210,7 @@ class StatusBuilder:
         })
         tc_id = self._run_id_aliases.get(run_id, run_id)
         existing_tc = self.get_tool_call(tc_id)
-        if existing_tc is not None and existing_tc.status in _POST_APPROVAL_STATUSES:
+        if existing_tc is not None and existing_tc.status in post_approval_statuses:
             self.logger.warning(
                 "[APPROVAL_GUARD] execution=%s tool=%s tc_id=%s "
                 "skipping phase transition — tool call already in "
@@ -2795,16 +2794,17 @@ class StatusBuilder:
             failed_ids: list[str] = []
 
             for run_id, sub_agent in list(self._active_sub_agents.items()):
+                tc_count = sum(len(m.tool_calls) for m in sub_agent.messages)
                 has_activity = (
                     len(sub_agent.messages) > 0
-                    or len(sub_agent.tool_calls) > 0
+                    or tc_count > 0
                 )
                 if has_activity:
                     sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
                     sub_agent.error = (
                         f"{error_context}: sub-agent was running "
                         f"({len(sub_agent.messages)} messages, "
-                        f"{len(sub_agent.tool_calls)} tool calls)"
+                        f"{tc_count} tool calls)"
                     )
                     failed_ids.append(run_id)
                 else:

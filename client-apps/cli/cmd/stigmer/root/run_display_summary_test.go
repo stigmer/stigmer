@@ -97,7 +97,6 @@ func TestBuildAgentSummaryContent_Failure(t *testing.T) {
 			Messages: []*agentexecutionv1.AgentMessage{
 				{Content: "msg1"},
 			},
-
 		},
 	}
 
@@ -119,9 +118,8 @@ func TestBuildAgentSummaryContent_Failure(t *testing.T) {
 func TestBuildAgentSummaryContent_NoDuration(t *testing.T) {
 	execution := &agentexecutionv1.AgentExecution{
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
-			Messages:  []*agentexecutionv1.AgentMessage{},
-
+			Phase:    agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
+			Messages: []*agentexecutionv1.AgentMessage{},
 		},
 	}
 
@@ -136,8 +134,8 @@ func TestBuildAgentSummaryContent_NoDuration(t *testing.T) {
 func TestBuildAgentSummaryContent_WithArtifacts(t *testing.T) {
 	execution := &agentexecutionv1.AgentExecution{
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			Messages:  []*agentexecutionv1.AgentMessage{},
+			Phase:    agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{},
 
 			Artifacts: []*agentexecutionv1.ExecutionArtifact{
 				{Name: "SKILL.md"},
@@ -156,9 +154,8 @@ func TestBuildAgentSummaryContent_WithArtifacts(t *testing.T) {
 func TestBuildAgentSummaryContent_NoArtifacts(t *testing.T) {
 	execution := &agentexecutionv1.AgentExecution{
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			Messages:  []*agentexecutionv1.AgentMessage{},
-
+			Phase:    agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{},
 		},
 	}
 
@@ -176,9 +173,8 @@ func TestBuildAgentSummaryContent_NoArtifacts(t *testing.T) {
 func TestDisplayAgentExecutionComplete_SuccessPanel(t *testing.T) {
 	execution := &agentexecutionv1.AgentExecution{
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			Messages:  []*agentexecutionv1.AgentMessage{{Content: "done"}},
-
+			Phase:    agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{{Content: "done"}},
 		},
 	}
 
@@ -198,10 +194,9 @@ func TestDisplayAgentExecutionComplete_SuccessPanel(t *testing.T) {
 func TestDisplayAgentExecutionComplete_FailurePanel(t *testing.T) {
 	execution := &agentexecutionv1.AgentExecution{
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
-			Error:     "timeout",
-			Messages:  []*agentexecutionv1.AgentMessage{},
-
+			Phase:    agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
+			Error:    "timeout",
+			Messages: []*agentexecutionv1.AgentMessage{},
 		},
 	}
 
@@ -403,8 +398,8 @@ func TestParseDuration_NegativeDuration(t *testing.T) {
 func TestBuildAgentSummaryContent_WithUsageCost(t *testing.T) {
 	execution := &agentexecutionv1.AgentExecution{
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			Messages:  []*agentexecutionv1.AgentMessage{{Content: "done"}},
+			Phase:    agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{{Content: "done"}},
 
 			Usage: &agentexecutionv1.UsageMetrics{
 				PrimaryModel:     "claude-sonnet-4",
@@ -431,8 +426,8 @@ func TestBuildAgentSummaryContent_WithUsageCost(t *testing.T) {
 func TestBuildAgentSummaryContent_WithUsageNoCost(t *testing.T) {
 	execution := &agentexecutionv1.AgentExecution{
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			Messages:  []*agentexecutionv1.AgentMessage{{Content: "done"}},
+			Phase:    agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{{Content: "done"}},
 
 			Usage: &agentexecutionv1.UsageMetrics{
 				PrimaryModel: "claude-sonnet-4",
@@ -455,8 +450,8 @@ func TestBuildAgentSummaryContent_WithUsageNoCost(t *testing.T) {
 func TestBuildAgentSummaryContent_CacheHitRateDisplay(t *testing.T) {
 	execution := &agentexecutionv1.AgentExecution{
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			Messages:  []*agentexecutionv1.AgentMessage{},
+			Phase:    agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{},
 
 			Usage: &agentexecutionv1.UsageMetrics{
 				PromptTokens:     10000,

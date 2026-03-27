@@ -444,8 +444,8 @@ class TestApprovalAwareWrapperMetadata:
 
     def test_merges_mcp_schema_with_injected_tool_call_id(self):
         """Test that MCP tool schema is merged with InjectedToolCallId."""
-        from pydantic import BaseModel, Field
         from langchain_core.utils.function_calling import convert_to_openai_function
+        from pydantic import BaseModel, Field
 
         class TestSchema(BaseModel):
             file_path: str = Field(description="Path to file")
@@ -1975,7 +1975,7 @@ class TestInjectedToolCallIdValidation:
             captured["offset"] = offset
             return "content"
 
-        result = await read.ainvoke(
+        await read.ainvoke(
             {
                 "name": "read",
                 "args": {"path": "/tmp/test.txt", "offset": 10},

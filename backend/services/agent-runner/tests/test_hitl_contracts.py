@@ -16,7 +16,6 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
 )
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import SubmitApprovalInput
 from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
-    AgentMessage,
     ToolCall,
 )
 from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution

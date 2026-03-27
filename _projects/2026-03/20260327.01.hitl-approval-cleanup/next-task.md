@@ -75,51 +75,46 @@ When starting a new session:
 | **T04** | Add tool_call_id to interrupt payload | **COMPLETE** | T01 |
 | **T05** | Java/Go: compute pending_approvals on write, simplify SubmitApproval | **COMPLETE** | T02, T03 |
 | **T06** | React SDK: remove polling/staleness workarounds | **COMPLETE** | T05 |
-| T07 | Tests: rewrite for new architecture | Not started | T03, T04, T05 |
+| **T07** | Tests: rewrite for new architecture | **COMPLETE** | T03, T04, T05 |
 
 ## Current Status
 
 **Created**: 2026-03-27
-**Current Task**: T01–T06 COMPLETE. Next: T07 (comprehensive tests) or create PRs.
-**Status**: T06 Complete — React SDK `useSessionConversation` hook simplified. Removed `ApprovalLifecycleState` import (proto type deleted in T02), exponential-backoff approval polling, and timer-based staleness recovery. Simplified optimistic dismissal state from `Map<string, number>` to `Set<string>`. No public API changes — `UseSessionConversationReturn` interface unchanged.
+**Current Task**: T01–T07 ALL COMPLETE. Ready to create PRs.
+**Status**: T07 Complete — Comprehensive HITL test rewrite across Go, Java, and Python. `make check` passes on both stigmer and stigmer-cloud repos (1304 Python tests, 9 Go contract tests, 6 Java tests including new PendingApprovalComputerTest, all lint and compilation clean).
 
-## Session Progress (2026-03-27, Session 6)
+## Session Progress (2026-03-27, Session 7)
 
 ### Accomplished
-- Completed T06: React SDK polling/staleness workaround removal
-- Removed `ApprovalLifecycleState` import and `ACTIONABLE_LIFECYCLE_STATES` filter (type deleted in T02)
-- Deleted 5 polling/staleness constants, exponential-backoff polling useEffect (~50 lines), staleness detection useEffect (~27 lines)
-- Simplified dismissed state from `Map<string, number>` + `useRef` + `useMemo` to a single `useState<ReadonlySet<string>>`
-- Removed `useRef` from React imports (no longer needed)
-- Removed undeclared `approvalLoadFailed` from return value (fixed type drift)
-- Deleted 8 obsolete tests (polling + staleness), restructured 2 surviving tests under "optimistic dismissal" describe block
-- Net: 10 insertions, 394 deletions across 2 files
+- Completed T07: Comprehensive HITL Test Rewrite across all layers
+- **Go**: Rewrote `submit_approval_contract_test.go` — replaced 4 tests referencing deleted types (`ApprovalLifecycleState`, `InterruptId`, merge-based PAs) with 9 tests for current architecture (`findToolCallInExecution` traversal, approval decision recording on messages, `ComputePendingApprovals` recomputation, timestamp validation, sub-agent approval isolation)
+- **Java**: Created `PendingApprovalComputerTest.java` — 15 tests across 5 nested O classes mirroring Go `compute_test.go` coverage (empty inputs, inclusion/exclusion criteria, sub-agent attribution, mixed scenarios, field projection). Added Bazel target to `BUILD.bazel`.
+- **Python lint**: Fixed unsorted imports in `execute_graphton.py`, `status_builder.py`, `test_approval_resume.py`, `test_hitl_contracts.py`. Removed unused `AgentMessage` import. Fixed uppercase variable `_POST_APPROVAL_STATUSES` -> `post_approval_statuses`.
+- **Python mypy**: Fixed `SubAgentExecution.tool_calls` attribute error (field removed, now iterate `messages[].tool_calls`). Fixed `Struct` return type mismatch with `str()` cast.
+- **Python tests**: Deleted obsolete `test_approval_resume.py` (tested removed `ApprovalStateManager` and `InterruptCapture` classes). Fixed `test_inline_publish.py` mock to wire `sb.get_tool_call()` lookup.
+- Net: 286 insertions, 339 deletions across 31 files (stigmer), 7 insertions + 1 new file (stigmer-cloud)
 
-### Key Decisions
-- Removed both polling AND staleness detection (per user decision): trust the stream; if a Temporal signal fails, the approval stays in `pending_approvals` on subsequent stream snapshots and reappears when the user navigates away and back (dismissedApprovalIds is transient React state)
-- Kept the optimistic dismissal pattern (card hidden immediately after submit) but without timestamp tracking or time-based recovery
-- No changes needed to `useExecutionStream`, `useSubmitApproval`, `MessageThread`, or `ApprovalCard` — they consume `PendingApproval` fields that still exist
+### Key Findings
+- Phase 1 `make check` initially failed only on the Go vet error (`InterruptId` field), but as each layer was fixed, subsequent lint/mypy/test failures from T01-T06 surfaced progressively — import sorting, unused imports, deleted class references, missing mock wiring
+- The `test_approval_resume.py` file tested `ApprovalStateManager` and `InterruptCapture` classes that were both removed in T03 — entire file was correctly deleted
+- `test_inline_publish.py` had a pre-existing mock gap: `sb.get_tool_call()` was never wired to return the prepared tool call fixtures (it returned MagicMock auto-stubs instead)
 
 ## Next Steps
-1. **T07** (Tests): Rewrite tests for new architecture — Java integration tests, comprehensive end-to-end validation
-2. Create PRs for both repos on `hitl-flow-simplification` branch
-3. Consider creating PRs for T01–T06 now and T07 as a follow-up
+1. **Create PRs** for both repos on `hitl-flow-simplification` branch
+2. All T01-T07 tasks are complete — `make check` green on both repos
 
 ## Context for Resume
 - All changes are on the `hitl-flow-simplification` branch in both repos
-- Go and Java both compile clean; Go tests pass
-- React SDK changes are in `sdk/react/src/session/useSessionConversation.ts` and its test file
-- The `UseSessionConversationReturn` public interface is unchanged — no breaking changes for platform builders
-- `pendingApprovals` derivation now simply filters by `dismissedApprovalIds` (no lifecycle state check)
-- `ApprovalLifecycleState` enum no longer exists in generated TS stubs — any other code referencing it will fail to compile
+- Both repos pass `make check` clean (exit code 0)
+- stigmer: 1304 Python tests pass, all Go tests pass, all lint/mypy clean
+- stigmer-cloud: 6/6 Java tests pass (including new `pending_approval_computer_test`), build clean
 
 ## Quick Commands
 
 After loading context:
-- "Pick next task" — T07 (Tests) or create PRs
+- "Create PRs" — Ready for review on hitl-flow-simplification branch
 - "Show project status" — Get overview of progress
 - "Review design decisions" — Check DD-001 and DD-002
-- "Create PRs" — Ready for review on hitl-flow-simplification branch
 
 ---
 

@@ -84,5 +84,6 @@ go_test(
         "//backend/libs/go/grpc/interceptors/apiresource",
         "//backend/libs/go/store",
         "//backend/libs/go/store/sqlite",
+        "//backend/services/stigmer-server/pkg/domain/agentexecution/approval",
     ],
 )
