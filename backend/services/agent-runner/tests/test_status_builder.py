@@ -45,19 +45,12 @@ def mock_initial_status():
     """Create a mock initial AgentExecutionStatus."""
     status = MagicMock()
     status.messages = []
-    status.tool_calls = []
     status.sub_agent_executions = []
     status.todos = {}
-    # Real UsageMetrics proto for Phase 2.4 usage tracking
-    # MagicMock doesn't support CopyFrom(), so we use a real proto
+    status.artifacts = []
     status.usage = UsageMetrics()
-    # Real ResolvedExecutionContext proto for Phase 2.5
-    # MagicMock doesn't support CopyFrom(), so we use a real proto
     status.resolved_context = ResolvedExecutionContext()
-    # Real ContextInfo proto for Phase 3 context management
-    # MagicMock doesn't support CopyFrom(), so we use a real proto
     status.context_info = ContextInfo()
-    status.pending_approvals = []
     return status
 
 
@@ -681,8 +674,8 @@ class TestToolCallStatus:
         await status_builder.process_event(event)
         
         # Verify tool call was created
-        assert len(status_builder.current_status.tool_calls) == 1
-        tool_call = status_builder.current_status.tool_calls[0]
+        assert status_builder.tool_call_count() == 1
+        tool_call = next(status_builder.iter_all_tool_calls())
         
         # Key assertion: Status should be RUNNING, not PENDING
         assert tool_call.status == ToolCallStatus.TOOL_CALL_RUNNING
@@ -700,7 +693,7 @@ class TestToolCallStatus:
         
         await status_builder.process_event(event)
         
-        tool_call = status_builder.current_status.tool_calls[0]
+        tool_call = next(status_builder.iter_all_tool_calls())
         
         # Verify started_at is set and looks like ISO 8601 format
         assert tool_call.started_at != ""
@@ -724,7 +717,7 @@ class TestToolCallStatus:
         await status_builder.process_event(start_event)
         
         # Verify initial status is RUNNING
-        assert status_builder.current_status.tool_calls[0].status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert next(status_builder.iter_all_tool_calls()).status == ToolCallStatus.TOOL_CALL_RUNNING
         
         # Now end the tool
         end_event = {
@@ -737,7 +730,7 @@ class TestToolCallStatus:
         await status_builder.process_event(end_event)
         
         # Verify status transitioned to COMPLETED
-        tool_call = status_builder.current_status.tool_calls[0]
+        tool_call = next(status_builder.iter_all_tool_calls())
         assert tool_call.status == ToolCallStatus.TOOL_CALL_COMPLETED
 
     @pytest.mark.asyncio
@@ -755,7 +748,7 @@ class TestToolCallStatus:
         })
         
         # Verify completed_at is empty initially
-        assert status_builder.current_status.tool_calls[0].completed_at == ""
+        assert next(status_builder.iter_all_tool_calls()).completed_at == ""
         
         # End the tool
         await status_builder.process_event({
@@ -766,7 +759,7 @@ class TestToolCallStatus:
             "metadata": {}
         })
         
-        tool_call = status_builder.current_status.tool_calls[0]
+        tool_call = next(status_builder.iter_all_tool_calls())
         
         # Verify completed_at is now set
         assert tool_call.completed_at != ""
@@ -812,8 +805,8 @@ class TestToolCallStatus:
         assert parent_ai.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
 
     @pytest.mark.asyncio
-    async def test_tool_status_in_tool_calls_list(self, status_builder):
-        """Test that tool status is correctly set in status.tool_calls."""
+    async def test_tool_status_in_index(self, status_builder):
+        """Test that tool status is correctly tracked via the StatusBuilder tool-call index."""
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         
         run_id = "tool-run-list"
@@ -827,10 +820,11 @@ class TestToolCallStatus:
             "metadata": {}
         })
         
-        # Verify in status.tool_calls
-        assert len(status_builder.current_status.tool_calls) == 1
-        assert status_builder.current_status.tool_calls[0].status == ToolCallStatus.TOOL_CALL_RUNNING
-        assert status_builder.current_status.tool_calls[0].id == run_id
+        tc = status_builder.get_tool_call(run_id)
+        assert tc is not None
+        assert status_builder.tool_call_count() == 1
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+        assert tc.id == run_id
         
         # End the tool
         await status_builder.process_event({
@@ -842,7 +836,7 @@ class TestToolCallStatus:
         })
         
         # Verify status updated
-        assert status_builder.current_status.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert status_builder.get_tool_call(run_id).status == ToolCallStatus.TOOL_CALL_COMPLETED
 
     @pytest.mark.asyncio
     async def test_tool_duration_tracking(self, status_builder):
@@ -1017,7 +1011,7 @@ class TestExtractToolResultContent:
         })
 
         # Verify the extracted content is clean
-        tool_call = status_builder.current_status.tool_calls[0]
+        tool_call = next(status_builder.iter_all_tool_calls())
         assert tool_call.result == "file1.txt\nfile2.txt\nfile3.txt"
         # Verify no ToolMessage repr artifacts leaked
         assert "name=" not in tool_call.result
@@ -1178,7 +1172,7 @@ class TestExtractToolResultContentCommand:
         })
 
         # Verify the extracted content is the ToolMessage content, not repr
-        tool_call = status_builder.current_status.tool_calls[0]
+        tool_call = next(status_builder.iter_all_tool_calls())
         assert tool_call.result == "Successfully wrote 5 characters to 'out.txt'"
         assert "CommandUpdate" not in tool_call.result
         assert "Command(" not in tool_call.result
@@ -1261,7 +1255,7 @@ class TestSubAgentInternals:
         await status_builder.process_event(event)
         
         # No regular tool calls should be created
-        assert len(status_builder.current_status.tool_calls) == 0
+        assert status_builder.tool_call_count() == 0
         assert len(status_builder.current_status.messages) == 0
         
         # But sub-agent should exist
@@ -1381,14 +1375,15 @@ class TestSubAgentInternals:
             "metadata": {"langgraph_checkpoint_ns": namespace}
         })
         
-        # Verify tool call is in sub-agent, not main agent
-        assert len(status_builder.current_status.tool_calls) == 0  # Not in main
+        # Verify tool call is in sub-agent messages, not main agent
+        assert sum(len(m.tool_calls) for m in status_builder.current_status.messages) == 0
         
         sub_agent = status_builder.current_status.sub_agent_executions[0]
-        assert len(sub_agent.tool_calls) == 1
-        assert sub_agent.tool_calls[0].id == tool_run_id
-        assert sub_agent.tool_calls[0].name == "write_file"
-        assert sub_agent.tool_calls[0].status == ToolCallStatus.TOOL_CALL_RUNNING
+        sa_tcs = [tc for m in sub_agent.messages for tc in m.tool_calls]
+        assert len(sa_tcs) == 1
+        assert sa_tcs[0].id == tool_run_id
+        assert sa_tcs[0].name == "write_file"
+        assert sa_tcs[0].status == ToolCallStatus.TOOL_CALL_RUNNING
 
     @pytest.mark.asyncio
     async def test_namespace_routing_messages_to_sub_agent(self, status_builder):
@@ -1467,11 +1462,12 @@ class TestSubAgentInternals:
             "metadata": {"langgraph_checkpoint_ns": namespace}
         })
         
-        # Verify tool completed in sub-agent
+        # Verify tool completed in sub-agent messages
         sub_agent = status_builder.current_status.sub_agent_executions[0]
-        assert len(sub_agent.tool_calls) == 1
-        assert sub_agent.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
-        assert sub_agent.tool_calls[0].result == "[content omitted - 13 chars]"
+        sa_tcs = [tc for m in sub_agent.messages for tc in m.tool_calls]
+        assert len(sa_tcs) == 1
+        assert sa_tcs[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert sa_tcs[0].result == "[content omitted - 13 chars]"
 
     @pytest.mark.asyncio
     async def test_multiple_sub_agents_isolated(self, status_builder):
@@ -1530,15 +1526,17 @@ class TestSubAgentInternals:
         sub_agent_2 = status_builder.current_status.sub_agent_executions[1]
         
         assert sub_agent_1.name == "researcher"
-        assert len(sub_agent_1.tool_calls) == 1
-        assert sub_agent_1.tool_calls[0].name == "search"
+        sa1_tcs = [tc for m in sub_agent_1.messages for tc in m.tool_calls]
+        assert len(sa1_tcs) == 1
+        assert sa1_tcs[0].name == "search"
         
         assert sub_agent_2.name == "code_editor"
-        assert len(sub_agent_2.tool_calls) == 1
-        assert sub_agent_2.tool_calls[0].name == "write_file"
+        sa2_tcs = [tc for m in sub_agent_2.messages for tc in m.tool_calls]
+        assert len(sa2_tcs) == 1
+        assert sa2_tcs[0].name == "write_file"
         
         # Main agent should have no tool calls
-        assert len(status_builder.current_status.tool_calls) == 0
+        assert sum(len(m.tool_calls) for m in status_builder.current_status.messages) == 0
 
     @pytest.mark.asyncio
     async def test_main_agent_events_unaffected(self, status_builder):
@@ -1563,9 +1561,10 @@ class TestSubAgentInternals:
         })
         
         # Verify main agent has the tool call
-        assert len(status_builder.current_status.tool_calls) == 1
-        assert status_builder.current_status.tool_calls[0].name == "read_file"
-        assert status_builder.current_status.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert status_builder.tool_call_count() == 1
+        tool_call = next(status_builder.iter_all_tool_calls())
+        assert tool_call.name == "read_file"
+        assert tool_call.status == ToolCallStatus.TOOL_CALL_COMPLETED
         
         # No sub-agent executions
         assert len(status_builder.current_status.sub_agent_executions) == 0
@@ -1801,141 +1800,6 @@ class TestSubAgentInternals:
 
         sub_agent = status_builder.current_status.sub_agent_executions[0]
         assert not sub_agent.HasField("metadata")
-
-    @pytest.mark.asyncio
-    async def test_sync_sub_agent_pending_approvals(self, status_builder):
-        """PendingApproval is dual-surfaced onto the owning SubAgentExecution."""
-        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
-
-        sub_agent_run_id = "task-approval-sync"
-        namespace = f"agent_node:{sub_agent_run_id}"
-        tool_run_id = "write-tool-1"
-
-        # Start sub-agent
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": sub_agent_run_id,
-            "data": {
-                "input": {
-                    "subagent_type": "code_editor",
-                    "description": "Fix the bug",
-                    "input": "Fix the bug in main.py",
-                }
-            },
-            "metadata": {},
-        })
-
-        # Sub-agent tool call
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "write_file",
-            "run_id": tool_run_id,
-            "data": {"input": {"path": "/tmp/fix.py", "content": "fixed"}},
-            "metadata": {"langgraph_checkpoint_ns": namespace},
-        })
-
-        # Simulate what execute_graphton.py does after interrupt capture:
-        # set parent-level pending_approvals, then call sync.
-        pa = PendingApproval(
-            tool_call_id=tool_run_id,
-            tool_name="write_file",
-            message="Approve write_file?",
-            from_sub_agent=True,
-            sub_agent_name="code_editor",
-        )
-        status_builder.current_status.pending_approvals.append(pa)
-        status_builder.sync_sub_agent_pending_approvals()
-
-        # Verify dual-surfacing
-        sub_agent = status_builder.current_status.sub_agent_executions[0]
-        assert len(sub_agent.pending_approvals) == 1
-        sa_pa = sub_agent.pending_approvals[0]
-        assert sa_pa.tool_call_id == tool_run_id
-        assert sa_pa.tool_name == "write_file"
-        assert sa_pa.child_agent_execution_id == sub_agent_run_id
-
-        # Parent-level PA also has child_agent_execution_id set
-        parent_pa = status_builder.current_status.pending_approvals[0]
-        assert parent_pa.child_agent_execution_id == sub_agent_run_id
-
-    @pytest.mark.asyncio
-    async def test_sync_skips_main_agent_approvals(self, status_builder):
-        """Main-agent PendingApprovals are not duplicated onto any sub-agent."""
-        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
-
-        # Start sub-agent (so there's at least one to check)
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": "task-skip-main",
-            "data": {
-                "input": {
-                    "subagent_type": "helper",
-                    "input": "help me",
-                }
-            },
-            "metadata": {},
-        })
-
-        pa = PendingApproval(
-            tool_call_id="main-tool-1",
-            tool_name="delete_file",
-            from_sub_agent=False,
-        )
-        status_builder.current_status.pending_approvals.append(pa)
-        status_builder.sync_sub_agent_pending_approvals()
-
-        sub_agent = status_builder.current_status.sub_agent_executions[0]
-        assert len(sub_agent.pending_approvals) == 0
-
-    @pytest.mark.asyncio
-    async def test_clear_pending_approval_clears_sub_agent(self, status_builder):
-        """clear_pending_approval also empties SubAgentExecution.pending_approvals."""
-        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
-
-        sub_agent_run_id = "task-clear-test"
-        namespace = f"agent_node:{sub_agent_run_id}"
-        tool_run_id = "tool-clear-1"
-
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": sub_agent_run_id,
-            "data": {
-                "input": {
-                    "subagent_type": "code_editor",
-                    "input": "edit code",
-                }
-            },
-            "metadata": {},
-        })
-
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "write_file",
-            "run_id": tool_run_id,
-            "data": {"input": {"path": "/tmp/x.py", "content": "x"}},
-            "metadata": {"langgraph_checkpoint_ns": namespace},
-        })
-
-        pa = PendingApproval(
-            tool_call_id=tool_run_id,
-            tool_name="write_file",
-            from_sub_agent=True,
-            sub_agent_name="code_editor",
-        )
-        status_builder.current_status.pending_approvals.append(pa)
-        status_builder.sync_sub_agent_pending_approvals()
-
-        sub_agent = status_builder.current_status.sub_agent_executions[0]
-        assert len(sub_agent.pending_approvals) == 1
-
-        # Now clear
-        status_builder.clear_pending_approval()
-
-        assert len(status_builder.current_status.pending_approvals) == 0
-        assert len(sub_agent.pending_approvals) == 0
 
     # ── Gap 8: End-event guard ──────────────────────────────────────────────
 
@@ -2227,9 +2091,8 @@ class TestSubAgentScenarios:
             yield
 
     @pytest.mark.asyncio
-    async def test_approval_lifecycle_within_sub_agent(self, status_builder):
-        """Full round-trip: sub-agent tool needs approval -> dual-surface -> clear -> complete."""
-        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
+    async def test_sub_agent_tool_lifecycle(self, status_builder):
+        """Full round-trip: sub-agent tool start -> tool end -> sub-agent complete."""
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
 
         sa_run_id = "sa-approval-lifecycle"
@@ -2264,31 +2127,11 @@ class TestSubAgentScenarios:
             "data": {"input": {"path": "/app/auth.py", "content": "patched"}},
             "metadata": {"langgraph_checkpoint_ns": namespace},
         })
-        assert len(sa.tool_calls) == 1
-        assert sa.tool_calls[0].id == tool_run_id
+        sa_tcs = [tc for m in sa.messages for tc in m.tool_calls]
+        assert len(sa_tcs) == 1
+        assert sa_tcs[0].id == tool_run_id
 
-        # 3. Simulate interrupt capture: set parent pending_approvals, then sync
-        pa = PendingApproval(
-            tool_call_id=tool_run_id,
-            tool_name="write_file",
-            message="Approve write to auth.py?",
-            from_sub_agent=True,
-            sub_agent_name="code_editor",
-        )
-        status_builder.current_status.pending_approvals.append(pa)
-        status_builder.sync_sub_agent_pending_approvals()
-
-        assert len(sa.pending_approvals) == 1
-        assert sa.pending_approvals[0].child_agent_execution_id == sa_run_id
-        assert len(status_builder.current_status.pending_approvals) == 1
-
-        # 4. Approve — clear_pending_approval clears from both levels
-        status_builder.clear_pending_approval()
-
-        assert len(status_builder.current_status.pending_approvals) == 0
-        assert len(sa.pending_approvals) == 0
-
-        # 5. Tool completes
+        # 3. Tool completes
         await status_builder.process_event({
             "event": "on_tool_end",
             "name": "write_file",
@@ -2297,7 +2140,7 @@ class TestSubAgentScenarios:
             "metadata": {"langgraph_checkpoint_ns": namespace},
         })
 
-        # 6. Sub-agent completes with output
+        # 4. Sub-agent completes with output
         await status_builder.process_event({
             "event": "on_tool_end",
             "name": "task",
@@ -2373,11 +2216,13 @@ class TestSubAgentScenarios:
         sa_a = status_builder._active_sub_agents[sa_a_id]
         sa_b = status_builder._active_sub_agents[sa_b_id]
 
-        assert len(sa_a.tool_calls) == 1
-        assert sa_a.tool_calls[0].name == "grep"
-        assert len(sa_b.tool_calls) == 1
-        assert sa_b.tool_calls[0].name == "pytest"
-        assert len(status_builder.current_status.tool_calls) == 0
+        sa_a_tcs = [tc for m in sa_a.messages for tc in m.tool_calls]
+        assert len(sa_a_tcs) == 1
+        assert sa_a_tcs[0].name == "grep"
+        sa_b_tcs = [tc for m in sa_b.messages for tc in m.tool_calls]
+        assert len(sa_b_tcs) == 1
+        assert sa_b_tcs[0].name == "pytest"
+        assert sum(len(m.tool_calls) for m in status_builder.current_status.messages) == 0
 
         # Complete SA-B first
         await status_builder.process_event({
@@ -2413,72 +2258,6 @@ class TestSubAgentScenarios:
         assert subs[sa_a_id].output == "Review complete"
         assert subs[sa_b_id].status == SubAgentStatus.SUB_AGENT_COMPLETED
         assert subs[sa_b_id].output == "All tests pass"
-
-    @pytest.mark.asyncio
-    async def test_finalization_clears_sub_agent_pending_approvals(self, status_builder):
-        """Parent failure via finalize_active_sub_agents clears pending approvals from sub-agents."""
-        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
-
-        sa_run_id = "sa-finalize-approval"
-        namespace = f"agent_node:{sa_run_id}"
-        tool_run_id = "tool-fin-approval"
-
-        # Start sub-agent and its tool
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": sa_run_id,
-            "data": {
-                "input": {
-                    "subagent_type": "deployer",
-                    "description": "Deploy service",
-                    "input": "Deploy to staging",
-                }
-            },
-            "metadata": {},
-        })
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "kubectl_apply",
-            "run_id": tool_run_id,
-            "data": {"input": {"manifest": "deployment.yaml"}},
-            "metadata": {"langgraph_checkpoint_ns": namespace},
-        })
-
-        # Sub-agent tool needs approval
-        pa = PendingApproval(
-            tool_call_id=tool_run_id,
-            tool_name="kubectl_apply",
-            message="Approve deployment?",
-            from_sub_agent=True,
-            sub_agent_name="deployer",
-        )
-        status_builder.current_status.pending_approvals.append(pa)
-        status_builder.sync_sub_agent_pending_approvals()
-
-        sa = status_builder.current_status.sub_agent_executions[0]
-        assert len(sa.pending_approvals) == 1
-        assert len(status_builder.current_status.pending_approvals) == 1
-
-        # Parent times out — finalize all active sub-agents
-        status_builder.finalize_active_sub_agents(
-            SubAgentStatus.SUB_AGENT_FAILED,
-            "Parent execution timed out",
-        )
-
-        assert sa.status == SubAgentStatus.SUB_AGENT_FAILED
-        assert sa.error == "Parent execution timed out"
-        assert sa.completed_at != ""
-        assert len(status_builder._active_sub_agents) == 0
-        assert sa_run_id in status_builder._completed_sub_agents
-
-        # Parent pending_approvals are still present (finalize doesn't clear them —
-        # that's the responsibility of execute_graphton.py's error handler).
-        # But the sub-agent is now in a terminal state so the approval is moot.
-        # Verify the sub-agent's pending_approvals were NOT implicitly cleared
-        # by finalize (finalize only sets status/error/completed_at).
-        assert len(sa.pending_approvals) == 1
 
 
 
@@ -2577,10 +2356,10 @@ class TestNamespaceRegistrationStrategies:
             "metadata": {"langgraph_checkpoint_ns": "root-two:y|node-b"}
         })
 
-        # Tool call should be in sub-agent, not main
-        assert len(status_builder.current_status.tool_calls) == 0
+        # Tool call should be in sub-agent messages, not main
+        assert sum(len(m.tool_calls) for m in status_builder.current_status.messages) == 0
         sub_agent = status_builder.current_status.sub_agent_executions[0]
-        tool_names = [tc.name for tc in sub_agent.tool_calls]
+        tool_names = [tc.name for m in sub_agent.messages for tc in m.tool_calls]
         assert "list_files" in tool_names
 
     @pytest.mark.asyncio
@@ -2770,12 +2549,13 @@ class TestConcurrentSubAgentNamespaceRegistration:
                 "metadata": {"langgraph_checkpoint_ns": f"{ns_root}|child"},
             })
 
-        assert len(status_builder.current_status.tool_calls) == 0
+        assert sum(len(m.tool_calls) for m in status_builder.current_status.messages) == 0
 
         for sa_id in sa_ids:
             sa = status_builder._active_sub_agents[sa_id]
-            assert len(sa.tool_calls) == 1
-            assert sa.tool_calls[0].name == "read_file"
+            sa_tcs = [tc for m in sa.messages for tc in m.tool_calls]
+            assert len(sa_tcs) == 1
+            assert sa_tcs[0].name == "read_file"
 
     @pytest.mark.asyncio
     async def test_root_prefix_cascading_after_fifo(self, status_builder):
@@ -2858,20 +2638,20 @@ class TestConcurrentSubAgentNamespaceRegistration:
             "read_file", "use-2", "ns-2", ns_map["sa-recon-2"],
         )
 
-        assert len(sa1.tool_calls) == 1
-        assert len(sa2.tool_calls) == 1
+        sa1_tcs = [tc for m in sa1.messages for tc in m.tool_calls]
+        sa2_tcs = [tc for m in sa2.messages for tc in m.tool_calls]
+        assert len(sa1_tcs) == 1
+        assert len(sa2_tcs) == 1
 
         reconciled = status_builder._reconcile_early_tool_call(
             "read_file", "real-run-2", {"path": "/b"}, ns_map["sa-recon-2"],
         )
         assert reconciled is not None
-        assert reconciled is sa2.tool_calls[0]
 
         reconciled = status_builder._reconcile_early_tool_call(
             "read_file", "real-run-1", {"path": "/a"}, ns_map["sa-recon-1"],
         )
         assert reconciled is not None
-        assert reconciled is sa1.tool_calls[0]
 
         assert len(status_builder._early_tool_call_queue) == 0
 
@@ -4159,7 +3939,7 @@ class TestToolCallArgsHumanization:
         }
         await status_builder.process_event(event)
 
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         args = tc.args.fields
         assert args["command"].string_value == "python3 .stigmer/skills/s/run.py"
         assert args["timeout"].number_value == 120
@@ -4181,7 +3961,7 @@ class TestToolCallArgsHumanization:
         }
         await status_builder.process_event(event)
 
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.args.fields["command"].string_value == (
             "python3 .stigmer/scripts/init.py --path seedpack/skills"
         )
@@ -4201,7 +3981,7 @@ class TestToolCallArgsHumanization:
         }
         await status_builder.process_event(event)
 
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert "$API_TOKEN" in tc.args.fields["command"].string_value
 
     @pytest.mark.asyncio
@@ -4216,7 +3996,7 @@ class TestToolCallArgsHumanization:
         }
         await status_builder.process_event(event)
 
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.args.fields["path"].string_value == "src/main.py"
 
 
@@ -4334,7 +4114,8 @@ class TestToolStartApprovalIntegration:
         await status_builder_with_approval_config.process_event(event)
         
         # Tool should be in WAITING_APPROVAL status
-        tool_call = status_builder_with_approval_config.current_status.tool_calls[0]
+        tool_call = status_builder_with_approval_config.get_tool_call("tool-run-approval-001")
+        assert tool_call is not None
         assert tool_call.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
         assert tool_call.requires_approval is True
         
@@ -4360,7 +4141,8 @@ class TestToolStartApprovalIntegration:
         await status_builder_with_approval_config.process_event(event)
         
         # Tool should be in RUNNING status (normal flow)
-        tool_call = status_builder_with_approval_config.current_status.tool_calls[0]
+        tool_call = status_builder_with_approval_config.get_tool_call("tool-run-no-approval")
+        assert tool_call is not None
         assert tool_call.status == ToolCallStatus.TOOL_CALL_RUNNING
         assert tool_call.requires_approval is False
         
@@ -4405,7 +4187,8 @@ class TestToolStartApprovalIntegration:
         await builder.process_event(event)
         
         # Tool should be in RUNNING status despite having approval policy
-        tool_call = builder.current_status.tool_calls[0]
+        tool_call = builder.get_tool_call("tool-run-auto-approve")
+        assert tool_call is not None
         assert tool_call.status == ToolCallStatus.TOOL_CALL_RUNNING
         assert tool_call.requires_approval is False
     
@@ -4432,7 +4215,8 @@ class TestToolStartApprovalIntegration:
         await builder.process_event(event)
         
         # Tool should be in RUNNING status
-        tool_call = builder.current_status.tool_calls[0]
+        tool_call = builder.get_tool_call("tool-run-no-config")
+        assert tool_call is not None
         assert tool_call.status == ToolCallStatus.TOOL_CALL_RUNNING
     
     @pytest.mark.asyncio
@@ -4449,7 +4233,8 @@ class TestToolStartApprovalIntegration:
         await status_builder_with_approval_config.process_event(event)
         
         # Check rendered message (should have args substituted)
-        tool_call = status_builder_with_approval_config.current_status.tool_calls[0]
+        tool_call = status_builder_with_approval_config.get_tool_call("tool-run-render-test")
+        assert tool_call is not None
         assert "production-db" in tool_call.approval_message
         
         # Pending approval should be tracked
@@ -5020,60 +4805,6 @@ class TestResumeFromApprovalDetection:
         has_pending = len(execution.status.pending_approvals) > 0
         assert has_pending is False
     
-    def test_pending_approvals_with_decision_is_resume(self):
-        """Test that pending_approvals with decision triggers resume."""
-        # Create execution with pending approvals and decision
-        status = AgentExecutionStatus()
-        status.pending_approvals.append(PendingApproval(
-            tool_call_id="call_abc123",
-            tool_name="delete_resource",
-        ))
-        
-        # Add tool call with approval decision
-        tool_call = status.tool_calls.add()
-        tool_call.id = "call_abc123"
-        tool_call.name = "delete_resource"
-        tool_call.approval_action = ApprovalAction.APPROVAL_ACTION_APPROVE
-        tool_call.approved_by = "user@test.com"
-        
-        # Check: has pending approvals
-        has_pending = len(status.pending_approvals) > 0
-        assert has_pending is True
-        
-        # Find tool call and check decision
-        found_action = ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
-        for tc in status.tool_calls:
-            if tc.id == status.pending_approvals[0].tool_call_id:
-                found_action = tc.approval_action
-                break
-        
-        assert found_action == ApprovalAction.APPROVAL_ACTION_APPROVE
-    
-    def test_pending_approvals_without_decision_is_warning(self):
-        """Test that pending_approvals without decision logs warning."""
-        # Create execution with pending approvals but NO decision
-        status = AgentExecutionStatus()
-        status.pending_approvals.append(PendingApproval(
-            tool_call_id="call_abc123",
-            tool_name="delete_resource",
-        ))
-        
-        # Add tool call WITHOUT approval decision
-        tool_call = status.tool_calls.add()
-        tool_call.id = "call_abc123"
-        tool_call.name = "delete_resource"
-        # approval_action defaults to UNSPECIFIED
-        
-        # Find tool call and check decision
-        found_action = ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
-        for tc in status.tool_calls:
-            if tc.id == status.pending_approvals[0].tool_call_id:
-                found_action = tc.approval_action
-                break
-        
-        # This should be UNSPECIFIED - triggers warning in real code
-        assert found_action == ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
-    
     def test_approval_action_mapping_to_strings(self):
         """Test that ApprovalAction enum values map correctly to strings."""
         action_map = {
@@ -5510,7 +5241,6 @@ class TestRunIdAliasResolution:
         original_run_id = "original-run-001"
         new_run_id = "resumed-run-002"
 
-        # Simulate a tool call from a previous invocation persisted in DB.
         args = Struct()
         args.update({"path": "/bin/skills/agent-drafter/SKILL.md", "content": "..."})
         existing_tc = ToolCall(
@@ -5519,12 +5249,13 @@ class TestRunIdAliasResolution:
             args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
         )
-        mock_initial_status.tool_calls.append(existing_tc)
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.append(existing_tc)
+        mock_initial_status.messages.append(ai_msg)
 
         builder = StatusBuilder("exec-alias-1", mock_initial_status)
         builder.populate_fingerprints_from_existing_tool_calls()
 
-        # Simulate LangGraph re-firing on_tool_start with a new run_id.
         event = {
             "event": "on_tool_start",
             "name": "write",
@@ -5533,10 +5264,8 @@ class TestRunIdAliasResolution:
         }
         await builder.process_event(event)
 
-        # The alias should map new_run_id -> original_run_id.
         assert builder._run_id_aliases.get(new_run_id) == original_run_id
-        # No duplicate tool call should have been created.
-        assert len(mock_initial_status.tool_calls) == 1
+        assert builder.tool_call_count() == 1
 
     @pytest.mark.asyncio
     async def test_tool_end_resolves_alias_to_completed(self, mock_initial_status):
@@ -5550,16 +5279,6 @@ class TestRunIdAliasResolution:
         args = Struct()
         args.update({"path": "/skill/SKILL.md", "content": "# Skill"})
 
-        # Existing tool call (from previous invocation, reconciled to RUNNING).
-        existing_tc = ToolCall(
-            id=original_run_id,
-            name="write",
-            args=args,
-            status=ToolCallStatus.TOOL_CALL_RUNNING,
-        )
-        mock_initial_status.tool_calls.append(existing_tc)
-
-        # Also add a parent AI message with the tool call (mirrors real status structure).
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
         ai_msg.tool_calls.append(ToolCall(
             id=original_run_id,
@@ -5572,7 +5291,6 @@ class TestRunIdAliasResolution:
         builder = StatusBuilder("exec-alias-2", mock_initial_status)
         builder.populate_fingerprints_from_existing_tool_calls()
 
-        # Step 1: on_tool_start with new run_id (deduplicated, alias recorded).
         start_event = {
             "event": "on_tool_start",
             "name": "write",
@@ -5581,7 +5299,6 @@ class TestRunIdAliasResolution:
         }
         await builder.process_event(start_event)
 
-        # Step 2: on_tool_end with the same new run_id.
         end_event = {
             "event": "on_tool_end",
             "name": "write",
@@ -5590,11 +5307,10 @@ class TestRunIdAliasResolution:
         }
         await builder.process_event(end_event)
 
-        # The original tool call should now be COMPLETED.
-        assert mock_initial_status.tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
-        assert mock_initial_status.tool_calls[0].result == "File written successfully"
+        tc = builder.get_tool_call(original_run_id)
+        assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert tc.result == "File written successfully"
 
-        # The AI message's embedded tool call should also be COMPLETED.
         assert mock_initial_status.messages[0].tool_calls[0].status == ToolCallStatus.TOOL_CALL_COMPLETED
 
     @pytest.mark.asyncio
@@ -5609,28 +5325,26 @@ class TestRunIdAliasResolution:
             ("orig-C", "new-C", "/skill/references/cli.md"),
         ]
 
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
         for orig_id, _, path in files:
             args = Struct()
             args.update({"path": path, "content": f"content of {path}"})
-            tc = ToolCall(
+            ai_msg.tool_calls.append(ToolCall(
                 id=orig_id, name="write", args=args,
                 status=ToolCallStatus.TOOL_CALL_RUNNING,
-            )
-            mock_initial_status.tool_calls.append(tc)
+            ))
+        mock_initial_status.messages.append(ai_msg)
 
         builder = StatusBuilder("exec-alias-3", mock_initial_status)
         builder.populate_fingerprints_from_existing_tool_calls()
 
-        # Simulate the resume cycle for each file.
         for orig_id, new_id, path in files:
-            # on_tool_start (deduplicated)
             await builder.process_event({
                 "event": "on_tool_start",
                 "name": "write",
                 "run_id": new_id,
                 "data": {"input": {"path": path, "content": f"content of {path}"}},
             })
-            # on_tool_end (alias resolved)
             await builder.process_event({
                 "event": "on_tool_end",
                 "name": "write",
@@ -5638,9 +5352,9 @@ class TestRunIdAliasResolution:
                 "data": {"output": f"written {path}"},
             })
 
-        # All three should be COMPLETED.
-        for i, (orig_id, _, path) in enumerate(files):
-            tc = mock_initial_status.tool_calls[i]
+        for orig_id, _, path in files:
+            tc = builder.get_tool_call(orig_id)
+            assert tc is not None
             assert tc.id == orig_id
             assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED, (
                 f"Tool call {orig_id} for {path} should be COMPLETED but is "
@@ -5669,18 +5383,18 @@ class TestRunIdAliasResolution:
 
         args = Struct()
         args.update({"command": "ls -la"})
-        existing_tc = ToolCall(
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.append(ToolCall(
             id=original_run_id,
             name="execute",
             args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
-        )
-        mock_initial_status.tool_calls.append(existing_tc)
+        ))
+        mock_initial_status.messages.append(ai_msg)
 
         builder = StatusBuilder("exec-alias-4", mock_initial_status)
         builder.populate_fingerprints_from_existing_tool_calls()
 
-        # Simulate on_tool_start dedup (records alias).
         await builder.process_event({
             "event": "on_tool_start",
             "name": "execute",
@@ -5689,7 +5403,6 @@ class TestRunIdAliasResolution:
         })
         assert builder._run_id_aliases.get(new_run_id) == original_run_id
 
-        # Simulate on_tool_progress with the new run_id.
         await builder.process_event({
             "event": "on_custom_event",
             "name": "tool_progress",
@@ -5697,9 +5410,9 @@ class TestRunIdAliasResolution:
             "data": {"chunk": "total 42\n"},
         })
 
-        # The progress chunk should have been appended to the original tool call.
-        assert mock_initial_status.tool_calls[0].result == "total 42\n"
-        assert mock_initial_status.tool_calls[0].is_streaming is True
+        tc = builder.get_tool_call(original_run_id)
+        assert tc.result == "total 42\n"
+        assert tc.is_streaming is True
 
     @pytest.mark.asyncio
     async def test_tool_progress_first_chunk_forces_update(self, mock_initial_status):
@@ -5709,13 +5422,14 @@ class TestRunIdAliasResolution:
         original_run_id = "orig-force-1"
         args = Struct()
         args.update({"command": "ls -la"})
-        existing_tc = ToolCall(
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.append(ToolCall(
             id=original_run_id,
             name="execute",
             args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
-        )
-        mock_initial_status.tool_calls.append(existing_tc)
+        ))
+        mock_initial_status.messages.append(ai_msg)
 
         builder = StatusBuilder("exec-force-1", mock_initial_status)
         builder.populate_fingerprints_from_existing_tool_calls()
@@ -5738,18 +5452,18 @@ class TestRunIdAliasResolution:
         original_run_id = "orig-force-2"
         args = Struct()
         args.update({"command": "ls -la"})
-        existing_tc = ToolCall(
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.append(ToolCall(
             id=original_run_id,
             name="execute",
             args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
-        )
-        mock_initial_status.tool_calls.append(existing_tc)
+        ))
+        mock_initial_status.messages.append(ai_msg)
 
         builder = StatusBuilder("exec-force-2", mock_initial_status)
         builder.populate_fingerprints_from_existing_tool_calls()
 
-        # First tool_progress (sets force_next_update=True, is_streaming=True)
         await builder.process_event({
             "event": "on_custom_event",
             "name": "tool_progress",
@@ -5757,12 +5471,11 @@ class TestRunIdAliasResolution:
             "data": {"chunk": "first chunk\n"},
         })
         assert builder.force_next_update is True
-        assert mock_initial_status.tool_calls[0].is_streaming is True
+        tc = builder.get_tool_call(original_run_id)
+        assert tc.is_streaming is True
 
-        # Reset force_next_update
         builder.force_next_update = False
 
-        # Second tool_progress (is_streaming already True -> should NOT set force_next_update)
         await builder.process_event({
             "event": "on_custom_event",
             "name": "tool_progress",
@@ -5781,11 +5494,12 @@ class TestRunIdAliasResolution:
         same_run_id = "same-run-999"
         args = Struct()
         args.update({"path": "/file.txt", "content": "data"})
-        tc = ToolCall(
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.append(ToolCall(
             id=same_run_id, name="write", args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
-        )
-        mock_initial_status.tool_calls.append(tc)
+        ))
+        mock_initial_status.messages.append(ai_msg)
 
         builder = StatusBuilder("exec-alias-5", mock_initial_status)
         builder.populate_fingerprints_from_existing_tool_calls()
@@ -5835,8 +5549,8 @@ class TestNativeThinkingTranslation:
         assert status_builder._thinking_buffers.get("") == "Let me analyze this..."
 
         # A streaming ToolCall should exist in the flat list
-        assert len(status_builder.current_status.tool_calls) == 1
-        tc = status_builder.current_status.tool_calls[0]
+        assert status_builder.tool_call_count() == 1
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.name == "think"
         assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
         assert tc.is_streaming is True
@@ -5859,8 +5573,8 @@ class TestNativeThinkingTranslation:
         )
 
         # The streaming ToolCall's result should match the full accumulated buffer
-        assert len(status_builder.current_status.tool_calls) == 1
-        tc = status_builder.current_status.tool_calls[0]
+        assert status_builder.tool_call_count() == 1
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
         assert tc.is_streaming is True
         assert tc.result == "Step 1: analyse inputs. Step 2: decide."
@@ -5878,8 +5592,8 @@ class TestNativeThinkingTranslation:
         })
 
         # Verify streaming state before flush
-        assert len(status_builder.current_status.tool_calls) == 1
-        tc = status_builder.current_status.tool_calls[0]
+        assert status_builder.tool_call_count() == 1
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
         assert tc.is_streaming is True
         assert tc.result == "My reasoning here"
@@ -5895,8 +5609,8 @@ class TestNativeThinkingTranslation:
         })
 
         # Same ToolCall object, now COMPLETED
-        assert len(status_builder.current_status.tool_calls) == 1
-        tc = status_builder.current_status.tool_calls[0]
+        assert status_builder.tool_call_count() == 1
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.id == streaming_id
         assert tc.name == "think"
         assert tc.args["thought"] == "My reasoning here"
@@ -5923,8 +5637,8 @@ class TestNativeThinkingTranslation:
         })
 
         # Verify streaming state
-        assert len(status_builder.current_status.tool_calls) == 1
-        tc = status_builder.current_status.tool_calls[0]
+        assert status_builder.tool_call_count() == 1
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
         assert tc.is_streaming is True
 
@@ -5950,8 +5664,8 @@ class TestNativeThinkingTranslation:
             "metadata": {},
         })
 
-        assert len(status_builder.current_status.tool_calls) == 1
-        tc = status_builder.current_status.tool_calls[0]
+        assert status_builder.tool_call_count() == 1
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.name == "think"
         assert tc.args["thought"] == "Thinking only, no text"
         assert tc.result == "ok"
@@ -5970,7 +5684,7 @@ class TestNativeThinkingTranslation:
             "metadata": {},
         })
 
-        assert len(status_builder.current_status.tool_calls) == 0
+        assert status_builder.tool_call_count() == 0
         assert len(status_builder.current_status.messages) == 1
         assert status_builder.current_status.messages[0].content == "Regular text"
         assert not status_builder._thinking_buffers
@@ -5994,7 +5708,7 @@ class TestNativeThinkingTranslation:
             "metadata": {},
         })
 
-        assert len(status_builder.current_status.tool_calls) == 0
+        assert status_builder.tool_call_count() == 0
 
     @pytest.mark.asyncio
     async def test_streaming_result_updates_incrementally(self, status_builder):
@@ -6011,8 +5725,8 @@ class TestNativeThinkingTranslation:
             })
 
             # Always the same single ToolCall
-            assert len(status_builder.current_status.tool_calls) == 1
-            tc = status_builder.current_status.tool_calls[0]
+            assert status_builder.tool_call_count() == 1
+            tc = next(status_builder.iter_all_tool_calls())
             assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
             assert tc.is_streaming is True
             expected = "".join(chunks[: i + 1])
@@ -6030,8 +5744,8 @@ class TestNativeThinkingTranslation:
                 "metadata": {},
             })
 
-        assert len(status_builder.current_status.tool_calls) == 1
-        tc = status_builder.current_status.tool_calls[0]
+        assert status_builder.tool_call_count() == 1
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.id.startswith("think-native-")
         assert tc.result == "ABC"
 
@@ -6047,7 +5761,7 @@ class TestNativeThinkingTranslation:
             "metadata": {},
         })
 
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
         assert tc.is_streaming is True
         assert tc.result == "Step 1. "
@@ -6062,7 +5776,7 @@ class TestNativeThinkingTranslation:
             "metadata": {},
         })
 
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.id == tc_id
         assert tc.result == "Step 1. Step 2."
 
@@ -6075,8 +5789,8 @@ class TestNativeThinkingTranslation:
             "metadata": {},
         })
 
-        assert len(status_builder.current_status.tool_calls) == 1
-        tc = status_builder.current_status.tool_calls[0]
+        assert status_builder.tool_call_count() == 1
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.id == tc_id
         assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED
         assert tc.is_streaming is False
@@ -6283,8 +5997,8 @@ class TestToolInputStreaming:
         """Accumulating input_json_delta fragments for a write tool should
         extract the 'contents' field and stream it into tool_call.result."""
         await status_builder.process_event(self._tool_use_chunk("write"))
-        assert len(status_builder.current_status.tool_calls) == 1
-        tc = status_builder.current_status.tool_calls[0]
+        assert status_builder.tool_call_count() == 1
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.name == "write"
         assert tc.result == ""
         assert tc.is_streaming is True
@@ -6292,7 +6006,7 @@ class TestToolInputStreaming:
         await status_builder.process_event(
             self._input_delta_chunk('{"path": "file.py", "contents": "def hello():\\n')
         )
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.result == "def hello():\n"
         assert tc.is_streaming is True
 
@@ -6303,17 +6017,17 @@ class TestToolInputStreaming:
         await status_builder.process_event(self._tool_use_chunk("write"))
 
         await status_builder.process_event(self._input_delta_chunk('{"pa'))
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.result == ""
 
         await status_builder.process_event(
             self._input_delta_chunk('th": "f.py", "contents": "line1\\n')
         )
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.result == "line1\n"
 
         await status_builder.process_event(self._input_delta_chunk("line2"))
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.result == "line1\nline2"
 
     @pytest.mark.asyncio
@@ -6324,7 +6038,7 @@ class TestToolInputStreaming:
         await status_builder.process_event(
             self._input_delta_chunk('{"path": "main.go", "new_text": "package main\\n')
         )
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.result == "package main\n"
 
     @pytest.mark.asyncio
@@ -6335,7 +6049,7 @@ class TestToolInputStreaming:
         await status_builder.process_event(
             self._input_delta_chunk('{"path": "/tmp/test.txt"}')
         )
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.result == ""
 
     @pytest.mark.asyncio
@@ -6346,7 +6060,7 @@ class TestToolInputStreaming:
         await status_builder.process_event(
             self._input_delta_chunk('{"path": "f.py", "contents": "hello"}')
         )
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.result == "hello"
 
         tool_start_event = {
@@ -6358,7 +6072,7 @@ class TestToolInputStreaming:
         }
         await status_builder.process_event(tool_start_event)
 
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.result == ""
         assert tc.is_streaming is False
         assert tc.args["path"] == "f.py"
@@ -6372,7 +6086,7 @@ class TestToolInputStreaming:
         await status_builder.process_event(
             self._input_delta_chunk('{"path": "f.py", "contents": "abc\\')
         )
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.result == "abc"
 
     @pytest.mark.asyncio
@@ -6382,7 +6096,7 @@ class TestToolInputStreaming:
         await status_builder.process_event(
             self._input_delta_chunk('{"path": "f.py", "contents": "caf\\u00e9"}')
         )
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.result == "café"
 
 
@@ -6439,195 +6153,6 @@ class TestPartialJsonHelpers:
 # =============================================================================
 # InterruptCapture._match_interrupt (StatusBuilder integration)
 # =============================================================================
-
-
-class TestTryEnrichPhase1Entry:
-    """Integration tests for InterruptCapture._match_interrupt with StatusBuilder.
-
-    Interrupts align to tool calls by ``tool_call_id`` when the tool call is in
-    ``TOOL_CALL_WAITING_APPROVAL`` (top-level or sub-agent). Duplicate ids are
-    skipped via ``matched_tc_ids``.
-    """
-
-    @pytest.fixture
-    def status_builder(self, mock_initial_status):
-        return StatusBuilder(
-            execution_id="test",
-            initial_status=mock_initial_status,
-        )
-
-    def _make_capture(self, status_builder):
-        import logging
-
-        from worker.activities.graphton.hitl import ApprovalStateManager, InterruptCapture
-
-        logger = logging.getLogger("test_status_builder")
-        return InterruptCapture(
-            execution_id="test",
-            status_builder=status_builder,
-            state_manager=ApprovalStateManager(execution_id="test", logger=logger),
-            logger=logger,
-            resolve_platform_tool_name=lambda name: name,
-        )
-
-    @staticmethod
-    def _waiting_tool(tc_id: str, name: str = "execute") -> ToolCall:
-        return ToolCall(
-            id=tc_id,
-            name=name,
-            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-            requires_approval=True,
-        )
-
-    def test_enriches_matching_entry(self, status_builder):
-        """Returns tool_call_id when that tool call is WAITING_APPROVAL."""
-        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
-
-        tc_id = "early-toolu_abc123"
-        status_builder.current_status.tool_calls.append(self._waiting_tool(tc_id))
-        status_builder.current_status.pending_approvals.append(
-            PendingApproval(
-                tool_call_id=tc_id,
-                tool_name="execute",
-                message="Run script?",
-                from_sub_agent=True,
-                sub_agent_name="validator",
-            )
-        )
-
-        ic = self._make_capture(status_builder)
-        matched: set[str] = set()
-        out = ic._match_interrupt(
-            tool_call_id=tc_id,
-            matched_tc_ids=matched,
-            intr_id="intr-001",
-        )
-        assert out == tc_id
-        assert matched == {tc_id}
-
-    def test_skips_entry_with_existing_interrupt_id(self, status_builder):
-        """Same tool_call_id matched twice: second call returns empty string."""
-        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
-
-        tc_id = "early-toolu_abc123"
-        status_builder.current_status.tool_calls.append(self._waiting_tool(tc_id))
-        status_builder.current_status.pending_approvals.append(
-            PendingApproval(
-                tool_call_id=tc_id,
-                tool_name="execute",
-                message="Run script?",
-                from_sub_agent=True,
-                interrupt_id="existing-intr",
-            )
-        )
-
-        ic = self._make_capture(status_builder)
-        matched: set[str] = set()
-        first = ic._match_interrupt(
-            tool_call_id=tc_id,
-            matched_tc_ids=matched,
-            intr_id="new-intr",
-        )
-        second = ic._match_interrupt(
-            tool_call_id=tc_id,
-            matched_tc_ids=matched,
-            intr_id="new-intr-2",
-        )
-        assert first == tc_id
-        assert second == ""
-        assert matched == {tc_id}
-
-    def test_no_match_returns_false(self, status_builder):
-        """Returns empty string when tool call is not WAITING_APPROVAL."""
-        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
-
-        tc_id = "early-toolu_abc123"
-        status_builder.current_status.tool_calls.append(
-            ToolCall(
-                id=tc_id,
-                name="read_file",
-                status=ToolCallStatus.TOOL_CALL_RUNNING,
-            )
-        )
-        status_builder.current_status.pending_approvals.append(
-            PendingApproval(
-                tool_call_id=tc_id,
-                tool_name="read_file",
-                message="Read file?",
-                from_sub_agent=False,
-            )
-        )
-
-        ic = self._make_capture(status_builder)
-        out = ic._match_interrupt(
-            tool_call_id=tc_id,
-            matched_tc_ids=set(),
-            intr_id="intr-001",
-        )
-        assert out == ""
-
-    def test_matches_from_sub_agent_flag(self, status_builder):
-        """WAITING_APPROVAL under sub_agent_executions matches by tool_call_id only."""
-        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
-        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
-        from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
-
-        tc_id = "early-toolu_abc123"
-        sa = SubAgentExecution(
-            id="sa-run-1",
-            name="validator",
-            status=SubAgentStatus.SUB_AGENT_IN_PROGRESS,
-            tool_calls=[self._waiting_tool(tc_id, name="execute")],
-        )
-        status_builder.current_status.sub_agent_executions.append(sa)
-        pa = PendingApproval(
-            tool_call_id=tc_id,
-            tool_name="execute",
-            message="Run command?",
-            from_sub_agent=False,
-        )
-        status_builder.current_status.pending_approvals.append(pa)
-
-        ic = self._make_capture(status_builder)
-        out = ic._match_interrupt(
-            tool_call_id=tc_id,
-            matched_tc_ids=set(),
-            intr_id="intr-001",
-        )
-        assert out == tc_id
-
-    def test_preserves_tool_call_id(self, status_builder):
-        """_match_interrupt returns the same tool_call_id passed in."""
-        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
-
-        original_tc_id = "early-toolu_preserve_me"
-        status_builder.current_status.tool_calls.append(self._waiting_tool(original_tc_id))
-        status_builder.current_status.pending_approvals.append(
-            PendingApproval(
-                tool_call_id=original_tc_id,
-                tool_name="execute",
-                from_sub_agent=True,
-            )
-        )
-
-        ic = self._make_capture(status_builder)
-        out = ic._match_interrupt(
-            tool_call_id=original_tc_id,
-            matched_tc_ids=set(),
-            intr_id="intr-001",
-        )
-        assert out == original_tc_id
-        assert status_builder.current_status.pending_approvals[0].tool_call_id == original_tc_id
-
-    def test_empty_pending_approvals_returns_false(self, status_builder):
-        """Returns empty string when no WAITING_APPROVAL tool call matches the id."""
-        ic = self._make_capture(status_builder)
-        out = ic._match_interrupt(
-            tool_call_id="execute",
-            matched_tc_ids=set(),
-            intr_id="intr-001",
-        )
-        assert out == ""
 
 
 # =============================================================================
@@ -6893,7 +6418,7 @@ class TestOrphanedSubAgentDetection:
         await status_builder.process_event(self._make_task_start_event("sa-mid", "task beta"))
 
         mid_agent = status_builder._active_sub_agents["sa-mid"]
-        mid_agent.tool_calls.append(ToolCall(name="read_file"))
+        mid_agent.messages.append(AgentMessage(content="reading file"))
 
         diag = status_builder.get_orphaned_sub_agents_diagnostic()
         assert diag["total"] == 2
@@ -7034,7 +6559,7 @@ class TestReadOnlyToolFiltering:
         file_content = "x" * 5000
         await self._fire_tool_round(status_builder, "read", "read-run-1", file_content)
 
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.result == f"[content omitted - {len(file_content)} chars]"
 
     @pytest.mark.asyncio
@@ -7043,7 +6568,7 @@ class TestReadOnlyToolFiltering:
         file_content = "line1\nline2\nline3"
         await self._fire_tool_round(status_builder, "read_file", "rf-run-1", file_content)
 
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.result == f"[content omitted - {len(file_content)} chars]"
 
     @pytest.mark.asyncio
@@ -7052,7 +6577,7 @@ class TestReadOnlyToolFiltering:
         grep_output = "file.py:10: match found"
         await self._fire_tool_round(status_builder, "grep", "grep-run-1", grep_output)
 
-        tc = status_builder.current_status.tool_calls[0]
+        tc = next(status_builder.iter_all_tool_calls())
         assert tc.result == grep_output
 
 
