@@ -1,5 +1,7 @@
 load("@rules_go//go:def.bzl", "go_library", "go_test")
 
+# gazelle:exclude webconsole_embed.go
+
 go_library(
     name = "webconsole",
     srcs = [
