@@ -353,13 +353,13 @@ enum ApiResourceKind {
     version: v1
     name: "ExecutionContext"
     display_name: "Execution Context"
-    id_prefix: "exec"
+    id_prefix: "ectx"
     is_versioned: false
     not_search_indexed: false
     tier: open_source
     authorization: {
-      scope_type: AUTHORIZATION_SCOPE_TYPE_NONE
-      owner_type: OWNER_ATTRIBUTION_TYPE_NONE
+      scope_type: AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY
+      owner_type: OWNER_ATTRIBUTION_TYPE_DIRECT
     }
   }];
 

@@ -466,7 +466,7 @@ const file_ai_stigmer_commons_apiresource_apiresourcekind_api_resource_kind_prot
 	"\bworkflow\x12\bworkflow\x1a\vworkflow_id\x12T\n" +
 	"\x12workflow_execution\x104\x1a<\xaa\xff+8\b\x01\x10\x01\x1a\x11WorkflowExecution\"\x12Workflow Execution*\x03wex@\x01J\x04\b\x02\x10\x01\x12B\n" +
 	"\venvironment\x105\x1a1\xaa\xff+-\b\x01\x10\x01\x1a\vEnvironment\"\vEnvironment*\x03env@\x01J\x06\b\x02\x10\x010\x01\x12R\n" +
-	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04exec@\x01J\x04\b\x05\x10\x04\x124\n" +
+	"\x11execution_context\x106\x1a;\xaa\xff+7\b\x01\x10\x01\x1a\x10ExecutionContext\"\x11Execution Context*\x04ectx@\x01J\x04\b\x04\x10\x01\x124\n" +
 	"\aproject\x10<\x1a'\xaa\xff+#\b\x03\x10\x01\x1a\aProject\"\aProject*\x03prj@\x01J\x04\b\x02\x10\x01:\x85\x01\n" +
 	"\tkind_meta\x12!.google.protobuf.EnumValueOptions\x18\xf5\xbf\x05 \x01(\v2C.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKindMetaR\bkindMetaB\x81\x03\n" +
 	"2com.ai.stigmer.commons.apiresource.apiresourcekindB\x14ApiResourceKindProtoP\x01ZWgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind\xa2\x02\x05ASCAA\xaa\x02.Ai.Stigmer.Commons.Apiresource.Apiresourcekind\xca\x02.Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\xe2\x02:Ai\\Stigmer\\Commons\\Apiresource\\Apiresourcekind\\GPBMetadata\xea\x022Ai::Stigmer::Commons::Apiresource::Apiresourcekindb\x06proto3"
