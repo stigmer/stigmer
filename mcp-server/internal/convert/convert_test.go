@@ -48,9 +48,10 @@ func TestVisibilityFromString(t *testing.T) {
 		{"PuBlIc", apiresource.ApiResourceVisibility_visibility_public},
 		{"PRIVATE", apiresource.ApiResourceVisibility_visibility_private},
 		{"private", apiresource.ApiResourceVisibility_visibility_private},
-		{"", apiresource.ApiResourceVisibility_visibility_private},
-		{"unknown", apiresource.ApiResourceVisibility_visibility_private},
-		{"PUBLICO", apiresource.ApiResourceVisibility_visibility_private},
+		{"Private", apiresource.ApiResourceVisibility_visibility_private},
+		{"", apiresource.ApiResourceVisibility_api_resource_visibility_unspecified},
+		{"unknown", apiresource.ApiResourceVisibility_api_resource_visibility_unspecified},
+		{"PUBLICO", apiresource.ApiResourceVisibility_api_resource_visibility_unspecified},
 	}
 	for _, tt := range tests {
 		name := tt.input

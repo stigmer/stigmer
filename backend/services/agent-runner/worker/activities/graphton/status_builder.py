@@ -10,6 +10,7 @@ import hashlib
 import inspect
 import json
 import logging
+from collections import deque
 from collections.abc import Callable, Coroutine, Iterator
 from datetime import datetime
 from typing import Any
@@ -481,7 +482,16 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────────
         self._run_id_aliases: dict[str, str] = {}
         self._fingerprint_to_tool_call_id: dict[str, str] = {}
-        
+
+        # Resume-aware dedup: tool calls recently reconciled from WAITING_APPROVAL
+        # to RUNNING by ResumeReconciler.  Keyed by tool_name → deque of
+        # tool_call_ids (FIFO order preserves match ordering when the same tool
+        # appears multiple times).  Consumed by _handle_tool_start_event as a
+        # fallback when fingerprint dedup fails (fingerprints are computed from
+        # display args in populate_fingerprints but raw args in the event, which
+        # can diverge due to humanization).
+        self._reconciled_resume_tool_calls: dict[str, deque[str]] = {}
+
         # ─────────────────────────────────────────────────────────────────────────
         # Execution Artifacts Tracking (Artifact Lifecycle)
         #
@@ -682,6 +692,28 @@ class StatusBuilder:
                     f"original_tc_id={original_tc_id} "
                     f"(fingerprint dedup on resume path)"
                 )
+            return
+
+        # Fallback: resume-aware dedup for reconciled tool calls.
+        # Fingerprint dedup above uses raw event args, but
+        # populate_fingerprints_from_existing_tool_calls computes from
+        # humanized display args stored in the proto Struct.  When
+        # _humanize_args_for_display transforms values (e.g. platform refs,
+        # env var resolution), the fingerprints diverge and the primary
+        # check above misses the match.  This fallback uses the explicit
+        # reconciled-tool registry populated by ResumeReconciler.
+        resume_queue = self._reconciled_resume_tool_calls.get(tool_name)
+        if resume_queue:
+            original_tc_id = resume_queue.popleft()
+            self._run_id_aliases[run_id] = original_tc_id
+            self.tool_call_fingerprints.add(fingerprint)
+            self._fingerprint_to_tool_call_id[fingerprint] = original_tc_id
+            self.logger.info(
+                f"[RESUME_ALIAS] execution={self.execution_id} "
+                f"tool={tool_name} new_run_id={run_id} -> "
+                f"original_tc_id={original_tc_id} "
+                f"(reconciled resume fallback)"
+            )
             return
 
         self.tool_call_fingerprints.add(fingerprint)

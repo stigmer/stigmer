@@ -14,6 +14,7 @@ Only one class remains:
 from __future__ import annotations
 
 import logging
+from collections import deque
 
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
@@ -94,6 +95,14 @@ class ResumeReconciler:
 
             if decision.action == ApprovalAction.APPROVAL_ACTION_REJECT:
                 has_reject = True
+
+            # Register for resume-aware dedup so _handle_tool_start_event
+            # can match the re-fired event even when fingerprints diverge.
+            if new_status == ToolCallStatus.TOOL_CALL_RUNNING:
+                q = self._sb._reconciled_resume_tool_calls.setdefault(
+                    tc.name, deque(),
+                )
+                q.append(tc.id)
 
             self._logger.info(
                 "[RESUME_RECONCILE] execution=%s "
