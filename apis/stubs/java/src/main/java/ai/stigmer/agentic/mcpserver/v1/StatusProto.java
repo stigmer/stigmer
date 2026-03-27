@@ -86,14 +86,14 @@ public final class StatusProto extends com.google.protobuf.GeneratedFile {
       " \n\013description\030\003 \001(\tR\013description\022\033\n\tmim" +
       "e_type\030\004 \001(\tR\010mimeType*K\n\017ValidationStat" +
       "e\022 \n\034validation_state_unspecified\020\000\022\t\n\005v" +
-      "alid\020\001\022\013\n\007invalid\020\002*\\\n\017DiscoverySource\022 " +
+      "alid\020\001\022\013\n\007invalid\020\002*e\n\017DiscoverySource\022 " +
       "\n\034discovery_source_unspecified\020\000\022\014\n\010seed" +
-      "pack\020\001\022\007\n\003cli\020\002\022\020\n\014agent_runner\020\003B\256\001B\013St" +
-      "atusProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic." +
-      "Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpser" +
-      "ver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1" +
-      "\\GPBMetadata\352\002#Ai::Stigmer::Agentic::Mcp" +
-      "server::V1b\006proto3"
+      "pack\020\001\022\007\n\003cli\020\002\022\020\n\014agent_runner\020\003\022\007\n\003api" +
+      "\020\004B\256\001B\013StatusProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer" +
+      ".Agentic.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agent" +
+      "ic\\Mcpserver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcp" +
+      "server\\V1\\GPBMetadata\352\002#Ai::Stigmer::Age" +
+      "ntic::Mcpserver::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

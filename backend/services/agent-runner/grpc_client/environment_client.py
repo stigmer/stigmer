@@ -8,6 +8,12 @@ import logging
 import grpc
 from ai.stigmer.agentic.environment.v1 import query_pb2_grpc
 from ai.stigmer.agentic.environment.v1.api_pb2 import Environment
+from ai.stigmer.agentic.environment.v1.io_pb2 import (
+    EnvironmentList,
+    EnvironmentSecretValueInput,
+    ListEnvironmentsRequest,
+)
+from ai.stigmer.agentic.environment.v1.spec_pb2 import EnvironmentValue
 from ai.stigmer.commons.apiresource.io_pb2 import ApiResourceReference
 
 from grpc_client.auth.client_interceptor import AuthClientInterceptor
@@ -116,4 +122,76 @@ class EnvironmentClient:
             raise
         except grpc.RpcError as e:
             logger.error(f"Failed to fetch environments: {e}")
+            raise
+
+    async def list_environments(
+        self,
+        org: str,
+        labels: dict[str, str] | None = None,
+    ) -> EnvironmentList:
+        """List environments filtered by organization and optional labels.
+
+        Mirrors the Go downstream client's ``List`` method. Used by the
+        MCP discovery activity to locate the caller's personal environment
+        (``labels={"stigmer.ai/personal": "true"}``).
+
+        Args:
+            org: Organization slug (required by the backend).
+            labels: Optional label filter with AND semantics.
+
+        Returns:
+            ``EnvironmentList`` proto with ``total_count`` and ``items``.
+
+        Raises:
+            grpc.RpcError: If the gRPC call fails.
+        """
+        req = ListEnvironmentsRequest(org=org)
+        if labels:
+            for k, v in labels.items():
+                req.labels[k] = v
+
+        try:
+            return await self.stub.list(req, timeout=self._timeout)
+        except grpc.RpcError as e:
+            logger.error("Failed to list environments for org '%s': %s", org, e)
+            raise
+
+    async def get_secret_value(
+        self,
+        environment_id: str,
+        key: str,
+    ) -> EnvironmentValue:
+        """Retrieve the unredacted value of a single secret key.
+
+        Mirrors the Go downstream client's ``GetSecretValue`` method.
+        The backend decrypts the value server-side and returns it in
+        the response. Requires creator-level permission on the
+        environment (enforced via FGA in cloud, unrestricted in OSS).
+
+        Args:
+            environment_id: System-generated ID of the environment.
+            key: The key within ``EnvironmentSpec.data`` to decrypt.
+
+        Returns:
+            ``EnvironmentValue`` proto with the decrypted ``value`` field.
+
+        Raises:
+            grpc.RpcError: If the gRPC call fails.
+            ValueError: If the key is not found in the environment.
+        """
+        req = EnvironmentSecretValueInput(
+            environment_id=environment_id,
+            key=key,
+        )
+        try:
+            return await self.stub.getSecretValue(req, timeout=self._timeout)
+        except grpc.RpcError as e:
+            if e.code() == grpc.StatusCode.NOT_FOUND:
+                raise ValueError(
+                    f"Secret key '{key}' not found in environment '{environment_id}'."
+                ) from e
+            logger.error(
+                "Failed to get secret value for key '%s' in env '%s': %s",
+                key, environment_id, e,
+            )
             raise

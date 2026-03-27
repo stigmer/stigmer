@@ -15,7 +15,6 @@ try:
         DaytonaConfig,
         DaytonaNotFoundError,
         SandboxState,
-        VolumeMount,
     )
     from daytona.common.daytona import CreateSandboxFromSnapshotParams
     DAYTONA_AVAILABLE = True
@@ -279,9 +278,7 @@ class SandboxManager:
         # FUSE+S3 volumes have ~1 file/s write throughput which causes
         # git checkout to take ~149 min for repos with thousands of files,
         # exceeding the 300s clone timeout.  Cloning to local overlay
-        # completes in ~4s.  Volume support is preserved as dead code
-        # below for future re-enablement if a concrete use case arises.
-        volume_mounts: list[Any] = []
+        # completes in ~4s.
         if not session_id:
             logger.info(
                 "No session_id -- creating ephemeral sandbox"

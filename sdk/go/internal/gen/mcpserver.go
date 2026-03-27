@@ -62,6 +62,11 @@ func (m *McpServerClient) UpdateDiscoveredCapabilities(ctx context.Context, inpu
 	return resp, wrapErr(err)
 }
 
+func (m *McpServerClient) DiscoverCapabilities(ctx context.Context, input *mcpserverv1.DiscoverCapabilitiesInput) (*mcpserverv1.McpServer, error) {
+	resp, err := m.command.DiscoverCapabilities(ctx, input)
+	return resp, wrapErr(err)
+}
+
 func (m *McpServerClient) Get(ctx context.Context, id string) (*mcpserverv1.McpServer, error) {
 	resp, err := m.query.Get(ctx, &apiresource.ApiResourceId{Value: id})
 	return resp, wrapErr(err)

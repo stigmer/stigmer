@@ -268,4 +268,114 @@ public interface PendingApprovalOrBuilder extends
    */
   com.google.protobuf.ByteString
       getInterruptIdBytes();
+
+  /**
+   * <pre>
+   * Current lifecycle state of this approval.
+   *
+   * Tracks which service last advanced this approval and where it is in the
+   * distributed pipeline. Forward-only: no service may move the state backward.
+   *
+   * UI consumers:
+   * - REQUESTED / INTERRUPT_CAPTURED: Show approval card (action available)
+   * - DECISION_RECORDED: Show decision badge (approval submitted, awaiting resume)
+   * - RESUME_RECONCILED / CLEARED: Hidden (approval fully processed)
+   *
+   * Defaults to UNSPECIFIED for backward compatibility with existing records.
+   *
+   * &#64;since HITL Approval Flow Hardening
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState lifecycle_state = 10 [json_name = "lifecycleState"];</code>
+   * @return The enum numeric value on the wire for lifecycleState.
+   */
+  int getLifecycleStateValue();
+  /**
+   * <pre>
+   * Current lifecycle state of this approval.
+   *
+   * Tracks which service last advanced this approval and where it is in the
+   * distributed pipeline. Forward-only: no service may move the state backward.
+   *
+   * UI consumers:
+   * - REQUESTED / INTERRUPT_CAPTURED: Show approval card (action available)
+   * - DECISION_RECORDED: Show decision badge (approval submitted, awaiting resume)
+   * - RESUME_RECONCILED / CLEARED: Hidden (approval fully processed)
+   *
+   * Defaults to UNSPECIFIED for backward compatibility with existing records.
+   *
+   * &#64;since HITL Approval Flow Hardening
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState lifecycle_state = 10 [json_name = "lifecycleState"];</code>
+   * @return The lifecycleState.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState getLifecycleState();
+
+  /**
+   * <pre>
+   * The approval decision recorded for this PendingApproval.
+   *
+   * Populated when lifecycle_state advances to DECISION_RECORDED (or later).
+   * This is the authoritative record of the user's decision. The
+   * ToolCall.approval_action field is a projection of this value.
+   *
+   * UNSPECIFIED when no decision has been made yet.
+   *
+   * &#64;since HITL Approval Flow Hardening
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction decision_action = 11 [json_name = "decisionAction"];</code>
+   * @return The enum numeric value on the wire for decisionAction.
+   */
+  int getDecisionActionValue();
+  /**
+   * <pre>
+   * The approval decision recorded for this PendingApproval.
+   *
+   * Populated when lifecycle_state advances to DECISION_RECORDED (or later).
+   * This is the authoritative record of the user's decision. The
+   * ToolCall.approval_action field is a projection of this value.
+   *
+   * UNSPECIFIED when no decision has been made yet.
+   *
+   * &#64;since HITL Approval Flow Hardening
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction decision_action = 11 [json_name = "decisionAction"];</code>
+   * @return The decisionAction.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ApprovalAction getDecisionAction();
+
+  /**
+   * <pre>
+   * ISO 8601 timestamp when the approval decision was recorded.
+   *
+   * Populated alongside decision_action when lifecycle_state advances to
+   * DECISION_RECORDED. The ToolCall.approval_decided_at field is a projection
+   * of this value.
+   *
+   * &#64;since HITL Approval Flow Hardening
+   * </pre>
+   *
+   * <code>string decision_recorded_at = 12 [json_name = "decisionRecordedAt"];</code>
+   * @return The decisionRecordedAt.
+   */
+  java.lang.String getDecisionRecordedAt();
+  /**
+   * <pre>
+   * ISO 8601 timestamp when the approval decision was recorded.
+   *
+   * Populated alongside decision_action when lifecycle_state advances to
+   * DECISION_RECORDED. The ToolCall.approval_decided_at field is a projection
+   * of this value.
+   *
+   * &#64;since HITL Approval Flow Hardening
+   * </pre>
+   *
+   * <code>string decision_recorded_at = 12 [json_name = "decisionRecordedAt"];</code>
+   * @return The bytes for decisionRecordedAt.
+   */
+  com.google.protobuf.ByteString
+      getDecisionRecordedAtBytes();
 }

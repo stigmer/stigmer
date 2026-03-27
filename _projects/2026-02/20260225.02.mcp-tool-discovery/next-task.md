@@ -6,163 +6,111 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Project: 20260225.02.mcp-tool-discovery
 
-**Description**: Add MCP server tool/resource discovery to Stigmer. CLI uses the Go MCP SDK to connect locally and discover tools/resources, then pushes results to stigmer-server via a new updateDiscoveredCapabilities RPC. Dynamic discovery replaces static seedpack tool lists.
-**Goal**: Enable Stigmer to store and expose the list of tools/resources available on each configured MCP server, so agents can make informed decisions about which MCP servers to use.
-**Tech Stack**: Protobuf, Go (CLI, stigmer-server, mcp-server codegen), Java (stigmer-cloud), buf generate
-**Components**: APIs (proto definitions), stigmer-server (RPC handler), stigmer-cloud (RPC handler with FGA), CLI (discover command, bootstrap discovery), mcp-server (codegen), shared library (mcpdiscovery)
+**Description**: Add MCP server tool/resource discovery to Stigmer. CLI uses the Go MCP SDK to connect locally and discover tools/resources, then pushes results to stigmer-server via a new updateDiscoveredCapabilities RPC. Web console triggers server-side discovery via Temporal workflow. AI-driven approval policy generation via mcp-server-creator agent.
+**Goal**: Enable Stigmer to store and expose the list of tools/resources available on each configured MCP server, and automatically generate approval policies for those tools.
+**Tech Stack**: Protobuf, Go (CLI, stigmer-server), Java (stigmer-cloud), Python (agent-runner Temporal activity), TypeScript (SDK + React), buf generate
+**Components**: APIs (proto definitions), stigmer-server (RPC handler), stigmer-cloud (RPC handler with FGA), CLI (discover command, bootstrap discovery), agent-runner (Temporal activity), SDK (TypeScript client, React hooks + components), shared library (mcpdiscovery)
 
 ## Current State
 
-- **Status**: In Progress — Phase 5 Complete, ready for end-to-end testing
-- **Last Session**: 2026-02-25 — Completed Phase 5 (Bootstrap discovery integration)
-- **Active Task**: End-to-end testing and iteration
+- **Status**: In Progress — Implementation complete, ready for end-to-end testing
+- **Last Session**: 2026-03-27 — Completed server-side discovery + React SDK + approval policy generation
+- **Active Task**: End-to-end testing of discovery and approval policy flows
 
-## Session Progress (2026-02-25)
+## Session Progress (2026-03-27) — Session 4
 
-### Phase 1: Proto Changes + Codegen — COMPLETE
+### Server-side Discovery (New)
 
-- Extended `McpServerStatus` in `status.proto` with `discovered_capabilities` field (field 3)
-- Added 3 new messages: `DiscoveredCapabilities`, `DiscoveredTool`, `DiscoveredResourceTemplate`
-- Added `DiscoverySource` enum (seedpack, cli, agent_runner)
-- Added `UpdateDiscoveredCapabilitiesInput` to `io.proto`
-- Added `updateDiscoveredCapabilities` RPC to `command.proto` with `can_edit` IAM authorization
-- Ran `make build` in `apis/` — buf lint passed, all language stubs generated
-- Verified all downstream Go modules compile: stubs, stigmer-server, CLI, mcp-server
+- **Proto**: Added `DiscoverCapabilitiesInput` message, `discoverCapabilities` RPC with `can_edit` authorization, `api = 4` in `DiscoverySource` enum
+- **Agent-runner**: New `discover_mcp_server.py` with `DiscoverMcpServerWorkflow` + `discover_mcp_server` activity using `MultiServerMCPClient`
+- **Go backend**: New `discover_capabilities.go` handler (resolve credentials → start Temporal workflow → block → store). Auto-discovery on apply via `StartBestEffortDiscovery` goroutine
+- **Java backend**: New `McpServerDiscoverCapabilitiesHandler.java` with 5-step pipeline (LoadFromRepo → Authorize → ResolveCredentials → ExecuteDiscoveryWorkflow → StoreDiscoveredCapabilities)
+- **Stubs**: All regenerated (Go, Java, Python, TypeScript, Dart)
 
-### Phase 3: Server-Side RPC Handlers (Go + Java) — COMPLETE
+### React SDK (New)
 
-**Go (stigmer repo):**
-- Created `update_discovered_capabilities.go` in mcpserver controller with custom 4-step pipeline:
-  - ValidateProto → LoadMcpServerById → SetDiscoveredCapabilities → PersistMcpServer
-- Added `UpdateDiscoveredCapabilities` method to downstream mcpserver client
-- Updated BUILD.bazel with new source file and `apiresourcekind` dependency
-- All Bazel builds pass: controller, downstream client, server package
+- **`useDiscoverCapabilities`** — Wraps `discoverCapabilities` RPC
+- **`useMcpServerCredentials`** — Checks personal env against `env_spec`, computes missing vars, saves credentials
+- **`useTriggerApprovalPolicySession`** — Creates agent session with pre-filled prompt + YAML attachment
+- **`ApprovalPolicyGeneratorPanel`** — Inline execution streaming using `MessageThread` + `ExecutionProgress`
+- **Enhanced `McpServerDetailView`** — Discovery button, credential form, approval policies section, generate policies button + inline panel
 
-**Java (stigmer-cloud repo):**
-- Created `McpServerUpdateDiscoveredCapabilitiesHandler.java` extending `CustomOperationHandlerV2<UpdateDiscoveredCapabilitiesInput, McpServer>` with 7-step pipeline:
-  - ValidateFieldConstraints → LoadFromRepo → Authorize (FGA can_edit) → SetDiscoveredCapabilities → Persist → TransformResponse → SendResponse
-- Updated `McpServerGrpcAutoController.java` with @see reference
-- Handler compiles successfully (pre-existing errors in other files unrelated)
+### Agent Enhancement
 
-### Phase 2: Seedpack — REVISED (deferred to after CLI)
+- Added `apply_mcp_server` to `mcp-server-creator` agent's `enabled_tools` in seedpack
 
-Original plan was static tool lists in seedpack YAML. Decision changed: tools will be discovered dynamically via CLI command (`stigmer discover mcp-server`), not hardcoded. Seedpack YAML stays lean (transport config only). Bootstrap wiring will call CLI discovery after MCP servers are applied.
+## Phases Complete
 
-### Phase 4: CLI Discovery Command — COMPLETE
-
-**New command**: `stigmer discover mcp-server <ref> [--org <org>] [--timeout 30s] [--dry-run]`
-
-**Files created (5 new files in `internal/cli/mcpserver/`):**
-- `discover_transport.go` → moved to shared library in Phase 5
-- `discover_convert.go` → moved to shared library in Phase 5
-- `discover.go` — Orchestration: fetch server → delegate to shared library → push via RPC
-- `discover_display.go` — Terminal output (unchanged)
-- `discover.go` (cmd) — Thin Cobra command in `cmd/stigmer/root/`
-
-### Phase 5: Bootstrap Discovery Integration — COMPLETE
-
-**Shared library** (`backend/libs/go/mcpdiscovery/`) — 3 new files:
-- `transport.go` — Transport factory with `CreateTransport(spec, envOverrides)`. Accepts env override slices merged on top of `os.Environ()` via `mergeEnv`.
-- `convert.go` — `ConvertTools` and `ConvertResourceTemplates` map MCP SDK types to proto types.
-- `discover.go` — `Discover(ctx, spec, envOverrides, source)` creates transport, connects MCP client, lists tools/templates with pagination, converts, returns `DiscoveredCapabilities`.
-
-**Credential resolution** (`client-apps/cli/internal/cli/mcpserver/env_resolver.go`):
-- `ResolveEnvForDiscovery(server, cfg)` reads env_spec, checks os.Environ() first, resolves from CLI config.
-- `STIGMER_SERVER_ADDRESS` — `localhost:7234` for local, cloud endpoint for cloud.
-- `STIGMER_API_KEY` — empty for local, stored token for cloud.
-- Extensible: add a case to `resolveKnownVar` for future MCP servers (GitHub, AWS, etc.).
-
-**Auto-discovery** (`client-apps/cli/internal/cli/mcpserver/discover_all.go`):
-- `DiscoverAll(ctx, opts)` uses search API to list MCP servers, fetches each, filters to stdio-only, resolves env, discovers, pushes. Best-effort per server.
-
-**Bootstrap wiring** (`client-apps/cli/cmd/stigmer/root/server.go`):
-- `runBootstrapDiscovery(cfg)` called synchronously after daemon starts, before "Ready!" message.
-
-**CLI refactoring:**
-- `discover.go` delegates to `mcpdiscovery.Discover()` from shared library.
-- Added `DiscoverServer()` for bootstrap flow (takes pre-fetched McpServer proto).
-- Deleted `discover_transport.go` and `discover_convert.go` (moved to shared lib).
-
-**Verification**: `go build ./...`, `go vet`, and `bazel build` all pass for both modules.
-
-### Design Decisions Made
-
-1. **`discovered_capabilities` lives in `McpServerStatus`** — Status tracks structural validation + discovered capabilities.
-2. **`DiscoverySource` as an enum, not string** — Values: `seedpack`, `cli`, `agent_runner`.
-3. **`input_schema` as `google.protobuf.Struct`, not `string`** — Canonical proto representation for arbitrary JSON.
-4. **`DiscoveredResourceTemplate` (not `DiscoveredResource`)** — Matches MCP spec's URI template distinction.
-5. **Dynamic discovery over static seedpack** — Tools/resources come from the MCP server itself via CLI discovery, not from hardcoded YAML.
-6. **Custom pipeline steps for Go handler** — `UpdateDiscoveredCapabilitiesInput` uses `mcp_server_id` not `value`.
-7. **`discover` as a top-level verb** — Follows existing `verb type name` CLI pattern.
-8. **Both stdio and HTTP transport** — Stdio uses `CommandTransport`, HTTP uses `StreamableClientTransport`.
-9. **Iterator-based pagination** — Uses MCP SDK iterators for automatic pagination.
-10. **CLI-side discovery, not server-side** — Server stays lean, no MCP SDK dependency. All process spawning and credential resolution in the CLI.
-11. **Synchronous discovery** — Blocks `stigmer server` startup until discovery completes; capabilities available immediately.
-12. **Shared library in `backend/libs/go/mcpdiscovery/`** — Core MCP protocol logic reusable by both CLI and (potentially) server in the future.
-13. **Env resolver with priority: shell > CLI config > skip** — User's env vars always win; CLI config fills gaps.
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 1 | Proto changes + codegen | COMPLETE |
+| 2 | Agent-runner Temporal activity | COMPLETE |
+| 3 | Go + Java backend handlers | COMPLETE |
+| 4 | TypeScript SDK method | COMPLETE |
+| 5 | React SDK hooks + components | COMPLETE |
+| 6 | Enhanced McpServerDetailView | COMPLETE |
+| 7 | Auto-discovery on apply (Go) | COMPLETE |
+| E2E | End-to-end testing | PENDING |
 
 ## Next Steps
 
-### End-to-End Testing
+### End-to-End Testing (Priority)
 
-1. Run `stigmer server` and verify discovery triggers automatically after bootstrap
-2. Verify `stigmer discover mcp-server stigmer-mcp-server` works as a standalone command
-3. Check that 12 tools and 5 resource templates are discovered and stored
-4. Verify `get mcp-server` shows the discovered capabilities in status
+1. Test discovery from web console: click "Discover Tools" → credential prompt → discovery runs → tools appear
+2. Test approval policy generation: click "Generate Policies" → agent session starts → inline panel streams progress → policies applied
+3. Test auto-discovery on apply: `apply` MCP server YAML → tools auto-discovered in background
+4. Test credential flow: missing env vars → prompt → save → auto-trigger discovery
+5. Verify Java handler in stigmer-cloud compiles and integrates
 
-### Future Work
+### Follow-up Work
 
-- Add GitHub MCP server to seedpack with `GITHUB_TOKEN` resolver (reads from `~/.config/gh/hosts.yml`)
-- Add AWS MCP server with credential resolver (reads from `~/.aws/credentials`)
-- Expose discovered capabilities in agent config UI so users can see available tools
+- Add auto-discovery to Java `apply` handler (currently only Go has it)
+- Test agent-runner Temporal activity with various MCP server types (stdio, HTTP)
+- Consider adding a progress indicator during the ~30s discovery blocking period
+- Evaluate whether `ApprovalPolicyGeneratorPanel` needs approval handling (user approve/reject on tool calls)
 
 ## Context for Resume
 
-- All 5 phases are implemented and compile cleanly
-- Proto foundation, RPC handlers (Go + Java), CLI command, and bootstrap integration are complete
-- The shared library `backend/libs/go/mcpdiscovery/` contains the reusable MCP discovery core
-- The env resolver pattern is ready for extension (add cases for `GITHUB_TOKEN`, `AWS_*`, etc.)
-- MCP SDK (`v1.3.0`) is a dependency of both `client-apps/cli` and `backend/libs/go` modules
-- Pre-existing Bazel issue with `com_github_charmbracelet_glamour` in `mdrender/BUILD.bazel` (not ours)
+- All implementation is complete across both repos (stigmer + stigmer-cloud)
+- stigmer-cloud has uncommitted changes: regenerated stubs + new Java handler
+- The `mcp-server/proto/` BUILD.bazel files in stigmer are unrelated (from mcp-server codegen module)
+- Pre-existing approval-related stub changes in stigmer-cloud are from HITL flow hardening, not this project
+- Key architectural decision: both backends delegate to the same Python Temporal workflow on the agent-runner's task queue
 
 ## Essential Files
 
-### Shared library (Phase 5 output)
-- `backend/libs/go/mcpdiscovery/discover.go` — Core discovery logic
-- `backend/libs/go/mcpdiscovery/transport.go` — Transport factory with env merge
-- `backend/libs/go/mcpdiscovery/convert.go` — MCP SDK → proto type conversion
+### New in this session
+- `backend/services/agent-runner/worker/activities/discover_mcp_server.py` — Temporal workflow + activity
+- `backend/services/stigmer-server/pkg/domain/mcpserver/controller/discover_capabilities.go` — Go handler
+- `stigmer-cloud/.../McpServerDiscoverCapabilitiesHandler.java` — Java handler
+- `sdk/react/src/mcp-server/useDiscoverCapabilities.ts`
+- `sdk/react/src/mcp-server/useMcpServerCredentials.ts`
+- `sdk/react/src/mcp-server/useTriggerApprovalPolicySession.ts`
+- `sdk/react/src/mcp-server/ApprovalPolicyGeneratorPanel.tsx`
 
-### CLI bootstrap discovery (Phase 5 output)
-- `client-apps/cli/internal/cli/mcpserver/env_resolver.go` — Credential resolution
-- `client-apps/cli/internal/cli/mcpserver/discover_all.go` — DiscoverAll for bootstrap
-- `client-apps/cli/internal/cli/mcpserver/discover.go` — Refactored orchestration
-- `client-apps/cli/cmd/stigmer/root/server.go` — Bootstrap wiring (runBootstrapDiscovery)
+### Modified in this session
+- `apis/ai/stigmer/agentic/mcpserver/v1/{command,io,status}.proto` + all stubs
+- `backend/services/agent-runner/worker/worker.py`
+- `backend/services/stigmer-server/pkg/domain/mcpserver/controller/{apply,mcpserver_controller}.go`
+- `backend/services/stigmer-server/pkg/server/server.go`
+- `sdk/react/src/mcp-server/McpServerDetailView.tsx`
+- `sdk/react/src/mcp-server/index.ts` + `sdk/react/src/index.ts`
+- `sdk/typescript/src/gen/mcpserver.ts`
+- `seedpack/agents/mcp-server-creator.yaml`
 
-### Proto files (Phase 1 output)
-- `apis/ai/stigmer/agentic/mcpserver/v1/status.proto` — DiscoveredCapabilities, DiscoveredTool, DiscoveredResourceTemplate, DiscoverySource
-- `apis/ai/stigmer/agentic/mcpserver/v1/io.proto` — UpdateDiscoveredCapabilitiesInput
-- `apis/ai/stigmer/agentic/mcpserver/v1/command.proto` — updateDiscoveredCapabilities RPC
+### From earlier sessions (unchanged)
+- `backend/libs/go/mcpdiscovery/` — Shared Go discovery library
+- `client-apps/cli/internal/cli/mcpserver/` — CLI discovery command + env resolver
+- `client-apps/cli/cmd/stigmer/root/server.go` — Bootstrap wiring
 
-### Go RPC handler (Phase 3 output)
-- `backend/services/stigmer-server/pkg/domain/mcpserver/controller/update_discovered_capabilities.go`
-- `backend/services/stigmer-server/pkg/downstream/mcpserver/client.go`
-
-### Java RPC handler (Phase 3 output)
-- `backend/services/stigmer-service/.../McpServerUpdateDiscoveredCapabilitiesHandler.java`
-- `backend/services/stigmer-service/.../McpServerGrpcAutoController.java`
-
-### CLI discover command (Phase 4 output)
-- `client-apps/cli/cmd/stigmer/root/discover.go` — Cobra command definition
-- `client-apps/cli/internal/cli/mcpserver/discover_display.go` — Terminal display
-
-### Project documentation
-- `_projects/2026-02/20260225.02.mcp-tool-discovery/tasks/T01_0_plan.md` — Full implementation plan
+### Plan
+- `_plans/mcp_discovery_and_approval_dc8a630d.plan.md` — Full implementation plan
 
 ## Quick Commands
 
 After loading context:
-- "Run end-to-end test" — Test the full discovery flow
-- "Add GitHub MCP server" — Next credential resolver to implement
+- "Run end-to-end test" — Test the full discovery + policy generation flow
+- "Add auto-discovery to Java apply" — Extend stigmer-cloud apply handler
 - "Show project status" — Get overview of progress
 
 ---

@@ -1,10 +1,7 @@
 """Temporal activity for executing Graphton agents."""
 
-import asyncio
 import contextlib
-import logging
 import os
-import time
 import traceback
 from typing import Any, cast
 
@@ -15,7 +12,6 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase,
     MessageType,
     SubAgentStatus,
-    ToolCallStatus,
 )
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import (
     ApprovalDecisionList,
@@ -48,22 +44,24 @@ from worker.activities.graphton.approval_policy import (
     resolve_platform_tool_name,
 )
 from worker.activities.graphton.attachments import (
-    _MAX_ZIP_EXTRACTED_SIZE,
-    _MAX_ZIP_FILES,
-    _validate_zip_for_extraction,
-    auto_publish_written_files as _auto_publish_written_files,
+    _MAX_ZIP_EXTRACTED_SIZE,  # noqa: F401 — re-exported for tests
+    _MAX_ZIP_FILES,  # noqa: F401 — re-exported for tests
+    _validate_zip_for_extraction,  # noqa: F401 — re-exported for tests
     inject_attachments,
 )
+from worker.activities.graphton.attachments import (
+    auto_publish_written_files as _auto_publish_written_files,
+)
 from worker.activities.graphton.hitl import (
+    ApprovalStateManager,
     CheckpointFallback,
     ResumeReconciler,
-    _try_enrich_phase1_entry,
 )
-from worker.activities.graphton.temporal_helpers import (
-    SetupTimer,
-    heartbeat_during_setup,
-    run_sync_with_heartbeat as _run_sync_with_heartbeat,
-    slim_status_for_temporal as _slim_status_for_temporal,
+from worker.activities.graphton.prompt_builder import (
+    _format_entry_description,  # noqa: F401 — re-exported for tests
+    build_referenced_files_prompt_section,  # noqa: F401 — re-exported for tests
+    build_workspace_prompt_section,  # noqa: F401 — re-exported for tests
+    enhance_system_prompt,
 )
 from worker.activities.graphton.session_context_merge import (
     merge_mcp_server_usages,
@@ -72,11 +70,15 @@ from worker.activities.graphton.session_context_merge import (
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
-from worker.activities.graphton.prompt_builder import (
-    build_referenced_files_prompt_section,
-    build_workspace_prompt_section,
-    enhance_system_prompt,
-    _format_entry_description,
+from worker.activities.graphton.temporal_helpers import (
+    SetupTimer,
+    heartbeat_during_setup,
+)
+from worker.activities.graphton.temporal_helpers import (
+    run_sync_with_heartbeat as _run_sync_with_heartbeat,
+)
+from worker.activities.graphton.temporal_helpers import (
+    slim_status_for_temporal as _slim_status_for_temporal,
 )
 from worker.activities.relevance import (
     WorkspaceRoot,
@@ -91,16 +93,21 @@ from worker.resilience import (
     RetryConfig,
 )
 from worker.sandbox_manager import SandboxManager
-from worker.storage import ArtifactStorage, create_artifact_storage
-from worker.streaming import StreamingConfig, StreamingUpdateScheduler
+from worker.storage import (  # noqa: F401 — ArtifactStorage re-exported for tests
+    ArtifactStorage,
+    create_artifact_storage,
+)
+from worker.streaming import (  # noqa: F401 — StreamingUpdateScheduler re-exported for tests
+    StreamingConfig,
+    StreamingUpdateScheduler,
+)
 from worker.token_manager import get_api_key
-
-# publish_artifact moved to worker.activities.graphton.attachments
+from worker.tools import publish_artifact as _publish_artifact_to_storage
 from worker.workspace import (
     LocalWorkspaceBackend,
     ProvisionResult,
     SourceType,
-    WorkspaceBackend,
+    WorkspaceBackend,  # noqa: F401 — re-exported for tests
     WorkspaceProvisioner,
     WorkspaceProvisionError,
     initialize_workspace,
@@ -111,9 +118,6 @@ from worker.workspace import (
 
 
 
-# _try_enrich_phase1_entry is imported from worker.activities.graphton.hitl
-# Re-exported here for backward compatibility with existing test imports.
-#
 # _slim_status_for_temporal, SetupTimer, heartbeat_during_setup, and
 # _run_sync_with_heartbeat are imported from
 # worker.activities.graphton.temporal_helpers and re-exported at module
@@ -1410,21 +1414,61 @@ async def _execute_graphton_impl(
                 transformed_subagents = None
         
         # ─────────────────────────────────────────────────────────────────────────────
-        # Step 5.10: Create Artifact Storage (for post-stream auto-publish)
+        # Step 5.10: Create Artifact Storage & Inline Publish Callback
         #
-        # Artifact storage is used by the post-stream auto-publish safety net
-        # to upload files created or modified by the agent as downloadable
-        # artifacts.  The agent does NOT receive a publish_artifact tool —
-        # publishing is handled structurally by the platform after the stream
-        # completes, based on completed file-modifying tool calls (write,
-        # write_file, edit, edit_file).  This eliminates dependence on LLM
-        # compliance for artifact delivery.
+        # Artifact storage uploads files created/modified by the agent as
+        # downloadable artifacts.  The agent does NOT receive a
+        # publish_artifact tool — publishing is handled structurally by the
+        # platform, both inline (fire-and-forget on each write/edit tool
+        # completion) and post-stream (safety-net for anything missed).
         # ─────────────────────────────────────────────────────────────────────────────
         artifact_storage = create_artifact_storage(worker_config.artifact_storage)
         activity_logger.info(
             f"Created artifact storage ({worker_config.artifact_storage.storage_type}) "
-            "for post-stream auto-publish"
+            "for inline + post-stream artifact publish"
         )
+
+        async def _publish_file_inline(path: str) -> None:
+            """Fire-and-forget callback: upload a single file from the
+            sandbox to artifact storage and register it on the status
+            builder so the next progressive gRPC update carries it to
+            the UI.
+
+            Exceptions are logged and swallowed — this must never crash
+            the streaming loop.
+            """
+            from pathlib import PurePosixPath
+
+            try:
+                normalizer = (
+                    workspace_backend._normalize
+                    if hasattr(workspace_backend, "_normalize")
+                    else None
+                )
+                rel_path = normalizer(path) if normalizer else path.lstrip("/")
+                file_name = PurePosixPath(rel_path).name
+
+                artifact = await _publish_artifact_to_storage(
+                    sandbox=sandbox,
+                    storage=artifact_storage,
+                    execution_id=execution_id,
+                    path=rel_path,
+                    name=file_name,
+                    local_root=(
+                        workspace_backend.root_dir if sandbox is None else None
+                    ),
+                )
+                status_builder.add_artifact(artifact)
+                activity_logger.info(
+                    f"[INLINE_PUBLISH] execution={execution_id} — "
+                    f"published '{rel_path}' as artifact '{file_name}'"
+                )
+            except Exception as exc:
+                activity_logger.warning(
+                    f"[INLINE_PUBLISH] execution={execution_id} — "
+                    f"failed to publish '{path}' (non-fatal, safety net "
+                    f"will retry): {exc}"
+                )
         
         # Create Graphton agent.
         #
@@ -1587,6 +1631,18 @@ async def _execute_graphton_impl(
             
             if loop_aborted:
                 resume_dict = {}
+                status_builder.current_status.messages.append(
+                    AgentMessage(
+                        type=MessageType.MESSAGE_SYSTEM,
+                        content=(
+                            f"⚠️ Approval resume skipped: a pending approval "
+                            f"(tool_call_id={pa.tool_call_id}) had no matching "
+                            f"decision. The agent will restart from its last "
+                            f"checkpoint instead of resuming."
+                        ),
+                        timestamp=_utc_timestamp(),
+                    )
+                )
             
             # Defense-in-depth: when Phase 2 enrichment failed to populate
             # interrupt_id (e.g., legacy from_sub_agent mismatch), query the
@@ -1713,6 +1769,9 @@ async def _execute_graphton_impl(
             resume_reconciler = ResumeReconciler(
                 execution_id=execution_id,
                 status_builder=status_builder,
+                state_manager=ApprovalStateManager(
+                    execution_id=execution_id, logger=activity_logger,
+                ),
                 logger=activity_logger,
             )
             resume_reconciler.reconcile(approval_decisions=approval_decisions)
@@ -1786,14 +1845,14 @@ async def _execute_graphton_impl(
             is_cancelled_fn=activity.is_cancelled,
             slim_status_fn=_slim_status_for_temporal,
             logger=activity_logger,
+            on_file_written=_publish_file_inline,
         )
         stream_result = await stream_executor.execute(
             graph_input, is_resume=is_resume_from_approval,
         )
         if stream_result.terminal_status is not None:
             return stream_result.terminal_status
-        events_processed = stream_result.events_processed
-        
+
         from worker.activities.graphton.post_stream import process_post_stream
         post_result = await process_post_stream(
             status_builder=status_builder,
@@ -1806,6 +1865,7 @@ async def _execute_graphton_impl(
             merged_env_vars=merged_env_vars,
             secret_keys=secret_keys,
             auto_publish_fn=_auto_publish_written_files,
+            pending_publish_tasks=stream_executor.pending_publish_tasks,
             resolve_platform_tool_name=resolve_platform_tool_name,
             humanize_platform_refs=humanize_platform_refs,
             resolve_display_env_vars=resolve_display_env_vars,

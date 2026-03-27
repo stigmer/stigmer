@@ -31,6 +31,8 @@ from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 if TYPE_CHECKING:
     from grpc_client.agent_execution_client import AgentExecutionClient
 
+_FILE_MODIFYING_TOOLS = frozenset({"write", "write_file", "edit", "edit_file"})
+
 
 @dataclasses.dataclass(frozen=True)
 class StreamResult:
@@ -63,7 +65,7 @@ class StreamExecutor:
         execution_id: str,
         thread_id: str,
         status_builder: StatusBuilder,
-        execution_client: "AgentExecutionClient",
+        execution_client: AgentExecutionClient,
         streaming_config: StreamingConfig,
         stall_timeout_seconds: int,
         grpc_update_timeout_seconds: int,
@@ -72,6 +74,7 @@ class StreamExecutor:
         is_cancelled_fn: Callable[[], bool],
         slim_status_fn: Callable[[AgentExecutionStatus], AgentExecutionStatus],
         logger: logging.Logger,
+        on_file_written: Callable[[str], Any] | None = None,
     ) -> None:
         self._graph = agent_graph
         self._config = config
@@ -87,6 +90,54 @@ class StreamExecutor:
         self._is_cancelled = is_cancelled_fn
         self._slim_status = slim_status_fn
         self._log = logger
+        self._on_file_written = on_file_written
+        self._pending_publishes: set[asyncio.Task[None]] = set()
+
+    @property
+    def pending_publish_tasks(self) -> set[asyncio.Task[None]]:
+        """Background publish tasks that have not yet completed.
+
+        Callers (typically post-stream processing) should ``await`` these
+        before running the safety-net auto-publish so that any in-flight
+        uploads have a chance to finish.
+        """
+        self._pending_publishes.discard(None)  # type: ignore[arg-type]
+        self._pending_publishes = {t for t in self._pending_publishes if not t.done()}
+        return set(self._pending_publishes)
+
+    def _maybe_trigger_inline_publish(self, event: dict[str, Any]) -> None:
+        """If *event* is an ``on_tool_end`` for a file-modifying tool, fire a
+        background publish task via the ``on_file_written`` callback."""
+        if self._on_file_written is None:
+            return
+        if event.get("event") != "on_tool_end":
+            return
+        tool_name = event.get("name", "")
+        if tool_name not in _FILE_MODIFYING_TOOLS:
+            return
+
+        run_id = event.get("run_id", "")
+        resolved_id = self._sb._resolve_run_id(run_id)
+        path = ""
+        for tc in self._sb.current_status.tool_calls:
+            if tc.id == resolved_id:
+                path = dict(tc.args).get("path", "") if tc.args else ""
+                break
+
+        if not path:
+            self._log.debug(
+                "[INLINE_PUBLISH] execution=%s — no path found for "
+                "tool_end run_id=%s tool=%s, skipping",
+                self._execution_id, run_id, tool_name,
+            )
+            return
+
+        task = asyncio.create_task(
+            self._on_file_written(path),
+            name=f"inline-publish-{self._execution_id}-{path}",
+        )
+        self._pending_publishes.add(task)
+        task.add_done_callback(self._pending_publishes.discard)
 
     # ------------------------------------------------------------------
     # Public
@@ -138,6 +189,7 @@ class StreamExecutor:
                         raise asyncio.CancelledError("Paused by user")
 
                     await self._sb.process_event(event)
+                    self._maybe_trigger_inline_publish(event)
                     events_processed += 1
 
                     now = time.monotonic()

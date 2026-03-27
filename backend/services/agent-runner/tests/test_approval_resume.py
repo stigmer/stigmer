@@ -1,7 +1,7 @@
 """Tests for approval resume fixes: Phase 2 enrichment and interrupt_id fallback.
 
 Tests cover:
-- _try_enrich_phase1_entry relaxed matching (ignores from_sub_agent mismatch)
+- InterruptCapture._try_enrich_phase1_entry relaxed matching (ignores from_sub_agent mismatch)
 - Phase 2 name-based matching broadened scope (searches sub_agent_executions)
 
 These tests verify the defense-in-depth changes that ensure sub-agent approval
@@ -9,9 +9,12 @@ flows resume correctly even when the interrupt payload carries incorrect
 from_sub_agent metadata.
 """
 
+import logging
 from unittest.mock import MagicMock
 
-from worker.activities.execute_graphton import _try_enrich_phase1_entry
+from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import ApprovalLifecycleState
+
+from worker.activities.graphton.hitl import ApprovalStateManager, InterruptCapture
 
 # =============================================================================
 # Helpers
@@ -30,6 +33,7 @@ def _make_pending_approval(
     pa.tool_name = tool_name
     pa.from_sub_agent = from_sub_agent
     pa.interrupt_id = interrupt_id
+    pa.lifecycle_state = ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED
     return pa
 
 
@@ -38,6 +42,19 @@ def _make_status_builder(pending_approvals):
     sb = MagicMock()
     sb.current_status.pending_approvals = list(pending_approvals)
     return sb
+
+
+def _enrich(sb, tool_name, from_sub_agent, interrupt_id):
+    """Create an InterruptCapture and call _try_enrich_phase1_entry."""
+    _logger = logging.getLogger("test_approval_resume")
+    ic = InterruptCapture(
+        execution_id="test",
+        status_builder=sb,
+        state_manager=ApprovalStateManager(execution_id="test", logger=_logger),
+        logger=_logger,
+        resolve_platform_tool_name=lambda name: name,
+    )
+    return ic._try_enrich_phase1_entry(tool_name, from_sub_agent, interrupt_id)
 
 
 # =============================================================================
@@ -55,7 +72,7 @@ class TestTryEnrichPhase1EntryStrictMatch:
         )
         sb = _make_status_builder([pa])
 
-        result = _try_enrich_phase1_entry(sb, "execute", True, "intr-abc")
+        result = _enrich(sb, "execute", True, "intr-abc")
 
         assert result is True
         assert pa.interrupt_id == "intr-abc"
@@ -67,7 +84,7 @@ class TestTryEnrichPhase1EntryStrictMatch:
         )
         sb = _make_status_builder([pa])
 
-        result = _try_enrich_phase1_entry(sb, "execute", True, "intr-new")
+        result = _enrich(sb, "execute", True, "intr-new")
 
         assert result is False
         assert pa.interrupt_id == "intr-existing"
@@ -79,7 +96,7 @@ class TestTryEnrichPhase1EntryStrictMatch:
         )
         sb = _make_status_builder([pa])
 
-        result = _try_enrich_phase1_entry(sb, "execute", True, "intr-abc")
+        result = _enrich(sb, "execute", True, "intr-abc")
 
         assert result is False
         assert pa.interrupt_id == ""
@@ -100,7 +117,7 @@ class TestTryEnrichPhase1EntryRelaxedMatch:
         )
         sb = _make_status_builder([pa])
 
-        result = _try_enrich_phase1_entry(sb, "execute", False, "intr-xyz")
+        result = _enrich(sb, "execute", False, "intr-xyz")
 
         assert result is True
         assert pa.interrupt_id == "intr-xyz"
@@ -112,7 +129,7 @@ class TestTryEnrichPhase1EntryRelaxedMatch:
         )
         sb = _make_status_builder([pa])
 
-        result = _try_enrich_phase1_entry(sb, "write", True, "intr-rev")
+        result = _enrich(sb, "write", True, "intr-rev")
 
         assert result is True
         assert pa.interrupt_id == "intr-rev"
@@ -129,7 +146,7 @@ class TestTryEnrichPhase1EntryRelaxedMatch:
         )
         sb = _make_status_builder([pa_strict, pa_relaxed_candidate])
 
-        result = _try_enrich_phase1_entry(sb, "execute", False, "intr-abc")
+        result = _enrich(sb, "execute", False, "intr-abc")
 
         assert result is True
         assert pa_strict.interrupt_id == "intr-abc"
@@ -142,7 +159,7 @@ class TestTryEnrichPhase1EntryRelaxedMatch:
         )
         sb = _make_status_builder([pa])
 
-        result = _try_enrich_phase1_entry(sb, "execute", False, "intr-abc")
+        result = _enrich(sb, "execute", False, "intr-abc")
 
         assert result is False
         assert pa.interrupt_id == ""
@@ -151,7 +168,7 @@ class TestTryEnrichPhase1EntryRelaxedMatch:
         """Returns False on empty pending_approvals."""
         sb = _make_status_builder([])
 
-        result = _try_enrich_phase1_entry(sb, "execute", False, "intr-abc")
+        result = _enrich(sb, "execute", False, "intr-abc")
 
         assert result is False
 
@@ -167,7 +184,7 @@ class TestTryEnrichPhase1EntryRelaxedMatch:
         )
         sb = _make_status_builder([pa1, pa2])
 
-        result = _try_enrich_phase1_entry(sb, "execute", True, "intr-first")
+        result = _enrich(sb, "execute", True, "intr-first")
 
         assert result is True
         assert pa1.interrupt_id == "intr-first"

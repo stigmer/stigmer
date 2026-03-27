@@ -24,7 +24,10 @@ export {
   isArtifactExpired,
   formatArtifactSize,
   getArtifactExtension,
+  getFileExtension,
+  getArtifactRenderMode,
 } from "./artifact-utils";
+export type { ArtifactRenderMode } from "./artifact-utils";
 
 export { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 export type { ExecutionPhaseBadgeProps } from "./ExecutionPhaseBadge";
@@ -67,6 +70,9 @@ export type { ApprovalCardProps } from "./ApprovalCard";
 
 export { ArtifactCard } from "./ArtifactCard";
 export type { ArtifactCardProps } from "./ArtifactCard";
+
+export { ArtifactContentRenderer } from "./ArtifactContentRenderer";
+export type { ArtifactContentRendererProps } from "./ArtifactContentRenderer";
 
 export { ArtifactPreviewModal } from "./ArtifactPreviewModal";
 export type { ArtifactPreviewModalProps } from "./ArtifactPreviewModal";

@@ -14,7 +14,7 @@ Each test constructs the minimal proto state that one service would produce
 and asserts the invariants the consuming service depends on.
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import (
     ApprovalLifecycleState,
@@ -22,17 +22,20 @@ from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import (
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
-    ExecutionPhase,
     ToolCallStatus,
 )
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import SubmitApprovalInput
+from ai.stigmer.agentic.agentexecution.v1.message_pb2 import ToolCall
+from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
+from ai.stigmer.agentic.agentexecution.v1.usage_pb2 import UsageMetrics
+from google.protobuf.struct_pb2 import Struct
 
 from worker.activities.graphton.hitl import (
     ApprovalStateManager,
+    InterruptCapture,
     ResumeReconciler,
-    _try_enrich_phase1_entry,
 )
-
+from worker.activities.graphton.status_builder import StatusBuilder
 
 # =============================================================================
 # Helpers
@@ -97,6 +100,23 @@ def _make_logger():
     return logging.getLogger("test_hitl_contracts")
 
 
+def _make_state_manager(execution_id: str = "test_exec"):
+    return ApprovalStateManager(
+        execution_id=execution_id, logger=_make_logger(),
+    )
+
+
+def _make_interrupt_capture(*, status_builder=None, state_manager=None):
+    """Create an InterruptCapture with sensible test defaults."""
+    return InterruptCapture(
+        execution_id="test_exec",
+        status_builder=status_builder or _make_status_builder(),
+        state_manager=state_manager or _make_state_manager(),
+        logger=_make_logger(),
+        resolve_platform_tool_name=lambda name: name,
+    )
+
+
 # =============================================================================
 # Contract 1: Python -> Go/Java (INTERRUPT_CAPTURE output)
 # =============================================================================
@@ -109,8 +129,9 @@ class TestInterruptCaptureContract:
     def test_pending_approval_has_interrupt_id_after_enrichment(self):
         pa = _make_pending_approval(lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED)
         sb = _make_status_builder(pending_approvals=[pa])
+        ic = _make_interrupt_capture(status_builder=sb)
 
-        result = _try_enrich_phase1_entry(sb, "delete_file", False, "intr_001")
+        result = ic._try_enrich_phase1_entry("delete_file", False, "intr_001")
 
         assert result is True
         assert pa.interrupt_id == "intr_001"
@@ -119,16 +140,18 @@ class TestInterruptCaptureContract:
     def test_lifecycle_advanced_to_interrupt_captured(self):
         pa = _make_pending_approval()
         sb = _make_status_builder(pending_approvals=[pa])
+        ic = _make_interrupt_capture(status_builder=sb)
 
-        _try_enrich_phase1_entry(sb, "delete_file", False, "intr_002")
+        ic._try_enrich_phase1_entry("delete_file", False, "intr_002")
 
         assert pa.lifecycle_state == ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED
 
     def test_tool_call_id_preserved_after_enrichment(self):
         pa = _make_pending_approval(tool_call_id="call_original")
         sb = _make_status_builder(pending_approvals=[pa])
+        ic = _make_interrupt_capture(status_builder=sb)
 
-        _try_enrich_phase1_entry(sb, "delete_file", False, "intr_003")
+        ic._try_enrich_phase1_entry("delete_file", False, "intr_003")
 
         assert pa.tool_call_id == "call_original"
 
@@ -193,6 +216,7 @@ class TestClearSignalContract:
         reconciler = ResumeReconciler(
             execution_id="test_exec",
             status_builder=sb,
+            state_manager=_make_state_manager(),
             logger=_make_logger(),
         )
         decision = SubmitApprovalInput(
@@ -222,6 +246,7 @@ class TestClearSignalContract:
         reconciler = ResumeReconciler(
             execution_id="test_exec",
             status_builder=sb,
+            state_manager=_make_state_manager(),
             logger=_make_logger(),
         )
         decision = SubmitApprovalInput(
@@ -249,6 +274,7 @@ class TestClearSignalContract:
         reconciler = ResumeReconciler(
             execution_id="test_exec",
             status_builder=sb,
+            state_manager=_make_state_manager(),
             logger=_make_logger(),
         )
         decision = SubmitApprovalInput(
@@ -350,6 +376,203 @@ class TestLifecycleForwardOnly:
                 target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED,
                 service="test",
             )
+
+
+# =============================================================================
+# Contract 6: advance() enforcement — no direct lifecycle_state assignment
+# =============================================================================
+
+
+class TestAdvanceEnforcement:
+    """Verify that InterruptCapture and ResumeReconciler route all lifecycle
+    mutations through ApprovalStateManager.advance(), never via direct
+    assignment to pa.lifecycle_state."""
+
+    def test_interrupt_capture_enrichment_calls_advance(self):
+        """_try_enrich_phase1_entry must route through advance()."""
+        pa = _make_pending_approval(
+            lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED,
+        )
+        sb = _make_status_builder(pending_approvals=[pa])
+        sm = _make_state_manager()
+        ic = _make_interrupt_capture(status_builder=sb, state_manager=sm)
+
+        with patch.object(sm, "advance", wraps=sm.advance) as spy:
+            ic._try_enrich_phase1_entry("delete_file", False, "intr_001")
+
+            spy.assert_called_once_with(
+                pa,
+                target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+                service="InterruptCapture",
+            )
+        assert pa.lifecycle_state == ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED
+
+    def test_resume_reconciler_calls_advance_for_each_pending_approval(self):
+        """reconcile() must advance each real PA to RESUME_RECONCILED."""
+        pa = _make_pending_approval(
+            interrupt_id="intr_001",
+            lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+        )
+        tc = _make_tool_call()
+        sb = _make_status_builder(pending_approvals=[pa], tool_calls=[tc])
+        sm = _make_state_manager()
+
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=sb,
+            state_manager=sm,
+            logger=_make_logger(),
+        )
+
+        with patch.object(sm, "advance", wraps=sm.advance) as spy:
+            reconciler.reconcile(
+                approval_decisions=[
+                    SubmitApprovalInput(
+                        agent_execution_id="test_exec",
+                        tool_call_id="call_abc123",
+                        action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+                    ),
+                ],
+            )
+
+            spy.assert_called_once_with(
+                pa,
+                target_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_RESUME_RECONCILED,
+                service="ResumeReconciler",
+            )
+
+    def test_resume_reconciler_rejects_backward_transition(self):
+        """If a PA is already CLEARED, advance() must raise on RESUME_RECONCILED."""
+        pa = _make_pending_approval(
+            interrupt_id="intr_001",
+            lifecycle_state=ApprovalLifecycleState.APPROVAL_LIFECYCLE_CLEARED,
+        )
+        tc = _make_tool_call()
+        sb = _make_status_builder(pending_approvals=[pa], tool_calls=[tc])
+
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=sb,
+            state_manager=_make_state_manager(),
+            logger=_make_logger(),
+        )
+
+        import pytest
+        with pytest.raises(ValueError, match="Cannot move PendingApproval lifecycle backward"):
+            reconciler.reconcile(
+                approval_decisions=[
+                    SubmitApprovalInput(
+                        agent_execution_id="test_exec",
+                        tool_call_id="call_abc123",
+                        action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+                    ),
+                ],
+            )
+
+
+# =============================================================================
+# Contract 7: Sub-agent fingerprint map population
+# =============================================================================
+
+
+def _make_initial_status(*, tool_calls=None, sub_agent_executions=None):
+    """Create a minimal mock AgentExecutionStatus for StatusBuilder tests."""
+    status = MagicMock()
+    status.messages = []
+    status.tool_calls = list(tool_calls or [])
+    status.sub_agent_executions = list(sub_agent_executions or [])
+    status.todos = {}
+    status.usage = UsageMetrics()
+    status.pending_approvals = []
+    return status
+
+
+class TestSubAgentFingerprintMapPopulation:
+    """populate_fingerprints_from_existing_tool_calls() must populate
+    _fingerprint_to_tool_call_id for sub-agent tool calls, not just
+    top-level ones.
+
+    Without this, Priority 2 (fingerprint) matching in InterruptCapture
+    always misses sub-agent tools, and resume-path run-ID alias creation
+    fails for sub-agent tool calls.
+    """
+
+    def test_sub_agent_tool_call_fingerprint_in_map(self):
+        """A sub-agent tool call must appear in _fingerprint_to_tool_call_id
+        after populate_fingerprints_from_existing_tool_calls()."""
+        args = Struct()
+        args.update({"path": "/tmp/output.txt", "content": "hello"})
+        sa_tc = ToolCall(
+            id="sa-tc-001",
+            name="write_file",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        sa = SubAgentExecution(id="sub-agent-run-1", name="code_editor")
+        sa.tool_calls.append(sa_tc)
+
+        status = _make_initial_status(sub_agent_executions=[sa])
+        builder = StatusBuilder("exec-fp-sub-1", status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        fingerprint = builder._get_tool_fingerprint("write_file", {"path": "/tmp/output.txt", "content": "hello"})
+        assert fingerprint in builder.tool_call_fingerprints
+        assert builder._fingerprint_to_tool_call_id.get(fingerprint) == "sa-tc-001"
+
+    def test_top_level_and_sub_agent_both_populated(self):
+        """Both top-level and sub-agent tool calls must appear in the map."""
+        top_args = Struct()
+        top_args.update({"query": "SELECT 1"})
+        top_tc = ToolCall(
+            id="top-tc-001",
+            name="run_sql",
+            args=top_args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+
+        sa_args = Struct()
+        sa_args.update({"url": "https://example.com"})
+        sa_tc = ToolCall(
+            id="sa-tc-002",
+            name="fetch_url",
+            args=sa_args,
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+        )
+        sa = SubAgentExecution(id="sub-agent-run-2", name="researcher")
+        sa.tool_calls.append(sa_tc)
+
+        status = _make_initial_status(tool_calls=[top_tc], sub_agent_executions=[sa])
+        builder = StatusBuilder("exec-fp-both-1", status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        top_fp = builder._get_tool_fingerprint("run_sql", {"query": "SELECT 1"})
+        sa_fp = builder._get_tool_fingerprint("fetch_url", {"url": "https://example.com"})
+
+        assert builder._fingerprint_to_tool_call_id.get(top_fp) == "top-tc-001"
+        assert builder._fingerprint_to_tool_call_id.get(sa_fp) == "sa-tc-002"
+
+    def test_sub_agent_tool_call_without_id_skipped(self):
+        """A sub-agent tool call with empty id must not appear in the
+        fingerprint-to-id map (but the fingerprint itself is still tracked
+        for dedup)."""
+        args = Struct()
+        args.update({"key": "value"})
+        sa_tc = ToolCall(
+            id="",
+            name="some_tool",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        sa = SubAgentExecution(id="sub-agent-run-3", name="helper")
+        sa.tool_calls.append(sa_tc)
+
+        status = _make_initial_status(sub_agent_executions=[sa])
+        builder = StatusBuilder("exec-fp-noid-1", status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        fingerprint = builder._get_tool_fingerprint("some_tool", {"key": "value"})
+        assert fingerprint in builder.tool_call_fingerprints
+        assert fingerprint not in builder._fingerprint_to_tool_call_id
 
 
 # =============================================================================

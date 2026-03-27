@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.mcpserver.v1;
 
+import "ai/stigmer/agentic/executioncontext/v1/spec.proto";
 import "ai/stigmer/agentic/mcpserver/v1/status.proto";
 import "buf/validate/validate.proto";
 
@@ -31,4 +32,40 @@ message UpdateDiscoveredCapabilitiesInput {
 
   // Discovered tools and resource templates to store.
   DiscoveredCapabilities discovered_capabilities = 2 [(buf.validate.field).required = true];
+}
+
+// DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
+//
+// Triggers server-side MCP discovery: the backend creates an ephemeral
+// ExecutionContext with the resolved environment variables, starts a Temporal
+// workflow that connects to the MCP server (via the agent-runner), enumerates
+// tools and resource templates, and stores the result in
+// status.discovered_capabilities.
+//
+// The RPC blocks until discovery completes (~30s timeout) and returns the updated
+// McpServer with populated discovered_capabilities.
+//
+// Environment variable resolution:
+// - When runtime_env is provided, the backend creates an ExecutionContext directly
+//   from these values (one-time use, values are not persisted to any environment).
+// - When runtime_env is empty, the backend resolves values from the authenticated
+//   user's personal environment.
+//
+// Prerequisites:
+// - The MCP server must exist and have a valid server_type (stdio or http)
+// - Either runtime_env must contain all required keys, or the keys must be
+//   present in the user's personal environment
+message DiscoverCapabilitiesInput {
+  // System-generated ID of the MCP server to discover.
+  // Obtained from McpServer.metadata.id (e.g., via getByReference).
+  string mcp_server_id = 1 [(buf.validate.field).required = true];
+
+  // Optional environment variable values for one-time discovery. When provided,
+  // the backend creates a temporary ExecutionContext directly from these values
+  // without reading from the personal environment. Each value carries its own
+  // is_secret classification, matching the contract of
+  // AgentExecution.spec.runtime_env.
+  //
+  // When empty, values are resolved from the user's personal environment.
+  map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 2;
 }

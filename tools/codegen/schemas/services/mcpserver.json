@@ -54,6 +54,14 @@
           "outputType": "McpServer",
           "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
           "description": "Update the discovered capabilities (tools and resource templates) for an MCP server.\n\n This is a targeted status update — it only modifies status.discovered_capabilities,\n leaving spec, validation state, and other status fields untouched.\n\n Typical flow:\n 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID\n 2. CLI connects to the MCP server locally and queries tools/resources\n 3. CLI calls this RPC with the ID and discovered capabilities\n\n Input: UpdateDiscoveredCapabilitiesInput with mcp_server_id and discovered_capabilities.\n Returns: The updated McpServer with the new discovered capabilities.\n\n Authorization: Requires can_edit permission on the mcp_server resource."
+        },
+        {
+          "name": "DiscoverCapabilities",
+          "inputType": "DiscoverCapabilitiesInput",
+          "inputFullType": "ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput",
+          "outputType": "McpServer",
+          "outputFullType": "ai.stigmer.agentic.mcpserver.v1.McpServer",
+          "description": "Discover the capabilities of an MCP server by connecting to it.\n\n This triggers server-side discovery: the backend resolves credentials from the\n authenticated user's personal environment, delegates the actual MCP connection\n to the agent-runner via a Temporal workflow, and stores the result.\n\n The RPC blocks until discovery completes (up to ~30 seconds) and returns the\n updated McpServer with populated status.discovered_capabilities.\n\n Typical flow:\n 1. Web console ensures required credentials are saved in the user's personal environment\n 2. Web console calls discoverCapabilities with the MCP server ID\n 3. Backend resolves env vars from the user's personal environment\n 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server\n 5. Discovered tools and resource templates are stored and returned\n\n Input: DiscoverCapabilitiesInput with mcp_server_id.\n Returns: The updated McpServer with discovered capabilities.\n\n Errors:\n - FAILED_PRECONDITION: Required credentials missing from personal environment\n - DEADLINE_EXCEEDED: Discovery did not complete within the timeout\n - NOT_FOUND: MCP server does not exist\n\n Authorization: Requires can_edit permission on the mcp_server resource."
         }
       ]
     },
