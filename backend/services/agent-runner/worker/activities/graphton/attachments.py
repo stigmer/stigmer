@@ -3,7 +3,8 @@
 Covers:
   - Zip validation (safety checks before extraction)
   - Attachment injection into the workspace
-  - Post-stream auto-publish of workspace files as artifacts
+  - Post-stream auto-publish safety net (catches files not published
+    inline during streaming)
 
 All functions have explicit dependencies (no globals). I/O is performed
 through the injected ``WorkspaceBackend`` / ``ArtifactStorage`` / sandbox
@@ -245,13 +246,20 @@ async def auto_publish_written_files(
     local_root: str | None,
     logger: logging.Logger,
     path_normalizer: Callable[[str], str] | None = None,
+    already_published_paths: set[str] | None = None,
 ) -> int:
     """Publish workspace files as artifacts based on completed file-modifying tool calls.
 
-    Post-stream safety net: when the agent created or modified files but no
-    artifacts were published during execution, this publishes them.
+    Post-stream safety net: publishes any file-modifying tool-call outputs
+    that were not already published inline during streaming.
+
+    Args:
+        already_published_paths: Normalised ``sandbox_path`` values that
+            were already published by inline streaming publish.  These
+            paths are skipped to avoid redundant uploads.
     """
     file_modifying_tool_names = {"write", "write_file", "edit", "edit_file"}
+    _already_published = already_published_paths or set()
 
     file_modifying_tcs = [tc for tc in tool_calls if tc.name in file_modifying_tool_names]
     if file_modifying_tcs:
@@ -302,6 +310,22 @@ async def auto_publish_written_files(
         )
     else:
         normalised = [p.lstrip("/") for p in written_paths]
+
+    if _already_published:
+        before = len(normalised)
+        normalised = [p for p in normalised if p not in _already_published]
+        skipped = before - len(normalised)
+        if skipped:
+            logger.info(
+                f"[AUTO_PUBLISH] execution={execution_id} — "
+                f"skipped {skipped} path(s) already published inline"
+            )
+        if not normalised:
+            logger.info(
+                f"[AUTO_PUBLISH] execution={execution_id} — "
+                f"all {before} path(s) already published inline, nothing to do"
+            )
+            return 0
 
     if len(normalised) == 1:
         rel_path = normalised[0]

@@ -95,7 +95,7 @@ from worker.storage import ArtifactStorage, create_artifact_storage
 from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 from worker.token_manager import get_api_key
 
-# publish_artifact moved to worker.activities.graphton.attachments
+from worker.tools import publish_artifact as _publish_artifact_to_storage
 from worker.workspace import (
     LocalWorkspaceBackend,
     ProvisionResult,
@@ -1407,21 +1407,61 @@ async def _execute_graphton_impl(
                 transformed_subagents = None
         
         # ─────────────────────────────────────────────────────────────────────────────
-        # Step 5.10: Create Artifact Storage (for post-stream auto-publish)
+        # Step 5.10: Create Artifact Storage & Inline Publish Callback
         #
-        # Artifact storage is used by the post-stream auto-publish safety net
-        # to upload files created or modified by the agent as downloadable
-        # artifacts.  The agent does NOT receive a publish_artifact tool —
-        # publishing is handled structurally by the platform after the stream
-        # completes, based on completed file-modifying tool calls (write,
-        # write_file, edit, edit_file).  This eliminates dependence on LLM
-        # compliance for artifact delivery.
+        # Artifact storage uploads files created/modified by the agent as
+        # downloadable artifacts.  The agent does NOT receive a
+        # publish_artifact tool — publishing is handled structurally by the
+        # platform, both inline (fire-and-forget on each write/edit tool
+        # completion) and post-stream (safety-net for anything missed).
         # ─────────────────────────────────────────────────────────────────────────────
         artifact_storage = create_artifact_storage(worker_config.artifact_storage)
         activity_logger.info(
             f"Created artifact storage ({worker_config.artifact_storage.storage_type}) "
-            "for post-stream auto-publish"
+            "for inline + post-stream artifact publish"
         )
+
+        async def _publish_file_inline(path: str) -> None:
+            """Fire-and-forget callback: upload a single file from the
+            sandbox to artifact storage and register it on the status
+            builder so the next progressive gRPC update carries it to
+            the UI.
+
+            Exceptions are logged and swallowed — this must never crash
+            the streaming loop.
+            """
+            from pathlib import PurePosixPath
+
+            try:
+                normalizer = (
+                    workspace_backend._normalize
+                    if hasattr(workspace_backend, "_normalize")
+                    else None
+                )
+                rel_path = normalizer(path) if normalizer else path.lstrip("/")
+                file_name = PurePosixPath(rel_path).name
+
+                artifact = await _publish_artifact_to_storage(
+                    sandbox=sandbox,
+                    storage=artifact_storage,
+                    execution_id=execution_id,
+                    path=rel_path,
+                    name=file_name,
+                    local_root=(
+                        workspace_backend.root_dir if sandbox is None else None
+                    ),
+                )
+                status_builder.add_artifact(artifact)
+                activity_logger.info(
+                    f"[INLINE_PUBLISH] execution={execution_id} — "
+                    f"published '{rel_path}' as artifact '{file_name}'"
+                )
+            except Exception as exc:
+                activity_logger.warning(
+                    f"[INLINE_PUBLISH] execution={execution_id} — "
+                    f"failed to publish '{path}' (non-fatal, safety net "
+                    f"will retry): {exc}"
+                )
         
         # Create Graphton agent.
         #
@@ -1786,6 +1826,7 @@ async def _execute_graphton_impl(
             is_cancelled_fn=activity.is_cancelled,
             slim_status_fn=_slim_status_for_temporal,
             logger=activity_logger,
+            on_file_written=_publish_file_inline,
         )
         stream_result = await stream_executor.execute(
             graph_input, is_resume=is_resume_from_approval,
@@ -1806,6 +1847,7 @@ async def _execute_graphton_impl(
             merged_env_vars=merged_env_vars,
             secret_keys=secret_keys,
             auto_publish_fn=_auto_publish_written_files,
+            pending_publish_tasks=stream_executor.pending_publish_tasks,
             resolve_platform_tool_name=resolve_platform_tool_name,
             humanize_platform_refs=humanize_platform_refs,
             resolve_display_env_vars=resolve_display_env_vars,
