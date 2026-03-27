@@ -113,8 +113,8 @@ public final class ApiResourceKindProto extends com.google.protobuf.GeneratedFil
       "ution*\003wex@\001J\004\010\002\020\001\022B\n\013environment\0205\0321\252\377+" +
       "-\010\001\020\001\032\013Environment\"\013Environment*\003env@\001J\006" +
       "\010\002\020\0010\001\022R\n\021execution_context\0206\032;\252\377+7\010\001\020\001\032" +
-      "\020ExecutionContext\"\021Execution Context*\004ex" +
-      "ec@\001J\004\010\005\020\004\0224\n\007project\020<\032\'\252\377+#\010\003\020\001\032\007Proje" +
+      "\020ExecutionContext\"\021Execution Context*\004ec" +
+      "tx@\001J\004\010\004\020\001\0224\n\007project\020<\032\'\252\377+#\010\003\020\001\032\007Proje" +
       "ct\"\007Project*\003prj@\001J\004\010\002\020\001:\205\001\n\tkind_meta\022!" +
       ".google.protobuf.EnumValueOptions\030\365\277\005 \001(" +
       "\0132C.ai.stigmer.commons.apiresource.apire" +

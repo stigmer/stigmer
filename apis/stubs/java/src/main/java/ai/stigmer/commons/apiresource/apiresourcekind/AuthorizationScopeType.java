@@ -53,7 +53,7 @@ public enum AuthorizationScopeType
   /**
    * <pre>
    * Owner link only, no scope hierarchy.
-   * Used for: api_key (belongs to user, not org)
+   * Used for: api_key, execution_context (belongs to user, not org)
    * FGA tuple: resource#owner&#64;identity_account:&lt;owner_id&gt;
    * </pre>
    *
@@ -63,7 +63,7 @@ public enum AuthorizationScopeType
   /**
    * <pre>
    * No FGA tuples needed.
-   * Used for: platform (singleton), api_resource_version, execution_context
+   * Used for: platform (singleton), api_resource_version
    * </pre>
    *
    * <code>AUTHORIZATION_SCOPE_TYPE_NONE = 5;</code>
@@ -118,7 +118,7 @@ public enum AuthorizationScopeType
   /**
    * <pre>
    * Owner link only, no scope hierarchy.
-   * Used for: api_key (belongs to user, not org)
+   * Used for: api_key, execution_context (belongs to user, not org)
    * FGA tuple: resource#owner&#64;identity_account:&lt;owner_id&gt;
    * </pre>
    *
@@ -128,7 +128,7 @@ public enum AuthorizationScopeType
   /**
    * <pre>
    * No FGA tuples needed.
-   * Used for: platform (singleton), api_resource_version, execution_context
+   * Used for: platform (singleton), api_resource_version
    * </pre>
    *
    * <code>AUTHORIZATION_SCOPE_TYPE_NONE = 5;</code>
