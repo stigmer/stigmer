@@ -74,9 +74,22 @@ export function SessionLauncher() {
   const editRef = draftParams?.editRef ?? null;
   const isEditMode = editRef !== null;
 
-  const [initialAgentRef] = useState(() =>
-    draftType ? CREATOR_AGENTS[draftType] : undefined,
+  // Capture initialAgentRef from draft params. The useState initializer
+  // handles the fast path (params available on first render). The effect
+  // handles the deferred path: in Next.js static export, useSearchParams()
+  // may not have the params until after hydration completes.
+  const [initialAgentRef, setInitialAgentRef] = useState<ResourceRef | undefined>(
+    () => (draftType ? CREATOR_AGENTS[draftType] : undefined),
   );
+  const initialAgentCaptured = useRef(draftType !== null);
+
+  useEffect(() => {
+    if (!initialAgentCaptured.current && draftType) {
+      initialAgentCaptured.current = true;
+      setInitialAgentRef(CREATOR_AGENTS[draftType]);
+    }
+  }, [draftType]);
+
   const placeholder = draftType
     ? isEditMode
       ? EDIT_PLACEHOLDERS[draftType]

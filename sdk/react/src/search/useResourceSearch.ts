@@ -9,6 +9,16 @@ export interface UseResourceSearchOptions {
   readonly pageSize?: number;
   /** Debounce delay for query changes in milliseconds. @default 300 */
   readonly debounceMs?: number;
+  /**
+   * Controls search scope.
+   *
+   * - `"org"` — search only within the provided organization.
+   * - `"all"` — search all organizations the caller can access,
+   *   including public/platform resources from other orgs.
+   *
+   * @default "org"
+   */
+  readonly scope?: "org" | "all";
 }
 
 export interface UseResourceSearchReturn {
@@ -46,6 +56,7 @@ export function useResourceSearch(
 
   const pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
   const debounceMs = options?.debounceMs ?? DEFAULT_DEBOUNCE_MS;
+  const scope = options?.scope ?? "org";
 
   // Debounce query changes
   useEffect(() => {
@@ -61,8 +72,9 @@ export function useResourceSearch(
     setError(null);
 
     const params: ListParams = {
-      org,
+      org: scope === "all" ? "" : org,
       query: debouncedQuery || undefined,
+      excludePublic: false,
       page: { num: 1, size: pageSize },
     };
 
@@ -84,7 +96,7 @@ export function useResourceSearch(
     return () => {
       cancelled.current = true;
     };
-  }, [listFn, org, debouncedQuery, pageSize, fetchKey]);
+  }, [listFn, org, debouncedQuery, pageSize, scope, fetchKey]);
 
   return { results, isLoading, error, query, setQuery, refetch };
 }
