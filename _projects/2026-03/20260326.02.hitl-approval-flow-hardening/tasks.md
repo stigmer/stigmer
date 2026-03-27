@@ -49,26 +49,28 @@ The forward-only invariant and structured `[LIFECYCLE]` logging are bypassed.
 
 ## Task 2: Populate _fingerprint_to_tool_call_id for sub-agent tool calls
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-26 20:52
+**Completed**: 2026-03-27 08:50
 **Severity**: Medium (sub-agent HITL matching can fail)
 **Files**: `backend/services/agent-runner/worker/activities/graphton/status_builder.py`
 
 ### Problem
 
-In `_handle_tool_start_event`, `tool_call_fingerprints` is populated for sub-agent tool calls (lines 1636-1646) but `_fingerprint_to_tool_call_id` is **not populated** for those entries (contrast lines 1626-1629 for top-level only). This means `InterruptCapture._match_interrupt` Priority 2 (fingerprint matching) always misses sub-agent tools and falls through to Priority 3 (name-based), which is order-dependent and fragile with multiple tools of the same name.
+In `populate_fingerprints_from_existing_tool_calls()`, `tool_call_fingerprints` is populated for sub-agent tool calls (lines 1636-1646) but `_fingerprint_to_tool_call_id` is **not populated** for those entries (contrast lines 1626-1629 for top-level only). This means `InterruptCapture._match_interrupt` Priority 2 (fingerprint matching) always misses sub-agent tools and falls through to Priority 3 (name-based), which is order-dependent and fragile with multiple tools of the same name. It also prevents run-ID alias creation on the resume path, so `on_tool_end` cannot transition resumed sub-agent tool calls to COMPLETED.
 
 ### Subtasks
 
-- [ ] Find where `_fingerprint_to_tool_call_id` is populated for top-level tool calls in `_handle_tool_start_event`
-- [ ] Add equivalent population for sub-agent tool calls in the same method
-- [ ] Also update `populate_fingerprints_from_existing_tool_calls()` to include sub-agent tool calls
-- [ ] Add a contract test verifying sub-agent fingerprints are in the map
+- [x] Identified the asymmetry in `populate_fingerprints_from_existing_tool_calls()`: top-level loop populates both `tool_call_fingerprints` and `_fingerprint_to_tool_call_id`, sub-agent loop only populates `tool_call_fingerprints`
+- [x] Added `_fingerprint_to_tool_call_id[fingerprint] = tc.id` in the sub-agent loop (2-line fix mirroring lines 1628-1629)
+- [x] Added Contract 7 (`TestSubAgentFingerprintMapPopulation`) in `test_hitl_contracts.py` with 3 tests: core case, both-contexts, and empty-id edge case
+- [x] All 22 HITL contract tests pass, all 279 status builder tests pass — zero regressions
 
 ### Notes
 
-- Search for `_fingerprint_to_tool_call_id` assignments in `status_builder.py` to find all population sites
-- The fingerprint is computed via `_get_tool_fingerprint(tool_name, tool_args)`
+- The fix is minimal: 2 lines of production code, 111 lines of test code
+- No changes needed in `_handle_tool_start_event` — the dedup + alias logic (lines 651-662) works correctly once the map is populated by `populate_fingerprints_from_existing_tool_calls()`
+- Fingerprint collision between top-level and sub-agent with same tool+args is handled by last-write-wins, which is acceptable for alias creation
 
 ---
 
