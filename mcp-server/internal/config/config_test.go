@@ -315,3 +315,51 @@ func TestLoadFromEnv_invalidLogLevel(t *testing.T) {
 		t.Fatal("expected error for invalid log level, got nil")
 	}
 }
+
+func TestLoadFromEnv_addressWithURLScheme(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_SERVER_ADDRESS", "https://api.stigmer.ai")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("URL-scheme address should load (with warning), got error: %v", err)
+	}
+	if cfg.StigmerServerAddress != "https://api.stigmer.ai" {
+		t.Errorf("StigmerServerAddress = %q, want raw value preserved", cfg.StigmerServerAddress)
+	}
+}
+
+func TestLoadFromEnv_addressWithoutPort(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("STIGMER_SERVER_ADDRESS", "api.stigmer.ai")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("portless address should load (with warning), got error: %v", err)
+	}
+	if cfg.StigmerServerAddress != "api.stigmer.ai" {
+		t.Errorf("StigmerServerAddress = %q, want raw value preserved", cfg.StigmerServerAddress)
+	}
+}
+
+func TestValidate_addressWithURLScheme(t *testing.T) {
+	c := &Config{
+		Transport:            TransportStdio,
+		StigmerServerAddress: "https://api.stigmer.ai:443",
+		LogFormat:            LogFormatText,
+	}
+	if err := c.Validate(); err != nil {
+		t.Errorf("URL-scheme address should pass validation (with warning): %v", err)
+	}
+}
+
+func TestValidate_addressWithoutPort(t *testing.T) {
+	c := &Config{
+		Transport:            TransportStdio,
+		StigmerServerAddress: "stigmer-prod-api.planton.live",
+		LogFormat:            LogFormatText,
+	}
+	if err := c.Validate(); err != nil {
+		t.Errorf("portless address should pass validation (with warning): %v", err)
+	}
+}

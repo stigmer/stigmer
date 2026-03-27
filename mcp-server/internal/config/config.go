@@ -7,6 +7,7 @@ package config
 import (
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"strings"
 )
@@ -114,6 +115,18 @@ func (c *Config) Validate() error {
 
 	if c.StigmerServerAddress == "" {
 		return fmt.Errorf("STIGMER_SERVER_ADDRESS must not be empty")
+	}
+
+	if strings.Contains(c.StigmerServerAddress, "://") {
+		slog.Warn("STIGMER_SERVER_ADDRESS contains a URL scheme; "+
+			"gRPC targets should be host:port — the scheme will be stripped at dial time",
+			"value", c.StigmerServerAddress,
+		)
+	} else if _, _, err := net.SplitHostPort(c.StigmerServerAddress); err != nil {
+		slog.Warn("STIGMER_SERVER_ADDRESS has no explicit port; "+
+			":443 with TLS will be assumed for non-loopback addresses",
+			"value", c.StigmerServerAddress,
+		)
 	}
 
 	switch c.LogFormat {
