@@ -71,7 +71,7 @@ When starting a new session:
 |------|-------|--------|------------|
 | **T01** | Research: tool_call_id availability at interrupt time | **COMPLETE** | — |
 | **T02** | Proto changes (remove tool_calls, simplify PendingApproval) | **COMPLETE** | — |
-| T03 | Python: single writer to messages, simplify HITL | Not started | T01, T02 |
+| **T03** | Python: single writer to messages, simplify HITL | **COMPLETE** | T01, T02 |
 | **T04** | Add tool_call_id to interrupt payload | **COMPLETE** | T01 |
 | T05 | Java/Go: compute pending_approvals on write, simplify SubmitApproval | Not started | T02, T03 |
 | T06 | React SDK: remove polling/staleness workarounds | Not started | T05 |
@@ -80,40 +80,42 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-27
-**Current Task**: T01 + T04 + T02 COMPLETE. Next: T03 (unblocked, Python single-writer).
-**Status**: T02 Complete — Proto data model cleaned up. Flat `tool_calls` removed from `AgentExecutionStatus` and `SubAgentExecution`. `ApprovalLifecycleState` enum deleted. `PendingApproval` simplified to UI-facing projection (fields 9-12 removed). `args_preview` added to `ToolCall`. Stubs regenerated in both stigmer and stigmer-cloud. All committed on `hitl-flow-simplification` branch.
+**Current Task**: T01 + T02 + T03 + T04 COMPLETE. Next: T05 (unblocked, Java/Go server-side).
+**Status**: T03 Complete — Python agent-runner fully refactored. `messages[].tool_calls` is now the single source of truth, backed by an in-memory `_tool_call_index` for O(1) lookups. Three HITL classes deleted (`ApprovalStateManager`, `InterruptCapture`, `CheckpointFallback`). Resume path simplified from ~140 to ~40 lines. Net -2,110 lines across 7 files. 276 tests passing.
 
-## Session Progress (2026-03-27, Session 3)
+## Session Progress (2026-03-27, Session 4)
 
 ### Accomplished
-- Completed T02: Proto data model cleanup — all 4 proto files edited, stubs regenerated in both repos
-- Deleted `ApprovalLifecycleState` enum entirely (5 values, ~50 lines)
-- Removed `interrupt_id`, `lifecycle_state`, `decision_action`, `decision_recorded_at` from `PendingApproval`
-- Removed flat `tool_calls` from `AgentExecutionStatus` (field 3) and `SubAgentExecution` (field 10)
-- Removed `pending_approvals` from `SubAgentExecution` (field 14) — root-level computed projection with `from_sub_agent`/`sub_agent_name` preserves provenance
-- Added `args_preview` (field 18) to `ToolCall` for computed projection sourcing
-- Rewrote `PendingApproval` and `pending_approvals` documentation for computed-projection semantics
-- Removed unused imports (`enum.proto` from approval.proto, `approval.proto` from subagent.proto)
-- `make protos` passed cleanly in both stigmer and stigmer-cloud (buf lint, all language stubs)
-- Committed all work on `hitl-flow-simplification` branch in both repos
-- Net deletion: ~2,655 lines across both repos
+- Completed T03: Python single writer to messages, HITL simplification — all 6 phases
+- Phase 1: StatusBuilder refactored — `_tool_call_index` added, 6 write sites and ~10 read sites migrated, 3 pending-approval methods deleted, fingerprints scan messages
+- Phase 2: hitl.py rewritten — 3 classes deleted, `ResumeReconciler` simplified to ~120 lines
+- Phase 3: execute_graphton.py resume path simplified — ~40 lines replacing ~140
+- Phase 4: post_stream.py — `InterruptCapture` block removed, signature simplified
+- Phase 5: streaming.py — flat list counts/scans replaced with helpers
+- Phase 6: Tests — `test_hitl_contracts.py` completely rewritten (10 tests), `test_status_builder.py` comprehensively updated (266 tests)
+- Net: 562 insertions, 2,672 deletions = -2,110 lines
 
 ### Key Decisions
-- No `reserved` field declarations — no backward compatibility needed (pre-GA)
-- Sub-agent approval provenance preserved via `PendingApproval.from_sub_agent` + `sub_agent_name` on the root-level list — no information lost
-
-### Surprises
-- None. T02 was a clean proto-only task with predictable scope.
+- In-memory index uses protobuf reference semantics for zero-cost propagation
+- Fingerprinting retained for LangGraph replay deduplication (not deleted as master plan suggested)
+- `args_preview` populated at ToolCall creation time
+- `TestTryEnrichPhase1Entry` entirely deleted (InterruptCapture gone)
 
 ## Next Steps
-1. **T03** (Python: single writer to messages, simplify HITL): Now unblocked by T01+T02. Make `messages[].tool_calls` the single write target. Remove flat list writes from `StatusBuilder`. Simplify `hitl.py` — delete `ApprovalStateManager`, simplify `InterruptCapture` further, rewrite `ResumeReconciler`.
-2. T05 (Java/Go) becomes unblocked after T03
-3. T07 partially unblocked by T04 completion (Python tests already rewritten)
+1. **T05** (Java/Go): Compute `pending_approvals` on write path in stigmer-service/stigmer-server. Simplify `SubmitApprovalHandler` to use `tool_call_id` from interrupt payload directly. This is the server-side counterpart to T03.
+2. **T06** (React SDK): Remove polling/staleness workarounds — becomes possible once T05 ensures server-computed `pending_approvals` are reliable.
+3. **T07** (Tests): Python tests done in T03/T04. Java/Go tests needed after T05.
+
+## Context for Resume
+- All Python changes are on the `hitl-flow-simplification` branch
+- The in-memory `_tool_call_index` pattern is documented in checkpoint session-4 and the changelog
+- `pending_approvals` is still on the proto — it's now intended as a server-side computed projection, not managed by Python
+- The `_run_id_aliases` and fingerprinting mechanisms were retained for event deduplication on resume (this was a key discovery — the master plan suggested removing them)
 
 ## Quick Commands
 
 After loading context:
-- "Pick next task" — T03 is the recommended next
+- "Pick next task" — T05 is the recommended next
 - "Show project status" — Get overview of progress
 - "Review design decisions" — Check DD-001 and DD-002
 
