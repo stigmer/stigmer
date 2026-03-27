@@ -31,4 +31,88 @@ public interface DiscoverCapabilitiesInputOrBuilder extends
    */
   com.google.protobuf.ByteString
       getMcpServerIdBytes();
+
+  /**
+   * <pre>
+   * Optional environment variable values for one-time discovery. When provided,
+   * the backend creates a temporary ExecutionContext directly from these values
+   * without reading from the personal environment. Each value carries its own
+   * is_secret classification, matching the contract of
+   * AgentExecution.spec.runtime_env.
+   *
+   * When empty, values are resolved from the user's personal environment.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+   */
+  int getRuntimeEnvCount();
+  /**
+   * <pre>
+   * Optional environment variable values for one-time discovery. When provided,
+   * the backend creates a temporary ExecutionContext directly from these values
+   * without reading from the personal environment. Each value carries its own
+   * is_secret classification, matching the contract of
+   * AgentExecution.spec.runtime_env.
+   *
+   * When empty, values are resolved from the user's personal environment.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+   */
+  boolean containsRuntimeEnv(
+      java.lang.String key);
+  /**
+   * Use {@link #getRuntimeEnvMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
+  getRuntimeEnv();
+  /**
+   * <pre>
+   * Optional environment variable values for one-time discovery. When provided,
+   * the backend creates a temporary ExecutionContext directly from these values
+   * without reading from the personal environment. Each value carries its own
+   * is_secret classification, matching the contract of
+   * AgentExecution.spec.runtime_env.
+   *
+   * When empty, values are resolved from the user's personal environment.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+   */
+  java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
+  getRuntimeEnvMap();
+  /**
+   * <pre>
+   * Optional environment variable values for one-time discovery. When provided,
+   * the backend creates a temporary ExecutionContext directly from these values
+   * without reading from the personal environment. Each value carries its own
+   * is_secret classification, matching the contract of
+   * AgentExecution.spec.runtime_env.
+   *
+   * When empty, values are resolved from the user's personal environment.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+   */
+  /* nullable */
+ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
+      java.lang.String key,
+      /* nullable */
+ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
+  /**
+   * <pre>
+   * Optional environment variable values for one-time discovery. When provided,
+   * the backend creates a temporary ExecutionContext directly from these values
+   * without reading from the personal environment. Each value carries its own
+   * is_secret classification, matching the contract of
+   * AgentExecution.spec.runtime_env.
+   *
+   * When empty, values are resolved from the user's personal environment.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+   */
+  ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrThrow(
+      java.lang.String key);
 }

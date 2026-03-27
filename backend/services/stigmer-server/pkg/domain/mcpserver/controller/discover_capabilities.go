@@ -7,7 +7,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+	environmentv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/environment/v1"
+	executioncontextv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/executioncontext/v1"
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
+	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	apiresourcekind "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"go.temporal.io/sdk/client"
@@ -20,15 +23,18 @@ import (
 const (
 	discoverWorkflowName = "stigmer/mcp-server/discover"
 	discoverTimeout      = 45 * time.Second
+	personalEnvLabel     = "stigmer.ai/personal"
 )
 
 // discoverWorkflowInput matches the Python DiscoverMcpServerInput dataclass.
 //
 // Follows the slim-payload pattern: only reference IDs are passed through
-// Temporal. The Python activity resolves credentials just-in-time via gRPC,
-// keeping secrets out of Temporal's durable workflow history.
+// Temporal. The Python activity reads environment variables from the
+// pre-created ExecutionContext, keeping secrets out of Temporal's durable
+// workflow history.
 type discoverWorkflowInput struct {
 	McpServerID              string `json:"mcp_server_id"`
+	ExecutionContextID       string `json:"execution_context_id,omitempty"`
 	InvokerIdentityAccountID string `json:"invoker_identity_account_id,omitempty"`
 }
 
@@ -52,9 +58,15 @@ type discoveredResourceTemplateResult struct {
 }
 
 // DiscoverCapabilities triggers server-side MCP discovery via a Temporal workflow
-// on the agent-runner. The handler starts the workflow with only the MCP server ID
-// (no secrets), blocks until it completes, and stores the result. Credential
-// resolution happens inside the Python activity using the OBO impersonation flow.
+// on the agent-runner.
+//
+// Lifecycle:
+//  1. Resolve environment variables (from runtime_env or personal environment)
+//  2. Create an ephemeral ExecutionContext with the resolved variables
+//  3. Start the Temporal workflow with only the MCP server ID and EC ID
+//  4. Block until the workflow completes
+//  5. Delete the ExecutionContext (defer cleanup)
+//  6. Store discovered capabilities on the McpServer resource
 func (c *McpServerController) DiscoverCapabilities(
 	ctx context.Context,
 	input *mcpserverv1.DiscoverCapabilitiesInput,
@@ -75,8 +87,22 @@ func (c *McpServerController) DiscoverCapabilities(
 		return nil, grpclib.NotFoundError("mcp_server", mcpServerID)
 	}
 
+	executionID := fmt.Sprintf("discovery-%s-%s", mcpServerID, uuid.New().String()[:8])
+
+	ecResourceID, err := c.createDiscoveryExecutionContext(
+		ctx, mcpServer, executionID, input.GetRuntimeEnv(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if ecResourceID != "" {
+		defer c.deleteDiscoveryExecutionContext(ctx, ecResourceID, executionID)
+	}
+
 	wfInput := discoverWorkflowInput{
-		McpServerID: mcpServerID,
+		McpServerID:        mcpServerID,
+		ExecutionContextID: executionID,
 	}
 
 	result, err := c.executeDiscoverWorkflow(ctx, mcpServerID, wfInput)
@@ -101,6 +127,178 @@ func (c *McpServerController) DiscoverCapabilities(
 		Msg("MCP server discovery completed and stored")
 
 	return mcpServer, nil
+}
+
+// createDiscoveryExecutionContext builds and persists an ephemeral ExecutionContext
+// for the discovery activity.
+//
+// When runtime_env is provided, the values are used directly (one-time use).
+// When runtime_env is empty, values are resolved from the user's personal environment.
+// Returns the ExecutionContext resource ID (for cleanup) and an error.
+// Returns ("", nil) when the MCP server has no env_spec and no runtime_env.
+func (c *McpServerController) createDiscoveryExecutionContext(
+	ctx context.Context,
+	mcpServer *mcpserverv1.McpServer,
+	executionID string,
+	runtimeEnv map[string]*executioncontextv1.ExecutionValue,
+) (string, error) {
+	var ecData map[string]*executioncontextv1.ExecutionValue
+
+	if len(runtimeEnv) > 0 {
+		ecData = runtimeEnv
+
+		log.Info().
+			Str("execution_id", executionID).
+			Int("runtime_env_count", len(runtimeEnv)).
+			Msg("Using runtime_env for discovery ExecutionContext (one-time use)")
+	} else {
+		envSpec := mcpServer.GetSpec().GetEnvSpec()
+		if envSpec == nil || len(envSpec.GetData()) == 0 {
+			log.Debug().
+				Str("execution_id", executionID).
+				Msg("MCP server has no env_spec — skipping ExecutionContext creation")
+			return "", nil
+		}
+
+		resolved, err := c.resolveFromPersonalEnvironment(
+			ctx, mcpServer.GetMetadata().GetOrg(), envSpec,
+		)
+		if err != nil {
+			return "", err
+		}
+		ecData = resolved
+
+		log.Info().
+			Str("execution_id", executionID).
+			Int("resolved_count", len(resolved)).
+			Msg("Resolved env vars from personal environment for discovery ExecutionContext")
+	}
+
+	if len(ecData) == 0 {
+		return "", nil
+	}
+
+	ec := &executioncontextv1.ExecutionContext{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       "ExecutionContext",
+		Metadata: &apiresource.ApiResourceMetadata{
+			Name: fmt.Sprintf("exec-ctx-%s", executionID),
+			Org:  mcpServer.GetMetadata().GetOrg(),
+		},
+		Spec: &executioncontextv1.ExecutionContextSpec{
+			ExecutionId: executionID,
+			Data:        ecData,
+		},
+	}
+
+	created, err := c.executionCtxClient.Create(ctx, ec)
+	if err != nil {
+		return "", grpclib.InternalError(err, "failed to create discovery ExecutionContext")
+	}
+
+	resourceID := created.GetMetadata().GetId()
+	log.Info().
+		Str("execution_context_id", resourceID).
+		Str("execution_id", executionID).
+		Int("data_entries", len(ecData)).
+		Msg("Created ephemeral ExecutionContext for MCP discovery")
+
+	return resourceID, nil
+}
+
+// resolveFromPersonalEnvironment reads the required environment variables from
+// the user's personal environment (labeled stigmer.ai/personal=true). Returns
+// ExecutionValue entries with is_secret derived from the MCP server's env_spec.
+func (c *McpServerController) resolveFromPersonalEnvironment(
+	ctx context.Context,
+	org string,
+	envSpec *environmentv1.EnvironmentSpec,
+) (map[string]*executioncontextv1.ExecutionValue, error) {
+	listResp, err := c.environmentClient.List(ctx, &environmentv1.ListEnvironmentsRequest{
+		Org:    org,
+		Labels: map[string]string{personalEnvLabel: "true"},
+	})
+	if err != nil {
+		return nil, grpclib.InternalError(err, "failed to list personal environments")
+	}
+	if listResp.GetTotalCount() == 0 || len(listResp.GetItems()) == 0 {
+		requiredKeys := make([]string, 0, len(envSpec.GetData()))
+		for k := range envSpec.GetData() {
+			requiredKeys = append(requiredKeys, k)
+		}
+		return nil, grpclib.FailedPreconditionError(
+			fmt.Sprintf("personal environment not found for org '%s'; save required credentials first: %v", org, requiredKeys),
+		)
+	}
+
+	personalEnv := listResp.GetItems()[0]
+	personalEnvID := personalEnv.GetMetadata().GetId()
+	storedKeys := make(map[string]bool)
+	for k := range personalEnv.GetSpec().GetData() {
+		storedKeys[k] = true
+	}
+
+	result := make(map[string]*executioncontextv1.ExecutionValue, len(envSpec.GetData()))
+	var missing []string
+
+	for key, envVal := range envSpec.GetData() {
+		if !storedKeys[key] {
+			missing = append(missing, key)
+			continue
+		}
+
+		secretVal, err := c.environmentClient.GetSecretValue(ctx, &environmentv1.EnvironmentSecretValueInput{
+			EnvironmentId: personalEnvID,
+			Key:           key,
+		})
+		if err != nil {
+			log.Warn().Err(err).
+				Str("key", key).
+				Str("personal_env_id", personalEnvID).
+				Msg("Failed to get secret value from personal environment")
+			missing = append(missing, key)
+			continue
+		}
+		if secretVal.GetValue() == "" {
+			missing = append(missing, key)
+			continue
+		}
+
+		result[key] = &executioncontextv1.ExecutionValue{
+			Value:    secretVal.GetValue(),
+			IsSecret: envVal.GetIsSecret(),
+		}
+	}
+
+	if len(missing) > 0 {
+		return nil, grpclib.FailedPreconditionError(
+			fmt.Sprintf("missing required credentials in personal environment: %v", missing),
+		)
+	}
+
+	return result, nil
+}
+
+// deleteDiscoveryExecutionContext removes the ephemeral ExecutionContext after
+// the discovery workflow completes. Failures are logged but not propagated,
+// since the discovery result is already stored.
+func (c *McpServerController) deleteDiscoveryExecutionContext(
+	ctx context.Context,
+	resourceID string,
+	executionID string,
+) {
+	if _, err := c.executionCtxClient.Delete(ctx, resourceID); err != nil {
+		log.Warn().Err(err).
+			Str("resource_id", resourceID).
+			Str("execution_id", executionID).
+			Msg("Failed to delete discovery ExecutionContext (non-fatal)")
+		return
+	}
+
+	log.Debug().
+		Str("resource_id", resourceID).
+		Str("execution_id", executionID).
+		Msg("Deleted ephemeral discovery ExecutionContext")
 }
 
 // executeDiscoverWorkflow starts the Python DiscoverMcpServerWorkflow on
@@ -184,14 +382,26 @@ func convertToDiscoveredCapabilities(output *discoverWorkflowOutput) *mcpserverv
 // without blocking. Used by the apply handler for auto-discovery.
 // Failures are logged but do not propagate.
 //
+// Skips auto-discovery when the MCP server defines an env_spec, because
+// creating an ExecutionContext requires the caller's gRPC context (for
+// personal environment resolution), which is unavailable in a fire-and-forget
+// goroutine. Users must trigger manual discovery for these servers.
+//
 // Uses context.Background() because this runs in a fire-and-forget goroutine
-// after the originating gRPC request has already returned. The Temporal client
-// does not need the gRPC request context — it connects to Temporal directly.
-// Credential resolution happens inside the Python activity, not here.
+// after the originating gRPC request has already returned.
 func (c *McpServerController) StartBestEffortDiscovery(
 	mcpServer *mcpserverv1.McpServer,
 ) {
 	if c.temporalClient == nil {
+		return
+	}
+
+	envSpec := mcpServer.GetSpec().GetEnvSpec()
+	if envSpec != nil && len(envSpec.GetData()) > 0 {
+		log.Debug().
+			Str("mcp_server_id", mcpServer.GetMetadata().GetId()).
+			Int("env_spec_keys", len(envSpec.GetData())).
+			Msg("Skipping best-effort auto-discovery: MCP server has env_spec (requires manual discovery)")
 		return
 	}
 

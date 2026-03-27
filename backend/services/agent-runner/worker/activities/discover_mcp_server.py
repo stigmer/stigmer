@@ -10,11 +10,17 @@ The agent-runner container has all the runtimes needed for stdio MCP
 servers (Node.js/npx, Go, Docker CLI, uv/uvx), so discovery works for
 any transport type without polluting the Java/Go service containers.
 
-Security: Secrets are resolved just-in-time inside the activity via
-on-behalf-of gRPC calls to the environment service. The Temporal
-workflow input carries only ``mcp_server_id`` and an optional
-``invoker_identity_account_id`` — no secret values ever appear in
-Temporal's durable workflow history.
+Security: The Go/Java backend creates an ephemeral ExecutionContext
+containing only the environment variables the MCP server needs. The
+Temporal workflow input carries only ``mcp_server_id`` and an optional
+``execution_context_id`` — no secret values ever appear in Temporal's
+durable workflow history. The Python activity reads from the scoped
+ExecutionContext and cannot access arbitrary environments.
+
+Deployment safety: During rolling deployments where Go/Java has not yet
+been updated to create ExecutionContexts, the activity falls back to the
+previous JIT resolution via the EnvironmentClient. This fallback will be
+removed in a cleanup PR once all services are deployed.
 """
 
 from __future__ import annotations
@@ -30,6 +36,7 @@ from temporalio import activity, workflow
 
 from grpc_client.channel import ChannelProvider
 from grpc_client.environment_client import EnvironmentClient
+from grpc_client.execution_context_client import ExecutionContextClient
 from grpc_client.mcp_server_client import McpServerClient
 from worker.mcp.config_transformer import transform_mcp_config, _inject_platform_env
 from worker.token_manager import get_api_key
@@ -49,16 +56,23 @@ class DiscoverMcpServerInput:
     Follows the slim-payload pattern established by
     ``InvokeAgentExecutionWorkflowInput``: only reference IDs are passed
     through Temporal. The activity hydrates the MCP server spec and
-    resolves credentials just-in-time via gRPC, keeping secrets out of
-    Temporal's durable workflow history.
+    resolves environment variables from an ExecutionContext, keeping
+    secrets out of Temporal's durable workflow history.
 
-    ``env_vars`` is retained as an optional field for backward
-    compatibility during rolling deployments. When present it is
-    **ignored** — credentials are always resolved JIT from the personal
-    environment.
+    Fields:
+        mcp_server_id: Required. The MCP server to discover.
+        execution_context_id: Optional. When set, environment variables
+            are read from this pre-created ExecutionContext (preferred
+            path — Go/Java backend creates and cleans it up).
+        invoker_identity_account_id: Optional. Used for OBO channel
+            when fetching the MCP server spec.
+        env_vars: Deprecated. Retained for backward compatibility during
+            rolling deployments. Ignored when ``execution_context_id``
+            is set.
     """
 
     mcp_server_id: str
+    execution_context_id: str | None = None
     invoker_identity_account_id: str | None = None
     env_vars: dict[str, str] = field(default_factory=dict)
 
@@ -95,7 +109,8 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
     """Discover capabilities of an MCP server by connecting to it.
 
     1. Fetches the McpServer spec via gRPC (OBO impersonation when available)
-    2. Resolves required credentials JIT from the user's personal environment
+    2. Resolves environment variables from ExecutionContext (preferred) or
+       falls back to JIT resolution from personal environment (deployment safety)
     3. Transforms the spec into a MultiServerMCPClient-compatible config
     4. Connects and lists tools + resource templates
     5. Returns a serializable result for the backend to store
@@ -130,10 +145,14 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
 
         slug = mcp_server.metadata.slug or input.mcp_server_id
         spec = mcp_server.spec
-        org = mcp_server.metadata.org
 
-        env_client = EnvironmentClient(api_key, channel=obo_ch)
-        env_vars = await _resolve_env_vars(env_client, org, spec)
+        env_vars = await _resolve_env_vars_for_discovery(
+            api_key=api_key,
+            channel=obo_ch,
+            execution_context_id=input.execution_context_id,
+            org=mcp_server.metadata.org,
+            spec=spec,
+        )
         env_vars = _inject_platform_env(spec, env_vars)
 
         config, _ = transform_mcp_config(
@@ -161,21 +180,86 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
         await grpc_provider.close()
 
 
-async def _resolve_env_vars(
+async def _resolve_env_vars_for_discovery(
+    *,
+    api_key: str,
+    channel: grpc.aio.Channel,
+    execution_context_id: str | None,
+    org: str,
+    spec: Any,
+) -> dict[str, str]:
+    """Resolve environment variables for MCP discovery.
+
+    Preferred path (ExecutionContext):
+        When ``execution_context_id`` is provided, reads from the
+        pre-created ExecutionContext. This is the secure path — the
+        Go/Java backend scoped the context to only the keys the MCP
+        server needs.
+
+    Fallback path (JIT from personal environment):
+        When no ``execution_context_id`` is provided — during rolling
+        deployments where the Go/Java backend has not yet been updated —
+        falls back to the previous JIT resolution via OBO gRPC calls.
+        This fallback will be removed in a cleanup PR.
+    """
+    if execution_context_id:
+        return await _resolve_env_from_execution_context(
+            api_key, channel, execution_context_id,
+        )
+
+    logger.info(
+        "No execution_context_id provided — falling back to JIT "
+        "resolution from personal environment (rolling deployment compatibility)"
+    )
+    return await _resolve_env_vars_jit(
+        EnvironmentClient(api_key, channel=channel), org, spec,
+    )
+
+
+async def _resolve_env_from_execution_context(
+    api_key: str,
+    channel: grpc.aio.Channel,
+    execution_context_id: str,
+) -> dict[str, str]:
+    """Read environment variables from a pre-created ExecutionContext.
+
+    Follows the same pattern as ``graphton/environment.py``: use
+    ``ExecutionContextClient.try_get_by_execution_id`` and extract
+    plaintext values from ``spec.data``.
+    """
+    ec_client = ExecutionContextClient(api_key, channel=channel)
+    exec_ctx = await ec_client.try_get_by_execution_id(execution_context_id)
+
+    if not exec_ctx or not exec_ctx.spec.data:
+        logger.warning(
+            "ExecutionContext '%s' not found or empty — MCP server "
+            "may not require environment variables",
+            execution_context_id,
+        )
+        return {}
+
+    env_vars: dict[str, str] = {}
+    for key, exec_value in exec_ctx.spec.data.items():
+        env_vars[key] = exec_value.value
+
+    logger.info(
+        "Resolved %d env var(s) from ExecutionContext '%s'",
+        len(env_vars),
+        execution_context_id,
+    )
+    return env_vars
+
+
+async def _resolve_env_vars_jit(
     env_client: EnvironmentClient,
     org: str,
     spec: Any,
 ) -> dict[str, str]:
-    """Resolve required environment variables from the user's personal environment.
+    """[DEPRECATED — rolling deployment fallback] Resolve environment
+    variables from the user's personal environment via OBO gRPC.
 
-    This is the just-in-time credential resolution that keeps secrets out
-    of the Temporal workflow history. The activity fetches each required
-    secret value individually via gRPC, so decrypted values exist only in
-    the activity's process memory.
-
-    Returns an empty dict when the MCP server has no ``env_spec``.
-    Raises ``ValueError`` with a clear message listing missing keys when
-    required credentials are not present.
+    This function will be removed once all services are deployed with
+    ExecutionContext support. See cleanup PR in the plan.
     """
     env_spec = spec.env_spec
     if not env_spec or not env_spec.data:
