@@ -12,12 +12,16 @@ export type UseAgentSearchOptions = UseResourceSearchOptions;
 export type UseAgentSearchReturn = UseResourceSearchReturn;
 
 /**
- * Data hook that searches agents available in the given organization.
+ * Data hook that searches agents available to the user.
  *
  * Wraps `stigmer.agent.list()` with debounced search, loading/error
  * tracking, and cancellation-safe fetching. Platform builders use this
  * when they want full control over rendering; the {@link AgentPicker}
  * styled component uses it internally.
+ *
+ * By default, searches within the given organization (`scope: "org"`).
+ * Pass `scope: "all"` to search across all organizations the caller
+ * can access, including public/platform agents from other orgs.
  *
  * This is a Layer 1 building-block hook used by both platform builders
  * (Profile A) and direct Stigmer users (Profile B). Platform builders
@@ -26,7 +30,11 @@ export type UseAgentSearchReturn = UseResourceSearchReturn;
  *
  * @example
  * ```tsx
+ * // Org-scoped (default)
  * const { results, isLoading, query, setQuery } = useAgentSearch("acme");
+ *
+ * // Cross-org: include public agents from all accessible orgs
+ * const { results } = useAgentSearch("acme", { scope: "all" });
  * ```
  */
 export function useAgentSearch(

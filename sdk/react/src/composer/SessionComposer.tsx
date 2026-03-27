@@ -661,10 +661,22 @@ export function SessionComposer({
   const initialAgentHandled = useRef(false);
 
   useEffect(() => {
-    if (initialAgentRef && showAgent && org && !initialAgentHandled.current) {
-      initialAgentHandled.current = true;
-      handleAgentSelectRef.current(initialAgentRef);
+    if (!initialAgentRef || !showAgent || !org || initialAgentHandled.current) {
+      return;
     }
+
+    let cancelled = false;
+    initialAgentHandled.current = true;
+
+    handleAgentSelectRef.current(initialAgentRef).catch(() => {
+      if (!cancelled) {
+        initialAgentHandled.current = false;
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [initialAgentRef, showAgent, org]);
 
   // ---------------------------------------------------------------------------
@@ -924,6 +936,7 @@ export function SessionComposer({
             <div className="relative">
               <AgentPicker
                 org={org!}
+                scope="all"
                 value={agentRef ?? null}
                 onChange={handleAgentSelect}
                 onDisplayNameResolved={handleDisplayNameResolved}
@@ -944,6 +957,7 @@ export function SessionComposer({
           return (
             <McpServerPicker
               org={org!}
+              scope="all"
               setup={{
                 entries: mcpSetup.entries,
                 onServerAdded: (ref) => mcpSetup.addServer(ref),
@@ -966,6 +980,7 @@ export function SessionComposer({
           return (
             <SkillPicker
               org={org!}
+              scope="all"
               value={skillRefs ?? []}
               onChange={onSkillRefsChange!}
               onDisplayNameResolved={handleDisplayNameResolved}

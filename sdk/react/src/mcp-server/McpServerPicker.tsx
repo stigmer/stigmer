@@ -69,8 +69,18 @@ export interface McpServerSetupIntegration {
 // ---------------------------------------------------------------------------
 
 export interface McpServerPickerProps {
-  /** Organization slug to scope the search. */
+  /** Organization slug used as the default search scope. */
   readonly org: string;
+  /**
+   * Controls search scope.
+   *
+   * - `"org"` — search only within the provided organization.
+   * - `"all"` — search all organizations the caller can access,
+   *   including public/platform MCP servers from other orgs.
+   *
+   * @default "org"
+   */
+  readonly scope?: "org" | "all";
   /**
    * Currently selected MCP server usages.
    *
@@ -227,6 +237,7 @@ function slugFromServerKey(key: string): string {
  */
 export function McpServerPicker({
   org,
+  scope,
   value,
   onChange,
   onDisplayNameResolved,
@@ -240,7 +251,7 @@ export function McpServerPicker({
   const listId = `${instanceId}-list`;
 
   const { results, isLoading, error, query, setQuery } =
-    useMcpServerSearch(org);
+    useMcpServerSearch(org, { scope });
 
   const [focusIndex, setFocusIndex] = useState(-1);
   const [view, setView] = useState<PickerView>(() =>

@@ -56,4 +56,4 @@ The initial-agent effect previously depended only on `[initialAgentRef, showAgen
 
 ---
 
-**Status**: ✅ Production Ready
+**Status**: ⚠️ Incomplete — addressed only the org-loading timing; did not fix the org-scoped search or silent error swallowing. See `2026-03-27-144637-fix-picker-scope-and-draft-auto-select.md` for the full fix.

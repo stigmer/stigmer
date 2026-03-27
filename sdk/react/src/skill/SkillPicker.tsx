@@ -17,8 +17,18 @@ import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
 
 export interface SkillPickerProps {
-  /** Organization slug to scope the search. */
+  /** Organization slug used as the default search scope. */
   readonly org: string;
+  /**
+   * Controls search scope.
+   *
+   * - `"org"` — search only within the provided organization.
+   * - `"all"` — search all organizations the caller can access,
+   *   including public/platform skills from other orgs.
+   *
+   * @default "org"
+   */
+  readonly scope?: "org" | "all";
   /** Currently selected skill references. */
   readonly value: ResourceRef[];
   /** Called when the selection changes. */
@@ -48,13 +58,14 @@ const LIST_ID = "stgm-skill-list";
  */
 export function SkillPicker({
   org,
+  scope,
   value,
   onChange,
   onDisplayNameResolved,
   disabled,
   className,
 }: SkillPickerProps) {
-  const { results, isLoading, error, query, setQuery } = useSkillSearch(org);
+  const { results, isLoading, error, query, setQuery } = useSkillSearch(org, { scope });
 
   const [focusIndex, setFocusIndex] = useState(-1);
   const searchRef = useRef<HTMLInputElement>(null);

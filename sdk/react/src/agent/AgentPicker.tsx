@@ -17,7 +17,7 @@ import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
 
 export interface AgentPickerProps {
-  /** Organization slug to scope the search. */
+  /** Organization slug used as the default search scope. */
   readonly org: string;
   /** Currently selected agent reference, or null if none selected. */
   readonly value: ResourceRef | null;
@@ -25,6 +25,16 @@ export interface AgentPickerProps {
   readonly onChange: (ref: ResourceRef | null) => void;
   /** Called with the display name when an agent is selected (for chip rendering). */
   readonly onDisplayNameResolved?: (key: string, name: string) => void;
+  /**
+   * Controls search scope.
+   *
+   * - `"org"` — search only within the provided organization.
+   * - `"all"` — search all organizations the caller can access,
+   *   including public/platform agents from other orgs.
+   *
+   * @default "org"
+   */
+  readonly scope?: "org" | "all";
   readonly disabled?: boolean;
   readonly className?: string;
 }
@@ -69,10 +79,11 @@ export function AgentPicker({
   value,
   onChange,
   onDisplayNameResolved,
+  scope,
   disabled,
   className,
 }: AgentPickerProps) {
-  const { results, isLoading, error, query, setQuery } = useAgentSearch(org);
+  const { results, isLoading, error, query, setQuery } = useAgentSearch(org, { scope });
 
   const [focusIndex, setFocusIndex] = useState(-1);
   const searchRef = useRef<HTMLInputElement>(null);
