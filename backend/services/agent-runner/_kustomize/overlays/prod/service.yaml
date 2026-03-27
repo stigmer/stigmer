@@ -34,6 +34,10 @@ spec:
           # Stigmer API Configuration (internal Kubernetes endpoint, plain gRPC)
           STIGMER_BACKEND_ENDPOINT:
             value: $variables-group/stigmer-api/prod.kube-endpoint
+          # Auto-injected into mcp-server-stigmer subprocesses so they reach
+          # stigmer-server without users having to configure it manually.
+          STIGMER_SERVER_ADDRESS:
+            value: $variables-group/stigmer-api/prod.kube-endpoint
           # LLM Configuration (production uses Anthropic)
           STIGMER_LLM_PROVIDER:
             value: anthropic
