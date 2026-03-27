@@ -4,6 +4,8 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { ExecutionValue } from "../../executioncontext/v1/spec_pb";
+import { file_ai_stigmer_agentic_executioncontext_v1_spec } from "../../executioncontext/v1/spec_pb";
 import type { DiscoveredCapabilities } from "./status_pb";
 import { file_ai_stigmer_agentic_mcpserver_v1_status } from "./status_pb";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb";
@@ -13,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEipAEKIVVwZGF0ZURpc2NvdmVyZWRDYXBhYmlsaXRpZXNJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESYAoXZGlzY292ZXJlZF9jYXBhYmlsaXRpZXMYAiABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRDYXBhYmlsaXRpZXNCBrpIA8gBAWIGcHJvdG8z", [file_ai_stigmer_agentic_mcpserver_v1_status, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEipAEKIVVwZGF0ZURpc2NvdmVyZWRDYXBhYmlsaXRpZXNJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESYAoXZGlzY292ZXJlZF9jYXBhYmlsaXRpZXMYAiABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRDYXBhYmlsaXRpZXNCBrpIA8gBASKGAgoZRGlzY292ZXJDYXBhYmlsaXRpZXNJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESXwoLcnVudGltZV9lbnYYAiADKAsySi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyQ2FwYWJpbGl0aWVzSW5wdXQuUnVudGltZUVudkVudHJ5GmkKD1J1bnRpbWVFbnZFbnRyeRILCgNrZXkYASABKAkSRQoFdmFsdWUYAiABKAsyNi5haS5zdGlnbWVyLmFnZW50aWMuZXhlY3V0aW9uY29udGV4dC52MS5FeGVjdXRpb25WYWx1ZToCOAFiBnByb3RvMw", [file_ai_stigmer_agentic_executioncontext_v1_spec, file_ai_stigmer_agentic_mcpserver_v1_status, file_buf_validate_validate]);
 
 /**
  * McpServerId wraps an MCP server resource identifier.
@@ -76,4 +78,59 @@ export type UpdateDiscoveredCapabilitiesInput = Message<"ai.stigmer.agentic.mcps
  */
 export const UpdateDiscoveredCapabilitiesInputSchema: GenMessage<UpdateDiscoveredCapabilitiesInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 1);
+
+/**
+ * DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
+ *
+ * Triggers server-side MCP discovery: the backend creates an ephemeral
+ * ExecutionContext with the resolved environment variables, starts a Temporal
+ * workflow that connects to the MCP server (via the agent-runner), enumerates
+ * tools and resource templates, and stores the result in
+ * status.discovered_capabilities.
+ *
+ * The RPC blocks until discovery completes (~30s timeout) and returns the updated
+ * McpServer with populated discovered_capabilities.
+ *
+ * Environment variable resolution:
+ * - When runtime_env is provided, the backend creates an ExecutionContext directly
+ *   from these values (one-time use, values are not persisted to any environment).
+ * - When runtime_env is empty, the backend resolves values from the authenticated
+ *   user's personal environment.
+ *
+ * Prerequisites:
+ * - The MCP server must exist and have a valid server_type (stdio or http)
+ * - Either runtime_env must contain all required keys, or the keys must be
+ *   present in the user's personal environment
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput
+ */
+export type DiscoverCapabilitiesInput = Message<"ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput"> & {
+  /**
+   * System-generated ID of the MCP server to discover.
+   * Obtained from McpServer.metadata.id (e.g., via getByReference).
+   *
+   * @generated from field: string mcp_server_id = 1;
+   */
+  mcpServerId: string;
+
+  /**
+   * Optional environment variable values for one-time discovery. When provided,
+   * the backend creates a temporary ExecutionContext directly from these values
+   * without reading from the personal environment. Each value carries its own
+   * is_secret classification, matching the contract of
+   * AgentExecution.spec.runtime_env.
+   *
+   * When empty, values are resolved from the user's personal environment.
+   *
+   * @generated from field: map<string, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtime_env = 2;
+   */
+  runtimeEnv: { [key: string]: ExecutionValue };
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.
+ * Use `create(DiscoverCapabilitiesInputSchema)` to create a new message.
+ */
+export const DiscoverCapabilitiesInputSchema: GenMessage<DiscoverCapabilitiesInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 2);
 

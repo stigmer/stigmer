@@ -96,6 +96,9 @@ const (
 	DiscoverySource_cli DiscoverySource = 2
 	// Discovered by the agent-runner at runtime (future).
 	DiscoverySource_agent_runner DiscoverySource = 3
+	// Discovered via the discoverCapabilities RPC (web console or API).
+	// The backend delegates to the agent-runner via a Temporal workflow.
+	DiscoverySource_api DiscoverySource = 4
 )
 
 // Enum value maps for DiscoverySource.
@@ -105,12 +108,14 @@ var (
 		1: "seedpack",
 		2: "cli",
 		3: "agent_runner",
+		4: "api",
 	}
 	DiscoverySource_value = map[string]int32{
 		"discovery_source_unspecified": 0,
 		"seedpack":                     1,
 		"cli":                          2,
 		"agent_runner":                 3,
+		"api":                          4,
 	}
 )
 
@@ -525,12 +530,13 @@ const file_ai_stigmer_agentic_mcpserver_v1_status_proto_rawDesc = "" +
 	"\x0fValidationState\x12 \n" +
 	"\x1cvalidation_state_unspecified\x10\x00\x12\t\n" +
 	"\x05valid\x10\x01\x12\v\n" +
-	"\ainvalid\x10\x02*\\\n" +
+	"\ainvalid\x10\x02*e\n" +
 	"\x0fDiscoverySource\x12 \n" +
 	"\x1cdiscovery_source_unspecified\x10\x00\x12\f\n" +
 	"\bseedpack\x10\x01\x12\a\n" +
 	"\x03cli\x10\x02\x12\x10\n" +
-	"\fagent_runner\x10\x03B\xa8\x02\n" +
+	"\fagent_runner\x10\x03\x12\a\n" +
+	"\x03api\x10\x04B\xa8\x02\n" +
 	"#com.ai.stigmer.agentic.mcpserver.v1B\vStatusProtoP\x01ZSgithub.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/mcpserver/v1;mcpserverv1\xa2\x02\x04ASAM\xaa\x02\x1fAi.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1fAi\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3"
 
 var (

@@ -6,6 +6,7 @@ go_library(
         "apply.go",
         "create.go",
         "delete.go",
+        "discover_capabilities.go",
         "get.go",
         "get_by_reference.go",
         "mcpserver_controller.go",
@@ -16,6 +17,8 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/mcpserver/controller",
     visibility = ["//visibility:public"],
     deps = [
+        "//apis/stubs/go/ai/stigmer/agentic/environment/v1:environment",
+        "//apis/stubs/go/ai/stigmer/agentic/executioncontext/v1:executioncontext",
         "//apis/stubs/go/ai/stigmer/agentic/mcpserver/v1:mcpserver",
         "//apis/stubs/go/ai/stigmer/commons/apiresource",
         "//apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind",
@@ -23,8 +26,16 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
+        "//backend/services/stigmer-server/pkg/downstream/environment",
+        "//backend/services/stigmer-server/pkg/downstream/executioncontext",
         "//backend/services/stigmer-server/pkg/query/search/extractor",
+        "@com_github_google_uuid//:uuid",
         "@com_github_rs_zerolog//log",
+        "@io_temporal_go_sdk//client",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//types/known/structpb",
+        "@org_golang_google_protobuf//types/known/timestamppb",
     ],
 )
 

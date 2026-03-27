@@ -175,4 +175,8 @@ enum DiscoverySource {
 
   // Discovered by the agent-runner at runtime (future).
   agent_runner = 3;
+
+  // Discovered via the discoverCapabilities RPC (web console or API).
+  // The backend delegates to the agent-runner via a Temporal workflow.
+  api = 4;
 }

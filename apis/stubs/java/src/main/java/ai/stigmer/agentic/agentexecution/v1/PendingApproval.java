@@ -7,18 +7,20 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 /**
  * <pre>
- * PendingApproval surfaces the current approval request for UI display.
+ * PendingApproval is the single source of truth for approval state.
  *
  * ## Purpose
  *
- * This message provides all information needed for a UI to render an approval
- * dialog/card. It's populated when an execution enters WAITING_FOR_APPROVAL phase.
+ * This message tracks the full lifecycle of a single tool approval request.
+ * Every approval-related field on ToolCall (approval_action, approval_decided_at)
+ * is a projection of the state recorded here. When in doubt, PendingApproval
+ * is authoritative.
  *
- * ## Relationship to ToolCall
+ * ## Lifecycle Tracking
  *
- * While ToolCall contains the canonical approval state, PendingApproval provides
- * a denormalized view optimized for UI consumption. The tool_call_id links back
- * to the authoritative ToolCall record.
+ * The lifecycle_state field tracks exactly where this approval is in the
+ * distributed pipeline (see ApprovalLifecycleState). Each service advances
+ * the state forward-only, making the approval flow auditable and diagnosable.
  *
  * ## Sub-Agent Approvals
  *
@@ -64,6 +66,9 @@ private static final long serialVersionUID = 0L;
     subAgentName_ = "";
     childAgentExecutionId_ = "";
     interruptId_ = "";
+    lifecycleState_ = 0;
+    decisionAction_ = 0;
+    decisionRecordedAt_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -564,6 +569,157 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int LIFECYCLE_STATE_FIELD_NUMBER = 10;
+  private int lifecycleState_ = 0;
+  /**
+   * <pre>
+   * Current lifecycle state of this approval.
+   *
+   * Tracks which service last advanced this approval and where it is in the
+   * distributed pipeline. Forward-only: no service may move the state backward.
+   *
+   * UI consumers:
+   * - REQUESTED / INTERRUPT_CAPTURED: Show approval card (action available)
+   * - DECISION_RECORDED: Show decision badge (approval submitted, awaiting resume)
+   * - RESUME_RECONCILED / CLEARED: Hidden (approval fully processed)
+   *
+   * Defaults to UNSPECIFIED for backward compatibility with existing records.
+   *
+   * &#64;since HITL Approval Flow Hardening
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState lifecycle_state = 10 [json_name = "lifecycleState"];</code>
+   * @return The enum numeric value on the wire for lifecycleState.
+   */
+  @java.lang.Override public int getLifecycleStateValue() {
+    return lifecycleState_;
+  }
+  /**
+   * <pre>
+   * Current lifecycle state of this approval.
+   *
+   * Tracks which service last advanced this approval and where it is in the
+   * distributed pipeline. Forward-only: no service may move the state backward.
+   *
+   * UI consumers:
+   * - REQUESTED / INTERRUPT_CAPTURED: Show approval card (action available)
+   * - DECISION_RECORDED: Show decision badge (approval submitted, awaiting resume)
+   * - RESUME_RECONCILED / CLEARED: Hidden (approval fully processed)
+   *
+   * Defaults to UNSPECIFIED for backward compatibility with existing records.
+   *
+   * &#64;since HITL Approval Flow Hardening
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState lifecycle_state = 10 [json_name = "lifecycleState"];</code>
+   * @return The lifecycleState.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState getLifecycleState() {
+    ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState result = ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState.forNumber(lifecycleState_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState.UNRECOGNIZED : result;
+  }
+
+  public static final int DECISION_ACTION_FIELD_NUMBER = 11;
+  private int decisionAction_ = 0;
+  /**
+   * <pre>
+   * The approval decision recorded for this PendingApproval.
+   *
+   * Populated when lifecycle_state advances to DECISION_RECORDED (or later).
+   * This is the authoritative record of the user's decision. The
+   * ToolCall.approval_action field is a projection of this value.
+   *
+   * UNSPECIFIED when no decision has been made yet.
+   *
+   * &#64;since HITL Approval Flow Hardening
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction decision_action = 11 [json_name = "decisionAction"];</code>
+   * @return The enum numeric value on the wire for decisionAction.
+   */
+  @java.lang.Override public int getDecisionActionValue() {
+    return decisionAction_;
+  }
+  /**
+   * <pre>
+   * The approval decision recorded for this PendingApproval.
+   *
+   * Populated when lifecycle_state advances to DECISION_RECORDED (or later).
+   * This is the authoritative record of the user's decision. The
+   * ToolCall.approval_action field is a projection of this value.
+   *
+   * UNSPECIFIED when no decision has been made yet.
+   *
+   * &#64;since HITL Approval Flow Hardening
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction decision_action = 11 [json_name = "decisionAction"];</code>
+   * @return The decisionAction.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ApprovalAction getDecisionAction() {
+    ai.stigmer.agentic.agentexecution.v1.ApprovalAction result = ai.stigmer.agentic.agentexecution.v1.ApprovalAction.forNumber(decisionAction_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalAction.UNRECOGNIZED : result;
+  }
+
+  public static final int DECISION_RECORDED_AT_FIELD_NUMBER = 12;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object decisionRecordedAt_ = "";
+  /**
+   * <pre>
+   * ISO 8601 timestamp when the approval decision was recorded.
+   *
+   * Populated alongside decision_action when lifecycle_state advances to
+   * DECISION_RECORDED. The ToolCall.approval_decided_at field is a projection
+   * of this value.
+   *
+   * &#64;since HITL Approval Flow Hardening
+   * </pre>
+   *
+   * <code>string decision_recorded_at = 12 [json_name = "decisionRecordedAt"];</code>
+   * @return The decisionRecordedAt.
+   */
+  @java.lang.Override
+  public java.lang.String getDecisionRecordedAt() {
+    java.lang.Object ref = decisionRecordedAt_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      decisionRecordedAt_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * ISO 8601 timestamp when the approval decision was recorded.
+   *
+   * Populated alongside decision_action when lifecycle_state advances to
+   * DECISION_RECORDED. The ToolCall.approval_decided_at field is a projection
+   * of this value.
+   *
+   * &#64;since HITL Approval Flow Hardening
+   * </pre>
+   *
+   * <code>string decision_recorded_at = 12 [json_name = "decisionRecordedAt"];</code>
+   * @return The bytes for decisionRecordedAt.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getDecisionRecordedAtBytes() {
+    java.lang.Object ref = decisionRecordedAt_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      decisionRecordedAt_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -605,6 +761,15 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(interruptId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, interruptId_);
     }
+    if (lifecycleState_ != ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState.APPROVAL_LIFECYCLE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(10, lifecycleState_);
+    }
+    if (decisionAction_ != ai.stigmer.agentic.agentexecution.v1.ApprovalAction.APPROVAL_ACTION_UNSPECIFIED.getNumber()) {
+      output.writeEnum(11, decisionAction_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(decisionRecordedAt_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 12, decisionRecordedAt_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -642,6 +807,17 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(interruptId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(9, interruptId_);
     }
+    if (lifecycleState_ != ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState.APPROVAL_LIFECYCLE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(10, lifecycleState_);
+    }
+    if (decisionAction_ != ai.stigmer.agentic.agentexecution.v1.ApprovalAction.APPROVAL_ACTION_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(11, decisionAction_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(decisionRecordedAt_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(12, decisionRecordedAt_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -675,6 +851,10 @@ private static final long serialVersionUID = 0L;
         .equals(other.getChildAgentExecutionId())) return false;
     if (!getInterruptId()
         .equals(other.getInterruptId())) return false;
+    if (lifecycleState_ != other.lifecycleState_) return false;
+    if (decisionAction_ != other.decisionAction_) return false;
+    if (!getDecisionRecordedAt()
+        .equals(other.getDecisionRecordedAt())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -705,6 +885,12 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getChildAgentExecutionId().hashCode();
     hash = (37 * hash) + INTERRUPT_ID_FIELD_NUMBER;
     hash = (53 * hash) + getInterruptId().hashCode();
+    hash = (37 * hash) + LIFECYCLE_STATE_FIELD_NUMBER;
+    hash = (53 * hash) + lifecycleState_;
+    hash = (37 * hash) + DECISION_ACTION_FIELD_NUMBER;
+    hash = (53 * hash) + decisionAction_;
+    hash = (37 * hash) + DECISION_RECORDED_AT_FIELD_NUMBER;
+    hash = (53 * hash) + getDecisionRecordedAt().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -804,18 +990,20 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * PendingApproval surfaces the current approval request for UI display.
+   * PendingApproval is the single source of truth for approval state.
    *
    * ## Purpose
    *
-   * This message provides all information needed for a UI to render an approval
-   * dialog/card. It's populated when an execution enters WAITING_FOR_APPROVAL phase.
+   * This message tracks the full lifecycle of a single tool approval request.
+   * Every approval-related field on ToolCall (approval_action, approval_decided_at)
+   * is a projection of the state recorded here. When in doubt, PendingApproval
+   * is authoritative.
    *
-   * ## Relationship to ToolCall
+   * ## Lifecycle Tracking
    *
-   * While ToolCall contains the canonical approval state, PendingApproval provides
-   * a denormalized view optimized for UI consumption. The tool_call_id links back
-   * to the authoritative ToolCall record.
+   * The lifecycle_state field tracks exactly where this approval is in the
+   * distributed pipeline (see ApprovalLifecycleState). Each service advances
+   * the state forward-only, making the approval flow auditable and diagnosable.
    *
    * ## Sub-Agent Approvals
    *
@@ -873,6 +1061,9 @@ private static final long serialVersionUID = 0L;
       subAgentName_ = "";
       childAgentExecutionId_ = "";
       interruptId_ = "";
+      lifecycleState_ = 0;
+      decisionAction_ = 0;
+      decisionRecordedAt_ = "";
       return this;
     }
 
@@ -933,6 +1124,15 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000100) != 0)) {
         result.interruptId_ = interruptId_;
       }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.lifecycleState_ = lifecycleState_;
+      }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.decisionAction_ = decisionAction_;
+      }
+      if (((from_bitField0_ & 0x00000800) != 0)) {
+        result.decisionRecordedAt_ = decisionRecordedAt_;
+      }
     }
 
     @java.lang.Override
@@ -988,6 +1188,17 @@ private static final long serialVersionUID = 0L;
       if (!other.getInterruptId().isEmpty()) {
         interruptId_ = other.interruptId_;
         bitField0_ |= 0x00000100;
+        onChanged();
+      }
+      if (other.lifecycleState_ != 0) {
+        setLifecycleStateValue(other.getLifecycleStateValue());
+      }
+      if (other.decisionAction_ != 0) {
+        setDecisionActionValue(other.getDecisionActionValue());
+      }
+      if (!other.getDecisionRecordedAt().isEmpty()) {
+        decisionRecordedAt_ = other.decisionRecordedAt_;
+        bitField0_ |= 0x00000800;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1061,6 +1272,21 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000100;
               break;
             } // case 74
+            case 80: {
+              lifecycleState_ = input.readEnum();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 80
+            case 88: {
+              decisionAction_ = input.readEnum();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 88
+            case 98: {
+              decisionRecordedAt_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000800;
+              break;
+            } // case 98
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2078,6 +2304,372 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       interruptId_ = value;
       bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private int lifecycleState_ = 0;
+    /**
+     * <pre>
+     * Current lifecycle state of this approval.
+     *
+     * Tracks which service last advanced this approval and where it is in the
+     * distributed pipeline. Forward-only: no service may move the state backward.
+     *
+     * UI consumers:
+     * - REQUESTED / INTERRUPT_CAPTURED: Show approval card (action available)
+     * - DECISION_RECORDED: Show decision badge (approval submitted, awaiting resume)
+     * - RESUME_RECONCILED / CLEARED: Hidden (approval fully processed)
+     *
+     * Defaults to UNSPECIFIED for backward compatibility with existing records.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState lifecycle_state = 10 [json_name = "lifecycleState"];</code>
+     * @return The enum numeric value on the wire for lifecycleState.
+     */
+    @java.lang.Override public int getLifecycleStateValue() {
+      return lifecycleState_;
+    }
+    /**
+     * <pre>
+     * Current lifecycle state of this approval.
+     *
+     * Tracks which service last advanced this approval and where it is in the
+     * distributed pipeline. Forward-only: no service may move the state backward.
+     *
+     * UI consumers:
+     * - REQUESTED / INTERRUPT_CAPTURED: Show approval card (action available)
+     * - DECISION_RECORDED: Show decision badge (approval submitted, awaiting resume)
+     * - RESUME_RECONCILED / CLEARED: Hidden (approval fully processed)
+     *
+     * Defaults to UNSPECIFIED for backward compatibility with existing records.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState lifecycle_state = 10 [json_name = "lifecycleState"];</code>
+     * @param value The enum numeric value on the wire for lifecycleState to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setLifecycleStateValue(int value) {
+      lifecycleState_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Current lifecycle state of this approval.
+     *
+     * Tracks which service last advanced this approval and where it is in the
+     * distributed pipeline. Forward-only: no service may move the state backward.
+     *
+     * UI consumers:
+     * - REQUESTED / INTERRUPT_CAPTURED: Show approval card (action available)
+     * - DECISION_RECORDED: Show decision badge (approval submitted, awaiting resume)
+     * - RESUME_RECONCILED / CLEARED: Hidden (approval fully processed)
+     *
+     * Defaults to UNSPECIFIED for backward compatibility with existing records.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState lifecycle_state = 10 [json_name = "lifecycleState"];</code>
+     * @return The lifecycleState.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState getLifecycleState() {
+      ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState result = ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState.forNumber(lifecycleState_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Current lifecycle state of this approval.
+     *
+     * Tracks which service last advanced this approval and where it is in the
+     * distributed pipeline. Forward-only: no service may move the state backward.
+     *
+     * UI consumers:
+     * - REQUESTED / INTERRUPT_CAPTURED: Show approval card (action available)
+     * - DECISION_RECORDED: Show decision badge (approval submitted, awaiting resume)
+     * - RESUME_RECONCILED / CLEARED: Hidden (approval fully processed)
+     *
+     * Defaults to UNSPECIFIED for backward compatibility with existing records.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState lifecycle_state = 10 [json_name = "lifecycleState"];</code>
+     * @param value The lifecycleState to set.
+     * @return This builder for chaining.
+     */
+    public Builder setLifecycleState(ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000200;
+      lifecycleState_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Current lifecycle state of this approval.
+     *
+     * Tracks which service last advanced this approval and where it is in the
+     * distributed pipeline. Forward-only: no service may move the state backward.
+     *
+     * UI consumers:
+     * - REQUESTED / INTERRUPT_CAPTURED: Show approval card (action available)
+     * - DECISION_RECORDED: Show decision badge (approval submitted, awaiting resume)
+     * - RESUME_RECONCILED / CLEARED: Hidden (approval fully processed)
+     *
+     * Defaults to UNSPECIFIED for backward compatibility with existing records.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState lifecycle_state = 10 [json_name = "lifecycleState"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearLifecycleState() {
+      bitField0_ = (bitField0_ & ~0x00000200);
+      lifecycleState_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int decisionAction_ = 0;
+    /**
+     * <pre>
+     * The approval decision recorded for this PendingApproval.
+     *
+     * Populated when lifecycle_state advances to DECISION_RECORDED (or later).
+     * This is the authoritative record of the user's decision. The
+     * ToolCall.approval_action field is a projection of this value.
+     *
+     * UNSPECIFIED when no decision has been made yet.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction decision_action = 11 [json_name = "decisionAction"];</code>
+     * @return The enum numeric value on the wire for decisionAction.
+     */
+    @java.lang.Override public int getDecisionActionValue() {
+      return decisionAction_;
+    }
+    /**
+     * <pre>
+     * The approval decision recorded for this PendingApproval.
+     *
+     * Populated when lifecycle_state advances to DECISION_RECORDED (or later).
+     * This is the authoritative record of the user's decision. The
+     * ToolCall.approval_action field is a projection of this value.
+     *
+     * UNSPECIFIED when no decision has been made yet.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction decision_action = 11 [json_name = "decisionAction"];</code>
+     * @param value The enum numeric value on the wire for decisionAction to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setDecisionActionValue(int value) {
+      decisionAction_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The approval decision recorded for this PendingApproval.
+     *
+     * Populated when lifecycle_state advances to DECISION_RECORDED (or later).
+     * This is the authoritative record of the user's decision. The
+     * ToolCall.approval_action field is a projection of this value.
+     *
+     * UNSPECIFIED when no decision has been made yet.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction decision_action = 11 [json_name = "decisionAction"];</code>
+     * @return The decisionAction.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ApprovalAction getDecisionAction() {
+      ai.stigmer.agentic.agentexecution.v1.ApprovalAction result = ai.stigmer.agentic.agentexecution.v1.ApprovalAction.forNumber(decisionAction_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ApprovalAction.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * The approval decision recorded for this PendingApproval.
+     *
+     * Populated when lifecycle_state advances to DECISION_RECORDED (or later).
+     * This is the authoritative record of the user's decision. The
+     * ToolCall.approval_action field is a projection of this value.
+     *
+     * UNSPECIFIED when no decision has been made yet.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction decision_action = 11 [json_name = "decisionAction"];</code>
+     * @param value The decisionAction to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDecisionAction(ai.stigmer.agentic.agentexecution.v1.ApprovalAction value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000400;
+      decisionAction_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * The approval decision recorded for this PendingApproval.
+     *
+     * Populated when lifecycle_state advances to DECISION_RECORDED (or later).
+     * This is the authoritative record of the user's decision. The
+     * ToolCall.approval_action field is a projection of this value.
+     *
+     * UNSPECIFIED when no decision has been made yet.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ApprovalAction decision_action = 11 [json_name = "decisionAction"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDecisionAction() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      decisionAction_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object decisionRecordedAt_ = "";
+    /**
+     * <pre>
+     * ISO 8601 timestamp when the approval decision was recorded.
+     *
+     * Populated alongside decision_action when lifecycle_state advances to
+     * DECISION_RECORDED. The ToolCall.approval_decided_at field is a projection
+     * of this value.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>string decision_recorded_at = 12 [json_name = "decisionRecordedAt"];</code>
+     * @return The decisionRecordedAt.
+     */
+    public java.lang.String getDecisionRecordedAt() {
+      java.lang.Object ref = decisionRecordedAt_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        decisionRecordedAt_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * ISO 8601 timestamp when the approval decision was recorded.
+     *
+     * Populated alongside decision_action when lifecycle_state advances to
+     * DECISION_RECORDED. The ToolCall.approval_decided_at field is a projection
+     * of this value.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>string decision_recorded_at = 12 [json_name = "decisionRecordedAt"];</code>
+     * @return The bytes for decisionRecordedAt.
+     */
+    public com.google.protobuf.ByteString
+        getDecisionRecordedAtBytes() {
+      java.lang.Object ref = decisionRecordedAt_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        decisionRecordedAt_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * ISO 8601 timestamp when the approval decision was recorded.
+     *
+     * Populated alongside decision_action when lifecycle_state advances to
+     * DECISION_RECORDED. The ToolCall.approval_decided_at field is a projection
+     * of this value.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>string decision_recorded_at = 12 [json_name = "decisionRecordedAt"];</code>
+     * @param value The decisionRecordedAt to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDecisionRecordedAt(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      decisionRecordedAt_ = value;
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ISO 8601 timestamp when the approval decision was recorded.
+     *
+     * Populated alongside decision_action when lifecycle_state advances to
+     * DECISION_RECORDED. The ToolCall.approval_decided_at field is a projection
+     * of this value.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>string decision_recorded_at = 12 [json_name = "decisionRecordedAt"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearDecisionRecordedAt() {
+      decisionRecordedAt_ = getDefaultInstance().getDecisionRecordedAt();
+      bitField0_ = (bitField0_ & ~0x00000800);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * ISO 8601 timestamp when the approval decision was recorded.
+     *
+     * Populated alongside decision_action when lifecycle_state advances to
+     * DECISION_RECORDED. The ToolCall.approval_decided_at field is a projection
+     * of this value.
+     *
+     * &#64;since HITL Approval Flow Hardening
+     * </pre>
+     *
+     * <code>string decision_recorded_at = 12 [json_name = "decisionRecordedAt"];</code>
+     * @param value The bytes for decisionRecordedAt to set.
+     * @return This builder for chaining.
+     */
+    public Builder setDecisionRecordedAtBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      decisionRecordedAt_ = value;
+      bitField0_ |= 0x00000800;
       onChanged();
       return this;
     }

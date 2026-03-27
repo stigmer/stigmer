@@ -117,8 +117,12 @@ class AgentRunner:
         - EnsureThread: Thread management for conversation state
         - cleanup_sandbox: Sandbox cleanup (legacy, may be removed)
         """
-        # Import activities here to avoid circular imports
+        # Import activities and workflows here to avoid circular imports
         from worker.activities.cleanup_sandbox import cleanup_sandbox
+        from worker.activities.discover_mcp_server import (
+            DiscoverMcpServerWorkflow,
+            discover_mcp_server,
+        )
         from worker.activities.ensure_thread import ensure_thread
         from worker.activities.execute_graphton import execute_graphton
         from worker.activities.generate_session_subject import generate_session_subject
@@ -151,15 +155,21 @@ class AgentRunner:
             self.logger.error(f"❌ Failed to connect to Temporal: {e}")
             raise
         
-        # Register worker
+        # Register worker with both activities and workflows.
+        # The DiscoverMcpServerWorkflow is defined in Python so Go/Java backends
+        # can start it by name on this queue without implementing it themselves.
         self.worker = Worker(
             self.client,
             task_queue=self.config.task_queue,
+            workflows=[
+                DiscoverMcpServerWorkflow,
+            ],
             activities=[
                 execute_graphton,
                 ensure_thread,
                 cleanup_sandbox,
                 generate_session_subject,
+                discover_mcp_server,
             ],
             max_concurrent_activities=self.config.max_concurrency,
             max_heartbeat_throttle_interval=timedelta(seconds=10),
@@ -169,7 +179,8 @@ class AgentRunner:
             f"✅ [POLYGLOT] Registered Python activities on task queue: '{self.config.task_queue}'"
         )
         self.logger.info(
-            "✅ [POLYGLOT] Activities: ExecuteGraphton, EnsureThread, CleanupSandbox, GenerateSessionSubject"
+            "✅ [POLYGLOT] Activities: ExecuteGraphton, EnsureThread, CleanupSandbox, "
+            "GenerateSessionSubject, DiscoverMcpServerCapabilities"
         )
         self.logger.info(
             f"✅ [POLYGLOT] Max concurrency: {self.config.max_concurrency}"

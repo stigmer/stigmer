@@ -24,6 +24,11 @@ import { useSession } from "./useSession";
 import { useSessionExecutions } from "./useSessionExecutions";
 import { useUpdateSession } from "./useUpdateSession";
 
+const APPROVAL_POLL_INITIAL_MS = 3_000;
+const APPROVAL_POLL_MAX_MS = 30_000;
+const STALE_DISMISSAL_MS = 15_000;
+const STALE_CHECK_INTERVAL_MS = 5_000;
+
 /**
  * Options for {@link UseSessionConversationReturn.sendFollowUp}.
  *
@@ -224,9 +229,16 @@ export function useSessionConversation(
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(
     null,
   );
-  const [dismissedApprovalIds, setDismissedApprovalIds] = useState<
-    ReadonlySet<string>
-  >(new Set());
+  const [dismissedAtMap, setDismissedAtMap] = useState<
+    ReadonlyMap<string, number>
+  >(new Map());
+  const dismissedAtMapRef = useRef(dismissedAtMap);
+  dismissedAtMapRef.current = dismissedAtMap;
+
+  const dismissedApprovalIds = useMemo<ReadonlySet<string>>(
+    () => new Set(dismissedAtMap.keys()),
+    [dismissedAtMap],
+  );
 
   const listActiveId = useMemo(() => {
     for (let i = executions.length - 1; i >= 0; i--) {
@@ -243,7 +255,7 @@ export function useSessionConversation(
   const stream = useExecutionStream(activeExecutionId);
 
   useEffect(() => {
-    setDismissedApprovalIds(new Set());
+    setDismissedAtMap(new Map());
   }, [activeExecutionId]);
 
   // Clear pendingExecutionId once the execution appears in the fetched list
@@ -364,25 +376,42 @@ export function useSessionConversation(
   }, [activeStreamExecution, dismissedApprovalIds]);
 
   // Poll-based fallback: when the execution is WAITING_FOR_APPROVAL but
-  // pendingApprovals is empty, the streaming path may have failed to
-  // deliver the approval state. Refetch the execution directly so the
-  // user is never stuck without an action to take.
+  // the server has not delivered any approval data (raw approvals empty),
+  // refetch with exponential backoff until data arrives. Checks raw
+  // (unfiltered) approvals so dismissed-but-present approvals don't
+  // trigger unnecessary network requests — that case is handled by the
+  // staleness detection below.
+  const rawApprovalCount =
+    activeStreamExecution?.status?.pendingApprovals?.length ?? 0;
+
   const approvalPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollAttemptRef = useRef(0);
+
   useEffect(() => {
     if (approvalPollRef.current) {
       clearTimeout(approvalPollRef.current);
       approvalPollRef.current = null;
     }
+    pollAttemptRef.current = 0;
 
     const isWaiting =
       activePhase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
-    const hasNoApprovals = pendingApprovals.length === 0;
 
-    if (!isWaiting || !hasNoApprovals || !activeExecutionId) return;
+    if (!isWaiting || rawApprovalCount > 0 || !activeExecutionId) return;
 
-    approvalPollRef.current = setTimeout(() => {
-      refetch();
-    }, 3000);
+    function scheduleNextPoll() {
+      const delay = Math.min(
+        APPROVAL_POLL_INITIAL_MS * 2 ** pollAttemptRef.current,
+        APPROVAL_POLL_MAX_MS,
+      );
+      approvalPollRef.current = setTimeout(() => {
+        pollAttemptRef.current += 1;
+        refetch();
+        scheduleNextPoll();
+      }, delay);
+    }
+
+    scheduleNextPoll();
 
     return () => {
       if (approvalPollRef.current) {
@@ -390,7 +419,36 @@ export function useSessionConversation(
         approvalPollRef.current = null;
       }
     };
-  }, [activePhase, pendingApprovals.length, activeExecutionId, refetch]);
+  }, [activePhase, rawApprovalCount, activeExecutionId, refetch]);
+
+  // Staleness detection: when an approval was optimistically dismissed
+  // but the execution remains in WAITING_FOR_APPROVAL longer than
+  // expected, the downstream Temporal signal may have failed. Remove
+  // stale dismissals so the card reappears and the user can retry.
+  useEffect(() => {
+    const isWaiting =
+      activePhase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
+    if (!isWaiting || dismissedAtMap.size === 0) return;
+
+    const id = setInterval(() => {
+      const now = Date.now();
+      const currentMap = dismissedAtMapRef.current;
+      const staleKeys: string[] = [];
+      for (const [key, ts] of currentMap) {
+        if (now - ts > STALE_DISMISSAL_MS) staleKeys.push(key);
+      }
+      if (staleKeys.length === 0) return;
+
+      setDismissedAtMap((prev) => {
+        const next = new Map(prev);
+        for (const key of staleKeys) next.delete(key);
+        return next.size < prev.size ? next : prev;
+      });
+      refetch();
+    }, STALE_CHECK_INTERVAL_MS);
+
+    return () => clearInterval(id);
+  }, [activePhase, dismissedAtMap.size, refetch]);
 
   const submitApproval = useCallback(
     async (
@@ -400,9 +458,9 @@ export function useSessionConversation(
     ): Promise<void> => {
       if (!activeExecutionId) return;
       await rawSubmitApproval(activeExecutionId, toolCallId, action, comment);
-      setDismissedApprovalIds((prev) => {
-        const next = new Set(prev);
-        next.add(toolCallId);
+      setDismissedAtMap((prev) => {
+        const next = new Map(prev);
+        next.set(toolCallId, Date.now());
         return next;
       });
     },

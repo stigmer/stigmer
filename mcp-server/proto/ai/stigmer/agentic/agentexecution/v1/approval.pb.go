@@ -21,18 +21,112 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// PendingApproval surfaces the current approval request for UI display.
+// ApprovalLifecycleState tracks the progress of a single approval through
+// the distributed HITL pipeline.
+//
+// Each state transition is forward-only — no service may move the state
+// backward. This invariant is enforced at every service boundary and makes
+// the approval flow auditable and diagnosable.
+//
+// ## State Machine
+//
+//	UNSPECIFIED ──► REQUESTED ──► INTERRUPT_CAPTURED ──► DECISION_RECORDED ──► RESUME_RECONCILED ──► CLEARED
+//
+// ## Service Ownership
+//
+//	REQUESTED           — Python agent-runner (Phase 1: _populate_pending_approval)
+//	INTERRUPT_CAPTURED  — Python agent-runner (Phase 2: INTERRUPT_CAPTURE)
+//	DECISION_RECORDED   — Go/Java approval handler (RecordApprovalDecisionStep)
+//	RESUME_RECONCILED   — Python agent-runner (RESUME_RECONCILE)
+//	CLEARED             — Go/Java update-status handler (clear-signal sentinel)
+//
+// ## Diagnostic Value
+//
+// When an approval flow is stuck, lifecycle_state immediately shows which
+// service last touched the record and which transition failed — no log
+// correlation required.
+type ApprovalLifecycleState int32
+
+const (
+	ApprovalLifecycleState_APPROVAL_LIFECYCLE_UNSPECIFIED ApprovalLifecycleState = 0
+	// Phase 1: Tool detected as requiring approval, PendingApproval created.
+	// Set by Python agent-runner in _populate_pending_approval.
+	ApprovalLifecycleState_APPROVAL_LIFECYCLE_REQUESTED ApprovalLifecycleState = 1
+	// Phase 2: LangGraph interrupt_id linked to this PendingApproval.
+	// Set by Python agent-runner in INTERRUPT_CAPTURE after the event stream.
+	ApprovalLifecycleState_APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED ApprovalLifecycleState = 2
+	// User submitted a decision, ToolCall updated, Temporal signal sent.
+	// Set by Go/Java approval handler in RecordApprovalDecisionStep.
+	ApprovalLifecycleState_APPROVAL_LIFECYCLE_DECISION_RECORDED ApprovalLifecycleState = 3
+	// Python read the decision, built resume_dict, reconciled tool call status.
+	// Set by Python agent-runner in RESUME_RECONCILE.
+	ApprovalLifecycleState_APPROVAL_LIFECYCLE_RESUME_RECONCILED ApprovalLifecycleState = 4
+	// Clear-signal sentinel sent, DB cleared.
+	// Set by Python agent-runner when appending the empty-tool_call_id sentinel.
+	ApprovalLifecycleState_APPROVAL_LIFECYCLE_CLEARED ApprovalLifecycleState = 5
+)
+
+// Enum value maps for ApprovalLifecycleState.
+var (
+	ApprovalLifecycleState_name = map[int32]string{
+		0: "APPROVAL_LIFECYCLE_UNSPECIFIED",
+		1: "APPROVAL_LIFECYCLE_REQUESTED",
+		2: "APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED",
+		3: "APPROVAL_LIFECYCLE_DECISION_RECORDED",
+		4: "APPROVAL_LIFECYCLE_RESUME_RECONCILED",
+		5: "APPROVAL_LIFECYCLE_CLEARED",
+	}
+	ApprovalLifecycleState_value = map[string]int32{
+		"APPROVAL_LIFECYCLE_UNSPECIFIED":        0,
+		"APPROVAL_LIFECYCLE_REQUESTED":          1,
+		"APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED": 2,
+		"APPROVAL_LIFECYCLE_DECISION_RECORDED":  3,
+		"APPROVAL_LIFECYCLE_RESUME_RECONCILED":  4,
+		"APPROVAL_LIFECYCLE_CLEARED":            5,
+	}
+)
+
+func (x ApprovalLifecycleState) Enum() *ApprovalLifecycleState {
+	p := new(ApprovalLifecycleState)
+	*p = x
+	return p
+}
+
+func (x ApprovalLifecycleState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ApprovalLifecycleState) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_approval_proto_enumTypes[0].Descriptor()
+}
+
+func (ApprovalLifecycleState) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_approval_proto_enumTypes[0]
+}
+
+func (x ApprovalLifecycleState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ApprovalLifecycleState.Descriptor instead.
+func (ApprovalLifecycleState) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDescGZIP(), []int{0}
+}
+
+// PendingApproval is the single source of truth for approval state.
 //
 // ## Purpose
 //
-// This message provides all information needed for a UI to render an approval
-// dialog/card. It's populated when an execution enters WAITING_FOR_APPROVAL phase.
+// This message tracks the full lifecycle of a single tool approval request.
+// Every approval-related field on ToolCall (approval_action, approval_decided_at)
+// is a projection of the state recorded here. When in doubt, PendingApproval
+// is authoritative.
 //
-// ## Relationship to ToolCall
+// ## Lifecycle Tracking
 //
-// While ToolCall contains the canonical approval state, PendingApproval provides
-// a denormalized view optimized for UI consumption. The tool_call_id links back
-// to the authoritative ToolCall record.
+// The lifecycle_state field tracks exactly where this approval is in the
+// distributed pipeline (see ApprovalLifecycleState). Each service advances
+// the state forward-only, making the approval flow auditable and diagnosable.
 //
 // ## Sub-Agent Approvals
 //
@@ -112,9 +206,41 @@ type PendingApproval struct {
 	// Empty for legacy executions or single-interrupt scenarios (backward compat).
 	//
 	// @since Batch Approval (Multiple Interrupts)
-	InterruptId   string `protobuf:"bytes,9,opt,name=interrupt_id,json=interruptId,proto3" json:"interrupt_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	InterruptId string `protobuf:"bytes,9,opt,name=interrupt_id,json=interruptId,proto3" json:"interrupt_id,omitempty"`
+	// Current lifecycle state of this approval.
+	//
+	// Tracks which service last advanced this approval and where it is in the
+	// distributed pipeline. Forward-only: no service may move the state backward.
+	//
+	// UI consumers:
+	//   - REQUESTED / INTERRUPT_CAPTURED: Show approval card (action available)
+	//   - DECISION_RECORDED: Show decision badge (approval submitted, awaiting resume)
+	//   - RESUME_RECONCILED / CLEARED: Hidden (approval fully processed)
+	//
+	// Defaults to UNSPECIFIED for backward compatibility with existing records.
+	//
+	// @since HITL Approval Flow Hardening
+	LifecycleState ApprovalLifecycleState `protobuf:"varint,10,opt,name=lifecycle_state,json=lifecycleState,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState" json:"lifecycle_state,omitempty"`
+	// The approval decision recorded for this PendingApproval.
+	//
+	// Populated when lifecycle_state advances to DECISION_RECORDED (or later).
+	// This is the authoritative record of the user's decision. The
+	// ToolCall.approval_action field is a projection of this value.
+	//
+	// UNSPECIFIED when no decision has been made yet.
+	//
+	// @since HITL Approval Flow Hardening
+	DecisionAction ApprovalAction `protobuf:"varint,11,opt,name=decision_action,json=decisionAction,proto3,enum=ai.stigmer.agentic.agentexecution.v1.ApprovalAction" json:"decision_action,omitempty"`
+	// ISO 8601 timestamp when the approval decision was recorded.
+	//
+	// Populated alongside decision_action when lifecycle_state advances to
+	// DECISION_RECORDED. The ToolCall.approval_decided_at field is a projection
+	// of this value.
+	//
+	// @since HITL Approval Flow Hardening
+	DecisionRecordedAt string `protobuf:"bytes,12,opt,name=decision_recorded_at,json=decisionRecordedAt,proto3" json:"decision_recorded_at,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *PendingApproval) Reset() {
@@ -206,6 +332,27 @@ func (x *PendingApproval) GetChildAgentExecutionId() string {
 func (x *PendingApproval) GetInterruptId() string {
 	if x != nil {
 		return x.InterruptId
+	}
+	return ""
+}
+
+func (x *PendingApproval) GetLifecycleState() ApprovalLifecycleState {
+	if x != nil {
+		return x.LifecycleState
+	}
+	return ApprovalLifecycleState_APPROVAL_LIFECYCLE_UNSPECIFIED
+}
+
+func (x *PendingApproval) GetDecisionAction() ApprovalAction {
+	if x != nil {
+		return x.DecisionAction
+	}
+	return ApprovalAction_APPROVAL_ACTION_UNSPECIFIED
+}
+
+func (x *PendingApproval) GetDecisionRecordedAt() string {
+	if x != nil {
+		return x.DecisionRecordedAt
 	}
 	return ""
 }
@@ -309,7 +456,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_approval_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\"\xd8\x02\n" +
+	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\"\xd0\x04\n" +
 	"\x0fPendingApproval\x12 \n" +
 	"\ftool_call_id\x18\x01 \x01(\tR\n" +
 	"toolCallId\x12\x1b\n" +
@@ -320,10 +467,21 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\x0efrom_sub_agent\x18\x06 \x01(\bR\ffromSubAgent\x12$\n" +
 	"\x0esub_agent_name\x18\a \x01(\tR\fsubAgentName\x127\n" +
 	"\x18child_agent_execution_id\x18\b \x01(\tR\x15childAgentExecutionId\x12!\n" +
-	"\finterrupt_id\x18\t \x01(\tR\vinterruptId\"\xa2\x01\n" +
+	"\finterrupt_id\x18\t \x01(\tR\vinterruptId\x12e\n" +
+	"\x0flifecycle_state\x18\n" +
+	" \x01(\x0e2<.ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleStateR\x0elifecycleState\x12]\n" +
+	"\x0fdecision_action\x18\v \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionR\x0edecisionAction\x120\n" +
+	"\x14decision_recorded_at\x18\f \x01(\tR\x12decisionRecordedAt\"\xa2\x01\n" +
 	"\x19ChildApprovalNotification\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12b\n" +
-	"\x11pending_approvals\x18\x02 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovalsB\xd1\x02\n" +
+	"\x11pending_approvals\x18\x02 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals*\xfd\x01\n" +
+	"\x16ApprovalLifecycleState\x12\"\n" +
+	"\x1eAPPROVAL_LIFECYCLE_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cAPPROVAL_LIFECYCLE_REQUESTED\x10\x01\x12)\n" +
+	"%APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED\x10\x02\x12(\n" +
+	"$APPROVAL_LIFECYCLE_DECISION_RECORDED\x10\x03\x12(\n" +
+	"$APPROVAL_LIFECYCLE_RESUME_RECONCILED\x10\x04\x12\x1e\n" +
+	"\x1aAPPROVAL_LIFECYCLE_CLEARED\x10\x05B\xd1\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\rApprovalProtoP\x01Zagithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -338,18 +496,23 @@ func file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDescGZIP() []by
 	return file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDescData
 }
 
+var file_ai_stigmer_agentic_agentexecution_v1_approval_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_agentexecution_v1_approval_proto_goTypes = []any{
-	(*PendingApproval)(nil),           // 0: ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	(*ChildApprovalNotification)(nil), // 1: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification
+	(ApprovalLifecycleState)(0),       // 0: ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState
+	(*PendingApproval)(nil),           // 1: ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	(*ChildApprovalNotification)(nil), // 2: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification
+	(ApprovalAction)(0),               // 3: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 }
 var file_ai_stigmer_agentic_agentexecution_v1_approval_proto_depIdxs = []int32{
-	0, // 0: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // 0: ai.stigmer.agentic.agentexecution.v1.PendingApproval.lifecycle_state:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalLifecycleState
+	3, // 1: ai.stigmer.agentic.agentexecution.v1.PendingApproval.decision_action:type_name -> ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	1, // 2: ai.stigmer.agentic.agentexecution.v1.ChildApprovalNotification.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_approval_proto_init() }
@@ -357,18 +520,20 @@ func file_ai_stigmer_agentic_agentexecution_v1_approval_proto_init() {
 	if File_ai_stigmer_agentic_agentexecution_v1_approval_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_agentexecution_v1_approval_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_agentexecution_v1_approval_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_agentic_agentexecution_v1_approval_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_agentexecution_v1_approval_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_agentexecution_v1_approval_proto = out.File

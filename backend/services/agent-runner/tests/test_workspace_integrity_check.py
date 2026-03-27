@@ -55,6 +55,9 @@ class TestFileExistsDaytona:
         backend = DaytonaWorkspaceBackend(
             sandbox=sandbox, workspace_root="/home/daytona/workspace",
         )
+        # Reset mock so _ensure_workspace_root() call from __init__ is ignored
+        sandbox.process.exec.reset_mock()
+        sandbox.process.exec.return_value = result
         return backend, sandbox
 
     def test_file_exists(self):
@@ -74,7 +77,12 @@ class TestFileExistsDaytona:
         from worker.workspace.daytona import DaytonaWorkspaceBackend
 
         sandbox = MagicMock()
-        sandbox.process.exec.side_effect = RuntimeError("connection lost")
+        init_result = MagicMock()
+        init_result.exit_code = 0
+        sandbox.process.exec.side_effect = [
+            init_result,                        # _ensure_workspace_root() in __init__
+            RuntimeError("connection lost"),     # file_exists() call
+        ]
         backend = DaytonaWorkspaceBackend(
             sandbox=sandbox, workspace_root="/home/daytona/workspace",
         )

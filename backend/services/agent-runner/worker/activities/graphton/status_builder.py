@@ -1642,6 +1642,8 @@ class StatusBuilder:
                         args_dict = dict(tc.args)
                     fingerprint = self._get_tool_fingerprint(tc.name, args_dict)
                     self.tool_call_fingerprints.add(fingerprint)
+                    if tc.id:
+                        self._fingerprint_to_tool_call_id[fingerprint] = tc.id
                 except Exception:
                     pass
     
@@ -2265,46 +2267,14 @@ class StatusBuilder:
     # Approval State Management (HITL Phase 2)
     #
     # Approval-waiting state is set inline by _handle_tool_start_event() and
-    # _reconcile_early_tool_call() at ToolCall creation time.  Approval
-    # decisions are applied inline in execute_graphton.py's resume-after-
-    # approval flow.  The helper methods below manage the pending-approvals
-    # bookkeeping that both paths share.
+    # _reconcile_early_tool_call() at ToolCall creation time.  On resume,
+    # ResumeReconciler (hitl.py) handles reconciliation and clears pending
+    # approvals via the clear-signal sentinel pattern.
+    #
+    # The helpers below manage non-resume pending-approvals bookkeeping:
+    # clearing all pending state and syncing sub-agent approval lists.
     # ─────────────────────────────────────────────────────────────────────────────
 
-    def _remove_from_pending(self, run_id: str) -> None:
-        """Remove a single run_id from the pending approvals list.
-
-        If no more pending approvals remain after removal, clear the overall
-        pending state and restore the execution phase.
-
-        Also removes the matching ``PendingApproval`` from both
-        ``current_status.pending_approvals`` and the owning
-        ``SubAgentExecution.pending_approvals`` (dual-surfacing cleanup).
-        Resolves through ``_run_id_aliases`` so reconciliation-path tool calls
-        (where ``ToolCall.id`` is a temp_id) are matched correctly.
-        """
-        if run_id in self._pending_tool_approvals:
-            self._pending_tool_approvals.remove(run_id)
-
-            # PendingApproval.tool_call_id matches ToolCall.id, which may
-            # differ from run_id when the reconciliation path assigned a
-            # temp_id.  Resolve through the alias map.
-            tc_id = self._run_id_aliases.get(run_id, run_id)
-
-            for i, pa in enumerate(self.current_status.pending_approvals):
-                if pa.tool_call_id == tc_id:
-                    del self.current_status.pending_approvals[i]
-                    break
-
-            for sa in self.current_status.sub_agent_executions:
-                for i, pa in enumerate(sa.pending_approvals):
-                    if pa.tool_call_id == tc_id:
-                        del sa.pending_approvals[i]
-                        break
-
-        if not self._pending_tool_approvals:
-            self.clear_pending_approval()
-    
     def clear_pending_approval(self) -> None:
         """Clear ALL pending approval state and restore execution phase.
 
@@ -3413,14 +3383,23 @@ class StatusBuilder:
                 f"summarizations={summarization_count}"
             )
         
-        # Copy artifacts to status proto
-        if self._artifacts:
-            for artifact in self._artifacts:
+        # Reconcile artifacts: inline publishing already syncs each artifact
+        # to current_status.artifacts via add_artifact().  Only append any
+        # that were missed (e.g. added by the post-stream safety net after
+        # inline publish but before this finalizer ran).
+        already_synced = {a.sandbox_path for a in self.current_status.artifacts}
+        newly_synced = 0
+        for artifact in self._artifacts:
+            if artifact.sandbox_path not in already_synced:
                 self.current_status.artifacts.append(artifact)
-            
+                newly_synced += 1
+
+        if self._artifacts:
             self.logger.info(
                 f"[ARTIFACTS] execution={self.execution_id} "
-                f"finalized {len(self._artifacts)} artifacts"
+                f"finalized {len(self._artifacts)} artifact(s) "
+                f"({newly_synced} newly synced, "
+                f"{len(self._artifacts) - newly_synced} already live)"
             )
     
     # ─────────────────────────────────────────────────────────────────────────────
@@ -3431,21 +3410,40 @@ class StatusBuilder:
     # ─────────────────────────────────────────────────────────────────────────────
     
     def add_artifact(self, artifact: ExecutionArtifact) -> None:
+        """Add a published artifact and make it immediately visible in
+        ``current_status`` so the next progressive gRPC update carries it
+        to the UI.
+
+        Deduplicates by ``sandbox_path``: if an artifact with the same
+        path already exists (e.g. the agent overwrote a file), the older
+        entry is replaced in both the internal tracking list and the live
+        status proto.
         """
-        Add a published artifact to the tracking list.
-        
-        Called by the publish_artifact tool when an agent publishes
-        a file or directory as a downloadable artifact.
-        
-        Args:
-            artifact: ExecutionArtifact proto with download URL and metadata.
-        """
+        existing_paths = {a.sandbox_path for a in self._artifacts}
+        if artifact.sandbox_path in existing_paths:
+            self._artifacts = [
+                a for a in self._artifacts
+                if a.sandbox_path != artifact.sandbox_path
+            ]
         self._artifacts.append(artifact)
-        
+
+        self._sync_artifact_to_status(artifact)
+        self.force_next_update = True
+
         self.logger.info(
             f"[ARTIFACT] execution={self.execution_id} "
             f"name={artifact.name} "
             f"size={artifact.size_bytes} bytes "
             f"path={artifact.sandbox_path}"
         )
+
+    def _sync_artifact_to_status(self, artifact: ExecutionArtifact) -> None:
+        """Upsert *artifact* into ``current_status.artifacts`` by
+        ``sandbox_path``, preserving insertion order."""
+        status_artifacts = self.current_status.artifacts
+        for idx, existing in enumerate(status_artifacts):
+            if existing.sandbox_path == artifact.sandbox_path:
+                status_artifacts[idx].CopyFrom(artifact)
+                return
+        status_artifacts.append(artifact)
     

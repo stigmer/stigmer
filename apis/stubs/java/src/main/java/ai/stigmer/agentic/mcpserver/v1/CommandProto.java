@@ -43,7 +43,7 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       ".proto\0328ai/stigmer/commons/apiresource/r" +
       "pc_service_options.proto\032Aai/stigmer/iam" +
       "/iampolicy/v1/rpcauthorization/method_op" +
-      "tions.proto2\310\007\n\032McpServerCommandControll" +
+      "tions.proto2\224\t\n\032McpServerCommandControll" +
       "er\022_\n\005apply\022*.ai.stigmer.agentic.mcpserv" +
       "er.v1.McpServer\032*.ai.stigmer.agentic.mcp" +
       "server.v1.McpServer\022f\n\006create\022*.ai.stigm" +
@@ -67,12 +67,17 @@ public final class CommandProto extends com.google.protobuf.GeneratedFile {
       "edCapabilitiesInput\032*.ai.stigmer.agentic" +
       ".mcpserver.v1.McpServer\"G\302\270\030C\010\004\020,\"\rmcp_s" +
       "erver_id*.unauthorized to update mcp ser" +
-      "ver capabilities\032\004\240\377+,B\257\001B\014CommandProtoP" +
-      "\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpserver." +
-      "V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V1\342\002+A" +
-      "i\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetada" +
-      "ta\352\002#Ai::Stigmer::Agentic::Mcpserver::V1" +
-      "b\006proto3"
+      "ver capabilities\022\311\001\n\024discoverCapabilitie" +
+      "s\022:.ai.stigmer.agentic.mcpserver.v1.Disc" +
+      "overCapabilitiesInput\032*.ai.stigmer.agent" +
+      "ic.mcpserver.v1.McpServer\"I\302\270\030E\010\004\020,\"\rmcp" +
+      "_server_id*0unauthorized to discover mcp" +
+      " server capabilities\032\004\240\377+,B\257\001B\014CommandPr" +
+      "otoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpser" +
+      "ver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V1" +
+      "\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMe" +
+      "tadata\352\002#Ai::Stigmer::Agentic::Mcpserver" +
+      "::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
