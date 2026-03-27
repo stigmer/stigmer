@@ -227,7 +227,7 @@ func (c *McpServerController) resolveFromPersonalEnvironment(
 			requiredKeys = append(requiredKeys, k)
 		}
 		return nil, grpclib.FailedPreconditionError(
-			fmt.Sprintf("personal environment not found for org '%s'; save required credentials first: %v", org, requiredKeys),
+			"personal environment not found for org '%s'; save required credentials first: %v", org, requiredKeys,
 		)
 	}
 
@@ -272,7 +272,7 @@ func (c *McpServerController) resolveFromPersonalEnvironment(
 
 	if len(missing) > 0 {
 		return nil, grpclib.FailedPreconditionError(
-			fmt.Sprintf("missing required credentials in personal environment: %v", missing),
+			"missing required credentials in personal environment: %v", missing,
 		)
 	}
 
