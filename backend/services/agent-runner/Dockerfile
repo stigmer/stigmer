@@ -85,11 +85,10 @@ WORKDIR /app
 
 # ---------- STDIO MCP Server Runtime Tools ----------
 # The agent-runner spawns MCP servers as STDIO subprocesses during agent execution.
-# These four tools cover the most common MCP server distribution methods:
+# These tools cover the most common MCP server distribution methods:
 #   npx    - npm packages      (e.g., npx @modelcontextprotocol/server-github)
 #   uvx    - Python packages   (e.g., uvx mcp-server-sqlite)
 #   go run - Go modules        (e.g., go run github.com/org/mcp-server@latest)
-#   docker - Container images  (e.g., docker run -i --rm ghcr.io/org/mcp-server)
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -102,9 +101,6 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Docker CLI (the daemon mounts /var/run/docker.sock into the container)
-COPY --from=docker:27-cli /usr/local/bin/docker /usr/local/bin/docker
-
 # Go toolchain (for 'go run' of Go-based MCP servers)
 COPY --from=golang:1.25 /usr/local/go /usr/local/go
 ENV PATH="/usr/local/go/bin:${PATH}"
@@ -114,7 +110,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 # Verify all STDIO MCP runtime tools are available
 RUN node --version && npm --version && npx --version && \
-    go version && docker --version && uv --version && uvx --version
+    go version && uv --version && uvx --version
 
 # Create non-root user for security
 # UID 1000 is standard for first non-privileged user on Linux

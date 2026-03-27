@@ -20,6 +20,7 @@ ExecutionContext and cannot access arbitrary environments.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import AsyncExitStack
 from dataclasses import dataclass
@@ -222,6 +223,9 @@ async def _resolve_env_from_execution_context(
     return env_vars
 
 
+SESSION_INIT_TIMEOUT_SECONDS = 270
+
+
 async def _connect_and_discover(
     server_slug: str,
     config: dict[str, Any],
@@ -230,6 +234,10 @@ async def _connect_and_discover(
 
     Uses ``MultiServerMCPClient`` with a persistent session (same pattern
     as agent execution) so both stdio and HTTP transports work correctly.
+
+    Session initialization is guarded by a timeout to surface a clear
+    error when an MCP server's cold start (e.g. ``go run`` compilation,
+    ``npx`` package install) exceeds the allowed window.
     """
     from langchain_mcp_adapters.client import MultiServerMCPClient
 
@@ -239,7 +247,19 @@ async def _connect_and_discover(
     resource_templates: list[DiscoveredResourceTemplateResult] = []
 
     async with AsyncExitStack() as stack:
-        session = await stack.enter_async_context(client.session(server_slug))
+        try:
+            session = await asyncio.wait_for(
+                stack.enter_async_context(client.session(server_slug)),
+                timeout=SESSION_INIT_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            raise TimeoutError(
+                f"MCP server '{server_slug}' did not respond within "
+                f"{SESSION_INIT_TIMEOUT_SECONDS}s. If this server requires "
+                f"compilation or package installation on first run "
+                f"(e.g. go run, npx), the cold start may have exceeded "
+                f"the discovery timeout."
+            ) from None
 
         tools_result = await session.list_tools()
         for tool in tools_result.tools:
@@ -295,5 +315,5 @@ class DiscoverMcpServerWorkflow:
         return await workflow.execute_activity(
             discover_mcp_server,
             input,
-            start_to_close_timeout=timedelta(seconds=60),
+            start_to_close_timeout=timedelta(seconds=300),
         )
