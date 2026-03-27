@@ -167,11 +167,6 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.Messages = requestStatus.Messages
 	}
 
-	// Merge tool_calls (replace with latest from request)
-	if len(requestStatus.ToolCalls) > 0 {
-		updated.Status.ToolCalls = requestStatus.ToolCalls
-	}
-
 	// Merge sub_agent_executions (replace with latest from request)
 	if len(requestStatus.SubAgentExecutions) > 0 {
 		updated.Status.SubAgentExecutions = requestStatus.SubAgentExecutions
@@ -207,10 +202,10 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.CompletedAt = requestStatus.CompletedAt
 	}
 
-	// Merge pending_approvals: upsert-by-tool_call_id with forward-only lifecycle + prune
-	updated.Status.PendingApprovals = approval.MergePendingApprovals(
-		existing.GetStatus().GetPendingApprovals(),
-		requestStatus.GetPendingApprovals(),
+	// Compute pending_approvals from tool call state in messages
+	updated.Status.PendingApprovals = approval.ComputePendingApprovals(
+		updated.Status.GetMessages(),
+		updated.Status.GetSubAgentExecutions(),
 	)
 
 	// Merge usage (replace with latest cumulative snapshot from request)
@@ -232,7 +227,6 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		Str("execution_id", input.ExecutionId).
 		Str("phase", updated.Status.Phase.String()).
 		Int("messages_count", len(updated.Status.Messages)).
-		Int("tool_calls_count", len(updated.Status.ToolCalls)).
 		Int("artifacts_count", len(updated.Status.Artifacts)).
 		Int("pending_approvals_count", len(updated.Status.PendingApprovals)).
 		Bool("has_usage", updated.Status.Usage != nil).

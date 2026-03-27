@@ -12,7 +12,6 @@ import (
 	"go.temporal.io/sdk/converter"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
-	"google.golang.org/protobuf/proto"
 )
 
 // InvokeAgentExecutionWorkflowImpl implements InvokeAgentExecutionWorkflow.
@@ -237,19 +236,25 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			return fmt.Errorf("max approval cycles (%d) reached - possible infinite loop", MaxApprovalCycles)
 		}
 
-		pendingApprovals := finalStatus.GetPendingApprovals()
+		// Load execution from DB to get the server-computed pending_approvals.
+		// Python's slim return no longer includes them (T03). The gRPC
+		// UpdateStatus call that Python made has already computed and stored
+		// them as a projection from messages.
+		dbExecution, err := w.loadExecution(ctx, executionID)
+		if err != nil {
+			logger.Error("Failed to load execution for pending approval count",
+				"execution_id", executionID, "error", err.Error())
+			return err
+		}
+
+		pendingApprovals := dbExecution.GetStatus().GetPendingApprovals()
 		pendingCount := len(pendingApprovals)
 
-		// Determine how many signals we need to collect in this cycle.
-		// One signal per pending approval entry.
 		signalsNeeded := pendingCount
 		if signalsNeeded == 0 {
-			// Safety: if no pending_approvals but phase is WAITING_FOR_APPROVAL,
-			// expect at least one signal to unblock.
 			signalsNeeded = 1
 		}
 
-		// Log a summary of pending approvals for observability
 		firstToolCallId := ""
 		if pendingCount > 0 {
 			firstToolCallId = pendingApprovals[0].GetToolCallId()
@@ -262,30 +267,14 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			"first_tool_call", firstToolCallId)
 
 		// Belt-and-suspenders: persist the WAITING_FOR_APPROVAL phase to the
-		// database via local activity before blocking on the signal. The
-		// agent-runner already sent this via gRPC, but there is a race: the gRPC
-		// update might not have been received/broadcast before the CLI started
-		// listening. By persisting again here, the StreamBroker broadcasts to any
-		// active subscriber, guaranteeing the CLI receives it.
-		//
-		// IMPORTANT: pending_approvals are intentionally stripped from this
-		// persist. They were already persisted by Python's gRPC updateStatus
-		// call. Re-persisting them here creates a lost-update race with
-		// ResolvePendingApprovalStep in the SubmitApproval handler: if the user
-		// approves a tool call while this local activity is executing, the merge
-		// logic would overwrite the resolved list with the original stale list.
-		// With pending_approvals nil, the merge logic preserves whatever is
-		// currently in the DB (correct regardless of approval timing).
-		statusForPersist := proto.Clone(finalStatus).(*agentexecutionv1.AgentExecutionStatus)
-		statusForPersist.PendingApprovals = nil
-		if err := w.persistFinalStatus(ctx, executionID, statusForPersist); err != nil {
+		// database for StreamBroker broadcast. With computed projections,
+		// pending_approvals are always recomputed from messages so there's
+		// no merge race — safe to persist the full status.
+		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
 			logger.Warn("Failed to persist WAITING_FOR_APPROVAL status before signal wait (non-fatal)",
 				"execution_id", executionID, "error", err.Error())
 		}
 
-		// Collect all approval signals into a slice of SubmitApprovalInput.
-		// These are forwarded directly to the Python activity -- no need to
-		// reconstruct the full AgentExecution with embedded decisions.
 		approvalDecisions := make([]*agentexecutionv1.SubmitApprovalInput, 0, signalsNeeded)
 
 		for i := 0; i < signalsNeeded; i++ {

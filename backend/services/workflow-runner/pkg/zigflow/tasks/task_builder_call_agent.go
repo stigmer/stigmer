@@ -185,7 +185,7 @@ func (t *CallAgentTaskBuilder) Build() (TemporalWorkflowFunc, error) {
 
 		// Clear any pending approval state on successful completion
 		// Phase 5.4: Enhanced logging for observability
-		t.clearTaskApprovalStatus(ctx, state, approvalSignalCount, receivedApprovals)
+		t.clearTaskApprovalStatus(ctx, state, approvalSignalCount)
 
 		// Store result in state
 		state.AddData(map[string]any{
@@ -250,14 +250,12 @@ func (t *CallAgentTaskBuilder) updateTaskApprovalStatus(
 	return nil
 }
 
-// clearTaskApprovalStatus clears any pending approval state when the task completes.
-// It advances all received PendingApprovals to RESUME_RECONCILED, which the
-// server-side merge logic will prune from the stored list.
+// clearTaskApprovalStatus clears pending approval state when the task completes
+// by sending an empty list via the full-replace protocol.
 func (t *CallAgentTaskBuilder) clearTaskApprovalStatus(
 	ctx workflow.Context,
 	state *utils.State,
 	approvalSignalCount int,
-	receivedApprovals []*agentexecv1.PendingApproval,
 ) {
 	logger := workflow.GetLogger(ctx)
 
@@ -273,15 +271,13 @@ func (t *CallAgentTaskBuilder) clearTaskApprovalStatus(
 		"task", t.GetTaskName(),
 		"execution_id", executionId,
 		"had_approval_signal", hadApprovalSignal,
-		"approval_signal_count", approvalSignalCount,
-		"received_approvals_count", len(receivedApprovals))
+		"approval_signal_count", approvalSignalCount)
 
 	localCtx := workflow.WithLocalActivityOptions(ctx, getLocalActivityOptions())
 
 	err := workflow.ExecuteLocalActivity(localCtx,
 		(*CallAgentActivities).ClearWorkflowApprovalStatus,
 		executionId,
-		receivedApprovals,
 	).Get(ctx, nil)
 
 	if err != nil {

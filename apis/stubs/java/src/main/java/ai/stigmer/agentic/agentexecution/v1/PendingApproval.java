@@ -61,7 +61,6 @@ private static final long serialVersionUID = 0L;
     argsPreview_ = "";
     requestedAt_ = "";
     subAgentName_ = "";
-    childAgentExecutionId_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -420,73 +419,6 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int CHILD_AGENT_EXECUTION_ID_FIELD_NUMBER = 8;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object childAgentExecutionId_ = "";
-  /**
-   * <pre>
-   * ID of the child agent execution (for workflow-level approvals only).
-   *
-   * Populated when this PendingApproval is surfaced at WorkflowExecution level.
-   * Empty when pending_approval is on AgentExecution directly.
-   *
-   * Use this ID to forward approvals from workflow to child agent via
-   * AgentExecution.submitApproval RPC.
-   *
-   * Format: "aex_abc123xyz456"
-   *
-   * &#64;since Phase 5.3 (Approval Forwarding)
-   * </pre>
-   *
-   * <code>string child_agent_execution_id = 8 [json_name = "childAgentExecutionId"];</code>
-   * @return The childAgentExecutionId.
-   */
-  @java.lang.Override
-  public java.lang.String getChildAgentExecutionId() {
-    java.lang.Object ref = childAgentExecutionId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      childAgentExecutionId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   * ID of the child agent execution (for workflow-level approvals only).
-   *
-   * Populated when this PendingApproval is surfaced at WorkflowExecution level.
-   * Empty when pending_approval is on AgentExecution directly.
-   *
-   * Use this ID to forward approvals from workflow to child agent via
-   * AgentExecution.submitApproval RPC.
-   *
-   * Format: "aex_abc123xyz456"
-   *
-   * &#64;since Phase 5.3 (Approval Forwarding)
-   * </pre>
-   *
-   * <code>string child_agent_execution_id = 8 [json_name = "childAgentExecutionId"];</code>
-   * @return The bytes for childAgentExecutionId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getChildAgentExecutionIdBytes() {
-    java.lang.Object ref = childAgentExecutionId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      childAgentExecutionId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -522,9 +454,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subAgentName_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 7, subAgentName_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(childAgentExecutionId_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 8, childAgentExecutionId_);
-    }
     getUnknownFields().writeTo(output);
   }
 
@@ -556,9 +485,6 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subAgentName_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, subAgentName_);
     }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(childAgentExecutionId_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, childAgentExecutionId_);
-    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -588,8 +514,6 @@ private static final long serialVersionUID = 0L;
         != other.getFromSubAgent()) return false;
     if (!getSubAgentName()
         .equals(other.getSubAgentName())) return false;
-    if (!getChildAgentExecutionId()
-        .equals(other.getChildAgentExecutionId())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -616,8 +540,6 @@ private static final long serialVersionUID = 0L;
         getFromSubAgent());
     hash = (37 * hash) + SUB_AGENT_NAME_FIELD_NUMBER;
     hash = (53 * hash) + getSubAgentName().hashCode();
-    hash = (37 * hash) + CHILD_AGENT_EXECUTION_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getChildAgentExecutionId().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -783,7 +705,6 @@ private static final long serialVersionUID = 0L;
       requestedAt_ = "";
       fromSubAgent_ = false;
       subAgentName_ = "";
-      childAgentExecutionId_ = "";
       return this;
     }
 
@@ -838,9 +759,6 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.subAgentName_ = subAgentName_;
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.childAgentExecutionId_ = childAgentExecutionId_;
-      }
     }
 
     @java.lang.Override
@@ -886,11 +804,6 @@ private static final long serialVersionUID = 0L;
       if (!other.getSubAgentName().isEmpty()) {
         subAgentName_ = other.subAgentName_;
         bitField0_ |= 0x00000040;
-        onChanged();
-      }
-      if (!other.getChildAgentExecutionId().isEmpty()) {
-        childAgentExecutionId_ = other.childAgentExecutionId_;
-        bitField0_ |= 0x00000080;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -954,11 +867,6 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 58
-            case 66: {
-              childAgentExecutionId_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1672,148 +1580,6 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       subAgentName_ = value;
       bitField0_ |= 0x00000040;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object childAgentExecutionId_ = "";
-    /**
-     * <pre>
-     * ID of the child agent execution (for workflow-level approvals only).
-     *
-     * Populated when this PendingApproval is surfaced at WorkflowExecution level.
-     * Empty when pending_approval is on AgentExecution directly.
-     *
-     * Use this ID to forward approvals from workflow to child agent via
-     * AgentExecution.submitApproval RPC.
-     *
-     * Format: "aex_abc123xyz456"
-     *
-     * &#64;since Phase 5.3 (Approval Forwarding)
-     * </pre>
-     *
-     * <code>string child_agent_execution_id = 8 [json_name = "childAgentExecutionId"];</code>
-     * @return The childAgentExecutionId.
-     */
-    public java.lang.String getChildAgentExecutionId() {
-      java.lang.Object ref = childAgentExecutionId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        childAgentExecutionId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the child agent execution (for workflow-level approvals only).
-     *
-     * Populated when this PendingApproval is surfaced at WorkflowExecution level.
-     * Empty when pending_approval is on AgentExecution directly.
-     *
-     * Use this ID to forward approvals from workflow to child agent via
-     * AgentExecution.submitApproval RPC.
-     *
-     * Format: "aex_abc123xyz456"
-     *
-     * &#64;since Phase 5.3 (Approval Forwarding)
-     * </pre>
-     *
-     * <code>string child_agent_execution_id = 8 [json_name = "childAgentExecutionId"];</code>
-     * @return The bytes for childAgentExecutionId.
-     */
-    public com.google.protobuf.ByteString
-        getChildAgentExecutionIdBytes() {
-      java.lang.Object ref = childAgentExecutionId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        childAgentExecutionId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     * ID of the child agent execution (for workflow-level approvals only).
-     *
-     * Populated when this PendingApproval is surfaced at WorkflowExecution level.
-     * Empty when pending_approval is on AgentExecution directly.
-     *
-     * Use this ID to forward approvals from workflow to child agent via
-     * AgentExecution.submitApproval RPC.
-     *
-     * Format: "aex_abc123xyz456"
-     *
-     * &#64;since Phase 5.3 (Approval Forwarding)
-     * </pre>
-     *
-     * <code>string child_agent_execution_id = 8 [json_name = "childAgentExecutionId"];</code>
-     * @param value The childAgentExecutionId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setChildAgentExecutionId(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      childAgentExecutionId_ = value;
-      bitField0_ |= 0x00000080;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the child agent execution (for workflow-level approvals only).
-     *
-     * Populated when this PendingApproval is surfaced at WorkflowExecution level.
-     * Empty when pending_approval is on AgentExecution directly.
-     *
-     * Use this ID to forward approvals from workflow to child agent via
-     * AgentExecution.submitApproval RPC.
-     *
-     * Format: "aex_abc123xyz456"
-     *
-     * &#64;since Phase 5.3 (Approval Forwarding)
-     * </pre>
-     *
-     * <code>string child_agent_execution_id = 8 [json_name = "childAgentExecutionId"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearChildAgentExecutionId() {
-      childAgentExecutionId_ = getDefaultInstance().getChildAgentExecutionId();
-      bitField0_ = (bitField0_ & ~0x00000080);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * ID of the child agent execution (for workflow-level approvals only).
-     *
-     * Populated when this PendingApproval is surfaced at WorkflowExecution level.
-     * Empty when pending_approval is on AgentExecution directly.
-     *
-     * Use this ID to forward approvals from workflow to child agent via
-     * AgentExecution.submitApproval RPC.
-     *
-     * Format: "aex_abc123xyz456"
-     *
-     * &#64;since Phase 5.3 (Approval Forwarding)
-     * </pre>
-     *
-     * <code>string child_agent_execution_id = 8 [json_name = "childAgentExecutionId"];</code>
-     * @param value The bytes for childAgentExecutionId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setChildAgentExecutionIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      childAgentExecutionId_ = value;
-      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }

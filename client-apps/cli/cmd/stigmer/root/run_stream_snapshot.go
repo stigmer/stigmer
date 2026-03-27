@@ -57,10 +57,11 @@ func snapshotToEvents(executions []*agentexecutionv1.AgentExecution, events chan
 func emitSnapshotEvents(exec *agentexecutionv1.AgentExecution, events chan<- executiontui.Event, emitDone bool) {
 	status := exec.GetStatus()
 
-	// Build lookup from tool call ID to the full ToolCall proto from the
-	// top-level array, which carries final status, result, and timing.
+	// Build lookup from tool call ID to the full ToolCall proto from
+	// messages, which carries final status, result, and timing.
+	allToolCalls := collectToolCallsFromMessages(status.GetMessages())
 	toolCallByID := make(map[string]*agentexecutionv1.ToolCall)
-	for _, tc := range status.GetToolCalls() {
+	for _, tc := range allToolCalls {
 		if tc.Id != "" {
 			toolCallByID[tc.Id] = tc
 		}
@@ -74,7 +75,7 @@ func emitSnapshotEvents(exec *agentexecutionv1.AgentExecution, events chan<- exe
 	// MESSAGE_TOOL in messages[]. Typically native thinking blocks which the
 	// backend adds to tool_calls[] but not to messages[]. Sort by started_at
 	// so they can be interleaved at the correct chronological position.
-	nonMsgToolCalls := collectNonMessageToolCalls(status.GetToolCalls(), messageToolIDs)
+	nonMsgToolCalls := collectNonMessageToolCalls(allToolCalls, messageToolIDs)
 	sort.Slice(nonMsgToolCalls, func(i, j int) bool {
 		a, b := nonMsgToolCalls[i].GetStartedAt(), nonMsgToolCalls[j].GetStartedAt()
 		if a == "" {

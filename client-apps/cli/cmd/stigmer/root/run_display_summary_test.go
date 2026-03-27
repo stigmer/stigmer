@@ -57,11 +57,10 @@ func TestBuildAgentSummaryContent_Success(t *testing.T) {
 			Messages: []*agentexecutionv1.AgentMessage{
 				{Content: "msg1"},
 				{Content: "msg2"},
-				{Content: "msg3"},
-			},
-			ToolCalls: []*agentexecutionv1.ToolCall{
-				{Name: "read_file"},
-				{Name: "write_file"},
+				{Content: "msg3", ToolCalls: []*agentexecutionv1.ToolCall{
+					{Name: "read_file"},
+					{Name: "write_file"},
+				}},
 			},
 		},
 	}
@@ -98,7 +97,7 @@ func TestBuildAgentSummaryContent_Failure(t *testing.T) {
 			Messages: []*agentexecutionv1.AgentMessage{
 				{Content: "msg1"},
 			},
-			ToolCalls: []*agentexecutionv1.ToolCall{},
+
 		},
 	}
 
@@ -122,7 +121,7 @@ func TestBuildAgentSummaryContent_NoDuration(t *testing.T) {
 		Status: &agentexecutionv1.AgentExecutionStatus{
 			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
 			Messages:  []*agentexecutionv1.AgentMessage{},
-			ToolCalls: []*agentexecutionv1.ToolCall{},
+
 		},
 	}
 
@@ -139,7 +138,7 @@ func TestBuildAgentSummaryContent_WithArtifacts(t *testing.T) {
 		Status: &agentexecutionv1.AgentExecutionStatus{
 			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
 			Messages:  []*agentexecutionv1.AgentMessage{},
-			ToolCalls: []*agentexecutionv1.ToolCall{},
+
 			Artifacts: []*agentexecutionv1.ExecutionArtifact{
 				{Name: "SKILL.md"},
 				{Name: "README.md"},
@@ -159,7 +158,7 @@ func TestBuildAgentSummaryContent_NoArtifacts(t *testing.T) {
 		Status: &agentexecutionv1.AgentExecutionStatus{
 			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
 			Messages:  []*agentexecutionv1.AgentMessage{},
-			ToolCalls: []*agentexecutionv1.ToolCall{},
+
 		},
 	}
 
@@ -179,7 +178,7 @@ func TestDisplayAgentExecutionComplete_SuccessPanel(t *testing.T) {
 		Status: &agentexecutionv1.AgentExecutionStatus{
 			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
 			Messages:  []*agentexecutionv1.AgentMessage{{Content: "done"}},
-			ToolCalls: []*agentexecutionv1.ToolCall{},
+
 		},
 	}
 
@@ -202,7 +201,7 @@ func TestDisplayAgentExecutionComplete_FailurePanel(t *testing.T) {
 			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
 			Error:     "timeout",
 			Messages:  []*agentexecutionv1.AgentMessage{},
-			ToolCalls: []*agentexecutionv1.ToolCall{},
+
 		},
 	}
 
@@ -406,7 +405,7 @@ func TestBuildAgentSummaryContent_WithUsageCost(t *testing.T) {
 		Status: &agentexecutionv1.AgentExecutionStatus{
 			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
 			Messages:  []*agentexecutionv1.AgentMessage{{Content: "done"}},
-			ToolCalls: []*agentexecutionv1.ToolCall{},
+
 			Usage: &agentexecutionv1.UsageMetrics{
 				PrimaryModel:     "claude-sonnet-4",
 				PrimaryProvider:  "anthropic",
@@ -434,7 +433,7 @@ func TestBuildAgentSummaryContent_WithUsageNoCost(t *testing.T) {
 		Status: &agentexecutionv1.AgentExecutionStatus{
 			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
 			Messages:  []*agentexecutionv1.AgentMessage{{Content: "done"}},
-			ToolCalls: []*agentexecutionv1.ToolCall{},
+
 			Usage: &agentexecutionv1.UsageMetrics{
 				PrimaryModel: "claude-sonnet-4",
 				PromptTokens: 5000,
@@ -458,7 +457,7 @@ func TestBuildAgentSummaryContent_CacheHitRateDisplay(t *testing.T) {
 		Status: &agentexecutionv1.AgentExecutionStatus{
 			Phase:     agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
 			Messages:  []*agentexecutionv1.AgentMessage{},
-			ToolCalls: []*agentexecutionv1.ToolCall{},
+
 			Usage: &agentexecutionv1.UsageMetrics{
 				PromptTokens:     10000,
 				CompletionTokens: 1000,

@@ -237,7 +237,6 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 			Str("execution_id", cfg.executionID).
 			Str("phase", execution.Status.GetPhase().String()).
 			Int("messages", len(execution.Status.GetMessages())).
-			Int("tool_calls", len(execution.Status.GetToolCalls())).
 			Int("sub_agents", len(execution.Status.GetSubAgentExecutions())).
 			Int("pending_approvals", len(execution.Status.GetPendingApprovals())).
 			Msg("[stream] received execution update")
@@ -267,9 +266,10 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 		// These events are indexed by tool call ID so that emitMessageEvents
 		// can emit each one at the chronological position of its matching
 		// MESSAGE_TOOL entry in the messages list.
+		rootToolCalls := collectToolCallsFromMessages(execution.Status.GetMessages())
 		var toolEvents []executiontui.Event
 		toolCallStates, toolCallResults, toolEvents = trackToolCallStates(
-			execution.Status.ToolCalls,
+			rootToolCalls,
 			toolCallStates,
 			toolCallResults,
 			"",
@@ -398,11 +398,10 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 				log.Debug().
 					Str("execution_id", cfg.executionID).
 					Str("tool_call_id", pa.GetToolCallId()).
-					Str("interrupt_id", pa.GetInterruptId()).
 					Str("tool_name", pa.GetToolName()).
 					Msg("[stream] approval detected — emitting ApprovalNeededEvent")
 
-				tc := findToolCallByID(execution.Status.ToolCalls, execution.Status.GetSubAgentExecutions(), pa.ToolCallId)
+				tc := findToolCallByID(rootToolCalls, execution.Status.GetSubAgentExecutions(), pa.ToolCallId)
 				if err := emitAndWaitApproval(ctx, cfg, tc, pa, promptedIDs, dedupKey); err != nil {
 					return
 				}
@@ -420,7 +419,7 @@ func streamToEvents(ctx context.Context, cfg streamToEventsConfig) {
 		if !hasUsableApproval(execution.Status.GetPendingApprovals(), promptedIDs) &&
 			execution.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 			unprompted := findAllUnpromptedApprovals(
-				execution.Status.ToolCalls,
+				rootToolCalls,
 				execution.Status.GetSubAgentExecutions(),
 				promptedIDs,
 			)
@@ -958,21 +957,9 @@ func extractApprovalInfo(
 }
 
 // approvalDedupKey returns a stable key for deduplicating PendingApproval
-// entries across successive stream updates. Prefers tool_call_id (always
-// unique per tool invocation); falls back to interrupt_id when the backend
-// could not match the interrupt to a specific tool call.
+// entries across successive stream updates using the tool_call_id.
 func approvalDedupKey(pa *agentexecutionv1.PendingApproval) string {
-	if id := pa.GetToolCallId(); id != "" {
-		return id
-	}
-	if id := pa.GetInterruptId(); id != "" {
-		log.Debug().
-			Str("interrupt_id", id).
-			Str("tool_name", pa.GetToolName()).
-			Msg("[stream] approval has no tool_call_id — using interrupt_id as dedup key")
-		return id
-	}
-	return ""
+	return pa.GetToolCallId()
 }
 
 // hasUsableApproval returns true if at least one PendingApproval in the slice
