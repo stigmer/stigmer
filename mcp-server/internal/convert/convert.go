@@ -35,10 +35,14 @@ func GenerateSlug(name string) string {
 }
 
 // VisibilityFromString converts a string visibility value to the proto enum.
-// Defaults to PRIVATE if the value is empty or unrecognized.
+// Returns UNSPECIFIED when empty/omitted so the backend preserves existing visibility on updates.
 func VisibilityFromString(s string) apiresource.ApiResourceVisibility {
-	if strings.EqualFold(s, "PUBLIC") {
+	switch {
+	case strings.EqualFold(s, "PUBLIC"):
 		return apiresource.ApiResourceVisibility_visibility_public
+	case strings.EqualFold(s, "PRIVATE"):
+		return apiresource.ApiResourceVisibility_visibility_private
+	default:
+		return apiresource.ApiResourceVisibility_api_resource_visibility_unspecified
 	}
-	return apiresource.ApiResourceVisibility_visibility_private
 }

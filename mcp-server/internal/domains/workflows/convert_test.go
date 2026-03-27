@@ -48,8 +48,8 @@ func TestToProto_minimal(t *testing.T) {
 	if meta.GetSlug() != "deploy-workflow" {
 		t.Errorf("Slug = %q, want %q (auto-generated)", meta.GetSlug(), "deploy-workflow")
 	}
-	if meta.GetVisibility() != apiresource.ApiResourceVisibility_visibility_private {
-		t.Errorf("Visibility = %v, want visibility_private", meta.GetVisibility())
+	if meta.GetVisibility() != apiresource.ApiResourceVisibility_api_resource_visibility_unspecified {
+		t.Errorf("Visibility = %v, want api_resource_visibility_unspecified (empty input)", meta.GetVisibility())
 	}
 
 	doc := wf.GetSpec().GetDocument()
