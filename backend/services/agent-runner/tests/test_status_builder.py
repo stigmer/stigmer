@@ -6437,142 +6437,197 @@ class TestPartialJsonHelpers:
 
 
 # =============================================================================
-# InterruptCapture._try_enrich_phase1_entry Tests
+# InterruptCapture._match_interrupt (StatusBuilder integration)
 # =============================================================================
 
 
 class TestTryEnrichPhase1Entry:
-    """Tests for the post-stream interrupt capture fallback enrichment."""
+    """Integration tests for InterruptCapture._match_interrupt with StatusBuilder.
+
+    Interrupts align to tool calls by ``tool_call_id`` when the tool call is in
+    ``TOOL_CALL_WAITING_APPROVAL`` (top-level or sub-agent). Duplicate ids are
+    skipped via ``matched_tc_ids``.
+    """
 
     @pytest.fixture
     def status_builder(self, mock_initial_status):
-        sb = StatusBuilder(
-            execution_id="test-enrich",
+        return StatusBuilder(
+            execution_id="test",
             initial_status=mock_initial_status,
         )
-        return sb
 
     def _make_capture(self, status_builder):
-        """Create an InterruptCapture wired to the given status_builder."""
         import logging
 
         from worker.activities.graphton.hitl import ApprovalStateManager, InterruptCapture
-        _logger = logging.getLogger("test_status_builder")
+
+        logger = logging.getLogger("test_status_builder")
         return InterruptCapture(
-            execution_id="test-enrich",
+            execution_id="test",
             status_builder=status_builder,
-            state_manager=ApprovalStateManager(
-                execution_id="test-enrich", logger=_logger,
-            ),
-            logger=_logger,
+            state_manager=ApprovalStateManager(execution_id="test", logger=logger),
+            logger=logger,
             resolve_platform_tool_name=lambda name: name,
         )
 
+    @staticmethod
+    def _waiting_tool(tc_id: str, name: str = "execute") -> ToolCall:
+        return ToolCall(
+            id=tc_id,
+            name=name,
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requires_approval=True,
+        )
+
     def test_enriches_matching_entry(self, status_builder):
-        """When a Phase 1 entry matches tool_name + from_sub_agent, its
-        interrupt_id is set and the function returns True."""
+        """Returns tool_call_id when that tool call is WAITING_APPROVAL."""
         from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
-        pa = PendingApproval(
-            tool_call_id="early-toolu_abc123",
-            tool_name="execute",
-            message="Run script?",
-            from_sub_agent=True,
-            sub_agent_name="validator",
+        tc_id = "early-toolu_abc123"
+        status_builder.current_status.tool_calls.append(self._waiting_tool(tc_id))
+        status_builder.current_status.pending_approvals.append(
+            PendingApproval(
+                tool_call_id=tc_id,
+                tool_name="execute",
+                message="Run script?",
+                from_sub_agent=True,
+                sub_agent_name="validator",
+            )
         )
-        status_builder.current_status.pending_approvals.append(pa)
 
-        result = self._make_capture(status_builder)._try_enrich_phase1_entry(
-            "execute", True, "intr-001",
+        ic = self._make_capture(status_builder)
+        matched: set[str] = set()
+        out = ic._match_interrupt(
+            tool_call_id=tc_id,
+            matched_tc_ids=matched,
+            intr_id="intr-001",
         )
-
-        assert result is True
-        assert status_builder.current_status.pending_approvals[0].interrupt_id == "intr-001"
-        assert status_builder.current_status.pending_approvals[0].tool_call_id == "early-toolu_abc123"
+        assert out == tc_id
+        assert matched == {tc_id}
 
     def test_skips_entry_with_existing_interrupt_id(self, status_builder):
-        """Entries that already have an interrupt_id are not overwritten."""
+        """Same tool_call_id matched twice: second call returns empty string."""
         from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
-        pa = PendingApproval(
-            tool_call_id="early-toolu_abc123",
-            tool_name="execute",
-            message="Run script?",
-            from_sub_agent=True,
-            interrupt_id="existing-intr",
+        tc_id = "early-toolu_abc123"
+        status_builder.current_status.tool_calls.append(self._waiting_tool(tc_id))
+        status_builder.current_status.pending_approvals.append(
+            PendingApproval(
+                tool_call_id=tc_id,
+                tool_name="execute",
+                message="Run script?",
+                from_sub_agent=True,
+                interrupt_id="existing-intr",
+            )
         )
-        status_builder.current_status.pending_approvals.append(pa)
 
-        result = self._make_capture(status_builder)._try_enrich_phase1_entry(
-            "execute", True, "new-intr",
+        ic = self._make_capture(status_builder)
+        matched: set[str] = set()
+        first = ic._match_interrupt(
+            tool_call_id=tc_id,
+            matched_tc_ids=matched,
+            intr_id="new-intr",
         )
-
-        assert result is False
-        assert status_builder.current_status.pending_approvals[0].interrupt_id == "existing-intr"
+        second = ic._match_interrupt(
+            tool_call_id=tc_id,
+            matched_tc_ids=matched,
+            intr_id="new-intr-2",
+        )
+        assert first == tc_id
+        assert second == ""
+        assert matched == {tc_id}
 
     def test_no_match_returns_false(self, status_builder):
-        """Returns False when no Phase 1 entry matches the criteria."""
+        """Returns empty string when tool call is not WAITING_APPROVAL."""
         from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
-        pa = PendingApproval(
-            tool_call_id="early-toolu_abc123",
-            tool_name="read_file",
-            message="Read file?",
-            from_sub_agent=False,
+        tc_id = "early-toolu_abc123"
+        status_builder.current_status.tool_calls.append(
+            ToolCall(
+                id=tc_id,
+                name="read_file",
+                status=ToolCallStatus.TOOL_CALL_RUNNING,
+            )
         )
-        status_builder.current_status.pending_approvals.append(pa)
-
-        result = self._make_capture(status_builder)._try_enrich_phase1_entry(
-            "execute", True, "intr-001",
+        status_builder.current_status.pending_approvals.append(
+            PendingApproval(
+                tool_call_id=tc_id,
+                tool_name="read_file",
+                message="Read file?",
+                from_sub_agent=False,
+            )
         )
 
-        assert result is False
-        assert status_builder.current_status.pending_approvals[0].interrupt_id == ""
+        ic = self._make_capture(status_builder)
+        out = ic._match_interrupt(
+            tool_call_id=tc_id,
+            matched_tc_ids=set(),
+            intr_id="intr-001",
+        )
+        assert out == ""
 
     def test_matches_from_sub_agent_flag(self, status_builder):
-        """Relaxed pass enriches main-agent entry even when from_sub_agent differs."""
+        """WAITING_APPROVAL under sub_agent_executions matches by tool_call_id only."""
         from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
+        from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
 
+        tc_id = "early-toolu_abc123"
+        sa = SubAgentExecution(
+            id="sa-run-1",
+            name="validator",
+            status=SubAgentStatus.SUB_AGENT_IN_PROGRESS,
+            tool_calls=[self._waiting_tool(tc_id, name="execute")],
+        )
+        status_builder.current_status.sub_agent_executions.append(sa)
         pa = PendingApproval(
-            tool_call_id="early-toolu_abc123",
+            tool_call_id=tc_id,
             tool_name="execute",
             message="Run command?",
             from_sub_agent=False,
         )
         status_builder.current_status.pending_approvals.append(pa)
 
-        result = self._make_capture(status_builder)._try_enrich_phase1_entry(
-            "execute", True, "intr-001",
+        ic = self._make_capture(status_builder)
+        out = ic._match_interrupt(
+            tool_call_id=tc_id,
+            matched_tc_ids=set(),
+            intr_id="intr-001",
         )
-
-        assert result is True
-        assert pa.interrupt_id == "intr-001"
+        assert out == tc_id
 
     def test_preserves_tool_call_id(self, status_builder):
-        """Enrichment must never overwrite the existing tool_call_id."""
+        """_match_interrupt returns the same tool_call_id passed in."""
         from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
         original_tc_id = "early-toolu_preserve_me"
-        pa = PendingApproval(
+        status_builder.current_status.tool_calls.append(self._waiting_tool(original_tc_id))
+        status_builder.current_status.pending_approvals.append(
+            PendingApproval(
+                tool_call_id=original_tc_id,
+                tool_name="execute",
+                from_sub_agent=True,
+            )
+        )
+
+        ic = self._make_capture(status_builder)
+        out = ic._match_interrupt(
             tool_call_id=original_tc_id,
-            tool_name="execute",
-            from_sub_agent=True,
+            matched_tc_ids=set(),
+            intr_id="intr-001",
         )
-        status_builder.current_status.pending_approvals.append(pa)
-
-        self._make_capture(status_builder)._try_enrich_phase1_entry(
-            "execute", True, "intr-001",
-        )
-
+        assert out == original_tc_id
         assert status_builder.current_status.pending_approvals[0].tool_call_id == original_tc_id
 
     def test_empty_pending_approvals_returns_false(self, status_builder):
-        """Returns False when there are no Phase 1 entries at all."""
-        result = self._make_capture(status_builder)._try_enrich_phase1_entry(
-            "execute", True, "intr-001",
+        """Returns empty string when no WAITING_APPROVAL tool call matches the id."""
+        ic = self._make_capture(status_builder)
+        out = ic._match_interrupt(
+            tool_call_id="execute",
+            matched_tc_ids=set(),
+            intr_id="intr-001",
         )
-
-        assert result is False
+        assert out == ""
 
 
 # =============================================================================

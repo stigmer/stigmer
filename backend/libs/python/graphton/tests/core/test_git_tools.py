@@ -22,6 +22,12 @@ from graphton.core.git_tools import (
     _parse_token_from_credentials,
 )
 
+
+def _tc(name: str, args: dict, tc_id: str = "call_test_001") -> dict:
+    """Build a ToolCall-format input dict for tool.ainvoke()."""
+    return {"name": name, "args": args, "id": tc_id, "type": "tool_call"}
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -181,14 +187,17 @@ class TestCreatePullRequest:
             mock_client.return_value = instance
 
             result = await tool.ainvoke(
-                {"title": "Add feature X", "body": "Does cool stuff"},
+                _tc(
+                    "create_pull_request",
+                    {"title": "Add feature X", "body": "Does cool stuff"},
+                ),
                 config=_MOCK_CONFIG,
             )
 
-        assert "Pull request created successfully" in result
-        assert "#42" in result
-        assert "https://github.com/acme/widgets/pull/42" in result
-        assert "feat/cool-thing -> main" in result
+        assert "Pull request created successfully" in result.content
+        assert "#42" in result.content
+        assert "https://github.com/acme/widgets/pull/42" in result.content
+        assert "feat/cool-thing -> main" in result.content
 
     @pytest.mark.asyncio
     async def test_explicit_base_and_head_branches(self):
@@ -208,16 +217,19 @@ class TestCreatePullRequest:
             mock_client.return_value = instance
 
             result = await tool.ainvoke(
-                {
-                    "title": "Fix bug",
-                    "body": "Fixes it",
-                    "base_branch": "develop",
-                    "head_branch": "fix/bug-123",
-                },
+                _tc(
+                    "create_pull_request",
+                    {
+                        "title": "Fix bug",
+                        "body": "Fixes it",
+                        "base_branch": "develop",
+                        "head_branch": "fix/bug-123",
+                    },
+                ),
                 config=_MOCK_CONFIG,
             )
 
-        assert "fix/bug-123 -> develop" in result
+        assert "fix/bug-123 -> develop" in result.content
 
     # -- Sandbox command failures -------------------------------------------
 
@@ -225,9 +237,10 @@ class TestCreatePullRequest:
     async def test_no_git_remote(self):
         tool = _create_create_pull_request_tool(_backend(remote_ok=False))
         result = await tool.ainvoke(
-            {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
+            _tc("create_pull_request", {"title": "T", "body": "B"}),
+            config=_MOCK_CONFIG,
         )
-        assert "Failed to determine the git remote URL" in result
+        assert "Failed to determine the git remote URL" in result.content
 
     @pytest.mark.asyncio
     async def test_non_github_remote(self):
@@ -235,33 +248,37 @@ class TestCreatePullRequest:
             _backend(remote_url="https://gitlab.com/acme/widgets.git")
         )
         result = await tool.ainvoke(
-            {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
+            _tc("create_pull_request", {"title": "T", "body": "B"}),
+            config=_MOCK_CONFIG,
         )
-        assert "Only github.com" in result
+        assert "Only github.com" in result.content
 
     @pytest.mark.asyncio
     async def test_detached_head(self):
         tool = _create_create_pull_request_tool(_backend(branch_ok=False))
         result = await tool.ainvoke(
-            {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
+            _tc("create_pull_request", {"title": "T", "body": "B"}),
+            config=_MOCK_CONFIG,
         )
-        assert "Failed to determine the current branch" in result
+        assert "Failed to determine the current branch" in result.content
 
     @pytest.mark.asyncio
     async def test_no_credentials(self):
         tool = _create_create_pull_request_tool(_backend(cred_ok=False))
         result = await tool.ainvoke(
-            {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
+            _tc("create_pull_request", {"title": "T", "body": "B"}),
+            config=_MOCK_CONFIG,
         )
-        assert "Git credentials are not configured" in result
+        assert "Git credentials are not configured" in result.content
 
     @pytest.mark.asyncio
     async def test_same_branch_guard(self):
         tool = _create_create_pull_request_tool(_backend(branch="main"))
         result = await tool.ainvoke(
-            {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
+            _tc("create_pull_request", {"title": "T", "body": "B"}),
+            config=_MOCK_CONFIG,
         )
-        assert "same as the base branch" in result
+        assert "same as the base branch" in result.content
 
     @pytest.mark.asyncio
     async def test_default_branch_fallback_to_main(self):
@@ -282,10 +299,11 @@ class TestCreatePullRequest:
             mock_client.return_value = instance
 
             result = await tool.ainvoke(
-                {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
+                _tc("create_pull_request", {"title": "T", "body": "B"}),
+                config=_MOCK_CONFIG,
             )
 
-        assert "feat/x -> main" in result
+        assert "feat/x -> main" in result.content
 
     # -- GitHub API errors --------------------------------------------------
 
@@ -311,10 +329,11 @@ class TestCreatePullRequest:
             mock_client.return_value = instance
 
             result = await tool.ainvoke(
-                {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
+                _tc("create_pull_request", {"title": "T", "body": "B"}),
+                config=_MOCK_CONFIG,
             )
 
-        assert "pushed your branch" in result
+        assert "pushed your branch" in result.content
 
     @pytest.mark.asyncio
     async def test_github_422_pr_already_exists(self):
@@ -338,10 +357,11 @@ class TestCreatePullRequest:
             mock_client.return_value = instance
 
             result = await tool.ainvoke(
-                {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
+                _tc("create_pull_request", {"title": "T", "body": "B"}),
+                config=_MOCK_CONFIG,
             )
 
-        assert "already exists" in result
+        assert "already exists" in result.content
 
     @pytest.mark.asyncio
     async def test_github_api_timeout(self):
@@ -355,10 +375,11 @@ class TestCreatePullRequest:
             mock_client.return_value = instance
 
             result = await tool.ainvoke(
-                {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
+                _tc("create_pull_request", {"title": "T", "body": "B"}),
+                config=_MOCK_CONFIG,
             )
 
-        assert "timed out" in result
+        assert "timed out" in result.content
 
     @pytest.mark.asyncio
     async def test_github_generic_http_error(self):
@@ -382,11 +403,12 @@ class TestCreatePullRequest:
             mock_client.return_value = instance
 
             result = await tool.ainvoke(
-                {"title": "T", "body": "B"}, config=_MOCK_CONFIG,
+                _tc("create_pull_request", {"title": "T", "body": "B"}),
+                config=_MOCK_CONFIG,
             )
 
-        assert "HTTP 403" in result
-        assert "Resource not accessible" in result
+        assert "HTTP 403" in result.content
+        assert "Resource not accessible" in result.content
 
 
 # ===========================================================================
@@ -429,7 +451,10 @@ class TestRepoDirParameter:
             mock_client.return_value = instance
 
             await tool.ainvoke(
-                {"title": "T", "body": "B", "repo_dir": "/workspace/my-app"},
+                _tc(
+                    "create_pull_request",
+                    {"title": "T", "body": "B", "repo_dir": "/workspace/my-app"},
+                ),
                 config=_MOCK_CONFIG,
             )
 
