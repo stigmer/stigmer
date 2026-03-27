@@ -40,11 +40,11 @@ const (
 	// FGA tuple: resource#<relation>@<parent_kind>:<parent_id>
 	AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_PARENT AuthorizationScopeType = 3
 	// Owner link only, no scope hierarchy.
-	// Used for: api_key (belongs to user, not org)
+	// Used for: api_key, execution_context (belongs to user, not org)
 	// FGA tuple: resource#owner@identity_account:<owner_id>
 	AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_OWNER_ONLY AuthorizationScopeType = 4
 	// No FGA tuples needed.
-	// Used for: platform (singleton), api_resource_version, execution_context
+	// Used for: platform (singleton), api_resource_version
 	AuthorizationScopeType_AUTHORIZATION_SCOPE_TYPE_NONE AuthorizationScopeType = 5
 )
 
