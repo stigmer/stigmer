@@ -10,6 +10,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval"
 	"go.temporal.io/sdk/activity"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -65,7 +66,6 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 	log.Debug().
 		Str("execution_id", executionID).
 		Int("messages", len(existing.GetStatus().GetMessages())).
-		Int("tool_calls", len(existing.GetStatus().GetToolCalls())).
 		Int("sub_agents", len(existing.GetStatus().GetSubAgentExecutions())).
 		Int("todos", len(existing.GetStatus().GetTodos())).
 		Msg("Loaded execution - current status")
@@ -86,15 +86,6 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		status.Messages = statusUpdates.Messages
 	}
 
-	// Tool calls: Replace with latest from worker
-	if len(statusUpdates.GetToolCalls()) > 0 {
-		log.Debug().
-			Int("old_count", len(status.GetToolCalls())).
-			Int("new_count", len(statusUpdates.GetToolCalls())).
-			Msg("Replacing tool_calls")
-		status.ToolCalls = statusUpdates.ToolCalls
-	}
-
 	// Sub-agent executions: Replace with latest from worker
 	if len(statusUpdates.GetSubAgentExecutions()) > 0 {
 		log.Debug().
@@ -113,21 +104,11 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		status.Todos = statusUpdates.Todos
 	}
 
-	// Pending approvals: merge using the same convention as the controller handler.
-	// Non-empty list with a real tool_call_id => replace; empty tool_call_id => clear;
-	// absent (len 0) => preserve existing.
-	if len(statusUpdates.GetPendingApprovals()) > 0 {
-		if statusUpdates.GetPendingApprovals()[0].GetToolCallId() != "" {
-			log.Debug().
-				Int("old_count", len(status.GetPendingApprovals())).
-				Int("new_count", len(statusUpdates.GetPendingApprovals())).
-				Msg("Replacing pending_approvals")
-			status.PendingApprovals = statusUpdates.PendingApprovals
-		} else {
-			log.Debug().Msg("Clearing pending_approvals")
-			status.PendingApprovals = nil
-		}
-	}
+	// Compute pending_approvals from tool call state in messages
+	status.PendingApprovals = approval.ComputePendingApprovals(
+		status.GetMessages(),
+		status.GetSubAgentExecutions(),
+	)
 
 	// Phase: Update if provided
 	if statusUpdates.Phase != agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED {
@@ -184,9 +165,9 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 	log.Debug().
 		Str("execution_id", executionID).
 		Int("messages", len(existing.GetStatus().GetMessages())).
-		Int("tool_calls", len(existing.GetStatus().GetToolCalls())).
 		Int("sub_agents", len(existing.GetStatus().GetSubAgentExecutions())).
 		Int("todos", len(existing.GetStatus().GetTodos())).
+		Int("pending_approvals", len(existing.GetStatus().GetPendingApprovals())).
 		Str("phase", existing.GetStatus().GetPhase().String()).
 		Bool("has_usage", existing.GetStatus().GetUsage() != nil).
 		Bool("has_context_info", existing.GetStatus().GetContextInfo() != nil).
@@ -205,7 +186,6 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 	log.Info().
 		Str("execution_id", executionID).
 		Int("messages", len(existing.GetStatus().GetMessages())).
-		Int("tool_calls", len(existing.GetStatus().GetToolCalls())).
 		Int("sub_agents", len(existing.GetStatus().GetSubAgentExecutions())).
 		Int("todos", len(existing.GetStatus().GetTodos())).
 		Str("phase", existing.GetStatus().GetPhase().String()).

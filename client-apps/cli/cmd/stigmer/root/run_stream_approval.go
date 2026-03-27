@@ -273,15 +273,17 @@ func findAllUnpromptedApprovals(
 	}
 
 	for _, sa := range subAgents {
-		for _, tc := range sa.ToolCalls {
-			if tc.Status == agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL &&
-				tc.Id != "" &&
-				!promptedIDs[tc.Id] {
-				result = append(result, unpromptedApproval{
-					toolCall:     tc,
-					fromSubAgent: true,
-					subAgentName: sa.Name,
-				})
+		for _, msg := range sa.GetMessages() {
+			for _, tc := range msg.GetToolCalls() {
+				if tc.Status == agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL &&
+					tc.Id != "" &&
+					!promptedIDs[tc.Id] {
+					result = append(result, unpromptedApproval{
+						toolCall:     tc,
+						fromSubAgent: true,
+						subAgentName: sa.Name,
+					})
+				}
 			}
 		}
 	}

@@ -6,7 +6,6 @@ import traceback
 from typing import Any, cast
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
-from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
     ExecutionPhase,
@@ -52,11 +51,7 @@ from worker.activities.graphton.attachments import (
 from worker.activities.graphton.attachments import (
     auto_publish_written_files as _auto_publish_written_files,
 )
-from worker.activities.graphton.hitl import (
-    ApprovalStateManager,
-    CheckpointFallback,
-    ResumeReconciler,
-)
+from worker.activities.graphton.hitl import ResumeReconciler
 from worker.activities.graphton.prompt_builder import (
     _format_entry_description,  # noqa: F401 — re-exported for tests
     build_referenced_files_prompt_section,  # noqa: F401 — re-exported for tests
@@ -165,8 +160,8 @@ async def execute_graphton(
         approval_decisions_wrapper: Approval decisions wrapped in ApprovalDecisionList
             for polyglot Temporal serialization (None on first invocation).
             Each entry carries a tool_call_id, action (APPROVE/SKIP/REJECT), and
-            optional comment.  The activity correlates these with pending_approvals
-            from the fetched execution to build the LangGraph Command(resume=...) dict.
+            optional comment.  The activity queries the LangGraph checkpoint to
+            match decisions to interrupts and build the Command(resume=...) dict.
         invoker_identity_account_id: Identity account ID of the user who triggered
             the execution. Used by the runner for on-behalf-of gRPC impersonation
             (x-on-behalf-of header). None for backward compatibility.
@@ -1565,10 +1560,9 @@ async def _execute_graphton_impl(
         #
         # If the workflow passed approval_decisions, it means the execution was
         # previously interrupted for approval (WAITING_FOR_APPROVAL) and the user
-        # has submitted decisions.  We correlate the decisions (passed as activity
-        # args — small, bounded) with pending_approvals from the DB-fetched
-        # execution status (which has interrupt_ids) to build the LangGraph
-        # Command(resume={id_A: decision_A, ...}) dict.
+        # has submitted decisions.  We query the LangGraph checkpoint directly to
+        # match each decision's tool_call_id to the corresponding interrupt_id,
+        # building Command(resume={id_A: decision_A, ...}).
         #
         # With **Batch Approval**, the LLM may have issued N tool calls that each
         # required approval.  All N decisions are collected before the Temporal
@@ -1589,147 +1583,32 @@ async def _execute_graphton_impl(
             ApprovalAction.APPROVAL_ACTION_REJECT: "reject",
         }
         
-        # --- Build resume dict from approval_decisions + pending_approvals -------
+        # --- Build resume dict by querying the LangGraph checkpoint directly ---
         #
-        # approval_decisions: passed by the workflow as activity args (small payload)
-        #   Each SubmitApprovalInput has: tool_call_id, action, comment
-        #
-        # pending_approvals: fetched from the DB-persisted execution status
-        #   Each PendingApproval has: tool_call_id, interrupt_id, tool_name, ...
-        #
+        # approval_decisions carry tool_call_id + action.  The checkpoint
+        # carries interrupt objects whose payload includes tool_call_id.
         # We join on tool_call_id to pair each decision with its interrupt_id.
         if approval_decisions:
-            # Index decisions by tool_call_id for O(1) lookup
-            decisions_by_tool_call: dict[str, SubmitApprovalInput] = {
+            decisions_by_tc: dict[str, SubmitApprovalInput] = {
                 d.tool_call_id: d for d in approval_decisions
             }
-            
-            pending_approvals = list(execution.status.pending_approvals)
+            graph_state = await agent_graph.aget_state(
+                cast(RunnableConfig, config),
+            )
+
             resume_dict: dict[str, dict[str, str]] = {}
-            needs_interrupt_discovery: list[tuple[PendingApproval, dict[str, str]]] = []
-            loop_aborted = False
-            
-            for pa in pending_approvals:
-                decision = decisions_by_tool_call.get(pa.tool_call_id)
-                if not decision:
-                    activity_logger.warning(
-                        f"⚠️ pending_approvals entry tool_call_id={pa.tool_call_id} "
-                        f"has no matching approval_decision. Skipping batch resume."
-                    )
-                    loop_aborted = True
-                    break
-                
-                action_str = _action_map.get(decision.action, "unknown")
-                decision_value: dict[str, str] = {"action": action_str}
-                if decision.comment:
-                    decision_value["comment"] = decision.comment
-                
-                if pa.interrupt_id:
-                    resume_dict[pa.interrupt_id] = decision_value
-                else:
-                    needs_interrupt_discovery.append((pa, decision_value))
-            
-            if loop_aborted:
-                resume_dict = {}
-                status_builder.current_status.messages.append(
-                    AgentMessage(
-                        type=MessageType.MESSAGE_SYSTEM,
-                        content=(
-                            f"⚠️ Approval resume skipped: a pending approval "
-                            f"(tool_call_id={pa.tool_call_id}) had no matching "
-                            f"decision. The agent will restart from its last "
-                            f"checkpoint instead of resuming."
-                        ),
-                        timestamp=_utc_timestamp(),
-                    )
-                )
-            
-            # Defense-in-depth: when Phase 2 enrichment failed to populate
-            # interrupt_id (e.g., legacy from_sub_agent mismatch), query the
-            # graph checkpoint to discover the actual interrupt IDs.
-            if not loop_aborted and needs_interrupt_discovery:
-                activity_logger.info(
-                    f"[DIAG] Resume path: {len(needs_interrupt_discovery)} "
-                    f"pending approval(s) need interrupt discovery: "
-                    + ", ".join(
-                        f"tool={pa.tool_name} tc_id={pa.tool_call_id}"
-                        for pa, _ in needs_interrupt_discovery
-                    )
-                )
-                try:
-                    graph_state = await agent_graph.aget_state(
-                        cast(RunnableConfig, config)
-                    )
-                    if graph_state and graph_state.interrupts:
-                        activity_logger.info(
-                            f"[DIAG] Resume path: {len(graph_state.interrupts)} "
-                            f"interrupt(s) in graph state: "
-                            + ", ".join(
-                                f"id={i.id} tool={i.value.get('tool_name', '') if isinstance(i.value, dict) else ''}"
-                                for i in graph_state.interrupts
-                            )
-                        )
-                        consumed_ids = set(resume_dict.keys())
-                        available_interrupts = [
-                            i for i in graph_state.interrupts
-                            if i.id not in consumed_ids
-                        ]
-                        for pa, dv in needs_interrupt_discovery:
-                            matched_intr = None
-                            for intr in available_interrupts:
-                                intr_value = intr.value if hasattr(intr, "value") else {}
-                                intr_tool = (
-                                    intr_value.get("tool_name", "")
-                                    if isinstance(intr_value, dict) else ""
-                                )
-                                if intr_tool == pa.tool_name:
-                                    matched_intr = intr
-                                    break
-                            if not matched_intr and len(available_interrupts) == 1 and len(needs_interrupt_discovery) == 1:
-                                matched_intr = available_interrupts[0]
-                            if matched_intr:
-                                resume_dict[matched_intr.id] = dv
-                                available_interrupts.remove(matched_intr)
-                                activity_logger.info(
-                                    f"[RESUME_FALLBACK] Discovered interrupt_id="
-                                    f"{matched_intr.id} for tool={pa.tool_name} "
-                                    f"tc_id={pa.tool_call_id} via graph checkpoint"
-                                )
-                            else:
-                                activity_logger.warning(
-                                    f"⚠️ [RESUME_PARTIAL] Cannot discover interrupt_id "
-                                    f"for tool={pa.tool_name} tc_id={pa.tool_call_id}. "
-                                    f"Skipping — partial resume will proceed with "
-                                    f"{len(resume_dict)} resolved interrupt(s)."
-                                )
-                    else:
-                        activity_logger.warning(
-                            "[RESUME_FALLBACK] No interrupts in graph checkpoint. "
-                            "Proceeding with %d already-resolved interrupt(s).",
-                            len(resume_dict),
-                        )
-                except Exception as e:
-                    activity_logger.warning(
-                        f"[RESUME_FALLBACK] Failed to query graph state for "
-                        f"interrupt discovery: {e}. Proceeding with "
-                        f"{len(resume_dict)} already-resolved interrupt(s)."
-                    )
-            
-            # Defense-in-depth: when pending_approvals was completely empty
-            # (cleared upstream), discover interrupt IDs from checkpoint.
-            if not resume_dict and not loop_aborted:
-                checkpoint_fb = CheckpointFallback(
-                    execution_id=execution_id,
-                    logger=activity_logger,
-                )
-                resume_dict = await checkpoint_fb.discover_interrupts(
-                    agent_graph=agent_graph,
-                    config=config,
-                    approval_decisions=approval_decisions,
-                    pending_approvals=pending_approvals,
-                    action_map=_action_map,
-                )
-            
+            if graph_state and graph_state.interrupts:
+                for intr in graph_state.interrupts:
+                    intr_value = intr.value if isinstance(intr.value, dict) else {}
+                    intr_tc_id = intr_value.get("tool_call_id", "")
+                    decision = decisions_by_tc.get(intr_tc_id)
+                    if decision:
+                        action_str = _action_map.get(decision.action, "unknown")
+                        dv: dict[str, str] = {"action": action_str}
+                        if decision.comment:
+                            dv["comment"] = decision.comment
+                        resume_dict[intr.id] = dv
+
             if resume_dict:
                 is_resume_from_approval = True
                 resume_decision = resume_dict
@@ -1741,6 +1620,13 @@ async def _execute_graphton_impl(
                         for iid, d in resume_dict.items()
                     )
                 )
+            else:
+                activity_logger.warning(
+                    "[RESUME] %d approval_decision(s) present but "
+                    "no matching interrupts found in checkpoint. "
+                    "Proceeding with fresh execution.",
+                    len(approval_decisions),
+                )
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 7.6: Reconcile Loaded Status for Resume Path
@@ -1750,28 +1636,17 @@ async def _execute_graphton_impl(
         # interrupted for approval with TOOL_CALL_WAITING_APPROVAL status — they
         # were never updated because the previous invocation ended at the interrupt.
         #
-        # Without reconciliation, these stale WAITING_APPROVAL entries poison the
-        # post-stream interrupt capture: when the next tool triggers an interrupt,
-        # the capture code matches the interrupt to the stale entry (first hit in
-        # the tool_calls list by tool_name + WAITING_APPROVAL) instead of the new
-        # tool call.  The resulting PendingApproval carries the old tool_call_id,
-        # which the CLI has already prompted for — so the approval prompt is skipped.
+        # Without reconciliation, stale WAITING_APPROVAL tool calls persist in
+        # the messages and could confuse downstream logic.
         #
-        # We fix this by:
-        # 1. Updating each approved/skipped/rejected tool call to a non-WAITING
-        #    status so it cannot be matched by the interrupt capture code.
-        # 2. Clearing the stale pending_approvals from the loaded status.
-        # 3. Pre-populating StatusBuilder's fingerprint set from existing tool calls
-        #    to prevent duplicate entries when LangGraph re-fires on_tool_start for
-        #    resumed tools.
+        # ResumeReconciler transitions each decided tool call to RUNNING/SKIPPED,
+        # auto-skips remaining on REJECT, and pre-populates fingerprints for
+        # LangGraph replay dedup.
         # ─────────────────────────────────────────────────────────────────────────────
         if is_resume_from_approval and approval_decisions:
             resume_reconciler = ResumeReconciler(
                 execution_id=execution_id,
                 status_builder=status_builder,
-                state_manager=ApprovalStateManager(
-                    execution_id=execution_id, logger=activity_logger,
-                ),
                 logger=activity_logger,
             )
             resume_reconciler.reconcile(approval_decisions=approval_decisions)
@@ -1909,7 +1784,7 @@ async def _execute_graphton_impl(
         activity_logger.info("=" * 80)
         activity_logger.info(f"📊 [FINAL_STATUS] Execution {execution_id}:")
         activity_logger.info(f"   messages: {len(status_builder.current_status.messages)}")
-        activity_logger.info(f"   tool_calls: {len(status_builder.current_status.tool_calls)}")
+        activity_logger.info(f"   tool_calls: {status_builder.tool_call_count()}")
         activity_logger.info(f"   sub_agent_executions: {len(status_builder.current_status.sub_agent_executions)}")
         activity_logger.info(f"   todos: {len(status_builder.current_status.todos)}")
         activity_logger.info(f"   artifacts: {len(status_builder.current_status.artifacts)}")

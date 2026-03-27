@@ -2,90 +2,36 @@ syntax = "proto3";
 
 package ai.stigmer.agentic.agentexecution.v1;
 
-import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Human-in-the-Loop (HITL) Approval Types
 //
 // These types support the approval flow for tool execution requiring user consent.
-// The ApprovalAction enum is in enum.proto alongside other package enums.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ApprovalLifecycleState tracks the progress of a single approval through
-// the distributed HITL pipeline.
+// PendingApproval is a UI-facing projection computed server-side from tool
+// call state in messages.
 //
-// Each state transition is forward-only — no service may move the state
-// backward. This invariant is enforced at every service boundary and makes
-// the approval flow auditable and diagnosable.
+// ## How It Works
 //
-// ## State Machine
-//
-//   UNSPECIFIED ──► REQUESTED ──► INTERRUPT_CAPTURED ──► DECISION_RECORDED ──► RESUME_RECONCILED ──► CLEARED
-//
-// ## Service Ownership
-//
-//   REQUESTED           — Python agent-runner (Phase 1: _populate_pending_approval)
-//   INTERRUPT_CAPTURED  — Python agent-runner (Phase 2: INTERRUPT_CAPTURE)
-//   DECISION_RECORDED   — Go/Java approval handler (RecordApprovalDecisionStep)
-//   RESUME_RECONCILED   — Python agent-runner (RESUME_RECONCILE)
-//   CLEARED             — Go/Java update-status handler (clear-signal sentinel)
-//
-// ## Diagnostic Value
-//
-// When an approval flow is stuck, lifecycle_state immediately shows which
-// service last touched the record and which transition failed — no log
-// correlation required.
-enum ApprovalLifecycleState {
-  APPROVAL_LIFECYCLE_UNSPECIFIED = 0;
-
-  // Phase 1: Tool detected as requiring approval, PendingApproval created.
-  // Set by Python agent-runner in _populate_pending_approval.
-  APPROVAL_LIFECYCLE_REQUESTED = 1;
-
-  // Phase 2: LangGraph interrupt_id linked to this PendingApproval.
-  // Set by Python agent-runner in INTERRUPT_CAPTURE after the event stream.
-  APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED = 2;
-
-  // User submitted a decision, ToolCall updated, Temporal signal sent.
-  // Set by Go/Java approval handler in RecordApprovalDecisionStep.
-  APPROVAL_LIFECYCLE_DECISION_RECORDED = 3;
-
-  // Python read the decision, built resume_dict, reconciled tool call status.
-  // Set by Python agent-runner in RESUME_RECONCILE.
-  APPROVAL_LIFECYCLE_RESUME_RECONCILED = 4;
-
-  // Clear-signal sentinel sent, DB cleared.
-  // Set by Python agent-runner when appending the empty-tool_call_id sentinel.
-  APPROVAL_LIFECYCLE_CLEARED = 5;
-}
-
-// PendingApproval is the single source of truth for approval state.
-//
-// ## Purpose
-//
-// This message tracks the full lifecycle of a single tool approval request.
-// Every approval-related field on ToolCall (approval_action, approval_decided_at)
-// is a projection of the state recorded here. When in doubt, PendingApproval
-// is authoritative.
-//
-// ## Lifecycle Tracking
-//
-// The lifecycle_state field tracks exactly where this approval is in the
-// distributed pipeline (see ApprovalLifecycleState). Each service advances
-// the state forward-only, making the approval flow auditable and diagnosable.
+// The Go/Java UpdateStatus handlers recompute this projection on every write
+// by scanning messages[].tool_calls (and sub_agent_executions[].messages[].tool_calls),
+// collecting entries where status == WAITING_APPROVAL && requires_approval == true.
+// Because the list is recomputed rather than merged, it is always consistent
+// with the authoritative tool call state embedded in messages.
 //
 // ## Sub-Agent Approvals
 //
-// When a sub-agent's tool requires approval, the main agent's pending_approval
-// is populated with from_sub_agent=true. This allows UI to show:
+// When a sub-agent's tool requires approval, the computed projection includes
+// it with from_sub_agent=true and sub_agent_name set. This allows UI to show:
 // "Sub-agent 'code-reviewer' needs approval to execute 'delete_file'"
 //
 // ## Lifecycle
 //
 // 1. Tool with requires_approval=true is about to execute
-// 2. PendingApproval is populated, phase becomes WAITING_FOR_APPROVAL
-// 3. User calls SubmitApproval RPC with their decision
-// 4. PendingApproval is cleared, phase returns to IN_PROGRESS (or FAILED on REJECT)
+// 2. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+// 3. Server recomputes pending_approvals, entry appears
+// 4. User calls SubmitApproval RPC with their decision
+// 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
 message PendingApproval {
   // ID of the tool call waiting for approval.
   // Use this when calling SubmitApproval to identify which tool call to resume.
@@ -130,70 +76,9 @@ message PendingApproval {
   // Empty if from_sub_agent is false.
   string sub_agent_name = 7;
 
-  // ID of the child agent execution (for workflow-level approvals only).
-  //
-  // Populated when this PendingApproval is surfaced at WorkflowExecution level.
-  // Empty when pending_approval is on AgentExecution directly.
-  //
-  // Use this ID to forward approvals from workflow to child agent via
-  // AgentExecution.submitApproval RPC.
-  //
-  // Format: "aex_abc123xyz456"
-  //
-  // @since Phase 5.3 (Approval Forwarding)
-  string child_agent_execution_id = 8;
-
-  // LangGraph interrupt ID for targeted resume.
-  //
-  // When the LLM returns multiple tool calls requiring approval in a single
-  // response, LangGraph creates one interrupt per tool. Each interrupt receives
-  // a unique ID. On resume, `Command(resume={interrupt_id: value})` must target
-  // the specific interrupt; otherwise LangGraph raises
-  // "multiple pending interrupts, you must specify the interrupt id."
-  //
-  // Populated by the agent-runner after the event stream ends by querying
-  // `graph.get_state(config).interrupts`. Matched to the tool call via
-  // the interrupt's value payload (which contains tool_name).
-  //
-  // Empty for legacy executions or single-interrupt scenarios (backward compat).
-  //
-  // @since Batch Approval (Multiple Interrupts)
-  string interrupt_id = 9;
-
-  // Current lifecycle state of this approval.
-  //
-  // Tracks which service last advanced this approval and where it is in the
-  // distributed pipeline. Forward-only: no service may move the state backward.
-  //
-  // UI consumers:
-  //   - REQUESTED / INTERRUPT_CAPTURED: Show approval card (action available)
-  //   - DECISION_RECORDED: Show decision badge (approval submitted, awaiting resume)
-  //   - RESUME_RECONCILED / CLEARED: Hidden (approval fully processed)
-  //
-  // Defaults to UNSPECIFIED for backward compatibility with existing records.
-  //
-  // @since HITL Approval Flow Hardening
-  ApprovalLifecycleState lifecycle_state = 10;
-
-  // The approval decision recorded for this PendingApproval.
-  //
-  // Populated when lifecycle_state advances to DECISION_RECORDED (or later).
-  // This is the authoritative record of the user's decision. The
-  // ToolCall.approval_action field is a projection of this value.
-  //
-  // UNSPECIFIED when no decision has been made yet.
-  //
-  // @since HITL Approval Flow Hardening
-  ApprovalAction decision_action = 11;
-
-  // ISO 8601 timestamp when the approval decision was recorded.
-  //
-  // Populated alongside decision_action when lifecycle_state advances to
-  // DECISION_RECORDED. The ToolCall.approval_decided_at field is a projection
-  // of this value.
-  //
-  // @since HITL Approval Flow Hardening
-  string decision_recorded_at = 12;
+  // Field 8 removed — child_agent_execution_id moved to
+  // WorkflowPendingApproval in workflowexecution/v1.
+  reserved 8;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -243,10 +128,10 @@ message ChildApprovalNotification {
   //
   // Contains one entry per tool call requiring approval. Each entry carries
   // the full PendingApproval details (tool_call_id, tool_name, message,
-  // args_preview, requested_at, interrupt_id).
+  // args_preview, requested_at).
   //
-  // The child_agent_execution_id on each entry is set to execution_id above
-  // so the parent can correlate approvals to the originating child.
+  // The parent workflow wraps each entry in a WorkflowPendingApproval with
+  // execution_id above as the child_agent_execution_id for routing.
   //
   // One signal, complete picture, no partial states.
   repeated PendingApproval pending_approvals = 2;

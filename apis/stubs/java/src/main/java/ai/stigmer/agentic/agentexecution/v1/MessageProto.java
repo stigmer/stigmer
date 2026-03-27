@@ -69,7 +69,7 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
       "s\022#\n\routput_tokens\030\n \001(\005R\014outputTokens\022*" +
       "\n\021cache_read_tokens\030\013 \001(\005R\017cacheReadToke" +
       "ns\022,\n\022estimated_cost_usd\030\014 \001(\001R\020estimate" +
-      "dCostUsd\022\024\n\005model\030\r \001(\tR\005model\"\222\006\n\010ToolC" +
+      "dCostUsd\022\024\n\005model\030\r \001(\tR\005model\"\265\006\n\010ToolC" +
       "all\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001(\tR\004name\022" +
       "+\n\004args\030\003 \001(\0132\027.google.protobuf.StructR\004" +
       "args\022\026\n\006result\030\004 \001(\tR\006result\022V\n\006status\030\005" +
@@ -89,17 +89,18 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
       "stigmer.agentic.agentexecution.v1.Approv" +
       "alActionR\016approvalAction\022!\n\014is_streaming" +
       "\030\020 \001(\010R\013isStreaming\022&\n\017mcp_server_slug\030\021" +
-      " \001(\tR\rmcpServerSlug\"\271\001\n\021ComponentMetadat" +
-      "a\022%\n\016component_type\030\001 \001(\tR\rcomponentType" +
-      "\022\'\n\017component_group\030\002 \001(\tR\016componentGrou" +
-      "p\022\037\n\013layout_hint\030\003 \001(\tR\nlayoutHint\0223\n\010me" +
-      "tadata\030\004 \001(\0132\027.google.protobuf.StructR\010m" +
-      "etadataB\303\001B\014MessageProtoP\001\242\002\004ASAA\252\002$Ai.S" +
-      "tigmer.Agentic.Agentexecution.V1\312\002$Ai\\St" +
-      "igmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Sti" +
-      "gmer\\Agentic\\Agentexecution\\V1\\GPBMetada" +
-      "ta\352\002(Ai::Stigmer::Agentic::Agentexecutio" +
-      "n::V1b\006proto3"
+      " \001(\tR\rmcpServerSlug\022!\n\014args_preview\030\022 \001(" +
+      "\tR\013argsPreview\"\271\001\n\021ComponentMetadata\022%\n\016" +
+      "component_type\030\001 \001(\tR\rcomponentType\022\'\n\017c" +
+      "omponent_group\030\002 \001(\tR\016componentGroup\022\037\n\013" +
+      "layout_hint\030\003 \001(\tR\nlayoutHint\0223\n\010metadat" +
+      "a\030\004 \001(\0132\027.google.protobuf.StructR\010metada" +
+      "taB\303\001B\014MessageProtoP\001\242\002\004ASAA\252\002$Ai.Stigme" +
+      "r.Agentic.Agentexecution.V1\312\002$Ai\\Stigmer" +
+      "\\Agentic\\Agentexecution\\V1\342\0020Ai\\Stigmer\\" +
+      "Agentic\\Agentexecution\\V1\\GPBMetadata\352\002(" +
+      "Ai::Stigmer::Agentic::Agentexecution::V1" +
+      "b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -119,7 +120,7 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCall_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCall_descriptor,
-        new java.lang.String[] { "Id", "Name", "Args", "Result", "Status", "ComponentMetadata", "StartedAt", "CompletedAt", "Error", "RequiresApproval", "ApprovalMessage", "ApprovalRequestedAt", "ApprovalDecidedAt", "ApprovedBy", "ApprovalAction", "IsStreaming", "McpServerSlug", });
+        new java.lang.String[] { "Id", "Name", "Args", "Result", "Status", "ComponentMetadata", "StartedAt", "CompletedAt", "Error", "RequiresApproval", "ApprovalMessage", "ApprovalRequestedAt", "ApprovalDecidedAt", "ApprovedBy", "ApprovalAction", "IsStreaming", "McpServerSlug", "ArgsPreview", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ComponentMetadata_descriptor =
       getDescriptor().getMessageType(2);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ComponentMetadata_fieldAccessorTable = new

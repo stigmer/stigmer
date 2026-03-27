@@ -834,10 +834,12 @@ func TestFindAllUnpromptedApprovals_SubAgent(t *testing.T) {
 		{
 			Id:   "sa-1",
 			Name: "code-reviewer",
-			ToolCalls: []*agentexecutionv1.ToolCall{
-				{Id: "sa-tc-1", Name: "shell", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
-				{Id: "sa-tc-2", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_RUNNING},
-			},
+			Messages: []*agentexecutionv1.AgentMessage{{
+				ToolCalls: []*agentexecutionv1.ToolCall{
+					{Id: "sa-tc-1", Name: "shell", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+					{Id: "sa-tc-2", Name: "read_file", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_RUNNING},
+				},
+			}},
 		},
 	}
 
@@ -865,9 +867,11 @@ func TestFindAllUnpromptedApprovals_AlreadyPrompted(t *testing.T) {
 		{
 			Id:   "sa-1",
 			Name: "researcher",
-			ToolCalls: []*agentexecutionv1.ToolCall{
-				{Id: "sa-tc-1", Name: "shell", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
-			},
+			Messages: []*agentexecutionv1.AgentMessage{{
+				ToolCalls: []*agentexecutionv1.ToolCall{
+					{Id: "sa-tc-1", Name: "shell", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+				},
+			}},
 		},
 	}
 
@@ -889,17 +893,21 @@ func TestFindAllUnpromptedApprovals_Mixed(t *testing.T) {
 		{
 			Id:   "sa-1",
 			Name: "debugger",
-			ToolCalls: []*agentexecutionv1.ToolCall{
-				{Id: "sa-tc-1", Name: "execute_sql", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
-				{Id: "sa-tc-2", Name: "list_tables", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
-			},
+			Messages: []*agentexecutionv1.AgentMessage{{
+				ToolCalls: []*agentexecutionv1.ToolCall{
+					{Id: "sa-tc-1", Name: "execute_sql", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL},
+					{Id: "sa-tc-2", Name: "list_tables", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+				},
+			}},
 		},
 		{
 			Id:   "sa-2",
 			Name: "researcher",
-			ToolCalls: []*agentexecutionv1.ToolCall{
-				{Id: "sa-tc-3", Name: "web_search", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
-			},
+			Messages: []*agentexecutionv1.AgentMessage{{
+				ToolCalls: []*agentexecutionv1.ToolCall{
+					{Id: "sa-tc-3", Name: "web_search", Status: agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED},
+				},
+			}},
 		},
 	}
 
@@ -1617,11 +1625,11 @@ func TestHasUsableApproval_Empty(t *testing.T) {
 func TestHasUsableApproval_DegradedEntries(t *testing.T) {
 	approvals := []*agentexecutionv1.PendingApproval{
 		{ToolName: "execute"},
-		{ToolName: "write_file", InterruptId: ""},
+		{ToolName: "write_file"},
 	}
 	prompted := map[string]bool{}
 	if hasUsableApproval(approvals, prompted) {
-		t.Error("expected false when all entries have empty tool_call_id and interrupt_id")
+		t.Error("expected false when all entries have empty tool_call_id")
 	}
 }
 
@@ -1635,13 +1643,13 @@ func TestHasUsableApproval_ValidToolCallId(t *testing.T) {
 	}
 }
 
-func TestHasUsableApproval_ValidInterruptId(t *testing.T) {
+func TestHasUsableApproval_ValidToolCallIdOnly(t *testing.T) {
 	approvals := []*agentexecutionv1.PendingApproval{
-		{ToolName: "execute", InterruptId: "intr-001"},
+		{ToolCallId: "tc-only", ToolName: "execute"},
 	}
 	prompted := map[string]bool{}
 	if !hasUsableApproval(approvals, prompted) {
-		t.Error("expected true when entry has valid interrupt_id")
+		t.Error("expected true when entry has valid tool_call_id")
 	}
 }
 

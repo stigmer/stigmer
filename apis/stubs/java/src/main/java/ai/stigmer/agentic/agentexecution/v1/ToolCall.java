@@ -45,6 +45,7 @@ private static final long serialVersionUID = 0L;
     approvedBy_ = "";
     approvalAction_ = 0;
     mcpServerSlug_ = "";
+    argsPreview_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -817,6 +818,65 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int ARGS_PREVIEW_FIELD_NUMBER = 18;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object argsPreview_ = "";
+  /**
+   * <pre>
+   * Sanitized preview of tool arguments for UI display.
+   * Sensitive values (passwords, tokens, keys) are redacted.
+   * Populated at tool call creation time by the agent-runner.
+   * Used by the server-side ComputePendingApprovals projection
+   * and by CLI/UI for inline argument visibility.
+   *
+   * Example: '{"repository": "acme/repo", "force": true}'
+   * </pre>
+   *
+   * <code>string args_preview = 18 [json_name = "argsPreview"];</code>
+   * @return The argsPreview.
+   */
+  @java.lang.Override
+  public java.lang.String getArgsPreview() {
+    java.lang.Object ref = argsPreview_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      argsPreview_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Sanitized preview of tool arguments for UI display.
+   * Sensitive values (passwords, tokens, keys) are redacted.
+   * Populated at tool call creation time by the agent-runner.
+   * Used by the server-side ComputePendingApprovals projection
+   * and by CLI/UI for inline argument visibility.
+   *
+   * Example: '{"repository": "acme/repo", "force": true}'
+   * </pre>
+   *
+   * <code>string args_preview = 18 [json_name = "argsPreview"];</code>
+   * @return The bytes for argsPreview.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getArgsPreviewBytes() {
+    java.lang.Object ref = argsPreview_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      argsPreview_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -881,6 +941,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerSlug_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 17, mcpServerSlug_);
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(argsPreview_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 18, argsPreview_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -948,6 +1011,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerSlug_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(17, mcpServerSlug_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(argsPreview_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(18, argsPreview_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1001,6 +1067,8 @@ private static final long serialVersionUID = 0L;
         != other.getIsStreaming()) return false;
     if (!getMcpServerSlug()
         .equals(other.getMcpServerSlug())) return false;
+    if (!getArgsPreview()
+        .equals(other.getArgsPreview())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1052,6 +1120,8 @@ private static final long serialVersionUID = 0L;
         getIsStreaming());
     hash = (37 * hash) + MCP_SERVER_SLUG_FIELD_NUMBER;
     hash = (53 * hash) + getMcpServerSlug().hashCode();
+    hash = (37 * hash) + ARGS_PREVIEW_FIELD_NUMBER;
+    hash = (53 * hash) + getArgsPreview().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -1219,6 +1289,7 @@ private static final long serialVersionUID = 0L;
       approvalAction_ = 0;
       isStreaming_ = false;
       mcpServerSlug_ = "";
+      argsPreview_ = "";
       return this;
     }
 
@@ -1310,6 +1381,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00010000) != 0)) {
         result.mcpServerSlug_ = mcpServerSlug_;
       }
+      if (((from_bitField0_ & 0x00020000) != 0)) {
+        result.argsPreview_ = argsPreview_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -1396,6 +1470,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getMcpServerSlug().isEmpty()) {
         mcpServerSlug_ = other.mcpServerSlug_;
         bitField0_ |= 0x00010000;
+        onChanged();
+      }
+      if (!other.getArgsPreview().isEmpty()) {
+        argsPreview_ = other.argsPreview_;
+        bitField0_ |= 0x00020000;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1513,6 +1592,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00010000;
               break;
             } // case 138
+            case 146: {
+              argsPreview_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00020000;
+              break;
+            } // case 146
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3284,6 +3368,128 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       mcpServerSlug_ = value;
       bitField0_ |= 0x00010000;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object argsPreview_ = "";
+    /**
+     * <pre>
+     * Sanitized preview of tool arguments for UI display.
+     * Sensitive values (passwords, tokens, keys) are redacted.
+     * Populated at tool call creation time by the agent-runner.
+     * Used by the server-side ComputePendingApprovals projection
+     * and by CLI/UI for inline argument visibility.
+     *
+     * Example: '{"repository": "acme/repo", "force": true}'
+     * </pre>
+     *
+     * <code>string args_preview = 18 [json_name = "argsPreview"];</code>
+     * @return The argsPreview.
+     */
+    public java.lang.String getArgsPreview() {
+      java.lang.Object ref = argsPreview_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        argsPreview_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Sanitized preview of tool arguments for UI display.
+     * Sensitive values (passwords, tokens, keys) are redacted.
+     * Populated at tool call creation time by the agent-runner.
+     * Used by the server-side ComputePendingApprovals projection
+     * and by CLI/UI for inline argument visibility.
+     *
+     * Example: '{"repository": "acme/repo", "force": true}'
+     * </pre>
+     *
+     * <code>string args_preview = 18 [json_name = "argsPreview"];</code>
+     * @return The bytes for argsPreview.
+     */
+    public com.google.protobuf.ByteString
+        getArgsPreviewBytes() {
+      java.lang.Object ref = argsPreview_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        argsPreview_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Sanitized preview of tool arguments for UI display.
+     * Sensitive values (passwords, tokens, keys) are redacted.
+     * Populated at tool call creation time by the agent-runner.
+     * Used by the server-side ComputePendingApprovals projection
+     * and by CLI/UI for inline argument visibility.
+     *
+     * Example: '{"repository": "acme/repo", "force": true}'
+     * </pre>
+     *
+     * <code>string args_preview = 18 [json_name = "argsPreview"];</code>
+     * @param value The argsPreview to set.
+     * @return This builder for chaining.
+     */
+    public Builder setArgsPreview(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      argsPreview_ = value;
+      bitField0_ |= 0x00020000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Sanitized preview of tool arguments for UI display.
+     * Sensitive values (passwords, tokens, keys) are redacted.
+     * Populated at tool call creation time by the agent-runner.
+     * Used by the server-side ComputePendingApprovals projection
+     * and by CLI/UI for inline argument visibility.
+     *
+     * Example: '{"repository": "acme/repo", "force": true}'
+     * </pre>
+     *
+     * <code>string args_preview = 18 [json_name = "argsPreview"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearArgsPreview() {
+      argsPreview_ = getDefaultInstance().getArgsPreview();
+      bitField0_ = (bitField0_ & ~0x00020000);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Sanitized preview of tool arguments for UI display.
+     * Sensitive values (passwords, tokens, keys) are redacted.
+     * Populated at tool call creation time by the agent-runner.
+     * Used by the server-side ComputePendingApprovals projection
+     * and by CLI/UI for inline argument visibility.
+     *
+     * Example: '{"repository": "acme/repo", "force": true}'
+     * </pre>
+     *
+     * <code>string args_preview = 18 [json_name = "argsPreview"];</code>
+     * @param value The bytes for argsPreview to set.
+     * @return This builder for chaining.
+     */
+    public Builder setArgsPreviewBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      argsPreview_ = value;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }

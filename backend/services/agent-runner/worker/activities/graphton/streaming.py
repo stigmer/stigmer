@@ -119,10 +119,9 @@ class StreamExecutor:
         run_id = event.get("run_id", "")
         resolved_id = self._sb._resolve_run_id(run_id)
         path = ""
-        for tc in self._sb.current_status.tool_calls:
-            if tc.id == resolved_id:
-                path = dict(tc.args).get("path", "") if tc.args else ""
-                break
+        tc = self._sb.get_tool_call(resolved_id)
+        if tc is not None:
+            path = str(dict(tc.args).get("path", "")) if tc.args else ""
 
         if not path:
             self._log.debug(
@@ -232,7 +231,12 @@ class StreamExecutor:
     # ------------------------------------------------------------------
 
     async def _pre_stream_update(self) -> None:
-        """Send an immediate IN_PROGRESS status update before streaming."""
+        """Send an immediate IN_PROGRESS status update before streaming.
+
+        On resume, the pending_approvals list contains entries at
+        RESUME_RECONCILED state. The server-side merge logic will prune
+        them, so no sentinel purge is needed here.
+        """
         try:
             self._log.info("[RESUME] Sending pre-stream IN_PROGRESS status update")
             await asyncio.wait_for(
@@ -261,7 +265,7 @@ class StreamExecutor:
                     "paused": self._is_cancelled(),
                     "events_processed": events_counter(),
                     "messages": len(self._sb.current_status.messages),
-                    "tool_calls": len(self._sb.current_status.tool_calls),
+                    "tool_calls": self._sb.tool_call_count(),
                     "phase": self._sb.current_status.phase,
                     "source": "background",
                 })
@@ -284,7 +288,7 @@ class StreamExecutor:
                 "paused": self._is_cancelled(),
                 "events_processed": events_processed,
                 "messages": len(self._sb.current_status.messages),
-                "tool_calls": len(self._sb.current_status.tool_calls),
+                "tool_calls": self._sb.tool_call_count(),
                 "phase": self._sb.current_status.phase,
             })
         except Exception as e:
@@ -314,7 +318,7 @@ class StreamExecutor:
                 self._execution_id, reason, events_processed,
                 events_since, time_since,
                 len(self._sb.current_status.messages),
-                len(self._sb.current_status.tool_calls),
+                self._sb.tool_call_count(),
             )
             await asyncio.wait_for(
                 self._exec_client.update_status(

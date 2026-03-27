@@ -4,7 +4,6 @@ After the LangGraph event stream completes, this module handles:
   - Silent completion detection (final message type check)
   - Auto-publish safety net (file-modifying tool calls -> artifacts)
   - Checkpoint query and validation
-  - Interrupt capture (via hitl.InterruptCapture)
   - Phase decision (checkpoint-validated)
   - Finalization (timestamp, usage, gRPC persist)
 
@@ -27,10 +26,6 @@ from langchain_core.runnables import RunnableConfig
 from worker.activities.graphton.checkpoint_validator import (
     build_error_from_validation,
     validate_against_checkpoint,
-)
-from worker.activities.graphton.hitl import (
-    ApprovalStateManager,
-    InterruptCapture,
 )
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
 
@@ -55,14 +50,10 @@ async def process_post_stream(
     sandbox: Any,
     artifact_storage: ArtifactStorage,
     workspace_backend: WorkspaceBackend,
-    merged_env_vars: dict[str, str],
-    secret_keys: set[str],
     auto_publish_fn: Any,
     pending_publish_tasks: set[asyncio.Task[None]] | None = None,
-    resolve_platform_tool_name: Any,
-    humanize_platform_refs: Any,
-    resolve_display_env_vars: Any,
     logger: logging.Logger,
+    **_kwargs: Any,
 ) -> PostStreamResult:
     """Run post-stream validation, interrupt capture, and phase decision.
 
@@ -115,7 +106,7 @@ async def process_post_stream(
     ):
         try:
             await auto_publish_fn(
-                tool_calls=status_builder.current_status.tool_calls,
+                tool_calls=list(status_builder.iter_all_tool_calls()),
                 sandbox=sandbox,
                 storage=artifact_storage,
                 execution_id=execution_id,
@@ -180,31 +171,6 @@ async def process_post_stream(
         logger.info(
             "[CHECKPOINT_VALIDATION] execution=%s — all checks passed",
             execution_id,
-        )
-
-    # Interrupt capture
-    try:
-        interrupt_capture = InterruptCapture(
-            execution_id=execution_id,
-            status_builder=status_builder,
-            state_manager=ApprovalStateManager(
-                execution_id=execution_id, logger=logger,
-            ),
-            logger=logger,
-            resolve_platform_tool_name=resolve_platform_tool_name,
-        )
-        interrupt_capture.capture(
-            graph_state=graph_state,
-            humanize_platform_refs=humanize_platform_refs,
-            resolve_display_env_vars=resolve_display_env_vars,
-            merged_env_vars=merged_env_vars,
-            secret_keys=secret_keys,
-        )
-    except Exception as capture_err:
-        logger.warning(
-            "[INTERRUPT_CAPTURE] execution=%s "
-            "failed to capture interrupt IDs from graph state: %s.",
-            execution_id, capture_err,
         )
 
     # Phase decision

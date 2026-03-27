@@ -9,6 +9,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -166,11 +167,6 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.Messages = requestStatus.Messages
 	}
 
-	// Merge tool_calls (replace with latest from request)
-	if len(requestStatus.ToolCalls) > 0 {
-		updated.Status.ToolCalls = requestStatus.ToolCalls
-	}
-
 	// Merge sub_agent_executions (replace with latest from request)
 	if len(requestStatus.SubAgentExecutions) > 0 {
 		updated.Status.SubAgentExecutions = requestStatus.SubAgentExecutions
@@ -206,19 +202,11 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.CompletedAt = requestStatus.CompletedAt
 	}
 
-	// Merge pending_approvals (HITL approval flow)
-	//
-	// Python agent-runner sends pending_approvals when:
-	// 1. Tools require approval: non-empty list = set pending_approvals
-	// 2. Approvals resolved/cleared: empty list or entry with empty tool_call_id = clear
-	// 3. Unrelated status update: field absent (nil/empty) = preserve existing
-	if len(requestStatus.PendingApprovals) > 0 {
-		if requestStatus.PendingApprovals[0].ToolCallId != "" {
-			updated.Status.PendingApprovals = requestStatus.PendingApprovals
-		} else {
-			updated.Status.PendingApprovals = nil
-		}
-	}
+	// Compute pending_approvals from tool call state in messages
+	updated.Status.PendingApprovals = approval.ComputePendingApprovals(
+		updated.Status.GetMessages(),
+		updated.Status.GetSubAgentExecutions(),
+	)
 
 	// Merge usage (replace with latest cumulative snapshot from request)
 	if requestStatus.Usage != nil {
@@ -239,7 +227,6 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		Str("execution_id", input.ExecutionId).
 		Str("phase", updated.Status.Phase.String()).
 		Int("messages_count", len(updated.Status.Messages)).
-		Int("tool_calls_count", len(updated.Status.ToolCalls)).
 		Int("artifacts_count", len(updated.Status.Artifacts)).
 		Int("pending_approvals_count", len(updated.Status.PendingApprovals)).
 		Bool("has_usage", updated.Status.Usage != nil).

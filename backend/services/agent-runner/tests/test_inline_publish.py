@@ -172,6 +172,9 @@ class TestStreamExecutorInlinePublish:
         sb.current_status.tool_calls = [tc_write, tc_read]
         sb.force_next_update = False
         sb._resolve_run_id = lambda rid: rid
+        sb.get_tool_call = lambda tc_id: next(
+            (tc for tc in sb.current_status.tool_calls if tc.id == tc_id), None
+        )
 
         executor = StreamExecutor(
             agent_graph=MagicMock(),

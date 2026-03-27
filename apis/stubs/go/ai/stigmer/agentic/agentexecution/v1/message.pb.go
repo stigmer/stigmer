@@ -275,6 +275,14 @@ type ToolCall struct {
 	// Used by CLI/UI to render a qualified tool name (e.g., "planton-cloud/search")
 	// so users can distinguish tools with the same name from different servers.
 	McpServerSlug string `protobuf:"bytes,17,opt,name=mcp_server_slug,json=mcpServerSlug,proto3" json:"mcp_server_slug,omitempty"`
+	// Sanitized preview of tool arguments for UI display.
+	// Sensitive values (passwords, tokens, keys) are redacted.
+	// Populated at tool call creation time by the agent-runner.
+	// Used by the server-side ComputePendingApprovals projection
+	// and by CLI/UI for inline argument visibility.
+	//
+	// Example: '{"repository": "acme/repo", "force": true}'
+	ArgsPreview   string `protobuf:"bytes,18,opt,name=args_preview,json=argsPreview,proto3" json:"args_preview,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -428,6 +436,13 @@ func (x *ToolCall) GetMcpServerSlug() string {
 	return ""
 }
 
+func (x *ToolCall) GetArgsPreview() string {
+	if x != nil {
+		return x.ArgsPreview
+	}
+	return ""
+}
+
 // Metadata to guide frontend UI component rendering for tool calls.
 // All fields are optional - if not set, frontend uses default rendering logic.
 type ComponentMetadata struct {
@@ -530,7 +545,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	" \x01(\x05R\foutputTokens\x12*\n" +
 	"\x11cache_read_tokens\x18\v \x01(\x05R\x0fcacheReadTokens\x12,\n" +
 	"\x12estimated_cost_usd\x18\f \x01(\x01R\x10estimatedCostUsd\x12\x14\n" +
-	"\x05model\x18\r \x01(\tR\x05model\"\x92\x06\n" +
+	"\x05model\x18\r \x01(\tR\x05model\"\xb5\x06\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12+\n" +
@@ -551,7 +566,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_message_proto_rawDesc = "" +
 	"approvedBy\x12]\n" +
 	"\x0fapproval_action\x18\x0f \x01(\x0e24.ai.stigmer.agentic.agentexecution.v1.ApprovalActionR\x0eapprovalAction\x12!\n" +
 	"\fis_streaming\x18\x10 \x01(\bR\visStreaming\x12&\n" +
-	"\x0fmcp_server_slug\x18\x11 \x01(\tR\rmcpServerSlug\"\xb9\x01\n" +
+	"\x0fmcp_server_slug\x18\x11 \x01(\tR\rmcpServerSlug\x12!\n" +
+	"\fargs_preview\x18\x12 \x01(\tR\vargsPreview\"\xb9\x01\n" +
 	"\x11ComponentMetadata\x12%\n" +
 	"\x0ecomponent_type\x18\x01 \x01(\tR\rcomponentType\x12'\n" +
 	"\x0fcomponent_group\x18\x02 \x01(\tR\x0ecomponentGroup\x12\x1f\n" +

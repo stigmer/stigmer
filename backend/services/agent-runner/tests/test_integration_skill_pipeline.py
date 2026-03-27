@@ -926,6 +926,11 @@ class TestZipFormatEndToEnd:
             assert "is a file" in str(exc_info.value)
 
 
+def _tc(name: str, args: dict, tc_id: str = "call_test_001") -> dict:
+    """Build a ToolCall-format input dict for tool.ainvoke()."""
+    return {"name": name, "args": args, "id": tc_id, "type": "tool_call"}
+
+
 class TestToolAliasSkillReads:
     """Integration tests verifying that platform tool ALIASES can read skills.
 
@@ -1018,8 +1023,10 @@ class TestToolAliasSkillReads:
         tools = create_platform_tool_wrappers(backend)
         read_tool = next(t for t in tools if getattr(t, "name", "") == "read")
 
-        result = await read_tool.ainvoke({"path": f"{skill_path}/SKILL.md"})
-        assert "Alias Test Skill" in result
+        result = await read_tool.ainvoke(
+            _tc("read", {"path": f"{skill_path}/SKILL.md"})
+        )
+        assert "Alias Test Skill" in result.content
 
     @pytest.mark.asyncio
     async def test_read_file_alias_reads_skill_relative_path(self, skill_and_backend):
@@ -1030,8 +1037,10 @@ class TestToolAliasSkillReads:
         tools = create_platform_tool_wrappers(backend)
         read_file_tool = next(t for t in tools if getattr(t, "name", "") == "read_file")
 
-        result = await read_file_tool.ainvoke({"path": f"{skill_path}/SKILL.md"})
-        assert "Alias Test Skill" in result
+        result = await read_file_tool.ainvoke(
+            _tc("read_file", {"path": f"{skill_path}/SKILL.md"})
+        )
+        assert "Alias Test Skill" in result.content
 
     @pytest.mark.asyncio
     async def test_read_tool_reads_skill_absolute_path(self, skill_and_backend):
@@ -1046,8 +1055,8 @@ class TestToolAliasSkillReads:
         # On macOS, /var/folders/... resolves to /private/var/folders/..., so
         # we must use the resolved root to match what the backend expects.
         abs_path = f"{backend.root_dir}/{skill_path}/SKILL.md"
-        result = await read_tool.ainvoke({"path": abs_path})
-        assert "Alias Test Skill" in result
+        result = await read_tool.ainvoke(_tc("read", {"path": abs_path}))
+        assert "Alias Test Skill" in result.content
 
     @pytest.mark.asyncio
     async def test_read_file_alias_reads_skill_absolute_path(self, skill_and_backend):
@@ -1060,8 +1069,8 @@ class TestToolAliasSkillReads:
 
         # Use resolved root path (see comment in test above)
         abs_path = f"{backend.root_dir}/{skill_path}/SKILL.md"
-        result = await read_file_tool.ainvoke({"path": abs_path})
-        assert "Alias Test Skill" in result
+        result = await read_file_tool.ainvoke(_tc("read_file", {"path": abs_path}))
+        assert "Alias Test Skill" in result.content
 
     @pytest.mark.asyncio
     async def test_read_file_alias_reads_skill_with_leading_slash(self, skill_and_backend):
@@ -1075,5 +1084,7 @@ class TestToolAliasSkillReads:
         # Leading-slash path: /<skill_path>/SKILL.md
         # FilesystemBackend's chroot behavior should strip the leading /
         leading_slash_path = f"/{skill_path}/SKILL.md"
-        result = await read_file_tool.ainvoke({"path": leading_slash_path})
-        assert "Alias Test Skill" in result
+        result = await read_file_tool.ainvoke(
+            _tc("read_file", {"path": leading_slash_path})
+        )
+        assert "Alias Test Skill" in result.content

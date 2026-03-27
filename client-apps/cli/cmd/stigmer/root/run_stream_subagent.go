@@ -61,9 +61,10 @@ func emitSubAgentEvents(
 				Msg("[stream] new sub-agent execution detected")
 		}
 
+		saToolCalls := collectToolCallsFromMessages(sa.GetMessages())
 		var toolEvents []executiontui.Event
 		tracker.toolCallStates, tracker.toolCallResults, toolEvents = trackToolCallStates(
-			sa.ToolCalls, tracker.toolCallStates, tracker.toolCallResults, sa.Id,
+			saToolCalls, tracker.toolCallStates, tracker.toolCallResults, sa.Id,
 		)
 
 		tracker.displayedMsgCount, tracker.inStream = emitSubAgentMessageEvents(
@@ -79,13 +80,13 @@ func emitSubAgentEvents(
 			events <- executiontui.SubAgentCompletedEvent{
 				ID:        sa.Id,
 				Status:    sa.Status,
-				ToolCount: len(sa.ToolCalls),
+				ToolCount: len(saToolCalls),
 				Output:    sa.Output,
 			}
 			log.Debug().
 				Str("sub_agent_id", sa.Id).
 				Str("status", sa.Status.String()).
-				Int("tool_count", len(sa.ToolCalls)).
+				Int("tool_count", len(saToolCalls)).
 				Msg("[stream] sub-agent execution completed")
 		}
 	}
