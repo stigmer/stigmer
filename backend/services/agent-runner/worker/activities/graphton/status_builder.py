@@ -2267,46 +2267,14 @@ class StatusBuilder:
     # Approval State Management (HITL Phase 2)
     #
     # Approval-waiting state is set inline by _handle_tool_start_event() and
-    # _reconcile_early_tool_call() at ToolCall creation time.  Approval
-    # decisions are applied inline in execute_graphton.py's resume-after-
-    # approval flow.  The helper methods below manage the pending-approvals
-    # bookkeeping that both paths share.
+    # _reconcile_early_tool_call() at ToolCall creation time.  On resume,
+    # ResumeReconciler (hitl.py) handles reconciliation and clears pending
+    # approvals via the clear-signal sentinel pattern.
+    #
+    # The helpers below manage non-resume pending-approvals bookkeeping:
+    # clearing all pending state and syncing sub-agent approval lists.
     # ─────────────────────────────────────────────────────────────────────────────
 
-    def _remove_from_pending(self, run_id: str) -> None:
-        """Remove a single run_id from the pending approvals list.
-
-        If no more pending approvals remain after removal, clear the overall
-        pending state and restore the execution phase.
-
-        Also removes the matching ``PendingApproval`` from both
-        ``current_status.pending_approvals`` and the owning
-        ``SubAgentExecution.pending_approvals`` (dual-surfacing cleanup).
-        Resolves through ``_run_id_aliases`` so reconciliation-path tool calls
-        (where ``ToolCall.id`` is a temp_id) are matched correctly.
-        """
-        if run_id in self._pending_tool_approvals:
-            self._pending_tool_approvals.remove(run_id)
-
-            # PendingApproval.tool_call_id matches ToolCall.id, which may
-            # differ from run_id when the reconciliation path assigned a
-            # temp_id.  Resolve through the alias map.
-            tc_id = self._run_id_aliases.get(run_id, run_id)
-
-            for i, pa in enumerate(self.current_status.pending_approvals):
-                if pa.tool_call_id == tc_id:
-                    del self.current_status.pending_approvals[i]
-                    break
-
-            for sa in self.current_status.sub_agent_executions:
-                for i, pa in enumerate(sa.pending_approvals):
-                    if pa.tool_call_id == tc_id:
-                        del sa.pending_approvals[i]
-                        break
-
-        if not self._pending_tool_approvals:
-            self.clear_pending_approval()
-    
     def clear_pending_approval(self) -> None:
         """Clear ALL pending approval state and restore execution phase.
 

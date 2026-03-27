@@ -128,21 +128,28 @@ When `submitApproval` RPC succeeds, the approval card is immediately dismissed v
 
 ## Task 5: Remove dead _remove_from_pending and improve batch resume visibility
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-26 20:52
+**Completed**: 2026-03-27
 **Severity**: Low (maintenance hygiene)
 **Files**: `backend/services/agent-runner/worker/activities/graphton/status_builder.py`, `backend/services/agent-runner/worker/activities/execute_graphton.py`
 
 ### Subtasks
 
-- [ ] Confirm `_remove_from_pending` has no production callers (grep for all references)
-- [ ] Remove or add a `@deprecated` docstring with explanation of the clear-signal pattern that replaced it
-- [ ] In `execute_graphton.py` batch resume abort (around lines 1757-1778), add a log line that would be visible in the execution's message stream (not just Python logs) when `loop_aborted = True`
+- [x] Confirm `_remove_from_pending` has no production callers (grep for all references)
+- [x] Remove the dead method (chosen over `@deprecated` — zero callers, private method, deprecation annotation would be noise)
+- [x] In `execute_graphton.py` batch resume abort, add a MESSAGE_SYSTEM to the execution's message stream when `loop_aborted = True`
+
+### Decisions Made
+
+- **Deletion over deprecation**: `_remove_from_pending` had zero production callers and is a private method. A `@deprecated` annotation on a private method with no callers would never trigger a warning — clean removal is the right call.
+- **Section comment updated**: Rewrote the "Approval State Management" section header in `status_builder.py` to reference the `ResumeReconciler` clear-signal pattern as the resume path.
+- **Test deleted**: `test_remove_from_pending_resolves_run_id_aliases` was the sole caller; removed alongside the method.
 
 ### Notes
 
 - The `_remove_from_pending` method was used in historical reject flows, replaced by `del pending_approvals[:]` + clear sentinel in `ResumeReconciler`
-- Batch resume abort currently only logs to Python logger -- the user has no visibility
+- Batch resume abort now surfaces a MESSAGE_SYSTEM so users see why the agent restarted from checkpoint instead of resuming
 
 ---
 
