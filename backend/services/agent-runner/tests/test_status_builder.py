@@ -6455,6 +6455,7 @@ class TestTryEnrichPhase1Entry:
     def _make_capture(self, status_builder):
         """Create an InterruptCapture wired to the given status_builder."""
         import logging
+
         from worker.activities.graphton.hitl import ApprovalStateManager, InterruptCapture
         _logger = logging.getLogger("test_status_builder")
         return InterruptCapture(

@@ -16,21 +16,19 @@ and asserts the invariants the consuming service depends on.
 
 from unittest.mock import MagicMock, patch
 
-from google.protobuf.struct_pb2 import Struct
-
 from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import (
     ApprovalLifecycleState,
     PendingApproval,
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
-    ExecutionPhase,
     ToolCallStatus,
 )
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import SubmitApprovalInput
 from ai.stigmer.agentic.agentexecution.v1.message_pb2 import ToolCall
 from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
 from ai.stigmer.agentic.agentexecution.v1.usage_pb2 import UsageMetrics
+from google.protobuf.struct_pb2 import Struct
 
 from worker.activities.graphton.hitl import (
     ApprovalStateManager,
@@ -38,7 +36,6 @@ from worker.activities.graphton.hitl import (
     ResumeReconciler,
 )
 from worker.activities.graphton.status_builder import StatusBuilder
-
 
 # =============================================================================
 # Helpers
