@@ -74,7 +74,9 @@ export function SessionLauncher() {
   const editRef = draftParams?.editRef ?? null;
   const isEditMode = editRef !== null;
 
-  const initialAgentRef = draftType ? CREATOR_AGENTS[draftType] : undefined;
+  const [initialAgentRef] = useState(() =>
+    draftType ? CREATOR_AGENTS[draftType] : undefined,
+  );
   const placeholder = draftType
     ? isEditMode
       ? EDIT_PLACEHOLDERS[draftType]
