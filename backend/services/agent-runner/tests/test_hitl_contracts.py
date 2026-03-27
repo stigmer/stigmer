@@ -16,6 +16,8 @@ and asserts the invariants the consuming service depends on.
 
 from unittest.mock import MagicMock, patch
 
+from google.protobuf.struct_pb2 import Struct
+
 from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import (
     ApprovalLifecycleState,
     PendingApproval,
@@ -26,12 +28,16 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ToolCallStatus,
 )
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import SubmitApprovalInput
+from ai.stigmer.agentic.agentexecution.v1.message_pb2 import ToolCall
+from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
+from ai.stigmer.agentic.agentexecution.v1.usage_pb2 import UsageMetrics
 
 from worker.activities.graphton.hitl import (
     ApprovalStateManager,
     InterruptCapture,
     ResumeReconciler,
 )
+from worker.activities.graphton.status_builder import StatusBuilder
 
 
 # =============================================================================
@@ -465,6 +471,111 @@ class TestAdvanceEnforcement:
                     ),
                 ],
             )
+
+
+# =============================================================================
+# Contract 7: Sub-agent fingerprint map population
+# =============================================================================
+
+
+def _make_initial_status(*, tool_calls=None, sub_agent_executions=None):
+    """Create a minimal mock AgentExecutionStatus for StatusBuilder tests."""
+    status = MagicMock()
+    status.messages = []
+    status.tool_calls = list(tool_calls or [])
+    status.sub_agent_executions = list(sub_agent_executions or [])
+    status.todos = {}
+    status.usage = UsageMetrics()
+    status.pending_approvals = []
+    return status
+
+
+class TestSubAgentFingerprintMapPopulation:
+    """populate_fingerprints_from_existing_tool_calls() must populate
+    _fingerprint_to_tool_call_id for sub-agent tool calls, not just
+    top-level ones.
+
+    Without this, Priority 2 (fingerprint) matching in InterruptCapture
+    always misses sub-agent tools, and resume-path run-ID alias creation
+    fails for sub-agent tool calls.
+    """
+
+    def test_sub_agent_tool_call_fingerprint_in_map(self):
+        """A sub-agent tool call must appear in _fingerprint_to_tool_call_id
+        after populate_fingerprints_from_existing_tool_calls()."""
+        args = Struct()
+        args.update({"path": "/tmp/output.txt", "content": "hello"})
+        sa_tc = ToolCall(
+            id="sa-tc-001",
+            name="write_file",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        sa = SubAgentExecution(id="sub-agent-run-1", name="code_editor")
+        sa.tool_calls.append(sa_tc)
+
+        status = _make_initial_status(sub_agent_executions=[sa])
+        builder = StatusBuilder("exec-fp-sub-1", status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        fingerprint = builder._get_tool_fingerprint("write_file", {"path": "/tmp/output.txt", "content": "hello"})
+        assert fingerprint in builder.tool_call_fingerprints
+        assert builder._fingerprint_to_tool_call_id.get(fingerprint) == "sa-tc-001"
+
+    def test_top_level_and_sub_agent_both_populated(self):
+        """Both top-level and sub-agent tool calls must appear in the map."""
+        top_args = Struct()
+        top_args.update({"query": "SELECT 1"})
+        top_tc = ToolCall(
+            id="top-tc-001",
+            name="run_sql",
+            args=top_args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+
+        sa_args = Struct()
+        sa_args.update({"url": "https://example.com"})
+        sa_tc = ToolCall(
+            id="sa-tc-002",
+            name="fetch_url",
+            args=sa_args,
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+        )
+        sa = SubAgentExecution(id="sub-agent-run-2", name="researcher")
+        sa.tool_calls.append(sa_tc)
+
+        status = _make_initial_status(tool_calls=[top_tc], sub_agent_executions=[sa])
+        builder = StatusBuilder("exec-fp-both-1", status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        top_fp = builder._get_tool_fingerprint("run_sql", {"query": "SELECT 1"})
+        sa_fp = builder._get_tool_fingerprint("fetch_url", {"url": "https://example.com"})
+
+        assert builder._fingerprint_to_tool_call_id.get(top_fp) == "top-tc-001"
+        assert builder._fingerprint_to_tool_call_id.get(sa_fp) == "sa-tc-002"
+
+    def test_sub_agent_tool_call_without_id_skipped(self):
+        """A sub-agent tool call with empty id must not appear in the
+        fingerprint-to-id map (but the fingerprint itself is still tracked
+        for dedup)."""
+        args = Struct()
+        args.update({"key": "value"})
+        sa_tc = ToolCall(
+            id="",
+            name="some_tool",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        sa = SubAgentExecution(id="sub-agent-run-3", name="helper")
+        sa.tool_calls.append(sa_tc)
+
+        status = _make_initial_status(sub_agent_executions=[sa])
+        builder = StatusBuilder("exec-fp-noid-1", status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        fingerprint = builder._get_tool_fingerprint("some_tool", {"key": "value"})
+        assert fingerprint in builder.tool_call_fingerprints
+        assert fingerprint not in builder._fingerprint_to_tool_call_id
 
 
 # =============================================================================
