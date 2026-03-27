@@ -93,41 +93,41 @@ async def process_post_stream(
                     "failed: %s", execution_id, exc,
                 )
 
-    # Auto-publish safety net: runs for all non-terminal phases and
-    # skips paths already published inline (dedup via sandbox_path).
+    # Auto-publish safety net: publishes artifacts for any completed
+    # file-modifying tool calls that were not already published inline.
+    # Runs unconditionally regardless of execution phase because:
+    #   - It only operates on TOOL_CALL_COMPLETED tool calls
+    #   - Dedup via already_published_paths prevents redundant uploads
+    #   - For WAITING_FOR_APPROVAL / PAUSED, the write tool already
+    #     completed and on_tool_end will NOT fire again on resume
+    #   - For FAILED, completed writes are still valid user artifacts
     already_published = {
         a.sandbox_path for a in status_builder.current_status.artifacts
     }
-    current_phase = status_builder.current_status.phase
-    if current_phase not in (
-        ExecutionPhase.EXECUTION_FAILED,
-        ExecutionPhase.EXECUTION_PAUSED,
-        ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
-    ):
-        try:
-            await auto_publish_fn(
-                tool_calls=list(status_builder.iter_all_tool_calls()),
-                sandbox=sandbox,
-                storage=artifact_storage,
-                execution_id=execution_id,
-                status_builder=status_builder,
-                local_root=(
-                    workspace_backend.root_dir if sandbox is None else None
-                ),
-                logger=logger,
-                path_normalizer=(
-                    workspace_backend._normalize
-                    if hasattr(workspace_backend, "_normalize")
-                    else None
-                ),
-                already_published_paths=already_published,
-            )
-        except Exception as auto_pub_err:
-            logger.warning(
-                "[AUTO_PUBLISH] execution=%s — "
-                "auto-publish failed (non-fatal): %s",
-                execution_id, auto_pub_err,
-            )
+    try:
+        await auto_publish_fn(
+            tool_calls=list(status_builder.iter_all_tool_calls()),
+            sandbox=sandbox,
+            storage=artifact_storage,
+            execution_id=execution_id,
+            status_builder=status_builder,
+            local_root=(
+                workspace_backend.root_dir if sandbox is None else None
+            ),
+            logger=logger,
+            path_normalizer=(
+                workspace_backend._normalize
+                if hasattr(workspace_backend, "_normalize")
+                else None
+            ),
+            already_published_paths=already_published,
+        )
+    except Exception as auto_pub_err:
+        logger.warning(
+            "[AUTO_PUBLISH] execution=%s — "
+            "auto-publish failed (non-fatal): %s",
+            execution_id, auto_pub_err,
+        )
 
     status_builder.finalize_context_info()
 

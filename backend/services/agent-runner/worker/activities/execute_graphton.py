@@ -1461,8 +1461,8 @@ async def _execute_graphton_impl(
             except Exception as exc:
                 activity_logger.warning(
                     f"[INLINE_PUBLISH] execution={execution_id} — "
-                    f"failed to publish '{path}' (non-fatal, safety net "
-                    f"will retry): {exc}"
+                    f"failed to publish '{path}' (non-fatal, post-stream "
+                    f"safety net will attempt): {exc}"
                 )
         
         # Create Graphton agent.
