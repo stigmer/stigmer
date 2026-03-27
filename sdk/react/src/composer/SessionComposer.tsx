@@ -568,7 +568,11 @@ export function SessionComposer({
       setConfigOpen(open);
       if (!open) {
         configMcpInitialServerKeyRef.current = undefined;
-        if (configActivePanel === "agent") {
+        if (
+          configActivePanel === "agent" &&
+          agentSetup.state.status !== "needsEnvVars" &&
+          agentSetup.state.status !== "submitting"
+        ) {
           agentSetup.reset();
         }
       }
@@ -578,7 +582,12 @@ export function SessionComposer({
 
   const handleConfigActivePanelChange = useCallback(
     (panel: string | null) => {
-      if (configActivePanel === "agent" && panel !== "agent") {
+      if (
+        configActivePanel === "agent" &&
+        panel !== "agent" &&
+        agentSetup.state.status !== "needsEnvVars" &&
+        agentSetup.state.status !== "submitting"
+      ) {
         agentSetup.reset();
       }
       setConfigActivePanel(panel);
@@ -651,6 +660,12 @@ export function SessionComposer({
     onAgentResolutionChange?.(null);
   }, [onAgentRefChange, onAgentResolutionChange]);
 
+  const handlePendingAgentChipRemove = useCallback(() => {
+    agentSetup.reset();
+    onAgentRefChange?.(null);
+    onAgentResolutionChange?.(null);
+  }, [agentSetup, onAgentRefChange, onAgentResolutionChange]);
+
   // ---------------------------------------------------------------------------
   // Initial agent: auto-resolve on mount when initialAgentRef is provided
   // ---------------------------------------------------------------------------
@@ -678,6 +693,22 @@ export function SessionComposer({
       cancelled = true;
     };
   }, [initialAgentRef, showAgent, org]);
+
+  // ---------------------------------------------------------------------------
+  // Initial agent: auto-open Configure > Agent when env vars are needed
+  // ---------------------------------------------------------------------------
+
+  const initialAgentConfigAutoOpened = useRef(false);
+
+  useEffect(() => {
+    if (initialAgentConfigAutoOpened.current) return;
+    if (!initialAgentRef) return;
+    if (agentSetup.state.status !== "needsEnvVars") return;
+
+    initialAgentConfigAutoOpened.current = true;
+    setConfigOpen(true);
+    setConfigActivePanel("agent");
+  }, [initialAgentRef, agentSetup.state.status]);
 
   // ---------------------------------------------------------------------------
   // Initial attachments: upload files on mount when provided
@@ -738,6 +769,38 @@ export function SessionComposer({
         label: displayNames.get(refStr) ?? agentRef.slug,
         type: "agent",
         onRemove: handleAgentChipRemove,
+      });
+    } else if (
+      agentSetup.state.status === "needsEnvVars" ||
+      agentSetup.state.status === "resolving" ||
+      agentSetup.state.status === "submitting"
+    ) {
+      const st = agentSetup.state;
+      const ref = st.agentRef;
+      const refStr = `${ref.org}/${ref.slug}`;
+      const name =
+        st.status !== "resolving"
+          ? st.agentName
+          : (displayNames.get(refStr) ?? ref.slug);
+
+      items.push({
+        key: `agent:${refStr}`,
+        label: name,
+        type: "agent",
+        onRemove: handlePendingAgentChipRemove,
+        status:
+          st.status === "resolving"
+            ? "loading"
+            : st.status === "submitting"
+              ? "submitting"
+              : "needsSetup",
+        onClick:
+          st.status === "needsEnvVars"
+            ? () => {
+                setConfigOpen(true);
+                setConfigActivePanel("agent");
+              }
+            : undefined,
       });
     }
 
@@ -820,7 +883,9 @@ export function SessionComposer({
     return items;
   }, [
     agentRef,
+    agentSetup.state,
     handleAgentChipRemove,
+    handlePendingAgentChipRemove,
     workspace,
     showMcp,
     mcpSetup.entries,
@@ -870,11 +935,17 @@ export function SessionComposer({
   const configureItems = useMemo((): ConfigureMenuItem[] => {
     const items: ConfigureMenuItem[] = [];
     if (showAgent) {
+      const agentPending =
+        !agentRef &&
+        (agentSetup.state.status === "needsEnvVars" ||
+          agentSetup.state.status === "resolving" ||
+          agentSetup.state.status === "submitting");
       items.push({
         id: "agent",
         icon: <AgentIcon />,
         label: "Agent",
-        count: agentRef ? 1 : 0,
+        count: agentRef || agentPending ? 1 : 0,
+        hasWarning: agentPending && agentSetup.state.status === "needsEnvVars",
       });
     }
     if (showMcp) {
@@ -903,7 +974,7 @@ export function SessionComposer({
       });
     }
     return items;
-  }, [showAgent, agentRef, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showSessionVars, sessionVarCount]);
+  }, [showAgent, agentRef, agentSetup.state, showMcp, mcpCount, mcpSetup.needsSetupCount, showSkills, skillCount, showSessionVars, sessionVarCount]);
 
   const renderConfigPanel = useCallback(
     (panelId: string): React.ReactNode => {
@@ -1101,6 +1172,30 @@ export function SessionComposer({
             className="px-3 pb-2"
           />
         )}
+
+        {/* Zone 2.7: Agent setup warning */}
+        {showAgent &&
+          agentSetup.state.status === "needsEnvVars" &&
+          !agentRef && (
+            <div
+              role="status"
+              className="mx-3 mb-2 flex items-center gap-2 rounded-md bg-warning/10 px-2.5 py-1.5 text-xs text-warning"
+            >
+              <AlertTriangleIcon />
+              <span>Agent needs configuration before use</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfigOpen(true);
+                  setConfigActivePanel("agent");
+                }}
+                disabled={isDisabled}
+                className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-[0.6rem] font-medium hover:bg-warning/20 disabled:pointer-events-none disabled:opacity-50"
+              >
+                Configure
+              </button>
+            </div>
+          )}
 
         {/* Zone 2.75: MCP setup warning */}
         {showMcp && mcpSetup.needsSetupCount > 0 && (
