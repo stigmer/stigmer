@@ -121,7 +121,7 @@ class StreamExecutor:
         path = ""
         tc = self._sb.get_tool_call(resolved_id)
         if tc is not None:
-            path = dict(tc.args).get("path", "") if tc.args else ""
+            path = str(dict(tc.args).get("path", "")) if tc.args else ""
 
         if not path:
             self._log.debug(

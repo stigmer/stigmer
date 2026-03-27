@@ -6,7 +6,6 @@ import traceback
 from typing import Any, cast
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
-
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
     ExecutionPhase,
