@@ -6,11 +6,11 @@ export interface ChipItem {
   label: string;
   type: "agent" | "workspace" | "mcp" | "skill" | "secret";
   onRemove: () => void;
-  /** MCP-only: drives visual variant (amber, muted+spinner, default). */
+  /** Drives visual variant: amber for `needsSetup`, muted+spinner for `loading`/`submitting`. */
   status?: "loading" | "needsSetup" | "submitting" | "ready";
-  /** MCP-only: secondary text before the remove button (e.g., "4/12"). */
+  /** Secondary text before the remove button (e.g., tool count "4/12"). */
   detail?: string;
-  /** MCP-only: makes the label area clickable (e.g., open config popover). */
+  /** Makes the label area clickable (e.g., open config popover for pending setup). */
   onClick?: () => void;
 }
 
