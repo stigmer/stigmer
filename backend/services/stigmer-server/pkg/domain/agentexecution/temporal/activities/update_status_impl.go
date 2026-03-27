@@ -66,7 +66,6 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 	log.Debug().
 		Str("execution_id", executionID).
 		Int("messages", len(existing.GetStatus().GetMessages())).
-		Int("tool_calls", len(existing.GetStatus().GetToolCalls())).
 		Int("sub_agents", len(existing.GetStatus().GetSubAgentExecutions())).
 		Int("todos", len(existing.GetStatus().GetTodos())).
 		Msg("Loaded execution - current status")
@@ -87,15 +86,6 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		status.Messages = statusUpdates.Messages
 	}
 
-	// Tool calls: Replace with latest from worker
-	if len(statusUpdates.GetToolCalls()) > 0 {
-		log.Debug().
-			Int("old_count", len(status.GetToolCalls())).
-			Int("new_count", len(statusUpdates.GetToolCalls())).
-			Msg("Replacing tool_calls")
-		status.ToolCalls = statusUpdates.ToolCalls
-	}
-
 	// Sub-agent executions: Replace with latest from worker
 	if len(statusUpdates.GetSubAgentExecutions()) > 0 {
 		log.Debug().
@@ -114,10 +104,10 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		status.Todos = statusUpdates.Todos
 	}
 
-	// Pending approvals: upsert-by-tool_call_id with forward-only lifecycle + prune
-	status.PendingApprovals = approval.MergePendingApprovals(
-		existing.GetStatus().GetPendingApprovals(),
-		statusUpdates.GetPendingApprovals(),
+	// Compute pending_approvals from tool call state in messages
+	status.PendingApprovals = approval.ComputePendingApprovals(
+		status.GetMessages(),
+		status.GetSubAgentExecutions(),
 	)
 
 	// Phase: Update if provided
@@ -175,9 +165,9 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 	log.Debug().
 		Str("execution_id", executionID).
 		Int("messages", len(existing.GetStatus().GetMessages())).
-		Int("tool_calls", len(existing.GetStatus().GetToolCalls())).
 		Int("sub_agents", len(existing.GetStatus().GetSubAgentExecutions())).
 		Int("todos", len(existing.GetStatus().GetTodos())).
+		Int("pending_approvals", len(existing.GetStatus().GetPendingApprovals())).
 		Str("phase", existing.GetStatus().GetPhase().String()).
 		Bool("has_usage", existing.GetStatus().GetUsage() != nil).
 		Bool("has_context_info", existing.GetStatus().GetContextInfo() != nil).
@@ -196,7 +186,6 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 	log.Info().
 		Str("execution_id", executionID).
 		Int("messages", len(existing.GetStatus().GetMessages())).
-		Int("tool_calls", len(existing.GetStatus().GetToolCalls())).
 		Int("sub_agents", len(existing.GetStatus().GetSubAgentExecutions())).
 		Int("todos", len(existing.GetStatus().GetTodos())).
 		Str("phase", existing.GetStatus().GetPhase().String()).

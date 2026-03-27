@@ -908,138 +908,87 @@ private static final long serialVersionUID = 0L;
 
   public static final int PENDING_APPROVALS_FIELD_NUMBER = 9;
   @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.agentexecution.v1.PendingApproval> pendingApprovals_;
+  private java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval> pendingApprovals_;
   /**
    * <pre>
-   * Pending approvals from child agent tool executions (HITL Phase 5).
+   * Pending approvals from child agent tool executions (HITL).
    *
    * Populated when workflow tasks invoke agents that enter
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * ## When This Is Populated
+   * ## Full-Replace Protocol
    *
-   * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-   * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-   * - UI should display approval prompts to the user
-   * - User can submit approval via WorkflowExecution or AgentExecution API
-   *
-   * ## Lifecycle
-   *
-   * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-   * 2. Child signals parent workflow via Temporal "child_approval_required"
-   * 3. Workflow updates task status and populates this field with all entries
-   * 4. Each entry's child_agent_execution_id identifies the originating child
-   * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-   * 6. Entries are cleared when the child agent completes
+   * The workflow-runner always sends the complete set of pending approvals
+   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * - Non-empty list: child agent(s) need approval
+   * - Empty list: all approvals resolved, clear the field
    *
    * ## Parallel Agents
    *
    * When multiple child agents run in parallel, entries from different children
    * accumulate in this list. Each entry's child_agent_execution_id distinguishes
    * the source.
-   *
-   * ## Type Reference
-   *
-   * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-   * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-   * child_agent_execution_id, interrupt_id.
-   *
-   * &#64;since Phase 5.1 (Events-Based Approval Notification)
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
    */
   @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.agentexecution.v1.PendingApproval> getPendingApprovalsList() {
+  public java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval> getPendingApprovalsList() {
     return pendingApprovals_;
   }
   /**
    * <pre>
-   * Pending approvals from child agent tool executions (HITL Phase 5).
+   * Pending approvals from child agent tool executions (HITL).
    *
    * Populated when workflow tasks invoke agents that enter
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * ## When This Is Populated
+   * ## Full-Replace Protocol
    *
-   * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-   * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-   * - UI should display approval prompts to the user
-   * - User can submit approval via WorkflowExecution or AgentExecution API
-   *
-   * ## Lifecycle
-   *
-   * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-   * 2. Child signals parent workflow via Temporal "child_approval_required"
-   * 3. Workflow updates task status and populates this field with all entries
-   * 4. Each entry's child_agent_execution_id identifies the originating child
-   * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-   * 6. Entries are cleared when the child agent completes
+   * The workflow-runner always sends the complete set of pending approvals
+   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * - Non-empty list: child agent(s) need approval
+   * - Empty list: all approvals resolved, clear the field
    *
    * ## Parallel Agents
    *
    * When multiple child agents run in parallel, entries from different children
    * accumulate in this list. Each entry's child_agent_execution_id distinguishes
    * the source.
-   *
-   * ## Type Reference
-   *
-   * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-   * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-   * child_agent_execution_id, interrupt_id.
-   *
-   * &#64;since Phase 5.1 (Events-Based Approval Notification)
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
    */
   @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.PendingApprovalOrBuilder> 
+  public java.util.List<? extends ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApprovalOrBuilder> 
       getPendingApprovalsOrBuilderList() {
     return pendingApprovals_;
   }
   /**
    * <pre>
-   * Pending approvals from child agent tool executions (HITL Phase 5).
+   * Pending approvals from child agent tool executions (HITL).
    *
    * Populated when workflow tasks invoke agents that enter
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * ## When This Is Populated
+   * ## Full-Replace Protocol
    *
-   * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-   * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-   * - UI should display approval prompts to the user
-   * - User can submit approval via WorkflowExecution or AgentExecution API
-   *
-   * ## Lifecycle
-   *
-   * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-   * 2. Child signals parent workflow via Temporal "child_approval_required"
-   * 3. Workflow updates task status and populates this field with all entries
-   * 4. Each entry's child_agent_execution_id identifies the originating child
-   * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-   * 6. Entries are cleared when the child agent completes
+   * The workflow-runner always sends the complete set of pending approvals
+   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * - Non-empty list: child agent(s) need approval
+   * - Empty list: all approvals resolved, clear the field
    *
    * ## Parallel Agents
    *
    * When multiple child agents run in parallel, entries from different children
    * accumulate in this list. Each entry's child_agent_execution_id distinguishes
    * the source.
-   *
-   * ## Type Reference
-   *
-   * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-   * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-   * child_agent_execution_id, interrupt_id.
-   *
-   * &#64;since Phase 5.1 (Events-Based Approval Notification)
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
    */
   @java.lang.Override
   public int getPendingApprovalsCount() {
@@ -1047,92 +996,58 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Pending approvals from child agent tool executions (HITL Phase 5).
+   * Pending approvals from child agent tool executions (HITL).
    *
    * Populated when workflow tasks invoke agents that enter
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * ## When This Is Populated
+   * ## Full-Replace Protocol
    *
-   * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-   * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-   * - UI should display approval prompts to the user
-   * - User can submit approval via WorkflowExecution or AgentExecution API
-   *
-   * ## Lifecycle
-   *
-   * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-   * 2. Child signals parent workflow via Temporal "child_approval_required"
-   * 3. Workflow updates task status and populates this field with all entries
-   * 4. Each entry's child_agent_execution_id identifies the originating child
-   * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-   * 6. Entries are cleared when the child agent completes
+   * The workflow-runner always sends the complete set of pending approvals
+   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * - Non-empty list: child agent(s) need approval
+   * - Empty list: all approvals resolved, clear the field
    *
    * ## Parallel Agents
    *
    * When multiple child agents run in parallel, entries from different children
    * accumulate in this list. Each entry's child_agent_execution_id distinguishes
    * the source.
-   *
-   * ## Type Reference
-   *
-   * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-   * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-   * child_agent_execution_id, interrupt_id.
-   *
-   * &#64;since Phase 5.1 (Events-Based Approval Notification)
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.PendingApproval getPendingApprovals(int index) {
+  public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval getPendingApprovals(int index) {
     return pendingApprovals_.get(index);
   }
   /**
    * <pre>
-   * Pending approvals from child agent tool executions (HITL Phase 5).
+   * Pending approvals from child agent tool executions (HITL).
    *
    * Populated when workflow tasks invoke agents that enter
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * ## When This Is Populated
+   * ## Full-Replace Protocol
    *
-   * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-   * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-   * - UI should display approval prompts to the user
-   * - User can submit approval via WorkflowExecution or AgentExecution API
-   *
-   * ## Lifecycle
-   *
-   * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-   * 2. Child signals parent workflow via Temporal "child_approval_required"
-   * 3. Workflow updates task status and populates this field with all entries
-   * 4. Each entry's child_agent_execution_id identifies the originating child
-   * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-   * 6. Entries are cleared when the child agent completes
+   * The workflow-runner always sends the complete set of pending approvals
+   * via UpdateStatus. The server replaces the stored list unconditionally:
+   * - Non-empty list: child agent(s) need approval
+   * - Empty list: all approvals resolved, clear the field
    *
    * ## Parallel Agents
    *
    * When multiple child agents run in parallel, entries from different children
    * accumulate in this list. Each entry's child_agent_execution_id distinguishes
    * the source.
-   *
-   * ## Type Reference
-   *
-   * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-   * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-   * child_agent_execution_id, interrupt_id.
-   *
-   * &#64;since Phase 5.1 (Events-Based Approval Notification)
    * </pre>
    *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+   * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
    */
   @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.PendingApprovalOrBuilder getPendingApprovalsOrBuilder(
+  public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApprovalOrBuilder getPendingApprovalsOrBuilder(
       int index) {
     return pendingApprovals_.get(index);
   }
@@ -1747,9 +1662,9 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 58
             case 74: {
-              ai.stigmer.agentic.agentexecution.v1.PendingApproval m =
+              ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval m =
                   input.readMessage(
-                      ai.stigmer.agentic.agentexecution.v1.PendingApproval.parser(),
+                      ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.parser(),
                       extensionRegistry);
               if (pendingApprovalsBuilder_ == null) {
                 ensurePendingApprovalsIsMutable();
@@ -4351,60 +4266,43 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.util.List<ai.stigmer.agentic.agentexecution.v1.PendingApproval> pendingApprovals_ =
+    private java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval> pendingApprovals_ =
       java.util.Collections.emptyList();
     private void ensurePendingApprovalsIsMutable() {
       if (!((bitField0_ & 0x00000100) != 0)) {
-        pendingApprovals_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.PendingApproval>(pendingApprovals_);
+        pendingApprovals_ = new java.util.ArrayList<ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval>(pendingApprovals_);
         bitField0_ |= 0x00000100;
        }
     }
 
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.PendingApproval, ai.stigmer.agentic.agentexecution.v1.PendingApproval.Builder, ai.stigmer.agentic.agentexecution.v1.PendingApprovalOrBuilder> pendingApprovalsBuilder_;
+        ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.Builder, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApprovalOrBuilder> pendingApprovalsBuilder_;
 
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
-    public java.util.List<ai.stigmer.agentic.agentexecution.v1.PendingApproval> getPendingApprovalsList() {
+    public java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval> getPendingApprovalsList() {
       if (pendingApprovalsBuilder_ == null) {
         return java.util.Collections.unmodifiableList(pendingApprovals_);
       } else {
@@ -4413,44 +4311,27 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
     public int getPendingApprovalsCount() {
       if (pendingApprovalsBuilder_ == null) {
@@ -4461,46 +4342,29 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.PendingApproval getPendingApprovals(int index) {
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval getPendingApprovals(int index) {
       if (pendingApprovalsBuilder_ == null) {
         return pendingApprovals_.get(index);
       } else {
@@ -4509,47 +4373,30 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
     public Builder setPendingApprovals(
-        int index, ai.stigmer.agentic.agentexecution.v1.PendingApproval value) {
+        int index, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval value) {
       if (pendingApprovalsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -4564,47 +4411,30 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
     public Builder setPendingApprovals(
-        int index, ai.stigmer.agentic.agentexecution.v1.PendingApproval.Builder builderForValue) {
+        int index, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.Builder builderForValue) {
       if (pendingApprovalsBuilder_ == null) {
         ensurePendingApprovalsIsMutable();
         pendingApprovals_.set(index, builderForValue.build());
@@ -4616,46 +4446,29 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
-    public Builder addPendingApprovals(ai.stigmer.agentic.agentexecution.v1.PendingApproval value) {
+    public Builder addPendingApprovals(ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval value) {
       if (pendingApprovalsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -4670,47 +4483,30 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
     public Builder addPendingApprovals(
-        int index, ai.stigmer.agentic.agentexecution.v1.PendingApproval value) {
+        int index, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval value) {
       if (pendingApprovalsBuilder_ == null) {
         if (value == null) {
           throw new NullPointerException();
@@ -4725,47 +4521,30 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
     public Builder addPendingApprovals(
-        ai.stigmer.agentic.agentexecution.v1.PendingApproval.Builder builderForValue) {
+        ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.Builder builderForValue) {
       if (pendingApprovalsBuilder_ == null) {
         ensurePendingApprovalsIsMutable();
         pendingApprovals_.add(builderForValue.build());
@@ -4777,47 +4556,30 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
     public Builder addPendingApprovals(
-        int index, ai.stigmer.agentic.agentexecution.v1.PendingApproval.Builder builderForValue) {
+        int index, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.Builder builderForValue) {
       if (pendingApprovalsBuilder_ == null) {
         ensurePendingApprovalsIsMutable();
         pendingApprovals_.add(index, builderForValue.build());
@@ -4829,47 +4591,30 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
     public Builder addAllPendingApprovals(
-        java.lang.Iterable<? extends ai.stigmer.agentic.agentexecution.v1.PendingApproval> values) {
+        java.lang.Iterable<? extends ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval> values) {
       if (pendingApprovalsBuilder_ == null) {
         ensurePendingApprovalsIsMutable();
         com.google.protobuf.AbstractMessageLite.Builder.addAll(
@@ -4882,44 +4627,27 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
     public Builder clearPendingApprovals() {
       if (pendingApprovalsBuilder_ == null) {
@@ -4933,44 +4661,27 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
     public Builder removePendingApprovals(int index) {
       if (pendingApprovalsBuilder_ == null) {
@@ -4984,91 +4695,57 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.PendingApproval.Builder getPendingApprovalsBuilder(
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.Builder getPendingApprovalsBuilder(
         int index) {
       return internalGetPendingApprovalsFieldBuilder().getBuilder(index);
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.PendingApprovalOrBuilder getPendingApprovalsOrBuilder(
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApprovalOrBuilder getPendingApprovalsOrBuilder(
         int index) {
       if (pendingApprovalsBuilder_ == null) {
         return pendingApprovals_.get(index);  } else {
@@ -5077,46 +4754,29 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
-    public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.PendingApprovalOrBuilder> 
+    public java.util.List<? extends ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApprovalOrBuilder> 
          getPendingApprovalsOrBuilderList() {
       if (pendingApprovalsBuilder_ != null) {
         return pendingApprovalsBuilder_.getMessageOrBuilderList();
@@ -5126,146 +4786,95 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.PendingApproval.Builder addPendingApprovalsBuilder() {
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.Builder addPendingApprovalsBuilder() {
       return internalGetPendingApprovalsFieldBuilder().addBuilder(
-          ai.stigmer.agentic.agentexecution.v1.PendingApproval.getDefaultInstance());
+          ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.getDefaultInstance());
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
-    public ai.stigmer.agentic.agentexecution.v1.PendingApproval.Builder addPendingApprovalsBuilder(
+    public ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.Builder addPendingApprovalsBuilder(
         int index) {
       return internalGetPendingApprovalsFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.agentexecution.v1.PendingApproval.getDefaultInstance());
+          index, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.getDefaultInstance());
     }
     /**
      * <pre>
-     * Pending approvals from child agent tool executions (HITL Phase 5).
+     * Pending approvals from child agent tool executions (HITL).
      *
      * Populated when workflow tasks invoke agents that enter
      * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
      * requests at the workflow level for UI visibility.
      *
-     * ## When This Is Populated
+     * ## Full-Replace Protocol
      *
-     * - At least one task has status WORKFLOW_TASK_WAITING_APPROVAL
-     * - One or more child AgentExecutions have phase EXECUTION_WAITING_FOR_APPROVAL
-     * - UI should display approval prompts to the user
-     * - User can submit approval via WorkflowExecution or AgentExecution API
-     *
-     * ## Lifecycle
-     *
-     * 1. Child agent enters WAITING_FOR_APPROVAL (tool(s) require approval)
-     * 2. Child signals parent workflow via Temporal "child_approval_required"
-     * 3. Workflow updates task status and populates this field with all entries
-     * 4. Each entry's child_agent_execution_id identifies the originating child
-     * 5. User submits approvals via WorkflowExecution.SubmitApproval or AgentExecution.SubmitApproval
-     * 6. Entries are cleared when the child agent completes
+     * The workflow-runner always sends the complete set of pending approvals
+     * via UpdateStatus. The server replaces the stored list unconditionally:
+     * - Non-empty list: child agent(s) need approval
+     * - Empty list: all approvals resolved, clear the field
      *
      * ## Parallel Agents
      *
      * When multiple child agents run in parallel, entries from different children
      * accumulate in this list. Each entry's child_agent_execution_id distinguishes
      * the source.
-     *
-     * ## Type Reference
-     *
-     * Uses PendingApproval from agentexecution/v1/api.proto for consistency.
-     * Contains: tool_call_id, tool_name, message, args_preview, requested_at,
-     * child_agent_execution_id, interrupt_id.
-     *
-     * &#64;since Phase 5.1 (Events-Based Approval Notification)
      * </pre>
      *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.PendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
+     * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval pending_approvals = 9 [json_name = "pendingApprovals"];</code>
      */
-    public java.util.List<ai.stigmer.agentic.agentexecution.v1.PendingApproval.Builder> 
+    public java.util.List<ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.Builder> 
          getPendingApprovalsBuilderList() {
       return internalGetPendingApprovalsFieldBuilder().getBuilderList();
     }
     private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.PendingApproval, ai.stigmer.agentic.agentexecution.v1.PendingApproval.Builder, ai.stigmer.agentic.agentexecution.v1.PendingApprovalOrBuilder> 
+        ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.Builder, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApprovalOrBuilder> 
         internalGetPendingApprovalsFieldBuilder() {
       if (pendingApprovalsBuilder_ == null) {
         pendingApprovalsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.PendingApproval, ai.stigmer.agentic.agentexecution.v1.PendingApproval.Builder, ai.stigmer.agentic.agentexecution.v1.PendingApprovalOrBuilder>(
+            ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval.Builder, ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApprovalOrBuilder>(
                 pendingApprovals_,
                 ((bitField0_ & 0x00000100) != 0),
                 getParentForChildren(),

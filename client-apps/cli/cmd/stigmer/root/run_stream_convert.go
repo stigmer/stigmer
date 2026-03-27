@@ -60,10 +60,19 @@ func mapApprovalResponseToDecision(resp executiontui.ApprovalResponse) *approval
 	return &approval.Decision{Action: action, Comment: resp.Comment}
 }
 
-// findToolCallByID finds a tool call by its ID, searching top-level tool calls
-// first, then falling back to sub-agent tool calls. This ensures sub-agent
-// tools (which live in SubAgentExecution.ToolCalls, not the top-level list)
-// are found when processing approval events.
+// collectToolCallsFromMessages extracts all tool calls from a slice of
+// AgentMessage, providing the flattened view that was previously available
+// as the top-level ToolCalls field on AgentExecutionStatus.
+func collectToolCallsFromMessages(messages []*agentexecutionv1.AgentMessage) []*agentexecutionv1.ToolCall {
+	var result []*agentexecutionv1.ToolCall
+	for _, msg := range messages {
+		result = append(result, msg.GetToolCalls()...)
+	}
+	return result
+}
+
+// findToolCallByID finds a tool call by its ID, searching root messages first,
+// then sub-agent messages.
 func findToolCallByID(
 	toolCalls []*agentexecutionv1.ToolCall,
 	subAgents []*agentexecutionv1.SubAgentExecution,
@@ -75,9 +84,11 @@ func findToolCallByID(
 		}
 	}
 	for _, sa := range subAgents {
-		for _, tc := range sa.ToolCalls {
-			if tc.Id == id {
-				return tc
+		for _, msg := range sa.GetMessages() {
+			for _, tc := range msg.GetToolCalls() {
+				if tc.Id == id {
+					return tc
+				}
 			}
 		}
 	}

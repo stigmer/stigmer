@@ -145,8 +145,8 @@ private static final long serialVersionUID = 0L;
    * the full PendingApproval details (tool_call_id, tool_name, message,
    * args_preview, requested_at).
    *
-   * The child_agent_execution_id on each entry is set to execution_id above
-   * so the parent can correlate approvals to the originating child.
+   * The parent workflow wraps each entry in a WorkflowPendingApproval with
+   * execution_id above as the child_agent_execution_id for routing.
    *
    * One signal, complete picture, no partial states.
    * </pre>
@@ -165,8 +165,8 @@ private static final long serialVersionUID = 0L;
    * the full PendingApproval details (tool_call_id, tool_name, message,
    * args_preview, requested_at).
    *
-   * The child_agent_execution_id on each entry is set to execution_id above
-   * so the parent can correlate approvals to the originating child.
+   * The parent workflow wraps each entry in a WorkflowPendingApproval with
+   * execution_id above as the child_agent_execution_id for routing.
    *
    * One signal, complete picture, no partial states.
    * </pre>
@@ -186,8 +186,8 @@ private static final long serialVersionUID = 0L;
    * the full PendingApproval details (tool_call_id, tool_name, message,
    * args_preview, requested_at).
    *
-   * The child_agent_execution_id on each entry is set to execution_id above
-   * so the parent can correlate approvals to the originating child.
+   * The parent workflow wraps each entry in a WorkflowPendingApproval with
+   * execution_id above as the child_agent_execution_id for routing.
    *
    * One signal, complete picture, no partial states.
    * </pre>
@@ -206,8 +206,8 @@ private static final long serialVersionUID = 0L;
    * the full PendingApproval details (tool_call_id, tool_name, message,
    * args_preview, requested_at).
    *
-   * The child_agent_execution_id on each entry is set to execution_id above
-   * so the parent can correlate approvals to the originating child.
+   * The parent workflow wraps each entry in a WorkflowPendingApproval with
+   * execution_id above as the child_agent_execution_id for routing.
    *
    * One signal, complete picture, no partial states.
    * </pre>
@@ -226,8 +226,8 @@ private static final long serialVersionUID = 0L;
    * the full PendingApproval details (tool_call_id, tool_name, message,
    * args_preview, requested_at).
    *
-   * The child_agent_execution_id on each entry is set to execution_id above
-   * so the parent can correlate approvals to the originating child.
+   * The parent workflow wraps each entry in a WorkflowPendingApproval with
+   * execution_id above as the child_agent_execution_id for routing.
    *
    * One signal, complete picture, no partial states.
    * </pre>
@@ -766,8 +766,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -789,8 +789,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -812,8 +812,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -835,8 +835,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -865,8 +865,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -892,8 +892,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -921,8 +921,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -951,8 +951,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -978,8 +978,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -1005,8 +1005,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -1033,8 +1033,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -1059,8 +1059,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -1085,8 +1085,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -1105,8 +1105,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -1128,8 +1128,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -1152,8 +1152,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -1172,8 +1172,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>
@@ -1193,8 +1193,8 @@ private static final long serialVersionUID = 0L;
      * the full PendingApproval details (tool_call_id, tool_name, message,
      * args_preview, requested_at).
      *
-     * The child_agent_execution_id on each entry is set to execution_id above
-     * so the parent can correlate approvals to the originating child.
+     * The parent workflow wraps each entry in a WorkflowPendingApproval with
+     * execution_id above as the child_agent_execution_id for routing.
      *
      * One signal, complete picture, no partial states.
      * </pre>

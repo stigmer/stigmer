@@ -76,18 +76,9 @@ message PendingApproval {
   // Empty if from_sub_agent is false.
   string sub_agent_name = 7;
 
-  // ID of the child agent execution (for workflow-level approvals only).
-  //
-  // Populated when this PendingApproval is surfaced at WorkflowExecution level.
-  // Empty when pending_approval is on AgentExecution directly.
-  //
-  // Use this ID to forward approvals from workflow to child agent via
-  // AgentExecution.submitApproval RPC.
-  //
-  // Format: "aex_abc123xyz456"
-  //
-  // @since Phase 5.3 (Approval Forwarding)
-  string child_agent_execution_id = 8;
+  // Field 8 removed — child_agent_execution_id moved to
+  // WorkflowPendingApproval in workflowexecution/v1.
+  reserved 8;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -139,8 +130,8 @@ message ChildApprovalNotification {
   // the full PendingApproval details (tool_call_id, tool_name, message,
   // args_preview, requested_at).
   //
-  // The child_agent_execution_id on each entry is set to execution_id above
-  // so the parent can correlate approvals to the originating child.
+  // The parent workflow wraps each entry in a WorkflowPendingApproval with
+  // execution_id above as the child_agent_execution_id for routing.
   //
   // One signal, complete picture, no partial states.
   repeated PendingApproval pending_approvals = 2;

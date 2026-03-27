@@ -1,0 +1,219 @@
+package approval
+
+import (
+	"testing"
+
+	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
+)
+
+func makeToolCall(id, name string, status agentexecutionv1.ToolCallStatus, requiresApproval bool, action agentexecutionv1.ApprovalAction) *agentexecutionv1.ToolCall {
+	return &agentexecutionv1.ToolCall{
+		Id:                  id,
+		Name:                name,
+		Status:              status,
+		RequiresApproval:    requiresApproval,
+		ApprovalAction:      action,
+		ApprovalMessage:     "Approve " + name,
+		ArgsPreview:         `{"key":"value"}`,
+		ApprovalRequestedAt: "2026-03-27T10:00:00Z",
+	}
+}
+
+func makeAIMessage(toolCalls ...*agentexecutionv1.ToolCall) *agentexecutionv1.AgentMessage {
+	return &agentexecutionv1.AgentMessage{
+		Type:      agentexecutionv1.MessageType_MESSAGE_AI,
+		ToolCalls: toolCalls,
+	}
+}
+
+func TestComputePendingApprovals(t *testing.T) {
+	tests := []struct {
+		name               string
+		messages           []*agentexecutionv1.AgentMessage
+		subAgentExecutions []*agentexecutionv1.SubAgentExecution
+		wantCount          int
+		wantIDs            []string
+		wantFromSubAgent   []bool
+		wantSubAgentNames  []string
+	}{
+		{
+			name:      "empty messages",
+			messages:  nil,
+			wantCount: 0,
+		},
+		{
+			name: "AI message with no tool calls",
+			messages: []*agentexecutionv1.AgentMessage{
+				{Type: agentexecutionv1.MessageType_MESSAGE_AI},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "tool call WAITING_APPROVAL and requires_approval included",
+			messages: []*agentexecutionv1.AgentMessage{
+				makeAIMessage(
+					makeToolCall("tc1", "delete_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+				),
+			},
+			wantCount:        1,
+			wantIDs:          []string{"tc1"},
+			wantFromSubAgent: []bool{false},
+		},
+		{
+			name: "tool call WAITING_APPROVAL with approval_action set excluded",
+			messages: []*agentexecutionv1.AgentMessage{
+				makeAIMessage(
+					makeToolCall("tc1", "delete_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE),
+				),
+			},
+			wantCount: 0,
+		},
+		{
+			name: "tool call RUNNING excluded",
+			messages: []*agentexecutionv1.AgentMessage{
+				makeAIMessage(
+					makeToolCall("tc1", "delete_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_RUNNING, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+				),
+			},
+			wantCount: 0,
+		},
+		{
+			name: "tool call COMPLETED excluded",
+			messages: []*agentexecutionv1.AgentMessage{
+				makeAIMessage(
+					makeToolCall("tc1", "delete_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+				),
+			},
+			wantCount: 0,
+		},
+		{
+			name: "tool call WAITING_APPROVAL without requires_approval excluded",
+			messages: []*agentexecutionv1.AgentMessage{
+				makeAIMessage(
+					makeToolCall("tc1", "delete_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, false, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+				),
+			},
+			wantCount: 0,
+		},
+		{
+			name: "sub-agent tool calls set from_sub_agent and sub_agent_name",
+			subAgentExecutions: []*agentexecutionv1.SubAgentExecution{
+				{
+					Name: "code-reviewer",
+					Messages: []*agentexecutionv1.AgentMessage{
+						makeAIMessage(
+							makeToolCall("tc-sub1", "run_tests", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+						),
+					},
+				},
+			},
+			wantCount:         1,
+			wantIDs:           []string{"tc-sub1"},
+			wantFromSubAgent:  []bool{true},
+			wantSubAgentNames: []string{"code-reviewer"},
+		},
+		{
+			name: "mix of root and sub-agent tool calls correct attribution",
+			messages: []*agentexecutionv1.AgentMessage{
+				makeAIMessage(
+					makeToolCall("tc1", "delete_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+					makeToolCall("tc2", "read_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+				),
+			},
+			subAgentExecutions: []*agentexecutionv1.SubAgentExecution{
+				{
+					Name: "debugger",
+					Messages: []*agentexecutionv1.AgentMessage{
+						makeAIMessage(
+							makeToolCall("tc-sub1", "execute_sql", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+						),
+					},
+				},
+			},
+			wantCount:         2,
+			wantIDs:           []string{"tc1", "tc-sub1"},
+			wantFromSubAgent:  []bool{false, true},
+			wantSubAgentNames: []string{"", "debugger"},
+		},
+		{
+			name: "multiple messages across multiple sub-agents",
+			messages: []*agentexecutionv1.AgentMessage{
+				makeAIMessage(
+					makeToolCall("tc1", "deploy", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+				),
+			},
+			subAgentExecutions: []*agentexecutionv1.SubAgentExecution{
+				{
+					Name: "agent-a",
+					Messages: []*agentexecutionv1.AgentMessage{
+						makeAIMessage(
+							makeToolCall("tc-a1", "write_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+						),
+					},
+				},
+				{
+					Name: "agent-b",
+					Messages: []*agentexecutionv1.AgentMessage{
+						makeAIMessage(
+							makeToolCall("tc-b1", "send_email", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+							makeToolCall("tc-b2", "read_file", agentexecutionv1.ToolCallStatus_TOOL_CALL_COMPLETED, false, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+						),
+					},
+				},
+			},
+			wantCount:         3,
+			wantIDs:           []string{"tc1", "tc-a1", "tc-b1"},
+			wantFromSubAgent:  []bool{false, true, true},
+			wantSubAgentNames: []string{"", "agent-a", "agent-b"},
+		},
+		{
+			name: "fields projected correctly",
+			messages: []*agentexecutionv1.AgentMessage{
+				makeAIMessage(
+					makeToolCall("tc1", "delete_repo", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+				),
+			},
+			wantCount: 1,
+			wantIDs:   []string{"tc1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ComputePendingApprovals(tt.messages, tt.subAgentExecutions)
+
+			if len(got) != tt.wantCount {
+				t.Fatalf("got %d pending approvals, want %d", len(got), tt.wantCount)
+			}
+
+			for i, pa := range got {
+				if i < len(tt.wantIDs) && pa.GetToolCallId() != tt.wantIDs[i] {
+					t.Errorf("pa[%d].ToolCallId = %q, want %q", i, pa.GetToolCallId(), tt.wantIDs[i])
+				}
+				if i < len(tt.wantFromSubAgent) && pa.GetFromSubAgent() != tt.wantFromSubAgent[i] {
+					t.Errorf("pa[%d].FromSubAgent = %v, want %v", i, pa.GetFromSubAgent(), tt.wantFromSubAgent[i])
+				}
+				if i < len(tt.wantSubAgentNames) && pa.GetSubAgentName() != tt.wantSubAgentNames[i] {
+					t.Errorf("pa[%d].SubAgentName = %q, want %q", i, pa.GetSubAgentName(), tt.wantSubAgentNames[i])
+				}
+			}
+
+			// Verify field projection for the "fields projected correctly" test case.
+			if tt.name == "fields projected correctly" && len(got) > 0 {
+				pa := got[0]
+				if pa.GetToolName() != "delete_repo" {
+					t.Errorf("ToolName = %q, want %q", pa.GetToolName(), "delete_repo")
+				}
+				if pa.GetMessage() != "Approve delete_repo" {
+					t.Errorf("Message = %q, want %q", pa.GetMessage(), "Approve delete_repo")
+				}
+				if pa.GetArgsPreview() != `{"key":"value"}` {
+					t.Errorf("ArgsPreview = %q, want %q", pa.GetArgsPreview(), `{"key":"value"}`)
+				}
+				if pa.GetRequestedAt() != "2026-03-27T10:00:00Z" {
+					t.Errorf("RequestedAt = %q, want %q", pa.GetRequestedAt(), "2026-03-27T10:00:00Z")
+				}
+			}
+		})
+	}
+}

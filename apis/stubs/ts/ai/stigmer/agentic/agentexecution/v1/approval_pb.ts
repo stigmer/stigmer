@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/approval.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_approval: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSLJAQoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEiAKGGNoaWxkX2FnZW50X2V4ZWN1dGlvbl9pZBgIIAEoCSKDAQoZQ2hpbGRBcHByb3ZhbE5vdGlmaWNhdGlvbhIUCgxleGVjdXRpb25faWQYASABKAkSUAoRcGVuZGluZ19hcHByb3ZhbHMYAiADKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsYgZwcm90bzM");
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKtAQoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJSgQICBAJIoMBChlDaGlsZEFwcHJvdmFsTm90aWZpY2F0aW9uEhQKDGV4ZWN1dGlvbl9pZBgBIAEoCRJQChFwZW5kaW5nX2FwcHJvdmFscxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWxiBnByb3RvMw");
 
 /**
  * PendingApproval is a UI-facing projection computed server-side from tool
@@ -111,23 +111,6 @@ export type PendingApproval = Message<"ai.stigmer.agentic.agentexecution.v1.Pend
    * @generated from field: string sub_agent_name = 7;
    */
   subAgentName: string;
-
-  /**
-   * ID of the child agent execution (for workflow-level approvals only).
-   *
-   * Populated when this PendingApproval is surfaced at WorkflowExecution level.
-   * Empty when pending_approval is on AgentExecution directly.
-   *
-   * Use this ID to forward approvals from workflow to child agent via
-   * AgentExecution.submitApproval RPC.
-   *
-   * Format: "aex_abc123xyz456"
-   *
-   * @since Phase 5.3 (Approval Forwarding)
-   *
-   * @generated from field: string child_agent_execution_id = 8;
-   */
-  childAgentExecutionId: string;
 };
 
 /**
@@ -188,8 +171,8 @@ export type ChildApprovalNotification = Message<"ai.stigmer.agentic.agentexecuti
    * the full PendingApproval details (tool_call_id, tool_name, message,
    * args_preview, requested_at).
    *
-   * The child_agent_execution_id on each entry is set to execution_id above
-   * so the parent can correlate approvals to the originating child.
+   * The parent workflow wraps each entry in a WorkflowPendingApproval with
+   * execution_id above as the child_agent_execution_id for routing.
    *
    * One signal, complete picture, no partial states.
    *

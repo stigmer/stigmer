@@ -180,44 +180,4 @@ public interface PendingApprovalOrBuilder extends
    */
   com.google.protobuf.ByteString
       getSubAgentNameBytes();
-
-  /**
-   * <pre>
-   * ID of the child agent execution (for workflow-level approvals only).
-   *
-   * Populated when this PendingApproval is surfaced at WorkflowExecution level.
-   * Empty when pending_approval is on AgentExecution directly.
-   *
-   * Use this ID to forward approvals from workflow to child agent via
-   * AgentExecution.submitApproval RPC.
-   *
-   * Format: "aex_abc123xyz456"
-   *
-   * &#64;since Phase 5.3 (Approval Forwarding)
-   * </pre>
-   *
-   * <code>string child_agent_execution_id = 8 [json_name = "childAgentExecutionId"];</code>
-   * @return The childAgentExecutionId.
-   */
-  java.lang.String getChildAgentExecutionId();
-  /**
-   * <pre>
-   * ID of the child agent execution (for workflow-level approvals only).
-   *
-   * Populated when this PendingApproval is surfaced at WorkflowExecution level.
-   * Empty when pending_approval is on AgentExecution directly.
-   *
-   * Use this ID to forward approvals from workflow to child agent via
-   * AgentExecution.submitApproval RPC.
-   *
-   * Format: "aex_abc123xyz456"
-   *
-   * &#64;since Phase 5.3 (Approval Forwarding)
-   * </pre>
-   *
-   * <code>string child_agent_execution_id = 8 [json_name = "childAgentExecutionId"];</code>
-   * @return The bytes for childAgentExecutionId.
-   */
-  com.google.protobuf.ByteString
-      getChildAgentExecutionIdBytes();
 }

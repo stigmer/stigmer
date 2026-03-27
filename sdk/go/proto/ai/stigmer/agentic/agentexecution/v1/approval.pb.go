@@ -83,21 +83,9 @@ type PendingApproval struct {
 	// Name of the sub-agent if from_sub_agent is true.
 	// Example: "code-reviewer", "researcher", "debugger"
 	// Empty if from_sub_agent is false.
-	SubAgentName string `protobuf:"bytes,7,opt,name=sub_agent_name,json=subAgentName,proto3" json:"sub_agent_name,omitempty"`
-	// ID of the child agent execution (for workflow-level approvals only).
-	//
-	// Populated when this PendingApproval is surfaced at WorkflowExecution level.
-	// Empty when pending_approval is on AgentExecution directly.
-	//
-	// Use this ID to forward approvals from workflow to child agent via
-	// AgentExecution.submitApproval RPC.
-	//
-	// Format: "aex_abc123xyz456"
-	//
-	// @since Phase 5.3 (Approval Forwarding)
-	ChildAgentExecutionId string `protobuf:"bytes,8,opt,name=child_agent_execution_id,json=childAgentExecutionId,proto3" json:"child_agent_execution_id,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	SubAgentName  string `protobuf:"bytes,7,opt,name=sub_agent_name,json=subAgentName,proto3" json:"sub_agent_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PendingApproval) Reset() {
@@ -179,13 +167,6 @@ func (x *PendingApproval) GetSubAgentName() string {
 	return ""
 }
 
-func (x *PendingApproval) GetChildAgentExecutionId() string {
-	if x != nil {
-		return x.ChildAgentExecutionId
-	}
-	return ""
-}
-
 // ChildApprovalNotification is the signal payload sent to parent workflows
 // when a child agent enters WAITING_FOR_APPROVAL state.
 //
@@ -228,8 +209,8 @@ type ChildApprovalNotification struct {
 	// the full PendingApproval details (tool_call_id, tool_name, message,
 	// args_preview, requested_at).
 	//
-	// The child_agent_execution_id on each entry is set to execution_id above
-	// so the parent can correlate approvals to the originating child.
+	// The parent workflow wraps each entry in a WorkflowPendingApproval with
+	// execution_id above as the child_agent_execution_id for routing.
 	//
 	// One signal, complete picture, no partial states.
 	PendingApprovals []*PendingApproval `protobuf:"bytes,2,rep,name=pending_approvals,json=pendingApprovals,proto3" json:"pending_approvals,omitempty"`
@@ -285,7 +266,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_approval_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\"\xb5\x02\n" +
+	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\"\x82\x02\n" +
 	"\x0fPendingApproval\x12 \n" +
 	"\ftool_call_id\x18\x01 \x01(\tR\n" +
 	"toolCallId\x12\x1b\n" +
@@ -294,8 +275,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\fargs_preview\x18\x04 \x01(\tR\vargsPreview\x12!\n" +
 	"\frequested_at\x18\x05 \x01(\tR\vrequestedAt\x12$\n" +
 	"\x0efrom_sub_agent\x18\x06 \x01(\bR\ffromSubAgent\x12$\n" +
-	"\x0esub_agent_name\x18\a \x01(\tR\fsubAgentName\x127\n" +
-	"\x18child_agent_execution_id\x18\b \x01(\tR\x15childAgentExecutionId\"\xa2\x01\n" +
+	"\x0esub_agent_name\x18\a \x01(\tR\fsubAgentNameJ\x04\b\b\x10\t\"\xa2\x01\n" +
 	"\x19ChildApprovalNotification\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12b\n" +
 	"\x11pending_approvals\x18\x02 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovalsB\xcd\x02\n" +

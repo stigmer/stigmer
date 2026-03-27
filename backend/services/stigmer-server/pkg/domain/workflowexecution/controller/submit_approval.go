@@ -181,9 +181,9 @@ func (s *validateWfApprovalStep) Execute(ctx *pipeline.RequestContext[*workflowe
 	}
 
 	// Find the matching entry by tool_call_id
-	var matchedApproval *agentexecutionv1.PendingApproval
+	var matchedApproval *workflowexecutionv1.WorkflowPendingApproval
 	for _, pa := range pendingApprovals {
-		if pa.GetToolCallId() == requestedToolCallId {
+		if pa.GetApproval().GetToolCallId() == requestedToolCallId {
 			matchedApproval = pa
 			break
 		}
@@ -192,7 +192,7 @@ func (s *validateWfApprovalStep) Execute(ctx *pipeline.RequestContext[*workflowe
 	if matchedApproval == nil {
 		validIDs := make([]string, 0, len(pendingApprovals))
 		for _, pa := range pendingApprovals {
-			validIDs = append(validIDs, pa.GetToolCallId())
+			validIDs = append(validIDs, pa.GetApproval().GetToolCallId())
 		}
 		log.Debug().
 			Str("execution_id", executionID).
@@ -315,8 +315,8 @@ func (s *buildWfApprovalResponseStep) Execute(ctx *pipeline.RequestContext[*work
 	// Find tool name from the matched pending approval
 	toolName := "unknown"
 	for _, pa := range execution.GetStatus().GetPendingApprovals() {
-		if pa.GetToolCallId() == toolCallId {
-			toolName = pa.GetToolName()
+		if pa.GetApproval().GetToolCallId() == toolCallId {
+			toolName = pa.GetApproval().GetToolName()
 			break
 		}
 	}

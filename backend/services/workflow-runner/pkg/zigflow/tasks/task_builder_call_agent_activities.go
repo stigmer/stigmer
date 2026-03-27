@@ -525,25 +525,17 @@ func (a *CallAgentActivities) UpdateWorkflowTaskApprovalStatus(
 		return fmt.Errorf("failed to get workflow execution client: %w", err)
 	}
 
-	// Build pending approvals from notification.
-	// Each entry already carries tool_call_id, tool_name, message, etc.
-	// We set child_agent_execution_id on each to enable workflow-level forwarding.
-	pendingApprovals := make([]*agentexecv1.PendingApproval, 0, pendingCount)
+	// Wrap each PendingApproval from the notification in a WorkflowPendingApproval
+	// with the child execution ID for routing.
+	pendingApprovals := make([]*workflowexecv1.WorkflowPendingApproval, 0, pendingCount)
 	for _, pa := range notification.PendingApprovals {
-		entry := &agentexecv1.PendingApproval{
-			ToolCallId:            pa.GetToolCallId(),
-			ToolName:              pa.GetToolName(),
-			Message:               pa.GetMessage(),
-			ArgsPreview:           pa.GetArgsPreview(),
-			RequestedAt:           pa.GetRequestedAt(),
-			InterruptId:           pa.GetInterruptId(),
-			ChildAgentExecutionId: notification.ExecutionId, // Enable workflow-level approval forwarding
+		entry := &workflowexecv1.WorkflowPendingApproval{
+			Approval:              pa,
+			ChildAgentExecutionId: notification.ExecutionId,
 		}
 		pendingApprovals = append(pendingApprovals, entry)
 	}
 
-	// Build status update with pending approvals
-	// We only set pending_approvals - other fields are left unchanged
 	status := &workflowexecv1.WorkflowExecutionStatus{
 		PendingApprovals: pendingApprovals,
 	}
@@ -564,30 +556,14 @@ func (a *CallAgentActivities) UpdateWorkflowTaskApprovalStatus(
 	return nil
 }
 
-// ClearWorkflowApprovalStatus resolves pending approvals on a workflow
-// execution when the child agent task completes (whether approved, rejected,
-// or if no approval was needed).
-//
-// This is called when the agent activity completes successfully. It advances
-// all pending approvals to RESUME_RECONCILED state. The server-side merge
-// logic will prune them from the stored list since their lifecycle_state
-// has reached the terminal state.
+// ClearWorkflowApprovalStatus clears pending approvals on a workflow execution
+// when the child agent task completes. Sends an empty list via the full-replace
+// protocol — the server unconditionally replaces the stored list.
 func (a *CallAgentActivities) ClearWorkflowApprovalStatus(
 	ctx context.Context,
 	executionId string,
-	existingApprovals []*agentexecv1.PendingApproval,
 ) error {
 	logger := activity.GetLogger(ctx)
-
-	if len(existingApprovals) == 0 {
-		logger.Debug("No pending approvals to clear from workflow execution",
-			"execution_id", executionId)
-		return nil
-	}
-
-	logger.Debug("Advancing pending approvals to RESUME_RECONCILED on workflow execution",
-		"execution_id", executionId,
-		"count", len(existingApprovals))
 
 	client, err := workflowexecclient.GetWorkflowExecutionCommandClient()
 	if err != nil {
@@ -595,17 +571,8 @@ func (a *CallAgentActivities) ClearWorkflowApprovalStatus(
 		return fmt.Errorf("failed to get workflow execution client: %w", err)
 	}
 
-	reconciled := make([]*agentexecv1.PendingApproval, 0, len(existingApprovals))
-	for _, pa := range existingApprovals {
-		reconciled = append(reconciled, &agentexecv1.PendingApproval{
-			ToolCallId:     pa.GetToolCallId(),
-			ToolName:       pa.GetToolName(),
-			LifecycleState: agentexecv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_RESUME_RECONCILED,
-		})
-	}
-
 	status := &workflowexecv1.WorkflowExecutionStatus{
-		PendingApprovals: reconciled,
+		PendingApprovals: []*workflowexecv1.WorkflowPendingApproval{},
 	}
 
 	_, err = client.UpdateStatus(ctx, executionId, status)
@@ -616,7 +583,7 @@ func (a *CallAgentActivities) ClearWorkflowApprovalStatus(
 		return fmt.Errorf("failed to clear workflow pending approvals: %w", err)
 	}
 
-	logger.Debug("Successfully advanced pending approvals to RESUME_RECONCILED on workflow execution",
+	logger.Debug("Cleared pending approvals on workflow execution",
 		"execution_id", executionId)
 
 	return nil
