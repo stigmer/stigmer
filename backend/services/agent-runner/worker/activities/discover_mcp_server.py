@@ -12,22 +12,17 @@ any transport type without polluting the Java/Go service containers.
 
 Security: The Go/Java backend creates an ephemeral ExecutionContext
 containing only the environment variables the MCP server needs. The
-Temporal workflow input carries only ``mcp_server_id`` and an optional
+Temporal workflow input carries only ``mcp_server_id`` and an
 ``execution_context_id`` — no secret values ever appear in Temporal's
 durable workflow history. The Python activity reads from the scoped
 ExecutionContext and cannot access arbitrary environments.
-
-Deployment safety: During rolling deployments where Go/Java has not yet
-been updated to create ExecutionContexts, the activity falls back to the
-previous JIT resolution via the EnvironmentClient. This fallback will be
-removed in a cleanup PR once all services are deployed.
 """
 
 from __future__ import annotations
 
 import logging
 from contextlib import AsyncExitStack
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
@@ -35,7 +30,6 @@ import grpc
 from temporalio import activity, workflow
 
 from grpc_client.channel import ChannelProvider
-from grpc_client.environment_client import EnvironmentClient
 from grpc_client.execution_context_client import ExecutionContextClient
 from grpc_client.mcp_server_client import McpServerClient
 from worker.mcp.config_transformer import transform_mcp_config, _inject_platform_env
@@ -45,8 +39,6 @@ logger = logging.getLogger(__name__)
 
 ACTIVITY_NAME = "DiscoverMcpServerCapabilities"
 WORKFLOW_NAME = "stigmer/mcp-server/discover"
-
-_PERSONAL_ENV_LABEL = "stigmer.ai/personal"
 
 
 @dataclass
@@ -62,19 +54,15 @@ class DiscoverMcpServerInput:
     Fields:
         mcp_server_id: Required. The MCP server to discover.
         execution_context_id: Optional. When set, environment variables
-            are read from this pre-created ExecutionContext (preferred
-            path — Go/Java backend creates and cleans it up).
+            are read from this pre-created ExecutionContext (Go/Java
+            backend creates and cleans it up).
         invoker_identity_account_id: Optional. Used for OBO channel
             when fetching the MCP server spec.
-        env_vars: Deprecated. Retained for backward compatibility during
-            rolling deployments. Ignored when ``execution_context_id``
-            is set.
     """
 
     mcp_server_id: str
     execution_context_id: str | None = None
     invoker_identity_account_id: str | None = None
-    env_vars: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -109,8 +97,7 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
     """Discover capabilities of an MCP server by connecting to it.
 
     1. Fetches the McpServer spec via gRPC (OBO impersonation when available)
-    2. Resolves environment variables from ExecutionContext (preferred) or
-       falls back to JIT resolution from personal environment (deployment safety)
+    2. Resolves environment variables from the pre-created ExecutionContext
     3. Transforms the spec into a MultiServerMCPClient-compatible config
     4. Connects and lists tools + resource templates
     5. Returns a serializable result for the backend to store
@@ -150,8 +137,6 @@ async def discover_mcp_server(input: DiscoverMcpServerInput) -> DiscoverMcpServe
             api_key=api_key,
             channel=obo_ch,
             execution_context_id=input.execution_context_id,
-            org=mcp_server.metadata.org,
-            spec=spec,
         )
         env_vars = _inject_platform_env(spec, env_vars)
 
@@ -185,35 +170,22 @@ async def _resolve_env_vars_for_discovery(
     api_key: str,
     channel: grpc.aio.Channel,
     execution_context_id: str | None,
-    org: str,
-    spec: Any,
 ) -> dict[str, str]:
     """Resolve environment variables for MCP discovery.
 
-    Preferred path (ExecutionContext):
-        When ``execution_context_id`` is provided, reads from the
-        pre-created ExecutionContext. This is the secure path — the
-        Go/Java backend scoped the context to only the keys the MCP
-        server needs.
+    When ``execution_context_id`` is provided, reads from the
+    pre-created ExecutionContext. The Go/Java backend scoped the context
+    to only the keys the MCP server needs.
 
-    Fallback path (JIT from personal environment):
-        When no ``execution_context_id`` is provided — during rolling
-        deployments where the Go/Java backend has not yet been updated —
-        falls back to the previous JIT resolution via OBO gRPC calls.
-        This fallback will be removed in a cleanup PR.
+    When no ``execution_context_id`` is provided, returns an empty dict
+    (the MCP server does not require environment variables).
     """
     if execution_context_id:
         return await _resolve_env_from_execution_context(
             api_key, channel, execution_context_id,
         )
 
-    logger.info(
-        "No execution_context_id provided — falling back to JIT "
-        "resolution from personal environment (rolling deployment compatibility)"
-    )
-    return await _resolve_env_vars_jit(
-        EnvironmentClient(api_key, channel=channel), org, spec,
-    )
+    return {}
 
 
 async def _resolve_env_from_execution_context(
@@ -248,79 +220,6 @@ async def _resolve_env_from_execution_context(
         execution_context_id,
     )
     return env_vars
-
-
-async def _resolve_env_vars_jit(
-    env_client: EnvironmentClient,
-    org: str,
-    spec: Any,
-) -> dict[str, str]:
-    """[DEPRECATED — rolling deployment fallback] Resolve environment
-    variables from the user's personal environment via OBO gRPC.
-
-    This function will be removed once all services are deployed with
-    ExecutionContext support. See cleanup PR in the plan.
-    """
-    env_spec = spec.env_spec
-    if not env_spec or not env_spec.data:
-        return {}
-
-    required_keys = list(env_spec.data.keys())
-    logger.info(
-        "Resolving %d env var(s) from personal environment: %s",
-        len(required_keys),
-        required_keys,
-    )
-
-    env_list = await env_client.list_environments(
-        org=org,
-        labels={_PERSONAL_ENV_LABEL: "true"},
-    )
-
-    if env_list.total_count == 0 or not env_list.items:
-        raise ValueError(
-            f"Personal environment not found for org '{org}'. "
-            f"Save required credentials first: {required_keys}"
-        )
-
-    personal_env = env_list.items[0]
-    personal_env_id = personal_env.metadata.id
-    stored_keys = set(personal_env.spec.data.keys()) if personal_env.spec.data else set()
-
-    result: dict[str, str] = {}
-    missing: list[str] = []
-
-    for key in required_keys:
-        if key not in stored_keys:
-            missing.append(key)
-            continue
-
-        try:
-            env_value = await env_client.get_secret_value(personal_env_id, key)
-            if env_value.value:
-                result[key] = env_value.value
-            else:
-                missing.append(key)
-        except (grpc.RpcError, ValueError) as exc:
-            logger.warning(
-                "Failed to get secret value for key '%s' from env '%s': %s",
-                key, personal_env_id, exc,
-            )
-            missing.append(key)
-
-    if missing:
-        raise ValueError(
-            f"Missing required credentials in personal environment: {missing}. "
-            "Save these credentials in your personal environment before "
-            "triggering discovery."
-        )
-
-    logger.info(
-        "Resolved %d env var(s) from personal environment '%s'",
-        len(result),
-        personal_env_id,
-    )
-    return result
 
 
 async def _connect_and_discover(
