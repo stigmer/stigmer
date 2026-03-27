@@ -70,7 +70,7 @@ When starting a new session:
 | Task | Title | Status | Depends on |
 |------|-------|--------|------------|
 | **T01** | Research: tool_call_id availability at interrupt time | **COMPLETE** | — |
-| T02 | Proto changes (remove tool_calls, simplify PendingApproval) | Not started | — |
+| **T02** | Proto changes (remove tool_calls, simplify PendingApproval) | **COMPLETE** | — |
 | T03 | Python: single writer to messages, simplify HITL | Not started | T01, T02 |
 | **T04** | Add tool_call_id to interrupt payload | **COMPLETE** | T01 |
 | T05 | Java/Go: compute pending_approvals on write, simplify SubmitApproval | Not started | T02, T03 |
@@ -80,37 +80,42 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-27
-**Current Task**: T01 + T04 COMPLETE. Next: T02 (unblocked, proto changes).
-**Status**: T04 Complete — `InjectedToolCallId` injection across all tool wrappers, minimal interrupt payload `{tool_call_id, message}`, fuzzy matching chain removed from InterruptCapture, all tests green (graphton 1209 passed, agent-runner 1351 passed)
+**Current Task**: T01 + T04 + T02 COMPLETE. Next: T03 (unblocked, Python single-writer).
+**Status**: T02 Complete — Proto data model cleaned up. Flat `tool_calls` removed from `AgentExecutionStatus` and `SubAgentExecution`. `ApprovalLifecycleState` enum deleted. `PendingApproval` simplified to UI-facing projection (fields 9-12 removed). `args_preview` added to `ToolCall`. Stubs regenerated in both stigmer and stigmer-cloud. All committed on `hitl-flow-simplification` branch.
 
-## Session Progress (2026-03-27, Session 2)
+## Session Progress (2026-03-27, Session 3)
 
 ### Accomplished
-- Completed T04: Add `tool_call_id` to interrupt payload — full implementation across production code and tests
-- Implemented `InjectedToolCallId` injection in all 6 tool wrapper call sites
-- Simplified `_check_and_handle_approval` from 7 params to 4; interrupt payload from 8 fields to 2
-- Eliminated fuzzy matching chain in `InterruptCapture` — direct `tool_call_id` lookup
-- Discovered and fixed `args_schema` copy + `InjectedToolCallId` conflict with merged schema approach
-- All tests passing: graphton (1209), agent-runner (1351)
+- Completed T02: Proto data model cleanup — all 4 proto files edited, stubs regenerated in both repos
+- Deleted `ApprovalLifecycleState` enum entirely (5 values, ~50 lines)
+- Removed `interrupt_id`, `lifecycle_state`, `decision_action`, `decision_recorded_at` from `PendingApproval`
+- Removed flat `tool_calls` from `AgentExecutionStatus` (field 3) and `SubAgentExecution` (field 10)
+- Removed `pending_approvals` from `SubAgentExecution` (field 14) — root-level computed projection with `from_sub_agent`/`sub_agent_name` preserves provenance
+- Added `args_preview` (field 18) to `ToolCall` for computed projection sourcing
+- Rewrote `PendingApproval` and `pending_approvals` documentation for computed-projection semantics
+- Removed unused imports (`enum.proto` from approval.proto, `approval.proto` from subagent.proto)
+- `make protos` passed cleanly in both stigmer and stigmer-cloud (buf lint, all language stubs)
+- Committed all work on `hitl-flow-simplification` branch in both repos
+- Net deletion: ~2,655 lines across both repos
 
 ### Key Decisions
-- **DD-002** (from Session 1): Interrupt payload `{tool_call_id, message}` — confirmed and implemented
-- **Merged schema for MCP wrappers**: `_build_merged_schema()` creates Pydantic model with both MCP tool params (LLM-visible) and `InjectedToolCallId` (runtime-injected)
-- **Args unwrapping refactored**: `_approval_tool_kwargs_to_actual_args()` strips injected keys before unwrapping `kwargs`/`input` shells
+- No `reserved` field declarations — no backward compatibility needed (pre-GA)
+- Sub-agent approval provenance preserved via `PendingApproval.from_sub_agent` + `sub_agent_name` on the root-level list — no information lost
 
-### Surprise Found
-- `args_schema` copy on approval wrapper destroys `InjectedToolCallId` metadata — not anticipated in T01 research. Fixed with `_build_merged_schema()`.
+### Surprises
+- None. T02 was a clean proto-only task with predictable scope.
 
 ## Next Steps
-1. **T02** (Proto changes): Remove `tool_calls` from `AgentExecutionStatus` and `SubAgentExecution`, simplify `PendingApproval`, delete `ApprovalLifecycleState` — this is the recommended next task
-2. T03 becomes unblocked after T02; T07 partially unblocked by T04 completion
+1. **T03** (Python: single writer to messages, simplify HITL): Now unblocked by T01+T02. Make `messages[].tool_calls` the single write target. Remove flat list writes from `StatusBuilder`. Simplify `hitl.py` — delete `ApprovalStateManager`, simplify `InterruptCapture` further, rewrite `ResumeReconciler`.
+2. T05 (Java/Go) becomes unblocked after T03
+3. T07 partially unblocked by T04 completion (Python tests already rewritten)
 
 ## Quick Commands
 
 After loading context:
-- "Pick next task" - T02 is the recommended next
-- "Show project status" - Get overview of progress
-- "Review design decisions" - Check DD-001 and DD-002
+- "Pick next task" — T03 is the recommended next
+- "Show project status" — Get overview of progress
+- "Review design decisions" — Check DD-001 and DD-002
 
 ---
 
