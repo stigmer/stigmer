@@ -446,6 +446,21 @@ func Run() error {
 	// This enables WorkflowExecution.SubmitApproval to forward decisions to child agent executions
 	workflowExecutionController.SetAgentExecutionClient(agentExecutionController)
 
+	// Inject discovery dependencies into McpServerController.
+	// Uses the agent-runner queue for the Temporal workflow since discovery
+	// activities (and the wrapper workflow) run on the Python worker.
+	if temporalClient != nil {
+		agentExecutionTemporalCfg := agentexecutiontemporal.NewConfig()
+		mcpServerController.SetDiscoveryDependencies(
+			temporalClient,
+			agentExecutionTemporalCfg.RunnerQueue,
+			environmentClient,
+		)
+		log.Info().
+			Str("runner_queue", agentExecutionTemporalCfg.RunnerQueue).
+			Msg("Injected MCP discovery dependencies into McpServerController")
+	}
+
 	log.Info().Msg("Injected dependencies into controllers")
 
 	// ============================================================================

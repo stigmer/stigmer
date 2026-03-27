@@ -6,7 +6,7 @@ import type { GenFile, GenService } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, serviceDesc } from "@bufbuild/protobuf/codegenv1";
 import type { McpServerSchema } from "./api_pb";
 import { file_ai_stigmer_agentic_mcpserver_v1_api } from "./api_pb";
-import type { UpdateDiscoveredCapabilitiesInputSchema } from "./io_pb";
+import type { DiscoverCapabilitiesInputSchema, UpdateDiscoveredCapabilitiesInputSchema } from "./io_pb";
 import { file_ai_stigmer_agentic_mcpserver_v1_io } from "./io_pb";
 import type { ApiResourceDeleteInputSchema, UpdateVisibilityInputSchema } from "../../../commons/apiresource/io_pb";
 import { file_ai_stigmer_commons_apiresource_io } from "../../../commons/apiresource/io_pb";
@@ -17,7 +17,7 @@ import { file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options } from
  * Describes the file ai/stigmer/agentic/mcpserver/v1/command.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_command: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2NvbW1hbmQucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEyyAcKGk1jcFNlcnZlckNvbW1hbmRDb250cm9sbGVyEl8KBWFwcGx5EiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchJmCgZjcmVhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBEpoBCgZ1cGRhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIjjCuBg0CAQQLCILbWV0YWRhdGEuaWQqIXVuYXV0aG9yaXplZCB0byB1cGRhdGUgbWNwIHNlcnZlchKmAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlciI4wrgYNAgCECwiC3Jlc291cmNlX2lkKiF1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIG1jcCBzZXJ2ZXISugEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIiQ8K4GD8IBBAsIgtyZXNvdXJjZV9pZCosdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBtY3Agc2VydmVyIHZpc2liaWxpdHkS1wEKHHVwZGF0ZURpc2NvdmVyZWRDYXBhYmlsaXRpZXMSQi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlVwZGF0ZURpc2NvdmVyZWRDYXBhYmlsaXRpZXNJbnB1dBoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIkfCuBhDCAQQLCINbWNwX3NlcnZlcl9pZCoudW5hdXRob3JpemVkIHRvIHVwZGF0ZSBtY3Agc2VydmVyIGNhcGFiaWxpdGllcxoEoP8rLGIGcHJvdG8z", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_agentic_mcpserver_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2NvbW1hbmQucHJvdG8SH2FpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEylAkKGk1jcFNlcnZlckNvbW1hbmRDb250cm9sbGVyEl8KBWFwcGx5EiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchJmCgZjcmVhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIgTQuBgBEpoBCgZ1cGRhdGUSKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlchoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIjjCuBg0CAQQLCILbWV0YWRhdGEuaWQqIXVuYXV0aG9yaXplZCB0byB1cGRhdGUgbWNwIHNlcnZlchKmAQoGZGVsZXRlEjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlRGVsZXRlSW5wdXQaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlciI4wrgYNAgCECwiC3Jlc291cmNlX2lkKiF1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIG1jcCBzZXJ2ZXISugEKEHVwZGF0ZVZpc2liaWxpdHkSNS5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuVXBkYXRlVmlzaWJpbGl0eUlucHV0GiouYWkuc3RpZ21lci5hZ2VudGljLm1jcHNlcnZlci52MS5NY3BTZXJ2ZXIiQ8K4GD8IBBAsIgtyZXNvdXJjZV9pZCosdW5hdXRob3JpemVkIHRvIHVwZGF0ZSBtY3Agc2VydmVyIHZpc2liaWxpdHkS1wEKHHVwZGF0ZURpc2NvdmVyZWRDYXBhYmlsaXRpZXMSQi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLlVwZGF0ZURpc2NvdmVyZWRDYXBhYmlsaXRpZXNJbnB1dBoqLmFpLnN0aWdtZXIuYWdlbnRpYy5tY3BzZXJ2ZXIudjEuTWNwU2VydmVyIkfCuBhDCAQQLCINbWNwX3NlcnZlcl9pZCoudW5hdXRob3JpemVkIHRvIHVwZGF0ZSBtY3Agc2VydmVyIGNhcGFiaWxpdGllcxLJAQoUZGlzY292ZXJDYXBhYmlsaXRpZXMSOi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyQ2FwYWJpbGl0aWVzSW5wdXQaKi5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLk1jcFNlcnZlciJJwrgYRQgEECwiDW1jcF9zZXJ2ZXJfaWQqMHVuYXV0aG9yaXplZCB0byBkaXNjb3ZlciBtY3Agc2VydmVyIGNhcGFiaWxpdGllcxoEoP8rLGIGcHJvdG8z", [file_ai_stigmer_agentic_mcpserver_v1_api, file_ai_stigmer_agentic_mcpserver_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
  * McpServerCommandController provides write operations for MCP server resources.
@@ -161,6 +161,40 @@ export const McpServerCommandController: GenService<{
   updateDiscoveredCapabilities: {
     methodKind: "unary";
     input: typeof UpdateDiscoveredCapabilitiesInputSchema;
+    output: typeof McpServerSchema;
+  },
+  /**
+   * Discover the capabilities of an MCP server by connecting to it.
+   *
+   * This triggers server-side discovery: the backend resolves credentials from the
+   * authenticated user's personal environment, delegates the actual MCP connection
+   * to the agent-runner via a Temporal workflow, and stores the result.
+   *
+   * The RPC blocks until discovery completes (up to ~30 seconds) and returns the
+   * updated McpServer with populated status.discovered_capabilities.
+   *
+   * Typical flow:
+   * 1. Web console ensures required credentials are saved in the user's personal environment
+   * 2. Web console calls discoverCapabilities with the MCP server ID
+   * 3. Backend resolves env vars from the user's personal environment
+   * 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server
+   * 5. Discovered tools and resource templates are stored and returned
+   *
+   * Input: DiscoverCapabilitiesInput with mcp_server_id.
+   * Returns: The updated McpServer with discovered capabilities.
+   *
+   * Errors:
+   * - FAILED_PRECONDITION: Required credentials missing from personal environment
+   * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
+   * - NOT_FOUND: MCP server does not exist
+   *
+   * Authorization: Requires can_edit permission on the mcp_server resource.
+   *
+   * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.discoverCapabilities
+   */
+  discoverCapabilities: {
+    methodKind: "unary";
+    input: typeof DiscoverCapabilitiesInputSchema;
     output: typeof McpServerSchema;
   },
 }> = /*@__PURE__*/

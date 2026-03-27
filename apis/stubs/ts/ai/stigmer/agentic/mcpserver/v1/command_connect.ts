@@ -6,7 +6,7 @@
 import { McpServer } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceDeleteInput, UpdateVisibilityInput } from "../../../commons/apiresource/io_pb.js";
-import { UpdateDiscoveredCapabilitiesInput } from "./io_pb.js";
+import { DiscoverCapabilitiesInput, UpdateDiscoveredCapabilitiesInput } from "./io_pb.js";
 
 /**
  * McpServerCommandController provides write operations for MCP server resources.
@@ -157,6 +157,41 @@ export const McpServerCommandController = {
     updateDiscoveredCapabilities: {
       name: "updateDiscoveredCapabilities",
       I: UpdateDiscoveredCapabilitiesInput,
+      O: McpServer,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Discover the capabilities of an MCP server by connecting to it.
+     *
+     * This triggers server-side discovery: the backend resolves credentials from the
+     * authenticated user's personal environment, delegates the actual MCP connection
+     * to the agent-runner via a Temporal workflow, and stores the result.
+     *
+     * The RPC blocks until discovery completes (up to ~30 seconds) and returns the
+     * updated McpServer with populated status.discovered_capabilities.
+     *
+     * Typical flow:
+     * 1. Web console ensures required credentials are saved in the user's personal environment
+     * 2. Web console calls discoverCapabilities with the MCP server ID
+     * 3. Backend resolves env vars from the user's personal environment
+     * 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server
+     * 5. Discovered tools and resource templates are stored and returned
+     *
+     * Input: DiscoverCapabilitiesInput with mcp_server_id.
+     * Returns: The updated McpServer with discovered capabilities.
+     *
+     * Errors:
+     * - FAILED_PRECONDITION: Required credentials missing from personal environment
+     * - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
+     * - NOT_FOUND: MCP server does not exist
+     *
+     * Authorization: Requires can_edit permission on the mcp_server resource.
+     *
+     * @generated from rpc ai.stigmer.agentic.mcpserver.v1.McpServerCommandController.discoverCapabilities
+     */
+    discoverCapabilities: {
+      name: "discoverCapabilities",
+      I: DiscoverCapabilitiesInput,
       O: McpServer,
       kind: MethodKind.Unary,
     },

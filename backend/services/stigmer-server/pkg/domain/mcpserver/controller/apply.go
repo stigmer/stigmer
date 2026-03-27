@@ -48,18 +48,32 @@ func (c *McpServerController) Apply(ctx context.Context, mcpServer *mcpserverv1.
 	shouldCreate := shouldCreateVal.(bool)
 
 	// Delegate to appropriate handler
+	var result *mcpserverv1.McpServer
+	var applyErr error
+
 	if shouldCreate {
 		log.Info().
 			Str("slug", mcpServer.GetMetadata().GetName()).
 			Msg("Resource does not exist - delegating to CREATE")
-		return c.Create(ctx, mcpServer)
+		result, applyErr = c.Create(ctx, mcpServer)
+	} else {
+		log.Info().
+			Str("slug", mcpServer.GetMetadata().GetName()).
+			Str("id", mcpServer.GetMetadata().GetId()).
+			Msg("Resource exists - delegating to UPDATE")
+		result, applyErr = c.Update(ctx, mcpServer)
 	}
 
-	log.Info().
-		Str("slug", mcpServer.GetMetadata().GetName()).
-		Str("id", mcpServer.GetMetadata().GetId()).
-		Msg("Resource exists - delegating to UPDATE")
-	return c.Update(ctx, mcpServer)
+	if applyErr != nil {
+		return nil, applyErr
+	}
+
+	// Fire-and-forget best-effort discovery after successful apply.
+	// This mirrors the CLI's discoverAppliedMcpServers() behavior but
+	// runs server-side via the agent-runner Temporal workflow.
+	go c.StartBestEffortDiscovery(ctx, result)
+
+	return result, nil
 }
 
 // buildApplyPipeline constructs the minimal pipeline for apply operations.

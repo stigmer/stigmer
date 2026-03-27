@@ -130,4 +130,36 @@ service McpServerCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "mcp_server_id";
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update mcp server capabilities";
   }
+
+  // Discover the capabilities of an MCP server by connecting to it.
+  //
+  // This triggers server-side discovery: the backend resolves credentials from the
+  // authenticated user's personal environment, delegates the actual MCP connection
+  // to the agent-runner via a Temporal workflow, and stores the result.
+  //
+  // The RPC blocks until discovery completes (up to ~30 seconds) and returns the
+  // updated McpServer with populated status.discovered_capabilities.
+  //
+  // Typical flow:
+  // 1. Web console ensures required credentials are saved in the user's personal environment
+  // 2. Web console calls discoverCapabilities with the MCP server ID
+  // 3. Backend resolves env vars from the user's personal environment
+  // 4. Backend starts a Temporal workflow; agent-runner connects to the MCP server
+  // 5. Discovered tools and resource templates are stored and returned
+  //
+  // Input: DiscoverCapabilitiesInput with mcp_server_id.
+  // Returns: The updated McpServer with discovered capabilities.
+  //
+  // Errors:
+  // - FAILED_PRECONDITION: Required credentials missing from personal environment
+  // - DEADLINE_EXCEEDED: Discovery did not complete within the timeout
+  // - NOT_FOUND: MCP server does not exist
+  //
+  // Authorization: Requires can_edit permission on the mcp_server resource.
+  rpc discoverCapabilities(DiscoverCapabilitiesInput) returns (McpServer) {
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = mcp_server;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).field_path = "mcp_server_id";
+    option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to discover mcp server capabilities";
+  }
 }

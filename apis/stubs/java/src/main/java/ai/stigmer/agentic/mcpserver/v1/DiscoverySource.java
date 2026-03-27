@@ -48,6 +48,15 @@ public enum DiscoverySource
    * <code>agent_runner = 3;</code>
    */
   agent_runner(3),
+  /**
+   * <pre>
+   * Discovered via the discoverCapabilities RPC (web console or API).
+   * The backend delegates to the agent-runner via a Temporal workflow.
+   * </pre>
+   *
+   * <code>api = 4;</code>
+   */
+  api(4),
   UNRECOGNIZED(-1),
   ;
 
@@ -93,6 +102,15 @@ public enum DiscoverySource
    * <code>agent_runner = 3;</code>
    */
   public static final int agent_runner_VALUE = 3;
+  /**
+   * <pre>
+   * Discovered via the discoverCapabilities RPC (web console or API).
+   * The backend delegates to the agent-runner via a Temporal workflow.
+   * </pre>
+   *
+   * <code>api = 4;</code>
+   */
+  public static final int api_VALUE = 4;
 
 
   public final int getNumber() {
@@ -123,6 +141,7 @@ public enum DiscoverySource
       case 1: return seedpack;
       case 2: return cli;
       case 3: return agent_runner;
+      case 4: return api;
       default: return null;
     }
   }

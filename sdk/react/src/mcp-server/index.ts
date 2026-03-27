@@ -45,3 +45,18 @@ export type {
 
 export { McpServerDetailView } from "./McpServerDetailView";
 export type { McpServerDetailViewProps } from "./McpServerDetailView";
+
+export { useDiscoverCapabilities } from "./useDiscoverCapabilities";
+export type { UseDiscoverCapabilitiesReturn } from "./useDiscoverCapabilities";
+
+export { useMcpServerCredentials } from "./useMcpServerCredentials";
+export type { UseMcpServerCredentialsReturn } from "./useMcpServerCredentials";
+
+export { useTriggerApprovalPolicySession } from "./useTriggerApprovalPolicySession";
+export type {
+  UseTriggerApprovalPolicySessionReturn,
+  TriggerApprovalPolicyResult,
+} from "./useTriggerApprovalPolicySession";
+
+export { ApprovalPolicyGeneratorPanel } from "./ApprovalPolicyGeneratorPanel";
+export type { ApprovalPolicyGeneratorPanelProps } from "./ApprovalPolicyGeneratorPanel";

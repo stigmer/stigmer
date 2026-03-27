@@ -24,6 +24,7 @@ class DiscoverySource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     seedpack: _ClassVar[DiscoverySource]
     cli: _ClassVar[DiscoverySource]
     agent_runner: _ClassVar[DiscoverySource]
+    api: _ClassVar[DiscoverySource]
 validation_state_unspecified: ValidationState
 valid: ValidationState
 invalid: ValidationState
@@ -31,6 +32,7 @@ discovery_source_unspecified: DiscoverySource
 seedpack: DiscoverySource
 cli: DiscoverySource
 agent_runner: DiscoverySource
+api: DiscoverySource
 
 class McpServerStatus(_message.Message):
     __slots__ = ("validation_state", "validation_message", "discovered_capabilities", "audit")

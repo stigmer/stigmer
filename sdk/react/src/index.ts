@@ -183,10 +183,14 @@ export {
   useMcpServerList,
   useMcpServerSearch,
   useMcpServerSetup,
+  useDiscoverCapabilities,
+  useMcpServerCredentials,
+  useTriggerApprovalPolicySession,
   McpServerPicker,
   McpServerConfigPanel,
   McpServerDetailView,
   McpToolSelector,
+  ApprovalPolicyGeneratorPanel,
   toServerKey,
 } from "./mcp-server";
 export type {
@@ -208,6 +212,11 @@ export type {
   McpServerCredentialsProps,
   McpServerDetailViewProps,
   McpToolSelectorProps,
+  UseDiscoverCapabilitiesReturn,
+  UseMcpServerCredentialsReturn,
+  UseTriggerApprovalPolicySessionReturn,
+  TriggerApprovalPolicyResult,
+  ApprovalPolicyGeneratorPanelProps,
 } from "./mcp-server";
 
 // Skill — data hook, count hook, list hook, search hook, picker, and detail view component
