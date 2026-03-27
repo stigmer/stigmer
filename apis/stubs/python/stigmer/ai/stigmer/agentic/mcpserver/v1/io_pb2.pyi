@@ -20,3 +20,9 @@ class UpdateDiscoveredCapabilitiesInput(_message.Message):
     mcp_server_id: str
     discovered_capabilities: _status_pb2.DiscoveredCapabilities
     def __init__(self, mcp_server_id: _Optional[str] = ..., discovered_capabilities: _Optional[_Union[_status_pb2.DiscoveredCapabilities, _Mapping]] = ...) -> None: ...
+
+class DiscoverCapabilitiesInput(_message.Message):
+    __slots__ = ("mcp_server_id",)
+    MCP_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
+    mcp_server_id: str
+    def __init__(self, mcp_server_id: _Optional[str] = ...) -> None: ...

@@ -176,6 +176,7 @@ spec:
         - get_mcp_server
         - get_skill
         - get_workflow
+        - apply_mcp_server
   skill_refs:
     - kind: skill
       slug: mcp-server-creator

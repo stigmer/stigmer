@@ -26,7 +26,7 @@ from ai.stigmer.agentic.mcpserver.v1 import status_pb2 as ai_dot_stigmer_dot_age
 from buf.validate import validate_pb2 as buf_dot_validate_dot_validate__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/mcpserver/v1/io.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/mcpserver/v1/status.proto\x1a\x1b\x62uf/validate/validate.proto\"+\n\x0bMcpServerId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xc9\x01\n!UpdateDiscoveredCapabilitiesInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerId\x12x\n\x17\x64iscovered_capabilities\x18\x02 \x01(\x0b\x32\x37.ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilitiesB\x06\xbaH\x03\xc8\x01\x01R\x16\x64iscoveredCapabilitiesB\xcf\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n(ai/stigmer/agentic/mcpserver/v1/io.proto\x12\x1f\x61i.stigmer.agentic.mcpserver.v1\x1a,ai/stigmer/agentic/mcpserver/v1/status.proto\x1a\x1b\x62uf/validate/validate.proto\"+\n\x0bMcpServerId\x12\x1c\n\x05value\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x05value\"\xc9\x01\n!UpdateDiscoveredCapabilitiesInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerId\x12x\n\x17\x64iscovered_capabilities\x18\x02 \x01(\x0b\x32\x37.ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilitiesB\x06\xbaH\x03\xc8\x01\x01R\x16\x64iscoveredCapabilities\"G\n\x19\x44iscoverCapabilitiesInput\x12*\n\rmcp_server_id\x18\x01 \x01(\tB\x06\xbaH\x03\xc8\x01\x01R\x0bmcpServerIdB\xcf\x01\n#com.ai.stigmer.agentic.mcpserver.v1B\x07IoProtoP\x01\xa2\x02\x04\x41SAM\xaa\x02\x1f\x41i.Stigmer.Agentic.Mcpserver.V1\xca\x02\x1f\x41i\\Stigmer\\Agentic\\Mcpserver\\V1\xe2\x02+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBMetadata\xea\x02#Ai::Stigmer::Agentic::Mcpserver::V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,8 +40,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_UPDATEDISCOVEREDCAPABILITIESINPUT'].fields_by_name['mcp_server_id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_UPDATEDISCOVEREDCAPABILITIESINPUT'].fields_by_name['discovered_capabilities']._loaded_options = None
   _globals['_UPDATEDISCOVEREDCAPABILITIESINPUT'].fields_by_name['discovered_capabilities']._serialized_options = b'\272H\003\310\001\001'
+  _globals['_DISCOVERCAPABILITIESINPUT'].fields_by_name['mcp_server_id']._loaded_options = None
+  _globals['_DISCOVERCAPABILITIESINPUT'].fields_by_name['mcp_server_id']._serialized_options = b'\272H\003\310\001\001'
   _globals['_MCPSERVERID']._serialized_start=152
   _globals['_MCPSERVERID']._serialized_end=195
   _globals['_UPDATEDISCOVEREDCAPABILITIESINPUT']._serialized_start=198
   _globals['_UPDATEDISCOVEREDCAPABILITIESINPUT']._serialized_end=399
+  _globals['_DISCOVERCAPABILITIESINPUT']._serialized_start=401
+  _globals['_DISCOVERCAPABILITIESINPUT']._serialized_end=472
 # @@protoc_insertion_point(module_scope)

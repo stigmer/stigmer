@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/mcpserver/v1/io.proto.
  */
 export const file_ai_stigmer_agentic_mcpserver_v1_io: GenFile = /*@__PURE__*/
-  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEipAEKIVVwZGF0ZURpc2NvdmVyZWRDYXBhYmlsaXRpZXNJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESYAoXZGlzY292ZXJlZF9jYXBhYmlsaXRpZXMYAiABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRDYXBhYmlsaXRpZXNCBrpIA8gBAWIGcHJvdG8z", [file_ai_stigmer_agentic_mcpserver_v1_status, file_buf_validate_validate]);
+  fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvbWNwc2VydmVyL3YxL2lvLnByb3RvEh9haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxIiQKC01jcFNlcnZlcklkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEipAEKIVVwZGF0ZURpc2NvdmVyZWRDYXBhYmlsaXRpZXNJbnB1dBIdCg1tY3Bfc2VydmVyX2lkGAEgASgJQga6SAPIAQESYAoXZGlzY292ZXJlZF9jYXBhYmlsaXRpZXMYAiABKAsyNy5haS5zdGlnbWVyLmFnZW50aWMubWNwc2VydmVyLnYxLkRpc2NvdmVyZWRDYXBhYmlsaXRpZXNCBrpIA8gBASI6ChlEaXNjb3ZlckNhcGFiaWxpdGllc0lucHV0Eh0KDW1jcF9zZXJ2ZXJfaWQYASABKAlCBrpIA8gBAWIGcHJvdG8z", [file_ai_stigmer_agentic_mcpserver_v1_status, file_buf_validate_validate]);
 
 /**
  * McpServerId wraps an MCP server resource identifier.
@@ -76,4 +76,38 @@ export type UpdateDiscoveredCapabilitiesInput = Message<"ai.stigmer.agentic.mcps
  */
 export const UpdateDiscoveredCapabilitiesInputSchema: GenMessage<UpdateDiscoveredCapabilitiesInput> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 1);
+
+/**
+ * DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
+ *
+ * Triggers server-side MCP discovery: the backend resolves credentials from the
+ * authenticated user's personal environment, starts a Temporal workflow that
+ * connects to the MCP server (via the agent-runner), enumerates tools and resource
+ * templates, and stores the result in status.discovered_capabilities.
+ *
+ * The RPC blocks until discovery completes (~30s timeout) and returns the updated
+ * McpServer with populated discovered_capabilities.
+ *
+ * Prerequisites:
+ * - The MCP server must exist and have a valid server_type (stdio or http)
+ * - Required credentials from env_spec must be present in the user's personal environment
+ *
+ * @generated from message ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput
+ */
+export type DiscoverCapabilitiesInput = Message<"ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput"> & {
+  /**
+   * System-generated ID of the MCP server to discover.
+   * Obtained from McpServer.metadata.id (e.g., via getByReference).
+   *
+   * @generated from field: string mcp_server_id = 1;
+   */
+  mcpServerId: string;
+};
+
+/**
+ * Describes the message ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput.
+ * Use `create(DiscoverCapabilitiesInputSchema)` to create a new message.
+ */
+export const DiscoverCapabilitiesInputSchema: GenMessage<DiscoverCapabilitiesInput> = /*@__PURE__*/
+  messageDesc(file_ai_stigmer_agentic_mcpserver_v1_io, 2);
 

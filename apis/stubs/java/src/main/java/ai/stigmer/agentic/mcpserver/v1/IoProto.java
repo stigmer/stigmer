@@ -36,6 +36,11 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_mcpserver_v1_UpdateDiscoveredCapabilitiesInput_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -54,12 +59,14 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       "_server_id\030\001 \001(\tB\006\272H\003\310\001\001R\013mcpServerId\022x\n" +
       "\027discovered_capabilities\030\002 \001(\01327.ai.stig" +
       "mer.agentic.mcpserver.v1.DiscoveredCapab" +
-      "ilitiesB\006\272H\003\310\001\001R\026discoveredCapabilitiesB" +
-      "\252\001B\007IoProtoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agenti" +
-      "c.Mcpserver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcps" +
-      "erver\\V1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\" +
-      "V1\\GPBMetadata\352\002#Ai::Stigmer::Agentic::M" +
-      "cpserver::V1b\006proto3"
+      "ilitiesB\006\272H\003\310\001\001R\026discoveredCapabilities\"" +
+      "G\n\031DiscoverCapabilitiesInput\022*\n\rmcp_serv" +
+      "er_id\030\001 \001(\tB\006\272H\003\310\001\001R\013mcpServerIdB\252\001B\007IoP" +
+      "rotoP\001\242\002\004ASAM\252\002\037Ai.Stigmer.Agentic.Mcpse" +
+      "rver.V1\312\002\037Ai\\Stigmer\\Agentic\\Mcpserver\\V" +
+      "1\342\002+Ai\\Stigmer\\Agentic\\Mcpserver\\V1\\GPBM" +
+      "etadata\352\002#Ai::Stigmer::Agentic::Mcpserve" +
+      "r::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -79,6 +86,12 @@ public final class IoProto extends com.google.protobuf.GeneratedFile {
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_mcpserver_v1_UpdateDiscoveredCapabilitiesInput_descriptor,
         new java.lang.String[] { "McpServerId", "DiscoveredCapabilities", });
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_descriptor =
+      getDescriptor().getMessageType(2);
+    internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_descriptor,
+        new java.lang.String[] { "McpServerId", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.mcpserver.v1.StatusProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
