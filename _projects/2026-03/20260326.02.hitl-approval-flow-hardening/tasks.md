@@ -76,8 +76,9 @@ In `populate_fingerprints_from_existing_tool_calls()`, `tool_call_fingerprints` 
 
 ## Task 3: Convert single-shot poll fallback to repeating poll with exponential backoff
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-26 20:52
+**Completed**: 2026-03-27
 **Severity**: Low-Medium (user can get stuck)
 **Files**: `sdk/react/src/session/useSessionConversation.ts`
 
@@ -87,23 +88,28 @@ The poll-based fallback (lines 370-393) triggers a single `refetch()` after 3 se
 
 ### Subtasks
 
-- [ ] Replace single `setTimeout` with a `useRef`-based interval that uses exponential backoff (3s, 6s, 12s, capped at 30s)
-- [ ] Clear the interval when `pendingApprovals` becomes non-empty or phase changes
-- [ ] Consider adding a visible "Still loading approval details..." indicator after the first retry
-- [ ] Test that the cleanup function properly clears intervals on unmount
+- [x] Replace single `setTimeout` with a self-scheduling timeout chain using `useRef` for attempt count (exponential backoff: 3s, 6s, 12s, 24s, capped at 30s)
+- [x] Changed condition from filtered `pendingApprovals.length` to raw `activeStreamExecution?.status?.pendingApprovals?.length` so dismissed-but-present approvals don't trigger wasteful polling
+- [x] Decided against adding a visible indicator — consumer can derive `activePhase === WAITING_FOR_APPROVAL && pendingApprovals.length === 0` trivially
+- [x] Test: backoff fires at 3s, 6s, 12s intervals
+- [x] Test: stops when raw approvals arrive via stream
+- [x] Test: stops when phase transitions away
+- [x] Test: does not fire when raw approvals exist but are all dismissed
+- [x] Test: cleanup clears timeout on unmount
 
-### Notes
+### Decisions Made
 
-- The current `useEffect` deps are `[activePhase, pendingApprovals.length, activeExecutionId, refetch]`
-- Key: `pendingApprovals.length` stays 0 across retries, so deps don't change -- this is why it's single-shot
-- Solution: use a `retryCount` ref that increments to trigger re-renders, or use `setInterval` with a ref
+- **Self-scheduling setTimeout chain over setInterval**: Backoff requires increasing delays; `setInterval` fires at a fixed rate and would need to be recreated. The timeout chain is the natural fit.
+- **Raw approvals condition**: Poll checks unfiltered `activeStreamExecution?.status?.pendingApprovals` instead of the filtered `pendingApprovals`. This separates Task 3 (server didn't deliver data) from Task 4 (user dismissed but signal failed), avoiding unnecessary network requests in the dismissed case.
+- **No new public API field**: Consumer can derive the "loading approval details" state from existing `activePhase` + `pendingApprovals.length`.
 
 ---
 
 ## Task 4: Add staleness detection after optimistic dismissal
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-26 20:52
+**Completed**: 2026-03-27
 **Severity**: Medium (user gets stuck with no recovery)
 **Files**: `sdk/react/src/session/useSessionConversation.ts`
 
@@ -113,16 +119,26 @@ When `submitApproval` RPC succeeds, the approval card is immediately dismissed v
 
 ### Subtasks
 
-- [ ] Track `dismissedAt` timestamp alongside each `dismissedApprovalId`
-- [ ] Add a `useEffect` that checks: if phase is still `WAITING_FOR_APPROVAL` and any `dismissedApprovalId` has been dismissed for > 15 seconds, remove it from dismissed set (card reappears)
-- [ ] Optionally show a "Approval may not have been processed" message on the reappeared card
-- [ ] Consider checking the `submitApproval` RPC return value (`AgentExecution`) for immediate phase detection
+- [x] Changed internal state from `Set<string>` to `Map<string, number>` (toolCallId → `Date.now()` timestamp)
+- [x] Derived `dismissedApprovalIds: ReadonlySet<string>` from Map keys via `useMemo` — public API type unchanged
+- [x] Added staleness detection `useEffect` with `setInterval` (5s check interval, 15s threshold)
+- [x] Used `useRef` to sync latest map into interval callback, avoiding stale closure issues
+- [x] Added `next.size < prev.size` guard in updater to prevent no-op state updates in race conditions
+- [x] Triggers `refetch()` when stale entries are detected
+- [x] Decided against "Approval may not have been processed" message — card already shows live `WaitingDuration` timer that communicates elapsed time
+- [x] Deferred `submitApproval` RPC return value optimization — staleness detection handles the failure case regardless
+- [x] Test: card reappears after staleness threshold (15s strict, first detection at 20s due to interval alignment)
+- [x] Test: no staleness check when phase is not WAITING_FOR_APPROVAL
+- [x] Test: triggers refetch on staleness detection
+- [x] Test: `dismissedApprovalIds` remains `ReadonlySet<string>` (type contract)
+- [x] Test: resets dismissed state on new execution
 
-### Notes
+### Decisions Made
 
-- `dismissedApprovalIds` is currently `ReadonlySet<string>` -- may need to change to `Map<string, number>` for timestamps
-- The stream should eventually deliver the updated state, but if it doesn't, this is the safety net
-- Keep the optimistic dismissal for the happy path -- only reappear on timeout
+- **Internal Map, public Set**: The Map with timestamps is an internal detail. Platform builders see `ReadonlySet<string>` — zero breaking changes. MessageThread and all downstream consumers work unchanged.
+- **No warning message on reappeared card**: The `WaitingDuration` component in `ApprovalCard` already shows live elapsed time. A card reappearing with "waiting 20s" naturally communicates that something went wrong. A warning message can be layered on later without hook-level changes.
+- **Refetch on staleness**: When stale entries are removed, `refetch()` is also called to get the latest server state. This catches cases where the stream missed a phase transition.
+- **Strict greater-than for threshold**: `now - ts > STALE_DISMISSAL_MS` (not `>=`). At exactly 15s the entry is not yet stale — first detection occurs at the next 5s interval tick after 15s.
 
 ---
 

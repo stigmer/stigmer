@@ -1,43 +1,53 @@
 # Next Task: 20260326.02.hitl-approval-flow-hardening
 
 ## Current State
-- **Status**: in-progress (3 of 6 tasks complete)
-- **Last Session**: 2026-03-27 — Completed Task 5 (dead code cleanup + batch resume visibility)
+- **Status**: in-progress (5 of 6 tasks complete)
+- **Last Session**: 2026-03-27 — Completed Tasks 3 + 4 (frontend resilience in useSessionConversation.ts)
 - **Active Task**: None — ready to pick next task
 - **Branch**: `hitl-flow-hardening` (pushed to origin)
 
-## Session Progress (2026-03-27, Session 3)
+## Session Progress (2026-03-27, Session 4)
 
 ### Completed
-- **Task 5**: Remove dead `_remove_from_pending` and improve batch resume visibility
-  - Deleted `_remove_from_pending` method (32 lines, zero production callers) from `status_builder.py`
-  - Updated "Approval State Management" section comment to reference `ResumeReconciler` clear-signal pattern
-  - Deleted `test_remove_from_pending_resolves_run_id_aliases` test from `test_status_builder.py`
-  - Added `MESSAGE_SYSTEM` to execution message stream when batch resume aborts (`loop_aborted = True`)
-  - All 278 status builder tests pass (down 1 from deleted test), all 22 HITL contract tests pass
+- **Task 3**: Exponential backoff polling for missing approval data
+  - Replaced single-shot `setTimeout(3s)` with self-scheduling timeout chain (3s, 6s, 12s, 24s, 30s cap)
+  - Changed poll condition from filtered `pendingApprovals.length` to raw `activeStreamExecution?.status?.pendingApprovals?.length` — separates "server didn't deliver data" (Task 3) from "user dismissed but signal failed" (Task 4)
+  - Added 5 tests: backoff schedule, stops on data arrival, stops on phase change, skips when raw approvals exist but dismissed, cleanup on unmount
+  - Decided against adding a visible "loading" indicator — consumer can derive the state trivially
+
+- **Task 4**: Staleness detection for optimistic dismissals
+  - Changed internal `dismissedApprovalIds` from `Set<string>` to `Map<string, number>` (toolCallId → timestamp)
+  - Derived `ReadonlySet<string>` via `useMemo` for the public API — zero breaking changes for platform builders
+  - Added staleness `useEffect` with `setInterval(5s)` that detects entries older than 15s and removes them (card reappears)
+  - Used `useRef` for latest-map sync pattern to avoid stale closures in interval callbacks
+  - Triggers `refetch()` when stale entries are detected to get fresh server state
+  - Added 5 tests: card reappearance, no check outside WAITING_FOR_APPROVAL, refetch on staleness, ReadonlySet type contract, reset on new execution
+  - All 95 SDK React tests pass (20 in useSessionConversation, up from 10)
 
 ### Key Decisions
-- Chose deletion over `@deprecated` — zero production callers on a private method means deprecation annotation is noise
-- The abort message follows the established `AgentMessage(type=MESSAGE_SYSTEM)` pattern used elsewhere in `execute_graphton.py`
+- **Raw vs. filtered poll condition**: Task 3 polls when server genuinely hasn't delivered data (raw count = 0). Task 4 handles the dismissed-but-stuck case. Clean separation avoids wasteful network requests.
+- **Internal Map, public Set**: The Map with timestamps is an implementation detail. Platform builders see `ReadonlySet<string>` unchanged. MessageThread and all downstream consumers work without modification.
+- **No public API additions**: Both tasks are internal behavior improvements. No new fields on `UseSessionConversationReturn`. Consumers who need "loading approval details" state can derive it from `activePhase + pendingApprovals.length`.
+- **Strict greater-than threshold**: `now - ts > 15000` (not `>=`). First stale detection occurs at the 20s interval tick, not 15s. This avoids false positives from timing precision.
 
-## Cumulative Progress (Sessions 1-3)
+## Cumulative Progress (Sessions 1-4)
 - **Task 1** ✅: ApprovalStateManager lifecycle enforcement (4 bypass sites fixed, spy-based tests added)
 - **Task 2** ✅: Sub-agent fingerprint map population (2-line fix, 3 contract tests added)
+- **Task 3** ✅: Exponential backoff polling (self-scheduling timeout chain, raw approval condition)
+- **Task 4** ✅: Staleness detection (internal Map with timestamps, 15s threshold, card reappearance)
 - **Task 5** ✅: Dead code cleanup + batch resume visibility (method + test removed, user-visible abort message added)
 
 ## Next Steps
-1. **Task 3**: Convert single-shot poll fallback to repeating poll with exponential backoff in `useSessionConversation.ts`
-2. **Task 4**: Add staleness detection after optimistic dismissal in `useSessionConversation.ts`
-3. **Task 6**: Validation — contract tests + manual E2E
+1. **Task 6**: Validation — contract tests + manual E2E
 
 ### Recommended Next Pick
-Tasks 3 and 4 are both React/SDK work in `useSessionConversation.ts` — they should be batched together in a single session. Task 6 (validation) comes last after all code changes land.
+Task 6 (validation) is the only remaining task. All code changes have landed.
 
 ## Context for Resume
-- All Python backend work is now complete (Tasks 1, 2, 5)
-- Remaining work is React/SDK frontend resilience in `useSessionConversation.ts` (Tasks 3, 4) and validation (Task 6)
-- Tasks 3 and 4 both touch the streaming/polling layer — the `useEffect` that watches `activePhase` and `pendingApprovals`
-- Task 6 (validation) should be done last after all code changes land
+- All Python backend work is complete (Tasks 1, 2, 5)
+- All React/SDK frontend work is complete (Tasks 3, 4)
+- Only validation (Task 6) remains — contract tests + manual E2E
+- All 95 SDK React tests pass, all 278 status builder tests pass, all 22 HITL contract tests pass
 - Six state representations exist for approval status (see `notes.md`) — this is the root cause of most HITL bugs
 
 ## Blockers

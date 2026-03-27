@@ -79,3 +79,55 @@ These were identified but deprioritized:
 
 ---
 
+## 2026-03-27 - Tasks 3 + 4 Complete: Frontend HITL Resilience
+
+### What Changed
+
+Both tasks modify `sdk/react/src/session/useSessionConversation.ts` (the behavior hook that orchestrates the full conversation lifecycle).
+
+**Task 3 — Exponential Backoff Polling:**
+- Replaced single-shot `setTimeout(3s)` with a self-scheduling timeout chain: 3s → 6s → 12s → 24s → 30s (cap)
+- Uses `pollAttemptRef` (useRef) for attempt count, `approvalPollRef` for the active timeout
+- Changed condition from filtered `pendingApprovals.length === 0` to raw `activeStreamExecution?.status?.pendingApprovals?.length ?? 0 === 0`
+- This is a key design decision: the poll only fires when the *server* hasn't delivered data, not when the user has dismissed all cards. The dismissed case is Task 4's domain.
+
+**Task 4 — Staleness Detection:**
+- Internal state changed from `ReadonlySet<string>` to `ReadonlyMap<string, number>` (toolCallId → Date.now())
+- Public API stays `ReadonlySet<string>` via `useMemo(() => new Set(dismissedAtMap.keys()), [dismissedAtMap])`
+- New `useEffect` with `setInterval(5_000)` checks for entries where `Date.now() - ts > 15_000`
+- Uses `dismissedAtMapRef` (useRef) synced on every render to avoid stale closures in the interval callback
+- Stale entries are removed → derived Set shrinks → `pendingApprovals` filter stops excluding them → card reappears
+- Also triggers `refetch()` when stale entries detected, to catch missed phase transitions
+
+### Files Modified
+- `sdk/react/src/session/useSessionConversation.ts` (both tasks, ~50 lines changed)
+- `sdk/react/src/session/__tests__/useSessionConversation.test.tsx` (10 new tests, ~330 lines added)
+
+### Constants Added (module-level, not exported)
+- `APPROVAL_POLL_INITIAL_MS = 3_000`
+- `APPROVAL_POLL_MAX_MS = 30_000`
+- `STALE_DISMISSAL_MS = 15_000`
+- `STALE_CHECK_INTERVAL_MS = 5_000`
+
+### Design Rationale: Separation of Failure Modes
+The two mechanisms handle different failures and deliberately don't overlap:
+- **Poll (Task 3)**: Server didn't deliver approval data. Condition: raw approvals empty. Recovery: keep refetching.
+- **Staleness (Task 4)**: User submitted but Temporal signal failed. Condition: dismissed entry age > 15s. Recovery: card reappears.
+
+If the poll checked *filtered* approvals (post-dismissal), it would fire every 3s after the user submits an approval — wasteful because the server already has the data, and refetching won't change anything until the Temporal signal processes.
+
+### Stale Closure Handling
+The staleness `setInterval` callback needs the latest `dismissedAtMap` state. Since `useState` values in closures can go stale between interval ticks, we use the standard "latest ref" pattern:
+```typescript
+const dismissedAtMapRef = useRef(dismissedAtMap);
+dismissedAtMapRef.current = dismissedAtMap; // sync on every render
+```
+The interval reads `dismissedAtMapRef.current` to always get the fresh map.
+
+### Test Results
+- All 95 SDK React tests pass (7 files)
+- 20 tests in useSessionConversation (up from 10)
+- Zero regressions
+
+---
+
