@@ -660,6 +660,7 @@ class StatusBuilder:
                     f"(fingerprint dedup on resume path)"
                 )
             return
+
         self.tool_call_fingerprints.add(fingerprint)
 
         # Register namespace early — before any special-case handlers — so
@@ -1817,6 +1818,18 @@ class StatusBuilder:
 
         temp_id = f"early-{tool_use_id or uuid4()}"
 
+        # On resume, LangGraph replays the AI message from the checkpoint.
+        # The replayed tool_use blocks carry the same tool_use_id, so the
+        # derived temp_id matches an existing ToolCall from the previous
+        # cycle.  Skip creation to avoid duplicate messages and tool calls.
+        if self._find_tool_call_by_id(temp_id) is not None:
+            self.logger.info(
+                "[RESUME_DEDUP] execution=%s skipping early tool call "
+                "creation for %s (id=%s already exists from prior cycle)",
+                self.execution_id, tool_name, temp_id,
+            )
+            return
+
         mcp_server_slug = ""
         if self._approval_config is not None:
             mcp_server_slug = self._approval_config.get_mcp_server_for_tool(tool_name)
@@ -2423,6 +2436,28 @@ class StatusBuilder:
             from_sub_agent: True if this approval bubbles up from a sub-agent
             sub_agent_name: Name of the sub-agent (when from_sub_agent=True)
         """
+        # Guard: skip if the resolved tool call is already past approval.
+        # On the resume path, a stale early-reconcile or replayed event can
+        # attempt to create a pending approval for a tool that was already
+        # approved and is RUNNING / COMPLETED / FAILED.
+        tc_id_guard = self._run_id_aliases.get(run_id, run_id)
+        _POST_APPROVAL_STATUSES = frozenset({
+            ToolCallStatus.TOOL_CALL_RUNNING,
+            ToolCallStatus.TOOL_CALL_COMPLETED,
+            ToolCallStatus.TOOL_CALL_FAILED,
+            ToolCallStatus.TOOL_CALL_SKIPPED,
+        })
+        existing_tc = self._find_tool_call_by_id(tc_id_guard)
+        if existing_tc is not None and existing_tc.status in _POST_APPROVAL_STATUSES:
+            self.logger.warning(
+                "[APPROVAL_GUARD] execution=%s tool=%s tc_id=%s "
+                "skipping pending approval — tool call already in "
+                "post-approval state %s",
+                self.execution_id, tool_name, tc_id_guard,
+                ToolCallStatus.Name(existing_tc.status),
+            )
+            return
+
         # Save current phase (only on the FIRST pending approval) and
         # transition to WAITING_FOR_APPROVAL.  When multiple tool calls
         # require approval in a single LLM response, subsequent calls to

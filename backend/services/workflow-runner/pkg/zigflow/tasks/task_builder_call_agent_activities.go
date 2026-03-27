@@ -564,53 +564,59 @@ func (a *CallAgentActivities) UpdateWorkflowTaskApprovalStatus(
 	return nil
 }
 
-// ClearWorkflowApprovalStatus clears pending approvals from a workflow
+// ClearWorkflowApprovalStatus resolves pending approvals on a workflow
 // execution when the child agent task completes (whether approved, rejected,
 // or if no approval was needed).
 //
-// This is called when the agent activity completes successfully. It ensures
-// the WorkflowExecution.status.pending_approvals is cleared so UI doesn't
-// show stale approval requests.
-//
-// Implementation Note:
-// We send an empty pending_approvals list (with a single empty PendingApproval
-// entry with empty ToolCallId) as the clear signal. The Java handler checks
-// the first entry's ToolCallId to detect the clear intent.
+// This is called when the agent activity completes successfully. It advances
+// all pending approvals to RESUME_RECONCILED state. The server-side merge
+// logic will prune them from the stored list since their lifecycle_state
+// has reached the terminal state.
 func (a *CallAgentActivities) ClearWorkflowApprovalStatus(
 	ctx context.Context,
 	executionId string,
+	existingApprovals []*agentexecv1.PendingApproval,
 ) error {
 	logger := activity.GetLogger(ctx)
 
-	logger.Debug("Clearing pending approvals from workflow execution",
-		"execution_id", executionId)
+	if len(existingApprovals) == 0 {
+		logger.Debug("No pending approvals to clear from workflow execution",
+			"execution_id", executionId)
+		return nil
+	}
 
-	// Get workflow execution client
+	logger.Debug("Advancing pending approvals to RESUME_RECONCILED on workflow execution",
+		"execution_id", executionId,
+		"count", len(existingApprovals))
+
 	client, err := workflowexecclient.GetWorkflowExecutionCommandClient()
 	if err != nil {
 		logger.Error("Failed to get workflow execution client", "error", err)
 		return fmt.Errorf("failed to get workflow execution client: %w", err)
 	}
 
-	// Build status update with an empty PendingApproval entry to signal clearing.
-	// An entry with empty ToolCallId signals "clear all pending approvals".
-	status := &workflowexecv1.WorkflowExecutionStatus{
-		PendingApprovals: []*agentexecv1.PendingApproval{
-			{ToolCallId: ""}, // Empty tool_call_id signals clear intent
-		},
+	reconciled := make([]*agentexecv1.PendingApproval, 0, len(existingApprovals))
+	for _, pa := range existingApprovals {
+		reconciled = append(reconciled, &agentexecv1.PendingApproval{
+			ToolCallId:     pa.GetToolCallId(),
+			ToolName:       pa.GetToolName(),
+			LifecycleState: agentexecv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_RESUME_RECONCILED,
+		})
 	}
 
-	// Update workflow execution status
+	status := &workflowexecv1.WorkflowExecutionStatus{
+		PendingApprovals: reconciled,
+	}
+
 	_, err = client.UpdateStatus(ctx, executionId, status)
 	if err != nil {
-		// Log but don't fail - clearing is best-effort
 		logger.Warn("Failed to clear workflow pending approvals",
 			"execution_id", executionId,
 			"error", err)
 		return fmt.Errorf("failed to clear workflow pending approvals: %w", err)
 	}
 
-	logger.Debug("Successfully cleared pending approvals from workflow execution",
+	logger.Debug("Successfully advanced pending approvals to RESUME_RECONCILED on workflow execution",
 		"execution_id", executionId)
 
 	return nil

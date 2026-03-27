@@ -9,6 +9,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -194,10 +195,17 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*work
 		updated.Status.TemporalWorkflowId = requestStatus.TemporalWorkflowId
 	}
 
+	// Merge pending_approvals: upsert-by-tool_call_id with forward-only lifecycle + prune
+	updated.Status.PendingApprovals = approval.MergePendingApprovals(
+		existing.GetStatus().GetPendingApprovals(),
+		requestStatus.GetPendingApprovals(),
+	)
+
 	log.Debug().
 		Str("execution_id", input.ExecutionId).
 		Str("phase", updated.Status.Phase.String()).
 		Int("tasks_count", len(updated.Status.Tasks)).
+		Int("pending_approvals_count", len(updated.Status.PendingApprovals)).
 		Msg("Merged status fields")
 
 	// Store merged execution in context for persist step

@@ -10,6 +10,7 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource/apiresourcekind"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval"
 	"go.temporal.io/sdk/activity"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -113,21 +114,11 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		status.Todos = statusUpdates.Todos
 	}
 
-	// Pending approvals: merge using the same convention as the controller handler.
-	// Non-empty list with a real tool_call_id => replace; empty tool_call_id => clear;
-	// absent (len 0) => preserve existing.
-	if len(statusUpdates.GetPendingApprovals()) > 0 {
-		if statusUpdates.GetPendingApprovals()[0].GetToolCallId() != "" {
-			log.Debug().
-				Int("old_count", len(status.GetPendingApprovals())).
-				Int("new_count", len(statusUpdates.GetPendingApprovals())).
-				Msg("Replacing pending_approvals")
-			status.PendingApprovals = statusUpdates.PendingApprovals
-		} else {
-			log.Debug().Msg("Clearing pending_approvals")
-			status.PendingApprovals = nil
-		}
-	}
+	// Pending approvals: upsert-by-tool_call_id with forward-only lifecycle + prune
+	status.PendingApprovals = approval.MergePendingApprovals(
+		existing.GetStatus().GetPendingApprovals(),
+		statusUpdates.GetPendingApprovals(),
+	)
 
 	// Phase: Update if provided
 	if statusUpdates.Phase != agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED {

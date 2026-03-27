@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { PendingApproval } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import { ApprovalAction, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ApprovalLifecycleState } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import type { McpServerUsage as ProtoMcpServerUsage } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import type { WorkspaceEntry as ProtoWorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
@@ -26,8 +27,16 @@ import { useUpdateSession } from "./useUpdateSession";
 
 const APPROVAL_POLL_INITIAL_MS = 3_000;
 const APPROVAL_POLL_MAX_MS = 30_000;
+const APPROVAL_POLL_MAX_ATTEMPTS = 8;
 const STALE_DISMISSAL_MS = 15_000;
 const STALE_CHECK_INTERVAL_MS = 5_000;
+
+/** Lifecycle states where the approval is still actionable by the user. */
+const ACTIONABLE_LIFECYCLE_STATES = new Set([
+  ApprovalLifecycleState.APPROVAL_LIFECYCLE_UNSPECIFIED,
+  ApprovalLifecycleState.APPROVAL_LIFECYCLE_REQUESTED,
+  ApprovalLifecycleState.APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
+]);
 
 /**
  * Options for {@link UseSessionConversationReturn.sendFollowUp}.
@@ -371,8 +380,11 @@ export function useSessionConversation(
 
   const pendingApprovals = useMemo<readonly PendingApproval[]>(() => {
     const all = activeStreamExecution?.status?.pendingApprovals ?? [];
-    if (dismissedApprovalIds.size === 0) return all;
-    return all.filter((a) => !dismissedApprovalIds.has(a.toolCallId));
+    return all.filter(
+      (a) =>
+        ACTIONABLE_LIFECYCLE_STATES.has(a.lifecycleState) &&
+        !dismissedApprovalIds.has(a.toolCallId),
+    );
   }, [activeStreamExecution, dismissedApprovalIds]);
 
   // Poll-based fallback: when the execution is WAITING_FOR_APPROVAL but
@@ -386,6 +398,7 @@ export function useSessionConversation(
 
   const approvalPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollAttemptRef = useRef(0);
+  const [approvalLoadFailed, setApprovalLoadFailed] = useState(false);
 
   useEffect(() => {
     if (approvalPollRef.current) {
@@ -393,6 +406,7 @@ export function useSessionConversation(
       approvalPollRef.current = null;
     }
     pollAttemptRef.current = 0;
+    setApprovalLoadFailed(false);
 
     const isWaiting =
       activePhase === ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL;
@@ -400,6 +414,10 @@ export function useSessionConversation(
     if (!isWaiting || rawApprovalCount > 0 || !activeExecutionId) return;
 
     function scheduleNextPoll() {
+      if (pollAttemptRef.current >= APPROVAL_POLL_MAX_ATTEMPTS) {
+        setApprovalLoadFailed(true);
+        return;
+      }
       const delay = Math.min(
         APPROVAL_POLL_INITIAL_MS * 2 ** pollAttemptRef.current,
         APPROVAL_POLL_MAX_MS,
@@ -496,6 +514,7 @@ export function useSessionConversation(
     dismissedApprovalIds,
     approvalError,
     clearApprovalError,
+    approvalLoadFailed,
 
     isLoading,
     loadError,

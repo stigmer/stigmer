@@ -32,7 +32,7 @@ message AgentExecution {
   AgentExecutionSpec spec = 4;
 
   // System-managed execution state and results.
-  // Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+  // Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
   AgentExecutionStatus status = 5;
 }
 
@@ -51,11 +51,6 @@ message AgentExecutionStatus {
   // Tracks the execution state from creation (PENDING) through active processing (IN_PROGRESS)
   // to terminal states (COMPLETED/FAILED/CANCELLED).
   ExecutionPhase phase = 2 [(buf.validate.field).enum.defined_only = true];
-
-  // Tool calls made during this execution.
-  // Tracked separately for easier querying and display.
-  // Also referenced within messages[].tool_calls for conversation context.
-  repeated ToolCall tool_calls = 3;
 
   // Sub-agent executions invoked during this execution.
   // Tracks when the main agent delegates work to specialized sub-agents.
@@ -134,33 +129,33 @@ message AgentExecutionStatus {
   ResolvedExecutionContext resolved_context = 12;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Pending Approvals (HITL — Batch Approval)
+  // Pending Approvals (HITL — Computed Projection)
   //
-  // When the LLM returns one or more tool calls that each require approval,
-  // LangGraph creates one interrupt per tool. All pending interrupts are
-  // surfaced here so the UI can collect decisions for every tool before the
-  // graph is resumed.
-  //
-  // The agent-runner resumes the graph with a single
-  //   Command(resume={interrupt_id_A: decision_A, interrupt_id_B: decision_B, ...})
-  // once ALL entries have been decided. This avoids repeated node re-execution
-  // and the idempotency risks of one-at-a-time resume.
+  // Server-side computed projection of tool calls awaiting user approval.
+  // Recomputed on every UpdateStatus write — never stale, never merged.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // All pending approval requests for this execution.
+  // Active pending approval requests for this execution.
+  //
+  // Computed server-side by the Go/Java UpdateStatus handlers on every write.
+  // The handler scans messages[].tool_calls and
+  // sub_agent_executions[].messages[].tool_calls, collecting entries where
+  // status == WAITING_APPROVAL && requires_approval == true, and projects
+  // them into PendingApproval entries.
+  //
+  // Because this field is recomputed (not merged), it is always consistent
+  // with the authoritative tool call state embedded in messages. No lifecycle
+  // state machine, no merge logic, no forward-only enforcement needed.
+  //
+  // Sub-agent approvals are included with from_sub_agent=true and
+  // sub_agent_name set, so the UI can attribute each approval to its origin.
   //
   // Lifecycle:
-  // 1. Populated after the event stream ends, by querying graph state for
-  //    pending interrupts. Each interrupt is matched to a tool call.
-  // 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-  // 3. User submits decisions via SubmitApproval RPC (one per tool call).
-  // 4. After ALL entries have decisions, the Temporal workflow signals resume.
-  // 5. On resume, all decisions are sent to LangGraph in a single Command.
-  //
-  // When populated:
-  // - Each entry's tool_call_id matches an entry in tool_calls[] with status
-  //   WAITING_APPROVAL
-  // - Each entry carries its interrupt_id for targeted resume
+  // 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+  // 2. UpdateStatus handler recomputes this field, entry appears
+  // 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+  // 4. User submits decisions via SubmitApproval RPC (one per tool call)
+  // 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
   //
   // Empty when no approvals are pending.
   repeated PendingApproval pending_approvals = 16;
