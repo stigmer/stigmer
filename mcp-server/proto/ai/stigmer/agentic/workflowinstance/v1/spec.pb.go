@@ -160,7 +160,7 @@ const file_ai_stigmer_agentic_workflowinstance_v1_spec_proto_rawDesc = "" +
 	"workflowId\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\xd5\x01\n" +
 	"\x10environment_refs\x18\x03 \x03(\v24.ai.stigmer.commons.apiresource.ApiResourceReferenceBt\xbaHq\x92\x01n\"l\xba\x01i\n" +
-	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 52R\x0fenvironmentRefsB\xdb\x02\n" +
+	"\x15environment_refs.kind\x12?environment_refs must reference resources with kind=environment\x1a\x0fthis.kind == 53R\x0fenvironmentRefsB\xdb\x02\n" +
 	"*com.ai.stigmer.agentic.workflowinstance.v1B\tSpecProtoP\x01Zegithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/workflowinstance/v1;workflowinstancev1\xa2\x02\x04ASAW\xaa\x02&Ai.Stigmer.Agentic.Workflowinstance.V1\xca\x02&Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\xe2\x022Ai\\Stigmer\\Agentic\\Workflowinstance\\V1\\GPBMetadata\xea\x02*Ai::Stigmer::Agentic::Workflowinstance::V1b\x06proto3"
 
 var (
