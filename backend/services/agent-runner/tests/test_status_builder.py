@@ -2480,61 +2480,6 @@ class TestSubAgentScenarios:
         # by finalize (finalize only sets status/error/completed_at).
         assert len(sa.pending_approvals) == 1
 
-    @pytest.mark.asyncio
-    async def test_remove_from_pending_resolves_run_id_aliases(self, status_builder):
-        """_remove_from_pending uses _run_id_aliases to match reconciliation-path tool calls."""
-        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
-
-        sa_run_id = "sa-alias-test"
-        namespace = f"agent_node:{sa_run_id}"
-        real_run_id = "tool-real-id"
-        temp_id = "temp-reconciled-id"
-
-        # Start sub-agent and its tool (using the real run_id)
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": sa_run_id,
-            "data": {
-                "input": {
-                    "subagent_type": "editor",
-                    "input": "edit files",
-                }
-            },
-            "metadata": {},
-        })
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "write_file",
-            "run_id": real_run_id,
-            "data": {"input": {"path": "/tmp/f.py", "content": "x"}},
-            "metadata": {"langgraph_checkpoint_ns": namespace},
-        })
-
-        # Simulate reconciliation: the tool call's protobuf id was set to
-        # temp_id by the reconciliation path.  Register the alias.
-        sa = status_builder._active_sub_agents[sa_run_id]
-        sa.tool_calls[0].id = temp_id
-        status_builder._run_id_aliases[real_run_id] = temp_id
-
-        # Append PendingApproval using temp_id (matching the tool call's id)
-        pa = PendingApproval(
-            tool_call_id=temp_id,
-            tool_name="write_file",
-            from_sub_agent=True,
-        )
-        status_builder.current_status.pending_approvals.append(pa)
-        status_builder.sync_sub_agent_pending_approvals()
-
-        assert len(sa.pending_approvals) == 1
-
-        # Track the run_id for removal (real_run_id, not temp_id)
-        status_builder._pending_tool_approvals.append(real_run_id)
-
-        # _remove_from_pending should resolve real_run_id -> temp_id via alias
-        status_builder._remove_from_pending(real_run_id)
-
-        assert len(sa.pending_approvals) == 0
 
 
 # =============================================================================

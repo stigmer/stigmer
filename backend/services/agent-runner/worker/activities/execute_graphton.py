@@ -1624,6 +1624,18 @@ async def _execute_graphton_impl(
             
             if loop_aborted:
                 resume_dict = {}
+                status_builder.current_status.messages.append(
+                    AgentMessage(
+                        type=MessageType.MESSAGE_SYSTEM,
+                        content=(
+                            f"⚠️ Approval resume skipped: a pending approval "
+                            f"(tool_call_id={pa.tool_call_id}) had no matching "
+                            f"decision. The agent will restart from its last "
+                            f"checkpoint instead of resuming."
+                        ),
+                        timestamp=_utc_timestamp(),
+                    )
+                )
             
             # Defense-in-depth: when Phase 2 enrichment failed to populate
             # interrupt_id (e.g., legacy from_sub_agent mismatch), query the
