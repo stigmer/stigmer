@@ -5,7 +5,7 @@
 # Build command: docker build -f backend/services/agent-runner/Dockerfile -t agent-runner .
 
 # ---------- Base Layer with Python ----------
-FROM python:3.11-slim AS base
+FROM public.ecr.aws/docker/library/python:3.11-slim AS base
 
 WORKDIR /app
 
@@ -79,7 +79,7 @@ from langgraph.checkpoint.mongodb import MongoDBSaver; \
 print('checkpointer import verification passed')"
 
 # ---------- Runtime Image ----------
-FROM python:3.11-slim
+FROM public.ecr.aws/docker/library/python:3.11-slim
 
 WORKDIR /app
 
@@ -102,7 +102,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Go toolchain (for 'go run' of Go-based MCP servers)
-COPY --from=golang:1.25 /usr/local/go /usr/local/go
+COPY --from=public.ecr.aws/docker/library/golang:1.25 /usr/local/go /usr/local/go
 ENV PATH="/usr/local/go/bin:${PATH}"
 
 # uv / uvx (Python package runner — the PyPI equivalent of npx)

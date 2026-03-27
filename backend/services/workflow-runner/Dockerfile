@@ -4,7 +4,7 @@
 # Build command: docker build -f backend/services/workflow-runner/Dockerfile -t workflow-runner .
 
 # ---------- Builder Stage ----------
-FROM golang:1.25 AS builder
+FROM public.ecr.aws/docker/library/golang:1.25 AS builder
 
 # Match repository structure so the go.mod replace directive resolves:
 #   replace github.com/stigmer/stigmer/apis/stubs/go => ../../../apis/stubs/go
@@ -25,7 +25,7 @@ COPY backend/services/workflow-runner/ .
 RUN CGO_ENABLED=0 GOOS=linux go build -o workflow-runner ./cmd/zigflow
 
 # ---------- Runtime Stage ----------
-FROM alpine:3.19
+FROM public.ecr.aws/docker/library/alpine:3.19
 
 RUN apk --no-cache add ca-certificates
 
