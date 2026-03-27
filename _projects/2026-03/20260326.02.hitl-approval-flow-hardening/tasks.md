@@ -13,8 +13,9 @@ Update task status as you progress:
 
 ## Task 1: Route all lifecycle mutations through ApprovalStateManager.advance()
 
-**Status**: ⏸️ TODO
+**Status**: ✅ DONE
 **Created**: 2026-03-26 20:52
+**Completed**: 2026-03-26 21:15
 **Severity**: Medium (correctness risk)
 **Files**: `backend/services/agent-runner/worker/activities/graphton/hitl.py`
 
@@ -31,17 +32,18 @@ The forward-only invariant and structured `[LIFECYCLE]` logging are bypassed.
 
 ### Subtasks
 
-- [ ] Replace direct `pa.lifecycle_state = INTERRUPT_CAPTURED` in `InterruptCapture.capture()` (line 227) with `self._sm.advance(pa, target_state=INTERRUPT_CAPTURED, service="InterruptCapture")`
-- [ ] For new `PendingApproval` construction (line 249-259), call `advance()` after construction (can't use advance on uninitialized proto, so construct with REQUESTED first, then advance to INTERRUPT_CAPTURED)
-- [ ] Inject `ApprovalStateManager` into `ResumeReconciler` and replace line 584's direct assignment
-- [ ] Pass `ApprovalStateManager` to `_try_enrich_phase1_entry` or refactor it to be a method on a class that has access
-- [ ] Update `test_hitl_contracts.py` to verify `advance()` is called (mock or assert lifecycle transitions)
+- [x] Replace direct `pa.lifecycle_state = INTERRUPT_CAPTURED` in `InterruptCapture.capture()` with `self._sm.advance()`
+- [x] For new `PendingApproval` construction, construct with REQUESTED first, then advance to INTERRUPT_CAPTURED
+- [x] Inject `ApprovalStateManager` into `ResumeReconciler` and replace direct assignment
+- [x] Promoted `_try_enrich_phase1_entry` to `InterruptCapture._try_enrich_phase1_entry()` instance method (DDD alignment)
+- [x] Updated `test_hitl_contracts.py` with `TestAdvanceEnforcement` spy-based verification
+- [x] Fixed surprise dependencies in `test_approval_resume.py` and `test_status_builder.py`
 
-### Notes
+### Decisions Made
 
-- `ApprovalStateManager.advance()` raises `ValueError` on backward transitions -- this is the safety net we want enforced
-- The `_sm` reference is already stored in `InterruptCapture.__init__` but never used
-- `ResumeReconciler` does NOT currently receive `state_manager` -- needs constructor change
+- **Clear-signal sentinel stays direct**: `PendingApproval(tool_call_id="", lifecycle_state=CLEARED)` is a protocol marker, not a lifecycle event -- running `advance()` would log misleading transitions
+- **`_try_enrich_phase1_entry` promoted to method**: Moved from standalone function to `InterruptCapture` private method for DDD alignment and natural access to `self._sm`
+- **Backward-compat re-export removed**: The `_try_enrich_phase1_entry` re-export in `execute_graphton.py` (from the extraction refactor) was removed; test files updated to import from `hitl.py` directly
 
 ---
 

@@ -53,3 +53,29 @@ These were identified but deprioritized:
 
 ---
 
+## 2026-03-26 21:15 - Task 1 Complete: ApprovalStateManager Enforcement
+
+### What Changed
+- All 4 direct `lifecycle_state` assignment bypass sites in `hitl.py` now route through `ApprovalStateManager.advance()`
+- `_try_enrich_phase1_entry` promoted from standalone function to `InterruptCapture._try_enrich_phase1_entry()` (DDD alignment — groups behavior with owning class)
+- `ResumeReconciler` now accepts `state_manager: ApprovalStateManager` in its constructor
+- `execute_graphton.py` updated: imports, wiring, removed backward-compat re-export
+- 3 test files refactored + new `TestAdvanceEnforcement` class added
+
+### Files Modified
+- `backend/services/agent-runner/worker/activities/graphton/hitl.py` (91 lines changed)
+- `backend/services/agent-runner/worker/activities/execute_graphton.py` (8 lines changed)
+- `backend/services/agent-runner/tests/test_hitl_contracts.py` (125 lines changed)
+- `backend/services/agent-runner/tests/test_approval_resume.py` (39 lines changed)
+- `backend/services/agent-runner/tests/test_status_builder.py` (53 lines changed)
+
+### Surprise Dependencies (not in original plan)
+- `test_approval_resume.py` and `test_status_builder.py` imported `_try_enrich_phase1_entry` via the backward-compat re-export in `execute_graphton.py`. Removing that re-export required refactoring both files to instantiate `InterruptCapture` directly.
+
+### Decisions
+- **Clear-signal sentinel stays direct**: The `PendingApproval(tool_call_id="", lifecycle_state=CLEARED)` is a protocol marker, not a lifecycle transition — `advance()` would emit misleading logs for a non-existent tool call
+- **New PAs start at REQUESTED, then advance**: Preserves full audit trail even for PAs that skip Phase 1
+- **No idempotent advance mode**: The existing flow guarantees single-pass processing via `matched_tc_ids` dedup
+
+---
+
