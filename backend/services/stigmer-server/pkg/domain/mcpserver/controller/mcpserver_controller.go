@@ -28,6 +28,8 @@ package mcpserver
 import (
 	mcpserverv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/mcpserver/v1"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/environment"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/downstream/executioncontext"
 	"go.temporal.io/sdk/client"
 )
 
@@ -52,8 +54,10 @@ type McpServerController struct {
 	store store.Store
 
 	// Optional dependencies for discovery. Nil when Temporal is unavailable.
-	temporalClient client.Client
-	runnerQueue    string
+	temporalClient       client.Client
+	runnerQueue          string
+	environmentClient    *environment.Client
+	executionCtxClient   *executioncontext.Client
 }
 
 // NewMcpServerController creates a new McpServerController with the given store.
@@ -66,18 +70,24 @@ func NewMcpServerController(store store.Store) *McpServerController {
 	}
 }
 
-// SetDiscoveryDependencies injects the Temporal client needed for server-side
-// MCP discovery. This is called after the Temporal connection is established.
+// SetDiscoveryDependencies injects the dependencies needed for server-side
+// MCP discovery. This is called after the Temporal connection and in-process
+// gRPC clients are established.
 //
-// Credential resolution is handled inside the Python Temporal activity (JIT
-// via OBO gRPC), so the Go handler no longer needs an environment client.
+// The Go handler creates an ephemeral ExecutionContext with the resolved
+// environment variables and passes its ID to the Temporal workflow. The
+// Python activity reads from the scoped ExecutionContext (least-privilege).
 //
 // When these dependencies are not set, DiscoverCapabilities returns
 // FAILED_PRECONDITION indicating that server-side discovery is unavailable.
 func (c *McpServerController) SetDiscoveryDependencies(
 	temporalClient client.Client,
 	runnerQueue string,
+	environmentClient *environment.Client,
+	executionCtxClient *executioncontext.Client,
 ) {
 	c.temporalClient = temporalClient
 	c.runnerQueue = runnerQueue
+	c.environmentClient = environmentClient
+	c.executionCtxClient = executionCtxClient
 }

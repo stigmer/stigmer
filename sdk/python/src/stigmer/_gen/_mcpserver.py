@@ -66,6 +66,12 @@ class McpServerClient:
         except grpc.RpcError as e:
             raise wrap_error(e) from e
 
+    def discover_capabilities(self, input: io_pb2.DiscoverCapabilitiesInput) -> api_pb2.McpServer:
+        try:
+            return self._command.discoverCapabilities(input)
+        except grpc.RpcError as e:
+            raise wrap_error(e) from e
+
     def get(self, id: str) -> api_pb2.McpServer:
         try:
             return self._query.get(apiresource_io_pb2.ApiResourceId(value=id))

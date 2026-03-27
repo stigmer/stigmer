@@ -9,17 +9,25 @@ package ai.stigmer.agentic.mcpserver.v1;
  * <pre>
  * DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
  *
- * Triggers server-side MCP discovery: the backend resolves credentials from the
- * authenticated user's personal environment, starts a Temporal workflow that
- * connects to the MCP server (via the agent-runner), enumerates tools and resource
- * templates, and stores the result in status.discovered_capabilities.
+ * Triggers server-side MCP discovery: the backend creates an ephemeral
+ * ExecutionContext with the resolved environment variables, starts a Temporal
+ * workflow that connects to the MCP server (via the agent-runner), enumerates
+ * tools and resource templates, and stores the result in
+ * status.discovered_capabilities.
  *
  * The RPC blocks until discovery completes (~30s timeout) and returns the updated
  * McpServer with populated discovered_capabilities.
  *
+ * Environment variable resolution:
+ * - When runtime_env is provided, the backend creates an ExecutionContext directly
+ * from these values (one-time use, values are not persisted to any environment).
+ * - When runtime_env is empty, the backend resolves values from the authenticated
+ * user's personal environment.
+ *
  * Prerequisites:
  * - The MCP server must exist and have a valid server_type (stdio or http)
- * - Required credentials from env_spec must be present in the user's personal environment
+ * - Either runtime_env must contain all required keys, or the keys must be
+ * present in the user's personal environment
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput}
@@ -57,6 +65,18 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_descriptor;
   }
 
+  @SuppressWarnings({"rawtypes"})
+  @java.lang.Override
+  protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+      int number) {
+    switch (number) {
+      case 2:
+        return internalGetRuntimeEnv();
+      default:
+        throw new RuntimeException(
+            "Invalid map field number: " + number);
+    }
+  }
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
@@ -114,6 +134,125 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int RUNTIME_ENV_FIELD_NUMBER = 2;
+  private static final class RuntimeEnvDefaultEntryHolder {
+    static final com.google.protobuf.MapEntry<
+        java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> defaultEntry =
+            com.google.protobuf.MapEntry
+            .<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>newDefaultInstance(
+                ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_RuntimeEnvEntry_descriptor, 
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "",
+                com.google.protobuf.WireFormat.FieldType.MESSAGE,
+                ai.stigmer.agentic.executioncontext.v1.ExecutionValue.getDefaultInstance());
+  }
+  @SuppressWarnings("serial")
+  private com.google.protobuf.MapField<
+      java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> runtimeEnv_;
+  private com.google.protobuf.MapField<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
+  internalGetRuntimeEnv() {
+    if (runtimeEnv_ == null) {
+      return com.google.protobuf.MapField.emptyMapField(
+          RuntimeEnvDefaultEntryHolder.defaultEntry);
+    }
+    return runtimeEnv_;
+  }
+  public int getRuntimeEnvCount() {
+    return internalGetRuntimeEnv().getMap().size();
+  }
+  /**
+   * <pre>
+   * Optional environment variable values for one-time discovery. When provided,
+   * the backend creates a temporary ExecutionContext directly from these values
+   * without reading from the personal environment. Each value carries its own
+   * is_secret classification, matching the contract of
+   * AgentExecution.spec.runtime_env.
+   *
+   * When empty, values are resolved from the user's personal environment.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+   */
+  @java.lang.Override
+  public boolean containsRuntimeEnv(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    return internalGetRuntimeEnv().getMap().containsKey(key);
+  }
+  /**
+   * Use {@link #getRuntimeEnvMap()} instead.
+   */
+  @java.lang.Override
+  @java.lang.Deprecated
+  public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> getRuntimeEnv() {
+    return getRuntimeEnvMap();
+  }
+  /**
+   * <pre>
+   * Optional environment variable values for one-time discovery. When provided,
+   * the backend creates a temporary ExecutionContext directly from these values
+   * without reading from the personal environment. Each value carries its own
+   * is_secret classification, matching the contract of
+   * AgentExecution.spec.runtime_env.
+   *
+   * When empty, values are resolved from the user's personal environment.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+   */
+  @java.lang.Override
+  public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> getRuntimeEnvMap() {
+    return internalGetRuntimeEnv().getMap();
+  }
+  /**
+   * <pre>
+   * Optional environment variable values for one-time discovery. When provided,
+   * the backend creates a temporary ExecutionContext directly from these values
+   * without reading from the personal environment. Each value carries its own
+   * is_secret classification, matching the contract of
+   * AgentExecution.spec.runtime_env.
+   *
+   * When empty, values are resolved from the user's personal environment.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+   */
+  @java.lang.Override
+  public /* nullable */
+ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
+      java.lang.String key,
+      /* nullable */
+ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> map =
+        internalGetRuntimeEnv().getMap();
+    return map.containsKey(key) ? map.get(key) : defaultValue;
+  }
+  /**
+   * <pre>
+   * Optional environment variable values for one-time discovery. When provided,
+   * the backend creates a temporary ExecutionContext directly from these values
+   * without reading from the personal environment. Each value carries its own
+   * is_secret classification, matching the contract of
+   * AgentExecution.spec.runtime_env.
+   *
+   * When empty, values are resolved from the user's personal environment.
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrThrow(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> map =
+        internalGetRuntimeEnv().getMap();
+    if (!map.containsKey(key)) {
+      throw new java.lang.IllegalArgumentException();
+    }
+    return map.get(key);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -131,6 +270,12 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerId_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 1, mcpServerId_);
     }
+    com.google.protobuf.GeneratedMessage
+      .serializeStringMapTo(
+        output,
+        internalGetRuntimeEnv(),
+        RuntimeEnvDefaultEntryHolder.defaultEntry,
+        2);
     getUnknownFields().writeTo(output);
   }
 
@@ -142,6 +287,16 @@ private static final long serialVersionUID = 0L;
     size = 0;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerId_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(1, mcpServerId_);
+    }
+    for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> entry
+         : internalGetRuntimeEnv().getMap().entrySet()) {
+      com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
+      runtimeEnv__ = RuntimeEnvDefaultEntryHolder.defaultEntry.newBuilderForType()
+          .setKey(entry.getKey())
+          .setValue(entry.getValue())
+          .buildPartial();
+      size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(2, runtimeEnv__);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -160,6 +315,8 @@ private static final long serialVersionUID = 0L;
 
     if (!getMcpServerId()
         .equals(other.getMcpServerId())) return false;
+    if (!internalGetRuntimeEnv().equals(
+        other.internalGetRuntimeEnv())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -173,6 +330,10 @@ private static final long serialVersionUID = 0L;
     hash = (19 * hash) + getDescriptor().hashCode();
     hash = (37 * hash) + MCP_SERVER_ID_FIELD_NUMBER;
     hash = (53 * hash) + getMcpServerId().hashCode();
+    if (!internalGetRuntimeEnv().getMap().isEmpty()) {
+      hash = (37 * hash) + RUNTIME_ENV_FIELD_NUMBER;
+      hash = (53 * hash) + internalGetRuntimeEnv().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -274,17 +435,25 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
    *
-   * Triggers server-side MCP discovery: the backend resolves credentials from the
-   * authenticated user's personal environment, starts a Temporal workflow that
-   * connects to the MCP server (via the agent-runner), enumerates tools and resource
-   * templates, and stores the result in status.discovered_capabilities.
+   * Triggers server-side MCP discovery: the backend creates an ephemeral
+   * ExecutionContext with the resolved environment variables, starts a Temporal
+   * workflow that connects to the MCP server (via the agent-runner), enumerates
+   * tools and resource templates, and stores the result in
+   * status.discovered_capabilities.
    *
    * The RPC blocks until discovery completes (~30s timeout) and returns the updated
    * McpServer with populated discovered_capabilities.
    *
+   * Environment variable resolution:
+   * - When runtime_env is provided, the backend creates an ExecutionContext directly
+   * from these values (one-time use, values are not persisted to any environment).
+   * - When runtime_env is empty, the backend resolves values from the authenticated
+   * user's personal environment.
+   *
    * Prerequisites:
    * - The MCP server must exist and have a valid server_type (stdio or http)
-   * - Required credentials from env_spec must be present in the user's personal environment
+   * - Either runtime_env must contain all required keys, or the keys must be
+   * present in the user's personal environment
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput}
@@ -298,6 +467,28 @@ private static final long serialVersionUID = 0L;
       return ai.stigmer.agentic.mcpserver.v1.IoProto.internal_static_ai_stigmer_agentic_mcpserver_v1_DiscoverCapabilitiesInput_descriptor;
     }
 
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 2:
+          return internalGetRuntimeEnv();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 2:
+          return internalGetMutableRuntimeEnv();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
@@ -321,6 +512,7 @@ private static final long serialVersionUID = 0L;
       super.clear();
       bitField0_ = 0;
       mcpServerId_ = "";
+      internalGetMutableRuntimeEnv().clear();
       return this;
     }
 
@@ -357,6 +549,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000001) != 0)) {
         result.mcpServerId_ = mcpServerId_;
       }
+      if (((from_bitField0_ & 0x00000002) != 0)) {
+        result.runtimeEnv_ = internalGetRuntimeEnv().build(RuntimeEnvDefaultEntryHolder.defaultEntry);
+      }
     }
 
     @java.lang.Override
@@ -376,6 +571,9 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000001;
         onChanged();
       }
+      internalGetMutableRuntimeEnv().mergeFrom(
+          other.internalGetRuntimeEnv());
+      bitField0_ |= 0x00000002;
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -407,6 +605,15 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000001;
               break;
             } // case 10
+            case 18: {
+              com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
+              runtimeEnv__ = input.readMessage(
+                  RuntimeEnvDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              internalGetMutableRuntimeEnv().ensureBuilderMap().put(
+                  runtimeEnv__.getKey(), runtimeEnv__.getValue());
+              bitField0_ |= 0x00000002;
+              break;
+            } // case 18
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -519,6 +726,241 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00000001;
       onChanged();
       return this;
+    }
+
+    private static final class RuntimeEnvConverter implements com.google.protobuf.MapFieldBuilder.Converter<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> {
+      @java.lang.Override
+      public ai.stigmer.agentic.executioncontext.v1.ExecutionValue build(ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder val) {
+        if (val instanceof ai.stigmer.agentic.executioncontext.v1.ExecutionValue) { return (ai.stigmer.agentic.executioncontext.v1.ExecutionValue) val; }
+        return ((ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder) val).build();
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> defaultEntry() {
+        return RuntimeEnvDefaultEntryHolder.defaultEntry;
+      }
+    };
+    private static final RuntimeEnvConverter runtimeEnvConverter = new RuntimeEnvConverter();
+
+    private com.google.protobuf.MapFieldBuilder<
+        java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder, ai.stigmer.agentic.executioncontext.v1.ExecutionValue, ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder> runtimeEnv_;
+    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder, ai.stigmer.agentic.executioncontext.v1.ExecutionValue, ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder>
+        internalGetRuntimeEnv() {
+      if (runtimeEnv_ == null) {
+        return new com.google.protobuf.MapFieldBuilder<>(runtimeEnvConverter);
+      }
+      return runtimeEnv_;
+    }
+    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder, ai.stigmer.agentic.executioncontext.v1.ExecutionValue, ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder>
+        internalGetMutableRuntimeEnv() {
+      if (runtimeEnv_ == null) {
+        runtimeEnv_ = new com.google.protobuf.MapFieldBuilder<>(runtimeEnvConverter);
+      }
+      bitField0_ |= 0x00000002;
+      onChanged();
+      return runtimeEnv_;
+    }
+    public int getRuntimeEnvCount() {
+      return internalGetRuntimeEnv().ensureBuilderMap().size();
+    }
+    /**
+     * <pre>
+     * Optional environment variable values for one-time discovery. When provided,
+     * the backend creates a temporary ExecutionContext directly from these values
+     * without reading from the personal environment. Each value carries its own
+     * is_secret classification, matching the contract of
+     * AgentExecution.spec.runtime_env.
+     *
+     * When empty, values are resolved from the user's personal environment.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+     */
+    @java.lang.Override
+    public boolean containsRuntimeEnv(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      return internalGetRuntimeEnv().ensureBuilderMap().containsKey(key);
+    }
+    /**
+     * Use {@link #getRuntimeEnvMap()} instead.
+     */
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> getRuntimeEnv() {
+      return getRuntimeEnvMap();
+    }
+    /**
+     * <pre>
+     * Optional environment variable values for one-time discovery. When provided,
+     * the backend creates a temporary ExecutionContext directly from these values
+     * without reading from the personal environment. Each value carries its own
+     * is_secret classification, matching the contract of
+     * AgentExecution.spec.runtime_env.
+     *
+     * When empty, values are resolved from the user's personal environment.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+     */
+    @java.lang.Override
+    public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> getRuntimeEnvMap() {
+      return internalGetRuntimeEnv().getImmutableMap();
+    }
+    /**
+     * <pre>
+     * Optional environment variable values for one-time discovery. When provided,
+     * the backend creates a temporary ExecutionContext directly from these values
+     * without reading from the personal environment. Each value carries its own
+     * is_secret classification, matching the contract of
+     * AgentExecution.spec.runtime_env.
+     *
+     * When empty, values are resolved from the user's personal environment.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+     */
+    @java.lang.Override
+    public /* nullable */
+ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrDefault(
+        java.lang.String key,
+        /* nullable */
+ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder> map = internalGetMutableRuntimeEnv().ensureBuilderMap();
+      return map.containsKey(key) ? runtimeEnvConverter.build(map.get(key)) : defaultValue;
+    }
+    /**
+     * <pre>
+     * Optional environment variable values for one-time discovery. When provided,
+     * the backend creates a temporary ExecutionContext directly from these values
+     * without reading from the personal environment. Each value carries its own
+     * is_secret classification, matching the contract of
+     * AgentExecution.spec.runtime_env.
+     *
+     * When empty, values are resolved from the user's personal environment.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.executioncontext.v1.ExecutionValue getRuntimeEnvOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder> map = internalGetMutableRuntimeEnv().ensureBuilderMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return runtimeEnvConverter.build(map.get(key));
+    }
+    public Builder clearRuntimeEnv() {
+      bitField0_ = (bitField0_ & ~0x00000002);
+      internalGetMutableRuntimeEnv().clear();
+      return this;
+    }
+    /**
+     * <pre>
+     * Optional environment variable values for one-time discovery. When provided,
+     * the backend creates a temporary ExecutionContext directly from these values
+     * without reading from the personal environment. Each value carries its own
+     * is_secret classification, matching the contract of
+     * AgentExecution.spec.runtime_env.
+     *
+     * When empty, values are resolved from the user's personal environment.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+     */
+    public Builder removeRuntimeEnv(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      internalGetMutableRuntimeEnv().ensureBuilderMap()
+          .remove(key);
+      return this;
+    }
+    /**
+     * Use alternate mutation accessors instead.
+     */
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue>
+        getMutableRuntimeEnv() {
+      bitField0_ |= 0x00000002;
+      return internalGetMutableRuntimeEnv().ensureMessageMap();
+    }
+    /**
+     * <pre>
+     * Optional environment variable values for one-time discovery. When provided,
+     * the backend creates a temporary ExecutionContext directly from these values
+     * without reading from the personal environment. Each value carries its own
+     * is_secret classification, matching the contract of
+     * AgentExecution.spec.runtime_env.
+     *
+     * When empty, values are resolved from the user's personal environment.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+     */
+    public Builder putRuntimeEnv(
+        java.lang.String key,
+        ai.stigmer.agentic.executioncontext.v1.ExecutionValue value) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      if (value == null) { throw new NullPointerException("map value"); }
+      internalGetMutableRuntimeEnv().ensureBuilderMap()
+          .put(key, value);
+      bitField0_ |= 0x00000002;
+      return this;
+    }
+    /**
+     * <pre>
+     * Optional environment variable values for one-time discovery. When provided,
+     * the backend creates a temporary ExecutionContext directly from these values
+     * without reading from the personal environment. Each value carries its own
+     * is_secret classification, matching the contract of
+     * AgentExecution.spec.runtime_env.
+     *
+     * When empty, values are resolved from the user's personal environment.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+     */
+    public Builder putAllRuntimeEnv(
+        java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> values) {
+      for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValue> e : values.entrySet()) {
+        if (e.getKey() == null || e.getValue() == null) {
+          throw new NullPointerException();
+        }
+      }
+      internalGetMutableRuntimeEnv().ensureBuilderMap()
+          .putAll(values);
+      bitField0_ |= 0x00000002;
+      return this;
+    }
+    /**
+     * <pre>
+     * Optional environment variable values for one-time discovery. When provided,
+     * the backend creates a temporary ExecutionContext directly from these values
+     * without reading from the personal environment. Each value carries its own
+     * is_secret classification, matching the contract of
+     * AgentExecution.spec.runtime_env.
+     *
+     * When empty, values are resolved from the user's personal environment.
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.executioncontext.v1.ExecutionValue&gt; runtime_env = 2 [json_name = "runtimeEnv"];</code>
+     */
+    public ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder putRuntimeEnvBuilderIfAbsent(
+        java.lang.String key) {
+      java.util.Map<java.lang.String, ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder> builderMap = internalGetMutableRuntimeEnv().ensureBuilderMap();
+      ai.stigmer.agentic.executioncontext.v1.ExecutionValueOrBuilder entry = builderMap.get(key);
+      if (entry == null) {
+        entry = ai.stigmer.agentic.executioncontext.v1.ExecutionValue.newBuilder();
+        builderMap.put(key, entry);
+      }
+      if (entry instanceof ai.stigmer.agentic.executioncontext.v1.ExecutionValue) {
+        entry = ((ai.stigmer.agentic.executioncontext.v1.ExecutionValue) entry).toBuilder();
+        builderMap.put(key, entry);
+      }
+      return (ai.stigmer.agentic.executioncontext.v1.ExecutionValue.Builder) entry;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.mcpserver.v1.DiscoverCapabilitiesInput)

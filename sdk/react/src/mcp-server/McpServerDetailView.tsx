@@ -116,14 +116,24 @@ export function McpServerDetailView({
   }, [mcpServer, credentials.isReady, discovery, refetch]);
 
   const handleCredentialSubmit = useCallback(
-    async (values: Record<string, import("@stigmer/sdk").EnvVarInput>) => {
+    async (
+      values: Record<string, import("@stigmer/sdk").EnvVarInput>,
+      options: { saveForFuture: boolean },
+    ) => {
       try {
-        await credentials.saveCredentials(values);
+        if (options.saveForFuture) {
+          await credentials.saveCredentials(values);
+          credentials.refetch();
+        }
+
         setShowCredentialForm(false);
-        credentials.refetch();
 
         if (mcpServer?.metadata?.id) {
-          await discovery.discover(mcpServer.metadata.id);
+          if (options.saveForFuture) {
+            await discovery.discover(mcpServer.metadata.id);
+          } else {
+            await discovery.discover(mcpServer.metadata.id, values);
+          }
           refetch();
         }
       } catch {
@@ -586,6 +596,7 @@ function DiscoverySection({
   readonly isSavingCredentials: boolean;
   readonly onCredentialSubmit: (
     values: Record<string, import("@stigmer/sdk").EnvVarInput>,
+    options: { saveForFuture: boolean },
   ) => void;
   readonly onCredentialCancel: () => void;
   readonly credentialsLoading: boolean;
@@ -647,13 +658,11 @@ function DiscoverySection({
         <div className="rounded-lg border border-border p-4">
           <EnvVarForm
             title="Credentials Required"
-            description="Enter the credentials needed to connect to this MCP server. They will be saved to your personal environment for reuse."
+            description="Enter the credentials needed to connect to this MCP server. Toggle &quot;Save for future runs&quot; to persist them in your personal environment, or leave it off to use them for this discovery only."
             variables={credentialVariables}
-            onSubmit={(values) => onCredentialSubmit(values)}
+            onSubmit={(values, options) => onCredentialSubmit(values, options)}
             onCancel={onCredentialCancel}
             isSubmitting={isSavingCredentials}
-            hideSaveToggle
-            defaultSaveForFuture
             className="w-full max-w-md"
           />
         </div>

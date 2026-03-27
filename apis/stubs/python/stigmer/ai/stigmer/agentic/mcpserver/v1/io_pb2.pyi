@@ -1,5 +1,7 @@
+from ai.stigmer.agentic.executioncontext.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.agentic.mcpserver.v1 import status_pb2 as _status_pb2
 from buf.validate import validate_pb2 as _validate_pb2
+from google.protobuf.internal import containers as _containers
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Mapping as _Mapping
@@ -22,7 +24,16 @@ class UpdateDiscoveredCapabilitiesInput(_message.Message):
     def __init__(self, mcp_server_id: _Optional[str] = ..., discovered_capabilities: _Optional[_Union[_status_pb2.DiscoveredCapabilities, _Mapping]] = ...) -> None: ...
 
 class DiscoverCapabilitiesInput(_message.Message):
-    __slots__ = ("mcp_server_id",)
+    __slots__ = ("mcp_server_id", "runtime_env")
+    class RuntimeEnvEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: _spec_pb2.ExecutionValue
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[_spec_pb2.ExecutionValue, _Mapping]] = ...) -> None: ...
     MCP_SERVER_ID_FIELD_NUMBER: _ClassVar[int]
+    RUNTIME_ENV_FIELD_NUMBER: _ClassVar[int]
     mcp_server_id: str
-    def __init__(self, mcp_server_id: _Optional[str] = ...) -> None: ...
+    runtime_env: _containers.MessageMap[str, _spec_pb2.ExecutionValue]
+    def __init__(self, mcp_server_id: _Optional[str] = ..., runtime_env: _Optional[_Mapping[str, _spec_pb2.ExecutionValue]] = ...) -> None: ...
