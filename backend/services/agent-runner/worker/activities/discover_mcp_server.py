@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from contextlib import AsyncExitStack
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
@@ -232,12 +231,16 @@ async def _connect_and_discover(
 ) -> tuple[list[DiscoveredToolResult], list[DiscoveredResourceTemplateResult]]:
     """Connect to an MCP server and enumerate its capabilities.
 
-    Uses ``MultiServerMCPClient`` with a persistent session (same pattern
-    as agent execution) so both stdio and HTTP transports work correctly.
+    Uses ``MultiServerMCPClient`` with an ephemeral session (same pattern
+    as graphton's ``list_mcp_resources``) so both stdio and HTTP transports
+    work correctly.  The session context manager handles the full subprocess
+    lifecycle: spawning, MCP ``initialize`` handshake, and clean teardown.
 
-    Session initialization is guarded by a timeout to surface a clear
+    The entire block is guarded by ``asyncio.timeout()`` to surface a clear
     error when an MCP server's cold start (e.g. ``go run`` compilation,
-    ``npx`` package install) exceeds the allowed window.
+    ``npx`` package install) exceeds the allowed window.  Unlike
+    ``asyncio.wait_for()``, ``timeout()`` operates on the current task's
+    cancel scope and does not cross anyio task boundaries during teardown.
     """
     from langchain_mcp_adapters.client import MultiServerMCPClient
 
@@ -246,56 +249,52 @@ async def _connect_and_discover(
     tools: list[DiscoveredToolResult] = []
     resource_templates: list[DiscoveredResourceTemplateResult] = []
 
-    async with AsyncExitStack() as stack:
-        try:
-            session = await asyncio.wait_for(
-                stack.enter_async_context(client.session(server_slug)),
-                timeout=SESSION_INIT_TIMEOUT_SECONDS,
-            )
-        except TimeoutError:
-            raise TimeoutError(
-                f"MCP server '{server_slug}' did not respond within "
-                f"{SESSION_INIT_TIMEOUT_SECONDS}s. If this server requires "
-                f"compilation or package installation on first run "
-                f"(e.g. go run, npx), the cold start may have exceeded "
-                f"the discovery timeout."
-            ) from None
-
-        tools_result = await session.list_tools()
-        for tool in tools_result.tools:
-            schema = None
-            if tool.inputSchema:
-                schema = (
-                    dict(tool.inputSchema)
-                    if isinstance(tool.inputSchema, dict)
-                    else tool.inputSchema
-                )
-            tools.append(DiscoveredToolResult(
-                name=tool.name,
-                description=tool.description or "",
-                input_schema=schema,
-            ))
-
-        try:
-            init_result = getattr(session, "initialize_result", None)
-            if (
-                init_result
-                and init_result.capabilities
-                and init_result.capabilities.resources
-            ):
-                templates_result = await session.list_resource_templates()
-                for tpl in templates_result.resourceTemplates:
-                    resource_templates.append(DiscoveredResourceTemplateResult(
-                        uri_template=tpl.uriTemplate,
-                        name=tpl.name,
-                        description=tpl.description or "",
-                        mime_type=tpl.mimeType or "",
+    try:
+        async with asyncio.timeout(SESSION_INIT_TIMEOUT_SECONDS):
+            async with client.session(server_slug) as session:
+                tools_result = await session.list_tools()
+                for tool in tools_result.tools:
+                    schema = None
+                    if tool.inputSchema:
+                        schema = (
+                            dict(tool.inputSchema)
+                            if isinstance(tool.inputSchema, dict)
+                            else tool.inputSchema
+                        )
+                    tools.append(DiscoveredToolResult(
+                        name=tool.name,
+                        description=tool.description or "",
+                        input_schema=schema,
                     ))
-        except Exception as e:
-            logger.warning(
-                "Server '%s' does not support resource templates: %s",
-                server_slug, e,
-            )
+
+                try:
+                    init_result = getattr(session, "initialize_result", None)
+                    if (
+                        init_result
+                        and init_result.capabilities
+                        and init_result.capabilities.resources
+                    ):
+                        templates_result = await session.list_resource_templates()
+                        for tpl in templates_result.resourceTemplates:
+                            resource_templates.append(DiscoveredResourceTemplateResult(
+                                uri_template=tpl.uriTemplate,
+                                name=tpl.name,
+                                description=tpl.description or "",
+                                mime_type=tpl.mimeType or "",
+                            ))
+                except Exception as e:
+                    logger.warning(
+                        "Server '%s' does not support resource templates: %s",
+                        server_slug, e,
+                    )
+    except TimeoutError:
+        raise TimeoutError(
+            f"MCP server '{server_slug}' did not respond within "
+            f"{SESSION_INIT_TIMEOUT_SECONDS}s. If this server requires "
+            f"compilation or package installation on first run "
+            f"(e.g. go run, npx), the cold start may have exceeded "
+            f"the discovery timeout."
+        ) from None
 
     return tools, resource_templates
 
