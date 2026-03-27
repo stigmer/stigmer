@@ -35,7 +35,6 @@ private static final long serialVersionUID = 0L;
   private AgentExecutionStatus() {
     messages_ = java.util.Collections.emptyList();
     phase_ = 0;
-    toolCalls_ = java.util.Collections.emptyList();
     subAgentExecutions_ = java.util.Collections.emptyList();
     error_ = "";
     startedAt_ = "";
@@ -213,77 +212,6 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ExecutionPhase getPhase() {
     ai.stigmer.agentic.agentexecution.v1.ExecutionPhase result = ai.stigmer.agentic.agentexecution.v1.ExecutionPhase.forNumber(phase_);
     return result == null ? ai.stigmer.agentic.agentexecution.v1.ExecutionPhase.UNRECOGNIZED : result;
-  }
-
-  public static final int TOOL_CALLS_FIELD_NUMBER = 3;
-  @SuppressWarnings("serial")
-  private java.util.List<ai.stigmer.agentic.agentexecution.v1.ToolCall> toolCalls_;
-  /**
-   * <pre>
-   * Tool calls made during this execution.
-   * Tracked separately for easier querying and display.
-   * Also referenced within messages[].tool_calls for conversation context.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<ai.stigmer.agentic.agentexecution.v1.ToolCall> getToolCallsList() {
-    return toolCalls_;
-  }
-  /**
-   * <pre>
-   * Tool calls made during this execution.
-   * Tracked separately for easier querying and display.
-   * Also referenced within messages[].tool_calls for conversation context.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-   */
-  @java.lang.Override
-  public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.ToolCallOrBuilder> 
-      getToolCallsOrBuilderList() {
-    return toolCalls_;
-  }
-  /**
-   * <pre>
-   * Tool calls made during this execution.
-   * Tracked separately for easier querying and display.
-   * Also referenced within messages[].tool_calls for conversation context.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-   */
-  @java.lang.Override
-  public int getToolCallsCount() {
-    return toolCalls_.size();
-  }
-  /**
-   * <pre>
-   * Tool calls made during this execution.
-   * Tracked separately for easier querying and display.
-   * Also referenced within messages[].tool_calls for conversation context.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.ToolCall getToolCalls(int index) {
-    return toolCalls_.get(index);
-  }
-  /**
-   * <pre>
-   * Tool calls made during this execution.
-   * Tracked separately for easier querying and display.
-   * Also referenced within messages[].tool_calls for conversation context.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.ToolCallOrBuilder getToolCallsOrBuilder(
-      int index) {
-    return toolCalls_.get(index);
   }
 
   public static final int SUB_AGENT_EXECUTIONS_FIELD_NUMBER = 4;
@@ -747,20 +675,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
   private java.util.List<ai.stigmer.agentic.agentexecution.v1.PendingApproval> pendingApprovals_;
   /**
    * <pre>
-   * All pending approval requests for this execution.
+   * Active pending approval requests for this execution.
+   *
+   * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+   * The handler scans messages[].tool_calls and
+   * sub_agent_executions[].messages[].tool_calls, collecting entries where
+   * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+   * them into PendingApproval entries.
+   *
+   * Because this field is recomputed (not merged), it is always consistent
+   * with the authoritative tool call state embedded in messages. No lifecycle
+   * state machine, no merge logic, no forward-only enforcement needed.
+   *
+   * Sub-agent approvals are included with from_sub_agent=true and
+   * sub_agent_name set, so the UI can attribute each approval to its origin.
    *
    * Lifecycle:
-   * 1. Populated after the event stream ends, by querying graph state for
-   * pending interrupts. Each interrupt is matched to a tool call.
-   * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-   * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-   * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-   * 5. On resume, all decisions are sent to LangGraph in a single Command.
-   *
-   * When populated:
-   * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-   * WAITING_APPROVAL
-   * - Each entry carries its interrupt_id for targeted resume
+   * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+   * 2. UpdateStatus handler recomputes this field, entry appears
+   * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+   * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+   * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
    *
    * Empty when no approvals are pending.
    * </pre>
@@ -773,20 +708,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
   }
   /**
    * <pre>
-   * All pending approval requests for this execution.
+   * Active pending approval requests for this execution.
+   *
+   * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+   * The handler scans messages[].tool_calls and
+   * sub_agent_executions[].messages[].tool_calls, collecting entries where
+   * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+   * them into PendingApproval entries.
+   *
+   * Because this field is recomputed (not merged), it is always consistent
+   * with the authoritative tool call state embedded in messages. No lifecycle
+   * state machine, no merge logic, no forward-only enforcement needed.
+   *
+   * Sub-agent approvals are included with from_sub_agent=true and
+   * sub_agent_name set, so the UI can attribute each approval to its origin.
    *
    * Lifecycle:
-   * 1. Populated after the event stream ends, by querying graph state for
-   * pending interrupts. Each interrupt is matched to a tool call.
-   * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-   * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-   * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-   * 5. On resume, all decisions are sent to LangGraph in a single Command.
-   *
-   * When populated:
-   * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-   * WAITING_APPROVAL
-   * - Each entry carries its interrupt_id for targeted resume
+   * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+   * 2. UpdateStatus handler recomputes this field, entry appears
+   * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+   * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+   * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
    *
    * Empty when no approvals are pending.
    * </pre>
@@ -800,20 +742,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
   }
   /**
    * <pre>
-   * All pending approval requests for this execution.
+   * Active pending approval requests for this execution.
+   *
+   * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+   * The handler scans messages[].tool_calls and
+   * sub_agent_executions[].messages[].tool_calls, collecting entries where
+   * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+   * them into PendingApproval entries.
+   *
+   * Because this field is recomputed (not merged), it is always consistent
+   * with the authoritative tool call state embedded in messages. No lifecycle
+   * state machine, no merge logic, no forward-only enforcement needed.
+   *
+   * Sub-agent approvals are included with from_sub_agent=true and
+   * sub_agent_name set, so the UI can attribute each approval to its origin.
    *
    * Lifecycle:
-   * 1. Populated after the event stream ends, by querying graph state for
-   * pending interrupts. Each interrupt is matched to a tool call.
-   * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-   * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-   * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-   * 5. On resume, all decisions are sent to LangGraph in a single Command.
-   *
-   * When populated:
-   * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-   * WAITING_APPROVAL
-   * - Each entry carries its interrupt_id for targeted resume
+   * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+   * 2. UpdateStatus handler recomputes this field, entry appears
+   * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+   * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+   * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
    *
    * Empty when no approvals are pending.
    * </pre>
@@ -826,20 +775,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
   }
   /**
    * <pre>
-   * All pending approval requests for this execution.
+   * Active pending approval requests for this execution.
+   *
+   * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+   * The handler scans messages[].tool_calls and
+   * sub_agent_executions[].messages[].tool_calls, collecting entries where
+   * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+   * them into PendingApproval entries.
+   *
+   * Because this field is recomputed (not merged), it is always consistent
+   * with the authoritative tool call state embedded in messages. No lifecycle
+   * state machine, no merge logic, no forward-only enforcement needed.
+   *
+   * Sub-agent approvals are included with from_sub_agent=true and
+   * sub_agent_name set, so the UI can attribute each approval to its origin.
    *
    * Lifecycle:
-   * 1. Populated after the event stream ends, by querying graph state for
-   * pending interrupts. Each interrupt is matched to a tool call.
-   * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-   * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-   * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-   * 5. On resume, all decisions are sent to LangGraph in a single Command.
-   *
-   * When populated:
-   * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-   * WAITING_APPROVAL
-   * - Each entry carries its interrupt_id for targeted resume
+   * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+   * 2. UpdateStatus handler recomputes this field, entry appears
+   * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+   * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+   * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
    *
    * Empty when no approvals are pending.
    * </pre>
@@ -852,20 +808,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
   }
   /**
    * <pre>
-   * All pending approval requests for this execution.
+   * Active pending approval requests for this execution.
+   *
+   * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+   * The handler scans messages[].tool_calls and
+   * sub_agent_executions[].messages[].tool_calls, collecting entries where
+   * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+   * them into PendingApproval entries.
+   *
+   * Because this field is recomputed (not merged), it is always consistent
+   * with the authoritative tool call state embedded in messages. No lifecycle
+   * state machine, no merge logic, no forward-only enforcement needed.
+   *
+   * Sub-agent approvals are included with from_sub_agent=true and
+   * sub_agent_name set, so the UI can attribute each approval to its origin.
    *
    * Lifecycle:
-   * 1. Populated after the event stream ends, by querying graph state for
-   * pending interrupts. Each interrupt is matched to a tool call.
-   * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-   * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-   * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-   * 5. On resume, all decisions are sent to LangGraph in a single Command.
-   *
-   * When populated:
-   * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-   * WAITING_APPROVAL
-   * - Each entry carries its interrupt_id for targeted resume
+   * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+   * 2. UpdateStatus handler recomputes this field, entry appears
+   * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+   * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+   * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
    *
    * Empty when no approvals are pending.
    * </pre>
@@ -1094,9 +1057,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     if (phase_ != ai.stigmer.agentic.agentexecution.v1.ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED.getNumber()) {
       output.writeEnum(2, phase_);
     }
-    for (int i = 0; i < toolCalls_.size(); i++) {
-      output.writeMessage(3, toolCalls_.get(i));
-    }
     for (int i = 0; i < subAgentExecutions_.size(); i++) {
       output.writeMessage(4, subAgentExecutions_.get(i));
     }
@@ -1158,15 +1118,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(2, phase_);
     }
-
-        {
-          final int count = toolCalls_.size();
-          for (int i = 0; i < count; i++) {
-            size += com.google.protobuf.CodedOutputStream
-              .computeMessageSizeNoTag(toolCalls_.get(i));
-          }
-          size += 1 * count;
-        }
 
         {
           final int count = subAgentExecutions_.size();
@@ -1256,8 +1207,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     if (!getMessagesList()
         .equals(other.getMessagesList())) return false;
     if (phase_ != other.phase_) return false;
-    if (!getToolCallsList()
-        .equals(other.getToolCallsList())) return false;
     if (!getSubAgentExecutionsList()
         .equals(other.getSubAgentExecutionsList())) return false;
     if (!getError()
@@ -1310,10 +1259,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     hash = (37 * hash) + PHASE_FIELD_NUMBER;
     hash = (53 * hash) + phase_;
-    if (getToolCallsCount() > 0) {
-      hash = (37 * hash) + TOOL_CALLS_FIELD_NUMBER;
-      hash = (53 * hash) + getToolCallsList().hashCode();
-    }
     if (getSubAgentExecutionsCount() > 0) {
       hash = (37 * hash) + SUB_AGENT_EXECUTIONS_FIELD_NUMBER;
       hash = (53 * hash) + getSubAgentExecutionsList().hashCode();
@@ -1509,7 +1454,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
               .alwaysUseFieldBuilders) {
         internalGetAuditFieldBuilder();
         internalGetMessagesFieldBuilder();
-        internalGetToolCallsFieldBuilder();
         internalGetSubAgentExecutionsFieldBuilder();
         internalGetUsageFieldBuilder();
         internalGetResolvedContextFieldBuilder();
@@ -1535,20 +1479,13 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       }
       bitField0_ = (bitField0_ & ~0x00000002);
       phase_ = 0;
-      if (toolCallsBuilder_ == null) {
-        toolCalls_ = java.util.Collections.emptyList();
-      } else {
-        toolCalls_ = null;
-        toolCallsBuilder_.clear();
-      }
-      bitField0_ = (bitField0_ & ~0x00000008);
       if (subAgentExecutionsBuilder_ == null) {
         subAgentExecutions_ = java.util.Collections.emptyList();
       } else {
         subAgentExecutions_ = null;
         subAgentExecutionsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00000010);
+      bitField0_ = (bitField0_ & ~0x00000008);
       error_ = "";
       startedAt_ = "";
       completedAt_ = "";
@@ -1570,7 +1507,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         pendingApprovals_ = null;
         pendingApprovalsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00001000);
+      bitField0_ = (bitField0_ & ~0x00000800);
       contextInfo_ = null;
       if (contextInfoBuilder_ != null) {
         contextInfoBuilder_.dispose();
@@ -1582,7 +1519,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         artifacts_ = null;
         artifactsBuilder_.clear();
       }
-      bitField0_ = (bitField0_ & ~0x00004000);
+      bitField0_ = (bitField0_ & ~0x00002000);
       return this;
     }
 
@@ -1625,37 +1562,28 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         result.messages_ = messagesBuilder_.build();
       }
-      if (toolCallsBuilder_ == null) {
-        if (((bitField0_ & 0x00000008) != 0)) {
-          toolCalls_ = java.util.Collections.unmodifiableList(toolCalls_);
-          bitField0_ = (bitField0_ & ~0x00000008);
-        }
-        result.toolCalls_ = toolCalls_;
-      } else {
-        result.toolCalls_ = toolCallsBuilder_.build();
-      }
       if (subAgentExecutionsBuilder_ == null) {
-        if (((bitField0_ & 0x00000010) != 0)) {
+        if (((bitField0_ & 0x00000008) != 0)) {
           subAgentExecutions_ = java.util.Collections.unmodifiableList(subAgentExecutions_);
-          bitField0_ = (bitField0_ & ~0x00000010);
+          bitField0_ = (bitField0_ & ~0x00000008);
         }
         result.subAgentExecutions_ = subAgentExecutions_;
       } else {
         result.subAgentExecutions_ = subAgentExecutionsBuilder_.build();
       }
       if (pendingApprovalsBuilder_ == null) {
-        if (((bitField0_ & 0x00001000) != 0)) {
+        if (((bitField0_ & 0x00000800) != 0)) {
           pendingApprovals_ = java.util.Collections.unmodifiableList(pendingApprovals_);
-          bitField0_ = (bitField0_ & ~0x00001000);
+          bitField0_ = (bitField0_ & ~0x00000800);
         }
         result.pendingApprovals_ = pendingApprovals_;
       } else {
         result.pendingApprovals_ = pendingApprovalsBuilder_.build();
       }
       if (artifactsBuilder_ == null) {
-        if (((bitField0_ & 0x00004000) != 0)) {
+        if (((bitField0_ & 0x00002000) != 0)) {
           artifacts_ = java.util.Collections.unmodifiableList(artifacts_);
-          bitField0_ = (bitField0_ & ~0x00004000);
+          bitField0_ = (bitField0_ & ~0x00002000);
         }
         result.artifacts_ = artifacts_;
       } else {
@@ -1675,34 +1603,34 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (((from_bitField0_ & 0x00000004) != 0)) {
         result.phase_ = phase_;
       }
-      if (((from_bitField0_ & 0x00000020) != 0)) {
+      if (((from_bitField0_ & 0x00000010) != 0)) {
         result.error_ = error_;
       }
-      if (((from_bitField0_ & 0x00000040) != 0)) {
+      if (((from_bitField0_ & 0x00000020) != 0)) {
         result.startedAt_ = startedAt_;
       }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
+      if (((from_bitField0_ & 0x00000040) != 0)) {
         result.completedAt_ = completedAt_;
       }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
+      if (((from_bitField0_ & 0x00000080) != 0)) {
         result.todos_ = internalGetTodos().build(TodosDefaultEntryHolder.defaultEntry);
       }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
+      if (((from_bitField0_ & 0x00000100) != 0)) {
         result.callbackToken_ = callbackToken_;
       }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
+      if (((from_bitField0_ & 0x00000200) != 0)) {
         result.usage_ = usageBuilder_ == null
             ? usage_
             : usageBuilder_.build();
         to_bitField0_ |= 0x00000002;
       }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
+      if (((from_bitField0_ & 0x00000400) != 0)) {
         result.resolvedContext_ = resolvedContextBuilder_ == null
             ? resolvedContext_
             : resolvedContextBuilder_.build();
         to_bitField0_ |= 0x00000004;
       }
-      if (((from_bitField0_ & 0x00002000) != 0)) {
+      if (((from_bitField0_ & 0x00001000) != 0)) {
         result.contextInfo_ = contextInfoBuilder_ == null
             ? contextInfo_
             : contextInfoBuilder_.build();
@@ -1755,37 +1683,11 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (other.phase_ != 0) {
         setPhaseValue(other.getPhaseValue());
       }
-      if (toolCallsBuilder_ == null) {
-        if (!other.toolCalls_.isEmpty()) {
-          if (toolCalls_.isEmpty()) {
-            toolCalls_ = other.toolCalls_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-          } else {
-            ensureToolCallsIsMutable();
-            toolCalls_.addAll(other.toolCalls_);
-          }
-          onChanged();
-        }
-      } else {
-        if (!other.toolCalls_.isEmpty()) {
-          if (toolCallsBuilder_.isEmpty()) {
-            toolCallsBuilder_.dispose();
-            toolCallsBuilder_ = null;
-            toolCalls_ = other.toolCalls_;
-            bitField0_ = (bitField0_ & ~0x00000008);
-            toolCallsBuilder_ = 
-              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
-                 internalGetToolCallsFieldBuilder() : null;
-          } else {
-            toolCallsBuilder_.addAllMessages(other.toolCalls_);
-          }
-        }
-      }
       if (subAgentExecutionsBuilder_ == null) {
         if (!other.subAgentExecutions_.isEmpty()) {
           if (subAgentExecutions_.isEmpty()) {
             subAgentExecutions_ = other.subAgentExecutions_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000008);
           } else {
             ensureSubAgentExecutionsIsMutable();
             subAgentExecutions_.addAll(other.subAgentExecutions_);
@@ -1798,7 +1700,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
             subAgentExecutionsBuilder_.dispose();
             subAgentExecutionsBuilder_ = null;
             subAgentExecutions_ = other.subAgentExecutions_;
-            bitField0_ = (bitField0_ & ~0x00000010);
+            bitField0_ = (bitField0_ & ~0x00000008);
             subAgentExecutionsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetSubAgentExecutionsFieldBuilder() : null;
@@ -1809,22 +1711,22 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       }
       if (!other.getError().isEmpty()) {
         error_ = other.error_;
-        bitField0_ |= 0x00000020;
+        bitField0_ |= 0x00000010;
         onChanged();
       }
       if (!other.getStartedAt().isEmpty()) {
         startedAt_ = other.startedAt_;
-        bitField0_ |= 0x00000040;
+        bitField0_ |= 0x00000020;
         onChanged();
       }
       if (!other.getCompletedAt().isEmpty()) {
         completedAt_ = other.completedAt_;
-        bitField0_ |= 0x00000080;
+        bitField0_ |= 0x00000040;
         onChanged();
       }
       internalGetMutableTodos().mergeFrom(
           other.internalGetTodos());
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       if (!other.getCallbackToken().isEmpty()) {
         setCallbackToken(other.getCallbackToken());
       }
@@ -1838,7 +1740,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         if (!other.pendingApprovals_.isEmpty()) {
           if (pendingApprovals_.isEmpty()) {
             pendingApprovals_ = other.pendingApprovals_;
-            bitField0_ = (bitField0_ & ~0x00001000);
+            bitField0_ = (bitField0_ & ~0x00000800);
           } else {
             ensurePendingApprovalsIsMutable();
             pendingApprovals_.addAll(other.pendingApprovals_);
@@ -1851,7 +1753,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
             pendingApprovalsBuilder_.dispose();
             pendingApprovalsBuilder_ = null;
             pendingApprovals_ = other.pendingApprovals_;
-            bitField0_ = (bitField0_ & ~0x00001000);
+            bitField0_ = (bitField0_ & ~0x00000800);
             pendingApprovalsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetPendingApprovalsFieldBuilder() : null;
@@ -1867,7 +1769,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         if (!other.artifacts_.isEmpty()) {
           if (artifacts_.isEmpty()) {
             artifacts_ = other.artifacts_;
-            bitField0_ = (bitField0_ & ~0x00004000);
+            bitField0_ = (bitField0_ & ~0x00002000);
           } else {
             ensureArtifactsIsMutable();
             artifacts_.addAll(other.artifacts_);
@@ -1880,7 +1782,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
             artifactsBuilder_.dispose();
             artifactsBuilder_ = null;
             artifacts_ = other.artifacts_;
-            bitField0_ = (bitField0_ & ~0x00004000);
+            bitField0_ = (bitField0_ & ~0x00002000);
             artifactsBuilder_ = 
               com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                  internalGetArtifactsFieldBuilder() : null;
@@ -1933,19 +1835,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
               bitField0_ |= 0x00000004;
               break;
             } // case 16
-            case 26: {
-              ai.stigmer.agentic.agentexecution.v1.ToolCall m =
-                  input.readMessage(
-                      ai.stigmer.agentic.agentexecution.v1.ToolCall.parser(),
-                      extensionRegistry);
-              if (toolCallsBuilder_ == null) {
-                ensureToolCallsIsMutable();
-                toolCalls_.add(m);
-              } else {
-                toolCallsBuilder_.addMessage(m);
-              }
-              break;
-            } // case 26
             case 34: {
               ai.stigmer.agentic.agentexecution.v1.SubAgentExecution m =
                   input.readMessage(
@@ -1961,17 +1850,17 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
             } // case 34
             case 50: {
               error_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000020;
+              bitField0_ |= 0x00000010;
               break;
             } // case 50
             case 58: {
               startedAt_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000040;
+              bitField0_ |= 0x00000020;
               break;
             } // case 58
             case 66: {
               completedAt_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000080;
+              bitField0_ |= 0x00000040;
               break;
             } // case 66
             case 74: {
@@ -1980,33 +1869,33 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
                   TodosDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
               internalGetMutableTodos().ensureBuilderMap().put(
                   todos__.getKey(), todos__.getValue());
-              bitField0_ |= 0x00000100;
+              bitField0_ |= 0x00000080;
               break;
             } // case 74
             case 82: {
               callbackToken_ = input.readBytes();
-              bitField0_ |= 0x00000200;
+              bitField0_ |= 0x00000100;
               break;
             } // case 82
             case 90: {
               input.readMessage(
                   internalGetUsageFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000400;
+              bitField0_ |= 0x00000200;
               break;
             } // case 90
             case 98: {
               input.readMessage(
                   internalGetResolvedContextFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00000400;
               break;
             } // case 98
             case 114: {
               input.readMessage(
                   internalGetContextInfoFieldBuilder().getBuilder(),
                   extensionRegistry);
-              bitField0_ |= 0x00002000;
+              bitField0_ |= 0x00001000;
               break;
             } // case 114
             case 122: {
@@ -2646,360 +2535,12 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       return this;
     }
 
-    private java.util.List<ai.stigmer.agentic.agentexecution.v1.ToolCall> toolCalls_ =
-      java.util.Collections.emptyList();
-    private void ensureToolCallsIsMutable() {
-      if (!((bitField0_ & 0x00000008) != 0)) {
-        toolCalls_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.ToolCall>(toolCalls_);
-        bitField0_ |= 0x00000008;
-       }
-    }
-
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.ToolCall, ai.stigmer.agentic.agentexecution.v1.ToolCall.Builder, ai.stigmer.agentic.agentexecution.v1.ToolCallOrBuilder> toolCallsBuilder_;
-
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.agentexecution.v1.ToolCall> getToolCallsList() {
-      if (toolCallsBuilder_ == null) {
-        return java.util.Collections.unmodifiableList(toolCalls_);
-      } else {
-        return toolCallsBuilder_.getMessageList();
-      }
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public int getToolCallsCount() {
-      if (toolCallsBuilder_ == null) {
-        return toolCalls_.size();
-      } else {
-        return toolCallsBuilder_.getCount();
-      }
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ToolCall getToolCalls(int index) {
-      if (toolCallsBuilder_ == null) {
-        return toolCalls_.get(index);
-      } else {
-        return toolCallsBuilder_.getMessage(index);
-      }
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public Builder setToolCalls(
-        int index, ai.stigmer.agentic.agentexecution.v1.ToolCall value) {
-      if (toolCallsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureToolCallsIsMutable();
-        toolCalls_.set(index, value);
-        onChanged();
-      } else {
-        toolCallsBuilder_.setMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public Builder setToolCalls(
-        int index, ai.stigmer.agentic.agentexecution.v1.ToolCall.Builder builderForValue) {
-      if (toolCallsBuilder_ == null) {
-        ensureToolCallsIsMutable();
-        toolCalls_.set(index, builderForValue.build());
-        onChanged();
-      } else {
-        toolCallsBuilder_.setMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public Builder addToolCalls(ai.stigmer.agentic.agentexecution.v1.ToolCall value) {
-      if (toolCallsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureToolCallsIsMutable();
-        toolCalls_.add(value);
-        onChanged();
-      } else {
-        toolCallsBuilder_.addMessage(value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public Builder addToolCalls(
-        int index, ai.stigmer.agentic.agentexecution.v1.ToolCall value) {
-      if (toolCallsBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        ensureToolCallsIsMutable();
-        toolCalls_.add(index, value);
-        onChanged();
-      } else {
-        toolCallsBuilder_.addMessage(index, value);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public Builder addToolCalls(
-        ai.stigmer.agentic.agentexecution.v1.ToolCall.Builder builderForValue) {
-      if (toolCallsBuilder_ == null) {
-        ensureToolCallsIsMutable();
-        toolCalls_.add(builderForValue.build());
-        onChanged();
-      } else {
-        toolCallsBuilder_.addMessage(builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public Builder addToolCalls(
-        int index, ai.stigmer.agentic.agentexecution.v1.ToolCall.Builder builderForValue) {
-      if (toolCallsBuilder_ == null) {
-        ensureToolCallsIsMutable();
-        toolCalls_.add(index, builderForValue.build());
-        onChanged();
-      } else {
-        toolCallsBuilder_.addMessage(index, builderForValue.build());
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public Builder addAllToolCalls(
-        java.lang.Iterable<? extends ai.stigmer.agentic.agentexecution.v1.ToolCall> values) {
-      if (toolCallsBuilder_ == null) {
-        ensureToolCallsIsMutable();
-        com.google.protobuf.AbstractMessageLite.Builder.addAll(
-            values, toolCalls_);
-        onChanged();
-      } else {
-        toolCallsBuilder_.addAllMessages(values);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public Builder clearToolCalls() {
-      if (toolCallsBuilder_ == null) {
-        toolCalls_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000008);
-        onChanged();
-      } else {
-        toolCallsBuilder_.clear();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public Builder removeToolCalls(int index) {
-      if (toolCallsBuilder_ == null) {
-        ensureToolCallsIsMutable();
-        toolCalls_.remove(index);
-        onChanged();
-      } else {
-        toolCallsBuilder_.remove(index);
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ToolCall.Builder getToolCallsBuilder(
-        int index) {
-      return internalGetToolCallsFieldBuilder().getBuilder(index);
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ToolCallOrBuilder getToolCallsOrBuilder(
-        int index) {
-      if (toolCallsBuilder_ == null) {
-        return toolCalls_.get(index);  } else {
-        return toolCallsBuilder_.getMessageOrBuilder(index);
-      }
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.ToolCallOrBuilder> 
-         getToolCallsOrBuilderList() {
-      if (toolCallsBuilder_ != null) {
-        return toolCallsBuilder_.getMessageOrBuilderList();
-      } else {
-        return java.util.Collections.unmodifiableList(toolCalls_);
-      }
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ToolCall.Builder addToolCallsBuilder() {
-      return internalGetToolCallsFieldBuilder().addBuilder(
-          ai.stigmer.agentic.agentexecution.v1.ToolCall.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.ToolCall.Builder addToolCallsBuilder(
-        int index) {
-      return internalGetToolCallsFieldBuilder().addBuilder(
-          index, ai.stigmer.agentic.agentexecution.v1.ToolCall.getDefaultInstance());
-    }
-    /**
-     * <pre>
-     * Tool calls made during this execution.
-     * Tracked separately for easier querying and display.
-     * Also referenced within messages[].tool_calls for conversation context.
-     * </pre>
-     *
-     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-     */
-    public java.util.List<ai.stigmer.agentic.agentexecution.v1.ToolCall.Builder> 
-         getToolCallsBuilderList() {
-      return internalGetToolCallsFieldBuilder().getBuilderList();
-    }
-    private com.google.protobuf.RepeatedFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.ToolCall, ai.stigmer.agentic.agentexecution.v1.ToolCall.Builder, ai.stigmer.agentic.agentexecution.v1.ToolCallOrBuilder> 
-        internalGetToolCallsFieldBuilder() {
-      if (toolCallsBuilder_ == null) {
-        toolCallsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.ToolCall, ai.stigmer.agentic.agentexecution.v1.ToolCall.Builder, ai.stigmer.agentic.agentexecution.v1.ToolCallOrBuilder>(
-                toolCalls_,
-                ((bitField0_ & 0x00000008) != 0),
-                getParentForChildren(),
-                isClean());
-        toolCalls_ = null;
-      }
-      return toolCallsBuilder_;
-    }
-
     private java.util.List<ai.stigmer.agentic.agentexecution.v1.SubAgentExecution> subAgentExecutions_ =
       java.util.Collections.emptyList();
     private void ensureSubAgentExecutionsIsMutable() {
-      if (!((bitField0_ & 0x00000010) != 0)) {
+      if (!((bitField0_ & 0x00000008) != 0)) {
         subAgentExecutions_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.SubAgentExecution>(subAgentExecutions_);
-        bitField0_ |= 0x00000010;
+        bitField0_ |= 0x00000008;
        }
     }
 
@@ -3215,7 +2756,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     public Builder clearSubAgentExecutions() {
       if (subAgentExecutionsBuilder_ == null) {
         subAgentExecutions_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00000010);
+        bitField0_ = (bitField0_ & ~0x00000008);
         onChanged();
       } else {
         subAgentExecutionsBuilder_.clear();
@@ -3334,7 +2875,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         subAgentExecutionsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentexecution.v1.SubAgentExecution, ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.Builder, ai.stigmer.agentic.agentexecution.v1.SubAgentExecutionOrBuilder>(
                 subAgentExecutions_,
-                ((bitField0_ & 0x00000010) != 0),
+                ((bitField0_ & 0x00000008) != 0),
                 getParentForChildren(),
                 isClean());
         subAgentExecutions_ = null;
@@ -3400,7 +2941,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       error_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -3415,7 +2956,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      */
     public Builder clearError() {
       error_ = getDefaultInstance().getError();
-      bitField0_ = (bitField0_ & ~0x00000020);
+      bitField0_ = (bitField0_ & ~0x00000010);
       onChanged();
       return this;
     }
@@ -3434,7 +2975,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       error_ = value;
-      bitField0_ |= 0x00000020;
+      bitField0_ |= 0x00000010;
       onChanged();
       return this;
     }
@@ -3497,7 +3038,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       startedAt_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -3512,7 +3053,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      */
     public Builder clearStartedAt() {
       startedAt_ = getDefaultInstance().getStartedAt();
-      bitField0_ = (bitField0_ & ~0x00000040);
+      bitField0_ = (bitField0_ & ~0x00000020);
       onChanged();
       return this;
     }
@@ -3531,7 +3072,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       startedAt_ = value;
-      bitField0_ |= 0x00000040;
+      bitField0_ |= 0x00000020;
       onChanged();
       return this;
     }
@@ -3594,7 +3135,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       completedAt_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3609,7 +3150,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      */
     public Builder clearCompletedAt() {
       completedAt_ = getDefaultInstance().getCompletedAt();
-      bitField0_ = (bitField0_ & ~0x00000080);
+      bitField0_ = (bitField0_ & ~0x00000040);
       onChanged();
       return this;
     }
@@ -3628,7 +3169,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       completedAt_ = value;
-      bitField0_ |= 0x00000080;
+      bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
@@ -3661,7 +3202,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (todos_ == null) {
         todos_ = new com.google.protobuf.MapFieldBuilder<>(todosConverter);
       }
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       onChanged();
       return todos_;
     }
@@ -3747,7 +3288,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       return todosConverter.build(map.get(key));
     }
     public Builder clearTodos() {
-      bitField0_ = (bitField0_ & ~0x00000100);
+      bitField0_ = (bitField0_ & ~0x00000080);
       internalGetMutableTodos().clear();
       return this;
     }
@@ -3774,7 +3315,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     @java.lang.Deprecated
     public java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem>
         getMutableTodos() {
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       return internalGetMutableTodos().ensureMessageMap();
     }
     /**
@@ -3794,7 +3335,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       if (value == null) { throw new NullPointerException("map value"); }
       internalGetMutableTodos().ensureBuilderMap()
           .put(key, value);
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       return this;
     }
     /**
@@ -3816,7 +3357,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       }
       internalGetMutableTodos().ensureBuilderMap()
           .putAll(values);
-      bitField0_ |= 0x00000100;
+      bitField0_ |= 0x00000080;
       return this;
     }
     /**
@@ -3925,7 +3466,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     public Builder setCallbackToken(com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       callbackToken_ = value;
-      bitField0_ |= 0x00000200;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
@@ -3966,7 +3507,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * @return This builder for chaining.
      */
     public Builder clearCallbackToken() {
-      bitField0_ = (bitField0_ & ~0x00000200);
+      bitField0_ = (bitField0_ & ~0x00000100);
       callbackToken_ = getDefaultInstance().getCallbackToken();
       onChanged();
       return this;
@@ -3986,7 +3527,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * @return Whether the usage field is set.
      */
     public boolean hasUsage() {
-      return ((bitField0_ & 0x00000400) != 0);
+      return ((bitField0_ & 0x00000200) != 0);
     }
     /**
      * <pre>
@@ -4023,7 +3564,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         usageBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4043,7 +3584,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         usageBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
@@ -4058,7 +3599,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      */
     public Builder mergeUsage(ai.stigmer.agentic.agentexecution.v1.UsageMetrics value) {
       if (usageBuilder_ == null) {
-        if (((bitField0_ & 0x00000400) != 0) &&
+        if (((bitField0_ & 0x00000200) != 0) &&
           usage_ != null &&
           usage_ != ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance()) {
           getUsageBuilder().mergeFrom(value);
@@ -4069,7 +3610,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         usageBuilder_.mergeFrom(value);
       }
       if (usage_ != null) {
-        bitField0_ |= 0x00000400;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       return this;
@@ -4084,7 +3625,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 11 [json_name = "usage"];</code>
      */
     public Builder clearUsage() {
-      bitField0_ = (bitField0_ & ~0x00000400);
+      bitField0_ = (bitField0_ & ~0x00000200);
       usage_ = null;
       if (usageBuilder_ != null) {
         usageBuilder_.dispose();
@@ -4103,7 +3644,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 11 [json_name = "usage"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder getUsageBuilder() {
-      bitField0_ |= 0x00000400;
+      bitField0_ |= 0x00000200;
       onChanged();
       return internalGetUsageFieldBuilder().getBuilder();
     }
@@ -4161,7 +3702,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * @return Whether the resolvedContext field is set.
      */
     public boolean hasResolvedContext() {
-      return ((bitField0_ & 0x00000800) != 0);
+      return ((bitField0_ & 0x00000400) != 0);
     }
     /**
      * <pre>
@@ -4198,7 +3739,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         resolvedContextBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -4218,7 +3759,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         resolvedContextBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -4233,7 +3774,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      */
     public Builder mergeResolvedContext(ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext value) {
       if (resolvedContextBuilder_ == null) {
-        if (((bitField0_ & 0x00000800) != 0) &&
+        if (((bitField0_ & 0x00000400) != 0) &&
           resolvedContext_ != null &&
           resolvedContext_ != ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.getDefaultInstance()) {
           getResolvedContextBuilder().mergeFrom(value);
@@ -4244,7 +3785,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         resolvedContextBuilder_.mergeFrom(value);
       }
       if (resolvedContext_ != null) {
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       return this;
@@ -4259,7 +3800,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext resolved_context = 12 [json_name = "resolvedContext"];</code>
      */
     public Builder clearResolvedContext() {
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000400);
       resolvedContext_ = null;
       if (resolvedContextBuilder_ != null) {
         resolvedContextBuilder_.dispose();
@@ -4278,7 +3819,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext resolved_context = 12 [json_name = "resolvedContext"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContext.Builder getResolvedContextBuilder() {
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return internalGetResolvedContextFieldBuilder().getBuilder();
     }
@@ -4325,9 +3866,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     private java.util.List<ai.stigmer.agentic.agentexecution.v1.PendingApproval> pendingApprovals_ =
       java.util.Collections.emptyList();
     private void ensurePendingApprovalsIsMutable() {
-      if (!((bitField0_ & 0x00001000) != 0)) {
+      if (!((bitField0_ & 0x00000800) != 0)) {
         pendingApprovals_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.PendingApproval>(pendingApprovals_);
-        bitField0_ |= 0x00001000;
+        bitField0_ |= 0x00000800;
        }
     }
 
@@ -4336,20 +3877,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
 
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4365,20 +3913,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4394,20 +3949,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4423,20 +3985,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4459,20 +4028,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4492,20 +4068,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4527,20 +4110,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4563,20 +4153,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4596,20 +4193,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4629,20 +4233,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4663,20 +4274,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4686,7 +4304,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     public Builder clearPendingApprovals() {
       if (pendingApprovalsBuilder_ == null) {
         pendingApprovals_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00001000);
+        bitField0_ = (bitField0_ & ~0x00000800);
         onChanged();
       } else {
         pendingApprovalsBuilder_.clear();
@@ -4695,20 +4313,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4727,20 +4352,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4753,20 +4385,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4782,20 +4421,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4812,20 +4458,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4838,20 +4491,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4865,20 +4525,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     /**
      * <pre>
-     * All pending approval requests for this execution.
+     * Active pending approval requests for this execution.
+     *
+     * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+     * The handler scans messages[].tool_calls and
+     * sub_agent_executions[].messages[].tool_calls, collecting entries where
+     * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+     * them into PendingApproval entries.
+     *
+     * Because this field is recomputed (not merged), it is always consistent
+     * with the authoritative tool call state embedded in messages. No lifecycle
+     * state machine, no merge logic, no forward-only enforcement needed.
+     *
+     * Sub-agent approvals are included with from_sub_agent=true and
+     * sub_agent_name set, so the UI can attribute each approval to its origin.
      *
      * Lifecycle:
-     * 1. Populated after the event stream ends, by querying graph state for
-     * pending interrupts. Each interrupt is matched to a tool call.
-     * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-     * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-     * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-     * 5. On resume, all decisions are sent to LangGraph in a single Command.
-     *
-     * When populated:
-     * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-     * WAITING_APPROVAL
-     * - Each entry carries its interrupt_id for targeted resume
+     * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+     * 2. UpdateStatus handler recomputes this field, entry appears
+     * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+     * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+     * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
      *
      * Empty when no approvals are pending.
      * </pre>
@@ -4896,7 +4563,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         pendingApprovalsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentexecution.v1.PendingApproval, ai.stigmer.agentic.agentexecution.v1.PendingApproval.Builder, ai.stigmer.agentic.agentexecution.v1.PendingApprovalOrBuilder>(
                 pendingApprovals_,
-                ((bitField0_ & 0x00001000) != 0),
+                ((bitField0_ & 0x00000800) != 0),
                 getParentForChildren(),
                 isClean());
         pendingApprovals_ = null;
@@ -4930,7 +4597,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * @return Whether the contextInfo field is set.
      */
     public boolean hasContextInfo() {
-      return ((bitField0_ & 0x00002000) != 0);
+      return ((bitField0_ & 0x00001000) != 0);
     }
     /**
      * <pre>
@@ -4991,7 +4658,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         contextInfoBuilder_.setMessage(value);
       }
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -5023,7 +4690,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
       } else {
         contextInfoBuilder_.setMessage(builderForValue.build());
       }
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return this;
     }
@@ -5050,7 +4717,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      */
     public Builder mergeContextInfo(ai.stigmer.agentic.agentexecution.v1.ContextInfo value) {
       if (contextInfoBuilder_ == null) {
-        if (((bitField0_ & 0x00002000) != 0) &&
+        if (((bitField0_ & 0x00001000) != 0) &&
           contextInfo_ != null &&
           contextInfo_ != ai.stigmer.agentic.agentexecution.v1.ContextInfo.getDefaultInstance()) {
           getContextInfoBuilder().mergeFrom(value);
@@ -5061,7 +4728,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         contextInfoBuilder_.mergeFrom(value);
       }
       if (contextInfo_ != null) {
-        bitField0_ |= 0x00002000;
+        bitField0_ |= 0x00001000;
         onChanged();
       }
       return this;
@@ -5088,7 +4755,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
      */
     public Builder clearContextInfo() {
-      bitField0_ = (bitField0_ & ~0x00002000);
+      bitField0_ = (bitField0_ & ~0x00001000);
       contextInfo_ = null;
       if (contextInfoBuilder_ != null) {
         contextInfoBuilder_.dispose();
@@ -5119,7 +4786,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
      * <code>.ai.stigmer.agentic.agentexecution.v1.ContextInfo context_info = 14 [json_name = "contextInfo"];</code>
      */
     public ai.stigmer.agentic.agentexecution.v1.ContextInfo.Builder getContextInfoBuilder() {
-      bitField0_ |= 0x00002000;
+      bitField0_ |= 0x00001000;
       onChanged();
       return internalGetContextInfoFieldBuilder().getBuilder();
     }
@@ -5190,9 +4857,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     private java.util.List<ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact> artifacts_ =
       java.util.Collections.emptyList();
     private void ensureArtifactsIsMutable() {
-      if (!((bitField0_ & 0x00004000) != 0)) {
+      if (!((bitField0_ & 0x00002000) != 0)) {
         artifacts_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact>(artifacts_);
-        bitField0_ |= 0x00004000;
+        bitField0_ |= 0x00002000;
        }
     }
 
@@ -5507,7 +5174,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     public Builder clearArtifacts() {
       if (artifactsBuilder_ == null) {
         artifacts_ = java.util.Collections.emptyList();
-        bitField0_ = (bitField0_ & ~0x00004000);
+        bitField0_ = (bitField0_ & ~0x00002000);
         onChanged();
       } else {
         artifactsBuilder_.clear();
@@ -5689,7 +5356,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         artifactsBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
             ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact, ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact.Builder, ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactOrBuilder>(
                 artifacts_,
-                ((bitField0_ & 0x00004000) != 0),
+                ((bitField0_ & 0x00002000) != 0),
                 getParentForChildren(),
                 isClean());
         artifacts_ = null;

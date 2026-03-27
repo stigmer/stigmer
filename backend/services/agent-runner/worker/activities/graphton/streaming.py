@@ -232,7 +232,12 @@ class StreamExecutor:
     # ------------------------------------------------------------------
 
     async def _pre_stream_update(self) -> None:
-        """Send an immediate IN_PROGRESS status update before streaming."""
+        """Send an immediate IN_PROGRESS status update before streaming.
+
+        On resume, the pending_approvals list contains entries at
+        RESUME_RECONCILED state. The server-side merge logic will prune
+        them, so no sentinel purge is needed here.
+        """
         try:
             self._log.info("[RESUME] Sending pre-stream IN_PROGRESS status update")
             await asyncio.wait_for(

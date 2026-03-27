@@ -78,25 +78,8 @@ func TestRecordApprovalDecisionPreservesPendingApprovals(t *testing.T) {
 	}
 }
 
-// TestClearSignalSentinelHasEmptyToolCallId verifies the clear-signal
-// convention: a PendingApproval with empty tool_call_id triggers the
-// "clear" path in BuildNewStateWithStatusStep.
-func TestClearSignalSentinelHasEmptyToolCallId(t *testing.T) {
-	sentinel := &agentexecutionv1.PendingApproval{
-		ToolCallId:     "",
-		LifecycleState: agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_CLEARED,
-	}
-
-	if sentinel.ToolCallId != "" {
-		t.Errorf("clear-signal sentinel must have empty tool_call_id")
-	}
-	if sentinel.LifecycleState != agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_CLEARED {
-		t.Errorf("clear-signal sentinel lifecycle: got %v, want CLEARED",
-			sentinel.LifecycleState)
-	}
-}
-
 // TestLifecycleStateForwardOnly verifies the ordering invariant.
+// RESUME_RECONCILED is now the terminal state (entries are pruned server-side).
 func TestLifecycleStateForwardOnly(t *testing.T) {
 	states := []agentexecutionv1.ApprovalLifecycleState{
 		agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_UNSPECIFIED,
@@ -104,7 +87,6 @@ func TestLifecycleStateForwardOnly(t *testing.T) {
 		agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED,
 		agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_DECISION_RECORDED,
 		agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_RESUME_RECONCILED,
-		agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_CLEARED,
 	}
 
 	for i := 0; i < len(states)-1; i++ {
@@ -115,38 +97,74 @@ func TestLifecycleStateForwardOnly(t *testing.T) {
 	}
 }
 
-// TestUpdateStatusClearPathWithLifecycleState verifies that the merge
-// logic in update_status.go correctly identifies the clear-signal.
-func TestUpdateStatusClearPathWithLifecycleState(t *testing.T) {
-	// Simulate what update_status.go does
-	requestPAs := []*agentexecutionv1.PendingApproval{
-		{
-			ToolCallId:     "",
-			LifecycleState: agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_CLEARED,
-		},
+// TestUpsertMergePreservesExistingPAs verifies that the upsert merge
+// preserves existing PAs that are not mentioned in the incoming update.
+func TestUpsertMergePreservesExistingPAs(t *testing.T) {
+	existing := &agentexecutionv1.PendingApproval{
+		ToolCallId:     "call_existing",
+		ToolName:       "read_file",
+		LifecycleState: agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_REQUESTED,
 	}
 
-	existingPAs := []*agentexecutionv1.PendingApproval{
-		{
-			ToolCallId:     "call_abc123",
-			LifecycleState: agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_DECISION_RECORDED,
-		},
+	incoming := &agentexecutionv1.PendingApproval{
+		ToolCallId:     "call_new",
+		ToolName:       "write_file",
+		LifecycleState: agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_REQUESTED,
 	}
 
-	// Apply the merge logic from update_status.go
-	var result []*agentexecutionv1.PendingApproval
-	if len(requestPAs) > 0 {
-		if requestPAs[0].ToolCallId != "" {
-			result = requestPAs
-		} else {
-			result = nil // Clear path
+	existingPAs := []*agentexecutionv1.PendingApproval{existing}
+	incomingPAs := []*agentexecutionv1.PendingApproval{incoming}
+
+	merged := make(map[string]*agentexecutionv1.PendingApproval)
+	for _, pa := range existingPAs {
+		merged[pa.ToolCallId] = pa
+	}
+	for _, pa := range incomingPAs {
+		if pa.ToolCallId == "" {
+			continue
 		}
-	} else {
-		result = existingPAs // Preserve
+		merged[pa.ToolCallId] = pa
 	}
 
-	if result != nil {
-		t.Errorf("clear-signal should result in nil pending_approvals, got %d entries",
-			len(result))
+	if len(merged) != 2 {
+		t.Fatalf("upsert merge should keep both PAs: got %d, want 2", len(merged))
+	}
+	if _, ok := merged["call_existing"]; !ok {
+		t.Error("existing PA should be preserved")
+	}
+	if _, ok := merged["call_new"]; !ok {
+		t.Error("new PA should be added")
+	}
+}
+
+// TestResumeReconciledEntriesArePruned verifies that entries reaching
+// RESUME_RECONCILED are pruned from the result set (post-merge pruning).
+func TestResumeReconciledEntriesArePruned(t *testing.T) {
+	reconciled := &agentexecutionv1.PendingApproval{
+		ToolCallId:     "call_done",
+		ToolName:       "delete_file",
+		LifecycleState: agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_RESUME_RECONCILED,
+	}
+
+	active := &agentexecutionv1.PendingApproval{
+		ToolCallId:     "call_pending",
+		ToolName:       "write_file",
+		LifecycleState: agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_REQUESTED,
+	}
+
+	allPAs := []*agentexecutionv1.PendingApproval{reconciled, active}
+
+	var result []*agentexecutionv1.PendingApproval
+	for _, pa := range allPAs {
+		if pa.LifecycleState < agentexecutionv1.ApprovalLifecycleState_APPROVAL_LIFECYCLE_RESUME_RECONCILED {
+			result = append(result, pa)
+		}
+	}
+
+	if len(result) != 1 {
+		t.Fatalf("pruning should leave 1 active PA: got %d", len(result))
+	}
+	if result[0].ToolCallId != "call_pending" {
+		t.Errorf("surviving PA should be call_pending, got %q", result[0].ToolCallId)
 	}
 }

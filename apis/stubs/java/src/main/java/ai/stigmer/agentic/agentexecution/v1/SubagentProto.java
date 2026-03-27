@@ -42,41 +42,34 @@ public final class SubagentProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n3ai/stigmer/agentic/agentexecution/v1/s" +
       "ubagent.proto\022$ai.stigmer.agentic.agente" +
-      "xecution.v1\0323ai/stigmer/agentic/agentexe" +
-      "cution/v1/approval.proto\032/ai/stigmer/age" +
-      "ntic/agentexecution/v1/enum.proto\0322ai/st" +
-      "igmer/agentic/agentexecution/v1/message." +
-      "proto\0320ai/stigmer/agentic/agentexecution" +
-      "/v1/usage.proto\032\033buf/validate/validate.p" +
-      "roto\032\034google/protobuf/struct.proto\"\261\005\n\021S" +
-      "ubAgentExecution\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name" +
-      "\030\002 \001(\tR\004name\022\024\n\005input\030\003 \001(\tR\005input\022\026\n\006ou" +
-      "tput\030\004 \001(\tR\006output\022V\n\006status\030\005 \001(\01624.ai." +
-      "stigmer.agentic.agentexecution.v1.SubAge" +
-      "ntStatusB\010\272H\005\202\001\002\020\001R\006status\022\035\n\nstarted_at" +
-      "\030\006 \001(\tR\tstartedAt\022!\n\014completed_at\030\007 \001(\tR" +
-      "\013completedAt\022\024\n\005error\030\010 \001(\tR\005error\0223\n\010me" +
-      "tadata\030\t \001(\0132\027.google.protobuf.StructR\010m" +
-      "etadata\022M\n\ntool_calls\030\n \003(\0132..ai.stigmer" +
-      ".agentic.agentexecution.v1.ToolCallR\ttoo" +
-      "lCalls\022N\n\010messages\030\013 \003(\01322.ai.stigmer.ag" +
-      "entic.agentexecution.v1.AgentMessageR\010me" +
-      "ssages\022H\n\005usage\030\014 \001(\01322.ai.stigmer.agent" +
-      "ic.agentexecution.v1.UsageMetricsR\005usage" +
-      "\022\030\n\007subject\030\r \001(\tR\007subject\022b\n\021pending_ap" +
-      "provals\030\016 \003(\01325.ai.stigmer.agentic.agent" +
-      "execution.v1.PendingApprovalR\020pendingApp" +
-      "rovalsB\304\001B\rSubagentProtoP\001\242\002\004ASAA\252\002$Ai.S" +
-      "tigmer.Agentic.Agentexecution.V1\312\002$Ai\\St" +
-      "igmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\Sti" +
-      "gmer\\Agentic\\Agentexecution\\V1\\GPBMetada" +
-      "ta\352\002(Ai::Stigmer::Agentic::Agentexecutio" +
-      "n::V1b\006proto3"
+      "xecution.v1\032/ai/stigmer/agentic/agentexe" +
+      "cution/v1/enum.proto\0322ai/stigmer/agentic" +
+      "/agentexecution/v1/message.proto\0320ai/sti" +
+      "gmer/agentic/agentexecution/v1/usage.pro" +
+      "to\032\033buf/validate/validate.proto\032\034google/" +
+      "protobuf/struct.proto\"\376\003\n\021SubAgentExecut" +
+      "ion\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001(\tR\004name\022" +
+      "\024\n\005input\030\003 \001(\tR\005input\022\026\n\006output\030\004 \001(\tR\006o" +
+      "utput\022V\n\006status\030\005 \001(\01624.ai.stigmer.agent" +
+      "ic.agentexecution.v1.SubAgentStatusB\010\272H\005" +
+      "\202\001\002\020\001R\006status\022\035\n\nstarted_at\030\006 \001(\tR\tstart" +
+      "edAt\022!\n\014completed_at\030\007 \001(\tR\013completedAt\022" +
+      "\024\n\005error\030\010 \001(\tR\005error\0223\n\010metadata\030\t \001(\0132" +
+      "\027.google.protobuf.StructR\010metadata\022N\n\010me" +
+      "ssages\030\013 \003(\01322.ai.stigmer.agentic.agente" +
+      "xecution.v1.AgentMessageR\010messages\022H\n\005us" +
+      "age\030\014 \001(\01322.ai.stigmer.agentic.agentexec" +
+      "ution.v1.UsageMetricsR\005usage\022\030\n\007subject\030" +
+      "\r \001(\tR\007subjectB\304\001B\rSubagentProtoP\001\242\002\004ASA" +
+      "A\252\002$Ai.Stigmer.Agentic.Agentexecution.V1" +
+      "\312\002$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\342" +
+      "\0020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\G" +
+      "PBMetadata\352\002(Ai::Stigmer::Agentic::Agent" +
+      "execution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          ai.stigmer.agentic.agentexecution.v1.ApprovalProto.getDescriptor(),
           ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor(),
           ai.stigmer.agentic.agentexecution.v1.MessageProto.getDescriptor(),
           ai.stigmer.agentic.agentexecution.v1.UsageProto.getDescriptor(),
@@ -88,9 +81,8 @@ public final class SubagentProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_descriptor,
-        new java.lang.String[] { "Id", "Name", "Input", "Output", "Status", "StartedAt", "CompletedAt", "Error", "Metadata", "ToolCalls", "Messages", "Usage", "Subject", "PendingApprovals", });
+        new java.lang.String[] { "Id", "Name", "Input", "Output", "Status", "StartedAt", "CompletedAt", "Error", "Metadata", "Messages", "Usage", "Subject", });
     descriptor.resolveAllFeaturesImmutable();
-    ai.stigmer.agentic.agentexecution.v1.ApprovalProto.getDescriptor();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.agentexecution.v1.MessageProto.getDescriptor();
     ai.stigmer.agentic.agentexecution.v1.UsageProto.getDescriptor();

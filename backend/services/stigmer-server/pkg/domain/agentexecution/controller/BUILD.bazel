@@ -46,6 +46,7 @@ go_library(
         "//backend/libs/go/grpc/request/pipeline",
         "//backend/libs/go/grpc/request/pipeline/steps",
         "//backend/libs/go/store",
+        "//backend/services/stigmer-server/pkg/domain/agentexecution/approval",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows",
         "//backend/services/stigmer-server/pkg/domain/artifact/storage",

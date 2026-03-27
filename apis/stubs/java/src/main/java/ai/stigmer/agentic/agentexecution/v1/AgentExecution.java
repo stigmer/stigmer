@@ -237,7 +237,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * System-managed execution state and results.
-   * Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+   * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus status = 5 [json_name = "status"];</code>
@@ -250,7 +250,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * System-managed execution state and results.
-   * Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+   * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus status = 5 [json_name = "status"];</code>
@@ -263,7 +263,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * System-managed execution state and results.
-   * Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+   * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus status = 5 [json_name = "status"];</code>
@@ -1239,7 +1239,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed execution state and results.
-     * Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus status = 5 [json_name = "status"];</code>
@@ -1251,7 +1251,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed execution state and results.
-     * Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus status = 5 [json_name = "status"];</code>
@@ -1267,7 +1267,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed execution state and results.
-     * Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus status = 5 [json_name = "status"];</code>
@@ -1288,7 +1288,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed execution state and results.
-     * Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus status = 5 [json_name = "status"];</code>
@@ -1307,7 +1307,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed execution state and results.
-     * Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus status = 5 [json_name = "status"];</code>
@@ -1333,7 +1333,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed execution state and results.
-     * Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus status = 5 [json_name = "status"];</code>
@@ -1351,7 +1351,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed execution state and results.
-     * Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus status = 5 [json_name = "status"];</code>
@@ -1364,7 +1364,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed execution state and results.
-     * Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus status = 5 [json_name = "status"];</code>
@@ -1380,7 +1380,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * System-managed execution state and results.
-     * Contains: messages, phase, tool_calls, sub_agents, canvas_layout, timestamps, errors
+     * Contains: messages, phase, sub_agents, pending_approvals, timestamps, errors
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus status = 5 [json_name = "status"];</code>

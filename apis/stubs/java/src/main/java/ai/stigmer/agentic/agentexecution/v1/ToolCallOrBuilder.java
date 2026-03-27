@@ -417,4 +417,36 @@ public interface ToolCallOrBuilder extends
    */
   com.google.protobuf.ByteString
       getMcpServerSlugBytes();
+
+  /**
+   * <pre>
+   * Sanitized preview of tool arguments for UI display.
+   * Sensitive values (passwords, tokens, keys) are redacted.
+   * Populated at tool call creation time by the agent-runner.
+   * Used by the server-side ComputePendingApprovals projection
+   * and by CLI/UI for inline argument visibility.
+   *
+   * Example: '{"repository": "acme/repo", "force": true}'
+   * </pre>
+   *
+   * <code>string args_preview = 18 [json_name = "argsPreview"];</code>
+   * @return The argsPreview.
+   */
+  java.lang.String getArgsPreview();
+  /**
+   * <pre>
+   * Sanitized preview of tool arguments for UI display.
+   * Sensitive values (passwords, tokens, keys) are redacted.
+   * Populated at tool call creation time by the agent-runner.
+   * Used by the server-side ComputePendingApprovals projection
+   * and by CLI/UI for inline argument visibility.
+   *
+   * Example: '{"repository": "acme/repo", "force": true}'
+   * </pre>
+   *
+   * <code>string args_preview = 18 [json_name = "argsPreview"];</code>
+   * @return The bytes for argsPreview.
+   */
+  com.google.protobuf.ByteString
+      getArgsPreviewBytes();
 }

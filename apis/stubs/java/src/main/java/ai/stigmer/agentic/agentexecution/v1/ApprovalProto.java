@@ -47,51 +47,35 @@ public final class ApprovalProto extends com.google.protobuf.GeneratedFile {
     java.lang.String[] descriptorData = {
       "\n3ai/stigmer/agentic/agentexecution/v1/a" +
       "pproval.proto\022$ai.stigmer.agentic.agente" +
-      "xecution.v1\032/ai/stigmer/agentic/agentexe" +
-      "cution/v1/enum.proto\"\320\004\n\017PendingApproval" +
-      "\022 \n\014tool_call_id\030\001 \001(\tR\ntoolCallId\022\033\n\tto" +
-      "ol_name\030\002 \001(\tR\010toolName\022\030\n\007message\030\003 \001(\t" +
-      "R\007message\022!\n\014args_preview\030\004 \001(\tR\013argsPre" +
-      "view\022!\n\014requested_at\030\005 \001(\tR\013requestedAt\022" +
-      "$\n\016from_sub_agent\030\006 \001(\010R\014fromSubAgent\022$\n" +
-      "\016sub_agent_name\030\007 \001(\tR\014subAgentName\0227\n\030c" +
-      "hild_agent_execution_id\030\010 \001(\tR\025childAgen" +
-      "tExecutionId\022!\n\014interrupt_id\030\t \001(\tR\013inte" +
-      "rruptId\022e\n\017lifecycle_state\030\n \001(\0162<.ai.st" +
-      "igmer.agentic.agentexecution.v1.Approval" +
-      "LifecycleStateR\016lifecycleState\022]\n\017decisi" +
-      "on_action\030\013 \001(\01624.ai.stigmer.agentic.age" +
-      "ntexecution.v1.ApprovalActionR\016decisionA" +
-      "ction\0220\n\024decision_recorded_at\030\014 \001(\tR\022dec" +
-      "isionRecordedAt\"\242\001\n\031ChildApprovalNotific" +
-      "ation\022!\n\014execution_id\030\001 \001(\tR\013executionId" +
-      "\022b\n\021pending_approvals\030\002 \003(\01325.ai.stigmer" +
-      ".agentic.agentexecution.v1.PendingApprov" +
-      "alR\020pendingApprovals*\375\001\n\026ApprovalLifecyc" +
-      "leState\022\"\n\036APPROVAL_LIFECYCLE_UNSPECIFIE" +
-      "D\020\000\022 \n\034APPROVAL_LIFECYCLE_REQUESTED\020\001\022)\n" +
-      "%APPROVAL_LIFECYCLE_INTERRUPT_CAPTURED\020\002" +
-      "\022(\n$APPROVAL_LIFECYCLE_DECISION_RECORDED" +
-      "\020\003\022(\n$APPROVAL_LIFECYCLE_RESUME_RECONCIL" +
-      "ED\020\004\022\036\n\032APPROVAL_LIFECYCLE_CLEARED\020\005B\304\001B" +
-      "\rApprovalProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Age" +
-      "ntic.Agentexecution.V1\312\002$Ai\\Stigmer\\Agen" +
-      "tic\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Agent" +
-      "ic\\Agentexecution\\V1\\GPBMetadata\352\002(Ai::S" +
-      "tigmer::Agentic::Agentexecution::V1b\006pro" +
-      "to3"
+      "xecution.v1\"\265\002\n\017PendingApproval\022 \n\014tool_" +
+      "call_id\030\001 \001(\tR\ntoolCallId\022\033\n\ttool_name\030\002" +
+      " \001(\tR\010toolName\022\030\n\007message\030\003 \001(\tR\007message" +
+      "\022!\n\014args_preview\030\004 \001(\tR\013argsPreview\022!\n\014r" +
+      "equested_at\030\005 \001(\tR\013requestedAt\022$\n\016from_s" +
+      "ub_agent\030\006 \001(\010R\014fromSubAgent\022$\n\016sub_agen" +
+      "t_name\030\007 \001(\tR\014subAgentName\0227\n\030child_agen" +
+      "t_execution_id\030\010 \001(\tR\025childAgentExecutio" +
+      "nId\"\242\001\n\031ChildApprovalNotification\022!\n\014exe" +
+      "cution_id\030\001 \001(\tR\013executionId\022b\n\021pending_" +
+      "approvals\030\002 \003(\01325.ai.stigmer.agentic.age" +
+      "ntexecution.v1.PendingApprovalR\020pendingA" +
+      "pprovalsB\304\001B\rApprovalProtoP\001\242\002\004ASAA\252\002$Ai" +
+      ".Stigmer.Agentic.Agentexecution.V1\312\002$Ai\\" +
+      "Stigmer\\Agentic\\Agentexecution\\V1\342\0020Ai\\S" +
+      "tigmer\\Agentic\\Agentexecution\\V1\\GPBMeta" +
+      "data\352\002(Ai::Stigmer::Agentic::Agentexecut" +
+      "ion::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
-          ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_agentexecution_v1_PendingApproval_descriptor =
       getDescriptor().getMessageType(0);
     internal_static_ai_stigmer_agentic_agentexecution_v1_PendingApproval_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_PendingApproval_descriptor,
-        new java.lang.String[] { "ToolCallId", "ToolName", "Message", "ArgsPreview", "RequestedAt", "FromSubAgent", "SubAgentName", "ChildAgentExecutionId", "InterruptId", "LifecycleState", "DecisionAction", "DecisionRecordedAt", });
+        new java.lang.String[] { "ToolCallId", "ToolName", "Message", "ArgsPreview", "RequestedAt", "FromSubAgent", "SubAgentName", "ChildAgentExecutionId", });
     internal_static_ai_stigmer_agentic_agentexecution_v1_ChildApprovalNotification_descriptor =
       getDescriptor().getMessageType(1);
     internal_static_ai_stigmer_agentic_agentexecution_v1_ChildApprovalNotification_fieldAccessorTable = new
@@ -99,7 +83,6 @@ public final class ApprovalProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_agentexecution_v1_ChildApprovalNotification_descriptor,
         new java.lang.String[] { "ExecutionId", "PendingApprovals", });
     descriptor.resolveAllFeaturesImmutable();
-    ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
   }
 
   // @@protoc_insertion_point(outer_class_scope)

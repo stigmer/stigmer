@@ -116,60 +116,6 @@ public interface AgentExecutionStatusOrBuilder extends
 
   /**
    * <pre>
-   * Tool calls made during this execution.
-   * Tracked separately for easier querying and display.
-   * Also referenced within messages[].tool_calls for conversation context.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-   */
-  java.util.List<ai.stigmer.agentic.agentexecution.v1.ToolCall> 
-      getToolCallsList();
-  /**
-   * <pre>
-   * Tool calls made during this execution.
-   * Tracked separately for easier querying and display.
-   * Also referenced within messages[].tool_calls for conversation context.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-   */
-  ai.stigmer.agentic.agentexecution.v1.ToolCall getToolCalls(int index);
-  /**
-   * <pre>
-   * Tool calls made during this execution.
-   * Tracked separately for easier querying and display.
-   * Also referenced within messages[].tool_calls for conversation context.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-   */
-  int getToolCallsCount();
-  /**
-   * <pre>
-   * Tool calls made during this execution.
-   * Tracked separately for easier querying and display.
-   * Also referenced within messages[].tool_calls for conversation context.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-   */
-  java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.ToolCallOrBuilder> 
-      getToolCallsOrBuilderList();
-  /**
-   * <pre>
-   * Tool calls made during this execution.
-   * Tracked separately for easier querying and display.
-   * Also referenced within messages[].tool_calls for conversation context.
-   * </pre>
-   *
-   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.ToolCall tool_calls = 3 [json_name = "toolCalls"];</code>
-   */
-  ai.stigmer.agentic.agentexecution.v1.ToolCallOrBuilder getToolCallsOrBuilder(
-      int index);
-
-  /**
-   * <pre>
    * Sub-agent executions invoked during this execution.
    * Tracks when the main agent delegates work to specialized sub-agents.
    * Ordered chronologically by invocation time.
@@ -463,20 +409,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
 
   /**
    * <pre>
-   * All pending approval requests for this execution.
+   * Active pending approval requests for this execution.
+   *
+   * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+   * The handler scans messages[].tool_calls and
+   * sub_agent_executions[].messages[].tool_calls, collecting entries where
+   * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+   * them into PendingApproval entries.
+   *
+   * Because this field is recomputed (not merged), it is always consistent
+   * with the authoritative tool call state embedded in messages. No lifecycle
+   * state machine, no merge logic, no forward-only enforcement needed.
+   *
+   * Sub-agent approvals are included with from_sub_agent=true and
+   * sub_agent_name set, so the UI can attribute each approval to its origin.
    *
    * Lifecycle:
-   * 1. Populated after the event stream ends, by querying graph state for
-   * pending interrupts. Each interrupt is matched to a tool call.
-   * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-   * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-   * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-   * 5. On resume, all decisions are sent to LangGraph in a single Command.
-   *
-   * When populated:
-   * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-   * WAITING_APPROVAL
-   * - Each entry carries its interrupt_id for targeted resume
+   * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+   * 2. UpdateStatus handler recomputes this field, entry appears
+   * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+   * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+   * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
    *
    * Empty when no approvals are pending.
    * </pre>
@@ -487,20 +440,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
       getPendingApprovalsList();
   /**
    * <pre>
-   * All pending approval requests for this execution.
+   * Active pending approval requests for this execution.
+   *
+   * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+   * The handler scans messages[].tool_calls and
+   * sub_agent_executions[].messages[].tool_calls, collecting entries where
+   * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+   * them into PendingApproval entries.
+   *
+   * Because this field is recomputed (not merged), it is always consistent
+   * with the authoritative tool call state embedded in messages. No lifecycle
+   * state machine, no merge logic, no forward-only enforcement needed.
+   *
+   * Sub-agent approvals are included with from_sub_agent=true and
+   * sub_agent_name set, so the UI can attribute each approval to its origin.
    *
    * Lifecycle:
-   * 1. Populated after the event stream ends, by querying graph state for
-   * pending interrupts. Each interrupt is matched to a tool call.
-   * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-   * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-   * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-   * 5. On resume, all decisions are sent to LangGraph in a single Command.
-   *
-   * When populated:
-   * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-   * WAITING_APPROVAL
-   * - Each entry carries its interrupt_id for targeted resume
+   * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+   * 2. UpdateStatus handler recomputes this field, entry appears
+   * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+   * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+   * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
    *
    * Empty when no approvals are pending.
    * </pre>
@@ -510,20 +470,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
   ai.stigmer.agentic.agentexecution.v1.PendingApproval getPendingApprovals(int index);
   /**
    * <pre>
-   * All pending approval requests for this execution.
+   * Active pending approval requests for this execution.
+   *
+   * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+   * The handler scans messages[].tool_calls and
+   * sub_agent_executions[].messages[].tool_calls, collecting entries where
+   * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+   * them into PendingApproval entries.
+   *
+   * Because this field is recomputed (not merged), it is always consistent
+   * with the authoritative tool call state embedded in messages. No lifecycle
+   * state machine, no merge logic, no forward-only enforcement needed.
+   *
+   * Sub-agent approvals are included with from_sub_agent=true and
+   * sub_agent_name set, so the UI can attribute each approval to its origin.
    *
    * Lifecycle:
-   * 1. Populated after the event stream ends, by querying graph state for
-   * pending interrupts. Each interrupt is matched to a tool call.
-   * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-   * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-   * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-   * 5. On resume, all decisions are sent to LangGraph in a single Command.
-   *
-   * When populated:
-   * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-   * WAITING_APPROVAL
-   * - Each entry carries its interrupt_id for targeted resume
+   * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+   * 2. UpdateStatus handler recomputes this field, entry appears
+   * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+   * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+   * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
    *
    * Empty when no approvals are pending.
    * </pre>
@@ -533,20 +500,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
   int getPendingApprovalsCount();
   /**
    * <pre>
-   * All pending approval requests for this execution.
+   * Active pending approval requests for this execution.
+   *
+   * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+   * The handler scans messages[].tool_calls and
+   * sub_agent_executions[].messages[].tool_calls, collecting entries where
+   * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+   * them into PendingApproval entries.
+   *
+   * Because this field is recomputed (not merged), it is always consistent
+   * with the authoritative tool call state embedded in messages. No lifecycle
+   * state machine, no merge logic, no forward-only enforcement needed.
+   *
+   * Sub-agent approvals are included with from_sub_agent=true and
+   * sub_agent_name set, so the UI can attribute each approval to its origin.
    *
    * Lifecycle:
-   * 1. Populated after the event stream ends, by querying graph state for
-   * pending interrupts. Each interrupt is matched to a tool call.
-   * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-   * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-   * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-   * 5. On resume, all decisions are sent to LangGraph in a single Command.
-   *
-   * When populated:
-   * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-   * WAITING_APPROVAL
-   * - Each entry carries its interrupt_id for targeted resume
+   * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+   * 2. UpdateStatus handler recomputes this field, entry appears
+   * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+   * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+   * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
    *
    * Empty when no approvals are pending.
    * </pre>
@@ -557,20 +531,27 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
       getPendingApprovalsOrBuilderList();
   /**
    * <pre>
-   * All pending approval requests for this execution.
+   * Active pending approval requests for this execution.
+   *
+   * Computed server-side by the Go/Java UpdateStatus handlers on every write.
+   * The handler scans messages[].tool_calls and
+   * sub_agent_executions[].messages[].tool_calls, collecting entries where
+   * status == WAITING_APPROVAL &amp;&amp; requires_approval == true, and projects
+   * them into PendingApproval entries.
+   *
+   * Because this field is recomputed (not merged), it is always consistent
+   * with the authoritative tool call state embedded in messages. No lifecycle
+   * state machine, no merge logic, no forward-only enforcement needed.
+   *
+   * Sub-agent approvals are included with from_sub_agent=true and
+   * sub_agent_name set, so the UI can attribute each approval to its origin.
    *
    * Lifecycle:
-   * 1. Populated after the event stream ends, by querying graph state for
-   * pending interrupts. Each interrupt is matched to a tool call.
-   * 2. Phase changes to EXECUTION_WAITING_FOR_APPROVAL.
-   * 3. User submits decisions via SubmitApproval RPC (one per tool call).
-   * 4. After ALL entries have decisions, the Temporal workflow signals resume.
-   * 5. On resume, all decisions are sent to LangGraph in a single Command.
-   *
-   * When populated:
-   * - Each entry's tool_call_id matches an entry in tool_calls[] with status
-   * WAITING_APPROVAL
-   * - Each entry carries its interrupt_id for targeted resume
+   * 1. Agent-runner sets ToolCall.status = WAITING_APPROVAL on the message
+   * 2. UpdateStatus handler recomputes this field, entry appears
+   * 3. Phase changes to EXECUTION_WAITING_FOR_APPROVAL
+   * 4. User submits decisions via SubmitApproval RPC (one per tool call)
+   * 5. Agent resumes, ToolCall.status advances, next recompute drops the entry
    *
    * Empty when no approvals are pending.
    * </pre>

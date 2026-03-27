@@ -9,6 +9,7 @@ import (
 	grpclib "github.com/stigmer/stigmer/backend/libs/go/grpc"
 	"github.com/stigmer/stigmer/backend/libs/go/grpc/request/pipeline"
 	"github.com/stigmer/stigmer/backend/libs/go/store"
+	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -206,19 +207,11 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.CompletedAt = requestStatus.CompletedAt
 	}
 
-	// Merge pending_approvals (HITL approval flow)
-	//
-	// Python agent-runner sends pending_approvals when:
-	// 1. Tools require approval: non-empty list = set pending_approvals
-	// 2. Approvals resolved/cleared: empty list or entry with empty tool_call_id = clear
-	// 3. Unrelated status update: field absent (nil/empty) = preserve existing
-	if len(requestStatus.PendingApprovals) > 0 {
-		if requestStatus.PendingApprovals[0].ToolCallId != "" {
-			updated.Status.PendingApprovals = requestStatus.PendingApprovals
-		} else {
-			updated.Status.PendingApprovals = nil
-		}
-	}
+	// Merge pending_approvals: upsert-by-tool_call_id with forward-only lifecycle + prune
+	updated.Status.PendingApprovals = approval.MergePendingApprovals(
+		existing.GetStatus().GetPendingApprovals(),
+		requestStatus.GetPendingApprovals(),
+	)
 
 	// Merge usage (replace with latest cumulative snapshot from request)
 	if requestStatus.Usage != nil {

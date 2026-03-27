@@ -143,7 +143,7 @@ private static final long serialVersionUID = 0L;
    *
    * Contains one entry per tool call requiring approval. Each entry carries
    * the full PendingApproval details (tool_call_id, tool_name, message,
-   * args_preview, requested_at, interrupt_id).
+   * args_preview, requested_at).
    *
    * The child_agent_execution_id on each entry is set to execution_id above
    * so the parent can correlate approvals to the originating child.
@@ -163,7 +163,7 @@ private static final long serialVersionUID = 0L;
    *
    * Contains one entry per tool call requiring approval. Each entry carries
    * the full PendingApproval details (tool_call_id, tool_name, message,
-   * args_preview, requested_at, interrupt_id).
+   * args_preview, requested_at).
    *
    * The child_agent_execution_id on each entry is set to execution_id above
    * so the parent can correlate approvals to the originating child.
@@ -184,7 +184,7 @@ private static final long serialVersionUID = 0L;
    *
    * Contains one entry per tool call requiring approval. Each entry carries
    * the full PendingApproval details (tool_call_id, tool_name, message,
-   * args_preview, requested_at, interrupt_id).
+   * args_preview, requested_at).
    *
    * The child_agent_execution_id on each entry is set to execution_id above
    * so the parent can correlate approvals to the originating child.
@@ -204,7 +204,7 @@ private static final long serialVersionUID = 0L;
    *
    * Contains one entry per tool call requiring approval. Each entry carries
    * the full PendingApproval details (tool_call_id, tool_name, message,
-   * args_preview, requested_at, interrupt_id).
+   * args_preview, requested_at).
    *
    * The child_agent_execution_id on each entry is set to execution_id above
    * so the parent can correlate approvals to the originating child.
@@ -224,7 +224,7 @@ private static final long serialVersionUID = 0L;
    *
    * Contains one entry per tool call requiring approval. Each entry carries
    * the full PendingApproval details (tool_call_id, tool_name, message,
-   * args_preview, requested_at, interrupt_id).
+   * args_preview, requested_at).
    *
    * The child_agent_execution_id on each entry is set to execution_id above
    * so the parent can correlate approvals to the originating child.
@@ -764,7 +764,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -787,7 +787,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -810,7 +810,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -833,7 +833,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -863,7 +863,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -890,7 +890,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -919,7 +919,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -949,7 +949,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -976,7 +976,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -1003,7 +1003,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -1031,7 +1031,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -1057,7 +1057,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -1083,7 +1083,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -1103,7 +1103,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -1126,7 +1126,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -1150,7 +1150,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -1170,7 +1170,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
@@ -1191,7 +1191,7 @@ private static final long serialVersionUID = 0L;
      *
      * Contains one entry per tool call requiring approval. Each entry carries
      * the full PendingApproval details (tool_call_id, tool_name, message,
-     * args_preview, requested_at, interrupt_id).
+     * args_preview, requested_at).
      *
      * The child_agent_execution_id on each entry is set to execution_id above
      * so the parent can correlate approvals to the originating child.
