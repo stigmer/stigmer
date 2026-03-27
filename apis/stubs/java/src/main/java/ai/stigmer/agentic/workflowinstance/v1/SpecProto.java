@@ -51,7 +51,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "ce.ApiResourceReferenceBt\272Hq\222\001n\"l\272\001i\n\025en" +
       "vironment_refs.kind\022?environment_refs mu" +
       "st reference resources with kind=environ" +
-      "ment\032\017this.kind == 52R\017environmentRefsB\310" +
+      "ment\032\017this.kind == 53R\017environmentRefsB\310" +
       "\001B\tSpecProtoP\001\242\002\004ASAW\252\002&Ai.Stigmer.Agent" +
       "ic.Workflowinstance.V1\312\002&Ai\\Stigmer\\Agen" +
       "tic\\Workflowinstance\\V1\342\0022Ai\\Stigmer\\Age" +

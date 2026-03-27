@@ -22,6 +22,6 @@ message AgentInstanceSpec {
   repeated ai.stigmer.commons.apiresource.ApiResourceReference environment_refs = 3 [(buf.validate.field).repeated.items.cel = {
     id: "environment_refs.kind"
     message: "environment_refs must reference resources with kind=environment"
-    expression: "this.kind == 52" // 52 = environment enum value
+    expression: "this.kind == 53" // 53 = environment enum value
   }];
 }

@@ -51,7 +51,7 @@ public final class SpecProto extends com.google.protobuf.GeneratedFile {
       "eferenceBt\272Hq\222\001n\"l\272\001i\n\025environment_refs." +
       "kind\022?environment_refs must reference re" +
       "sources with kind=environment\032\017this.kind" +
-      " == 52R\017environmentRefsB\274\001B\tSpecProtoP\001\242" +
+      " == 53R\017environmentRefsB\274\001B\tSpecProtoP\001\242" +
       "\002\004ASAA\252\002#Ai.Stigmer.Agentic.Agentinstanc" +
       "e.V1\312\002#Ai\\Stigmer\\Agentic\\Agentinstance\\" +
       "V1\342\002/Ai\\Stigmer\\Agentic\\Agentinstance\\V1" +
