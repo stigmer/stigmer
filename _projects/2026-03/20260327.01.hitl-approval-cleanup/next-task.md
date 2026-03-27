@@ -74,45 +74,49 @@ When starting a new session:
 | **T03** | Python: single writer to messages, simplify HITL | **COMPLETE** | T01, T02 |
 | **T04** | Add tool_call_id to interrupt payload | **COMPLETE** | T01 |
 | **T05** | Java/Go: compute pending_approvals on write, simplify SubmitApproval | **COMPLETE** | T02, T03 |
-| T06 | React SDK: remove polling/staleness workarounds | Not started | T05 |
+| **T06** | React SDK: remove polling/staleness workarounds | **COMPLETE** | T05 |
 | T07 | Tests: rewrite for new architecture | Not started | T03, T04, T05 |
 
 ## Current Status
 
 **Created**: 2026-03-27
-**Current Task**: T01–T05 COMPLETE. Next: T06 (React SDK) or T07 (comprehensive tests).
-**Status**: T05 Complete — Go and Java server-side fully refactored across both repos (stigmer + stigmer-cloud). `pending_approvals` is now a server-computed projection from `messages[].tool_calls`. Old `PendingApprovalMerger` deleted in both languages. `WorkflowPendingApproval` wrapper introduced for clean domain separation. Full-replace protocol for workflow-level pending_approvals. Both repos compile and Go tests pass.
+**Current Task**: T01–T06 COMPLETE. Next: T07 (comprehensive tests) or create PRs.
+**Status**: T06 Complete — React SDK `useSessionConversation` hook simplified. Removed `ApprovalLifecycleState` import (proto type deleted in T02), exponential-backoff approval polling, and timer-based staleness recovery. Simplified optimistic dismissal state from `Map<string, number>` to `Set<string>`. No public API changes — `UseSessionConversationReturn` interface unchanged.
 
-## Session Progress (2026-03-27, Session 5)
+## Session Progress (2026-03-27, Session 6)
 
 ### Accomplished
-- Completed T05: Go/Java server-side compute pending_approvals — all 10 phases
-- Proto modeling fix: `WorkflowPendingApproval` wrapper, `child_agent_execution_id` moved from `PendingApproval`
-- Go: Created `ComputePendingApprovals`, rewrote 7 source files, updated CLI (7 files), updated tests (3 files)
-- Java: Created `PendingApprovalComputer`, deleted `PendingApprovalMerger`, rewrote 8 source files, updated 4 test files
-- Net: ~2011 insertions, ~3924 deletions across both repos (95 files total)
+- Completed T06: React SDK polling/staleness workaround removal
+- Removed `ApprovalLifecycleState` import and `ACTIONABLE_LIFECYCLE_STATES` filter (type deleted in T02)
+- Deleted 5 polling/staleness constants, exponential-backoff polling useEffect (~50 lines), staleness detection useEffect (~27 lines)
+- Simplified dismissed state from `Map<string, number>` + `useRef` + `useMemo` to a single `useState<ReadonlySet<string>>`
+- Removed `useRef` from React imports (no longer needed)
+- Removed undeclared `approvalLoadFailed` from return value (fixed type drift)
+- Deleted 8 obsolete tests (polling + staleness), restructured 2 surviving tests under "optimistic dismissal" describe block
+- Net: 10 insertions, 394 deletions across 2 files
 
 ### Key Decisions
-- Added `loadExecution()` to Java `UpdateExecutionStatusActivity` (Go already had `LoadAgentExecutionActivity`)
-- Full-replace protocol for workflow pending_approvals — no merge, just replace
-- HITL workflow loop loads execution from DB for pending_approvals count (Python's slim return no longer includes them)
+- Removed both polling AND staleness detection (per user decision): trust the stream; if a Temporal signal fails, the approval stays in `pending_approvals` on subsequent stream snapshots and reappears when the user navigates away and back (dismissedApprovalIds is transient React state)
+- Kept the optimistic dismissal pattern (card hidden immediately after submit) but without timestamp tracking or time-based recovery
+- No changes needed to `useExecutionStream`, `useSubmitApproval`, `MessageThread`, or `ApprovalCard` — they consume `PendingApproval` fields that still exist
 
 ## Next Steps
-1. **T06** (React SDK): Remove polling/staleness workarounds — possible now that server-computed `pending_approvals` are reliable
-2. **T07** (Tests): Java integration tests, comprehensive end-to-end validation
-3. Create PRs for both repos on `hitl-flow-simplification` branch
+1. **T07** (Tests): Rewrite tests for new architecture — Java integration tests, comprehensive end-to-end validation
+2. Create PRs for both repos on `hitl-flow-simplification` branch
+3. Consider creating PRs for T01–T06 now and T07 as a follow-up
 
 ## Context for Resume
 - All changes are on the `hitl-flow-simplification` branch in both repos
 - Go and Java both compile clean; Go tests pass
-- Java tests compile in Bazel but are not runnable in Bazel (use Spring Boot test runner)
-- The `PendingApprovalComputer` pattern is identical in both languages: scan messages + sub-agent messages for tool calls matching the 3-way filter
-- `WorkflowPendingApproval` wraps `PendingApproval` with `child_agent_execution_id` for workflow-level routing
+- React SDK changes are in `sdk/react/src/session/useSessionConversation.ts` and its test file
+- The `UseSessionConversationReturn` public interface is unchanged — no breaking changes for platform builders
+- `pendingApprovals` derivation now simply filters by `dismissedApprovalIds` (no lifecycle state check)
+- `ApprovalLifecycleState` enum no longer exists in generated TS stubs — any other code referencing it will fail to compile
 
 ## Quick Commands
 
 After loading context:
-- "Pick next task" — T06 (React SDK) or T07 (Tests)
+- "Pick next task" — T07 (Tests) or create PRs
 - "Show project status" — Get overview of progress
 - "Review design decisions" — Check DD-001 and DD-002
 - "Create PRs" — Ready for review on hitl-flow-simplification branch
