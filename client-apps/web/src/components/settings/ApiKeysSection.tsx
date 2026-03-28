@@ -6,6 +6,9 @@ import {
   ApiKeyListPanel,
   CreateApiKeyForm,
   ApiKeyCreatedAlert,
+  useResourceAvailable,
+  CloudFeatureNotice,
+  ApiResourceKind,
 } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
 
@@ -16,6 +19,7 @@ type FlowState =
 
 export function ApiKeysSection() {
   const org = useActiveOrgSlug();
+  const apiKeysAvailable = useResourceAvailable(ApiResourceKind.api_key);
   const [flow, setFlow] = useState<FlowState>({ phase: "idle" });
   const listRefetchRef = useRef<(() => void) | null>(null);
 
@@ -44,7 +48,7 @@ export function ApiKeysSection() {
           API Keys
         </h2>
 
-        {flow.phase === "idle" && (
+        {apiKeysAvailable && flow.phase === "idle" && (
           <button
             type="button"
             onClick={() => setFlow({ phase: "creating" })}
@@ -60,29 +64,35 @@ export function ApiKeysSection() {
         your organizations.
       </p>
 
-      {/* Reveal alert — shown once after creation */}
-      {flow.phase === "reveal" && (
-        <ApiKeyCreatedAlert
-          rawKey={flow.rawKey}
-          keyName={flow.keyName}
-          onDismiss={handleDismissReveal}
-          className="mb-4"
-        />
-      )}
+      {!apiKeysAvailable ? (
+        <CloudFeatureNotice>
+          API keys are not available in local mode. When running locally, the
+          CLI authenticates directly without API keys.
+        </CloudFeatureNotice>
+      ) : (
+        <>
+          {flow.phase === "reveal" && (
+            <ApiKeyCreatedAlert
+              rawKey={flow.rawKey}
+              keyName={flow.keyName}
+              onDismiss={handleDismissReveal}
+              className="mb-4"
+            />
+          )}
 
-      {/* Create form */}
-      {flow.phase === "creating" && (
-        <div className="border-border bg-card mb-4 rounded-lg border p-4">
-          <CreateApiKeyForm
-            org={org}
-            onCreated={handleCreated}
-            onCancel={() => setFlow({ phase: "idle" })}
-          />
-        </div>
-      )}
+          {flow.phase === "creating" && (
+            <div className="border-border bg-card mb-4 rounded-lg border p-4">
+              <CreateApiKeyForm
+                org={org}
+                onCreated={handleCreated}
+                onCancel={() => setFlow({ phase: "idle" })}
+              />
+            </div>
+          )}
 
-      {/* Key list */}
-      <ApiKeyListPanel onRefetchRef={handleRefetchRef} />
+          <ApiKeyListPanel onRefetchRef={handleRefetchRef} />
+        </>
+      )}
     </section>
   );
 }

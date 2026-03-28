@@ -24,6 +24,12 @@ export {
   getRpcMetadata,
 } from "./errors";
 
+// Resource availability
+export {
+  type DeploymentMode,
+  isResourceAvailable,
+} from "./resource-availability";
+
 // Search client
 export {
   SearchClient,
