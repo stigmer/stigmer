@@ -60,6 +60,11 @@ class ResumeReconciler:
         approval_decisions: list[SubmitApprovalInput],
     ) -> None:
         """Run the full reconciliation pipeline."""
+        # Populate _tool_call_index and fingerprints BEFORE the reconciliation
+        # loop so that get_tool_call() and iter_all_tool_calls() can find
+        # persisted tool calls from the previous execution cycle.
+        self._sb.populate_fingerprints_from_existing_tool_calls()
+
         decisions_by_tc = {d.tool_call_id: d for d in approval_decisions}
         reconciled_count = 0
         has_reject = False
@@ -123,8 +128,6 @@ class ResumeReconciler:
                 self._sb.current_status.completed_at,
             )
             self._sb.current_status.completed_at = ""
-
-        self._sb.populate_fingerprints_from_existing_tool_calls()
 
         self._logger.info(
             "[RESUME_RECONCILE] execution=%s "
