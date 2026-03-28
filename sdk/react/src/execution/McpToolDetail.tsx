@@ -1,0 +1,415 @@
+"use client";
+
+import { useState } from "react";
+import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import { cn } from "@stigmer/theme";
+import { formatDuration } from "./ToolCallDetail";
+import { humanizeToolName } from "./tool-categories";
+
+export interface McpToolDetailProps {
+  readonly toolCall: ToolCall;
+  readonly className?: string;
+}
+
+/**
+ * MCP-aware detail renderer for tool calls originating from an MCP
+ * server.
+ *
+ * Replaces the generic "dump args + result as raw JSON" fallback
+ * with structured formatting:
+ *
+ * - **Arguments** are rendered as a labelled key-value list.
+ *   Scalars display inline; objects/arrays collapse into formatted
+ *   JSON blocks.
+ * - **Results** are parsed through {@link parseMcpResult} which
+ *   handles MCP content-block arrays, embedded JSON, and Python
+ *   repr artefacts before rendering.
+ *
+ * @example
+ * ```tsx
+ * <McpToolDetail toolCall={toolCall} />
+ * ```
+ */
+export function McpToolDetail({ toolCall, className }: McpToolDetailProps) {
+  const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
+
+  return (
+    <div className={cn("space-y-3 text-xs", className)}>
+      <McpMetadataRow
+        mcpServerSlug={toolCall.mcpServerSlug}
+        toolName={toolCall.name}
+        duration={duration}
+      />
+
+      {toolCall.args && Object.keys(toolCall.args).length > 0 && (
+        <McpArgsView args={toolCall.args as Record<string, unknown>} />
+      )}
+
+      {toolCall.result && (
+        <McpResultView result={toolCall.result} />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Metadata
+// ---------------------------------------------------------------------------
+
+function McpMetadataRow({
+  mcpServerSlug,
+  toolName,
+  duration,
+}: {
+  mcpServerSlug: string;
+  toolName: string;
+  duration: string | null;
+}) {
+  const hasMetadata = mcpServerSlug || duration;
+  if (!hasMetadata) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
+      {mcpServerSlug && (
+        <span className="inline-flex items-center gap-1.5 rounded bg-muted px-1.5 py-0.5 font-mono">
+          <McpServerIcon />
+          {mcpServerSlug}
+          <span className="text-muted-foreground/60">/</span>
+          <span className="text-foreground">{humanizeToolName(toolName)}</span>
+        </span>
+      )}
+      {duration && <span>{duration}</span>}
+    </div>
+  );
+}
+
+function McpServerIcon() {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      <circle cx="6" cy="3" r="1.5" />
+      <circle cx="6" cy="9" r="1.5" />
+      <path d="M6 4.5V7.5" />
+      <path d="M3 6H4.5" />
+      <path d="M7.5 6H9" />
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Arguments — structured key-value rendering
+// ---------------------------------------------------------------------------
+
+function McpArgsView({ args }: { args: Record<string, unknown> }) {
+  const entries = Object.entries(args);
+  if (entries.length === 0) return null;
+
+  const scalars: [string, string][] = [];
+  const complex: [string, unknown][] = [];
+
+  for (const [key, value] of entries) {
+    if (isScalar(value)) {
+      scalars.push([key, String(value)]);
+    } else {
+      complex.push([key, value]);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <span className="font-medium text-muted-foreground">Arguments</span>
+
+      {scalars.length > 0 && (
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-md border border-border bg-muted/30 px-2.5 py-2">
+          {scalars.map(([key, value]) => (
+            <ScalarRow key={key} label={key} value={value} />
+          ))}
+        </dl>
+      )}
+
+      {complex.map(([key, value]) => (
+        <CollapsibleJsonBlock
+          key={key}
+          label={humanizeArgKey(key)}
+          content={formatJson(value)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ScalarRow({ label, value }: { label: string; value: string }) {
+  const isMultiline = value.includes("\n");
+
+  return (
+    <>
+      <dt className="whitespace-nowrap font-mono text-muted-foreground">
+        {humanizeArgKey(label)}
+      </dt>
+      {isMultiline ? (
+        <dd className="min-w-0">
+          <pre className="whitespace-pre-wrap break-words rounded border border-border bg-muted/40 px-2 py-1 font-mono text-foreground">
+            {value}
+          </pre>
+        </dd>
+      ) : (
+        <dd className="min-w-0 truncate font-mono text-foreground" title={value}>
+          {value}
+        </dd>
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Result — intelligent parsing
+// ---------------------------------------------------------------------------
+
+function McpResultView({ result }: { result: string }) {
+  const parsed = parseMcpResult(result);
+
+  return (
+    <div className="space-y-1">
+      <span className="font-medium text-muted-foreground">Result</span>
+      <CollapsiblePre content={parsed} />
+    </div>
+  );
+}
+
+/**
+ * Extracts human-readable content from an MCP tool result string.
+ *
+ * Handles three common formats that arrive from the backend:
+ *
+ * 1. **MCP content-block array** — `[{"type":"text","text":"..."}]`.
+ *    Text parts are extracted and, if they are themselves valid
+ *    JSON, pretty-printed.
+ * 2. **Python repr** — `[{'type': 'text', 'text': '...'}]`. Single
+ *    quotes are normalised to double quotes before parsing.
+ * 3. **Plain JSON / text** — returned formatted when valid JSON,
+ *    or as-is otherwise.
+ */
+export function parseMcpResult(result: string): string {
+  const trimmed = result.trim();
+
+  // Fast path: try standard JSON parse first.
+  const jsonParsed = tryParseJson(trimmed);
+  if (jsonParsed !== undefined) {
+    const extracted = tryExtractContentBlocks(jsonParsed);
+    if (extracted !== null) return extracted;
+    return JSON.stringify(jsonParsed, null, 2);
+  }
+
+  // Attempt to fix Python repr (single-quoted dicts/lists).
+  const fixed = tryFixPythonRepr(trimmed);
+  if (fixed !== undefined) {
+    const extracted = tryExtractContentBlocks(fixed);
+    if (extracted !== null) return extracted;
+    return JSON.stringify(fixed, null, 2);
+  }
+
+  return trimmed;
+}
+
+// ---------------------------------------------------------------------------
+// Content-block extraction
+// ---------------------------------------------------------------------------
+
+interface McpContentBlock {
+  type: string;
+  text?: string;
+}
+
+function isMcpContentBlockArray(val: unknown): val is McpContentBlock[] {
+  if (!Array.isArray(val)) return false;
+  if (val.length === 0) return false;
+  return val.every(
+    (item) =>
+      typeof item === "object" &&
+      item !== null &&
+      "type" in item &&
+      typeof (item as Record<string, unknown>).type === "string",
+  );
+}
+
+function tryExtractContentBlocks(parsed: unknown): string | null {
+  if (!isMcpContentBlockArray(parsed)) return null;
+
+  const textParts: string[] = [];
+  for (const block of parsed) {
+    if (block.type === "text" && typeof block.text === "string") {
+      const innerJson = tryParseJson(block.text.trim());
+      if (innerJson !== undefined) {
+        textParts.push(JSON.stringify(innerJson, null, 2));
+      } else {
+        textParts.push(block.text);
+      }
+    }
+  }
+
+  return textParts.length > 0 ? textParts.join("\n\n") : null;
+}
+
+// ---------------------------------------------------------------------------
+// JSON / Python repr helpers
+// ---------------------------------------------------------------------------
+
+function tryParseJson(str: string): unknown | undefined {
+  try {
+    return JSON.parse(str);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Attempts to convert a Python repr string (single-quoted
+ * dicts/lists with True/False/None) into a parsed JS value.
+ *
+ * This is intentionally conservative: it only handles the
+ * most common patterns and bails on ambiguity.
+ */
+function tryFixPythonRepr(str: string): unknown | undefined {
+  if (!str.startsWith("[") && !str.startsWith("{")) return undefined;
+
+  let fixed = str
+    .replace(/'/g, '"')
+    .replace(/\bTrue\b/g, "true")
+    .replace(/\bFalse\b/g, "false")
+    .replace(/\bNone\b/g, "null");
+
+  // Handle trailing commas before ] or } (common in Python repr).
+  fixed = fixed.replace(/,\s*([}\]])/g, "$1");
+
+  return tryParseJson(fixed);
+}
+
+// ---------------------------------------------------------------------------
+// Shared UI primitives
+// ---------------------------------------------------------------------------
+
+const TRUNCATION_LINE_LIMIT = 10;
+
+function CollapsiblePre({
+  content,
+  className,
+}: {
+  content: string;
+  className?: string;
+}) {
+  const lines = content.split("\n");
+  const needsTruncation = lines.length > TRUNCATION_LINE_LIMIT;
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const displayContent =
+    needsTruncation && !isExpanded
+      ? lines.slice(0, TRUNCATION_LINE_LIMIT).join("\n") + "\n\u2026"
+      : content;
+
+  return (
+    <>
+      <pre
+        className={cn(
+          "max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-foreground",
+          className,
+        )}
+      >
+        {displayContent}
+      </pre>
+      {needsTruncation && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded((v) => !v)}
+          className="mt-1 text-primary hover:text-primary/80 text-xs font-medium transition-colors"
+        >
+          {isExpanded ? "Show less" : `Show all ${lines.length} lines`}
+        </button>
+      )}
+    </>
+  );
+}
+
+function CollapsibleJsonBlock({
+  label,
+  content,
+}: {
+  label: string;
+  content: string;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const lines = content.split("\n");
+  const isLong = lines.length > 3;
+
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        onClick={() => setIsExpanded((v) => !v)}
+        className="flex items-center gap-1 font-medium text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <svg
+          width="8"
+          height="8"
+          viewBox="0 0 8 8"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={cn(
+            "shrink-0 transition-transform duration-150",
+            isExpanded && "rotate-90",
+          )}
+          aria-hidden="true"
+        >
+          <path d="M2 1L6 4L2 7" />
+        </svg>
+        {label}
+        {!isExpanded && isLong && (
+          <span className="text-muted-foreground/60 font-normal">
+            ({lines.length} lines)
+          </span>
+        )}
+      </button>
+      {isExpanded && (
+        <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-foreground">
+          {content}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Utilities
+// ---------------------------------------------------------------------------
+
+function isScalar(value: unknown): value is string | number | boolean {
+  const t = typeof value;
+  return t === "string" || t === "number" || t === "boolean";
+}
+
+function formatJson(obj: unknown): string {
+  try {
+    return JSON.stringify(obj, null, 2);
+  } catch {
+    return String(obj);
+  }
+}
+
+function humanizeArgKey(key: string): string {
+  return key
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b[a-z]/g, (c) => c.toUpperCase());
+}

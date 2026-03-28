@@ -86,8 +86,9 @@ function defaultFormatSummary(
   status: AggregateStatus,
 ): string {
   if (toolCalls.length === 1) {
-    const cat = resolveToolCategory(toolCalls[0].name);
-    const primary = extractPrimaryArg(toolCalls[0]);
+    const tc = toolCalls[0];
+    const cat = resolveToolCategory(tc.name, tc.mcpServerSlug);
+    const primary = extractPrimaryArg(tc);
     if (primary) {
       const truncated =
         primary.length > 60 ? primary.slice(0, 57) + "\u2026" : primary;
