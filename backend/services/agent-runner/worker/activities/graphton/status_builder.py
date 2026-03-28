@@ -17,6 +17,7 @@ from typing import Any
 from uuid import uuid4
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import TodoItem
+from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
 from ai.stigmer.agentic.agentexecution.v1.context_pb2 import (
     ContextInfo,
@@ -25,6 +26,7 @@ from ai.stigmer.agentic.agentexecution.v1.context_pb2 import (
     SummarizationEvent,
 )
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+    ApprovalAction,
     ExecutionPhase,
     MessageType,
     SubAgentStatus,
@@ -613,6 +615,31 @@ class StatusBuilder:
     def tool_call_count(self) -> int:
         """Return the total number of tracked tool calls."""
         return len(self._tool_call_index)
+
+    def build_pending_approvals_snapshot(self) -> list[PendingApproval]:
+        """Build pending_approvals snapshot for the Temporal slim status.
+
+        This is a point-in-time coordination signal for the Temporal workflow,
+        NOT a DB-persisted projection.  The DB projection is computed
+        server-side by Go/Java ``ComputePendingApprovals`` on every
+        ``UpdateStatus`` write (DD-001).
+
+        The Temporal workflow uses this snapshot to determine how many
+        approval signals to collect before re-invoking the Python activity.
+        Reading from the DB is unsafe because the ``SubmitApproval`` handler
+        may have already recorded decisions (mutating the DB projection)
+        before the workflow reads it.
+        """
+        result: list[PendingApproval] = []
+        for tc in self.iter_all_tool_calls():
+            if (
+                tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                and tc.requires_approval
+                and tc.approval_action
+                == ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+            ):
+                result.append(PendingApproval(tool_call_id=tc.id))
+        return result
 
     async def process_event(self, event: dict[str, Any]) -> None:
         """
