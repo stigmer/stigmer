@@ -134,6 +134,12 @@ export function ApprovalCard({
           )}
         </span>
 
+        {pendingApproval.fromSubAgent && pendingApproval.subAgentName && (
+          <span className="shrink-0 rounded bg-muted px-1 py-0.5 font-mono text-muted-foreground">
+            via {pendingApproval.subAgentSubject || pendingApproval.subAgentName}
+          </span>
+        )}
+
         <WaitingDuration requestedAt={pendingApproval.requestedAt} />
 
         <span className="shrink-0 text-warning" aria-hidden="true">
@@ -143,19 +149,7 @@ export function ApprovalCard({
 
       {/* Body */}
       <div className="px-3 py-2.5 space-y-2">
-        {/* Sub-agent attribution */}
-        {pendingApproval.fromSubAgent && pendingApproval.subAgentName && (
-          <p className="text-xs text-muted-foreground">
-            Sub-agent{" "}
-            <span className="font-medium text-foreground">
-              {pendingApproval.subAgentName}
-            </span>{" "}
-            wants to execute this tool
-          </p>
-        )}
-
-        {/* Approval message */}
-        {pendingApproval.message && (
+        {pendingApproval.message && categoryInfo.category !== "shell" && (
           <p className="text-xs text-foreground">
             {pendingApproval.message}
           </p>
