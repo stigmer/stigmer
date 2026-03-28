@@ -187,7 +187,7 @@ export function ToolCallItem({
       {expanded && (
         <div className="px-2.5 pb-2.5 pt-1">
           {isSubAgent ? (
-            <SubAgentSection subAgentExecution={subAgentExecution} />
+            <SubAgentSection subAgentExecution={subAgentExecution} collapsible={false} />
           ) : (
             <ToolCallDetail toolCall={toolCall} />
           )}
