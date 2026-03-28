@@ -41,8 +41,29 @@ export type { ToolCallGroupProps } from "./ToolCallGroup";
 export { ToolCallDetail, formatDuration } from "./ToolCallDetail";
 export type { ToolCallDetailProps } from "./ToolCallDetail";
 
-export { McpToolDetail, parseMcpResult } from "./McpToolDetail";
+export { McpToolDetail, McpArgsView, McpMetadataRow, parseMcpResult } from "./McpToolDetail";
 export type { McpToolDetailProps } from "./McpToolDetail";
+
+export { ToolArgsView } from "./ToolArgsView";
+export type { ToolArgsViewProps } from "./ToolArgsView";
+
+export {
+  CollapsibleCode,
+  CollapsiblePre,
+  CollapsibleJsonBlock,
+  FilePathIcon,
+  McpServerIcon,
+  TRUNCATION_LINE_LIMIT,
+  formatJson,
+  formatResult,
+  isScalar,
+  humanizeArgKey,
+} from "./tool-rendering-primitives";
+export type {
+  CollapsibleCodeProps,
+  CollapsiblePreProps,
+  CollapsibleJsonBlockProps,
+} from "./tool-rendering-primitives";
 
 export { ToolCallItem } from "./ToolCallItem";
 export type { ToolCallItemProps } from "./ToolCallItem";

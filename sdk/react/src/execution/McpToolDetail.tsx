@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import type { ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { cn } from "@stigmer/theme";
 import { formatDuration } from "./ToolCallDetail";
 import { humanizeToolName } from "./tool-categories";
+import {
+  CollapsiblePre,
+  CollapsibleJsonBlock,
+  McpServerIcon,
+  formatJson,
+  isScalar,
+  humanizeArgKey,
+} from "./tool-rendering-primitives";
 
 export interface McpToolDetailProps {
   readonly toolCall: ToolCall;
@@ -56,7 +63,7 @@ export function McpToolDetail({ toolCall, className }: McpToolDetailProps) {
 // Metadata
 // ---------------------------------------------------------------------------
 
-function McpMetadataRow({
+export function McpMetadataRow({
   mcpServerSlug,
   toolName,
   duration,
@@ -83,34 +90,11 @@ function McpMetadataRow({
   );
 }
 
-function McpServerIcon() {
-  return (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 12 12"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="shrink-0"
-      aria-hidden="true"
-    >
-      <circle cx="6" cy="3" r="1.5" />
-      <circle cx="6" cy="9" r="1.5" />
-      <path d="M6 4.5V7.5" />
-      <path d="M3 6H4.5" />
-      <path d="M7.5 6H9" />
-    </svg>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Arguments — structured key-value rendering
 // ---------------------------------------------------------------------------
 
-function McpArgsView({ args }: { args: Record<string, unknown> }) {
+export function McpArgsView({ args }: { args: Record<string, unknown> }) {
   const entries = Object.entries(args);
   if (entries.length === 0) return null;
 
@@ -181,7 +165,10 @@ function McpResultView({ result }: { result: string }) {
   return (
     <div className="space-y-1">
       <span className="font-medium text-muted-foreground">Result</span>
-      <CollapsiblePre content={parsed} />
+      <CollapsiblePre
+        content={parsed}
+        className="max-h-80 overflow-auto rounded-md border border-border bg-muted/40 p-2 text-foreground"
+      />
     </div>
   );
 }
@@ -294,122 +281,3 @@ function tryFixPythonRepr(str: string): unknown | undefined {
   return tryParseJson(fixed);
 }
 
-// ---------------------------------------------------------------------------
-// Shared UI primitives
-// ---------------------------------------------------------------------------
-
-const TRUNCATION_LINE_LIMIT = 10;
-
-function CollapsiblePre({
-  content,
-  className,
-}: {
-  content: string;
-  className?: string;
-}) {
-  const lines = content.split("\n");
-  const needsTruncation = lines.length > TRUNCATION_LINE_LIMIT;
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const displayContent =
-    needsTruncation && !isExpanded
-      ? lines.slice(0, TRUNCATION_LINE_LIMIT).join("\n") + "\n\u2026"
-      : content;
-
-  return (
-    <>
-      <pre
-        className={cn(
-          "max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-foreground",
-          className,
-        )}
-      >
-        {displayContent}
-      </pre>
-      {needsTruncation && (
-        <button
-          type="button"
-          onClick={() => setIsExpanded((v) => !v)}
-          className="mt-1 text-primary hover:text-primary/80 text-xs font-medium transition-colors"
-        >
-          {isExpanded ? "Show less" : `Show all ${lines.length} lines`}
-        </button>
-      )}
-    </>
-  );
-}
-
-function CollapsibleJsonBlock({
-  label,
-  content,
-}: {
-  label: string;
-  content: string;
-}) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const lines = content.split("\n");
-  const isLong = lines.length > 3;
-
-  return (
-    <div className="space-y-1">
-      <button
-        type="button"
-        onClick={() => setIsExpanded((v) => !v)}
-        className="flex items-center gap-1 font-medium text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <svg
-          width="8"
-          height="8"
-          viewBox="0 0 8 8"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={cn(
-            "shrink-0 transition-transform duration-150",
-            isExpanded && "rotate-90",
-          )}
-          aria-hidden="true"
-        >
-          <path d="M2 1L6 4L2 7" />
-        </svg>
-        {label}
-        {!isExpanded && isLong && (
-          <span className="text-muted-foreground/60 font-normal">
-            ({lines.length} lines)
-          </span>
-        )}
-      </button>
-      {isExpanded && (
-        <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-foreground">
-          {content}
-        </pre>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-function isScalar(value: unknown): value is string | number | boolean {
-  const t = typeof value;
-  return t === "string" || t === "number" || t === "boolean";
-}
-
-function formatJson(obj: unknown): string {
-  try {
-    return JSON.stringify(obj, null, 2);
-  } catch {
-    return String(obj);
-  }
-}
-
-function humanizeArgKey(key: string): string {
-  return key
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/[_-]+/g, " ")
-    .replace(/\b[a-z]/g, (c) => c.toUpperCase());
-}

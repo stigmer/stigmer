@@ -61,6 +61,7 @@ private static final long serialVersionUID = 0L;
     argsPreview_ = "";
     requestedAt_ = "";
     subAgentName_ = "";
+    mcpServerSlug_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -419,6 +420,69 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int MCP_SERVER_SLUG_FIELD_NUMBER = 9;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object mcpServerSlug_ = "";
+  /**
+   * <pre>
+   * Slug of the MCP server that provides this tool.
+   * Copied from ToolCall.mcp_server_slug for UI convenience.
+   * Empty for built-in sandbox tools (read, write, shell, etc.).
+   *
+   * Enables the approval card to classify MCP tools and render
+   * structured argument previews (scalar grids, humanized names)
+   * instead of falling back to raw JSON.
+   *
+   * Examples: "planton-cloud", "github", "slack"
+   * </pre>
+   *
+   * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+   * @return The mcpServerSlug.
+   */
+  @java.lang.Override
+  public java.lang.String getMcpServerSlug() {
+    java.lang.Object ref = mcpServerSlug_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      mcpServerSlug_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Slug of the MCP server that provides this tool.
+   * Copied from ToolCall.mcp_server_slug for UI convenience.
+   * Empty for built-in sandbox tools (read, write, shell, etc.).
+   *
+   * Enables the approval card to classify MCP tools and render
+   * structured argument previews (scalar grids, humanized names)
+   * instead of falling back to raw JSON.
+   *
+   * Examples: "planton-cloud", "github", "slack"
+   * </pre>
+   *
+   * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+   * @return The bytes for mcpServerSlug.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getMcpServerSlugBytes() {
+    java.lang.Object ref = mcpServerSlug_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      mcpServerSlug_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -454,6 +518,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subAgentName_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 7, subAgentName_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerSlug_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 9, mcpServerSlug_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -485,6 +552,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subAgentName_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, subAgentName_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerSlug_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(9, mcpServerSlug_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -514,6 +584,8 @@ private static final long serialVersionUID = 0L;
         != other.getFromSubAgent()) return false;
     if (!getSubAgentName()
         .equals(other.getSubAgentName())) return false;
+    if (!getMcpServerSlug()
+        .equals(other.getMcpServerSlug())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -540,6 +612,8 @@ private static final long serialVersionUID = 0L;
         getFromSubAgent());
     hash = (37 * hash) + SUB_AGENT_NAME_FIELD_NUMBER;
     hash = (53 * hash) + getSubAgentName().hashCode();
+    hash = (37 * hash) + MCP_SERVER_SLUG_FIELD_NUMBER;
+    hash = (53 * hash) + getMcpServerSlug().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -705,6 +779,7 @@ private static final long serialVersionUID = 0L;
       requestedAt_ = "";
       fromSubAgent_ = false;
       subAgentName_ = "";
+      mcpServerSlug_ = "";
       return this;
     }
 
@@ -759,6 +834,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000040) != 0)) {
         result.subAgentName_ = subAgentName_;
       }
+      if (((from_bitField0_ & 0x00000080) != 0)) {
+        result.mcpServerSlug_ = mcpServerSlug_;
+      }
     }
 
     @java.lang.Override
@@ -804,6 +882,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getSubAgentName().isEmpty()) {
         subAgentName_ = other.subAgentName_;
         bitField0_ |= 0x00000040;
+        onChanged();
+      }
+      if (!other.getMcpServerSlug().isEmpty()) {
+        mcpServerSlug_ = other.mcpServerSlug_;
+        bitField0_ |= 0x00000080;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -867,6 +950,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 58
+            case 74: {
+              mcpServerSlug_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000080;
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1580,6 +1668,138 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       subAgentName_ = value;
       bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object mcpServerSlug_ = "";
+    /**
+     * <pre>
+     * Slug of the MCP server that provides this tool.
+     * Copied from ToolCall.mcp_server_slug for UI convenience.
+     * Empty for built-in sandbox tools (read, write, shell, etc.).
+     *
+     * Enables the approval card to classify MCP tools and render
+     * structured argument previews (scalar grids, humanized names)
+     * instead of falling back to raw JSON.
+     *
+     * Examples: "planton-cloud", "github", "slack"
+     * </pre>
+     *
+     * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+     * @return The mcpServerSlug.
+     */
+    public java.lang.String getMcpServerSlug() {
+      java.lang.Object ref = mcpServerSlug_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        mcpServerSlug_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Slug of the MCP server that provides this tool.
+     * Copied from ToolCall.mcp_server_slug for UI convenience.
+     * Empty for built-in sandbox tools (read, write, shell, etc.).
+     *
+     * Enables the approval card to classify MCP tools and render
+     * structured argument previews (scalar grids, humanized names)
+     * instead of falling back to raw JSON.
+     *
+     * Examples: "planton-cloud", "github", "slack"
+     * </pre>
+     *
+     * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+     * @return The bytes for mcpServerSlug.
+     */
+    public com.google.protobuf.ByteString
+        getMcpServerSlugBytes() {
+      java.lang.Object ref = mcpServerSlug_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        mcpServerSlug_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Slug of the MCP server that provides this tool.
+     * Copied from ToolCall.mcp_server_slug for UI convenience.
+     * Empty for built-in sandbox tools (read, write, shell, etc.).
+     *
+     * Enables the approval card to classify MCP tools and render
+     * structured argument previews (scalar grids, humanized names)
+     * instead of falling back to raw JSON.
+     *
+     * Examples: "planton-cloud", "github", "slack"
+     * </pre>
+     *
+     * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+     * @param value The mcpServerSlug to set.
+     * @return This builder for chaining.
+     */
+    public Builder setMcpServerSlug(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      mcpServerSlug_ = value;
+      bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Slug of the MCP server that provides this tool.
+     * Copied from ToolCall.mcp_server_slug for UI convenience.
+     * Empty for built-in sandbox tools (read, write, shell, etc.).
+     *
+     * Enables the approval card to classify MCP tools and render
+     * structured argument previews (scalar grids, humanized names)
+     * instead of falling back to raw JSON.
+     *
+     * Examples: "planton-cloud", "github", "slack"
+     * </pre>
+     *
+     * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearMcpServerSlug() {
+      mcpServerSlug_ = getDefaultInstance().getMcpServerSlug();
+      bitField0_ = (bitField0_ & ~0x00000080);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Slug of the MCP server that provides this tool.
+     * Copied from ToolCall.mcp_server_slug for UI convenience.
+     * Empty for built-in sandbox tools (read, write, shell, etc.).
+     *
+     * Enables the approval card to classify MCP tools and render
+     * structured argument previews (scalar grids, humanized names)
+     * instead of falling back to raw JSON.
+     *
+     * Examples: "planton-cloud", "github", "slack"
+     * </pre>
+     *
+     * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+     * @param value The bytes for mcpServerSlug to set.
+     * @return This builder for chaining.
+     */
+    public Builder setMcpServerSlugBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      mcpServerSlug_ = value;
+      bitField0_ |= 0x00000080;
       onChanged();
       return this;
     }

@@ -180,4 +180,40 @@ public interface PendingApprovalOrBuilder extends
    */
   com.google.protobuf.ByteString
       getSubAgentNameBytes();
+
+  /**
+   * <pre>
+   * Slug of the MCP server that provides this tool.
+   * Copied from ToolCall.mcp_server_slug for UI convenience.
+   * Empty for built-in sandbox tools (read, write, shell, etc.).
+   *
+   * Enables the approval card to classify MCP tools and render
+   * structured argument previews (scalar grids, humanized names)
+   * instead of falling back to raw JSON.
+   *
+   * Examples: "planton-cloud", "github", "slack"
+   * </pre>
+   *
+   * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+   * @return The mcpServerSlug.
+   */
+  java.lang.String getMcpServerSlug();
+  /**
+   * <pre>
+   * Slug of the MCP server that provides this tool.
+   * Copied from ToolCall.mcp_server_slug for UI convenience.
+   * Empty for built-in sandbox tools (read, write, shell, etc.).
+   *
+   * Enables the approval card to classify MCP tools and render
+   * structured argument previews (scalar grids, humanized names)
+   * instead of falling back to raw JSON.
+   *
+   * Examples: "planton-cloud", "github", "slack"
+   * </pre>
+   *
+   * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+   * @return The bytes for mcpServerSlug.
+   */
+  com.google.protobuf.ByteString
+      getMcpServerSlugBytes();
 }
