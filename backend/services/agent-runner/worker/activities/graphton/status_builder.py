@@ -713,6 +713,15 @@ class StatusBuilder:
             original_tc_id = self._fingerprint_to_tool_call_id.get(fingerprint)
             if original_tc_id and run_id != original_tc_id:
                 self._run_id_aliases[run_id] = original_tc_id
+                # Keep the FIFO queue in sync: remove the matched entry so
+                # the fallback doesn't retain stale slots that could capture
+                # genuinely new tool calls with the same tool name.
+                resume_queue = self._reconciled_resume_tool_calls.get(tool_name)
+                if resume_queue:
+                    try:
+                        resume_queue.remove(original_tc_id)
+                    except ValueError:
+                        pass
                 self.logger.info(
                     f"[RESUME_ALIAS] execution={self.execution_id} "
                     f"tool={tool_name} new_run_id={run_id} -> "

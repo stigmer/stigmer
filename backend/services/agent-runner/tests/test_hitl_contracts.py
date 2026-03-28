@@ -6,9 +6,13 @@ Tests cover:
   - Index rebuild on resume: populate_fingerprints_from_existing_tool_calls
   - Pending approvals snapshot: Temporal coordination signal
   - slim_status_for_temporal: snapshot preserved through slim copy
+  - FIFO queue drain: stale entries removed when fingerprint dedup matches
 """
 
 import logging
+from collections import deque
+
+import pytest
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
@@ -468,3 +472,113 @@ class TestSlimStatusPreservesSnapshot:
         slim = slim_status_for_temporal(status)
 
         assert len(slim.pending_approvals) == 0
+
+
+# =============================================================================
+# FIFO queue drain: stale entries after fingerprint dedup
+# =============================================================================
+
+
+class TestFifoQueueDrainOnFingerprintDedup:
+    """Verify that the FIFO fallback queue (_reconciled_resume_tool_calls)
+    is drained when fingerprint dedup handles a resumed tool call.
+
+    Without the drain, stale FIFO entries capture genuinely new tool calls
+    with the same tool name, preventing the StatusBuilder from creating a
+    new ToolCall entry and from transitioning the phase to
+    WAITING_FOR_APPROVAL.
+    """
+
+    @pytest.mark.asyncio
+    async def test_fifo_drained_when_fingerprint_dedup_matches(self):
+        """Fingerprint dedup for resumed tools should remove the matched
+        entry from the FIFO queue so it can't capture new tool calls."""
+        args = Struct()
+        args.update({"command": "find /workspace -name '*.yaml'"})
+        tc = ToolCall(
+            id="tc_1",
+            name="execute",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+            requires_approval=True,
+            approval_action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+        )
+
+        status = _status_with_tool_calls(tc)
+        builder = StatusBuilder("test_exec", status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        builder._reconciled_resume_tool_calls["execute"] = deque(["tc_1"])
+
+        event = {
+            "event": "on_tool_start",
+            "name": "execute",
+            "run_id": "new-run-001",
+            "data": {"input": {"command": "find /workspace -name '*.yaml'"}},
+        }
+        await builder.process_event(event)
+
+        assert builder._run_id_aliases.get("new-run-001") == "tc_1"
+        queue = builder._reconciled_resume_tool_calls.get("execute")
+        assert queue is not None
+        assert len(queue) == 0
+
+    @pytest.mark.asyncio
+    async def test_new_tool_not_captured_by_stale_fifo_after_resume(self):
+        """After 3 resumed tools are deduped by fingerprint, a genuinely new
+        tool call with the same name must NOT be aliased to an old entry."""
+        tc_ids = ["tc_1", "tc_2", "tc_3"]
+        commands = [
+            "find /workspace -name '*.yaml'",
+            "find /workspace -name '*.py'",
+            "find /workspace -type f | head -40",
+        ]
+
+        status = AgentExecutionStatus()
+        msg = status.messages.add()
+        msg.type = MessageType.MESSAGE_AI
+        for tc_id, cmd in zip(tc_ids, commands):
+            args = Struct()
+            args.update({"command": cmd})
+            msg.tool_calls.append(ToolCall(
+                id=tc_id,
+                name="execute",
+                args=args,
+                status=ToolCallStatus.TOOL_CALL_RUNNING,
+                requires_approval=True,
+                approval_action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            ))
+
+        builder = StatusBuilder("test_exec", status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        builder._reconciled_resume_tool_calls["execute"] = deque(tc_ids)
+
+        for tc_id, cmd in zip(tc_ids, commands):
+            event = {
+                "event": "on_tool_start",
+                "name": "execute",
+                "run_id": f"resumed-{tc_id}",
+                "data": {"input": {"command": cmd}},
+            }
+            await builder.process_event(event)
+
+        queue = builder._reconciled_resume_tool_calls.get("execute")
+        assert len(queue) == 0, (
+            f"FIFO queue should be empty after fingerprint dedup, "
+            f"but has {len(queue)} entries: {list(queue)}"
+        )
+
+        new_run_id = "brand-new-run-999"
+        new_event = {
+            "event": "on_tool_start",
+            "name": "execute",
+            "run_id": new_run_id,
+            "data": {"input": {"command": "ls /home/workspace/new-dir"}},
+        }
+        await builder.process_event(new_event)
+
+        assert new_run_id not in builder._run_id_aliases, (
+            f"New tool call should NOT be aliased to an old entry, "
+            f"but was aliased to {builder._run_id_aliases.get(new_run_id)}"
+        )
