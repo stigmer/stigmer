@@ -7,14 +7,12 @@ import (
 	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 )
 
-// executionTotalCost returns the all-inclusive cost for an execution:
-// main agent usage + all sub-agent usage.
+// executionTotalCost returns the all-inclusive cost for an execution
+// by summing estimated_cost_usd from every message's llm_metrics
+// (main agent + sub-agents).
 func executionTotalCost(exec *agentexecutionv1.AgentExecution) float64 {
-	cost := exec.GetStatus().GetUsage().GetEstimatedCostUsd()
-	for _, sub := range exec.GetStatus().GetSubAgentExecutions() {
-		cost += sub.GetUsage().GetEstimatedCostUsd()
-	}
-	return cost
+	u := computeUsageFromMessages(exec)
+	return u.GetEstimatedCostUsd()
 }
 
 // executionTotalSummarizationCost sums the cost of all summarization events
@@ -32,19 +30,57 @@ func executionSubAgentCount(exec *agentexecutionv1.AgentExecution) int32 {
 	return int32(len(exec.GetStatus().GetSubAgentExecutions()))
 }
 
-// collectUsageMetrics gathers the main agent's UsageMetrics plus all
-// sub-agent UsageMetrics from a single execution into a flat slice.
+// collectUsageMetrics computes a single UsageMetrics from an execution's
+// per-message llm_metrics (main agent + sub-agents) and returns it as a
+// one-element slice for backward compatibility with callers that iterate.
 func collectUsageMetrics(exec *agentexecutionv1.AgentExecution) []*agentexecutionv1.UsageMetrics {
-	var all []*agentexecutionv1.UsageMetrics
-	if u := exec.GetStatus().GetUsage(); u != nil {
-		all = append(all, u)
+	u := computeUsageFromMessages(exec)
+	if u.GetLlmCallCount() == 0 {
+		return nil
 	}
-	for _, sub := range exec.GetStatus().GetSubAgentExecutions() {
-		if u := sub.GetUsage(); u != nil {
-			all = append(all, u)
+	return []*agentexecutionv1.UsageMetrics{u}
+}
+
+// computeUsageFromMessages builds a UsageMetrics on-the-fly by walking
+// every message in the execution (main agent + sub-agents) and
+// aggregating each message's LlmCallMetrics.
+func computeUsageFromMessages(exec *agentexecutionv1.AgentExecution) *agentexecutionv1.UsageMetrics {
+	agg := &agentexecutionv1.UsageMetrics{}
+
+	allMessages := collectAllMessages(exec)
+	for _, msg := range allMessages {
+		m := msg.GetLlmMetrics()
+		if m == nil {
+			continue
+		}
+		promptTokens := m.GetInputTokens() + m.GetCacheCreationTokens() + m.GetCacheReadTokens()
+		agg.PromptTokens += promptTokens
+		agg.CompletionTokens += m.GetOutputTokens()
+		agg.CacheCreationTokens += m.GetCacheCreationTokens()
+		agg.CacheReadTokens += m.GetCacheReadTokens()
+		agg.EstimatedCostUsd += m.GetEstimatedCostUsd()
+		agg.LlmDurationMs += m.GetDurationMs()
+		agg.LlmCallCount++
+
+		if agg.PrimaryModel == "" && m.GetModel() != "" {
+			agg.PrimaryModel = m.GetModel()
+		}
+		if agg.PrimaryProvider == "" && m.GetProvider() != "" {
+			agg.PrimaryProvider = m.GetProvider()
 		}
 	}
-	return all
+	agg.TotalTokens = agg.PromptTokens + agg.CompletionTokens
+	return agg
+}
+
+// collectAllMessages returns a flat slice of all messages from the main
+// agent and all sub-agent executions.
+func collectAllMessages(exec *agentexecutionv1.AgentExecution) []*agentexecutionv1.AgentMessage {
+	msgs := exec.GetStatus().GetMessages()
+	for _, sub := range exec.GetStatus().GetSubAgentExecutions() {
+		msgs = append(msgs, sub.GetMessages()...)
+	}
+	return msgs
 }
 
 // aggregateUsageMetrics sums token counts and cost across multiple
@@ -72,32 +108,40 @@ func aggregateUsageMetrics(executions []*agentexecutionv1.AgentExecution) *agent
 	return agg
 }
 
-// mergeModelBreakdowns collects ModelUsage entries from all executions
-// (main agent + sub-agents), then merges entries that share the same
-// (model, provider) key by summing their token/cost fields.
-// Pricing rates are taken from the first entry seen for each key
-// (rates are stamped at execution time and shouldn't vary within the
-// same pricing period).
+// mergeModelBreakdowns builds per-(model, provider) ModelUsage entries
+// by walking every message's LlmCallMetrics across all executions
+// (main agent + sub-agents).
 func mergeModelBreakdowns(executions []*agentexecutionv1.AgentExecution) []*agentexecutionv1.ModelUsage {
 	type key struct{ model, provider string }
 	merged := make(map[key]*agentexecutionv1.ModelUsage)
 
 	for _, exec := range executions {
-		for _, u := range collectUsageMetrics(exec) {
-			for _, mu := range u.GetModelBreakdown() {
-				k := key{mu.GetModel(), mu.GetProvider()}
-				existing, ok := merged[k]
-				if !ok {
-					merged[k] = cloneModelUsage(mu)
-					continue
-				}
-				existing.InputTokens += mu.GetInputTokens()
-				existing.OutputTokens += mu.GetOutputTokens()
-				existing.CacheCreationTokens += mu.GetCacheCreationTokens()
-				existing.CacheReadTokens += mu.GetCacheReadTokens()
-				existing.CallCount += mu.GetCallCount()
-				existing.EstimatedCostUsd += mu.GetEstimatedCostUsd()
+		for _, msg := range collectAllMessages(exec) {
+			m := msg.GetLlmMetrics()
+			if m == nil {
+				continue
 			}
+			k := key{m.GetModel(), m.GetProvider()}
+			existing, ok := merged[k]
+			if !ok {
+				merged[k] = &agentexecutionv1.ModelUsage{
+					Model:               m.GetModel(),
+					Provider:            m.GetProvider(),
+					InputTokens:         m.GetInputTokens(),
+					OutputTokens:        m.GetOutputTokens(),
+					CacheCreationTokens: m.GetCacheCreationTokens(),
+					CacheReadTokens:     m.GetCacheReadTokens(),
+					CallCount:           1,
+					EstimatedCostUsd:    m.GetEstimatedCostUsd(),
+				}
+				continue
+			}
+			existing.InputTokens += m.GetInputTokens()
+			existing.OutputTokens += m.GetOutputTokens()
+			existing.CacheCreationTokens += m.GetCacheCreationTokens()
+			existing.CacheReadTokens += m.GetCacheReadTokens()
+			existing.CallCount++
+			existing.EstimatedCostUsd += m.GetEstimatedCostUsd()
 		}
 	}
 
@@ -111,27 +155,10 @@ func mergeModelBreakdowns(executions []*agentexecutionv1.AgentExecution) []*agen
 	return result
 }
 
-func cloneModelUsage(src *agentexecutionv1.ModelUsage) *agentexecutionv1.ModelUsage {
-	return &agentexecutionv1.ModelUsage{
-		Model:                        src.GetModel(),
-		Provider:                     src.GetProvider(),
-		InputTokens:                  src.GetInputTokens(),
-		OutputTokens:                 src.GetOutputTokens(),
-		CacheCreationTokens:          src.GetCacheCreationTokens(),
-		CacheReadTokens:              src.GetCacheReadTokens(),
-		CallCount:                    src.GetCallCount(),
-		InputPricePerMillion:         src.GetInputPricePerMillion(),
-		OutputPricePerMillion:        src.GetOutputPricePerMillion(),
-		CacheCreationPricePerMillion: src.GetCacheCreationPricePerMillion(),
-		CacheReadPricePerMillion:     src.GetCacheReadPricePerMillion(),
-		EstimatedCostUsd:             src.GetEstimatedCostUsd(),
-	}
-}
-
 // buildExecutionSummary projects a full AgentExecution into a lightweight
 // ExecutionUsageSummary suitable for report responses.
 func buildExecutionSummary(exec *agentexecutionv1.AgentExecution) *agentexecutionv1.ExecutionUsageSummary {
-	usage := exec.GetStatus().GetUsage()
+	usage := computeUsageFromMessages(exec)
 	return &agentexecutionv1.ExecutionUsageSummary{
 		ExecutionId:      exec.GetMetadata().GetId(),
 		StartedAt:        exec.GetStatus().GetStartedAt(),
@@ -139,7 +166,7 @@ func buildExecutionSummary(exec *agentexecutionv1.AgentExecution) *agentexecutio
 		PromptTokens:     usage.GetPromptTokens(),
 		CompletionTokens: usage.GetCompletionTokens(),
 		CacheReadTokens:  usage.GetCacheReadTokens(),
-		EstimatedCostUsd: executionTotalCost(exec),
+		EstimatedCostUsd: usage.GetEstimatedCostUsd(),
 		PrimaryModel:     usage.GetPrimaryModel(),
 		SubAgentCount:    executionSubAgentCount(exec),
 		Phase:            exec.GetStatus().GetPhase(),

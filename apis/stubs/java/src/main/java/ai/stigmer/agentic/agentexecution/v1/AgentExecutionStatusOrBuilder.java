@@ -343,39 +343,6 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
 
   /**
    * <pre>
-   * Token and LLM resource usage for this execution (main agent only).
-   * Does NOT include sub-agent usage - sum sub_agent_executions[].usage for total.
-   * Updated progressively during streaming for real-time cost visibility.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 11 [json_name = "usage"];</code>
-   * @return Whether the usage field is set.
-   */
-  boolean hasUsage();
-  /**
-   * <pre>
-   * Token and LLM resource usage for this execution (main agent only).
-   * Does NOT include sub-agent usage - sum sub_agent_executions[].usage for total.
-   * Updated progressively during streaming for real-time cost visibility.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 11 [json_name = "usage"];</code>
-   * @return The usage.
-   */
-  ai.stigmer.agentic.agentexecution.v1.UsageMetrics getUsage();
-  /**
-   * <pre>
-   * Token and LLM resource usage for this execution (main agent only).
-   * Does NOT include sub-agent usage - sum sub_agent_executions[].usage for total.
-   * Updated progressively during streaming for real-time cost visibility.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 11 [json_name = "usage"];</code>
-   */
-  ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder getUsageOrBuilder();
-
-  /**
-   * <pre>
    * Resolved execution context showing what resources the agent had access to.
    * Populated once before streaming begins, after all resources are resolved.
    * Immutable after initial population - represents the "snapshot" of resolved state.

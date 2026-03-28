@@ -59,10 +59,6 @@ type SubAgentExecution struct {
 	// Tool calls are embedded in AI messages via AgentMessage.tool_calls.
 	// Ordered chronologically like AgentExecutionStatus.messages.
 	Messages []*AgentMessage `protobuf:"bytes,11,rep,name=messages,proto3" json:"messages,omitempty"`
-	// Token and LLM resource usage for this sub-agent execution.
-	// Captures only this sub-agent's direct LLM calls.
-	// Isolated from main agent and other sub-agents for accurate cost attribution.
-	Usage *UsageMetrics `protobuf:"bytes,12,opt,name=usage,proto3" json:"usage,omitempty"`
 	// Concise, human-readable summary of the sub-agent's task (3-10 words).
 	// Populated directly from the task tool's `description` argument — the short
 	// label the invoking LLM provides when calling the "task" tool. No server-side
@@ -174,13 +170,6 @@ func (x *SubAgentExecution) GetMessages() []*AgentMessage {
 	return nil
 }
 
-func (x *SubAgentExecution) GetUsage() *UsageMetrics {
-	if x != nil {
-		return x.Usage
-	}
-	return nil
-}
-
 func (x *SubAgentExecution) GetSubject() string {
 	if x != nil {
 		return x.Subject
@@ -192,7 +181,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_subagent_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xfe\x03\n" +
+	"3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xb4\x03\n" +
 	"\x11SubAgentExecution\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -204,8 +193,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_rawDesc = "" +
 	"\fcompleted_at\x18\a \x01(\tR\vcompletedAt\x12\x14\n" +
 	"\x05error\x18\b \x01(\tR\x05error\x123\n" +
 	"\bmetadata\x18\t \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12N\n" +
-	"\bmessages\x18\v \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12H\n" +
-	"\x05usage\x18\f \x01(\v22.ai.stigmer.agentic.agentexecution.v1.UsageMetricsR\x05usage\x12\x18\n" +
+	"\bmessages\x18\v \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12\x18\n" +
 	"\asubject\x18\r \x01(\tR\asubjectB\xd1\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\rSubagentProtoP\x01Zagithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
@@ -227,18 +215,16 @@ var file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_goTypes = []any{
 	(SubAgentStatus)(0),       // 1: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
 	(*structpb.Struct)(nil),   // 2: google.protobuf.Struct
 	(*AgentMessage)(nil),      // 3: ai.stigmer.agentic.agentexecution.v1.AgentMessage
-	(*UsageMetrics)(nil),      // 4: ai.stigmer.agentic.agentexecution.v1.UsageMetrics
 }
 var file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_depIdxs = []int32{
 	1, // 0: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
 	2, // 1: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.metadata:type_name -> google.protobuf.Struct
 	3, // 2: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
-	4, // 3: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.usage:type_name -> ai.stigmer.agentic.agentexecution.v1.UsageMetrics
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_init() }
@@ -248,7 +234,6 @@ func file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_init() {
 	}
 	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_message_proto_init()
-	file_ai_stigmer_agentic_agentexecution_v1_usage_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

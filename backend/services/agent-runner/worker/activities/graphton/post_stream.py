@@ -289,10 +289,8 @@ async def process_post_stream(
     else:
         status_builder.current_status.phase = ExecutionPhase.EXECUTION_COMPLETED
 
-    # Finalize
     if not status_builder.current_status.completed_at:
         status_builder.current_status.completed_at = _utc_timestamp()
-    status_builder.finalize_usage()
 
     return PostStreamResult(
         final_phase_name=ExecutionPhase.Name(status_builder.current_status.phase),

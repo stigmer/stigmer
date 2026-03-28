@@ -71,7 +71,7 @@ class ModelUsage(_message.Message):
     def __init__(self, model: _Optional[str] = ..., provider: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_creation_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ..., call_count: _Optional[int] = ..., input_price_per_million: _Optional[float] = ..., output_price_per_million: _Optional[float] = ..., cache_creation_price_per_million: _Optional[float] = ..., cache_read_price_per_million: _Optional[float] = ..., estimated_cost_usd: _Optional[float] = ...) -> None: ...
 
 class LlmCallMetrics(_message.Message):
-    __slots__ = ("sequence", "model", "provider", "input_tokens", "output_tokens", "cache_creation_tokens", "cache_read_tokens", "estimated_cost_usd", "duration_ms", "timestamp")
+    __slots__ = ("sequence", "model", "provider", "input_tokens", "output_tokens", "cache_creation_tokens", "cache_read_tokens", "estimated_cost_usd", "duration_ms", "timestamp", "total_tokens")
     SEQUENCE_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
     PROVIDER_FIELD_NUMBER: _ClassVar[int]
@@ -82,6 +82,7 @@ class LlmCallMetrics(_message.Message):
     ESTIMATED_COST_USD_FIELD_NUMBER: _ClassVar[int]
     DURATION_MS_FIELD_NUMBER: _ClassVar[int]
     TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_TOKENS_FIELD_NUMBER: _ClassVar[int]
     sequence: int
     model: str
     provider: str
@@ -92,4 +93,5 @@ class LlmCallMetrics(_message.Message):
     estimated_cost_usd: float
     duration_ms: int
     timestamp: str
-    def __init__(self, sequence: _Optional[int] = ..., model: _Optional[str] = ..., provider: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_creation_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ..., estimated_cost_usd: _Optional[float] = ..., duration_ms: _Optional[int] = ..., timestamp: _Optional[str] = ...) -> None: ...
+    total_tokens: int
+    def __init__(self, sequence: _Optional[int] = ..., model: _Optional[str] = ..., provider: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_creation_tokens: _Optional[int] = ..., cache_read_tokens: _Optional[int] = ..., estimated_cost_usd: _Optional[float] = ..., duration_ms: _Optional[int] = ..., timestamp: _Optional[str] = ..., total_tokens: _Optional[int] = ...) -> None: ...

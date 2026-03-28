@@ -10,8 +10,8 @@ export { isTerminalPhase } from "./execution-phases";
 export { useExecutionStream } from "./useExecutionStream";
 export type { UseExecutionStreamReturn } from "./useExecutionStream";
 
-export { useExecutionUsage, aggregateUsage } from "./useExecutionUsage";
-export type { UseExecutionUsageReturn } from "./useExecutionUsage";
+export { UsageWidget, formatCost, formatTokenCount } from "./UsageWidget";
+export type { UsageWidgetProps } from "./UsageWidget";
 
 export { useExecutionArtifacts } from "./useExecutionArtifacts";
 export type { UseExecutionArtifactsReturn } from "./useExecutionArtifacts";
@@ -89,8 +89,6 @@ export type { FollowUpInputProps } from "./FollowUpInput";
 export { ExecutionProgress } from "./ExecutionProgress";
 export type { ExecutionProgressProps } from "./ExecutionProgress";
 
-export { ExecutionCostSummary, formatCost, formatTokenCount } from "./ExecutionCostSummary";
-export type { ExecutionCostSummaryProps } from "./ExecutionCostSummary";
 
 export { useSubmitApproval } from "./useSubmitApproval";
 export type { UseSubmitApprovalReturn } from "./useSubmitApproval";

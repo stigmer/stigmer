@@ -515,7 +515,10 @@ type LlmCallMetrics struct {
 	// From request sent to response complete.
 	DurationMs int32 `protobuf:"varint,9,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
 	// ISO 8601 timestamp when this LLM call started.
-	Timestamp     string `protobuf:"bytes,10,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Timestamp string `protobuf:"bytes,10,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// Total tokens (input + output). Convenience field for quick reference.
+	// Equals: input_tokens + output_tokens
+	TotalTokens   int32 `protobuf:"varint,11,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -620,6 +623,13 @@ func (x *LlmCallMetrics) GetTimestamp() string {
 	return ""
 }
 
+func (x *LlmCallMetrics) GetTotalTokens() int32 {
+	if x != nil {
+		return x.TotalTokens
+	}
+	return 0
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_usage_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
@@ -658,7 +668,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	" cache_creation_price_per_million\x18\n" +
 	" \x01(\x01R\x1ccacheCreationPricePerMillion\x12>\n" +
 	"\x1ccache_read_price_per_million\x18\v \x01(\x01R\x18cacheReadPricePerMillion\x12,\n" +
-	"\x12estimated_cost_usd\x18\f \x01(\x01R\x10estimatedCostUsd\"\xf3\x02\n" +
+	"\x12estimated_cost_usd\x18\f \x01(\x01R\x10estimatedCostUsd\"\x96\x03\n" +
 	"\x0eLlmCallMetrics\x12\x1a\n" +
 	"\bsequence\x18\x01 \x01(\x05R\bsequence\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x12\x1a\n" +
@@ -671,7 +681,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_usage_proto_rawDesc = "" +
 	"\vduration_ms\x18\t \x01(\x05R\n" +
 	"durationMs\x12\x1c\n" +
 	"\ttimestamp\x18\n" +
-	" \x01(\tR\ttimestampB\xca\x02\n" +
+	" \x01(\tR\ttimestamp\x12!\n" +
+	"\ftotal_tokens\x18\v \x01(\x05R\vtotalTokensB\xca\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\n" +
 	"UsageProtoP\x01Z]github.com/stigmer/stigmer/sdk/go/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 

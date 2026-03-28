@@ -139,23 +139,17 @@ func buildAgentSummaryContent(execution *agentexecutionv1.AgentExecution) string
 		sections = append(sections, "Approval:    requested")
 	}
 
-	// Model
-	if usage := execution.Status.GetUsage(); usage != nil {
+	// Model, tokens, and cost (computed from per-message llm_metrics)
+	if usage := computeExecutionUsage(execution); usage != nil {
 		if label := formatModelLabel(usage); label != "" {
 			sections = append(sections, fmt.Sprintf("Model:       %s", label))
 		}
-	}
-
-	// Token usage
-	if usage := execution.Status.GetUsage(); usage != nil && usage.TotalTokens > 0 {
-		sections = append(sections, fmt.Sprintf("Tokens:      %s (%s in, %s out)",
-			formatTokenCount(usage.TotalTokens),
-			formatTokenCount(usage.PromptTokens),
-			formatTokenCount(usage.CompletionTokens)))
-	}
-
-	// Cost (with cache hit rate when available)
-	if usage := execution.Status.GetUsage(); usage != nil {
+		if usage.TotalTokens > 0 {
+			sections = append(sections, fmt.Sprintf("Tokens:      %s (%s in, %s out)",
+				formatTokenCount(usage.TotalTokens),
+				formatTokenCount(usage.PromptTokens),
+				formatTokenCount(usage.CompletionTokens)))
+		}
 		if costLine := formatCostLine(usage); costLine != "" {
 			sections = append(sections, fmt.Sprintf("Cost:        %s", costLine))
 		}
@@ -363,7 +357,10 @@ func displaySessionExitLine(sessionID string, exec *agentexecutionv1.AgentExecut
 	fmt.Fprintln(os.Stderr)
 	phase := exec.GetStatus().GetPhase()
 	duration := parseDuration(exec.GetStatus().GetStartedAt(), exec.GetStatus().GetCompletedAt())
-	cost := exec.GetStatus().GetUsage().GetEstimatedCostUsd()
+	var cost float64
+	if u := computeExecutionUsage(exec); u != nil {
+		cost = u.EstimatedCostUsd
+	}
 
 	switch phase {
 	case agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED:

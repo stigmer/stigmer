@@ -273,39 +273,6 @@ public interface SubAgentExecutionOrBuilder extends
 
   /**
    * <pre>
-   * Token and LLM resource usage for this sub-agent execution.
-   * Captures only this sub-agent's direct LLM calls.
-   * Isolated from main agent and other sub-agents for accurate cost attribution.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-   * @return Whether the usage field is set.
-   */
-  boolean hasUsage();
-  /**
-   * <pre>
-   * Token and LLM resource usage for this sub-agent execution.
-   * Captures only this sub-agent's direct LLM calls.
-   * Isolated from main agent and other sub-agents for accurate cost attribution.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-   * @return The usage.
-   */
-  ai.stigmer.agentic.agentexecution.v1.UsageMetrics getUsage();
-  /**
-   * <pre>
-   * Token and LLM resource usage for this sub-agent execution.
-   * Captures only this sub-agent's direct LLM calls.
-   * Isolated from main agent and other sub-agents for accurate cost attribution.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-   */
-  ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder getUsageOrBuilder();
-
-  /**
-   * <pre>
    * Concise, human-readable summary of the sub-agent's task (3-10 words).
    * Populated directly from the task tool's `description` argument — the short
    * label the invoking LLM provides when calling the "task" tool. No server-side

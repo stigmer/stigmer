@@ -1,51 +1,59 @@
 "use client";
 
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { ModelUsage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/usage_pb";
 import { cn } from "@stigmer/theme";
-import { useExecutionUsage } from "./useExecutionUsage";
+import {
+  useSessionUsage,
+  type ModelCostEntry,
+} from "../session/useSessionUsage";
 
-export interface ExecutionCostSummaryProps {
-  /** The execution to display cost data for. Renders nothing when null or when usage data has not yet arrived. */
-  readonly execution: AgentExecution | null;
+export interface UsageWidgetProps {
+  /**
+   * All executions for the current session — both completed and
+   * actively streaming.  The widget aggregates cost data across
+   * every execution's per-message `llm_metrics`, presenting a
+   * session-level total that never resets.
+   *
+   * Renders nothing when the list is empty or no execution has
+   * usage data.
+   */
+  readonly executions: readonly AgentExecution[];
+  /** Additional CSS classes for the root element. */
   readonly className?: string;
 }
 
 /**
- * Displays real-time execution cost and token usage metrics aggregated
- * across the main agent and any sub-agents.
+ * Right-sidebar widget that displays session-level cost and token
+ * usage aggregated from per-message {@link LlmCallMetrics}.
  *
- * The headline shows estimated USD cost. Below it: model identification,
- * total token and LLM call counts, a prompt/completion breakdown, and
- * conditional annotations for cache usage and sub-agent contributions.
+ * Usage data is computed purely from messages the frontend already
+ * has — no server RPC is required for the real-time widget.
  *
- * During active streaming, cost and token numbers update on every
- * progressive status snapshot. Uses `tabular-nums` for stable digit
- * widths so the layout does not shift as numbers grow.
+ * Returns `null` when no execution has usage data, matching the
+ * conditional-render pattern of {@link ArtifactsWidget} and
+ * {@link WriteBacksWidget}.
  *
- * When multiple models are used (common in sub-agent executions), the
- * single model line is replaced with a per-model cost breakdown.
- *
- * Renders without card chrome — the consumer provides the container.
- * All visual properties flow through `--stgm-*` tokens.
+ * All visual properties flow through `--stgm-*` tokens. Zero
+ * Console dependencies.
  *
  * @example
  * ```tsx
- * const stream = useExecutionStream(executionId);
+ * const conv = useSessionConversation(sessionId, org);
  *
- * <div className="rounded-lg border border-border bg-card p-3">
- *   <ExecutionCostSummary execution={stream.execution} />
- * </div>
+ * <UsageWidget
+ *   executions={[
+ *     ...conv.completedExecutions,
+ *     ...(conv.activeStreamExecution ? [conv.activeStreamExecution] : []),
+ *   ]}
+ * />
  * ```
+ *
+ * @see {@link useSessionUsage} — headless session-level usage aggregation hook
  */
-export function ExecutionCostSummary({
-  execution,
-  className,
-}: ExecutionCostSummaryProps) {
-  const { usage, hasSubAgentUsage, subAgentUsageCount } =
-    useExecutionUsage(execution);
+export function UsageWidget({ executions, className }: UsageWidgetProps) {
+  const usage = useSessionUsage(executions);
 
-  if (!usage) return null;
+  if (!usage.hasUsage) return null;
 
   const multiModel = usage.modelBreakdown.length > 1;
 
@@ -53,10 +61,10 @@ export function ExecutionCostSummary({
     <div
       className={cn("flex flex-col gap-1.5", className)}
       role="region"
-      aria-label="Execution cost summary"
+      aria-label="Session cost summary"
     >
       <div className="text-sm font-medium tabular-nums text-foreground">
-        {formatCost(usage.estimatedCostUsd)}
+        {formatCost(usage.totalCostUsd)}
       </div>
 
       {multiModel ? (
@@ -74,8 +82,8 @@ export function ExecutionCostSummary({
       </div>
 
       <div className="pl-2 text-xs tabular-nums text-muted-foreground">
-        prompt {formatTokenCount(usage.promptTokens)} · completion{" "}
-        {formatTokenCount(usage.completionTokens)}
+        prompt {formatTokenCount(usage.inputTokens)} · completion{" "}
+        {formatTokenCount(usage.outputTokens)}
       </div>
 
       {(usage.cacheReadTokens > 0 || usage.cacheCreationTokens > 0) && (
@@ -84,25 +92,14 @@ export function ExecutionCostSummary({
           creationTokens={usage.cacheCreationTokens}
         />
       )}
-
-      {hasSubAgentUsage && (
-        <div className="text-xs text-muted-foreground">
-          Includes {subAgentUsageCount} sub-agent
-          {subAgentUsageCount > 1 ? "s" : ""}
-        </div>
-      )}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Internal sub-components
-// ---------------------------------------------------------------------------
-
 function ModelBreakdown({
   models,
 }: {
-  readonly models: readonly ModelUsage[];
+  readonly models: readonly ModelCostEntry[];
 }) {
   return (
     <div
@@ -144,10 +141,6 @@ function CacheLine({
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Formatting utilities
-// ---------------------------------------------------------------------------
 
 /**
  * Formats a USD cost value for display.

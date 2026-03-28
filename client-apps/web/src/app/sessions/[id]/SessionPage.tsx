@@ -20,7 +20,7 @@ import {
   MessageThread,
   SessionComposer,
   ExecutionProgress,
-  ExecutionCostSummary,
+  UsageWidget,
   ArtifactsWidget,
   WriteBacksWidget,
   SecretFlowErrorGuide,
@@ -238,7 +238,14 @@ function SessionPageInner({ id }: { id: string }) {
                 <ExecutionProgress execution={displayExecution} />
               </div>
               <div className="rounded-lg border border-border bg-card p-3">
-                <ExecutionCostSummary execution={displayExecution} />
+                <UsageWidget
+                  executions={[
+                    ...conv.completedExecutions,
+                    ...(conv.activeStreamExecution
+                      ? [conv.activeStreamExecution]
+                      : []),
+                  ]}
+                />
               </div>
             </>
           )}

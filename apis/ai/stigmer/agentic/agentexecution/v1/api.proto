@@ -9,7 +9,6 @@ import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "ai/stigmer/agentic/agentexecution/v1/message.proto";
 import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
 import "ai/stigmer/agentic/agentexecution/v1/subagent.proto";
-import "ai/stigmer/agentic/agentexecution/v1/usage.proto";
 import "ai/stigmer/agentic/agentexecution/v1/writeback.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
@@ -106,17 +105,6 @@ message AgentExecutionStatus {
   // - WorkflowExecution.spec.callback_token (field 7) - Same pattern
   // - [ADR](docs/adr/20260122-async-agent-execution-temporal-token-handshake.md)
   bytes callback_token = 10;
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Usage Metrics (Phase 2.4)
-  //
-  // Aggregated token consumption and LLM resource usage for this execution.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Token and LLM resource usage for this execution (main agent only).
-  // Does NOT include sub-agent usage - sum sub_agent_executions[].usage for total.
-  // Updated progressively during streaming for real-time cost visibility.
-  UsageMetrics usage = 11;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Resolved Execution Context (Phase 2.5)
