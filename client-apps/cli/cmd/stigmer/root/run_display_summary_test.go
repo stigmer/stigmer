@@ -398,17 +398,16 @@ func TestParseDuration_NegativeDuration(t *testing.T) {
 func TestBuildAgentSummaryContent_WithUsageCost(t *testing.T) {
 	execution := &agentexecutionv1.AgentExecution{
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			Phase:    agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			Messages: []*agentexecutionv1.AgentMessage{{Content: "done"}},
-
-			Usage: &agentexecutionv1.UsageMetrics{
-				PrimaryModel:     "claude-sonnet-4",
-				PrimaryProvider:  "anthropic",
-				PromptTokens:     12450,
-				CompletionTokens: 1830,
-				TotalTokens:      14280,
-				EstimatedCostUsd: 0.074,
-				CacheReadTokens:  10200,
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{
+				{Content: "done", LlmMetrics: &agentexecutionv1.LlmCallMetrics{
+					Model:            "claude-sonnet-4",
+					Provider:         "anthropic",
+					InputTokens:      2250,
+					OutputTokens:     1830,
+					CacheReadTokens:  10200,
+					EstimatedCostUsd: 0.074,
+				}},
 			},
 		},
 	}
@@ -426,13 +425,13 @@ func TestBuildAgentSummaryContent_WithUsageCost(t *testing.T) {
 func TestBuildAgentSummaryContent_WithUsageNoCost(t *testing.T) {
 	execution := &agentexecutionv1.AgentExecution{
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			Phase:    agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			Messages: []*agentexecutionv1.AgentMessage{{Content: "done"}},
-
-			Usage: &agentexecutionv1.UsageMetrics{
-				PrimaryModel: "claude-sonnet-4",
-				PromptTokens: 5000,
-				TotalTokens:  6000,
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{
+				{Content: "done", LlmMetrics: &agentexecutionv1.LlmCallMetrics{
+					Model:        "claude-sonnet-4",
+					InputTokens:  5000,
+					OutputTokens: 1000,
+				}},
 			},
 		},
 	}
@@ -450,15 +449,14 @@ func TestBuildAgentSummaryContent_WithUsageNoCost(t *testing.T) {
 func TestBuildAgentSummaryContent_CacheHitRateDisplay(t *testing.T) {
 	execution := &agentexecutionv1.AgentExecution{
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			Phase:    agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			Messages: []*agentexecutionv1.AgentMessage{},
-
-			Usage: &agentexecutionv1.UsageMetrics{
-				PromptTokens:     10000,
-				CompletionTokens: 1000,
-				TotalTokens:      11000,
-				EstimatedCostUsd: 0.05,
-				CacheReadTokens:  0,
+			Phase: agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+			Messages: []*agentexecutionv1.AgentMessage{
+				{LlmMetrics: &agentexecutionv1.LlmCallMetrics{
+					InputTokens:      10000,
+					OutputTokens:     1000,
+					EstimatedCostUsd: 0.05,
+					CacheReadTokens:  0,
+				}},
 			},
 		},
 	}

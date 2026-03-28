@@ -19,15 +19,15 @@ func computeExecutionUsage(exec *agentexecutionv1.AgentExecution) *agentexecutio
 		return nil
 	}
 	var (
-		promptTokens      int32
-		completionTokens  int32
-		cacheCreation     int32
-		cacheRead         int32
-		llmCallCount      int32
-		estimatedCost     float64
-		llmDurationMs     int32
-		primaryModel      string
-		primaryProvider    string
+		promptTokens     int32
+		completionTokens int32
+		cacheCreation    int32
+		cacheRead        int32
+		llmCallCount     int32
+		estimatedCost    float64
+		llmDurationMs    int32
+		primaryModel     string
+		primaryProvider  string
 	)
 
 	processMsg := func(msg *agentexecutionv1.AgentMessage) {
@@ -63,16 +63,16 @@ func computeExecutionUsage(exec *agentexecutionv1.AgentExecution) *agentexecutio
 	}
 
 	return &agentexecutionv1.UsageMetrics{
-		PromptTokens:      promptTokens,
-		CompletionTokens:  completionTokens,
-		TotalTokens:       promptTokens + completionTokens,
-		LlmCallCount:      llmCallCount,
+		PromptTokens:        promptTokens,
+		CompletionTokens:    completionTokens,
+		TotalTokens:         promptTokens + completionTokens,
+		LlmCallCount:        llmCallCount,
 		CacheCreationTokens: cacheCreation,
-		CacheReadTokens:   cacheRead,
-		EstimatedCostUsd:  estimatedCost,
-		LlmDurationMs:     llmDurationMs,
-		PrimaryModel:      primaryModel,
-		PrimaryProvider:    primaryProvider,
+		CacheReadTokens:     cacheRead,
+		EstimatedCostUsd:    estimatedCost,
+		LlmDurationMs:       llmDurationMs,
+		PrimaryModel:        primaryModel,
+		PrimaryProvider:     primaryProvider,
 	}
 }
 

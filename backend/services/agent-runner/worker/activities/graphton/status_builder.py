@@ -16,7 +16,6 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
-from ai.stigmer.agentic.agentexecution.v1.todo_pb2 import TodoItem
 from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
 from ai.stigmer.agentic.agentexecution.v1.context_pb2 import (
@@ -40,6 +39,7 @@ from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
     ToolCall,
 )
 from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
+from ai.stigmer.agentic.agentexecution.v1.todo_pb2 import TodoItem
 from google.protobuf.struct_pb2 import Struct
 from graphton.core import ModelRegistry
 from graphton.core.backends.platform_mount import (
@@ -2340,9 +2340,6 @@ class StatusBuilder:
         self._pending_tool_approvals.clear()
 
         if self._approval_wait_started_at is not None:
-            wait_ms = int(
-                (datetime.utcnow() - self._approval_wait_started_at).total_seconds() * 1000
-            )
             self._approval_wait_started_at = None
 
         if self._saved_phase_before_approval is not None:
