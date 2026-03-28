@@ -27,6 +27,7 @@ from worker.activities.graphton.checkpoint_validator import (
     build_error_from_validation,
     validate_against_checkpoint,
 )
+from worker.activities.graphton.hitl import build_snapshot_from_interrupts
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
 
 if TYPE_CHECKING:
@@ -218,15 +219,26 @@ async def process_post_stream(
     current_phase = status_builder.current_status.phase
 
     if current_phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
-        snapshot = status_builder.build_pending_approvals_snapshot()
+        if graph_state and getattr(graph_state, "interrupts", None):
+            snapshot = build_snapshot_from_interrupts(graph_state.interrupts)
+            logger.info(
+                "Stream ended with WAITING_FOR_APPROVAL phase for execution %s. "
+                "Interrupt-based snapshot: %d pending approval(s) for Temporal "
+                "coordination (from %d checkpoint interrupt(s)). "
+                "Not setting COMPLETED.",
+                execution_id, len(snapshot), len(graph_state.interrupts),
+            )
+        else:
+            snapshot = status_builder.build_pending_approvals_snapshot()
+            logger.warning(
+                "Stream ended with WAITING_FOR_APPROVAL phase for execution %s. "
+                "Fallback snapshot: %d pending approval(s) for Temporal "
+                "coordination (checkpoint interrupts unavailable). "
+                "Not setting COMPLETED.",
+                execution_id, len(snapshot),
+            )
         del status_builder.current_status.pending_approvals[:]
         status_builder.current_status.pending_approvals.extend(snapshot)
-        logger.info(
-            "Stream ended with WAITING_FOR_APPROVAL phase for execution %s. "
-            "Snapshot: %d pending approval(s) for Temporal coordination. "
-            "Not setting COMPLETED.",
-            execution_id, len(snapshot),
-        )
     elif current_phase == ExecutionPhase.EXECUTION_PAUSED:
         logger.info(
             "Stream ended with PAUSED phase for execution %s. "

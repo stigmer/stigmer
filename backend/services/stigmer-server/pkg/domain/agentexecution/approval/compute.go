@@ -29,6 +29,9 @@ func ComputePendingApprovals(
 	}
 
 	for _, sa := range subAgentExecutions {
+		if isTerminalSubAgent(sa.GetStatus()) {
+			continue
+		}
 		saName := sa.GetName()
 		for _, msg := range sa.GetMessages() {
 			for _, tc := range msg.GetToolCalls() {
@@ -40,6 +43,21 @@ func ComputePendingApprovals(
 	}
 
 	return result
+}
+
+// isTerminalSubAgent returns true for sub-agents that have reached a final
+// lifecycle state.  Any WAITING_APPROVAL tool calls left inside a terminal
+// sub-agent are orphans from the InterruptProxy thread-restart mechanism and
+// must not appear in pending_approvals.
+func isTerminalSubAgent(status agentexecutionv1.SubAgentStatus) bool {
+	switch status {
+	case agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED,
+		agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED,
+		agentexecutionv1.SubAgentStatus_SUB_AGENT_CANCELLED:
+		return true
+	default:
+		return false
+	}
 }
 
 func projectToolCall(tc *agentexecutionv1.ToolCall, fromSubAgent bool, subAgentName string) *agentexecutionv1.PendingApproval {

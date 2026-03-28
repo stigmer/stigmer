@@ -51,7 +51,10 @@ from worker.activities.graphton.attachments import (
 from worker.activities.graphton.attachments import (
     auto_publish_written_files as _auto_publish_written_files,
 )
-from worker.activities.graphton.hitl import ResumeReconciler
+from worker.activities.graphton.hitl import (
+    ResumeReconciler,
+    extract_interrupt_tool_call_ids,
+)
 from worker.activities.graphton.prompt_builder import (
     _format_entry_description,  # noqa: F401 — re-exported for tests
     build_referenced_files_prompt_section,  # noqa: F401 — re-exported for tests
@@ -1890,6 +1893,31 @@ async def _execute_graphton_impl(
                 logger=activity_logger,
             )
             resume_reconciler.reconcile(approval_decisions=approval_decisions)
+
+            # ── Step 7.7: Checkpoint-based orphan reconciliation ─────────
+            #
+            # After ResumeReconciler handles the decided tool calls, sweep
+            # any remaining WAITING_APPROVAL tool calls that have no
+            # corresponding interrupt in the checkpoint.  These are
+            # artifacts of sub-agents that completed or restarted on new
+            # threads — the checkpoint no longer tracks them.
+            if graph_state and getattr(graph_state, "interrupts", None):
+                interrupt_tc_ids = extract_interrupt_tool_call_ids(
+                    graph_state.interrupts,
+                )
+            else:
+                interrupt_tc_ids = set()
+            decision_tc_ids = {d.tool_call_id for d in approval_decisions}
+            orphan_count = resume_reconciler.reconcile_orphans_against_checkpoint(
+                interrupt_tc_ids=interrupt_tc_ids,
+                decision_tc_ids=decision_tc_ids,
+            )
+            if orphan_count:
+                activity_logger.info(
+                    "[RESUME] execution=%s — reconciled %d orphaned tool "
+                    "call(s) against checkpoint before streaming",
+                    execution_id, orphan_count,
+                )
         
         # Log total setup time before entering the streaming phase.
         # This is the boundary between "setup" and "execution" — any time

@@ -2822,6 +2822,9 @@ class StatusBuilder:
                 sub_agent_ref.error = error_message
             else:
                 sub_agent_ref.status = SubAgentStatus.SUB_AGENT_COMPLETED
+
+            self._finalize_orphaned_tool_calls(sub_agent_ref, now)
+
             self.logger.debug(
                 "[SUBAGENT] execution=%s sa_id=%s run_id=%s status=%s",
                 self.execution_id, sub_agent_ref.id, run_id,
@@ -2856,6 +2859,39 @@ class StatusBuilder:
             self._pending_sub_agent_ids.remove(run_id)
 
         self.force_next_update = True
+
+    def _finalize_orphaned_tool_calls(
+        self, sub_agent: SubAgentExecution, now: datetime,
+    ) -> None:
+        """Transition orphaned WAITING_APPROVAL tool calls to SKIPPED.
+
+        When a sub-agent completes or fails, any tool calls still stuck in
+        WAITING_APPROVAL (with no recorded decision) are artifacts of the
+        InterruptProxy thread-restart mechanism — the sub-agent resumed on a
+        fresh LangGraph thread while the old thread's tool calls were never
+        resolved.  Leaving them in WAITING_APPROVAL causes ghost entries in
+        ``pending_approvals`` that can never be fulfilled.
+        """
+        timestamp = _utc_timestamp(now)
+        skipped = 0
+        for msg in sub_agent.messages:
+            for tc in msg.tool_calls:
+                if (
+                    tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                    and tc.requires_approval
+                    and tc.approval_action == ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+                ):
+                    tc.status = ToolCallStatus.TOOL_CALL_SKIPPED
+                    tc.approval_action = ApprovalAction.APPROVAL_ACTION_SKIP
+                    tc.approval_decided_at = timestamp
+                    tc.result = "Auto-skipped: parent sub-agent finished"
+                    skipped += 1
+        if skipped:
+            self.logger.info(
+                "[SUBAGENT] execution=%s sa_id=%s "
+                "finalized %d orphaned WAITING_APPROVAL tool call(s)",
+                self.execution_id, sub_agent.id, skipped,
+            )
 
     @property
     def has_orphaned_sub_agents(self) -> bool:
