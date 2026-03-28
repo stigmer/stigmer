@@ -7,6 +7,7 @@ import { cn } from "@stigmer/theme";
 import {
   resolveToolCategory,
   extractPrimaryArgFromPreview,
+  extractWriteContentFromPreview,
 } from "./tool-categories";
 import { FilePathLink } from "./FilePathLink";
 
@@ -219,7 +220,7 @@ function CategoryArgsPreview({
   }
 
   if ((category === "read" || category === "write" || category === "edit" || category === "delete") && primaryArg) {
-    return <FileArgsPreview path={primaryArg} argsPreview={argsPreview} />;
+    return <FileArgsPreview path={primaryArg} category={category} argsPreview={argsPreview} />;
   }
 
   if ((category === "search" || category === "list") && primaryArg) {
@@ -243,18 +244,33 @@ function ShellArgsPreview({ command }: { command: string }) {
 
 function FileArgsPreview({
   path,
+  category,
   argsPreview,
 }: {
   path: string;
+  category: string;
   argsPreview: string;
 }) {
+  const writeContent = useMemo(
+    () =>
+      category === "write" || category === "edit"
+        ? extractWriteContentFromPreview(argsPreview)
+        : null,
+    [category, argsPreview],
+  );
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-1.5 text-xs">
         <FilePathIcon />
         <FilePathLink path={path} className="text-xs" />
       </div>
-      {argsPreview && <GenericArgsPreview content={argsPreview} />}
+      {writeContent && (
+        <CollapsibleCodePreview
+          label="Content"
+          content={writeContent}
+        />
+      )}
     </div>
   );
 }
@@ -293,6 +309,43 @@ function GenericArgsPreview({ content }: { content: string }) {
     <div className="space-y-1">
       <span className="text-xs font-medium text-muted-foreground">
         Arguments
+      </span>
+      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-xs text-foreground">
+        {displayContent}
+      </pre>
+      {needsTruncation && (
+        <button
+          type="button"
+          onClick={() => setIsExpanded((v) => !v)}
+          className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
+        >
+          {isExpanded ? "Show less" : `Show all ${lines.length} lines`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function CollapsibleCodePreview({
+  label,
+  content,
+}: {
+  label: string;
+  content: string;
+}) {
+  const lines = content.split("\n");
+  const needsTruncation = lines.length > TRUNCATION_LINE_LIMIT;
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const displayContent =
+    needsTruncation && !isExpanded
+      ? lines.slice(0, TRUNCATION_LINE_LIMIT).join("\n") + "\n\u2026"
+      : content;
+
+  return (
+    <div className="space-y-1">
+      <span className="text-xs font-medium text-muted-foreground">
+        {label}
       </span>
       <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted/40 p-2 font-mono text-xs text-foreground">
         {displayContent}

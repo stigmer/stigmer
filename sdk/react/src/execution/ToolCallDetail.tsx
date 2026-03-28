@@ -6,6 +6,7 @@ import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import { cn } from "@stigmer/theme";
 import { resolveToolCategory, extractPrimaryArg } from "./tool-categories";
 import { FilePathLink } from "./FilePathLink";
+import { McpToolDetail } from "./McpToolDetail";
 
 export interface ToolCallDetailProps {
   readonly toolCall: ToolCall;
@@ -22,7 +23,8 @@ const TRUNCATION_LINE_LIMIT = 10;
  * - **File tools (read/write/edit)**: file path header + content block
  * - **Search tools (grep/glob)**: pattern header + results list
  * - **Think**: muted italic thought block
- * - **Unknown/MCP tools**: generic args + result JSON rendering
+ * - **MCP tools**: structured args + parsed result via {@link McpToolDetail}
+ * - **Unknown tools**: generic args + result JSON rendering
  *
  * Used inside {@link ToolCallItem} when expanded, but also
  * independently importable by platform builders who compose
@@ -34,7 +36,7 @@ const TRUNCATION_LINE_LIMIT = 10;
  * ```
  */
 export function ToolCallDetail({ toolCall, className }: ToolCallDetailProps) {
-  const category = resolveToolCategory(toolCall.name);
+  const category = resolveToolCategory(toolCall.name, toolCall.mcpServerSlug);
   const isFailed = toolCall.status === ToolCallStatus.TOOL_CALL_FAILED;
 
   return (
@@ -80,6 +82,8 @@ function CategoryRenderer({
       return <SearchToolDetail toolCall={toolCall} />;
     case "think":
       return <ThinkToolDetail toolCall={toolCall} />;
+    case "mcp":
+      return <McpToolDetail toolCall={toolCall} />;
     default:
       return <GenericToolDetail toolCall={toolCall} />;
   }

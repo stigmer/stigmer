@@ -41,6 +41,9 @@ export type { ToolCallGroupProps } from "./ToolCallGroup";
 export { ToolCallDetail, formatDuration } from "./ToolCallDetail";
 export type { ToolCallDetailProps } from "./ToolCallDetail";
 
+export { McpToolDetail, parseMcpResult } from "./McpToolDetail";
+export type { McpToolDetailProps } from "./McpToolDetail";
+
 export { ToolCallItem } from "./ToolCallItem";
 export type { ToolCallItemProps } from "./ToolCallItem";
 
@@ -84,6 +87,7 @@ export {
   resolveToolCategory,
   extractPrimaryArg,
   extractPrimaryArgFromPreview,
+  humanizeToolName,
 } from "./tool-categories";
 export type { ToolCategory, ToolCategoryInfo } from "./tool-categories";
 

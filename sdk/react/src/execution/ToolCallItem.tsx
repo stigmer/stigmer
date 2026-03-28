@@ -66,7 +66,7 @@ export function ToolCallItem({
   const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
   const isSubAgent = subAgentExecution != null;
 
-  const categoryInfo = resolveToolCategory(toolCall.name);
+  const categoryInfo = resolveToolCategory(toolCall.name, toolCall.mcpServerSlug);
   const CategoryIcon = CATEGORY_ICON[categoryInfo.category];
   const primaryArg = extractPrimaryArg(toolCall);
 
@@ -265,6 +265,7 @@ const CATEGORY_ICON: Record<ToolCategory, () => React.JSX.Element> = {
   list: FolderIcon,
   think: BrainIcon,
   "sub-agent": BotIcon,
+  mcp: McpPlugIcon,
   unknown: WrenchIcon,
 };
 
@@ -351,6 +352,17 @@ function WrenchIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M8.5 2C7.67 2 7 2.67 7 3.5C7 3.78 7.08 4.04 7.22 4.26L3.74 7.74C3.52 7.6 3.27 7.5 3 7.5C2.17 7.5 1.5 8.17 1.5 9C1.5 9.83 2.17 10.5 3 10.5C3.83 10.5 4.5 9.83 4.5 9C4.5 8.73 4.4 8.48 4.26 8.26L7.74 4.78C7.96 4.92 8.22 5 8.5 5C9.33 5 10 4.33 10 3.5C10 3.22 9.92 2.96 9.78 2.74L8.5 4L7.5 3L8.76 1.72C8.54 1.58 8.28 1.5 8 1.5" />
+    </svg>
+  );
+}
+
+function McpPlugIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 1.5V4" />
+      <path d="M8 1.5V4" />
+      <path d="M2.5 4H9.5V6.5C9.5 8.43 7.93 10 6 10C4.07 10 2.5 8.43 2.5 6.5V4Z" />
+      <path d="M6 10V11" />
     </svg>
   );
 }

@@ -1571,11 +1571,12 @@ class StatusBuilder:
     def _extract_tool_result_content(self, result: Any) -> str:
         """Extract displayable content string from a tool result.
 
-        Handles the four result shapes that flow through LangGraph astream_events:
+        Handles the five result shapes that flow through LangGraph astream_events:
         - str: Direct string results (most common for simple tools)
         - LangGraph message objects (ToolMessage, AIMessage): Extract .content
         - LangGraph Command objects: Extract ToolMessage content from .update
         - dict: Extract from 'output'/'content' keys, or JSON-serialize
+        - list: Extract text from MCP content blocks, or JSON-serialize
         """
         if isinstance(result, str):
             return result
@@ -1604,6 +1605,14 @@ class StatusBuilder:
             if "content" in result:
                 return str(result["content"])
             return json.dumps(result, indent=2)
+        if isinstance(result, list):
+            extracted = self._extract_string_content(result)
+            if extracted:
+                return extracted
+            try:
+                return json.dumps(result, indent=2, default=str)
+            except (TypeError, ValueError):
+                pass
         self.logger.warning(
             f"[TOOL] Unknown result type {type(result).__name__} for tool result "
             f"extraction, falling back to str(). Preview: {str(result)[:200]}"

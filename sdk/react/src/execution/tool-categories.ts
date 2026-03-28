@@ -6,6 +6,10 @@ import type { JsonObject } from "@bufbuild/protobuf";
  *
  * Mirrors the CLI's `toolDisplayMap` in
  * `client-apps/cli/pkg/toolrender/render.go`.
+ *
+ * `"mcp"` covers tools originating from an MCP server whose
+ * names are dynamic and cannot be statically listed in
+ * {@link TOOL_DISPLAY_MAP}.
  */
 export type ToolCategory =
   | "shell"
@@ -17,6 +21,7 @@ export type ToolCategory =
   | "list"
   | "think"
   | "sub-agent"
+  | "mcp"
   | "unknown";
 
 export interface ToolCategoryInfo {
@@ -68,10 +73,19 @@ const TOOL_DISPLAY_MAP: ReadonlyMap<string, ToolDisplayEntry> = new Map([
 
 /**
  * Resolves a tool name to its category metadata for type-aware
- * rendering. Returns a stable `"unknown"` entry for unrecognized
- * tools using the raw tool name as the label.
+ * rendering.
+ *
+ * When `mcpServerSlug` is provided and the tool name is not a
+ * known built-in, the tool is categorised as `"mcp"` with a
+ * human-readable label derived from the raw tool name.
+ *
+ * Falls back to `"unknown"` only when the tool is neither
+ * built-in nor MCP-originated.
  */
-export function resolveToolCategory(toolName: string): ToolCategoryInfo {
+export function resolveToolCategory(
+  toolName: string,
+  mcpServerSlug?: string,
+): ToolCategoryInfo {
   const entry = TOOL_DISPLAY_MAP.get(toolName);
   if (entry) {
     return {
@@ -81,12 +95,42 @@ export function resolveToolCategory(toolName: string): ToolCategoryInfo {
       fallbackArgFields: entry.fallbackFields ?? [],
     };
   }
+
+  if (mcpServerSlug) {
+    return {
+      category: "mcp",
+      label: humanizeToolName(toolName),
+      primaryArgField: "slug",
+      fallbackArgFields: ["name", "org"],
+    };
+  }
+
   return {
     category: "unknown",
     label: toolName,
     primaryArgField: "",
     fallbackArgFields: [],
   };
+}
+
+/**
+ * Converts a snake_case or camelCase tool name into a
+ * human-readable title.
+ *
+ * @example
+ * humanizeToolName("apply_mcp_server") // "Apply MCP Server"
+ * humanizeToolName("deleteAgent")      // "Delete Agent"
+ */
+export function humanizeToolName(name: string): string {
+  return name
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\b[a-z]/g, (c) => c.toUpperCase())
+    .replace(/\bMcp\b/gi, "MCP")
+    .replace(/\bApi\b/gi, "API")
+    .replace(/\bId\b/gi, "ID")
+    .replace(/\bUrl\b/gi, "URL")
+    .replace(/\bIam\b/gi, "IAM");
 }
 
 function extractArgValue(
@@ -118,13 +162,12 @@ function extractArgValue(
 /**
  * Extracts the most relevant argument value from a tool call
  * based on its category (command for shell tools, path for file
- * tools, pattern for search tools, etc.).
+ * tools, slug for MCP tools, etc.).
  *
- * Returns `null` when the tool is unknown and has no arguments,
- * or when the expected argument fields are missing.
+ * Returns `null` when the tool has no recognised arguments.
  */
 export function extractPrimaryArg(toolCall: ToolCall): string | null {
-  const info = resolveToolCategory(toolCall.name);
+  const info = resolveToolCategory(toolCall.name, toolCall.mcpServerSlug);
   const result = extractArgValue(
     toolCall.args,
     info.primaryArgField,
@@ -133,7 +176,7 @@ export function extractPrimaryArg(toolCall: ToolCall): string | null {
 
   if (result) return result;
 
-  if (info.category === "unknown" && toolCall.args) {
+  if ((info.category === "unknown" || info.category === "mcp") && toolCall.args) {
     const keys = Object.keys(toolCall.args);
     if (keys.length > 0) {
       const val = toolCall.args[keys[0]];
@@ -152,6 +195,7 @@ export function extractPrimaryArg(toolCall: ToolCall): string | null {
 export function extractPrimaryArgFromPreview(
   toolName: string,
   argsPreview: string,
+  mcpServerSlug?: string,
 ): string | null {
   if (!argsPreview) return null;
 
@@ -159,12 +203,48 @@ export function extractPrimaryArgFromPreview(
     const parsed = JSON.parse(argsPreview);
     if (typeof parsed !== "object" || parsed === null) return null;
 
-    const info = resolveToolCategory(toolName);
+    const info = resolveToolCategory(toolName, mcpServerSlug);
     return extractArgValue(
       parsed as JsonObject,
       info.primaryArgField,
       info.fallbackArgFields,
     );
+  } catch {
+    return null;
+  }
+}
+
+const WRITE_CONTENT_FIELDS = [
+  "contents",
+  "content",
+  "file_content",
+  "new_text",
+  "new_string",
+  "replacement",
+] as const;
+
+/**
+ * Extracts the file content body from a JSON `argsPreview` string
+ * for write/edit tool categories. Scans the same field names used
+ * by the post-execution {@link ToolCallDetail} renderer so that
+ * the approval preview matches the completed tool call display.
+ *
+ * Returns `null` if parsing fails or no content field is found.
+ */
+export function extractWriteContentFromPreview(
+  argsPreview: string,
+): string | null {
+  if (!argsPreview) return null;
+
+  try {
+    const parsed = JSON.parse(argsPreview);
+    if (typeof parsed !== "object" || parsed === null) return null;
+
+    for (const field of WRITE_CONTENT_FIELDS) {
+      const val = (parsed as Record<string, unknown>)[field];
+      if (typeof val === "string" && val.length > 0) return val;
+    }
+    return null;
   } catch {
     return null;
   }
