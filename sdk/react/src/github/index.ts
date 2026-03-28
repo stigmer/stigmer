@@ -14,6 +14,11 @@ export {
 } from "./useGitHubRepos";
 
 export {
+  useGitHubSearch,
+  type UseGitHubSearchReturn,
+} from "./useGitHubSearch";
+
+export {
   GitHubRepoPicker,
   type GitHubRepoPickerProps,
 } from "./GitHubRepoPicker";
