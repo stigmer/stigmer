@@ -37,12 +37,22 @@ from ai.stigmer.agentic.agentexecution.v1.writeback_pb2 import (
 )
 from ai.stigmer.agentic.session.v1.enum_pb2 import (
     GIT_WRITE_BACK_BRANCH_AND_PR,
+    GIT_WRITE_BACK_MODE_UNSPECIFIED,
 )
 from graphton.core.github_api import (
     github_create_pr,
     parse_github_repo,
     parse_token_from_credentials,
 )
+
+# Write-back modes treated as "enabled" by the platform.
+# UNSPECIFIED = platform decides (currently: enabled when credentials exist).
+# BRANCH_AND_PR = explicit opt-in.
+# Any future opt-out enum (e.g. DISABLED = 2) is excluded automatically.
+_WRITE_BACK_ENABLED_MODES: frozenset[int] = frozenset({
+    GIT_WRITE_BACK_MODE_UNSPECIFIED,
+    GIT_WRITE_BACK_BRANCH_AND_PR,
+})
 
 if TYPE_CHECKING:
     from worker.activities.graphton.status_builder import StatusBuilder
@@ -184,7 +194,7 @@ class WriteBackCoordinator:
                 continue
             if not pr.git_metadata.git_credentials_configured:
                 continue
-            if mode_map.get(pr.entry_name, 0) != GIT_WRITE_BACK_BRANCH_AND_PR:
+            if mode_map.get(pr.entry_name, 0) not in _WRITE_BACK_ENABLED_MODES:
                 continue
 
             self._eligible[pr.entry_name] = _EligibleEntry(
