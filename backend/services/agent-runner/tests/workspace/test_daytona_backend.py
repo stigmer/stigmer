@@ -318,3 +318,128 @@ class TestCwdConformance:
 
         cmd = _last_session_command(sandbox)
         assert cmd == "cd /workspace/services/api && cat README.md"
+
+
+# ---------------------------------------------------------------------------
+# _normalize — agent-space to sandbox-space path translation
+# ---------------------------------------------------------------------------
+
+
+class TestNormalize:
+    """Verify _normalize translates agent-space paths to sandbox-relative paths.
+
+    When workspace_root is a subdirectory of sandbox_root, a rebase
+    prefix must be prepended so that sandbox.fs resolves to the correct
+    location.
+    """
+
+    def test_rebase_prefix_computed(self):
+        """Rebase prefix is 'workspace' when workspace is under sandbox root."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/home/daytona/workspace",
+            sandbox_root="/home/daytona",
+        )
+        assert backend._rebase_prefix == "workspace"
+
+    def test_no_rebase_when_roots_equal(self):
+        """No rebase prefix when workspace_root == sandbox_root."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/home/daytona",
+            sandbox_root="/home/daytona",
+        )
+        assert backend._rebase_prefix == ""
+
+    def test_no_rebase_when_sandbox_root_omitted(self):
+        """No rebase prefix when sandbox_root is not provided."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/home/daytona/workspace",
+        )
+        assert backend._rebase_prefix == ""
+
+    def test_bare_relative_path(self):
+        """A bare filename is rebased to workspace/filename."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/home/daytona/workspace",
+            sandbox_root="/home/daytona",
+        )
+        assert backend._normalize("mcp-server-stigmer.yaml") == "workspace/mcp-server-stigmer.yaml"
+
+    def test_relative_path_with_subdirectory(self):
+        """A relative path with subdirectories is rebased correctly."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/home/daytona/workspace",
+            sandbox_root="/home/daytona",
+        )
+        assert backend._normalize("bin/skills/a/SKILL.md") == "workspace/bin/skills/a/SKILL.md"
+
+    def test_absolute_workspace_path_stripped_and_rebased(self):
+        """An absolute path with workspace_root prefix is stripped then rebased."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/home/daytona/workspace",
+            sandbox_root="/home/daytona",
+        )
+        result = backend._normalize("/home/daytona/workspace/bin/skills/a/SKILL.md")
+        assert result == "workspace/bin/skills/a/SKILL.md"
+
+    def test_leading_slash_stripped_and_rebased(self):
+        """A leading-slash relative path is stripped then rebased."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/home/daytona/workspace",
+            sandbox_root="/home/daytona",
+        )
+        assert backend._normalize("/bin/skills/a/SKILL.md") == "workspace/bin/skills/a/SKILL.md"
+
+    def test_workspace_root_path_normalizes_to_prefix(self):
+        """The workspace root itself normalizes to the rebase prefix."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/home/daytona/workspace",
+            sandbox_root="/home/daytona",
+        )
+        assert backend._normalize("/home/daytona/workspace") == "workspace"
+
+    def test_no_rebase_strips_slashes_only(self):
+        """Without rebase, normalize just strips leading slashes."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/home/daytona",
+            sandbox_root="/home/daytona",
+        )
+        assert backend._normalize("/output.txt") == "output.txt"
+        assert backend._normalize("output.txt") == "output.txt"
+
+    def test_no_rebase_workspace_root_returns_dot(self):
+        """Without rebase, workspace root path normalizes to '.'."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/home/daytona",
+            sandbox_root="/home/daytona",
+        )
+        assert backend._normalize("/home/daytona") == "."
+
+    def test_hasattr_normalize_true(self):
+        """The publish code uses hasattr to detect _normalize — confirm it exists."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/home/daytona/workspace",
+            sandbox_root="/home/daytona",
+        )
+        assert hasattr(backend, "_normalize")
