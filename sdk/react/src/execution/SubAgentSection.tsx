@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
@@ -25,23 +25,17 @@ export interface SubAgentSectionProps {
   readonly className?: string;
 }
 
-function isTerminalSubAgentStatus(status: SubAgentStatus): boolean {
-  return (
-    status === SubAgentStatus.SUB_AGENT_COMPLETED ||
-    status === SubAgentStatus.SUB_AGENT_FAILED ||
-    status === SubAgentStatus.SUB_AGENT_CANCELLED
-  );
-}
-
 /**
  * Renders a sub-agent execution as a nested mini-thread inside the
  * parent conversation.
  *
  * When `collapsible` is `true` (default), the component renders as a
- * bordered card with a clickable summary row — matching the
- * progressive disclosure pattern of {@link ToolCallGroup}. Running
- * sub-agents auto-expand; terminal sub-agents auto-collapse. User
- * clicks override the automatic behavior.
+ * bordered card with a clickable summary row. Cards start collapsed
+ * — the summary row shows status, subject, and duration at a glance.
+ * Users click to expand and see the nested messages and tool calls.
+ *
+ * Visually distinguished from {@link ToolCallGroup} via a left
+ * accent border and bot icon, signaling delegated sub-agent work.
  *
  * When `collapsible` is `false`, the component renders flat content
  * without a toggle — suitable for embedding inside a parent that
@@ -70,7 +64,6 @@ export function SubAgentSection({
   const StatusIcon = statusInfo.icon;
   const isFailed = sub.status === SubAgentStatus.SUB_AGENT_FAILED;
   const threadItems = buildSubAgentThreadItems(sub.messages);
-  const isActive = !isTerminalSubAgentStatus(sub.status);
 
   const displayLabel = sub.subject || sub.name;
 
@@ -92,10 +85,8 @@ export function SubAgentSection({
     <CollapsibleCard
       sub={sub}
       statusInfo={statusInfo}
-      StatusIcon={StatusIcon}
       displayLabel={displayLabel}
       duration={duration}
-      isActive={isActive}
       isFailed={isFailed}
       threadItems={threadItems}
       className={className}
@@ -110,10 +101,8 @@ export function SubAgentSection({
 interface CollapsibleCardProps {
   readonly sub: SubAgentExecution;
   readonly statusInfo: SubAgentStatusInfo;
-  readonly StatusIcon: () => React.JSX.Element;
   readonly displayLabel: string;
   readonly duration: string | null;
-  readonly isActive: boolean;
   readonly isFailed: boolean;
   readonly threadItems: SubAgentThreadItem[];
   readonly className?: string;
@@ -122,24 +111,15 @@ interface CollapsibleCardProps {
 function CollapsibleCard({
   sub,
   statusInfo,
-  StatusIcon,
   displayLabel,
   duration,
-  isActive,
   isFailed,
   threadItems,
   className,
 }: CollapsibleCardProps) {
-  const [expanded, setExpanded] = useState(isActive);
-  const userToggledRef = useRef(false);
-
-  useEffect(() => {
-    if (userToggledRef.current) return;
-    setExpanded(isActive);
-  }, [isActive]);
+  const [expanded, setExpanded] = useState(false);
 
   const handleToggle = () => {
-    userToggledRef.current = true;
     setExpanded((v) => !v);
   };
 
@@ -150,7 +130,7 @@ function CollapsibleCard({
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        "rounded-md border border-border bg-muted/30",
+        "rounded-md border border-border border-l-2 border-l-primary/30 bg-muted/30",
         className,
       )}
     >
@@ -165,11 +145,8 @@ function CollapsibleCard({
           "cursor-pointer",
         )}
       >
-        <span
-          className={cn("shrink-0", statusInfo.colorClass)}
-          aria-hidden="true"
-        >
-          <StatusIcon />
+        <span className="shrink-0 text-primary/70" aria-hidden="true">
+          <BotIcon />
         </span>
         <span className="min-w-0 flex-1 truncate">{displayLabel}</span>
         <span
@@ -461,6 +438,27 @@ function DotIcon() {
   return (
     <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
       <circle cx="4" cy="4" r="2.5" />
+    </svg>
+  );
+}
+
+function BotIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="6" width="12" height="8" rx="2" />
+      <path d="M5.5 10H5.51M10.5 10H10.51" strokeWidth="2" />
+      <path d="M8 2V6" />
+      <circle cx="8" cy="1.5" r="1" />
+      <path d="M0.5 9.5H2M14 9.5H15.5" />
     </svg>
   );
 }
