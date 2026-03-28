@@ -1,22 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
-import { useExecutionArtifacts } from "./useExecutionArtifacts";
-import { isTerminalPhase } from "./execution-phases";
+import {
+  useSessionArtifacts,
+  type SessionArtifactEntry,
+} from "../session/useSessionArtifacts";
 import { ArtifactCard } from "./ArtifactCard";
 import { ArtifactPreviewModal } from "./ArtifactPreviewModal";
 import type { ApplyResourceResult } from "../library/useApplyResource";
 
 export interface ArtifactsWidgetProps {
   /**
-   * The execution to display artifacts for. Renders nothing when `null`
-   * or when the execution has no artifacts.
+   * All executions for the current session — both completed and
+   * actively streaming. The widget aggregates artifacts across every
+   * execution, deduplicates by `sandbox_path` (latest wins), and
+   * sorts alphabetically by name.
+   *
+   * Renders nothing when the list is empty or no execution has
+   * artifacts.
    */
-  readonly execution: AgentExecution | null;
+  readonly executions: readonly AgentExecution[];
   /** Organization slug for the "Apply to [org]" CTA in the preview modal. */
   readonly org: string;
   /**
@@ -31,24 +36,22 @@ export interface ArtifactsWidgetProps {
 }
 
 /**
- * Right-sidebar widget that surfaces execution artifacts as a compact
- * card list with automatic Stigmer resource detection.
+ * Right-sidebar widget that surfaces all artifacts produced during a
+ * session as a unified, alphabetically-sorted file listing.
+ *
+ * Artifacts from multiple executions are aggregated and deduplicated
+ * by `sandbox_path` (latest execution wins), presenting the user with
+ * a file-explorer-like view of the conversation's output — no
+ * execution/turn concepts are exposed.
  *
  * Composes {@link ArtifactCard} (summary + detection badges) with
  * {@link ArtifactPreviewModal} (full content review + Apply/Push CTA).
  * The card's "Preview" action opens the modal; the modal is the sole
  * location for Apply/Push actions (review-before-apply pattern).
  *
- * Derives all data from the `execution` prop:
- *
- * - **Artifacts**: extracted via {@link useExecutionArtifacts}
- * - **Terminal phase**: derived via {@link isTerminalPhase} — controls
- *   whether the Apply CTA in the modal is enabled
- * - **Execution ID**: read from `execution.metadata.id`
- *
- * Returns `null` when the execution is `null` or has no artifacts,
- * matching the conditional-render pattern of {@link ExecutionProgress}
- * and {@link ExecutionCostSummary}.
+ * Returns `null` when the executions list is empty or no execution
+ * has artifacts, matching the conditional-render pattern of
+ * {@link ExecutionProgress} and {@link ExecutionCostSummary}.
  *
  * Renders without card chrome — each {@link ArtifactCard} provides its
  * own border and padding. The consumer controls the container styling
@@ -58,10 +61,13 @@ export interface ArtifactsWidgetProps {
  *
  * @example
  * ```tsx
- * const stream = useExecutionStream(executionId);
+ * const conv = useSessionConversation(sessionId, org);
  *
  * <ArtifactsWidget
- *   execution={stream.execution}
+ *   executions={[
+ *     ...conv.completedExecutions,
+ *     ...(conv.activeStreamExecution ? [conv.activeStreamExecution] : []),
+ *   ]}
  *   org={activeOrg}
  *   onApplied={(result) => toast(`${result.kind} applied`)}
  * />
@@ -69,29 +75,30 @@ export interface ArtifactsWidgetProps {
  *
  * @see {@link ArtifactCard} — compact summary card per artifact
  * @see {@link ArtifactPreviewModal} — full preview with Apply/Push CTA
- * @see {@link useExecutionArtifacts} — headless artifact extraction hook
+ * @see {@link useSessionArtifacts} — headless session-level artifact aggregation hook
+ * @see {@link useExecutionArtifacts} — headless single-execution artifact extraction hook
  */
 export function ArtifactsWidget({
-  execution,
+  executions,
   org,
   onApplied,
   className,
 }: ArtifactsWidgetProps) {
   const { artifacts, hasArtifacts, artifactCount } =
-    useExecutionArtifacts(execution);
+    useSessionArtifacts(executions);
 
-  const [previewArtifact, setPreviewArtifact] =
-    useState<ExecutionArtifact | null>(null);
+  const [previewEntry, setPreviewEntry] =
+    useState<SessionArtifactEntry | null>(null);
+
+  const handlePreview = useCallback(
+    (entry: SessionArtifactEntry) => setPreviewEntry(entry),
+    [],
+  );
 
   if (!hasArtifacts) return null;
 
-  const phase =
-    execution?.status?.phase ?? ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED;
-  const isTerminal = isTerminalPhase(phase);
-  const executionId = execution?.metadata?.id ?? "";
-
   return (
-    <section aria-label="Execution artifacts" className={cn(className)}>
+    <section aria-label="Artifacts" className={cn(className)}>
       <div className="mb-2 flex items-center gap-2">
         <h3 className="text-sm font-medium text-foreground">Artifacts</h3>
         <span className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">
@@ -100,26 +107,27 @@ export function ArtifactsWidget({
       </div>
 
       <div role="list" className="space-y-2">
-        {artifacts.map((artifact) => (
-          <div key={artifact.storageKey} role="listitem">
+        {artifacts.map((entry) => (
+          <div key={entry.artifact.storageKey} role="listitem">
             <ArtifactCard
-              artifact={artifact}
-              executionId={executionId}
+              artifact={entry.artifact}
+              executionId={entry.executionId}
               org={org}
-              onPreview={setPreviewArtifact}
+              hasNameCollision={entry.hasNameCollision}
+              onPreview={() => handlePreview(entry)}
             />
           </div>
         ))}
       </div>
 
-      {previewArtifact && (
+      {previewEntry && (
         <ArtifactPreviewModal
-          artifact={previewArtifact}
-          executionId={executionId}
+          artifact={previewEntry.artifact}
+          executionId={previewEntry.executionId}
           org={org}
-          isTerminal={isTerminal}
+          isTerminal={previewEntry.isTerminal}
           open
-          onClose={() => setPreviewArtifact(null)}
+          onClose={() => setPreviewEntry(null)}
           onApplied={onApplied}
         />
       )}

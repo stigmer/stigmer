@@ -223,9 +223,17 @@ function SessionPageInner({ id }: { id: string }) {
               <div className="rounded-lg border border-border bg-card p-3">
                 <ExecutionCostSummary execution={displayExecution} />
               </div>
-              <ArtifactsWidget execution={displayExecution} org={org} />
             </>
           )}
+          <ArtifactsWidget
+            executions={[
+              ...conv.completedExecutions,
+              ...(conv.activeStreamExecution
+                ? [conv.activeStreamExecution]
+                : []),
+            ]}
+            org={org}
+          />
         </aside>
       </div>
     </div>

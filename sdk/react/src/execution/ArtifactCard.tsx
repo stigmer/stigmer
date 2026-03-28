@@ -33,6 +33,16 @@ export interface ArtifactCardProps {
    * When omitted, the Preview action is not rendered.
    */
   readonly onPreview?: (artifact: ExecutionArtifact) => void;
+  /**
+   * When `true`, another artifact in the list shares the same display
+   * `name` but has a different `sandbox_path`. The card renders the
+   * parent directory from `sandbox_path` as a muted subtitle for
+   * disambiguation.
+   *
+   * Set by {@link ArtifactsWidget} via {@link useSessionArtifacts}.
+   * Defaults to `false`.
+   */
+  readonly hasNameCollision?: boolean;
   /** Additional CSS classes for the root element. */
   readonly className?: string;
 }
@@ -89,6 +99,7 @@ export function ArtifactCard({
   executionId,
   org,
   onPreview,
+  hasNameCollision = false,
   className,
 }: ArtifactCardProps) {
   // ---------------------------------------------------------------------------
@@ -134,6 +145,11 @@ export function ArtifactCard({
 
   const canPreview = !!onPreview && (isTextArtifact(artifact) || isDirectory);
 
+  const parentDir =
+    hasNameCollision && artifact.sandboxPath
+      ? parentDirectory(artifact.sandboxPath)
+      : null;
+
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
@@ -154,6 +170,11 @@ export function ArtifactCard({
             {artifact.name}
             {isDirectory && "/"}
           </div>
+          {parentDir && (
+            <div className="truncate text-xs text-muted-foreground">
+              {parentDir}
+            </div>
+          )}
           <div className="text-xs tabular-nums text-muted-foreground">
             {formatArtifactSize(artifact.sizeBytes)}
           </div>
@@ -202,6 +223,23 @@ export function ArtifactCard({
 
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Extracts a human-readable parent directory label from a sandbox path.
+ * Given `/workspace/configs/agent.yaml` returns `configs/`.
+ * Returns `null` when the path has no meaningful parent segment.
+ */
+function parentDirectory(sandboxPath: string): string | null {
+  const lastSlash = sandboxPath.lastIndexOf("/");
+  if (lastSlash <= 0) return null;
+  const parent = sandboxPath.slice(0, lastSlash);
+  const segment = parent.slice(parent.lastIndexOf("/") + 1);
+  return segment ? `${segment}/` : null;
 }
 
 // ---------------------------------------------------------------------------

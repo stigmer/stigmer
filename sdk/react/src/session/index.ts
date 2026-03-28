@@ -26,6 +26,12 @@ export type {
   UseSessionConversationReturn,
 } from "./useSessionConversation";
 
+export { useSessionArtifacts } from "./useSessionArtifacts";
+export type {
+  SessionArtifactEntry,
+  UseSessionArtifactsReturn,
+} from "./useSessionArtifacts";
+
 export { useAgentRefFromSession } from "./useAgentRefFromSession";
 export type { UseAgentRefFromSessionReturn } from "./useAgentRefFromSession";
 
