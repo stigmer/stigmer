@@ -25,15 +25,14 @@ import logging
 from collections import deque
 from typing import Any
 
+from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
     ToolCallStatus,
 )
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import SubmitApprovalInput
-from ai.stigmer.agentic.agentexecution.v1.message_pb2 import PendingApproval
 
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
-
 
 # ---------------------------------------------------------------------------
 # Interrupt helpers

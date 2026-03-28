@@ -10,15 +10,13 @@ Covers:
 
 from __future__ import annotations
 
-import asyncio
 import dataclasses
 from typing import Any
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from worker.workspace.backend import ExecuteResult
-
 
 # ─────────────────────────────────────────────────────────────────────
 # Fake response types mirroring Daytona SDK and workspace backend

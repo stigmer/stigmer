@@ -455,7 +455,7 @@ class StreamExecutor:
         )
         asyncio.get_event_loop().run_until_complete(
             self._persist_terminal_status("PAUSE")
-        ) if False else None  # noqa: intentionally deferred — see below
+        ) if False else None  # noqa  — intentionally deferred; see below
 
         # _persist_terminal_status is async but CancelledError handlers
         # cannot await (the task is already cancelled). Best-effort via
