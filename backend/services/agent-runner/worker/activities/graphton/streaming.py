@@ -114,18 +114,23 @@ class StreamExecutor:
         self._pending_git_tasks = {t for t in self._pending_git_tasks if not t.done()}
         return set(self._pending_git_tasks)
 
-    def _on_file_modifying_tool_end(self, event: dict[str, Any]) -> None:
+    def _on_file_modifying_tool_end(
+        self, event: dict[str, Any],
+    ) -> asyncio.Task[None] | None:
         """Handle ``on_tool_end`` for file-modifying tools.
 
-        Fires two independent background tasks:
-          - Artifact publish (existing behavior).
-          - Incremental git write-back (new).
+        Returns the artifact-publish task so the caller can ``await`` it
+        before flushing the next status update (ensuring the artifact is
+        available when the UI receives the tool-completion event).
+
+        Git write-back remains fire-and-forget — it does not affect
+        artifact content visible in the preview.
         """
         if event.get("event") != "on_tool_end":
-            return
+            return None
         tool_name = event.get("name", "")
         if tool_name not in _FILE_MODIFYING_TOOLS:
-            return
+            return None
 
         run_id = event.get("run_id", "")
         resolved_id = self._sb._resolve_run_id(run_id)
@@ -140,15 +145,16 @@ class StreamExecutor:
                 "tool_end run_id=%s tool=%s, skipping",
                 self._execution_id, run_id, tool_name,
             )
-            return
+            return None
 
+        publish_task: asyncio.Task[None] | None = None
         if self._on_file_written is not None:
-            task = asyncio.create_task(
+            publish_task = asyncio.create_task(
                 self._on_file_written(path),
                 name=f"inline-publish-{self._execution_id}-{path}",
             )
-            self._pending_publishes.add(task)
-            task.add_done_callback(self._pending_publishes.discard)
+            self._pending_publishes.add(publish_task)
+            publish_task.add_done_callback(self._pending_publishes.discard)
 
         if self._on_git_file_modified is not None:
             task = asyncio.create_task(
@@ -157,6 +163,8 @@ class StreamExecutor:
             )
             self._pending_git_tasks.add(task)
             task.add_done_callback(self._pending_git_tasks.discard)
+
+        return publish_task
 
     # ------------------------------------------------------------------
     # Public
@@ -208,7 +216,9 @@ class StreamExecutor:
                         raise asyncio.CancelledError("Paused by user")
 
                     await self._sb.process_event(event)
-                    self._on_file_modifying_tool_end(event)
+                    publish_task = self._on_file_modifying_tool_end(event)
+                    if publish_task is not None:
+                        await self._await_publish(publish_task)
                     events_processed += 1
 
                     now = time.monotonic()
@@ -249,6 +259,34 @@ class StreamExecutor:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    _INLINE_PUBLISH_TIMEOUT = 15.0
+
+    async def _await_publish(self, task: asyncio.Task[None]) -> None:
+        """Wait for an inline-publish task to complete before the next
+        status flush, so the artifact is present when the UI receives the
+        tool-completion event.
+
+        On timeout or failure the task stays in ``_pending_publishes``
+        and the post-stream safety net will handle it.  The streaming
+        loop is never blocked indefinitely.
+        """
+        try:
+            await asyncio.wait_for(
+                asyncio.shield(task), timeout=self._INLINE_PUBLISH_TIMEOUT,
+            )
+        except TimeoutError:
+            self._log.warning(
+                "[INLINE_PUBLISH] execution=%s — publish did not complete "
+                "within %.0fs, deferring to post-stream safety net",
+                self._execution_id, self._INLINE_PUBLISH_TIMEOUT,
+            )
+        except Exception as exc:
+            self._log.warning(
+                "[INLINE_PUBLISH] execution=%s — publish failed "
+                "(non-fatal, post-stream safety net will retry): %s",
+                self._execution_id, exc,
+            )
 
     async def _pre_stream_update(self) -> None:
         """Send an immediate IN_PROGRESS status update before streaming.
