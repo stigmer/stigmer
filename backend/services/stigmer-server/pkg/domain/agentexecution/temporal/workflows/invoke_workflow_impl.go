@@ -236,18 +236,13 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			return fmt.Errorf("max approval cycles (%d) reached - possible infinite loop", MaxApprovalCycles)
 		}
 
-		// Load execution from DB to get the server-computed pending_approvals.
-		// Python's slim return no longer includes them (T03). The gRPC
-		// UpdateStatus call that Python made has already computed and stored
-		// them as a projection from messages.
-		dbExecution, err := w.loadExecution(ctx, executionID)
-		if err != nil {
-			logger.Error("Failed to load execution for pending approval count",
-				"execution_id", executionID, "error", err.Error())
-			return err
-		}
-
-		pendingApprovals := dbExecution.GetStatus().GetPendingApprovals()
+		// Use the activity's pending_approvals snapshot for signal counting.
+		// Python populates this as a point-in-time coordination signal at
+		// interrupt time via StatusBuilder.build_pending_approvals_snapshot().
+		// Reading from DB is unsafe: the SubmitApproval handler may have
+		// already recorded decisions (mutating the DB projection via
+		// ComputePendingApprovals) before the workflow reads it.
+		pendingApprovals := finalStatus.GetPendingApprovals()
 		pendingCount := len(pendingApprovals)
 
 		signalsNeeded := pendingCount

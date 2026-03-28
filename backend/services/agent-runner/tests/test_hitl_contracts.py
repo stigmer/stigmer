@@ -4,6 +4,8 @@ Tests cover:
   - ResumeReconciler: tool call transitions, auto-skip, stale completed_at
   - Fingerprint dedup: via messages (not flat lists)
   - Index rebuild on resume: populate_fingerprints_from_existing_tool_calls
+  - Pending approvals snapshot: Temporal coordination signal
+  - slim_status_for_temporal: snapshot preserved through slim copy
 """
 
 import logging
@@ -23,6 +25,7 @@ from google.protobuf.struct_pb2 import Struct
 
 from worker.activities.graphton.hitl import ResumeReconciler
 from worker.activities.graphton.status_builder import StatusBuilder
+from worker.activities.graphton.temporal_helpers import slim_status_for_temporal
 
 
 def _logger():
@@ -318,3 +321,150 @@ class TestIndexRebuildOnResume:
         msg_tc = status.messages[0].tool_calls[0]
         assert msg_tc.status == ToolCallStatus.TOOL_CALL_RUNNING
         assert msg_tc.result == "done"
+
+
+# =============================================================================
+# Pending approvals snapshot for Temporal coordination
+# =============================================================================
+
+
+class TestBuildPendingApprovalsSnapshot:
+    """Verify the point-in-time snapshot used for Temporal signal counting.
+
+    This snapshot is populated in post_stream.py and returned via the slim
+    status to the Go workflow.  It must match the same filter criteria as
+    Go's ComputePendingApprovals: WAITING_APPROVAL + requires_approval +
+    approval_action == UNSPECIFIED.
+    """
+
+    def test_snapshot_includes_waiting_approval_tools(self):
+        tc = ToolCall(
+            id="call_1",
+            name="delete_file",
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requires_approval=True,
+        )
+        builder = _make_builder_with_decisions([tc])
+
+        snapshot = builder.build_pending_approvals_snapshot()
+
+        assert len(snapshot) == 1
+        assert snapshot[0].tool_call_id == "call_1"
+
+    def test_snapshot_excludes_tools_with_decision_recorded(self):
+        tc = ToolCall(
+            id="call_1",
+            name="delete_file",
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requires_approval=True,
+            approval_action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+        )
+        builder = _make_builder_with_decisions([tc])
+
+        snapshot = builder.build_pending_approvals_snapshot()
+
+        assert len(snapshot) == 0
+
+    def test_snapshot_excludes_completed_tools(self):
+        tc = ToolCall(
+            id="call_1",
+            name="read_file",
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+            requires_approval=False,
+        )
+        builder = _make_builder_with_decisions([tc])
+
+        snapshot = builder.build_pending_approvals_snapshot()
+
+        assert len(snapshot) == 0
+
+    def test_snapshot_excludes_tools_not_requiring_approval(self):
+        tc = ToolCall(
+            id="call_1",
+            name="read_file",
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requires_approval=False,
+        )
+        builder = _make_builder_with_decisions([tc])
+
+        snapshot = builder.build_pending_approvals_snapshot()
+
+        assert len(snapshot) == 0
+
+    def test_snapshot_batch_returns_all_pending(self):
+        tc1 = ToolCall(
+            id="call_1",
+            name="delete_file",
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requires_approval=True,
+        )
+        tc2 = ToolCall(
+            id="call_2",
+            name="write_file",
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requires_approval=True,
+        )
+        tc3 = ToolCall(
+            id="call_3",
+            name="read_file",
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+            requires_approval=False,
+        )
+        builder = _make_builder_with_decisions([tc1, tc2, tc3])
+
+        snapshot = builder.build_pending_approvals_snapshot()
+
+        assert len(snapshot) == 2
+        ids = {pa.tool_call_id for pa in snapshot}
+        assert ids == {"call_1", "call_2"}
+
+    def test_snapshot_empty_when_no_tool_calls(self):
+        status = AgentExecutionStatus()
+        builder = StatusBuilder("test_exec", status)
+
+        snapshot = builder.build_pending_approvals_snapshot()
+
+        assert len(snapshot) == 0
+
+
+# =============================================================================
+# slim_status_for_temporal: snapshot preservation
+# =============================================================================
+
+
+class TestSlimStatusPreservesSnapshot:
+    """Verify that slim_status_for_temporal copies pending_approvals
+    from the full status, ensuring the Temporal workflow receives the
+    snapshot built by build_pending_approvals_snapshot().
+    """
+
+    def test_slim_status_carries_pending_approvals(self):
+        tc1 = ToolCall(
+            id="call_1",
+            name="delete_file",
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requires_approval=True,
+        )
+        tc2 = ToolCall(
+            id="call_2",
+            name="write_file",
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requires_approval=True,
+        )
+        builder = _make_builder_with_decisions([tc1, tc2])
+
+        snapshot = builder.build_pending_approvals_snapshot()
+        del builder.current_status.pending_approvals[:]
+        builder.current_status.pending_approvals.extend(snapshot)
+
+        slim = slim_status_for_temporal(builder.current_status)
+
+        assert len(slim.pending_approvals) == 2
+        ids = {pa.tool_call_id for pa in slim.pending_approvals}
+        assert ids == {"call_1", "call_2"}
+
+    def test_slim_status_empty_when_no_pending(self):
+        status = AgentExecutionStatus()
+        slim = slim_status_for_temporal(status)
+
+        assert len(slim.pending_approvals) == 0

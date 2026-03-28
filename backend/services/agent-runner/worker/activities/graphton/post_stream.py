@@ -177,10 +177,14 @@ async def process_post_stream(
     current_phase = status_builder.current_status.phase
 
     if current_phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL:
+        snapshot = status_builder.build_pending_approvals_snapshot()
+        del status_builder.current_status.pending_approvals[:]
+        status_builder.current_status.pending_approvals.extend(snapshot)
         logger.info(
             "Stream ended with WAITING_FOR_APPROVAL phase for execution %s. "
+            "Snapshot: %d pending approval(s) for Temporal coordination. "
             "Not setting COMPLETED.",
-            execution_id,
+            execution_id, len(snapshot),
         )
     elif current_phase == ExecutionPhase.EXECUTION_PAUSED:
         logger.info(
