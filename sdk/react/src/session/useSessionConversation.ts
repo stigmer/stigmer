@@ -25,6 +25,14 @@ import { useSessionExecutions } from "./useSessionExecutions";
 import { useUpdateSession } from "./useUpdateSession";
 
 /**
+ * After an approval is submitted, the card is optimistically hidden for
+ * this many milliseconds.  If the server still lists the same tool call
+ * as pending after the window expires, the card reappears so the user
+ * knows the approval was not processed.
+ */
+const DISMISS_GRACE_MS = 8_000;
+
+/**
  * Options for {@link UseSessionConversationReturn.sendFollowUp}.
  *
  * Session-level fields (`workspaceEntries`, `mcpServerUsages`,
@@ -224,9 +232,9 @@ export function useSessionConversation(
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(
     null,
   );
-  const [dismissedApprovalIds, setDismissedApprovalIds] = useState<
-    ReadonlySet<string>
-  >(new Set());
+  const [dismissTimestamps, setDismissTimestamps] = useState<
+    ReadonlyMap<string, number>
+  >(new Map());
 
   const listActiveId = useMemo(() => {
     for (let i = executions.length - 1; i >= 0; i--) {
@@ -243,7 +251,7 @@ export function useSessionConversation(
   const stream = useExecutionStream(activeExecutionId);
 
   useEffect(() => {
-    setDismissedApprovalIds(new Set());
+    setDismissTimestamps(new Map());
   }, [activeExecutionId]);
 
   // Clear pendingExecutionId once the execution appears in the fetched list
@@ -357,10 +365,49 @@ export function useSessionConversation(
     [sessionId, session, org, stigmer, create, updateSession, refetch, refetchSession],
   );
 
+  // Reconcile dismissed entries against server state on each stream
+  // snapshot.  Two outcomes:
+  //  - Server no longer lists the approval -> clean up (confirmed).
+  //  - Server still lists it past the grace window -> evict so the card
+  //    reappears, signaling to the user that the approval was not
+  //    processed.
+  useEffect(() => {
+    if (dismissTimestamps.size === 0) return;
+
+    const serverPendingIds = new Set(
+      (activeStreamExecution?.status?.pendingApprovals ?? []).map(
+        (a) => a.toolCallId,
+      ),
+    );
+    const now = Date.now();
+    const toRemove: string[] = [];
+
+    for (const [tcId, ts] of dismissTimestamps) {
+      if (!serverPendingIds.has(tcId)) {
+        toRemove.push(tcId);
+      } else if (now - ts > DISMISS_GRACE_MS) {
+        toRemove.push(tcId);
+      }
+    }
+
+    if (toRemove.length > 0) {
+      setDismissTimestamps((prev) => {
+        const next = new Map(prev);
+        for (const id of toRemove) next.delete(id);
+        return next;
+      });
+    }
+  }, [activeStreamExecution, dismissTimestamps]);
+
+  const dismissedApprovalIds = useMemo<ReadonlySet<string>>(
+    () => new Set(dismissTimestamps.keys()),
+    [dismissTimestamps],
+  );
+
   const pendingApprovals = useMemo<readonly PendingApproval[]>(() => {
     const all = activeStreamExecution?.status?.pendingApprovals ?? [];
-    return all.filter((a) => !dismissedApprovalIds.has(a.toolCallId));
-  }, [activeStreamExecution, dismissedApprovalIds]);
+    return all.filter((a) => !dismissTimestamps.has(a.toolCallId));
+  }, [activeStreamExecution, dismissTimestamps]);
 
   const submitApproval = useCallback(
     async (
@@ -370,7 +417,9 @@ export function useSessionConversation(
     ): Promise<void> => {
       if (!activeExecutionId) return;
       await rawSubmitApproval(activeExecutionId, toolCallId, action, comment);
-      setDismissedApprovalIds((prev) => new Set(prev).add(toolCallId));
+      setDismissTimestamps((prev) =>
+        new Map(prev).set(toolCallId, Date.now()),
+      );
     },
     [activeExecutionId, rawSubmitApproval],
   );
