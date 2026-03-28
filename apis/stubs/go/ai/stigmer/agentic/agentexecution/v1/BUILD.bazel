@@ -16,6 +16,7 @@ go_library(
         "query_grpc.pb.go",
         "spec.pb.go",
         "subagent.pb.go",
+        "todo.pb.go",
         "usage.pb.go",
         "writeback.pb.go",
     ],

@@ -10,7 +10,7 @@ import type { ExecutionArtifact } from "./artifact_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_artifact } from "./artifact_pb";
 import type { ContextInfo, ResolvedExecutionContext } from "./context_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_context } from "./context_pb";
-import type { ExecutionPhase, TodoStatus } from "./enum_pb";
+import type { ExecutionPhase } from "./enum_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb";
 import type { AgentMessage } from "./message_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_message } from "./message_pb";
@@ -18,6 +18,8 @@ import type { AgentExecutionSpec } from "./spec_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_spec } from "./spec_pb";
 import type { SubAgentExecution } from "./subagent_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_subagent } from "./subagent_pb";
+import type { TodoItem } from "./todo_pb";
+import { file_ai_stigmer_agentic_agentexecution_v1_todo } from "./todo_pb";
 import type { WorkspaceWriteBack } from "./writeback_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_writeback } from "./writeback_pb";
 import type { ApiResourceMetadata } from "../../../commons/apiresource/metadata_pb";
@@ -31,7 +33,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/api.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_api: GenFile = /*@__PURE__*/
-  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBpLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEiywIKDkFnZW50RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiMKBGtpbmQYAiABKAlCFbpIEnIQCg5BZ2VudEV4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESRgoEc3BlYxgEIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BZ2VudEV4ZWN1dGlvblNwZWMSSgoGc3RhdHVzGAUgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3RhdHVzIq8IChRBZ2VudEV4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EkQKCG1lc3NhZ2VzGAEgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50TWVzc2FnZRJNCgVwaGFzZRgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZUIIukgFggECEAESVQoUc3ViX2FnZW50X2V4ZWN1dGlvbnMYBCADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU3ViQWdlbnRFeGVjdXRpb24SDQoFZXJyb3IYBiABKAkSEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSVAoFdG9kb3MYCSADKAsyRS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb25TdGF0dXMuVG9kb3NFbnRyeRIWCg5jYWxsYmFja190b2tlbhgKIAEoDBJYChByZXNvbHZlZF9jb250ZXh0GAwgASgLMj4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlJlc29sdmVkRXhlY3V0aW9uQ29udGV4dBJQChFwZW5kaW5nX2FwcHJvdmFscxgQIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWwSRwoMY29udGV4dF9pbmZvGA4gASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNvbnRleHRJbmZvEkoKCWFydGlmYWN0cxgPIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25BcnRpZmFjdBJXChV3b3Jrc3BhY2Vfd3JpdGVfYmFja3MYESADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuV29ya3NwYWNlV3JpdGVCYWNrEksKDnNldHVwX3Byb2dyZXNzGBIgASgLMjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNldHVwUHJvZ3Jlc3MaXAoKVG9kb3NFbnRyeRILCgNrZXkYASABKAkSPQoFdmFsdWUYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9kb0l0ZW06AjgBIiYKDVNldHVwUHJvZ3Jlc3MSFQoNY3VycmVudF9waGFzZRgBIAEoCSKRAQoIVG9kb0l0ZW0SCgoCaWQYASABKAkSDwoHY29udGVudBgCIAEoCRJACgZzdGF0dXMYAyABKA4yMC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9kb1N0YXR1cxISCgpjcmVhdGVkX2F0GAQgASgJEhIKCnVwZGF0ZWRfYXQYBSABKAliBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_agentexecution_v1_artifact, file_ai_stigmer_agentic_agentexecution_v1_context, file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message, file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_agentic_agentexecution_v1_subagent, file_ai_stigmer_agentic_agentexecution_v1_writeback, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
+  fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBpLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEiywIKDkFnZW50RXhlY3V0aW9uEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiMKBGtpbmQYAiABKAlCFbpIEnIQCg5BZ2VudEV4ZWN1dGlvbhJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESRgoEc3BlYxgEIAEoCzI4LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BZ2VudEV4ZWN1dGlvblNwZWMSSgoGc3RhdHVzGAUgASgLMjouYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50RXhlY3V0aW9uU3RhdHVzIq8IChRBZ2VudEV4ZWN1dGlvblN0YXR1cxI/CgVhdWRpdBhjIAEoCzIwLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUF1ZGl0EkQKCG1lc3NhZ2VzGAEgAygLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkFnZW50TWVzc2FnZRJNCgVwaGFzZRgCIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25QaGFzZUIIukgFggECEAESVQoUc3ViX2FnZW50X2V4ZWN1dGlvbnMYBCADKAsyNy5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuU3ViQWdlbnRFeGVjdXRpb24SDQoFZXJyb3IYBiABKAkSEgoKc3RhcnRlZF9hdBgHIAEoCRIUCgxjb21wbGV0ZWRfYXQYCCABKAkSVAoFdG9kb3MYCSADKAsyRS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRFeGVjdXRpb25TdGF0dXMuVG9kb3NFbnRyeRIWCg5jYWxsYmFja190b2tlbhgKIAEoDBJYChByZXNvbHZlZF9jb250ZXh0GAwgASgLMj4uYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlJlc29sdmVkRXhlY3V0aW9uQ29udGV4dBJQChFwZW5kaW5nX2FwcHJvdmFscxgQIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWwSRwoMY29udGV4dF9pbmZvGA4gASgLMjEuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkNvbnRleHRJbmZvEkoKCWFydGlmYWN0cxgPIAMoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25BcnRpZmFjdBJXChV3b3Jrc3BhY2Vfd3JpdGVfYmFja3MYESADKAsyOC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuV29ya3NwYWNlV3JpdGVCYWNrEksKDnNldHVwX3Byb2dyZXNzGBIgASgLMjMuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlNldHVwUHJvZ3Jlc3MaXAoKVG9kb3NFbnRyeRILCgNrZXkYASABKAkSPQoFdmFsdWUYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9kb0l0ZW06AjgBIiYKDVNldHVwUHJvZ3Jlc3MSFQoNY3VycmVudF9waGFzZRgBIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_approval, file_ai_stigmer_agentic_agentexecution_v1_artifact, file_ai_stigmer_agentic_agentexecution_v1_context, file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message, file_ai_stigmer_agentic_agentexecution_v1_spec, file_ai_stigmer_agentic_agentexecution_v1_subagent, file_ai_stigmer_agentic_agentexecution_v1_todo, file_ai_stigmer_agentic_agentexecution_v1_writeback, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
 
 /**
  * AgentExecution represents a single agent execution instance (conversational).
@@ -336,54 +338,4 @@ export type SetupProgress = Message<"ai.stigmer.agentic.agentexecution.v1.SetupP
  */
 export const SetupProgressSchema: GenMessage<SetupProgress> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_agentexecution_v1_api, 2);
-
-/**
- * Represents a single item in the agent's todo list.
- * Used by the write_todos tool to track multi-step tasks and progress.
- *
- * @generated from message ai.stigmer.agentic.agentexecution.v1.TodoItem
- */
-export type TodoItem = Message<"ai.stigmer.agentic.agentexecution.v1.TodoItem"> & {
-  /**
-   * Unique identifier for this todo item.
-   *
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * Description of the task to be completed.
-   *
-   * @generated from field: string content = 2;
-   */
-  content: string;
-
-  /**
-   * Current status of the todo item.
-   *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.TodoStatus status = 3;
-   */
-  status: TodoStatus;
-
-  /**
-   * ISO 8601 timestamp when the todo was created.
-   *
-   * @generated from field: string created_at = 4;
-   */
-  createdAt: string;
-
-  /**
-   * ISO 8601 timestamp when the todo was last updated.
-   *
-   * @generated from field: string updated_at = 5;
-   */
-  updatedAt: string;
-};
-
-/**
- * Describes the message ai.stigmer.agentic.agentexecution.v1.TodoItem.
- * Use `create(TodoItemSchema)` to create a new message.
- */
-export const TodoItemSchema: GenMessage<TodoItem> = /*@__PURE__*/
-  messageDesc(file_ai_stigmer_agentic_agentexecution_v1_api, 3);
 

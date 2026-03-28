@@ -1840,7 +1840,7 @@ class TestSubAgentInternals:
 
         write_todos is a PLANNING_TOOL handled before regular namespace routing.
         When a sub-agent calls it, the status_builder must detect the sub-agent
-        namespace and skip _update_todos() entirely.
+        namespace and route to _update_sub_agent_todos(), not _update_todos().
         """
         sub_agent_run_id = "task-run-todo-isolation"
         namespace = f"agent_node:{sub_agent_run_id}"
@@ -1871,7 +1871,8 @@ class TestSubAgentInternals:
         })
 
         # Sub-agent calls write_todos from its namespace
-        with patch.object(status_builder, "_update_todos") as mock_update:
+        with patch.object(status_builder, "_update_todos") as mock_main, \
+             patch.object(status_builder, "_update_sub_agent_todos") as mock_sub:
             await status_builder.process_event({
                 "event": "on_tool_start",
                 "name": "write_todos",
@@ -1886,7 +1887,53 @@ class TestSubAgentInternals:
                 },
                 "metadata": {"langgraph_checkpoint_ns": namespace},
             })
-            mock_update.assert_not_called()
+            mock_main.assert_not_called()
+            mock_sub.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_write_todos_populates_sub_agent_todos(self, status_builder):
+        """Sub-agent write_todos must populate the SubAgentExecution.todos map."""
+        sub_agent_run_id = "task-run-todo-populate"
+        namespace = f"agent_node:{sub_agent_run_id}"
+
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": sub_agent_run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "researcher",
+                    "description": "Research APIs",
+                }
+            },
+            "metadata": {},
+        })
+
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "write_todos",
+            "run_id": "write-todos-sub-populate",
+            "data": {
+                "input": {
+                    "todos": [
+                        {"id": "t1", "content": "Read docs", "status": "completed"},
+                        {"id": "t2", "content": "Summarize findings", "status": "in_progress"},
+                        {"id": "t3", "content": "Write report", "status": "pending"},
+                    ]
+                }
+            },
+            "metadata": {"langgraph_checkpoint_ns": namespace},
+        })
+
+        assert len(status_builder.current_status.todos) == 0
+
+        sub_agents = status_builder.current_status.sub_agent_executions
+        assert len(sub_agents) == 1
+        sub = sub_agents[0]
+        assert len(sub.todos) == 3
+        assert sub.todos["t1"].content == "Read docs"
+        assert sub.todos["t2"].status == 2  # TODO_IN_PROGRESS
+        assert sub.todos["t3"].status == 1  # TODO_PENDING
 
     @pytest.mark.asyncio
     async def test_main_agent_write_todos_updates_todos(self, status_builder):
@@ -1943,7 +1990,8 @@ class TestSubAgentInternals:
 
         # write_todos is the FIRST event from this namespace — no prior tool
         # calls or AI messages have registered it yet.
-        with patch.object(status_builder, "_update_todos") as mock_update:
+        with patch.object(status_builder, "_update_todos") as mock_main, \
+             patch.object(status_builder, "_update_sub_agent_todos") as mock_sub:
             await status_builder.process_event({
                 "event": "on_tool_start",
                 "name": "write_todos",
@@ -1957,7 +2005,8 @@ class TestSubAgentInternals:
                 },
                 "metadata": {"langgraph_checkpoint_ns": namespace},
             })
-            mock_update.assert_not_called()
+            mock_main.assert_not_called()
+            mock_sub.assert_called_once()
 
         # Verify the namespace was registered as a side effect
         assert namespace in status_builder._namespace_to_sub_agent_id

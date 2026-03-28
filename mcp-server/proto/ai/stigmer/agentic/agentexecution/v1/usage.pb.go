@@ -516,8 +516,9 @@ type LlmCallMetrics struct {
 	DurationMs int32 `protobuf:"varint,9,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
 	// ISO 8601 timestamp when this LLM call started.
 	Timestamp string `protobuf:"bytes,10,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	// Total tokens (input + output). Convenience field for quick reference.
-	// Equals: input_tokens + output_tokens
+	// Total tokens involved in this call. Convenience field for quick reference.
+	// Equals: input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens
+	// Consistent with UsageMetrics.total_tokens (prompt_tokens + completion_tokens).
 	TotalTokens   int32 `protobuf:"varint,11,opt,name=total_tokens,json=totalTokens,proto3" json:"total_tokens,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

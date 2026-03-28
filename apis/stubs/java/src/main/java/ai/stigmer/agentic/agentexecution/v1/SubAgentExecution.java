@@ -56,6 +56,18 @@ private static final long serialVersionUID = 0L;
     return ai.stigmer.agentic.agentexecution.v1.SubagentProto.internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_descriptor;
   }
 
+  @SuppressWarnings({"rawtypes"})
+  @java.lang.Override
+  protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+      int number) {
+    switch (number) {
+      case 14:
+        return internalGetTodos();
+      default:
+        throw new RuntimeException(
+            "Invalid map field number: " + number);
+    }
+  }
   @java.lang.Override
   protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internalGetFieldAccessorTable() {
@@ -607,6 +619,113 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int TODOS_FIELD_NUMBER = 14;
+  private static final class TodosDefaultEntryHolder {
+    static final com.google.protobuf.MapEntry<
+        java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem> defaultEntry =
+            com.google.protobuf.MapEntry
+            .<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem>newDefaultInstance(
+                ai.stigmer.agentic.agentexecution.v1.SubagentProto.internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_TodosEntry_descriptor, 
+                com.google.protobuf.WireFormat.FieldType.STRING,
+                "",
+                com.google.protobuf.WireFormat.FieldType.MESSAGE,
+                ai.stigmer.agentic.agentexecution.v1.TodoItem.getDefaultInstance());
+  }
+  @SuppressWarnings("serial")
+  private com.google.protobuf.MapField<
+      java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem> todos_;
+  private com.google.protobuf.MapField<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem>
+  internalGetTodos() {
+    if (todos_ == null) {
+      return com.google.protobuf.MapField.emptyMapField(
+          TodosDefaultEntryHolder.defaultEntry);
+    }
+    return todos_;
+  }
+  public int getTodosCount() {
+    return internalGetTodos().getMap().size();
+  }
+  /**
+   * <pre>
+   * Todo list tracking multi-step tasks and progress for this sub-agent.
+   * Updated via write_todos tool when called within a sub-agent context.
+   * Snapshot replacement semantics: each update carries the full list.
+   * Key: todo item ID, Value: todo item details
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+   */
+  @java.lang.Override
+  public boolean containsTodos(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    return internalGetTodos().getMap().containsKey(key);
+  }
+  /**
+   * Use {@link #getTodosMap()} instead.
+   */
+  @java.lang.Override
+  @java.lang.Deprecated
+  public java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem> getTodos() {
+    return getTodosMap();
+  }
+  /**
+   * <pre>
+   * Todo list tracking multi-step tasks and progress for this sub-agent.
+   * Updated via write_todos tool when called within a sub-agent context.
+   * Snapshot replacement semantics: each update carries the full list.
+   * Key: todo item ID, Value: todo item details
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+   */
+  @java.lang.Override
+  public java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem> getTodosMap() {
+    return internalGetTodos().getMap();
+  }
+  /**
+   * <pre>
+   * Todo list tracking multi-step tasks and progress for this sub-agent.
+   * Updated via write_todos tool when called within a sub-agent context.
+   * Snapshot replacement semantics: each update carries the full list.
+   * Key: todo item ID, Value: todo item details
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+   */
+  @java.lang.Override
+  public /* nullable */
+ai.stigmer.agentic.agentexecution.v1.TodoItem getTodosOrDefault(
+      java.lang.String key,
+      /* nullable */
+ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem> map =
+        internalGetTodos().getMap();
+    return map.containsKey(key) ? map.get(key) : defaultValue;
+  }
+  /**
+   * <pre>
+   * Todo list tracking multi-step tasks and progress for this sub-agent.
+   * Updated via write_todos tool when called within a sub-agent context.
+   * Snapshot replacement semantics: each update carries the full list.
+   * Key: todo item ID, Value: todo item details
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.TodoItem getTodosOrThrow(
+      java.lang.String key) {
+    if (key == null) { throw new NullPointerException("map key"); }
+    java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem> map =
+        internalGetTodos().getMap();
+    if (!map.containsKey(key)) {
+      throw new java.lang.IllegalArgumentException();
+    }
+    return map.get(key);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -654,6 +773,12 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subject_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 13, subject_);
     }
+    com.google.protobuf.GeneratedMessage
+      .serializeStringMapTo(
+        output,
+        internalGetTodos(),
+        TodosDefaultEntryHolder.defaultEntry,
+        14);
     getUnknownFields().writeTo(output);
   }
 
@@ -704,6 +829,16 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subject_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(13, subject_);
     }
+    for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem> entry
+         : internalGetTodos().getMap().entrySet()) {
+      com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem>
+      todos__ = TodosDefaultEntryHolder.defaultEntry.newBuilderForType()
+          .setKey(entry.getKey())
+          .setValue(entry.getValue())
+          .buildPartial();
+      size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(14, todos__);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -743,6 +878,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getMessagesList())) return false;
     if (!getSubject()
         .equals(other.getSubject())) return false;
+    if (!internalGetTodos().equals(
+        other.internalGetTodos())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -780,6 +917,10 @@ private static final long serialVersionUID = 0L;
     }
     hash = (37 * hash) + SUBJECT_FIELD_NUMBER;
     hash = (53 * hash) + getSubject().hashCode();
+    if (!internalGetTodos().getMap().isEmpty()) {
+      hash = (37 * hash) + TODOS_FIELD_NUMBER;
+      hash = (53 * hash) + internalGetTodos().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -895,6 +1036,28 @@ private static final long serialVersionUID = 0L;
       return ai.stigmer.agentic.agentexecution.v1.SubagentProto.internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_descriptor;
     }
 
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 14:
+          return internalGetTodos();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
+    @SuppressWarnings({"rawtypes"})
+    protected com.google.protobuf.MapFieldReflectionAccessor internalGetMutableMapFieldReflection(
+        int number) {
+      switch (number) {
+        case 14:
+          return internalGetMutableTodos();
+        default:
+          throw new RuntimeException(
+              "Invalid map field number: " + number);
+      }
+    }
     @java.lang.Override
     protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
@@ -945,6 +1108,7 @@ private static final long serialVersionUID = 0L;
       }
       bitField0_ = (bitField0_ & ~0x00000200);
       subject_ = "";
+      internalGetMutableTodos().clear();
       return this;
     }
 
@@ -1024,6 +1188,9 @@ private static final long serialVersionUID = 0L;
       }
       if (((from_bitField0_ & 0x00000400) != 0)) {
         result.subject_ = subject_;
+      }
+      if (((from_bitField0_ & 0x00000800) != 0)) {
+        result.todos_ = internalGetTodos().build(TodosDefaultEntryHolder.defaultEntry);
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1112,6 +1279,9 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000400;
         onChanged();
       }
+      internalGetMutableTodos().mergeFrom(
+          other.internalGetTodos());
+      bitField0_ |= 0x00000800;
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1203,6 +1373,15 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000400;
               break;
             } // case 106
+            case 114: {
+              com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem>
+              todos__ = input.readMessage(
+                  TodosDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
+              internalGetMutableTodos().ensureBuilderMap().put(
+                  todos__.getKey(), todos__.getValue());
+              bitField0_ |= 0x00000800;
+              break;
+            } // case 114
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -2614,6 +2793,217 @@ private static final long serialVersionUID = 0L;
       bitField0_ |= 0x00000400;
       onChanged();
       return this;
+    }
+
+    private static final class TodosConverter implements com.google.protobuf.MapFieldBuilder.Converter<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItemOrBuilder, ai.stigmer.agentic.agentexecution.v1.TodoItem> {
+      @java.lang.Override
+      public ai.stigmer.agentic.agentexecution.v1.TodoItem build(ai.stigmer.agentic.agentexecution.v1.TodoItemOrBuilder val) {
+        if (val instanceof ai.stigmer.agentic.agentexecution.v1.TodoItem) { return (ai.stigmer.agentic.agentexecution.v1.TodoItem) val; }
+        return ((ai.stigmer.agentic.agentexecution.v1.TodoItem.Builder) val).build();
+      }
+
+      @java.lang.Override
+      public com.google.protobuf.MapEntry<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem> defaultEntry() {
+        return TodosDefaultEntryHolder.defaultEntry;
+      }
+    };
+    private static final TodosConverter todosConverter = new TodosConverter();
+
+    private com.google.protobuf.MapFieldBuilder<
+        java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItemOrBuilder, ai.stigmer.agentic.agentexecution.v1.TodoItem, ai.stigmer.agentic.agentexecution.v1.TodoItem.Builder> todos_;
+    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItemOrBuilder, ai.stigmer.agentic.agentexecution.v1.TodoItem, ai.stigmer.agentic.agentexecution.v1.TodoItem.Builder>
+        internalGetTodos() {
+      if (todos_ == null) {
+        return new com.google.protobuf.MapFieldBuilder<>(todosConverter);
+      }
+      return todos_;
+    }
+    private com.google.protobuf.MapFieldBuilder<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItemOrBuilder, ai.stigmer.agentic.agentexecution.v1.TodoItem, ai.stigmer.agentic.agentexecution.v1.TodoItem.Builder>
+        internalGetMutableTodos() {
+      if (todos_ == null) {
+        todos_ = new com.google.protobuf.MapFieldBuilder<>(todosConverter);
+      }
+      bitField0_ |= 0x00000800;
+      onChanged();
+      return todos_;
+    }
+    public int getTodosCount() {
+      return internalGetTodos().ensureBuilderMap().size();
+    }
+    /**
+     * <pre>
+     * Todo list tracking multi-step tasks and progress for this sub-agent.
+     * Updated via write_todos tool when called within a sub-agent context.
+     * Snapshot replacement semantics: each update carries the full list.
+     * Key: todo item ID, Value: todo item details
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+     */
+    @java.lang.Override
+    public boolean containsTodos(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      return internalGetTodos().ensureBuilderMap().containsKey(key);
+    }
+    /**
+     * Use {@link #getTodosMap()} instead.
+     */
+    @java.lang.Override
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem> getTodos() {
+      return getTodosMap();
+    }
+    /**
+     * <pre>
+     * Todo list tracking multi-step tasks and progress for this sub-agent.
+     * Updated via write_todos tool when called within a sub-agent context.
+     * Snapshot replacement semantics: each update carries the full list.
+     * Key: todo item ID, Value: todo item details
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+     */
+    @java.lang.Override
+    public java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem> getTodosMap() {
+      return internalGetTodos().getImmutableMap();
+    }
+    /**
+     * <pre>
+     * Todo list tracking multi-step tasks and progress for this sub-agent.
+     * Updated via write_todos tool when called within a sub-agent context.
+     * Snapshot replacement semantics: each update carries the full list.
+     * Key: todo item ID, Value: todo item details
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+     */
+    @java.lang.Override
+    public /* nullable */
+ai.stigmer.agentic.agentexecution.v1.TodoItem getTodosOrDefault(
+        java.lang.String key,
+        /* nullable */
+ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItemOrBuilder> map = internalGetMutableTodos().ensureBuilderMap();
+      return map.containsKey(key) ? todosConverter.build(map.get(key)) : defaultValue;
+    }
+    /**
+     * <pre>
+     * Todo list tracking multi-step tasks and progress for this sub-agent.
+     * Updated via write_todos tool when called within a sub-agent context.
+     * Snapshot replacement semantics: each update carries the full list.
+     * Key: todo item ID, Value: todo item details
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.TodoItem getTodosOrThrow(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItemOrBuilder> map = internalGetMutableTodos().ensureBuilderMap();
+      if (!map.containsKey(key)) {
+        throw new java.lang.IllegalArgumentException();
+      }
+      return todosConverter.build(map.get(key));
+    }
+    public Builder clearTodos() {
+      bitField0_ = (bitField0_ & ~0x00000800);
+      internalGetMutableTodos().clear();
+      return this;
+    }
+    /**
+     * <pre>
+     * Todo list tracking multi-step tasks and progress for this sub-agent.
+     * Updated via write_todos tool when called within a sub-agent context.
+     * Snapshot replacement semantics: each update carries the full list.
+     * Key: todo item ID, Value: todo item details
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+     */
+    public Builder removeTodos(
+        java.lang.String key) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      internalGetMutableTodos().ensureBuilderMap()
+          .remove(key);
+      return this;
+    }
+    /**
+     * Use alternate mutation accessors instead.
+     */
+    @java.lang.Deprecated
+    public java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem>
+        getMutableTodos() {
+      bitField0_ |= 0x00000800;
+      return internalGetMutableTodos().ensureMessageMap();
+    }
+    /**
+     * <pre>
+     * Todo list tracking multi-step tasks and progress for this sub-agent.
+     * Updated via write_todos tool when called within a sub-agent context.
+     * Snapshot replacement semantics: each update carries the full list.
+     * Key: todo item ID, Value: todo item details
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+     */
+    public Builder putTodos(
+        java.lang.String key,
+        ai.stigmer.agentic.agentexecution.v1.TodoItem value) {
+      if (key == null) { throw new NullPointerException("map key"); }
+      if (value == null) { throw new NullPointerException("map value"); }
+      internalGetMutableTodos().ensureBuilderMap()
+          .put(key, value);
+      bitField0_ |= 0x00000800;
+      return this;
+    }
+    /**
+     * <pre>
+     * Todo list tracking multi-step tasks and progress for this sub-agent.
+     * Updated via write_todos tool when called within a sub-agent context.
+     * Snapshot replacement semantics: each update carries the full list.
+     * Key: todo item ID, Value: todo item details
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+     */
+    public Builder putAllTodos(
+        java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem> values) {
+      for (java.util.Map.Entry<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem> e : values.entrySet()) {
+        if (e.getKey() == null || e.getValue() == null) {
+          throw new NullPointerException();
+        }
+      }
+      internalGetMutableTodos().ensureBuilderMap()
+          .putAll(values);
+      bitField0_ |= 0x00000800;
+      return this;
+    }
+    /**
+     * <pre>
+     * Todo list tracking multi-step tasks and progress for this sub-agent.
+     * Updated via write_todos tool when called within a sub-agent context.
+     * Snapshot replacement semantics: each update carries the full list.
+     * Key: todo item ID, Value: todo item details
+     * </pre>
+     *
+     * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.TodoItem.Builder putTodosBuilderIfAbsent(
+        java.lang.String key) {
+      java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItemOrBuilder> builderMap = internalGetMutableTodos().ensureBuilderMap();
+      ai.stigmer.agentic.agentexecution.v1.TodoItemOrBuilder entry = builderMap.get(key);
+      if (entry == null) {
+        entry = ai.stigmer.agentic.agentexecution.v1.TodoItem.newBuilder();
+        builderMap.put(key, entry);
+      }
+      if (entry instanceof ai.stigmer.agentic.agentexecution.v1.TodoItem) {
+        entry = ((ai.stigmer.agentic.agentexecution.v1.TodoItem) entry).toBuilder();
+        builderMap.put(key, entry);
+      }
+      return (ai.stigmer.agentic.agentexecution.v1.TodoItem.Builder) entry;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.SubAgentExecution)

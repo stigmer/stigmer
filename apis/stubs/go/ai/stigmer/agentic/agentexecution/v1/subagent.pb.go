@@ -65,7 +65,12 @@ type SubAgentExecution struct {
 	// LLM generation; available instantly when the sub-agent starts.
 	// Used as the primary display label in collapsed and expanded UI views.
 	// Examples: "Explore CLI rendering code", "Fix auth middleware tests"
-	Subject       string `protobuf:"bytes,13,opt,name=subject,proto3" json:"subject,omitempty"`
+	Subject string `protobuf:"bytes,13,opt,name=subject,proto3" json:"subject,omitempty"`
+	// Todo list tracking multi-step tasks and progress for this sub-agent.
+	// Updated via write_todos tool when called within a sub-agent context.
+	// Snapshot replacement semantics: each update carries the full list.
+	// Key: todo item ID, Value: todo item details
+	Todos         map[string]*TodoItem `protobuf:"bytes,14,rep,name=todos,proto3" json:"todos,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -177,11 +182,18 @@ func (x *SubAgentExecution) GetSubject() string {
 	return ""
 }
 
+func (x *SubAgentExecution) GetTodos() map[string]*TodoItem {
+	if x != nil {
+		return x.Todos
+	}
+	return nil
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_subagent_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xb4\x03\n" +
+	"3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a/ai/stigmer/agentic/agentexecution/v1/todo.proto\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xf8\x04\n" +
 	"\x11SubAgentExecution\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -194,7 +206,12 @@ const file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_rawDesc = "" +
 	"\x05error\x18\b \x01(\tR\x05error\x123\n" +
 	"\bmetadata\x18\t \x01(\v2\x17.google.protobuf.StructR\bmetadata\x12N\n" +
 	"\bmessages\x18\v \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12\x18\n" +
-	"\asubject\x18\r \x01(\tR\asubjectB\xce\x02\n" +
+	"\asubject\x18\r \x01(\tR\asubject\x12X\n" +
+	"\x05todos\x18\x0e \x03(\v2B.ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.TodosEntryR\x05todos\x1ah\n" +
+	"\n" +
+	"TodosEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
+	"\x05value\x18\x02 \x01(\v2..ai.stigmer.agentic.agentexecution.v1.TodoItemR\x05value:\x028\x01B\xce\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\rSubagentProtoP\x01Z^github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (
@@ -209,22 +226,26 @@ func file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_rawDescGZIP() []by
 	return file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_goTypes = []any{
 	(*SubAgentExecution)(nil), // 0: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution
-	(SubAgentStatus)(0),       // 1: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
-	(*structpb.Struct)(nil),   // 2: google.protobuf.Struct
-	(*AgentMessage)(nil),      // 3: ai.stigmer.agentic.agentexecution.v1.AgentMessage
+	nil,                       // 1: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.TodosEntry
+	(SubAgentStatus)(0),       // 2: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	(*structpb.Struct)(nil),   // 3: google.protobuf.Struct
+	(*AgentMessage)(nil),      // 4: ai.stigmer.agentic.agentexecution.v1.AgentMessage
+	(*TodoItem)(nil),          // 5: ai.stigmer.agentic.agentexecution.v1.TodoItem
 }
 var file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_depIdxs = []int32{
-	1, // 0: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
-	2, // 1: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.metadata:type_name -> google.protobuf.Struct
-	3, // 2: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2, // 0: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.status:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	3, // 1: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.metadata:type_name -> google.protobuf.Struct
+	4, // 2: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.messages:type_name -> ai.stigmer.agentic.agentexecution.v1.AgentMessage
+	1, // 3: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.todos:type_name -> ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.TodosEntry
+	5, // 4: ai.stigmer.agentic.agentexecution.v1.SubAgentExecution.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_init() }
@@ -234,13 +255,14 @@ func file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_init() {
 	}
 	file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_message_proto_init()
+	file_ai_stigmer_agentic_agentexecution_v1_todo_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

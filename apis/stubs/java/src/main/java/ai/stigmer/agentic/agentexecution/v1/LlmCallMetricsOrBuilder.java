@@ -145,8 +145,9 @@ public interface LlmCallMetricsOrBuilder extends
 
   /**
    * <pre>
-   * Total tokens (input + output). Convenience field for quick reference.
-   * Equals: input_tokens + output_tokens
+   * Total tokens involved in this call. Convenience field for quick reference.
+   * Equals: input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens
+   * Consistent with UsageMetrics.total_tokens (prompt_tokens + completion_tokens).
    * </pre>
    *
    * <code>int32 total_tokens = 11 [json_name = "totalTokens"];</code>
