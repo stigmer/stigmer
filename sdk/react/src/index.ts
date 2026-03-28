@@ -257,6 +257,7 @@ export type {
 export {
   useGitHubConnection,
   useGitHubRepos,
+  useGitHubSearch,
   GitHubRepoPicker,
   GITHUB_CALLBACK_MESSAGE_TYPE,
 } from "./github";
@@ -267,6 +268,7 @@ export type {
   GitHubRepo,
   GitHubBranch,
   UseGitHubReposReturn,
+  UseGitHubSearchReturn,
   GitHubRepoPickerProps,
 } from "./github";
 

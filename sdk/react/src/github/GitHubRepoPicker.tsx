@@ -9,6 +9,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { useGitHubRepos, type GitHubRepo, type GitHubBranch } from "./useGitHubRepos";
+import { useGitHubSearch } from "./useGitHubSearch";
 
 export interface GitHubRepoPickerProps {
   /** GitHub access token for API calls. */
@@ -19,6 +20,8 @@ export interface GitHubRepoPickerProps {
   readonly onCancel?: () => void;
   readonly className?: string;
 }
+
+type PickerMode = "my-repos" | "all-github";
 
 // ---------------------------------------------------------------------------
 // Recent repos (localStorage persistence)
@@ -52,7 +55,7 @@ function addRecentRepo(repo: RecentRepo): void {
 }
 
 // ---------------------------------------------------------------------------
-// Repo grouping
+// Repo grouping (used in "my-repos" mode)
 // ---------------------------------------------------------------------------
 
 interface RepoGroup {
@@ -71,7 +74,6 @@ function groupRepos(
     filteredRepos.map((r) => [`${r.owner}/${r.name}`, r]),
   );
 
-  // Recent group — only include entries that exist in the filtered set
   const recentMatched = recentEntries
     .map((r) => repoLookup.get(`${r.owner}/${r.name}`))
     .filter((r): r is GitHubRepo => r !== undefined);
@@ -85,7 +87,6 @@ function groupRepos(
     });
   }
 
-  // Owner groups — personal (User) repos first, then orgs by repo count
   const ownerMap = new Map<
     string,
     { ownerType: "User" | "Organization"; repos: GitHubRepo[] }
@@ -136,17 +137,21 @@ function HighlightMatch({ text, query }: { text: string; query: string }) {
 // ---------------------------------------------------------------------------
 
 const LIST_ID = "stgm-repo-list";
+const GITHUB_INSTALLATIONS_URL = "https://github.com/settings/installations";
 
 /**
  * Styled component for browsing and selecting a GitHub repository.
  *
  * Features:
- * - Owner-grouped sections (personal repos first, then orgs)
+ * - Two modes: "My Repos" (user's own repos) and "All GitHub" (public search)
+ * - Owner-grouped sections in My Repos mode
  * - Recently selected repos pinned at top
- * - Fixed 300px max-height with scroll shadow indicators
+ * - Fixed max-height with scroll shadow indicators
  * - Keyboard navigation (Arrow keys, Enter, Escape)
  * - Search with match highlighting
  * - Branch selector after repo selection
+ * - Manual URL entry for repos not discoverable via search
+ * - Link to manage GitHub App repository access
  *
  * All visual properties flow through `--stgm-*` tokens.
  */
@@ -156,17 +161,16 @@ export function GitHubRepoPicker({
   onCancel,
   className,
 }: GitHubRepoPickerProps) {
-  const {
-    repos,
-    isLoading,
-    isBackgroundLoading,
-    error,
-    search,
-    setSearch,
-    fetchBranches,
-  } = useGitHubRepos(token);
+  const [mode, setMode] = useState<PickerMode>("my-repos");
+  const [showManualEntry, setShowManualEntry] = useState(false);
 
-  // Branch selection state
+  // My Repos data
+  const myRepos = useGitHubRepos(token);
+
+  // All GitHub search data
+  const githubSearch = useGitHubSearch(token);
+
+  // Branch selection state (shared across modes)
   const [selectedRepo, setSelectedRepo] = useState<{
     owner: string;
     name: string;
@@ -176,6 +180,10 @@ export function GitHubRepoPicker({
   const [branches, setBranches] = useState<GitHubBranch[]>([]);
   const [selectedBranch, setSelectedBranch] = useState("");
   const [loadingBranches, setLoadingBranches] = useState(false);
+
+  // Manual URL state
+  const [manualUrl, setManualUrl] = useState("");
+  const [manualBranch, setManualBranch] = useState("");
 
   // Keyboard navigation
   const [focusIndex, setFocusIndex] = useState(-1);
@@ -189,13 +197,23 @@ export function GitHubRepoPicker({
   // Recent repos
   const [recentRepos, setRecentRepos] = useState<RecentRepo[]>(getRecentRepos);
 
-  // Group and flatten repos for rendering + keyboard nav
+  // --- Mode-dependent derived state ---
+
+  const activeSearch = mode === "my-repos" ? myRepos.search : githubSearch.query;
+  const setActiveSearch = mode === "my-repos" ? myRepos.setSearch : githubSearch.setQuery;
+  const activeRepos = mode === "my-repos" ? myRepos.repos : githubSearch.results;
+  const activeError = mode === "my-repos" ? myRepos.error : githubSearch.error;
+  const activeIsLoading = mode === "my-repos" ? myRepos.isLoading : githubSearch.isSearching;
+
+  // Group repos only in "my-repos" mode
   const groups = useMemo(
-    () => groupRepos(repos, recentRepos),
-    [repos, recentRepos],
+    () => (mode === "my-repos" ? groupRepos(activeRepos, recentRepos) : []),
+    [mode, activeRepos, recentRepos],
   );
 
+  // Flat list for keyboard nav: grouped in my-repos, flat in all-github
   const flatItems = useMemo(() => {
+    if (mode === "all-github") return [...activeRepos];
     const items: GitHubRepo[] = [];
     for (const group of groups) {
       for (const repo of group.repos) {
@@ -203,12 +221,12 @@ export function GitHubRepoPicker({
       }
     }
     return items;
-  }, [groups]);
+  }, [mode, activeRepos, groups]);
 
-  // Reset focus index when search changes
+  // Reset focus index when search or mode changes
   useEffect(() => {
     setFocusIndex(-1);
-  }, [search]);
+  }, [activeSearch, mode]);
 
   // Scroll focused item into view
   useEffect(() => {
@@ -238,10 +256,24 @@ export function GitHubRepoPicker({
     return () => el.removeEventListener("scroll", updateScrollShadows);
   }, [updateScrollShadows]);
 
-  // Re-check shadows when repo data changes
   useEffect(() => {
     updateScrollShadows();
-  }, [repos, updateScrollShadows]);
+  }, [activeRepos, updateScrollShadows]);
+
+  const handleModeSwitch = useCallback(
+    (newMode: PickerMode) => {
+      if (newMode === mode) return;
+      setMode(newMode);
+      setFocusIndex(-1);
+      if (newMode === "my-repos") {
+        githubSearch.setQuery("");
+      } else {
+        myRepos.setSearch("");
+      }
+      setTimeout(() => searchRef.current?.focus(), 0);
+    },
+    [mode, githubSearch, myRepos],
+  );
 
   const handleRepoClick = useCallback(
     async (repo: GitHubRepo) => {
@@ -253,11 +285,11 @@ export function GitHubRepoPicker({
       });
       setSelectedBranch(repo.defaultBranch);
       setLoadingBranches(true);
-      const b = await fetchBranches(repo.owner, repo.name);
+      const b = await myRepos.fetchBranches(repo.owner, repo.name);
       setBranches(b);
       setLoadingBranches(false);
     },
-    [fetchBranches],
+    [myRepos],
   );
 
   const handleAdd = useCallback(() => {
@@ -276,8 +308,15 @@ export function GitHubRepoPicker({
     }
   }, [selectedRepo, selectedBranch, onSelect]);
 
-  // Combobox keyboard handler — all keyboard interaction goes through the
-  // search input so focus never leaves it.
+  const handleManualAdd = useCallback(() => {
+    const url = manualUrl.trim();
+    if (!url) return;
+    onSelect(url, manualBranch.trim() || "main");
+    setManualUrl("");
+    setManualBranch("");
+    setShowManualEntry(false);
+  }, [manualUrl, manualBranch, onSelect]);
+
   const handleSearchKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "ArrowDown") {
@@ -296,19 +335,32 @@ export function GitHubRepoPicker({
         e.preventDefault();
         handleRepoClick(flatItems[focusIndex]);
       } else if (e.key === "Enter") {
-        // Prevent form submission when no item is focused
         e.preventDefault();
       } else if (e.key === "Escape") {
         e.preventDefault();
-        if (search) {
-          setSearch("");
+        if (activeSearch) {
+          setActiveSearch("");
           setFocusIndex(-1);
         } else {
           onCancel?.();
         }
       }
     },
-    [flatItems, focusIndex, handleRepoClick, onCancel, search, setSearch],
+    [flatItems, focusIndex, handleRepoClick, onCancel, activeSearch, setActiveSearch],
+  );
+
+  const handleManualKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleManualAdd();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setShowManualEntry(false);
+        setTimeout(() => searchRef.current?.focus(), 0);
+      }
+    },
+    [handleManualAdd],
   );
 
   // --- Branch selection view ---
@@ -321,7 +373,6 @@ export function GitHubRepoPicker({
             onClick={() => {
               setSelectedRepo(null);
               setBranches([]);
-              // Restore focus to search
               setTimeout(() => searchRef.current?.focus(), 0);
             }}
             className="text-muted-foreground hover:text-foreground transition-colors"
@@ -371,7 +422,58 @@ export function GitHubRepoPicker({
     );
   }
 
-  // --- Compute flat index offsets per group for rendering ---
+  // --- Manual URL entry view ---
+  if (showManualEntry) {
+    return (
+      <div className={["space-y-2", className].filter(Boolean).join(" ")}>
+        <div className="flex items-center gap-2 text-xs text-foreground">
+          <button
+            type="button"
+            onClick={() => {
+              setShowManualEntry(false);
+              setTimeout(() => searchRef.current?.focus(), 0);
+            }}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Back to repo list"
+          >
+            <ChevronLeftIcon />
+          </button>
+          <span className="font-medium">Paste a repository URL</span>
+        </div>
+
+        <input
+          type="url"
+          placeholder="https://github.com/org/repo"
+          value={manualUrl}
+          onChange={(e) => setManualUrl(e.target.value)}
+          onKeyDown={handleManualKeyDown}
+          className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          autoFocus
+        />
+        <input
+          type="text"
+          placeholder="Branch (optional, defaults to main)"
+          value={manualBranch}
+          onChange={(e) => setManualBranch(e.target.value)}
+          onKeyDown={handleManualKeyDown}
+          className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={handleManualAdd}
+            disabled={!manualUrl.trim()}
+            className="rounded-md bg-primary px-2.5 py-1 text-xs text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Compute flat index offsets per group for "my-repos" rendering ---
   let runningIndex = 0;
   const groupOffsets = groups.map((g) => {
     const offset = runningIndex;
@@ -384,7 +486,35 @@ export function GitHubRepoPicker({
     <div
       className={["space-y-1.5", className].filter(Boolean).join(" ")}
     >
-      {/* Search input — combobox pattern: focus stays here */}
+      {/* Mode toggle */}
+      <div className="flex rounded-md border border-border bg-muted/30 p-0.5">
+        <button
+          type="button"
+          onClick={() => handleModeSwitch("my-repos")}
+          className={[
+            "flex-1 rounded px-2 py-1 text-[0.65rem] font-medium transition-colors",
+            mode === "my-repos"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          ].join(" ")}
+        >
+          My Repos
+        </button>
+        <button
+          type="button"
+          onClick={() => handleModeSwitch("all-github")}
+          className={[
+            "flex-1 rounded px-2 py-1 text-[0.65rem] font-medium transition-colors",
+            mode === "all-github"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          ].join(" ")}
+        >
+          All GitHub
+        </button>
+      </div>
+
+      {/* Search input */}
       <input
         ref={searchRef}
         type="text"
@@ -394,17 +524,21 @@ export function GitHubRepoPicker({
         aria-activedescendant={
           focusIndex >= 0 ? `stgm-repo-${focusIndex}` : undefined
         }
-        placeholder="Search repositories..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        placeholder={
+          mode === "my-repos"
+            ? "Search repositories..."
+            : "Search all of GitHub..."
+        }
+        value={activeSearch}
+        onChange={(e) => setActiveSearch(e.target.value)}
         onKeyDown={handleSearchKeyDown}
         className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         autoFocus
       />
 
-      {error && (
+      {activeError && (
         <p className="text-xs text-destructive">
-          {error}
+          {activeError}
         </p>
       )}
 
@@ -427,75 +561,28 @@ export function GitHubRepoPicker({
           aria-label="Repositories"
           className="max-h-64 overflow-y-auto"
         >
-          {isLoading ? (
-            <LoadingSkeleton />
-          ) : flatItems.length === 0 ? (
-            <div className="py-4 text-center text-xs text-muted-foreground">
-              {search
-                ? "No repos match your search"
-                : "No repositories found"}
-            </div>
+          {mode === "my-repos" ? (
+            <MyReposList
+              groups={groups}
+              groupOffsets={groupOffsets}
+              flatItems={flatItems}
+              focusIndex={focusIndex}
+              isLoading={myRepos.isLoading}
+              isBackgroundLoading={myRepos.isBackgroundLoading}
+              search={myRepos.search}
+              onRepoClick={handleRepoClick}
+            />
           ) : (
-            <>
-              {groups.map((group, gi) => (
-                <div key={group.key}>
-                  <div
-                    className="sticky top-0 z-[1] bg-card/95 px-2 py-1 text-[0.65rem] font-medium text-muted-foreground backdrop-blur-sm"
-                  >
-                    {group.label}
-                    {!group.isRecent && (
-                      <span className="ml-1 opacity-50">
-                        ({group.repos.length})
-                      </span>
-                    )}
-                  </div>
-
-                  {group.repos.map((repo, ri) => {
-                    const flatIdx = groupOffsets[gi] + ri;
-                    return (
-                      <button
-                        key={`${group.key}-${repo.id}`}
-                        id={`stgm-repo-${flatIdx}`}
-                        type="button"
-                        data-idx={flatIdx}
-                        onClick={() => handleRepoClick(repo)}
-                        className={[
-                          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                          flatIdx === focusIndex
-                            ? "bg-accent text-foreground"
-                            : "text-foreground hover:bg-accent/50",
-                        ].join(" ")}
-                        role="option"
-                        aria-selected={flatIdx === focusIndex}
-                      >
-                        <span className="min-w-0 flex-1 truncate">
-                          {group.isRecent ? (
-                            <HighlightMatch
-                              text={repo.fullName}
-                              query={search}
-                            />
-                          ) : (
-                            <HighlightMatch
-                              text={repo.name}
-                              query={search}
-                            />
-                          )}
-                        </span>
-                        <span className="shrink-0 rounded px-1 py-0.5 text-[0.6rem] bg-muted text-muted-foreground">
-                          {repo.isPrivate ? "private" : "public"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-
-              {isBackgroundLoading && (
-                <div className="py-1 text-center text-[0.6rem] text-muted-foreground">
-                  Loading more...
-                </div>
-              )}
-            </>
+            <SearchResultsList
+              results={githubSearch.results}
+              focusIndex={focusIndex}
+              isSearching={githubSearch.isSearching}
+              query={githubSearch.query}
+              totalCount={githubSearch.totalCount}
+              hasMore={githubSearch.hasMore}
+              onRepoClick={handleRepoClick}
+              onLoadMore={githubSearch.loadMore}
+            />
           )}
         </div>
 
@@ -509,7 +596,225 @@ export function GitHubRepoPicker({
           />
         )}
       </div>
+
+      {/* Footer: manual URL + manage access */}
+      <div className="flex items-center gap-3 border-t border-border pt-1.5 text-[0.65rem] text-muted-foreground">
+        <button
+          type="button"
+          onClick={() => setShowManualEntry(true)}
+          className="hover:text-foreground transition-colors"
+        >
+          Paste a URL
+        </button>
+        <span className="opacity-30">·</span>
+        <a
+          href={GITHUB_INSTALLATIONS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-foreground transition-colors"
+        >
+          Manage access
+        </a>
+      </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// My Repos list (grouped)
+// ---------------------------------------------------------------------------
+
+function MyReposList({
+  groups,
+  groupOffsets,
+  flatItems,
+  focusIndex,
+  isLoading,
+  isBackgroundLoading,
+  search,
+  onRepoClick,
+}: {
+  groups: RepoGroup[];
+  groupOffsets: number[];
+  flatItems: GitHubRepo[];
+  focusIndex: number;
+  isLoading: boolean;
+  isBackgroundLoading: boolean;
+  search: string;
+  onRepoClick: (repo: GitHubRepo) => void;
+}) {
+  if (isLoading) return <LoadingSkeleton />;
+
+  if (flatItems.length === 0) {
+    return (
+      <div className="py-4 text-center text-xs text-muted-foreground">
+        {search ? "No repos match your search" : "No repositories found"}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {groups.map((group, gi) => (
+        <div key={group.key}>
+          <div className="sticky top-0 z-[1] bg-card/95 px-2 py-1 text-[0.65rem] font-medium text-muted-foreground backdrop-blur-sm">
+            {group.label}
+            {!group.isRecent && (
+              <span className="ml-1 opacity-50">
+                ({group.repos.length})
+              </span>
+            )}
+          </div>
+
+          {group.repos.map((repo, ri) => {
+            const flatIdx = groupOffsets[gi] + ri;
+            return (
+              <RepoRow
+                key={`${group.key}-${repo.id}`}
+                repo={repo}
+                flatIdx={flatIdx}
+                focusIndex={focusIndex}
+                displayName={group.isRecent ? repo.fullName : repo.name}
+                query={search}
+                onClick={onRepoClick}
+              />
+            );
+          })}
+        </div>
+      ))}
+
+      {isBackgroundLoading && (
+        <div className="py-1 text-center text-[0.6rem] text-muted-foreground">
+          Loading more...
+        </div>
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// All GitHub search results list (flat)
+// ---------------------------------------------------------------------------
+
+function SearchResultsList({
+  results,
+  focusIndex,
+  isSearching,
+  query,
+  totalCount,
+  hasMore,
+  onRepoClick,
+  onLoadMore,
+}: {
+  results: readonly GitHubRepo[];
+  focusIndex: number;
+  isSearching: boolean;
+  query: string;
+  totalCount: number;
+  hasMore: boolean;
+  onRepoClick: (repo: GitHubRepo) => void;
+  onLoadMore: () => void;
+}) {
+  if (!query) {
+    return (
+      <div className="py-6 text-center text-xs text-muted-foreground">
+        Type to search all of GitHub
+      </div>
+    );
+  }
+
+  if (isSearching && results.length === 0) {
+    return <LoadingSkeleton />;
+  }
+
+  if (results.length === 0) {
+    return (
+      <div className="py-4 text-center text-xs text-muted-foreground">
+        No repositories found
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {totalCount > 0 && (
+        <div className="px-2 py-1 text-[0.6rem] text-muted-foreground">
+          {totalCount.toLocaleString()} {totalCount === 1 ? "result" : "results"}
+        </div>
+      )}
+
+      {results.map((repo, i) => (
+        <RepoRow
+          key={repo.id}
+          repo={repo}
+          flatIdx={i}
+          focusIndex={focusIndex}
+          displayName={repo.fullName}
+          query={query}
+          onClick={onRepoClick}
+        />
+      ))}
+
+      {isSearching && (
+        <div className="py-1 text-center text-[0.6rem] text-muted-foreground">
+          Searching...
+        </div>
+      )}
+
+      {hasMore && !isSearching && (
+        <button
+          type="button"
+          onClick={onLoadMore}
+          className="w-full py-1.5 text-center text-[0.65rem] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Load more results
+        </button>
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shared repo row
+// ---------------------------------------------------------------------------
+
+function RepoRow({
+  repo,
+  flatIdx,
+  focusIndex,
+  displayName,
+  query,
+  onClick,
+}: {
+  repo: GitHubRepo;
+  flatIdx: number;
+  focusIndex: number;
+  displayName: string;
+  query: string;
+  onClick: (repo: GitHubRepo) => void;
+}) {
+  return (
+    <button
+      id={`stgm-repo-${flatIdx}`}
+      type="button"
+      data-idx={flatIdx}
+      onClick={() => onClick(repo)}
+      className={[
+        "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+        flatIdx === focusIndex
+          ? "bg-accent text-foreground"
+          : "text-foreground hover:bg-accent/50",
+      ].join(" ")}
+      role="option"
+      aria-selected={flatIdx === focusIndex}
+    >
+      <span className="min-w-0 flex-1 truncate">
+        <HighlightMatch text={displayName} query={query} />
+      </span>
+      <span className="shrink-0 rounded px-1 py-0.5 text-[0.6rem] bg-muted text-muted-foreground">
+        {repo.isPrivate ? "private" : "public"}
+      </span>
+    </button>
   );
 }
 
