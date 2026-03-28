@@ -1684,6 +1684,8 @@ async def _execute_graphton_impl(
             )
 
             resume_dict: dict[str, Any] = {}
+            matched_decision_tc_ids: set[str] = set()
+
             if graph_state and graph_state.interrupts:
                 for intr in graph_state.interrupts:
                     intr_value = intr.value if isinstance(intr.value, dict) else {}
@@ -1695,6 +1697,7 @@ async def _execute_graphton_impl(
                             resume_dict[intr.id] = _build_decision_value(
                                 decision, _action_map,
                             )
+                            matched_decision_tc_ids.add(direct_tc_id)
                         continue
 
                     # Proxy payload: values are sub-interrupt dicts keyed by
@@ -1714,8 +1717,84 @@ async def _execute_graphton_impl(
                             sub_decisions[sub_id] = _build_decision_value(
                                 decision, _action_map,
                             )
+                            matched_decision_tc_ids.add(sub_tc_id)
                     if sub_decisions:
                         resume_dict[intr.id] = sub_decisions
+
+            # ── Defense-in-depth: bidirectional ID lookup ─────────────────
+            #
+            # If some decisions were NOT matched by the primary loop, it
+            # may be because the status ToolCall carries a UUID-format ID
+            # (run_id fallback) while the interrupt payload carries the
+            # Anthropic toolu_* ID.  Build a reverse mapping from interrupt
+            # tool_call_ids to the parent interrupt, then try to pair each
+            # unmatched decision with an unmatched interrupt within the same
+            # proxy payload.
+            unmatched_decision_tc_ids = set(decisions_by_tc) - matched_decision_tc_ids
+            if unmatched_decision_tc_ids and graph_state and graph_state.interrupts:
+                # Collect all interrupt tool_call_ids that were NOT matched
+                intr_tc_to_parent: dict[str, tuple[Any, str, str]] = {}
+                for intr in graph_state.interrupts:
+                    if intr.id in resume_dict:
+                        continue
+                    intr_value = intr.value if isinstance(intr.value, dict) else {}
+                    direct_tc_id = intr_value.get("tool_call_id", "")
+                    if direct_tc_id and direct_tc_id not in matched_decision_tc_ids:
+                        intr_tc_to_parent[direct_tc_id] = (intr, "direct", "")
+                    for sub_id, sub_value in intr_value.items():
+                        if not isinstance(sub_value, dict):
+                            continue
+                        if "_proxy_interrupt_id" not in sub_value:
+                            continue
+                        sub_tc_id = sub_value.get("tool_call_id", "")
+                        if sub_tc_id and sub_tc_id not in matched_decision_tc_ids:
+                            intr_tc_to_parent[sub_tc_id] = (intr, "proxy", sub_id)
+
+                # For each unmatched decision, check if it maps to a known
+                # interrupt via a different ID (identity mismatch).
+                # This is a diagnostic fallback — it should not normally trigger.
+                for um_tc_id in list(unmatched_decision_tc_ids):
+                    decision = decisions_by_tc[um_tc_id]
+                    for intr_tc_id, (intr, shape, sub_id) in intr_tc_to_parent.items():
+                        if intr.id in resume_dict and shape == "direct":
+                            continue
+                        if shape == "direct":
+                            resume_dict[intr.id] = _build_decision_value(
+                                decision, _action_map,
+                            )
+                            matched_decision_tc_ids.add(um_tc_id)
+                            activity_logger.warning(
+                                "[RESUME_ID_MISMATCH] execution=%s "
+                                "decision.tool_call_id=%s matched to "
+                                "interrupt.tool_call_id=%s (interrupt=%s) "
+                                "via bidirectional fallback. This indicates "
+                                "a StatusBuilder ID mismatch that should be "
+                                "fixed at the source.",
+                                execution_id, um_tc_id,
+                                intr_tc_id, intr.id[:16],
+                            )
+                            del intr_tc_to_parent[intr_tc_id]
+                            break
+                        if shape == "proxy":
+                            existing = resume_dict.get(intr.id, {})
+                            existing[sub_id] = _build_decision_value(
+                                decision, _action_map,
+                            )
+                            resume_dict[intr.id] = existing
+                            matched_decision_tc_ids.add(um_tc_id)
+                            activity_logger.warning(
+                                "[RESUME_ID_MISMATCH] execution=%s "
+                                "decision.tool_call_id=%s matched to "
+                                "proxy sub_tc_id=%s (interrupt=%s, "
+                                "sub_id=%s) via bidirectional fallback. "
+                                "This indicates a StatusBuilder ID "
+                                "mismatch that should be fixed at the "
+                                "source.",
+                                execution_id, um_tc_id,
+                                intr_tc_id, intr.id[:16], sub_id,
+                            )
+                            del intr_tc_to_parent[intr_tc_id]
+                            break
 
             if resume_dict:
                 is_resume_from_approval = True
@@ -1730,12 +1809,47 @@ async def _execute_graphton_impl(
                     ),
                 )
             else:
-                activity_logger.warning(
-                    "[RESUME] %d approval_decision(s) present but "
-                    "no matching interrupts found in checkpoint. "
-                    "Proceeding with fresh execution.",
-                    len(approval_decisions),
+                # Collect diagnostic information for debugging
+                intr_tc_ids: list[str] = []
+                if graph_state and graph_state.interrupts:
+                    for intr in graph_state.interrupts:
+                        intr_value = intr.value if isinstance(intr.value, dict) else {}
+                        direct_tc = intr_value.get("tool_call_id", "")
+                        if direct_tc:
+                            intr_tc_ids.append(f"direct:{direct_tc}")
+                        for sub_id, sv in intr_value.items():
+                            if isinstance(sv, dict) and sv.get("tool_call_id"):
+                                intr_tc_ids.append(
+                                    f"proxy:{sv['tool_call_id']}"
+                                )
+
+                error_msg = (
+                    f"Approval resume failed: {len(approval_decisions)} "
+                    f"decision(s) could not be matched to any pending "
+                    f"interrupt in the checkpoint. "
+                    f"decision_tc_ids={[d.tool_call_id for d in approval_decisions]} "
+                    f"interrupt_tc_ids={intr_tc_ids}"
                 )
+                activity_logger.error(
+                    "[RESUME_FAILED] execution=%s: %s",
+                    execution_id, error_msg,
+                )
+
+                status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
+                status_builder.current_status.error = error_msg
+                if not status_builder.current_status.completed_at:
+                    status_builder.current_status.completed_at = _utc_timestamp()
+                try:
+                    await execution_client.update_status(
+                        execution_id, status_builder.current_status,
+                    )
+                except Exception as update_err:
+                    activity_logger.error(
+                        "[RESUME_FAILED] Failed to persist FAILED status "
+                        "for execution %s: %s",
+                        execution_id, update_err,
+                    )
+                return _slim_status_for_temporal(status_builder.current_status)
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 7.6: Reconcile Loaded Status for Resume Path
