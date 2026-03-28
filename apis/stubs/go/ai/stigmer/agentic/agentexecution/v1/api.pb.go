@@ -231,9 +231,22 @@ type AgentExecutionStatus struct {
 	// Ordered by creation time (oldest first).
 	//
 	// @since Artifact Lifecycle (Attachments & Artifacts)
-	Artifacts     []*ExecutionArtifact `protobuf:"bytes,15,rep,name=artifacts,proto3" json:"artifacts,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Artifacts []*ExecutionArtifact `protobuf:"bytes,15,rep,name=artifacts,proto3" json:"artifacts,omitempty"`
+	// Git write-back outcomes for workspace entries that had changes.
+	//
+	// One entry per git-backed workspace entry where the agent modified
+	// files and write_back_mode was enabled on the GitRepoSource. Omitted
+	// for workspace entries with no changes, non-git sources, or disabled
+	// write-back mode.
+	//
+	// Populated during post-execution processing. Each entry tracks the
+	// write-back lifecycle (committed -> pushed -> PR created) and carries
+	// the PR URL for UI display.
+	//
+	// @since Platform-Owned Git Write-Back
+	WorkspaceWriteBacks []*WorkspaceWriteBack `protobuf:"bytes,17,rep,name=workspace_write_backs,json=workspaceWriteBacks,proto3" json:"workspace_write_backs,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *AgentExecutionStatus) Reset() {
@@ -364,6 +377,13 @@ func (x *AgentExecutionStatus) GetArtifacts() []*ExecutionArtifact {
 	return nil
 }
 
+func (x *AgentExecutionStatus) GetWorkspaceWriteBacks() []*WorkspaceWriteBack {
+	if x != nil {
+		return x.WorkspaceWriteBacks
+	}
+	return nil
+}
+
 // Represents a single item in the agent's todo list.
 // Used by the write_todos tool to track multi-step tasks and progress.
 type TodoItem struct {
@@ -451,7 +471,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_api_proto protoreflect.FileDescrip
 
 const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\n" +
-	".ai/stigmer/agentic/agentexecution/v1/api.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a3ai/stigmer/agentic/agentexecution/v1/approval.proto\x1a3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x1a2ai/stigmer/agentic/agentexecution/v1/context.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xf5\x02\n" +
+	".ai/stigmer/agentic/agentexecution/v1/api.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a3ai/stigmer/agentic/agentexecution/v1/approval.proto\x1a3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x1a2ai/stigmer/agentic/agentexecution/v1/context.proto\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a2ai/stigmer/agentic/agentexecution/v1/message.proto\x1a/ai/stigmer/agentic/agentexecution/v1/spec.proto\x1a3ai/stigmer/agentic/agentexecution/v1/subagent.proto\x1a0ai/stigmer/agentic/agentexecution/v1/usage.proto\x1a4ai/stigmer/agentic/agentexecution/v1/writeback.proto\x1a-ai/stigmer/commons/apiresource/metadata.proto\x1a+ai/stigmer/commons/apiresource/status.proto\x1a\x1bbuf/validate/validate.proto\"\xf5\x02\n" +
 	"\x0eAgentExecution\x12=\n" +
 	"\vapi_version\x18\x01 \x01(\tB\x1c\xbaH\x19r\x17\n" +
 	"\x15agentic.stigmer.ai/v1R\n" +
@@ -460,7 +480,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x0eAgentExecutionR\x04kind\x12W\n" +
 	"\bmetadata\x18\x03 \x01(\v23.ai.stigmer.commons.apiresource.ApiResourceMetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x12L\n" +
 	"\x04spec\x18\x04 \x01(\v28.ai.stigmer.agentic.agentexecution.v1.AgentExecutionSpecR\x04spec\x12R\n" +
-	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xfb\b\n" +
+	"\x06status\x18\x05 \x01(\v2:.ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatusR\x06status\"\xe9\t\n" +
 	"\x14AgentExecutionStatus\x12F\n" +
 	"\x05audit\x18c \x01(\v20.ai.stigmer.commons.apiresource.ApiResourceAuditR\x05audit\x12N\n" +
 	"\bmessages\x18\x01 \x03(\v22.ai.stigmer.agentic.agentexecution.v1.AgentMessageR\bmessages\x12T\n" +
@@ -477,7 +497,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_api_proto_rawDesc = "" +
 	"\x10resolved_context\x18\f \x01(\v2>.ai.stigmer.agentic.agentexecution.v1.ResolvedExecutionContextR\x0fresolvedContext\x12b\n" +
 	"\x11pending_approvals\x18\x10 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovals\x12T\n" +
 	"\fcontext_info\x18\x0e \x01(\v21.ai.stigmer.agentic.agentexecution.v1.ContextInfoR\vcontextInfo\x12U\n" +
-	"\tartifacts\x18\x0f \x03(\v27.ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactR\tartifacts\x1ah\n" +
+	"\tartifacts\x18\x0f \x03(\v27.ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactR\tartifacts\x12l\n" +
+	"\x15workspace_write_backs\x18\x11 \x03(\v28.ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackR\x13workspaceWriteBacks\x1ah\n" +
 	"\n" +
 	"TodosEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12D\n" +
@@ -521,7 +542,8 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_goTypes = []any{
 	(*PendingApproval)(nil),                 // 12: ai.stigmer.agentic.agentexecution.v1.PendingApproval
 	(*ContextInfo)(nil),                     // 13: ai.stigmer.agentic.agentexecution.v1.ContextInfo
 	(*ExecutionArtifact)(nil),               // 14: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
-	(TodoStatus)(0),                         // 15: ai.stigmer.agentic.agentexecution.v1.TodoStatus
+	(*WorkspaceWriteBack)(nil),              // 15: ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
+	(TodoStatus)(0),                         // 16: ai.stigmer.agentic.agentexecution.v1.TodoStatus
 }
 var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	4,  // 0: ai.stigmer.agentic.agentexecution.v1.AgentExecution.metadata:type_name -> ai.stigmer.commons.apiresource.ApiResourceMetadata
@@ -537,13 +559,14 @@ var file_ai_stigmer_agentic_agentexecution_v1_api_proto_depIdxs = []int32{
 	12, // 10: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.pending_approvals:type_name -> ai.stigmer.agentic.agentexecution.v1.PendingApproval
 	13, // 11: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.context_info:type_name -> ai.stigmer.agentic.agentexecution.v1.ContextInfo
 	14, // 12: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.artifacts:type_name -> ai.stigmer.agentic.agentexecution.v1.ExecutionArtifact
-	15, // 13: ai.stigmer.agentic.agentexecution.v1.TodoItem.status:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoStatus
-	2,  // 14: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
-	15, // [15:15] is the sub-list for method output_type
-	15, // [15:15] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	15, // 13: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.workspace_write_backs:type_name -> ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack
+	16, // 14: ai.stigmer.agentic.agentexecution.v1.TodoItem.status:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoStatus
+	2,  // 15: ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus.TodosEntry.value:type_name -> ai.stigmer.agentic.agentexecution.v1.TodoItem
+	16, // [16:16] is the sub-list for method output_type
+	16, // [16:16] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() }
@@ -559,6 +582,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_api_proto_init() {
 	file_ai_stigmer_agentic_agentexecution_v1_spec_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_subagent_proto_init()
 	file_ai_stigmer_agentic_agentexecution_v1_usage_proto_init()
+	file_ai_stigmer_agentic_agentexecution_v1_writeback_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

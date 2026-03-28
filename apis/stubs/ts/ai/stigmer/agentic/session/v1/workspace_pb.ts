@@ -2,8 +2,8 @@
 // @generated from file ai/stigmer/agentic/session/v1/workspace.proto (package ai.stigmer.agentic.session.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
-import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
+import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
+import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -11,7 +11,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/session/v1/workspace.proto.
  */
 export const file_ai_stigmer_agentic_session_v1_workspace: GenFile = /*@__PURE__*/
-  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS93b3Jrc3BhY2UucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIqoBCg9Xb3Jrc3BhY2VTb3VyY2USQAoIZ2l0X3JlcG8YASABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5HaXRSZXBvU291cmNlSAASRAoKbG9jYWxfcGF0aBgCIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkxvY2FsUGF0aFNvdXJjZUgAQg8KBnNvdXJjZRIFukgCCAEibwoOV29ya3NwYWNlRW50cnkSFQoEbmFtZRgBIAEoCUIHukgEcgIQARJGCgZzb3VyY2UYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VTb3VyY2VCBrpIA8gBASIoCg9Mb2NhbFBhdGhTb3VyY2USFQoEcGF0aBgBIAEoCUIHukgEcgIQASL+AQoNR2l0UmVwb1NvdXJjZRKlAQoDdXJsGAEgASgJQpcBukiTAboBjAEKGWdpdF9yZXBvX3NvdXJjZS51cmwuaHR0cHMSUnVybCBtdXN0IHVzZSBIVFRQUyAoZS5nLiBodHRwczovL2dpdGh1Yi5jb20vb3JnL3JlcG8pLiBTU0ggVVJMcyBhcmUgbm90IHN1cHBvcnRlZC4aG3RoaXMuc3RhcnRzV2l0aCgnaHR0cHM6Ly8nKcgBARIOCgZicmFuY2gYAiABKAkSDgoGY29tbWl0GAMgASgJEhsKBWRlcHRoGAQgASgFQge6SAQaAigASACIAQFCCAoGX2RlcHRoYgZwcm90bzM", [file_buf_validate_validate]);
+  fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS93b3Jrc3BhY2UucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIqoBCg9Xb3Jrc3BhY2VTb3VyY2USQAoIZ2l0X3JlcG8YASABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5HaXRSZXBvU291cmNlSAASRAoKbG9jYWxfcGF0aBgCIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkxvY2FsUGF0aFNvdXJjZUgAQg8KBnNvdXJjZRIFukgCCAEibwoOV29ya3NwYWNlRW50cnkSFQoEbmFtZRgBIAEoCUIHukgEcgIQARJGCgZzb3VyY2UYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VTb3VyY2VCBrpIA8gBASIoCg9Mb2NhbFBhdGhTb3VyY2USFQoEcGF0aBgBIAEoCUIHukgEcgIQASLIAgoNR2l0UmVwb1NvdXJjZRKlAQoDdXJsGAEgASgJQpcBukiTAboBjAEKGWdpdF9yZXBvX3NvdXJjZS51cmwuaHR0cHMSUnVybCBtdXN0IHVzZSBIVFRQUyAoZS5nLiBodHRwczovL2dpdGh1Yi5jb20vb3JnL3JlcG8pLiBTU0ggVVJMcyBhcmUgbm90IHN1cHBvcnRlZC4aG3RoaXMuc3RhcnRzV2l0aCgnaHR0cHM6Ly8nKcgBARIOCgZicmFuY2gYAiABKAkSDgoGY29tbWl0GAMgASgJEhsKBWRlcHRoGAQgASgFQge6SAQaAigASACIAQESSAoPd3JpdGVfYmFja19tb2RlGAUgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuR2l0V3JpdGVCYWNrTW9kZUIICgZfZGVwdGgqWQoQR2l0V3JpdGVCYWNrTW9kZRIjCh9HSVRfV1JJVEVfQkFDS19NT0RFX1VOU1BFQ0lGSUVEEAASIAocR0lUX1dSSVRFX0JBQ0tfQlJBTkNIX0FORF9QUhABYgZwcm90bzM", [file_buf_validate_validate]);
 
 /**
  * WorkspaceSource defines where the agent's workspace content comes from.
@@ -178,6 +178,24 @@ export type GitRepoSource = Message<"ai.stigmer.agentic.session.v1.GitRepoSource
    * @generated from field: optional int32 depth = 4;
    */
   depth?: number;
+
+  /**
+   * Controls whether the platform automatically creates a branch and
+   * pull request from the agent's file changes after execution completes.
+   *
+   * This is a platform-level workflow, not an agent-level decision. The
+   * agent focuses on making code changes; the platform packages them.
+   *
+   * Requires git credentials to be configured during workspace provisioning
+   * (GITHUB_TOKEN available in the execution environment). If credentials
+   * are not available, the write-back is silently skipped regardless of
+   * this setting.
+   *
+   * Default (UNSPECIFIED): no write-back, current behavior.
+   *
+   * @generated from field: ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5;
+   */
+  writeBackMode: GitWriteBackMode;
 };
 
 /**
@@ -186,4 +204,44 @@ export type GitRepoSource = Message<"ai.stigmer.agentic.session.v1.GitRepoSource
  */
 export const GitRepoSourceSchema: GenMessage<GitRepoSource> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_session_v1_workspace, 3);
+
+/**
+ * GitWriteBackMode controls the platform's post-execution git workflow
+ * for a git-backed workspace entry.
+ *
+ * The user sets this when creating a session to opt in to automatic
+ * PR creation. The agent never sees or controls this setting.
+ *
+ * @generated from enum ai.stigmer.agentic.session.v1.GitWriteBackMode
+ */
+export enum GitWriteBackMode {
+  /**
+   * No write-back. File changes remain in the sandbox only.
+   * Artifacts are still published as downloadable files.
+   *
+   * @generated from enum value: GIT_WRITE_BACK_MODE_UNSPECIFIED = 0;
+   */
+  GIT_WRITE_BACK_MODE_UNSPECIFIED = 0,
+
+  /**
+   * After execution completes, the platform automatically:
+   *   1. Detects uncommitted changes via `git diff`
+   *   2. Creates a branch (stigmer/{execution_id_short})
+   *   3. Commits all changes
+   *   4. Pushes the branch to the remote
+   *   5. Creates a pull request targeting the original branch
+   *
+   * The write-back outcome is recorded in
+   * AgentExecutionStatus.workspace_write_backs.
+   *
+   * @generated from enum value: GIT_WRITE_BACK_BRANCH_AND_PR = 1;
+   */
+  GIT_WRITE_BACK_BRANCH_AND_PR = 1,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.session.v1.GitWriteBackMode.
+ */
+export const GitWriteBackModeSchema: GenEnum<GitWriteBackMode> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_session_v1_workspace, 0);
 

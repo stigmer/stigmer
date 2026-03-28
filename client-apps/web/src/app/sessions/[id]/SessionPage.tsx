@@ -22,6 +22,7 @@ import {
   ExecutionProgress,
   ExecutionCostSummary,
   ArtifactsWidget,
+  WriteBacksWidget,
   SecretFlowErrorGuide,
   isSecretFlowError,
 } from "@stigmer/react";
@@ -33,6 +34,13 @@ import { useStaticRouteParam } from "@/hooks/useStaticRouteParam";
 import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY_MODEL = "stigmer:session:model";
+
+/**
+ * Well-known Daytona sandbox workspace root. Used as the SDK safety-net
+ * normalization target for cloud sessions (git-repo workspace entries).
+ * Matches `DAYTONA_WORKSPACE_MOUNT_PATH` in the backend.
+ */
+const DAYTONA_WORKSPACE_ROOT = "/home/daytona/workspace";
 
 function usePersistedModel() {
   const { getModel } = useModelRegistry();
@@ -159,6 +167,14 @@ function SessionPageInner({ id }: { id: string }) {
     return completed.length > 0 ? completed[completed.length - 1] : null;
   }, [conv.activeStreamExecution, conv.completedExecutions]);
 
+  const sandboxWorkspaceRoot = useMemo(() => {
+    const entries = conv.workspaceEntries;
+    const hasGitRepo = entries.some(
+      (e) => e.source?.source.case === "gitRepo",
+    );
+    return hasGitRepo ? DAYTONA_WORKSPACE_ROOT : undefined;
+  }, [conv.workspaceEntries]);
+
   if (conv.isLoading) return <SessionSkeleton />;
   if (conv.loadError) return <SessionError error={conv.loadError} />;
   if (!conv.session && !conv.isLoading) return <SessionStarting />;
@@ -175,6 +191,7 @@ function SessionPageInner({ id }: { id: string }) {
             submittingApprovalIds={conv.submittingApprovalIds}
             dismissedApprovalIds={conv.dismissedApprovalIds}
             workspaceEntries={conv.workspaceEntries}
+            sandboxWorkspaceRoot={sandboxWorkspaceRoot}
             className="flex-1 lg:pr-[208px]"
           />
           <div className="lg:mr-[208px]">
@@ -225,6 +242,14 @@ function SessionPageInner({ id }: { id: string }) {
               </div>
             </>
           )}
+          <WriteBacksWidget
+            executions={[
+              ...conv.completedExecutions,
+              ...(conv.activeStreamExecution
+                ? [conv.activeStreamExecution]
+                : []),
+            ]}
+          />
           <ArtifactsWidget
             executions={[
               ...conv.completedExecutions,
@@ -348,3 +373,8 @@ function StreamErrorBanner({
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Write-Back Section (sidebar)
+// ---------------------------------------------------------------------------
+

@@ -122,4 +122,45 @@ public interface GitRepoSourceOrBuilder extends
    * @return The depth.
    */
   int getDepth();
+
+  /**
+   * <pre>
+   * Controls whether the platform automatically creates a branch and
+   * pull request from the agent's file changes after execution completes.
+   *
+   * This is a platform-level workflow, not an agent-level decision. The
+   * agent focuses on making code changes; the platform packages them.
+   *
+   * Requires git credentials to be configured during workspace provisioning
+   * (GITHUB_TOKEN available in the execution environment). If credentials
+   * are not available, the write-back is silently skipped regardless of
+   * this setting.
+   *
+   * Default (UNSPECIFIED): no write-back, current behavior.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
+   * @return The enum numeric value on the wire for writeBackMode.
+   */
+  int getWriteBackModeValue();
+  /**
+   * <pre>
+   * Controls whether the platform automatically creates a branch and
+   * pull request from the agent's file changes after execution completes.
+   *
+   * This is a platform-level workflow, not an agent-level decision. The
+   * agent focuses on making code changes; the platform packages them.
+   *
+   * Requires git credentials to be configured during workspace provisioning
+   * (GITHUB_TOKEN available in the execution environment). If credentials
+   * are not available, the write-back is silently skipped regardless of
+   * this setting.
+   *
+   * Default (UNSPECIFIED): no write-back, current behavior.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
+   * @return The writeBackMode.
+   */
+  ai.stigmer.agentic.session.v1.GitWriteBackMode getWriteBackMode();
 }

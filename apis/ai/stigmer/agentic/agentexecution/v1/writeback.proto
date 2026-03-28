@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentexecution.v1;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Workspace Write-Back (Platform-Owned Git Workflow)
+//
+// When an agent modifies files in a git-backed workspace, the platform
+// can automatically branch, commit, push, and create a pull request
+// after execution completes. This is a platform-level workflow, not an
+// agent-level decision — the agent focuses on making the right code
+// changes, and the platform packages them into a PR.
+//
+// Write-back is opt-in via GitRepoSource.write_back_mode on the session's
+// workspace entry. Only git-backed workspace entries with detected changes
+// produce a write-back entry.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// WorkspaceWriteBack captures the outcome of the platform-owned git
+// write-back workflow for a single workspace entry.
+//
+// One entry is created per git-backed workspace entry that had uncommitted
+// changes when the execution reached a terminal phase. Not populated for
+// LocalPathSource workspace entries or git workspaces with no detected
+// changes.
+//
+// The write-back progresses through phases: committed -> pushed ->
+// pr_created. If any step fails, the phase is set to FAILED with the
+// error message, and processing continues to the next workspace entry.
+// One failed write-back does not block others.
+//
+// @since Platform-Owned Git Write-Back
+message WorkspaceWriteBack {
+  // Name of the workspace entry this write-back corresponds to.
+  // Links to SessionSpec.workspace_entries[].name.
+  // Example: "my-app", "frontend"
+  string workspace_entry_name = 1;
+
+  // Branch created for the agent's changes.
+  // Format: "stigmer/{short_execution_id}"
+  // Example: "stigmer/a1b2c3d4"
+  string branch_name = 2;
+
+  // Base branch the PR targets (the branch that was originally cloned).
+  // Example: "main", "develop"
+  string base_branch = 3;
+
+  // Full commit SHA of the agent's changes on the branch.
+  // Example: "e3b0c44298fc1c149afbf4c8996fb924"
+  string commit_sha = 4;
+
+  // GitHub pull request URL.
+  // Empty when write-back mode is not PR-based or PR creation failed.
+  // Example: "https://github.com/acme/my-app/pull/42"
+  string pull_request_url = 5;
+
+  // GitHub pull request number.
+  // 0 when no PR was created.
+  int32 pull_request_number = 6;
+
+  // Human-readable summary of changes from `git diff --stat`.
+  // Example: "3 files changed, 42 insertions(+), 7 deletions(-)"
+  string diff_summary = 7;
+
+  // Current phase of the write-back workflow.
+  WorkspaceWriteBackPhase phase = 8;
+
+  // Error message if the write-back failed at any step.
+  // Empty on success.
+  string error = 9;
+}
+
+// WorkspaceWriteBackPhase tracks the progress of a single workspace
+// write-back through its lifecycle steps.
+//
+// The phases are ordered: COMMITTED -> PUSHED -> PR_CREATED.
+// FAILED can be reached from any step.
+enum WorkspaceWriteBackPhase {
+  WORKSPACE_WRITE_BACK_PHASE_UNSPECIFIED = 0;
+
+  // Changes were committed to a new branch in the sandbox.
+  WORKSPACE_WRITE_BACK_COMMITTED = 1;
+
+  // The branch was pushed to the remote repository.
+  WORKSPACE_WRITE_BACK_PUSHED = 2;
+
+  // A pull request was created on the remote repository.
+  WORKSPACE_WRITE_BACK_PR_CREATED = 3;
+
+  // The write-back failed at some step. Check the error field.
+  WORKSPACE_WRITE_BACK_FAILED = 4;
+}

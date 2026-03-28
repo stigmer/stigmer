@@ -168,6 +168,7 @@ class GitRepoSourceInput:
     branch: str = ""
     commit: str = ""
     depth: int = 0
+    write_back_mode: int = 0
 
     def _to_proto(self) -> spec_pb2.GitRepoSource:
         msg = spec_pb2.GitRepoSource(
@@ -175,6 +176,7 @@ class GitRepoSourceInput:
             branch=self.branch,
             commit=self.commit,
             depth=self.depth,
+            write_back_mode=self.write_back_mode,
         )
         return msg
 

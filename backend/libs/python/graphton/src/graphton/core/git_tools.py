@@ -35,10 +35,8 @@ the LLM.
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import Callable
 from typing import Annotated, Any
-from urllib.parse import urlparse
 
 import httpx
 from langchain_core.callbacks import dispatch_custom_event
@@ -46,115 +44,17 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import InjectedToolCallId, tool
 
 from graphton.core.error_hints import enrich_error_message
+from graphton.core.github_api import (
+    github_create_pr as _github_create_pr,
+    parse_github_repo as _parse_github_repo,
+    parse_token_from_credentials as _parse_token_from_credentials,
+)
 from graphton.core.tool_wrappers import ApprovalRequirement, _check_and_handle_approval
 
 logger = logging.getLogger(__name__)
 
 _CREDENTIAL_FILE = "/home/daytona/.git-credentials"
 """Path to the git-credential-store file inside the Daytona sandbox."""
-
-_GITHUB_API_BASE = "https://api.github.com"
-
-# Matches GitHub HTTPS URLs: https://github.com/owner/repo[.git]
-_GITHUB_HTTPS_RE = re.compile(
-    r"^https?://github\.com/(?P<owner>[^/]+)/(?P<repo>[^/.]+?)(?:\.git)?/?$"
-)
-
-# Matches GitHub SSH URLs: git@github.com:owner/repo[.git]
-_GITHUB_SSH_RE = re.compile(
-    r"^git@github\.com:(?P<owner>[^/]+)/(?P<repo>[^/.]+?)(?:\.git)?$"
-)
-
-
-# ---------------------------------------------------------------------------
-# Helpers (module-private, individually testable)
-# ---------------------------------------------------------------------------
-
-
-def _parse_github_repo(remote_url: str) -> tuple[str, str]:
-    """Extract ``(owner, repo)`` from a GitHub remote URL.
-
-    Supports both HTTPS and SSH URL formats.  Raises ``ValueError`` for
-    non-GitHub or unparseable URLs.
-
-    >>> _parse_github_repo("https://github.com/acme/widgets.git")
-    ('acme', 'widgets')
-    >>> _parse_github_repo("git@github.com:acme/widgets.git")
-    ('acme', 'widgets')
-    """
-    url = remote_url.strip()
-
-    match = _GITHUB_HTTPS_RE.match(url) or _GITHUB_SSH_RE.match(url)
-    if match:
-        return match.group("owner"), match.group("repo")
-
-    raise ValueError(
-        f"Cannot parse GitHub owner/repo from remote URL: {url!r}. "
-        "Only github.com repositories are supported."
-    )
-
-
-def _parse_token_from_credentials(credential_content: str) -> str:
-    """Extract the GitHub token from git-credential-store file content.
-
-    The credential store uses one URL per line in the format::
-
-        https://x-access-token:{token}@github.com
-
-    Returns the first token found for ``github.com``.  Raises
-    ``ValueError`` if no matching entry exists.
-    """
-    for line in credential_content.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            parsed = urlparse(line)
-        except Exception:
-            continue
-        if parsed.hostname and parsed.hostname.lower() == "github.com" and parsed.password:
-            return parsed.password
-
-    raise ValueError(
-        "No GitHub token found in credential store. "
-        "Git credentials may not have been configured during workspace provisioning."
-    )
-
-
-async def _github_create_pr(
-    token: str,
-    owner: str,
-    repo: str,
-    title: str,
-    body: str,
-    head: str,
-    base: str,
-) -> dict[str, Any]:
-    """Call the GitHub REST API to create a pull request.
-
-    Returns the parsed JSON response on success.  Raises ``httpx.HTTPStatusError``
-    on non-2xx responses.
-    """
-    url = f"{_GITHUB_API_BASE}/repos/{owner}/{repo}/pulls"
-
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            url,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
-            json={
-                "title": title,
-                "body": body,
-                "head": head,
-                "base": base,
-            },
-            timeout=30.0,
-        )
-        resp.raise_for_status()
-        return resp.json()
 
 
 # ---------------------------------------------------------------------------

@@ -57,6 +57,7 @@ private static final long serialVersionUID = 0L;
     expiresAt_ = "";
     entries_ =
         com.google.protobuf.LazyStringArrayList.emptyList();
+    contentHash_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -512,6 +513,71 @@ private static final long serialVersionUID = 0L;
     return entries_.getByteString(index);
   }
 
+  public static final int CONTENT_HASH_FIELD_NUMBER = 10;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object contentHash_ = "";
+  /**
+   * <pre>
+   * SHA-256 hex digest of the uploaded artifact bytes.
+   *
+   * Used as a cache-invalidation signal by UI clients: when the same file
+   * is overwritten (e.g., written then edited in the same execution), the
+   * storage_key remains stable but the content_hash changes. Clients
+   * include this value in their fetch-effect dependencies so that content
+   * is re-fetched whenever the underlying bytes change.
+   *
+   * Empty for older artifacts created before this field was added.
+   * Example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   * </pre>
+   *
+   * <code>string content_hash = 10 [json_name = "contentHash"];</code>
+   * @return The contentHash.
+   */
+  @java.lang.Override
+  public java.lang.String getContentHash() {
+    java.lang.Object ref = contentHash_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      contentHash_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * SHA-256 hex digest of the uploaded artifact bytes.
+   *
+   * Used as a cache-invalidation signal by UI clients: when the same file
+   * is overwritten (e.g., written then edited in the same execution), the
+   * storage_key remains stable but the content_hash changes. Clients
+   * include this value in their fetch-effect dependencies so that content
+   * is re-fetched whenever the underlying bytes change.
+   *
+   * Empty for older artifacts created before this field was added.
+   * Example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   * </pre>
+   *
+   * <code>string content_hash = 10 [json_name = "contentHash"];</code>
+   * @return The bytes for contentHash.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getContentHashBytes() {
+    java.lang.Object ref = contentHash_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      contentHash_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -552,6 +618,9 @@ private static final long serialVersionUID = 0L;
     }
     for (int i = 0; i < entries_.size(); i++) {
       com.google.protobuf.GeneratedMessage.writeString(output, 9, entries_.getRaw(i));
+    }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(contentHash_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 10, contentHash_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -596,6 +665,9 @@ private static final long serialVersionUID = 0L;
       size += dataSize;
       size += 1 * getEntriesList().size();
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(contentHash_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(10, contentHash_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -628,6 +700,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getExpiresAt())) return false;
     if (!getEntriesList()
         .equals(other.getEntriesList())) return false;
+    if (!getContentHash()
+        .equals(other.getContentHash())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -660,6 +734,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + ENTRIES_FIELD_NUMBER;
       hash = (53 * hash) + getEntriesList().hashCode();
     }
+    hash = (37 * hash) + CONTENT_HASH_FIELD_NUMBER;
+    hash = (53 * hash) + getContentHash().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -821,6 +897,7 @@ private static final long serialVersionUID = 0L;
       expiresAt_ = "";
       entries_ =
           com.google.protobuf.LazyStringArrayList.emptyList();
+      contentHash_ = "";
       return this;
     }
 
@@ -882,6 +959,9 @@ private static final long serialVersionUID = 0L;
         entries_.makeImmutable();
         result.entries_ = entries_;
       }
+      if (((from_bitField0_ & 0x00000200) != 0)) {
+        result.contentHash_ = contentHash_;
+      }
     }
 
     @java.lang.Override
@@ -940,6 +1020,11 @@ private static final long serialVersionUID = 0L;
           ensureEntriesIsMutable();
           entries_.addAll(other.entries_);
         }
+        onChanged();
+      }
+      if (!other.getContentHash().isEmpty()) {
+        contentHash_ = other.contentHash_;
+        bitField0_ |= 0x00000200;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1013,6 +1098,11 @@ private static final long serialVersionUID = 0L;
               entries_.add(input.readStringRequireUtf8());
               break;
             } // case 74
+            case 82: {
+              contentHash_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000200;
+              break;
+            } // case 82
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1978,6 +2068,143 @@ private static final long serialVersionUID = 0L;
       ensureEntriesIsMutable();
       entries_.add(value);
       bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object contentHash_ = "";
+    /**
+     * <pre>
+     * SHA-256 hex digest of the uploaded artifact bytes.
+     *
+     * Used as a cache-invalidation signal by UI clients: when the same file
+     * is overwritten (e.g., written then edited in the same execution), the
+     * storage_key remains stable but the content_hash changes. Clients
+     * include this value in their fetch-effect dependencies so that content
+     * is re-fetched whenever the underlying bytes change.
+     *
+     * Empty for older artifacts created before this field was added.
+     * Example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+     * </pre>
+     *
+     * <code>string content_hash = 10 [json_name = "contentHash"];</code>
+     * @return The contentHash.
+     */
+    public java.lang.String getContentHash() {
+      java.lang.Object ref = contentHash_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        contentHash_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * SHA-256 hex digest of the uploaded artifact bytes.
+     *
+     * Used as a cache-invalidation signal by UI clients: when the same file
+     * is overwritten (e.g., written then edited in the same execution), the
+     * storage_key remains stable but the content_hash changes. Clients
+     * include this value in their fetch-effect dependencies so that content
+     * is re-fetched whenever the underlying bytes change.
+     *
+     * Empty for older artifacts created before this field was added.
+     * Example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+     * </pre>
+     *
+     * <code>string content_hash = 10 [json_name = "contentHash"];</code>
+     * @return The bytes for contentHash.
+     */
+    public com.google.protobuf.ByteString
+        getContentHashBytes() {
+      java.lang.Object ref = contentHash_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        contentHash_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * SHA-256 hex digest of the uploaded artifact bytes.
+     *
+     * Used as a cache-invalidation signal by UI clients: when the same file
+     * is overwritten (e.g., written then edited in the same execution), the
+     * storage_key remains stable but the content_hash changes. Clients
+     * include this value in their fetch-effect dependencies so that content
+     * is re-fetched whenever the underlying bytes change.
+     *
+     * Empty for older artifacts created before this field was added.
+     * Example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+     * </pre>
+     *
+     * <code>string content_hash = 10 [json_name = "contentHash"];</code>
+     * @param value The contentHash to set.
+     * @return This builder for chaining.
+     */
+    public Builder setContentHash(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      contentHash_ = value;
+      bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * SHA-256 hex digest of the uploaded artifact bytes.
+     *
+     * Used as a cache-invalidation signal by UI clients: when the same file
+     * is overwritten (e.g., written then edited in the same execution), the
+     * storage_key remains stable but the content_hash changes. Clients
+     * include this value in their fetch-effect dependencies so that content
+     * is re-fetched whenever the underlying bytes change.
+     *
+     * Empty for older artifacts created before this field was added.
+     * Example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+     * </pre>
+     *
+     * <code>string content_hash = 10 [json_name = "contentHash"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearContentHash() {
+      contentHash_ = getDefaultInstance().getContentHash();
+      bitField0_ = (bitField0_ & ~0x00000200);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * SHA-256 hex digest of the uploaded artifact bytes.
+     *
+     * Used as a cache-invalidation signal by UI clients: when the same file
+     * is overwritten (e.g., written then edited in the same execution), the
+     * storage_key remains stable but the content_hash changes. Clients
+     * include this value in their fetch-effect dependencies so that content
+     * is re-fetched whenever the underlying bytes change.
+     *
+     * Empty for older artifacts created before this field was added.
+     * Example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+     * </pre>
+     *
+     * <code>string content_hash = 10 [json_name = "contentHash"];</code>
+     * @param value The bytes for contentHash to set.
+     * @return This builder for chaining.
+     */
+    public Builder setContentHashBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      contentHash_ = value;
+      bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }

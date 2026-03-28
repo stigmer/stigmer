@@ -598,9 +598,6 @@ def create_platform_tool_wrappers(
     - edit: Edit a file by replacing text
     - execute: Execute shell commands
     
-    **Git tools** (external API calls, no approval needed by default):
-    - create_pull_request: Create a GitHub pull request
-    
     **Aliases** (override deepagents' in-memory tools with filesystem-backed ones):
     - read_file: Alias for read (overrides deepagents' in-memory read_file)
     - write_file: Alias for write (overrides deepagents' in-memory write_file)
@@ -618,7 +615,7 @@ def create_platform_tool_wrappers(
             If None, tools execute without approval check.
         
     Returns:
-        List of 12 @tool decorated functions for platform tools (9 primary + 3 aliases)
+        List of 11 @tool decorated functions for platform tools (8 primary + 3 aliases)
         
     Example:
         >>> from graphton.core.sandbox_factory import create_sandbox_backend
@@ -627,9 +624,9 @@ def create_platform_tool_wrappers(
         >>> backend = create_sandbox_backend({"type": "filesystem", "root_dir": "/workspace"})
         >>> tools = create_platform_tool_wrappers(backend, approval_checker=my_checker)
         >>> # tools contains: read, ls, glob, grep, search, write, edit, execute,
-        >>> #                  create_pull_request, read_file, write_file, edit_file
+        >>> #                  read_file, write_file, edit_file
         >>> len(tools)
-        12
+        11
     
     """
     tools: list[Callable[..., Any]] = []
@@ -684,14 +681,14 @@ def create_platform_tool_wrappers(
     # so it does not waste turns deliberating between duplicate tools.
     
     # =========================================================================
-    # Git tools (external API calls, no approval needed by default)
+    # Git tools — REMOVED
+    #
+    # create_pull_request was previously exposed to the agent here. Now that
+    # the platform owns the git write-back workflow (post-execution branch +
+    # commit + push + PR via writeback.py), the agent no longer needs this
+    # tool.  The underlying GitHub API logic in github_api.py is reused by
+    # the platform write-back module directly.
     # =========================================================================
-
-    from graphton.core.git_tools import _create_create_pull_request_tool
-
-    tools.append(
-        _create_create_pull_request_tool(backend, approval_checker, sub_agent_name=sub_agent_name)
-    )
 
     # =========================================================================
     # Aliases matching deepagents tool names (read_file, write_file, edit_file)

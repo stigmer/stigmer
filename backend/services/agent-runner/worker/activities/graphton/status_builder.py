@@ -44,6 +44,7 @@ from google.protobuf.struct_pb2 import Struct
 from graphton.core import ModelRegistry
 from graphton.core.backends.platform_mount import (
     humanize_platform_refs,
+    humanize_sandbox_paths,
     resolve_display_env_vars,
 )
 from graphton.core.models import parse_model_string
@@ -575,6 +576,12 @@ class StatusBuilder:
         # once the merged environment is available.
         self._display_env_vars: dict[str, str] | None = None
         self._secret_keys: set[str] | None = None
+
+        # Sandbox workspace root for display humanization.  Set via
+        # set_workspace_root() once the workspace is provisioned.
+        # humanize_sandbox_paths() uses this to strip absolute sandbox
+        # paths from display strings (tool args, results, previews).
+        self._workspace_root: str = ""
     
     def set_display_env_vars(
         self,
@@ -594,6 +601,19 @@ class StatusBuilder:
         """
         self._display_env_vars = env_vars
         self._secret_keys = secret_keys
+
+    def set_workspace_root(self, workspace_root: str) -> None:
+        """Store the sandbox workspace root for display humanization.
+
+        Called once after workspace provisioning completes.
+        ``_humanize_args_for_display`` and tool-result recording use this to
+        replace absolute sandbox paths (e.g. ``/home/daytona/workspace/…``)
+        with workspace-relative display paths.
+
+        Pass an empty string to disable sandbox path humanization (local
+        mode, where paths are the user's actual filesystem).
+        """
+        self._workspace_root = workspace_root
 
     # ─────────────────────────────────────────────────────────────────────────
     # Tool Call Index — public accessors
@@ -963,7 +983,9 @@ class StatusBuilder:
         
         if not run_id or not chunk:
             return
-        
+
+        chunk = humanize_sandbox_paths(chunk, self._workspace_root)
+
         # Resolve run-ID alias (resume-after-approval path)
         resolved_id = self._resolve_run_id(run_id)
         
@@ -1033,6 +1055,10 @@ class StatusBuilder:
             )
         else:
             persisted_result = tool_result_content
+
+        persisted_result = humanize_sandbox_paths(
+            persisted_result, self._workspace_root,
+        )
 
         now = datetime.utcnow()
         
@@ -2322,10 +2348,13 @@ class StatusBuilder:
     def _humanize_args_for_display(self, tool_args: dict[str, Any]) -> dict[str, Any]:
         """Return a shallow copy of *tool_args* with string values humanized.
 
-        Applies :func:`humanize_platform_refs` and
-        :func:`resolve_display_env_vars` (respecting ``_secret_keys``) to
-        every top-level string value.  Non-string values are passed through
-        unchanged.
+        Applies, in order:
+
+        1. :func:`humanize_platform_refs` — ``$STIGMER_PLATFORM_DIR`` → ``.stigmer``
+        2. :func:`resolve_display_env_vars` — ``$KEY`` → value (respecting secrets)
+        3. :func:`humanize_sandbox_paths` — absolute sandbox paths → workspace-relative
+
+        Non-string values are passed through unchanged.
 
         The original *tool_args* dict is never modified — callers that also
         need the raw args (e.g. for fingerprinting or approval checks) are
@@ -2341,6 +2370,7 @@ class StatusBuilder:
                 value = resolve_display_env_vars(
                     value, self._display_env_vars, self._secret_keys,
                 )
+                value = humanize_sandbox_paths(value, self._workspace_root)
             result[key] = value
         return result
 
@@ -3271,4 +3301,29 @@ class StatusBuilder:
                 status_artifacts[idx].CopyFrom(artifact)
                 return
         status_artifacts.append(artifact)
+
+    # ─────────────────────────────────────────────────────────────────────────────
+    # Workspace Write-Backs (Platform-Owned Git Workflow)
+    # ─────────────────────────────────────────────────────────────────────────────
+
+    def add_workspace_write_back(self, wb) -> None:
+        """Register a write-back outcome on the execution status.
+
+        Deduplicates by ``workspace_entry_name``: if a write-back for the
+        same entry already exists, it is replaced.
+        """
+        wbs = self.current_status.workspace_write_backs
+        for idx, existing in enumerate(wbs):
+            if existing.workspace_entry_name == wb.workspace_entry_name:
+                wbs[idx].CopyFrom(wb)
+                self.force_next_update = True
+                return
+        wbs.append(wb)
+        self.force_next_update = True
+
+        self.logger.info(
+            f"[WRITE_BACK] execution={self.execution_id} "
+            f"entry={wb.workspace_entry_name} "
+            f"phase={wb.phase}"
+        )
     

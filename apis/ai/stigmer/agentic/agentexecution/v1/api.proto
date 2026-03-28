@@ -10,6 +10,7 @@ import "ai/stigmer/agentic/agentexecution/v1/message.proto";
 import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
 import "ai/stigmer/agentic/agentexecution/v1/subagent.proto";
 import "ai/stigmer/agentic/agentexecution/v1/usage.proto";
+import "ai/stigmer/agentic/agentexecution/v1/writeback.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
@@ -202,6 +203,27 @@ message AgentExecutionStatus {
   //
   // @since Artifact Lifecycle (Attachments & Artifacts)
   repeated ExecutionArtifact artifacts = 15;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Workspace Write-Backs (Platform-Owned Git Workflow)
+  //
+  // Outcomes of the platform's automatic branch/commit/push/PR workflow
+  // for git-backed workspace entries.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Git write-back outcomes for workspace entries that had changes.
+  //
+  // One entry per git-backed workspace entry where the agent modified
+  // files and write_back_mode was enabled on the GitRepoSource. Omitted
+  // for workspace entries with no changes, non-git sources, or disabled
+  // write-back mode.
+  //
+  // Populated during post-execution processing. Each entry tracks the
+  // write-back lifecycle (committed -> pushed -> PR created) and carries
+  // the PR URL for UI display.
+  //
+  // @since Platform-Owned Git Write-Back
+  repeated WorkspaceWriteBack workspace_write_backs = 17;
 }
 
 // Represents a single item in the agent's todo list.

@@ -77,7 +77,18 @@ type ExecutionArtifact struct {
 	// Paths use forward slashes and are relative to the archive root.
 	// Directory entries are excluded — only regular files are listed.
 	// Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
-	Entries       []string `protobuf:"bytes,9,rep,name=entries,proto3" json:"entries,omitempty"`
+	Entries []string `protobuf:"bytes,9,rep,name=entries,proto3" json:"entries,omitempty"`
+	// SHA-256 hex digest of the uploaded artifact bytes.
+	//
+	// Used as a cache-invalidation signal by UI clients: when the same file
+	// is overwritten (e.g., written then edited in the same execution), the
+	// storage_key remains stable but the content_hash changes. Clients
+	// include this value in their fetch-effect dependencies so that content
+	// is re-fetched whenever the underlying bytes change.
+	//
+	// Empty for older artifacts created before this field was added.
+	// Example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+	ContentHash   string `protobuf:"bytes,10,opt,name=content_hash,json=contentHash,proto3" json:"content_hash,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -175,11 +186,18 @@ func (x *ExecutionArtifact) GetEntries() []string {
 	return nil
 }
 
+func (x *ExecutionArtifact) GetContentHash() string {
+	if x != nil {
+		return x.ContentHash
+	}
+	return ""
+}
+
 var File_ai_stigmer_agentic_agentexecution_v1_artifact_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_agentexecution_v1_artifact_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xe0\x02\n" +
+	"3ai/stigmer/agentic/agentexecution/v1/artifact.proto\x12$ai.stigmer.agentic.agentexecution.v1\x1a/ai/stigmer/agentic/agentexecution/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\x83\x03\n" +
 	"\x11ExecutionArtifact\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12!\n" +
 	"\fsandbox_path\x18\x02 \x01(\tR\vsandboxPath\x12Y\n" +
@@ -193,7 +211,9 @@ const file_ai_stigmer_agentic_agentexecution_v1_artifact_proto_rawDesc = "" +
 	"created_at\x18\a \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\b \x01(\tR\texpiresAt\x12\x18\n" +
-	"\aentries\x18\t \x03(\tR\aentriesB\xd1\x02\n" +
+	"\aentries\x18\t \x03(\tR\aentries\x12!\n" +
+	"\fcontent_hash\x18\n" +
+	" \x01(\tR\vcontentHashB\xd1\x02\n" +
 	"(com.ai.stigmer.agentic.agentexecution.v1B\rArtifactProtoP\x01Zagithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/agentexecution/v1;agentexecutionv1\xa2\x02\x04ASAA\xaa\x02$Ai.Stigmer.Agentic.Agentexecution.V1\xca\x02$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\xe2\x020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMetadata\xea\x02(Ai::Stigmer::Agentic::Agentexecution::V1b\x06proto3"
 
 var (

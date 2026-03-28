@@ -5,6 +5,7 @@ package ai.stigmer.sdk.gen;
 import ai.stigmer.agentic.agent.v1.McpServerUsage;
 import ai.stigmer.agentic.agent.v1.ToolApprovalOverride;
 import ai.stigmer.agentic.session.v1.GitRepoSource;
+import ai.stigmer.agentic.session.v1.GitWriteBackMode;
 import ai.stigmer.agentic.session.v1.LocalPathSource;
 import ai.stigmer.agentic.session.v1.Session;
 import ai.stigmer.agentic.session.v1.SessionSpec;
@@ -203,12 +204,14 @@ public final class SessionInput {
         private final String branch;
         private final String commit;
         private final int depth;
+        private final GitWriteBackMode writeBackMode;
 
         private GitRepoSourceInput(Builder builder) {
             this.url = builder.url;
             this.branch = builder.branch;
             this.commit = builder.commit;
             this.depth = builder.depth;
+            this.writeBackMode = builder.writeBackMode;
         }
 
         GitRepoSource toProto() {
@@ -223,6 +226,9 @@ public final class SessionInput {
                 builder.setCommit(this.commit);
             }
             builder.setDepth(this.depth);
+            if (this.writeBackMode != null) {
+                builder.setWriteBackMode(this.writeBackMode);
+            }
             return builder.build();
         }
 
@@ -233,6 +239,7 @@ public final class SessionInput {
             private String branch;
             private String commit;
             private int depth;
+            private GitWriteBackMode writeBackMode;
 
             private Builder() {}
 
@@ -240,6 +247,7 @@ public final class SessionInput {
             public Builder branch(String branch) { this.branch = branch; return this; }
             public Builder commit(String commit) { this.commit = commit; return this; }
             public Builder depth(int depth) { this.depth = depth; return this; }
+            public Builder writeBackMode(GitWriteBackMode writeBackMode) { this.writeBackMode = writeBackMode; return this; }
 
             public GitRepoSourceInput build() { return new GitRepoSourceInput(this); }
         }

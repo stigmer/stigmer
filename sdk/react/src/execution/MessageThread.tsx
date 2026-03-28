@@ -22,6 +22,7 @@ import { SetupProgress } from "./SetupProgress";
 import { ApprovalCard } from "./ApprovalCard";
 import { FilePathContext, type FilePathContextValue } from "./FilePathContext";
 import type { ResolvedPathAction } from "./file-path-resolver";
+import { SandboxContext, type SandboxContextValue } from "./SandboxContext";
 
 export interface MessageThreadProps {
   /** Completed executions in chronological order. */
@@ -87,6 +88,15 @@ export interface MessageThreadProps {
     path: string,
     resolved: ResolvedPathAction,
   ) => void;
+  /**
+   * Absolute sandbox workspace root (e.g. `/home/daytona/workspace`).
+   * When provided, shell commands and tool output normalize absolute
+   * sandbox paths to workspace-relative display paths.
+   *
+   * Pass an empty string or omit for local sessions where paths are
+   * the user's own filesystem (no normalization needed).
+   */
+  readonly sandboxWorkspaceRoot?: string;
 }
 
 const AUTO_SCROLL_THRESHOLD_PX = 80;
@@ -266,6 +276,7 @@ export function MessageThread({
   dismissedApprovalIds,
   workspaceEntries,
   onFilePathClick,
+  sandboxWorkspaceRoot,
 }: MessageThreadProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isNearBottomRef = useRef(true);
@@ -298,6 +309,11 @@ export function MessageThread({
     [workspaceEntries, onFilePathClick],
   );
 
+  const sandboxCtx = useMemo<SandboxContextValue>(
+    () => ({ sandboxWorkspaceRoot: sandboxWorkspaceRoot ?? "" }),
+    [sandboxWorkspaceRoot],
+  );
+
   return (
     <div
       ref={scrollRef}
@@ -314,6 +330,7 @@ export function MessageThread({
         className,
       )}
     >
+      <SandboxContext.Provider value={sandboxCtx}>
       <FilePathContext.Provider value={filePathCtx}>
         {items.map((item) => {
           switch (item.kind) {
@@ -370,6 +387,7 @@ export function MessageThread({
           }
         })}
       </FilePathContext.Provider>
+      </SandboxContext.Provider>
     </div>
   );
 }

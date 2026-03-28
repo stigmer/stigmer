@@ -80,6 +80,10 @@ export interface UseArtifactContentReturn {
  * @param storageKey - Storage key from `ExecutionArtifact.storageKey`, or `null` to skip.
  * @param entryPath - For directory artifacts: relative path of a file within
  *   the archive to extract. `null` returns the full artifact (existing behavior).
+ * @param contentHash - SHA-256 hex digest from `ExecutionArtifact.contentHash`.
+ *   When the same file is overwritten during execution, the `storageKey` stays
+ *   stable but `contentHash` changes, triggering a re-fetch so the UI never
+ *   shows stale content. Pass `undefined` or omit for backwards compatibility.
  *
  * @see useExecutionArtifacts — extracts artifact metadata from an execution
  * @see isTextArtifact — heuristic for whether content is fetchable as text
@@ -88,6 +92,7 @@ export function useArtifactContent(
   executionId: string | null,
   storageKey: string | null,
   entryPath?: string | null,
+  contentHash?: string,
 ): UseArtifactContentReturn {
   const stigmer = useStigmer();
 
@@ -150,7 +155,7 @@ export function useArtifactContent(
     return () => {
       cancelled.current = true;
     };
-  }, [executionId, storageKey, entryPath, stigmer, fetchKey]);
+  }, [executionId, storageKey, entryPath, contentHash, stigmer, fetchKey]);
 
   return { content, contentType, isTruncated, isLoading, error, refetch };
 }

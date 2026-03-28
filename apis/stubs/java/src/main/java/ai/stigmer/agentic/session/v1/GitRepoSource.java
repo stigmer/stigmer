@@ -42,6 +42,7 @@ private static final long serialVersionUID = 0L;
     url_ = "";
     branch_ = "";
     commit_ = "";
+    writeBackMode_ = 0;
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -265,6 +266,54 @@ private static final long serialVersionUID = 0L;
     return depth_;
   }
 
+  public static final int WRITE_BACK_MODE_FIELD_NUMBER = 5;
+  private int writeBackMode_ = 0;
+  /**
+   * <pre>
+   * Controls whether the platform automatically creates a branch and
+   * pull request from the agent's file changes after execution completes.
+   *
+   * This is a platform-level workflow, not an agent-level decision. The
+   * agent focuses on making code changes; the platform packages them.
+   *
+   * Requires git credentials to be configured during workspace provisioning
+   * (GITHUB_TOKEN available in the execution environment). If credentials
+   * are not available, the write-back is silently skipped regardless of
+   * this setting.
+   *
+   * Default (UNSPECIFIED): no write-back, current behavior.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
+   * @return The enum numeric value on the wire for writeBackMode.
+   */
+  @java.lang.Override public int getWriteBackModeValue() {
+    return writeBackMode_;
+  }
+  /**
+   * <pre>
+   * Controls whether the platform automatically creates a branch and
+   * pull request from the agent's file changes after execution completes.
+   *
+   * This is a platform-level workflow, not an agent-level decision. The
+   * agent focuses on making code changes; the platform packages them.
+   *
+   * Requires git credentials to be configured during workspace provisioning
+   * (GITHUB_TOKEN available in the execution environment). If credentials
+   * are not available, the write-back is silently skipped regardless of
+   * this setting.
+   *
+   * Default (UNSPECIFIED): no write-back, current behavior.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
+   * @return The writeBackMode.
+   */
+  @java.lang.Override public ai.stigmer.agentic.session.v1.GitWriteBackMode getWriteBackMode() {
+    ai.stigmer.agentic.session.v1.GitWriteBackMode result = ai.stigmer.agentic.session.v1.GitWriteBackMode.forNumber(writeBackMode_);
+    return result == null ? ai.stigmer.agentic.session.v1.GitWriteBackMode.UNRECOGNIZED : result;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -291,6 +340,9 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeInt32(4, depth_);
     }
+    if (writeBackMode_ != ai.stigmer.agentic.session.v1.GitWriteBackMode.GIT_WRITE_BACK_MODE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(5, writeBackMode_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -312,6 +364,10 @@ private static final long serialVersionUID = 0L;
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeInt32Size(4, depth_);
+    }
+    if (writeBackMode_ != ai.stigmer.agentic.session.v1.GitWriteBackMode.GIT_WRITE_BACK_MODE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(5, writeBackMode_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -339,6 +395,7 @@ private static final long serialVersionUID = 0L;
       if (getDepth()
           != other.getDepth()) return false;
     }
+    if (writeBackMode_ != other.writeBackMode_) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -360,6 +417,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + DEPTH_FIELD_NUMBER;
       hash = (53 * hash) + getDepth();
     }
+    hash = (37 * hash) + WRITE_BACK_MODE_FIELD_NUMBER;
+    hash = (53 * hash) + writeBackMode_;
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -506,6 +565,7 @@ private static final long serialVersionUID = 0L;
       branch_ = "";
       commit_ = "";
       depth_ = 0;
+      writeBackMode_ = 0;
       return this;
     }
 
@@ -553,6 +613,9 @@ private static final long serialVersionUID = 0L;
         result.depth_ = depth_;
         to_bitField0_ |= 0x00000001;
       }
+      if (((from_bitField0_ & 0x00000010) != 0)) {
+        result.writeBackMode_ = writeBackMode_;
+      }
       result.bitField0_ |= to_bitField0_;
     }
 
@@ -585,6 +648,9 @@ private static final long serialVersionUID = 0L;
       }
       if (other.hasDepth()) {
         setDepth(other.getDepth());
+      }
+      if (other.writeBackMode_ != 0) {
+        setWriteBackModeValue(other.getWriteBackModeValue());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -632,6 +698,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000008;
               break;
             } // case 32
+            case 40: {
+              writeBackMode_ = input.readEnum();
+              bitField0_ |= 0x00000010;
+              break;
+            } // case 40
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1055,6 +1126,133 @@ private static final long serialVersionUID = 0L;
     public Builder clearDepth() {
       bitField0_ = (bitField0_ & ~0x00000008);
       depth_ = 0;
+      onChanged();
+      return this;
+    }
+
+    private int writeBackMode_ = 0;
+    /**
+     * <pre>
+     * Controls whether the platform automatically creates a branch and
+     * pull request from the agent's file changes after execution completes.
+     *
+     * This is a platform-level workflow, not an agent-level decision. The
+     * agent focuses on making code changes; the platform packages them.
+     *
+     * Requires git credentials to be configured during workspace provisioning
+     * (GITHUB_TOKEN available in the execution environment). If credentials
+     * are not available, the write-back is silently skipped regardless of
+     * this setting.
+     *
+     * Default (UNSPECIFIED): no write-back, current behavior.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
+     * @return The enum numeric value on the wire for writeBackMode.
+     */
+    @java.lang.Override public int getWriteBackModeValue() {
+      return writeBackMode_;
+    }
+    /**
+     * <pre>
+     * Controls whether the platform automatically creates a branch and
+     * pull request from the agent's file changes after execution completes.
+     *
+     * This is a platform-level workflow, not an agent-level decision. The
+     * agent focuses on making code changes; the platform packages them.
+     *
+     * Requires git credentials to be configured during workspace provisioning
+     * (GITHUB_TOKEN available in the execution environment). If credentials
+     * are not available, the write-back is silently skipped regardless of
+     * this setting.
+     *
+     * Default (UNSPECIFIED): no write-back, current behavior.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
+     * @param value The enum numeric value on the wire for writeBackMode to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setWriteBackModeValue(int value) {
+      writeBackMode_ = value;
+      bitField0_ |= 0x00000010;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Controls whether the platform automatically creates a branch and
+     * pull request from the agent's file changes after execution completes.
+     *
+     * This is a platform-level workflow, not an agent-level decision. The
+     * agent focuses on making code changes; the platform packages them.
+     *
+     * Requires git credentials to be configured during workspace provisioning
+     * (GITHUB_TOKEN available in the execution environment). If credentials
+     * are not available, the write-back is silently skipped regardless of
+     * this setting.
+     *
+     * Default (UNSPECIFIED): no write-back, current behavior.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
+     * @return The writeBackMode.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.session.v1.GitWriteBackMode getWriteBackMode() {
+      ai.stigmer.agentic.session.v1.GitWriteBackMode result = ai.stigmer.agentic.session.v1.GitWriteBackMode.forNumber(writeBackMode_);
+      return result == null ? ai.stigmer.agentic.session.v1.GitWriteBackMode.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Controls whether the platform automatically creates a branch and
+     * pull request from the agent's file changes after execution completes.
+     *
+     * This is a platform-level workflow, not an agent-level decision. The
+     * agent focuses on making code changes; the platform packages them.
+     *
+     * Requires git credentials to be configured during workspace provisioning
+     * (GITHUB_TOKEN available in the execution environment). If credentials
+     * are not available, the write-back is silently skipped regardless of
+     * this setting.
+     *
+     * Default (UNSPECIFIED): no write-back, current behavior.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
+     * @param value The writeBackMode to set.
+     * @return This builder for chaining.
+     */
+    public Builder setWriteBackMode(ai.stigmer.agentic.session.v1.GitWriteBackMode value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00000010;
+      writeBackMode_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Controls whether the platform automatically creates a branch and
+     * pull request from the agent's file changes after execution completes.
+     *
+     * This is a platform-level workflow, not an agent-level decision. The
+     * agent focuses on making code changes; the platform packages them.
+     *
+     * Requires git credentials to be configured during workspace provisioning
+     * (GITHUB_TOKEN available in the execution environment). If credentials
+     * are not available, the write-back is silently skipped regardless of
+     * this setting.
+     *
+     * Default (UNSPECIFIED): no write-back, current behavior.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5 [json_name = "writeBackMode"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearWriteBackMode() {
+      bitField0_ = (bitField0_ & ~0x00000010);
+      writeBackMode_ = 0;
       onChanged();
       return this;
     }

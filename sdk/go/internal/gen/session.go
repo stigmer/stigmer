@@ -98,10 +98,11 @@ type WorkspaceSourceInput struct {
 
 // GitRepoSourceInput is the SDK input type for GitRepoSource.
 type GitRepoSourceInput struct {
-	Url    string
-	Branch string
-	Commit string
-	Depth  int32
+	Url           string
+	Branch        string
+	Commit        string
+	Depth         int32
+	WriteBackMode sessionv1.GitWriteBackMode
 }
 
 // LocalPathSourceInput is the SDK input type for LocalPathSource.

@@ -258,4 +258,42 @@ public interface ExecutionArtifactOrBuilder extends
    */
   com.google.protobuf.ByteString
       getEntriesBytes(int index);
+
+  /**
+   * <pre>
+   * SHA-256 hex digest of the uploaded artifact bytes.
+   *
+   * Used as a cache-invalidation signal by UI clients: when the same file
+   * is overwritten (e.g., written then edited in the same execution), the
+   * storage_key remains stable but the content_hash changes. Clients
+   * include this value in their fetch-effect dependencies so that content
+   * is re-fetched whenever the underlying bytes change.
+   *
+   * Empty for older artifacts created before this field was added.
+   * Example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   * </pre>
+   *
+   * <code>string content_hash = 10 [json_name = "contentHash"];</code>
+   * @return The contentHash.
+   */
+  java.lang.String getContentHash();
+  /**
+   * <pre>
+   * SHA-256 hex digest of the uploaded artifact bytes.
+   *
+   * Used as a cache-invalidation signal by UI clients: when the same file
+   * is overwritten (e.g., written then edited in the same execution), the
+   * storage_key remains stable but the content_hash changes. Clients
+   * include this value in their fetch-effect dependencies so that content
+   * is re-fetched whenever the underlying bytes change.
+   *
+   * Empty for older artifacts created before this field was added.
+   * Example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   * </pre>
+   *
+   * <code>string content_hash = 10 [json_name = "contentHash"];</code>
+   * @return The bytes for contentHash.
+   */
+  com.google.protobuf.ByteString
+      getContentHashBytes();
 }

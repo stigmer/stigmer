@@ -13,7 +13,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/artifact.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_artifact: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXJ0aWZhY3QucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKEAgoRRXhlY3V0aW9uQXJ0aWZhY3QSDAoEbmFtZRgBIAEoCRIUCgxzYW5kYm94X3BhdGgYAiABKAkSUwoEa2luZBgDIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25BcnRpZmFjdEtpbmRCCLpIBYIBAhABEhIKCnNpemVfYnl0ZXMYBCABKAMSEwoLc3RvcmFnZV9rZXkYBSABKAkSFAoMZG93bmxvYWRfdXJsGAYgASgJEhIKCmNyZWF0ZWRfYXQYByABKAkSEgoKZXhwaXJlc19hdBgIIAEoCRIPCgdlbnRyaWVzGAkgAygJYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_buf_validate_validate]);
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXJ0aWZhY3QucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKaAgoRRXhlY3V0aW9uQXJ0aWZhY3QSDAoEbmFtZRgBIAEoCRIUCgxzYW5kYm94X3BhdGgYAiABKAkSUwoEa2luZBgDIAEoDjI7LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5FeGVjdXRpb25BcnRpZmFjdEtpbmRCCLpIBYIBAhABEhIKCnNpemVfYnl0ZXMYBCABKAMSEwoLc3RvcmFnZV9rZXkYBSABKAkSFAoMZG93bmxvYWRfdXJsGAYgASgJEhIKCmNyZWF0ZWRfYXQYByABKAkSEgoKZXhwaXJlc19hdBgIIAEoCRIPCgdlbnRyaWVzGAkgAygJEhQKDGNvbnRlbnRfaGFzaBgKIAEoCWIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_buf_validate_validate]);
 
 /**
  * ExecutionArtifact represents a file or directory published by an agent.
@@ -118,6 +118,22 @@ export type ExecutionArtifact = Message<"ai.stigmer.agentic.agentexecution.v1.Ex
    * @generated from field: repeated string entries = 9;
    */
   entries: string[];
+
+  /**
+   * SHA-256 hex digest of the uploaded artifact bytes.
+   *
+   * Used as a cache-invalidation signal by UI clients: when the same file
+   * is overwritten (e.g., written then edited in the same execution), the
+   * storage_key remains stable but the content_hash changes. Clients
+   * include this value in their fetch-effect dependencies so that content
+   * is re-fetched whenever the underlying bytes change.
+   *
+   * Empty for older artifacts created before this field was added.
+   * Example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   *
+   * @generated from field: string content_hash = 10;
+   */
+  contentHash: string;
 };
 
 /**

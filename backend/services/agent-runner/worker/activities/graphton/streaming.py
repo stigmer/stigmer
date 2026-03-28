@@ -75,6 +75,7 @@ class StreamExecutor:
         slim_status_fn: Callable[[AgentExecutionStatus], AgentExecutionStatus],
         logger: logging.Logger,
         on_file_written: Callable[[str], Any] | None = None,
+        on_git_file_modified: Callable[[str], Any] | None = None,
     ) -> None:
         self._graph = agent_graph
         self._config = config
@@ -91,7 +92,9 @@ class StreamExecutor:
         self._slim_status = slim_status_fn
         self._log = logger
         self._on_file_written = on_file_written
+        self._on_git_file_modified = on_git_file_modified
         self._pending_publishes: set[asyncio.Task[None]] = set()
+        self._pending_git_tasks: set[asyncio.Task[None]] = set()
 
     @property
     def pending_publish_tasks(self) -> set[asyncio.Task[None]]:
@@ -105,11 +108,19 @@ class StreamExecutor:
         self._pending_publishes = {t for t in self._pending_publishes if not t.done()}
         return set(self._pending_publishes)
 
-    def _maybe_trigger_inline_publish(self, event: dict[str, Any]) -> None:
-        """If *event* is an ``on_tool_end`` for a file-modifying tool, fire a
-        background publish task via the ``on_file_written`` callback."""
-        if self._on_file_written is None:
-            return
+    @property
+    def pending_git_tasks(self) -> set[asyncio.Task[None]]:
+        """Background git write-back tasks that have not yet completed."""
+        self._pending_git_tasks = {t for t in self._pending_git_tasks if not t.done()}
+        return set(self._pending_git_tasks)
+
+    def _on_file_modifying_tool_end(self, event: dict[str, Any]) -> None:
+        """Handle ``on_tool_end`` for file-modifying tools.
+
+        Fires two independent background tasks:
+          - Artifact publish (existing behavior).
+          - Incremental git write-back (new).
+        """
         if event.get("event") != "on_tool_end":
             return
         tool_name = event.get("name", "")
@@ -131,12 +142,21 @@ class StreamExecutor:
             )
             return
 
-        task = asyncio.create_task(
-            self._on_file_written(path),
-            name=f"inline-publish-{self._execution_id}-{path}",
-        )
-        self._pending_publishes.add(task)
-        task.add_done_callback(self._pending_publishes.discard)
+        if self._on_file_written is not None:
+            task = asyncio.create_task(
+                self._on_file_written(path),
+                name=f"inline-publish-{self._execution_id}-{path}",
+            )
+            self._pending_publishes.add(task)
+            task.add_done_callback(self._pending_publishes.discard)
+
+        if self._on_git_file_modified is not None:
+            task = asyncio.create_task(
+                self._on_git_file_modified(path),
+                name=f"git-writeback-{self._execution_id}-{path}",
+            )
+            self._pending_git_tasks.add(task)
+            task.add_done_callback(self._pending_git_tasks.discard)
 
     # ------------------------------------------------------------------
     # Public
@@ -188,7 +208,7 @@ class StreamExecutor:
                         raise asyncio.CancelledError("Paused by user")
 
                     await self._sb.process_event(event)
-                    self._maybe_trigger_inline_publish(event)
+                    self._on_file_modifying_tool_end(event)
                     events_processed += 1
 
                     now = time.monotonic()

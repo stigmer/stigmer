@@ -16,6 +16,7 @@ import {
   extractPrimaryArg,
   type ToolCategory,
 } from "./tool-categories";
+import { useSandboxNormalize } from "./SandboxContext";
 
 export interface ToolCallItemProps {
   readonly toolCall: ToolCall;
@@ -74,6 +75,7 @@ export function ToolCallItem({
     ? subAgentExecution.subject || subAgentExecution.name || categoryInfo.label
     : categoryInfo.label;
 
+  const normalize = useSandboxNormalize();
   const approvalBadge = getApprovalBadge(toolCall);
 
   // Completed/skipped Read items are non-expandable — the clickable
@@ -144,7 +146,11 @@ export function ToolCallItem({
     );
   }
 
-  const displaySubtitle = isSubAgent ? null : primaryArg;
+  const displaySubtitle = isSubAgent
+    ? null
+    : category === "shell" && primaryArg
+      ? normalize(primaryArg)
+      : primaryArg;
 
   return (
     <div className={cn("border-b border-border/50 last:border-b-0", className)}>

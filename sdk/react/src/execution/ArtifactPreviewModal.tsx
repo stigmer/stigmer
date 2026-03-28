@@ -143,6 +143,8 @@ export function ArtifactPreviewModal({
   } = useArtifactContent(
     canFetchContent ? executionId : null,
     canFetchContent ? artifact.storageKey : null,
+    undefined,
+    artifact.contentHash || undefined,
   );
 
   const yamlDetection = useDetectStigmerResource(

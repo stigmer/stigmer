@@ -30,6 +30,7 @@ from worker.activities.graphton.checkpoint_validator import (
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
 
 if TYPE_CHECKING:
+    from worker.activities.graphton.writeback_coordinator import WriteBackCoordinator
     from worker.storage import ArtifactStorage
     from worker.workspace import WorkspaceBackend
 
@@ -52,6 +53,8 @@ async def process_post_stream(
     workspace_backend: WorkspaceBackend,
     auto_publish_fn: Any,
     pending_publish_tasks: set[asyncio.Task[None]] | None = None,
+    writeback_coordinator: WriteBackCoordinator | None = None,
+    pending_git_tasks: set[asyncio.Task[None]] | None = None,
     logger: logging.Logger,
     **_kwargs: Any,
 ) -> PostStreamResult:
@@ -128,6 +131,44 @@ async def process_post_stream(
             "auto-publish failed (non-fatal): %s",
             execution_id, auto_pub_err,
         )
+
+    # Drain in-flight git write-back tasks before the safety-net finalize
+    if pending_git_tasks:
+        logger.info(
+            "[POST_STREAM] execution=%s — awaiting %d in-flight "
+            "git write-back task(s)",
+            execution_id, len(pending_git_tasks),
+        )
+        done, _pending = await asyncio.wait(
+            pending_git_tasks, timeout=120.0,
+        )
+        for t in done:
+            try:
+                exc = t.exception()
+            except asyncio.CancelledError:
+                exc = None
+            if exc is not None:
+                logger.warning(
+                    "[POST_STREAM] execution=%s — git write-back task "
+                    "failed: %s", execution_id, exc,
+                )
+
+    # Git write-back safety net: catch any remaining uncommitted changes
+    # (e.g., files modified by shell commands not tracked by the
+    # incremental hook).
+    if writeback_coordinator is not None:
+        try:
+            await writeback_coordinator.finalize()
+            logger.info(
+                "[POST_STREAM] execution=%s — write-back finalize completed",
+                execution_id,
+            )
+        except Exception as wb_err:
+            logger.warning(
+                "[POST_STREAM] execution=%s — write-back finalize "
+                "failed (non-fatal): %s",
+                execution_id, wb_err,
+            )
 
     status_builder.finalize_context_info()
 
