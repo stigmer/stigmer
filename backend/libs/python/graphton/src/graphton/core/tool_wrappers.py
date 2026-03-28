@@ -1159,7 +1159,10 @@ def _create_write_tool(
             await _stream_write_content(content)
             
             backend.write(path, content)
-            logger.info(f"✅ Wrote file '{path}'")
+            logger.info(
+                "Wrote file '%s' (%d chars, first_200=%r)",
+                path, len(content), content[:200],
+            )
             return f"Successfully wrote {len(content)} characters to '{path}'"
         except Exception as e:
             logger.warning(f"⚠️  write tool failed for '{path}': {e}")

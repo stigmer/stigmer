@@ -1064,15 +1064,16 @@ class TestStaleGitPointer:
 
 
 class TestCredentialHelper:
-    """Credential store configuration in cloud mode."""
+    """Credential store configuration when ``configure_credentials=True``."""
 
     def test_credential_commands_issued_in_cloud_mode(self, tmp_path):
-        """Cloud + GitHub token -> remote URL, credential helper, and file write."""
+        """configure_credentials + GitHub token -> remote URL, credential helper, and file write."""
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _CloudGitBackend(tmp_path)
 
         git_source.provision(
-            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"},
+            is_local_mode=False, configure_credentials=True,
         )
 
         assert any("git remote set-url" in c for c in backend.commands)
@@ -1085,7 +1086,8 @@ class TestCredentialHelper:
         backend = _CloudGitBackend(tmp_path)
 
         git_source.provision(
-            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"},
+            is_local_mode=False, configure_credentials=True,
         )
 
         set_url_cmd = _find_command(backend.commands, "git remote set-url")
@@ -1099,7 +1101,8 @@ class TestCredentialHelper:
         backend = _CloudGitBackend(tmp_path)
 
         git_source.provision(
-            source, backend, {"GITHUB_TOKEN": token}, is_local_mode=False,
+            source, backend, {"GITHUB_TOKEN": token},
+            is_local_mode=False, configure_credentials=True,
         )
 
         cred_write_cmds = [
@@ -1117,7 +1120,8 @@ class TestCredentialHelper:
         backend = _CloudGitBackend(tmp_path)
 
         result = git_source.provision(
-            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"},
+            is_local_mode=False, configure_credentials=True,
         )
 
         assert result.git_metadata is not None
@@ -1138,12 +1142,13 @@ class TestCredentialHelper:
         assert result.git_metadata.git_credentials_configured is False
 
     def test_skipped_without_token(self, tmp_path):
-        """Cloud + no token -> no credential commands, field is False."""
+        """configure_credentials + no token -> no credential commands, field is False."""
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _CloudGitBackend(tmp_path)
 
         result = git_source.provision(
-            source, backend, {}, is_local_mode=False,
+            source, backend, {},
+            is_local_mode=False, configure_credentials=True,
         )
 
         assert not any("git remote set-url" in c for c in backend.commands)
@@ -1151,19 +1156,20 @@ class TestCredentialHelper:
         assert result.git_metadata.git_credentials_configured is False
 
     def test_skipped_for_non_github_url(self, tmp_path):
-        """Non-GitHub URL + token -> no credential commands."""
+        """Non-GitHub URL + token + configure_credentials -> no credential commands."""
         source = _MockGitRepoSource(url="https://gitlab.com/org/repo.git")
         backend = _CloudGitBackend(tmp_path)
 
         git_source.provision(
-            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"},
+            is_local_mode=False, configure_credentials=True,
         )
 
         assert not any("git remote set-url" in c for c in backend.commands)
         assert not any("credential.helper" in c for c in backend.commands)
 
     def test_configured_on_existing_repo(self, tmp_path):
-        """Idempotent path + cloud + token -> credentials configured."""
+        """Idempotent path + configure_credentials + token -> credentials configured."""
         source = _MockGitRepoSource(url="https://github.com/org/repo.git")
         backend = _CloudGitBackend(tmp_path, responses={
             _DETECT_CMD_KEY: ExecuteResult(
@@ -1172,7 +1178,8 @@ class TestCredentialHelper:
         })
 
         result = git_source.provision(
-            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"},
+            is_local_mode=False, configure_credentials=True,
         )
 
         assert not any("git clone" in c for c in backend.commands)
@@ -1208,7 +1215,8 @@ class TestCredentialHelper:
         })
 
         result = git_source.provision(
-            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"},
+            is_local_mode=False, configure_credentials=True,
         )
 
         assert result.source_type is SourceType.GIT_REPO
@@ -1225,7 +1233,8 @@ class TestCredentialHelper:
         })
 
         result = git_source.provision(
-            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"},
+            is_local_mode=False, configure_credentials=True,
         )
 
         assert result.source_type is SourceType.GIT_REPO
@@ -1238,7 +1247,8 @@ class TestCredentialHelper:
         backend = _CloudGitBackend(tmp_path)
 
         git_source.provision(
-            source, backend, {"GITHUB_TOKEN": "ghp_tok"}, is_local_mode=False,
+            source, backend, {"GITHUB_TOKEN": "ghp_tok"},
+            is_local_mode=False, configure_credentials=True,
         )
 
         clone_idx = None

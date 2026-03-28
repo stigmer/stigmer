@@ -725,12 +725,17 @@ async def _execute_graphton_impl(
                 # lives on the sandbox's local overlay filesystem (even in
                 # cloud mode), so --separate-git-dir and FUSE compat hacks
                 # are unnecessary.
+                #
+                # Credential configuration is separate: cloud sandboxes
+                # need a git credential store for write-back (push) even
+                # though the filesystem layout uses local-mode cloning.
                 provision_results = await _run_sync_with_heartbeat(
                     provisioner.provision_all,
                     entries=session.spec.workspace_entries,
                     backend=workspace_backend,
                     merged_env=merged_env_vars,
                     is_local_mode=True,
+                    configure_credentials=not worker_config.is_local_mode(),
                     phase_name="workspace_provisioning",
                     log=activity_logger,
                 )
@@ -1503,6 +1508,15 @@ async def _execute_graphton_impl(
                 rel_path = normalizer(path) if normalizer else path.lstrip("/")
                 file_name = PurePosixPath(rel_path).name
 
+                activity_logger.info(
+                    "[INLINE_PUBLISH] execution=%s — path resolution: "
+                    "tool_path=%r -> normalized=%r (file_name=%r, "
+                    "sandbox=%s, has_normalizer=%s)",
+                    execution_id, path, rel_path, file_name,
+                    "cloud" if sandbox is not None else "local",
+                    normalizer is not None,
+                )
+
                 artifact = await _publish_artifact_to_storage(
                     sandbox=sandbox,
                     storage=artifact_storage,
@@ -1513,16 +1527,30 @@ async def _execute_graphton_impl(
                         workspace_backend.root_dir if sandbox is None else None
                     ),
                 )
+
+                activity_logger.info(
+                    "[INLINE_PUBLISH] execution=%s — content read from "
+                    "sandbox: path=%r, size=%d bytes, hash=%s, "
+                    "first_200=%r",
+                    execution_id, rel_path,
+                    artifact.size_bytes, artifact.content_hash,
+                    artifact.name,
+                )
+
                 status_builder.add_artifact(artifact)
                 activity_logger.info(
-                    f"[INLINE_PUBLISH] execution={execution_id} — "
-                    f"published '{rel_path}' as artifact '{file_name}'"
+                    "[INLINE_PUBLISH] execution=%s — "
+                    "published '%s' as artifact '%s' "
+                    "(size=%d, hash=%s)",
+                    execution_id, rel_path, file_name,
+                    artifact.size_bytes, artifact.content_hash,
                 )
             except Exception as exc:
                 activity_logger.warning(
-                    f"[INLINE_PUBLISH] execution={execution_id} — "
-                    f"failed to publish '{path}' (non-fatal, post-stream "
-                    f"safety net will attempt): {exc}"
+                    "[INLINE_PUBLISH] execution=%s — "
+                    "failed to publish '%s' (non-fatal, post-stream "
+                    "safety net will attempt): %s",
+                    execution_id, path, exc,
                 )
         
         # Create Graphton agent.

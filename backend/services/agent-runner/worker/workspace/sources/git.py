@@ -56,7 +56,7 @@ Security:
     - ``GITHUB_TOKEN`` is reported in ``consumed_keys`` so the caller
       can strip it from the agent's runtime environment (AD-05).
 
-Credential persistence (cloud mode only):
+Credential persistence (``configure_credentials=True``):
     After a successful clone (or when reusing an existing repo), the
     remote URL is cleaned to remove the embedded token and a git
     credential store is configured at ``/home/daytona/.git-credentials``.
@@ -67,8 +67,12 @@ Credential persistence (cloud mode only):
     FUSE+S3 volume) and does not survive sandbox restarts — but neither
     does the separated git directory, so re-provisioning handles both.
 
-    Credential persistence is skipped in local mode to avoid modifying
-    the user's own git configuration.
+    Credential persistence is controlled by the ``configure_credentials``
+    parameter, decoupled from ``is_local_mode``.  Cloud sandboxes on
+    local overlay filesystems use ``is_local_mode=True`` (no FUSE hacks)
+    but still need credentials for write-back.  Local-mode runs on the
+    developer's machine skip credential configuration to avoid modifying
+    the user's own git setup.
 
 Git excludes:
     After provisioning (fresh clone or detected existing repo),
@@ -314,6 +318,7 @@ def provision(
     *,
     target_subdir: str | None = None,
     is_local_mode: bool = True,
+    configure_credentials: bool = False,
 ) -> ProvisionResult:
     """Clone a git repository into the workspace, or reuse an existing clone.
 
@@ -338,6 +343,11 @@ def provision(
         is_local_mode: When ``True`` (default), uses standard git clone.
             When ``False``, enables ``--separate-git-dir`` and FUSE
             volume compatibility configuration.
+        configure_credentials: When ``True``, configure a git credential
+            store for push/fetch access after cloning.  Decoupled from
+            ``is_local_mode`` because cloud sandboxes on local overlay
+            filesystems need ``is_local_mode=True`` (no FUSE hacks) but
+            still require credentials for write-back.
 
     Returns:
         ``ProvisionResult`` with ``git_metadata`` populated.
@@ -363,7 +373,7 @@ def provision(
     if existing is not None:
         _setup_git_excludes(backend, target_subdir=target_subdir)
 
-        if token and not is_local_mode:
+        if token and configure_credentials:
             creds_ok = _configure_git_credentials(
                 backend, url, token, target_subdir=target_subdir,
             )
@@ -418,7 +428,7 @@ def provision(
     _setup_git_excludes(backend, target_subdir=target_subdir)
 
     creds_configured = False
-    if token and not is_local_mode:
+    if token and configure_credentials:
         creds_configured = _configure_git_credentials(
             backend, url, token, target_subdir=target_subdir,
         )
