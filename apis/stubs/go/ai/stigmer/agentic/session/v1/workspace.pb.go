@@ -22,6 +22,68 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// GitWriteBackMode controls the platform's post-execution git workflow
+// for a git-backed workspace entry.
+//
+// The user sets this when creating a session to opt in to automatic
+// PR creation. The agent never sees or controls this setting.
+type GitWriteBackMode int32
+
+const (
+	// No write-back. File changes remain in the sandbox only.
+	// Artifacts are still published as downloadable files.
+	GitWriteBackMode_GIT_WRITE_BACK_MODE_UNSPECIFIED GitWriteBackMode = 0
+	// After execution completes, the platform automatically:
+	//  1. Detects uncommitted changes via `git diff`
+	//  2. Creates a branch (stigmer/{execution_id_short})
+	//  3. Commits all changes
+	//  4. Pushes the branch to the remote
+	//  5. Creates a pull request targeting the original branch
+	//
+	// The write-back outcome is recorded in
+	// AgentExecutionStatus.workspace_write_backs.
+	GitWriteBackMode_GIT_WRITE_BACK_BRANCH_AND_PR GitWriteBackMode = 1
+)
+
+// Enum value maps for GitWriteBackMode.
+var (
+	GitWriteBackMode_name = map[int32]string{
+		0: "GIT_WRITE_BACK_MODE_UNSPECIFIED",
+		1: "GIT_WRITE_BACK_BRANCH_AND_PR",
+	}
+	GitWriteBackMode_value = map[string]int32{
+		"GIT_WRITE_BACK_MODE_UNSPECIFIED": 0,
+		"GIT_WRITE_BACK_BRANCH_AND_PR":    1,
+	}
+)
+
+func (x GitWriteBackMode) Enum() *GitWriteBackMode {
+	p := new(GitWriteBackMode)
+	*p = x
+	return p
+}
+
+func (x GitWriteBackMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (GitWriteBackMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_session_v1_workspace_proto_enumTypes[0].Descriptor()
+}
+
+func (GitWriteBackMode) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_session_v1_workspace_proto_enumTypes[0]
+}
+
+func (x GitWriteBackMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use GitWriteBackMode.Descriptor instead.
+func (GitWriteBackMode) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP(), []int{0}
+}
+
 // WorkspaceSource defines where the agent's workspace content comes from.
 //
 // This is a pure source-definition type: it describes the origin of workspace
@@ -268,7 +330,20 @@ type GitRepoSource struct {
 	//   - N > 0: shallow clone with depth N.
 	//
 	// Uses proto3 optional to distinguish "not set" from "set to 0."
-	Depth         *int32 `protobuf:"varint,4,opt,name=depth,proto3,oneof" json:"depth,omitempty"`
+	Depth *int32 `protobuf:"varint,4,opt,name=depth,proto3,oneof" json:"depth,omitempty"`
+	// Controls whether the platform automatically creates a branch and
+	// pull request from the agent's file changes after execution completes.
+	//
+	// This is a platform-level workflow, not an agent-level decision. The
+	// agent focuses on making code changes; the platform packages them.
+	//
+	// Requires git credentials to be configured during workspace provisioning
+	// (GITHUB_TOKEN available in the execution environment). If credentials
+	// are not available, the write-back is silently skipped regardless of
+	// this setting.
+	//
+	// Default (UNSPECIFIED): no write-back, current behavior.
+	WriteBackMode GitWriteBackMode `protobuf:"varint,5,opt,name=write_back_mode,json=writeBackMode,proto3,enum=ai.stigmer.agentic.session.v1.GitWriteBackMode" json:"write_back_mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -331,6 +406,13 @@ func (x *GitRepoSource) GetDepth() int32 {
 	return 0
 }
 
+func (x *GitRepoSource) GetWriteBackMode() GitWriteBackMode {
+	if x != nil {
+		return x.WriteBackMode
+	}
+	return GitWriteBackMode_GIT_WRITE_BACK_MODE_UNSPECIFIED
+}
+
 var File_ai_stigmer_agentic_session_v1_workspace_proto protoreflect.FileDescriptor
 
 const file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc = "" +
@@ -345,14 +427,18 @@ const file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04name\x12N\n" +
 	"\x06source\x18\x02 \x01(\v2..ai.stigmer.agentic.session.v1.WorkspaceSourceB\x06\xbaH\x03\xc8\x01\x01R\x06source\".\n" +
 	"\x0fLocalPathSource\x12\x1b\n" +
-	"\x04path\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04path\"\x9a\x02\n" +
+	"\x04path\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x04path\"\xf3\x02\n" +
 	"\rGitRepoSource\x12\xaa\x01\n" +
 	"\x03url\x18\x01 \x01(\tB\x97\x01\xbaH\x93\x01\xba\x01\x8c\x01\n" +
 	"\x19git_repo_source.url.https\x12Rurl must use HTTPS (e.g. https://github.com/org/repo). SSH URLs are not supported.\x1a\x1bthis.startsWith('https://')\xc8\x01\x01R\x03url\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x12\x16\n" +
 	"\x06commit\x18\x03 \x01(\tR\x06commit\x12\"\n" +
-	"\x05depth\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00H\x00R\x05depth\x88\x01\x01B\b\n" +
-	"\x06_depthB\x9e\x02\n" +
+	"\x05depth\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00H\x00R\x05depth\x88\x01\x01\x12W\n" +
+	"\x0fwrite_back_mode\x18\x05 \x01(\x0e2/.ai.stigmer.agentic.session.v1.GitWriteBackModeR\rwriteBackModeB\b\n" +
+	"\x06_depth*Y\n" +
+	"\x10GitWriteBackMode\x12#\n" +
+	"\x1fGIT_WRITE_BACK_MODE_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01B\x9e\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\x0eWorkspaceProtoP\x01ZPgithub.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
@@ -367,22 +453,25 @@ func file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescData
 }
 
+var file_ai_stigmer_agentic_session_v1_workspace_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_session_v1_workspace_proto_goTypes = []any{
-	(*WorkspaceSource)(nil), // 0: ai.stigmer.agentic.session.v1.WorkspaceSource
-	(*WorkspaceEntry)(nil),  // 1: ai.stigmer.agentic.session.v1.WorkspaceEntry
-	(*LocalPathSource)(nil), // 2: ai.stigmer.agentic.session.v1.LocalPathSource
-	(*GitRepoSource)(nil),   // 3: ai.stigmer.agentic.session.v1.GitRepoSource
+	(GitWriteBackMode)(0),   // 0: ai.stigmer.agentic.session.v1.GitWriteBackMode
+	(*WorkspaceSource)(nil), // 1: ai.stigmer.agentic.session.v1.WorkspaceSource
+	(*WorkspaceEntry)(nil),  // 2: ai.stigmer.agentic.session.v1.WorkspaceEntry
+	(*LocalPathSource)(nil), // 3: ai.stigmer.agentic.session.v1.LocalPathSource
+	(*GitRepoSource)(nil),   // 4: ai.stigmer.agentic.session.v1.GitRepoSource
 }
 var file_ai_stigmer_agentic_session_v1_workspace_proto_depIdxs = []int32{
-	3, // 0: ai.stigmer.agentic.session.v1.WorkspaceSource.git_repo:type_name -> ai.stigmer.agentic.session.v1.GitRepoSource
-	2, // 1: ai.stigmer.agentic.session.v1.WorkspaceSource.local_path:type_name -> ai.stigmer.agentic.session.v1.LocalPathSource
-	0, // 2: ai.stigmer.agentic.session.v1.WorkspaceEntry.source:type_name -> ai.stigmer.agentic.session.v1.WorkspaceSource
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	4, // 0: ai.stigmer.agentic.session.v1.WorkspaceSource.git_repo:type_name -> ai.stigmer.agentic.session.v1.GitRepoSource
+	3, // 1: ai.stigmer.agentic.session.v1.WorkspaceSource.local_path:type_name -> ai.stigmer.agentic.session.v1.LocalPathSource
+	1, // 2: ai.stigmer.agentic.session.v1.WorkspaceEntry.source:type_name -> ai.stigmer.agentic.session.v1.WorkspaceSource
+	0, // 3: ai.stigmer.agentic.session.v1.GitRepoSource.write_back_mode:type_name -> ai.stigmer.agentic.session.v1.GitWriteBackMode
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_ai_stigmer_agentic_session_v1_workspace_proto_init() }
@@ -400,13 +489,14 @@ func file_ai_stigmer_agentic_session_v1_workspace_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_session_v1_workspace_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_session_v1_workspace_proto_depIdxs,
+		EnumInfos:         file_ai_stigmer_agentic_session_v1_workspace_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_session_v1_workspace_proto = out.File

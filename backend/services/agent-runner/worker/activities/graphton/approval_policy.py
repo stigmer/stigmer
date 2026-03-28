@@ -77,9 +77,6 @@ PLATFORM_TOOL_DEFAULTS: dict[str, dict[str, Any]] = {
         "message": "Execute command: {{args.command}}",
     },
     
-    # Git tools (non-destructive — PR is a reviewable proposal, push is already gated)
-    "create_pull_request": {"requires_approval": False},
-    
     # Agent-internal tools (no external side effects)
     "think": {"requires_approval": False},
 }

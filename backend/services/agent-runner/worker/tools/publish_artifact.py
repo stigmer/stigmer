@@ -21,6 +21,7 @@ Usage:
     print(f"Download at: {result.download_url}")
 """
 
+import hashlib
 import logging
 import mimetypes
 from datetime import UTC, datetime, timedelta
@@ -156,6 +157,7 @@ async def _publish_from_sandbox(
         content_type = _guess_content_type(filename)
     
     # Upload to storage
+    content_hash = hashlib.sha256(content).hexdigest()
     storage_key = f"artifacts/{execution_id}/{filename}"
     logger.info(f"Uploading {len(content)} bytes to storage: {storage_key}")
     storage.upload(storage_key, content, content_type)
@@ -175,6 +177,7 @@ async def _publish_from_sandbox(
         download_url=download_url,
         created_at=now.isoformat(),
         expires_at=expires_at.isoformat(),
+        content_hash=content_hash,
     )
     
     if file_info.is_dir:
@@ -265,6 +268,7 @@ async def _publish_from_local(
         content_type = _guess_content_type(filename)
     
     # Upload to storage
+    content_hash = hashlib.sha256(content).hexdigest()
     storage_key = f"artifacts/{execution_id}/{filename}"
     logger.info(f"Uploading {len(content)} bytes to storage: {storage_key}")
     storage.upload(storage_key, content, content_type)
@@ -284,6 +288,7 @@ async def _publish_from_local(
         download_url=download_url,
         created_at=now.isoformat(),
         expires_at=expires_at.isoformat(),
+        content_hash=content_hash,
     )
     
     if full_path.is_dir():

@@ -54,29 +54,15 @@ def _git_writeback_guidance(
     *,
     heading_level: int = 3,
 ) -> str:
-    """Return a prompt section telling the agent it can push changes.
+    """Return a prompt section telling the agent about git write-back.
 
-    Returns an empty string when *meta* is ``None`` or credentials
-    were not configured.
+    Previously injected instructions for the agent to manually create
+    branches and PRs.  Now that the platform owns the write-back
+    workflow (post-execution branch + commit + push + PR), the agent
+    no longer needs these instructions.  Returns an empty string
+    unconditionally.
     """
-    if meta is None or not meta.git_credentials_configured:
-        return ""
-
-    heading = "#" * heading_level
-    return (
-        f"\n\n{heading} Git Write-Back\n\n"
-        "Git credentials are configured — you can push changes to "
-        "the remote repository.\n\n"
-        "**Rules:**\n"
-        "- Create a new branch for your changes (never push directly "
-        "to the default branch).\n"
-        "- Write clear, meaningful commit messages.\n"
-        "- Push your branch and report the branch name when done.\n"
-        "- After pushing, use `create_pull_request` to open a PR. "
-        "It reads credentials and repo info automatically.\n"
-        "- Do NOT read, echo, or reference credential files "
-        "(e.g. `~/.git-credentials`)."
-    )
+    return ""
 
 
 def _build_single_workspace_section(result: ProvisionResult) -> str:
@@ -100,6 +86,11 @@ def _build_multi_workspace_section(
 ) -> str:
     """Format the workspace section for multiple entries.
 
+    Workspace paths are presented as relative to the workspace root so the
+    LLM naturally generates relative-path commands.  The execute tool
+    already enforces CWD at the workspace root, so relative paths resolve
+    correctly without the agent needing the absolute sandbox path.
+
     The tree heading level is controlled at provisioning time via
     ``tree_heading_level``, so no post-hoc replacement is needed.
     """
@@ -108,22 +99,43 @@ def _build_multi_workspace_section(
     section = (
         f"\n\n## Workspace\n\n"
         f"This session has {len(results)} workspace entries.\n\n"
-        f"**Current working directory**: `{container_root}`\n"
-        f"**Path resolution**: All file tools (read, write, edit, ls, "
-        f"glob, grep) resolve paths relative to the current working "
-        f"directory. Use entry-relative paths "
-        f"(e.g., `{first_label}/src/main.py`) or absolute paths.\n"
+        f"**Path resolution**: All tools resolve paths relative to the "
+        f"workspace root. Use entry-relative paths "
+        f"(e.g., `{first_label}/src/main.py`). "
+        f"Do not use absolute filesystem paths.\n"
     )
 
     for idx, result in enumerate(results):
         label = result.entry_name or f"entry-{idx + 1}"
-        section += f"\n### {label} (`{result.root_dir}`)\n\n"
+        rel_path = _workspace_relative_path(result.root_dir, container_root)
+        section += f"\n### {label} (`{rel_path}`)\n\n"
         section += _format_entry_description(result)
 
         if result.file_tree:
             section += "\n\n" + result.file_tree
 
     return section
+
+
+def _workspace_relative_path(root_dir: str, container_root: str) -> str:
+    """Compute a workspace-relative display path.
+
+    Returns ``os.path.relpath(root_dir, container_root)`` so the LLM sees
+    entry paths like ``plantonhq/agent-fleet`` instead of the absolute
+    sandbox path ``/home/daytona/workspace/plantonhq/agent-fleet``.
+
+    Falls back to ``root_dir`` unchanged when *container_root* is empty
+    (local mode) or when ``relpath`` produces a ``..``-rooted result.
+    """
+    if not container_root:
+        return root_dir
+    try:
+        rel = os.path.relpath(root_dir, container_root)
+    except ValueError:
+        return root_dir
+    if rel.startswith(".."):
+        return root_dir
+    return rel
 
 
 def _format_entry_description(result: ProvisionResult) -> str:

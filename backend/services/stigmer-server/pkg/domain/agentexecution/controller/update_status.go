@@ -184,6 +184,13 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.Artifacts = requestStatus.Artifacts
 	}
 
+	// Merge workspace write-backs (replace with latest from request).
+	// Write-backs are populated during post-execution processing when
+	// the platform detects git changes and creates PRs.
+	if len(requestStatus.WorkspaceWriteBacks) > 0 {
+		updated.Status.WorkspaceWriteBacks = requestStatus.WorkspaceWriteBacks
+	}
+
 	// Update phase (if provided)
 	if requestStatus.Phase != agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED {
 		updated.Status.Phase = requestStatus.Phase
@@ -228,6 +235,7 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		Str("phase", updated.Status.Phase.String()).
 		Int("messages_count", len(updated.Status.Messages)).
 		Int("artifacts_count", len(updated.Status.Artifacts)).
+		Int("write_backs_count", len(updated.Status.WorkspaceWriteBacks)).
 		Int("pending_approvals_count", len(updated.Status.PendingApprovals)).
 		Bool("has_usage", updated.Status.Usage != nil).
 		Bool("has_context_info", updated.Status.ContextInfo != nil).

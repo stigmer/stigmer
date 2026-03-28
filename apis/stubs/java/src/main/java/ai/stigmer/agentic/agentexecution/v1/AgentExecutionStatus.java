@@ -42,6 +42,7 @@ private static final long serialVersionUID = 0L;
     callbackToken_ = com.google.protobuf.ByteString.EMPTY;
     pendingApprovals_ = java.util.Collections.emptyList();
     artifacts_ = java.util.Collections.emptyList();
+    workspaceWriteBacks_ = java.util.Collections.emptyList();
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -1037,6 +1038,122 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     return artifacts_.get(index);
   }
 
+  public static final int WORKSPACE_WRITE_BACKS_FIELD_NUMBER = 17;
+  @SuppressWarnings("serial")
+  private java.util.List<ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack> workspaceWriteBacks_;
+  /**
+   * <pre>
+   * Git write-back outcomes for workspace entries that had changes.
+   *
+   * One entry per git-backed workspace entry where the agent modified
+   * files and write_back_mode was enabled on the GitRepoSource. Omitted
+   * for workspace entries with no changes, non-git sources, or disabled
+   * write-back mode.
+   *
+   * Populated during post-execution processing. Each entry tracks the
+   * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+   * the PR URL for UI display.
+   *
+   * &#64;since Platform-Owned Git Write-Back
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack> getWorkspaceWriteBacksList() {
+    return workspaceWriteBacks_;
+  }
+  /**
+   * <pre>
+   * Git write-back outcomes for workspace entries that had changes.
+   *
+   * One entry per git-backed workspace entry where the agent modified
+   * files and write_back_mode was enabled on the GitRepoSource. Omitted
+   * for workspace entries with no changes, non-git sources, or disabled
+   * write-back mode.
+   *
+   * Populated during post-execution processing. Each entry tracks the
+   * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+   * the PR URL for UI display.
+   *
+   * &#64;since Platform-Owned Git Write-Back
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+   */
+  @java.lang.Override
+  public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackOrBuilder> 
+      getWorkspaceWriteBacksOrBuilderList() {
+    return workspaceWriteBacks_;
+  }
+  /**
+   * <pre>
+   * Git write-back outcomes for workspace entries that had changes.
+   *
+   * One entry per git-backed workspace entry where the agent modified
+   * files and write_back_mode was enabled on the GitRepoSource. Omitted
+   * for workspace entries with no changes, non-git sources, or disabled
+   * write-back mode.
+   *
+   * Populated during post-execution processing. Each entry tracks the
+   * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+   * the PR URL for UI display.
+   *
+   * &#64;since Platform-Owned Git Write-Back
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+   */
+  @java.lang.Override
+  public int getWorkspaceWriteBacksCount() {
+    return workspaceWriteBacks_.size();
+  }
+  /**
+   * <pre>
+   * Git write-back outcomes for workspace entries that had changes.
+   *
+   * One entry per git-backed workspace entry where the agent modified
+   * files and write_back_mode was enabled on the GitRepoSource. Omitted
+   * for workspace entries with no changes, non-git sources, or disabled
+   * write-back mode.
+   *
+   * Populated during post-execution processing. Each entry tracks the
+   * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+   * the PR URL for UI display.
+   *
+   * &#64;since Platform-Owned Git Write-Back
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack getWorkspaceWriteBacks(int index) {
+    return workspaceWriteBacks_.get(index);
+  }
+  /**
+   * <pre>
+   * Git write-back outcomes for workspace entries that had changes.
+   *
+   * One entry per git-backed workspace entry where the agent modified
+   * files and write_back_mode was enabled on the GitRepoSource. Omitted
+   * for workspace entries with no changes, non-git sources, or disabled
+   * write-back mode.
+   *
+   * Populated during post-execution processing. Each entry tracks the
+   * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+   * the PR URL for UI display.
+   *
+   * &#64;since Platform-Owned Git Write-Back
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackOrBuilder getWorkspaceWriteBacksOrBuilder(
+      int index) {
+    return workspaceWriteBacks_.get(index);
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1092,6 +1209,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     for (int i = 0; i < pendingApprovals_.size(); i++) {
       output.writeMessage(16, pendingApprovals_.get(i));
+    }
+    for (int i = 0; i < workspaceWriteBacks_.size(); i++) {
+      output.writeMessage(17, workspaceWriteBacks_.get(i));
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1180,6 +1300,15 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
           }
           size += 2 * count;
         }
+
+        {
+          final int count = workspaceWriteBacks_.size();
+          for (int i = 0; i < count; i++) {
+            size += com.google.protobuf.CodedOutputStream
+              .computeMessageSizeNoTag(workspaceWriteBacks_.get(i));
+          }
+          size += 2 * count;
+        }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -1238,6 +1367,8 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     if (!getArtifactsList()
         .equals(other.getArtifactsList())) return false;
+    if (!getWorkspaceWriteBacksList()
+        .equals(other.getWorkspaceWriteBacksList())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1294,6 +1425,10 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     if (getArtifactsCount() > 0) {
       hash = (37 * hash) + ARTIFACTS_FIELD_NUMBER;
       hash = (53 * hash) + getArtifactsList().hashCode();
+    }
+    if (getWorkspaceWriteBacksCount() > 0) {
+      hash = (37 * hash) + WORKSPACE_WRITE_BACKS_FIELD_NUMBER;
+      hash = (53 * hash) + getWorkspaceWriteBacksList().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1460,6 +1595,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         internalGetPendingApprovalsFieldBuilder();
         internalGetContextInfoFieldBuilder();
         internalGetArtifactsFieldBuilder();
+        internalGetWorkspaceWriteBacksFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1520,6 +1656,13 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         artifactsBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00002000);
+      if (workspaceWriteBacksBuilder_ == null) {
+        workspaceWriteBacks_ = java.util.Collections.emptyList();
+      } else {
+        workspaceWriteBacks_ = null;
+        workspaceWriteBacksBuilder_.clear();
+      }
+      bitField0_ = (bitField0_ & ~0x00004000);
       return this;
     }
 
@@ -1588,6 +1731,15 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         result.artifacts_ = artifacts_;
       } else {
         result.artifacts_ = artifactsBuilder_.build();
+      }
+      if (workspaceWriteBacksBuilder_ == null) {
+        if (((bitField0_ & 0x00004000) != 0)) {
+          workspaceWriteBacks_ = java.util.Collections.unmodifiableList(workspaceWriteBacks_);
+          bitField0_ = (bitField0_ & ~0x00004000);
+        }
+        result.workspaceWriteBacks_ = workspaceWriteBacks_;
+      } else {
+        result.workspaceWriteBacks_ = workspaceWriteBacksBuilder_.build();
       }
     }
 
@@ -1791,6 +1943,32 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
           }
         }
       }
+      if (workspaceWriteBacksBuilder_ == null) {
+        if (!other.workspaceWriteBacks_.isEmpty()) {
+          if (workspaceWriteBacks_.isEmpty()) {
+            workspaceWriteBacks_ = other.workspaceWriteBacks_;
+            bitField0_ = (bitField0_ & ~0x00004000);
+          } else {
+            ensureWorkspaceWriteBacksIsMutable();
+            workspaceWriteBacks_.addAll(other.workspaceWriteBacks_);
+          }
+          onChanged();
+        }
+      } else {
+        if (!other.workspaceWriteBacks_.isEmpty()) {
+          if (workspaceWriteBacksBuilder_.isEmpty()) {
+            workspaceWriteBacksBuilder_.dispose();
+            workspaceWriteBacksBuilder_ = null;
+            workspaceWriteBacks_ = other.workspaceWriteBacks_;
+            bitField0_ = (bitField0_ & ~0x00004000);
+            workspaceWriteBacksBuilder_ = 
+              com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
+                 internalGetWorkspaceWriteBacksFieldBuilder() : null;
+          } else {
+            workspaceWriteBacksBuilder_.addAllMessages(other.workspaceWriteBacks_);
+          }
+        }
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -1924,6 +2102,19 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
               }
               break;
             } // case 130
+            case 138: {
+              ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack m =
+                  input.readMessage(
+                      ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.parser(),
+                      extensionRegistry);
+              if (workspaceWriteBacksBuilder_ == null) {
+                ensureWorkspaceWriteBacksIsMutable();
+                workspaceWriteBacks_.add(m);
+              } else {
+                workspaceWriteBacksBuilder_.addMessage(m);
+              }
+              break;
+            } // case 138
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -5362,6 +5553,516 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         artifacts_ = null;
       }
       return artifactsBuilder_;
+    }
+
+    private java.util.List<ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack> workspaceWriteBacks_ =
+      java.util.Collections.emptyList();
+    private void ensureWorkspaceWriteBacksIsMutable() {
+      if (!((bitField0_ & 0x00004000) != 0)) {
+        workspaceWriteBacks_ = new java.util.ArrayList<ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack>(workspaceWriteBacks_);
+        bitField0_ |= 0x00004000;
+       }
+    }
+
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack, ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.Builder, ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackOrBuilder> workspaceWriteBacksBuilder_;
+
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack> getWorkspaceWriteBacksList() {
+      if (workspaceWriteBacksBuilder_ == null) {
+        return java.util.Collections.unmodifiableList(workspaceWriteBacks_);
+      } else {
+        return workspaceWriteBacksBuilder_.getMessageList();
+      }
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public int getWorkspaceWriteBacksCount() {
+      if (workspaceWriteBacksBuilder_ == null) {
+        return workspaceWriteBacks_.size();
+      } else {
+        return workspaceWriteBacksBuilder_.getCount();
+      }
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack getWorkspaceWriteBacks(int index) {
+      if (workspaceWriteBacksBuilder_ == null) {
+        return workspaceWriteBacks_.get(index);
+      } else {
+        return workspaceWriteBacksBuilder_.getMessage(index);
+      }
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public Builder setWorkspaceWriteBacks(
+        int index, ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack value) {
+      if (workspaceWriteBacksBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureWorkspaceWriteBacksIsMutable();
+        workspaceWriteBacks_.set(index, value);
+        onChanged();
+      } else {
+        workspaceWriteBacksBuilder_.setMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public Builder setWorkspaceWriteBacks(
+        int index, ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.Builder builderForValue) {
+      if (workspaceWriteBacksBuilder_ == null) {
+        ensureWorkspaceWriteBacksIsMutable();
+        workspaceWriteBacks_.set(index, builderForValue.build());
+        onChanged();
+      } else {
+        workspaceWriteBacksBuilder_.setMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public Builder addWorkspaceWriteBacks(ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack value) {
+      if (workspaceWriteBacksBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureWorkspaceWriteBacksIsMutable();
+        workspaceWriteBacks_.add(value);
+        onChanged();
+      } else {
+        workspaceWriteBacksBuilder_.addMessage(value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public Builder addWorkspaceWriteBacks(
+        int index, ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack value) {
+      if (workspaceWriteBacksBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureWorkspaceWriteBacksIsMutable();
+        workspaceWriteBacks_.add(index, value);
+        onChanged();
+      } else {
+        workspaceWriteBacksBuilder_.addMessage(index, value);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public Builder addWorkspaceWriteBacks(
+        ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.Builder builderForValue) {
+      if (workspaceWriteBacksBuilder_ == null) {
+        ensureWorkspaceWriteBacksIsMutable();
+        workspaceWriteBacks_.add(builderForValue.build());
+        onChanged();
+      } else {
+        workspaceWriteBacksBuilder_.addMessage(builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public Builder addWorkspaceWriteBacks(
+        int index, ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.Builder builderForValue) {
+      if (workspaceWriteBacksBuilder_ == null) {
+        ensureWorkspaceWriteBacksIsMutable();
+        workspaceWriteBacks_.add(index, builderForValue.build());
+        onChanged();
+      } else {
+        workspaceWriteBacksBuilder_.addMessage(index, builderForValue.build());
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public Builder addAllWorkspaceWriteBacks(
+        java.lang.Iterable<? extends ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack> values) {
+      if (workspaceWriteBacksBuilder_ == null) {
+        ensureWorkspaceWriteBacksIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, workspaceWriteBacks_);
+        onChanged();
+      } else {
+        workspaceWriteBacksBuilder_.addAllMessages(values);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public Builder clearWorkspaceWriteBacks() {
+      if (workspaceWriteBacksBuilder_ == null) {
+        workspaceWriteBacks_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00004000);
+        onChanged();
+      } else {
+        workspaceWriteBacksBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public Builder removeWorkspaceWriteBacks(int index) {
+      if (workspaceWriteBacksBuilder_ == null) {
+        ensureWorkspaceWriteBacksIsMutable();
+        workspaceWriteBacks_.remove(index);
+        onChanged();
+      } else {
+        workspaceWriteBacksBuilder_.remove(index);
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.Builder getWorkspaceWriteBacksBuilder(
+        int index) {
+      return internalGetWorkspaceWriteBacksFieldBuilder().getBuilder(index);
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackOrBuilder getWorkspaceWriteBacksOrBuilder(
+        int index) {
+      if (workspaceWriteBacksBuilder_ == null) {
+        return workspaceWriteBacks_.get(index);  } else {
+        return workspaceWriteBacksBuilder_.getMessageOrBuilder(index);
+      }
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackOrBuilder> 
+         getWorkspaceWriteBacksOrBuilderList() {
+      if (workspaceWriteBacksBuilder_ != null) {
+        return workspaceWriteBacksBuilder_.getMessageOrBuilderList();
+      } else {
+        return java.util.Collections.unmodifiableList(workspaceWriteBacks_);
+      }
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.Builder addWorkspaceWriteBacksBuilder() {
+      return internalGetWorkspaceWriteBacksFieldBuilder().addBuilder(
+          ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.Builder addWorkspaceWriteBacksBuilder(
+        int index) {
+      return internalGetWorkspaceWriteBacksFieldBuilder().addBuilder(
+          index, ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.getDefaultInstance());
+    }
+    /**
+     * <pre>
+     * Git write-back outcomes for workspace entries that had changes.
+     *
+     * One entry per git-backed workspace entry where the agent modified
+     * files and write_back_mode was enabled on the GitRepoSource. Omitted
+     * for workspace entries with no changes, non-git sources, or disabled
+     * write-back mode.
+     *
+     * Populated during post-execution processing. Each entry tracks the
+     * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+     * the PR URL for UI display.
+     *
+     * &#64;since Platform-Owned Git Write-Back
+     * </pre>
+     *
+     * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+     */
+    public java.util.List<ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.Builder> 
+         getWorkspaceWriteBacksBuilderList() {
+      return internalGetWorkspaceWriteBacksFieldBuilder().getBuilderList();
+    }
+    private com.google.protobuf.RepeatedFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack, ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.Builder, ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackOrBuilder> 
+        internalGetWorkspaceWriteBacksFieldBuilder() {
+      if (workspaceWriteBacksBuilder_ == null) {
+        workspaceWriteBacksBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack, ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack.Builder, ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackOrBuilder>(
+                workspaceWriteBacks_,
+                ((bitField0_ & 0x00004000) != 0),
+                getParentForChildren(),
+                isClean());
+        workspaceWriteBacks_ = null;
+      }
+      return workspaceWriteBacksBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus)

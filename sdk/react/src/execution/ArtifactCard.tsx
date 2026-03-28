@@ -115,6 +115,8 @@ export function ArtifactCard({
   const { content, isLoading: isContentLoading } = useArtifactContent(
     canDetectYaml ? executionId : null,
     canDetectYaml ? artifact.storageKey : null,
+    undefined,
+    artifact.contentHash || undefined,
   );
 
   const yamlDetection = useDetectStigmerResource(

@@ -5,6 +5,7 @@ import { ToolCallStatus } from "@stigmer/protos/ai/stigmer/agentic/agentexecutio
 import { cn } from "@stigmer/theme";
 import { resolveToolCategory } from "./tool-categories";
 import { McpToolDetail } from "./McpToolDetail";
+import { useSandboxNormalize } from "./SandboxContext";
 import { ToolArgsView } from "./ToolArgsView";
 import {
   CollapsibleCode,
@@ -105,6 +106,7 @@ function CategoryRenderer({
 
 function ShellToolDetail({ toolCall }: { toolCall: ToolCall }) {
   const duration = formatDuration(toolCall.startedAt, toolCall.completedAt);
+  const normalize = useSandboxNormalize();
 
   return (
     <>
@@ -121,7 +123,7 @@ function ShellToolDetail({ toolCall }: { toolCall: ToolCall }) {
           <span className="font-medium text-muted-foreground">Output</span>
           <div className="rounded-md border border-border bg-[var(--stgm-terminal-bg,#1a1a2e)] p-2.5">
             <CollapsiblePre
-              content={toolCall.result}
+              content={normalize(toolCall.result)}
               className="text-[var(--stgm-terminal-fg,#e0e0e0)]"
             />
           </div>

@@ -15,6 +15,7 @@ See design decision AD-01 v3 (virtual platform mount) for full rationale.
 
 from __future__ import annotations
 
+import os
 import re
 
 PLATFORM_PREFIX = ".stigmer/"
@@ -102,6 +103,73 @@ def humanize_platform_refs(text: str) -> str:
     if not text:
         return text
     return _PLATFORM_ENV_RE.sub(PLATFORM_DIR_NAME, text)
+
+
+def humanize_sandbox_paths(text: str, workspace_root: str) -> str:
+    """Replace absolute sandbox workspace paths with workspace-relative display
+    paths.
+
+    Intended for display strings only (approval previews, streamed messages) —
+    **not** for the actual command executed in the sandbox, where absolute paths
+    must resolve correctly.
+
+    Performs two ordered replacements:
+
+    1. ``workspace_root + "/"`` → empty string (strips the prefix so paths
+       become workspace-relative, e.g. ``plantonhq/agent-fleet/…``).
+    2. ``workspace_root`` (exact, at a word boundary) → ``"."`` (the workspace
+       root itself, e.g. ``cd /home/daytona/workspace`` → ``cd .``).
+    3. The sandbox home directory (parent of ``workspace_root``) → ``"~"``
+       for paths outside the workspace (e.g. ``/home/daytona/.bashrc`` →
+       ``~/.bashrc``).
+
+    Returns *text* unchanged when *workspace_root* is empty (local mode or
+    not yet resolved).
+
+    Examples::
+
+        >>> humanize_sandbox_paths(
+        ...     "ls /home/daytona/workspace/plantonhq/",
+        ...     "/home/daytona/workspace",
+        ... )
+        'ls plantonhq/'
+        >>> humanize_sandbox_paths(
+        ...     "cd /home/daytona/workspace && ls",
+        ...     "/home/daytona/workspace",
+        ... )
+        'cd . && ls'
+        >>> humanize_sandbox_paths(
+        ...     "cat /home/daytona/.bashrc",
+        ...     "/home/daytona/workspace",
+        ... )
+        'cat ~/.bashrc'
+        >>> humanize_sandbox_paths("ls -la", "/home/daytona/workspace")
+        'ls -la'
+        >>> humanize_sandbox_paths("anything", "")
+        'anything'
+    """
+    if not text or not workspace_root:
+        return text
+
+    # Normalize: strip trailing slashes for consistent matching.
+    ws_root = workspace_root.rstrip("/")
+
+    # 1) Replace workspace_root + "/" prefix with empty string
+    #    (turns absolute workspace paths into relative ones).
+    text = text.replace(ws_root + "/", "")
+
+    # 2) Replace bare workspace_root references (e.g. `cd /home/daytona/workspace`)
+    #    with "." — must run after the slash-suffixed replacement above.
+    text = text.replace(ws_root, ".")
+
+    # 3) Replace sandbox home directory prefix with "~" for paths outside
+    #    the workspace (e.g. /home/daytona/.git-credentials → ~/.git-credentials).
+    sandbox_home = os.path.dirname(ws_root)
+    if sandbox_home and sandbox_home != "/":
+        text = text.replace(sandbox_home + "/", "~/")
+        text = text.replace(sandbox_home, "~")
+
+    return text
 
 
 def resolve_display_env_vars(

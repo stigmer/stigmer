@@ -9,7 +9,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ExecutionArtifact(_message.Message):
-    __slots__ = ("name", "sandbox_path", "kind", "size_bytes", "storage_key", "download_url", "created_at", "expires_at", "entries")
+    __slots__ = ("name", "sandbox_path", "kind", "size_bytes", "storage_key", "download_url", "created_at", "expires_at", "entries", "content_hash")
     NAME_FIELD_NUMBER: _ClassVar[int]
     SANDBOX_PATH_FIELD_NUMBER: _ClassVar[int]
     KIND_FIELD_NUMBER: _ClassVar[int]
@@ -19,6 +19,7 @@ class ExecutionArtifact(_message.Message):
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
     ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_HASH_FIELD_NUMBER: _ClassVar[int]
     name: str
     sandbox_path: str
     kind: _enum_pb2.ExecutionArtifactKind
@@ -28,4 +29,5 @@ class ExecutionArtifact(_message.Message):
     created_at: str
     expires_at: str
     entries: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, name: _Optional[str] = ..., sandbox_path: _Optional[str] = ..., kind: _Optional[_Union[_enum_pb2.ExecutionArtifactKind, str]] = ..., size_bytes: _Optional[int] = ..., storage_key: _Optional[str] = ..., download_url: _Optional[str] = ..., created_at: _Optional[str] = ..., expires_at: _Optional[str] = ..., entries: _Optional[_Iterable[str]] = ...) -> None: ...
+    content_hash: str
+    def __init__(self, name: _Optional[str] = ..., sandbox_path: _Optional[str] = ..., kind: _Optional[_Union[_enum_pb2.ExecutionArtifactKind, str]] = ..., size_bytes: _Optional[int] = ..., storage_key: _Optional[str] = ..., download_url: _Optional[str] = ..., created_at: _Optional[str] = ..., expires_at: _Optional[str] = ..., entries: _Optional[_Iterable[str]] = ..., content_hash: _Optional[str] = ...) -> None: ...

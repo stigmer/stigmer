@@ -53,6 +53,7 @@ export {
   useSessionExecutions,
   useSessionConversation,
   useSessionArtifacts,
+  useSessionWriteBacks,
   useAgentRefFromSession,
   groupSessionsByTime,
   PENDING_SUBJECT,
@@ -71,6 +72,8 @@ export type {
   UseSessionConversationReturn,
   SessionArtifactEntry,
   UseSessionArtifactsReturn,
+  SessionWriteBackEntry,
+  UseSessionWriteBacksReturn,
   UseAgentRefFromSessionReturn,
   SessionGroup,
 } from "./session";
@@ -103,6 +106,7 @@ export {
   ArtifactContentRenderer,
   ArtifactPreviewModal,
   ArtifactsWidget,
+  WriteBacksWidget,
   ToolArgsView,
   McpArgsView,
   McpMetadataRow,
@@ -115,6 +119,8 @@ export {
   SessionVariablesInput,
   useExecutionArtifacts,
   useArtifactContent,
+  useWorkspaceWriteBacks,
+  WriteBackCard,
   isTextArtifact,
   isArtifactExpired,
   formatArtifactSize,
@@ -148,6 +154,7 @@ export type {
   ArtifactRenderMode,
   ArtifactPreviewModalProps,
   ArtifactsWidgetProps,
+  WriteBacksWidgetProps,
   FilePathLinkProps,
   FilePathContextValue,
   PathClassification,
@@ -157,6 +164,8 @@ export type {
   SessionVariablesInputProps,
   UseExecutionArtifactsReturn,
   UseArtifactContentReturn,
+  UseWorkspaceWriteBacksReturn,
+  WriteBackCardProps,
 } from "./execution";
 
 // Execution — proto type re-exports for artifact consumers

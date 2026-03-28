@@ -728,4 +728,103 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    */
   ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactOrBuilder getArtifactsOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Git write-back outcomes for workspace entries that had changes.
+   *
+   * One entry per git-backed workspace entry where the agent modified
+   * files and write_back_mode was enabled on the GitRepoSource. Omitted
+   * for workspace entries with no changes, non-git sources, or disabled
+   * write-back mode.
+   *
+   * Populated during post-execution processing. Each entry tracks the
+   * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+   * the PR URL for UI display.
+   *
+   * &#64;since Platform-Owned Git Write-Back
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+   */
+  java.util.List<ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack> 
+      getWorkspaceWriteBacksList();
+  /**
+   * <pre>
+   * Git write-back outcomes for workspace entries that had changes.
+   *
+   * One entry per git-backed workspace entry where the agent modified
+   * files and write_back_mode was enabled on the GitRepoSource. Omitted
+   * for workspace entries with no changes, non-git sources, or disabled
+   * write-back mode.
+   *
+   * Populated during post-execution processing. Each entry tracks the
+   * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+   * the PR URL for UI display.
+   *
+   * &#64;since Platform-Owned Git Write-Back
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack getWorkspaceWriteBacks(int index);
+  /**
+   * <pre>
+   * Git write-back outcomes for workspace entries that had changes.
+   *
+   * One entry per git-backed workspace entry where the agent modified
+   * files and write_back_mode was enabled on the GitRepoSource. Omitted
+   * for workspace entries with no changes, non-git sources, or disabled
+   * write-back mode.
+   *
+   * Populated during post-execution processing. Each entry tracks the
+   * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+   * the PR URL for UI display.
+   *
+   * &#64;since Platform-Owned Git Write-Back
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+   */
+  int getWorkspaceWriteBacksCount();
+  /**
+   * <pre>
+   * Git write-back outcomes for workspace entries that had changes.
+   *
+   * One entry per git-backed workspace entry where the agent modified
+   * files and write_back_mode was enabled on the GitRepoSource. Omitted
+   * for workspace entries with no changes, non-git sources, or disabled
+   * write-back mode.
+   *
+   * Populated during post-execution processing. Each entry tracks the
+   * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+   * the PR URL for UI display.
+   *
+   * &#64;since Platform-Owned Git Write-Back
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+   */
+  java.util.List<? extends ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackOrBuilder> 
+      getWorkspaceWriteBacksOrBuilderList();
+  /**
+   * <pre>
+   * Git write-back outcomes for workspace entries that had changes.
+   *
+   * One entry per git-backed workspace entry where the agent modified
+   * files and write_back_mode was enabled on the GitRepoSource. Omitted
+   * for workspace entries with no changes, non-git sources, or disabled
+   * write-back mode.
+   *
+   * Populated during post-execution processing. Each entry tracks the
+   * write-back lifecycle (committed -&gt; pushed -&gt; PR created) and carries
+   * the PR URL for UI display.
+   *
+   * &#64;since Platform-Owned Git Write-Back
+   * </pre>
+   *
+   * <code>repeated .ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBack workspace_write_backs = 17 [json_name = "workspaceWriteBacks"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackOrBuilder getWorkspaceWriteBacksOrBuilder(
+      int index);
 }

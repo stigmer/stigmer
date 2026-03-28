@@ -17,6 +17,7 @@ go_library(
         "spec.pb.go",
         "subagent.pb.go",
         "usage.pb.go",
+        "writeback.pb.go",
     ],
     importpath = "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1",
     visibility = ["//visibility:public"],

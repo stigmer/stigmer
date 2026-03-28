@@ -47,6 +47,20 @@
       "description": "Clone depth (optional).\n\n Presence semantics:\n   - Absent (not set): shallow clone with depth 1 (fast default).\n   - 0: full clone with complete history.\n   - N \u003e 0: shallow clone with depth N.\n\n Uses proto3 optional to distinguish \"not set\" from \"set to 0.\"",
       "required": false,
       "oneofGroup": "_depth"
+    },
+    {
+      "name": "WriteBackMode",
+      "jsonName": "writeBackMode",
+      "protoField": "write_back_mode",
+      "type": {
+        "kind": "string",
+        "enumType": "ai.stigmer.agentic.session.v1.GitWriteBackMode",
+        "enumValues": [
+          "GIT_WRITE_BACK_BRANCH_AND_PR"
+        ]
+      },
+      "description": "Controls whether the platform automatically creates a branch and\n pull request from the agent's file changes after execution completes.\n\n This is a platform-level workflow, not an agent-level decision. The\n agent focuses on making code changes; the platform packages them.\n\n Requires git credentials to be configured during workspace provisioning\n (GITHUB_TOKEN available in the execution environment). If credentials\n are not available, the write-back is silently skipped regardless of\n this setting.\n\n Default (UNSPECIFIED): no write-back, current behavior.",
+      "required": false
     }
   ]
 }

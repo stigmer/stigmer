@@ -19,6 +19,12 @@ export type { UseExecutionArtifactsReturn } from "./useExecutionArtifacts";
 export { useArtifactContent } from "./useArtifactContent";
 export type { UseArtifactContentReturn } from "./useArtifactContent";
 
+export { useWorkspaceWriteBacks } from "./useWorkspaceWriteBacks";
+export type { UseWorkspaceWriteBacksReturn } from "./useWorkspaceWriteBacks";
+
+export { WriteBackCard } from "./WriteBackCard";
+export type { WriteBackCardProps } from "./WriteBackCard";
+
 export {
   isTextArtifact,
   isArtifactExpired,
@@ -104,6 +110,9 @@ export type { ArtifactPreviewModalProps } from "./ArtifactPreviewModal";
 export { ArtifactsWidget } from "./ArtifactsWidget";
 export type { ArtifactsWidgetProps } from "./ArtifactsWidget";
 
+export { WriteBacksWidget } from "./WriteBacksWidget";
+export type { WriteBacksWidgetProps } from "./WriteBacksWidget";
+
 export {
   resolveToolCategory,
   extractPrimaryArg,
@@ -117,6 +126,10 @@ export type { FilePathLinkProps } from "./FilePathLink";
 
 export { FilePathContext } from "./FilePathContext";
 export type { FilePathContextValue } from "./FilePathContext";
+
+export { normalizeSandboxPaths } from "./sandbox-path-normalizer";
+export { SandboxContext, useSandboxNormalize } from "./SandboxContext";
+export type { SandboxContextValue } from "./SandboxContext";
 
 export { classifyPath, resolveGitBrowseUrl, resolvePathAction } from "./file-path-resolver";
 export type { PathClassification, ResolvedPathAction } from "./file-path-resolver";

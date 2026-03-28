@@ -751,7 +751,24 @@ async def _execute_graphton_impl(
                 "source_types": [pr.source_type.value for pr in provision_results],
                 "primary_root_dir": provision_results[0].root_dir if provision_results else None,
             })
-        
+
+        # Incremental git write-back coordinator
+        from worker.activities.graphton.writeback_coordinator import WriteBackCoordinator
+
+        writeback_coordinator: WriteBackCoordinator | None = None
+        if provision_results and session.spec.workspace_entries:
+            writeback_coordinator = WriteBackCoordinator(
+                status_builder=status_builder,
+                execution_id=execution_id,
+                provision_results=provision_results,
+                workspace_entries=list(session.spec.workspace_entries),
+                sandbox=sandbox,
+                workspace_backend=workspace_backend,
+                logger=activity_logger,
+            )
+            if not writeback_coordinator.has_eligible_entries:
+                writeback_coordinator = None
+
         # ─────────────────────────────────────────────────────────────────────────────
         # Workspace integrity flag (resume fast-path safety net)
         #
@@ -1121,6 +1138,7 @@ async def _execute_graphton_impl(
         # Initialize status builder with approval config
         status_builder = StatusBuilder(execution_id, execution.status, approval_config)
         status_builder.set_display_env_vars(merged_env_vars, secret_keys)
+        status_builder.set_workspace_root(workspace_backend.root_dir)
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 5.7: Build ResolvedExecutionContext (Phase 2.5)
@@ -1725,6 +1743,11 @@ async def _execute_graphton_impl(
             slim_status_fn=_slim_status_for_temporal,
             logger=activity_logger,
             on_file_written=_publish_file_inline,
+            on_git_file_modified=(
+                writeback_coordinator.on_file_modified
+                if writeback_coordinator is not None
+                else None
+            ),
         )
         stream_result = await stream_executor.execute(
             graph_input, is_resume=is_resume_from_approval,
@@ -1745,6 +1768,8 @@ async def _execute_graphton_impl(
             secret_keys=secret_keys,
             auto_publish_fn=_auto_publish_written_files,
             pending_publish_tasks=stream_executor.pending_publish_tasks,
+            writeback_coordinator=writeback_coordinator,
+            pending_git_tasks=stream_executor.pending_git_tasks,
             resolve_platform_tool_name=resolve_platform_tool_name,
             humanize_platform_refs=humanize_platform_refs,
             resolve_display_env_vars=resolve_display_env_vars,

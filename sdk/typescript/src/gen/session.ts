@@ -8,6 +8,7 @@ import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { ToolApprovalOverrideSchema, McpServerUsageSchema } from "@stigmer/protos/ai/stigmer/agentic/agent/v1/spec_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { SessionCommandController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/command_pb";
+import { GitWriteBackMode } from "@stigmer/protos/ai/stigmer/agentic/session/v1/enum_pb";
 import { SessionIdSchema, UpdateSessionSubjectRequestSchema, UpdateSessionSandboxIdRequestSchema, ListSessionsRequestSchema, SessionListSchema, ListSessionsByAgentRequestSchema, type UpdateSessionSubjectRequest, type UpdateSessionSandboxIdRequest, type ListSessionsRequest, type SessionList, type ListSessionsByAgentRequest } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { SessionQueryController } from "@stigmer/protos/ai/stigmer/agentic/session/v1/query_pb";
 import { SessionSpecSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/spec_pb";
@@ -114,6 +115,7 @@ export interface GitRepoSourceInput {
   branch?: string;
   commit?: string;
   depth?: number;
+  writeBackMode?: GitWriteBackMode;
 }
 
 /** SDK input type for LocalPathSource. */
@@ -141,6 +143,7 @@ function buildGitRepoSourceProto(input: GitRepoSourceInput) {
     branch: input.branch,
     commit: input.commit,
     depth: input.depth,
+    writeBackMode: input.writeBackMode,
   }));
 }
 

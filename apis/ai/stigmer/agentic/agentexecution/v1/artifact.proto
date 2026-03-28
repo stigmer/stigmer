@@ -74,4 +74,16 @@ message ExecutionArtifact {
   // Directory entries are excluded — only regular files are listed.
   // Examples: ["SKILL.md", "scripts/init_skill.py", "references/workflows.md"]
   repeated string entries = 9;
+
+  // SHA-256 hex digest of the uploaded artifact bytes.
+  //
+  // Used as a cache-invalidation signal by UI clients: when the same file
+  // is overwritten (e.g., written then edited in the same execution), the
+  // storage_key remains stable but the content_hash changes. Clients
+  // include this value in their fetch-effect dependencies so that content
+  // is re-fetched whenever the underlying bytes change.
+  //
+  // Empty for older artifacts created before this field was added.
+  // Example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  string content_hash = 10;
 }

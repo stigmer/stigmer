@@ -32,6 +32,12 @@ export type {
   UseSessionArtifactsReturn,
 } from "./useSessionArtifacts";
 
+export { useSessionWriteBacks } from "./useSessionWriteBacks";
+export type {
+  SessionWriteBackEntry,
+  UseSessionWriteBacksReturn,
+} from "./useSessionWriteBacks";
+
 export { useAgentRefFromSession } from "./useAgentRefFromSession";
 export type { UseAgentRefFromSessionReturn } from "./useAgentRefFromSession";
 
