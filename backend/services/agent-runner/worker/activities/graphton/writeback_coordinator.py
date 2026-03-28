@@ -30,6 +30,8 @@ import dataclasses
 import logging
 from typing import TYPE_CHECKING, Any
 
+from worker.workspace.backend import ExecuteResult
+
 import httpx
 from ai.stigmer.agentic.agentexecution.v1.writeback_pb2 import (
     WorkspaceWriteBack,
@@ -260,15 +262,23 @@ class WriteBackCoordinator:
         state = self._state[entry_name]
         root_dir = eligible.root_dir
 
-        def _exec(cmd: str, timeout: int = 15) -> Any:
+        def _exec(cmd: str, timeout: int = 15) -> ExecuteResult:
             full_cmd = f"cd {root_dir} && {cmd}"
             if self._sandbox is not None:
-                return self._sandbox.process.exec(full_cmd, timeout=timeout)
+                raw = self._sandbox.process.exec(full_cmd, timeout=timeout)
+                return ExecuteResult(
+                    exit_code=getattr(raw, "exit_code", 1),
+                    stdout=getattr(raw, "stdout", None) or getattr(raw, "output", None) or "",
+                    stderr=getattr(raw, "stderr", "") or "",
+                )
             return self._workspace_backend.execute(full_cmd, timeout=timeout)
 
+        mutation_started = False
         try:
             if not self._has_changes(_exec):
                 return
+
+            mutation_started = True
 
             if not state.branch_created:
                 await self._create_branch(entry_name, state, _exec)
@@ -286,6 +296,8 @@ class WriteBackCoordinator:
                 "[WRITE_BACK] execution=%s entry=%s — incremental error: %s",
                 self._execution_id, entry_name, exc,
             )
+            if not mutation_started:
+                return
             wb = WorkspaceWriteBack(
                 workspace_entry_name=entry_name,
                 base_branch=eligible.base_branch,

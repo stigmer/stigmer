@@ -99,31 +99,44 @@ class InterruptProxyRunnable(Runnable):
         )
 
     async def ainvoke(self, input: Any, config: RunnableConfig | None = None, **kwargs: Any) -> Any:  # noqa: A002
-        thread_id = self._next_thread_id()
-        sa_config: RunnableConfig = {
-            "configurable": {"thread_id": thread_id},
-        }
+        thread_id, sa_config = self._current_thread_config()
 
-        # Check for an existing interrupted checkpoint (resume path).
+        # Probe the current thread's checkpoint to decide: resume vs fresh.
         state = await self._safe_get_state(sa_config)
 
         if state is not None and getattr(state, "interrupts", None):
-            # RESUME: sub-agent was interrupted in a previous execution.
+            # RESUME: sub-agent was interrupted on this thread in a prior
+            # parent execution.  The parent tool-node is replaying after an
+            # HITL approval — reuse the same thread so we resume from the
+            # checkpoint instead of starting over.
             proxy_payload = self._build_proxy_payload(state.interrupts)
             decisions = interrupt(proxy_payload)
             logger.info(
-                "[InterruptProxy:%s] Resuming sub-agent with %d decision(s)",
-                self.name,
+                "[InterruptProxy:%s] Resuming sub-agent on thread %s "
+                "with %d decision(s)",
+                self.name, thread_id,
                 len(decisions) if isinstance(decisions, dict) else 1,
             )
             result = await self.inner_graph.ainvoke(
                 Command(resume=decisions), config=sa_config,
             )
         else:
-            # FRESH: first invocation for this task tool call.
+            # If a completed checkpoint exists on this thread, a previous
+            # ainvoke() already ran to completion.  Advance to a new thread
+            # so sequential calls to the same sub-agent stay isolated.
+            if state is not None and getattr(state, "values", None):
+                self._thread_counter += 1
+                thread_id, sa_config = self._current_thread_config()
+                logger.info(
+                    "[InterruptProxy:%s] Prior thread completed, "
+                    "advancing to thread %s",
+                    self.name, thread_id,
+                )
+
+            # FRESH: first invocation (or new sequential call).
             logger.info(
-                "[InterruptProxy:%s] Starting fresh sub-agent execution",
-                self.name,
+                "[InterruptProxy:%s] Starting fresh sub-agent on thread %s",
+                self.name, thread_id,
             )
             result = await self.inner_graph.ainvoke(input, config=sa_config)
 
@@ -156,16 +169,18 @@ class InterruptProxyRunnable(Runnable):
     # Helpers
     # ------------------------------------------------------------------
 
-    def _next_thread_id(self) -> str:
-        """Deterministic thread id per proxy instance + invocation counter.
+    def _current_thread_config(self) -> tuple[str, RunnableConfig]:
+        """Return the thread id and config for the current counter value.
 
-        The counter increments on each ``ainvoke()`` call.  Within a single
-        parent tool-node execution the counter is stable because the Runnable
-        instance (and thus the counter) survives tool-node replays.
+        Unlike the previous ``_next_thread_id``, the counter is NOT
+        incremented here.  Advancing only happens inside ``ainvoke()`` after
+        detecting that the current thread's checkpoint is complete.  This
+        ensures parent tool-node replays (after HITL approval) reuse the same
+        thread and resume from the interrupted checkpoint instead of starting
+        a fresh sub-agent on a new thread.
         """
         tid = f"sa-{self.name}-{self._thread_counter}"
-        self._thread_counter += 1
-        return tid
+        return tid, {"configurable": {"thread_id": tid}}
 
     async def _safe_get_state(self, config: RunnableConfig) -> Any:
         try:

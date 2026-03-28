@@ -9,6 +9,8 @@ Tests cover:
   - FIFO queue drain: stale entries removed when fingerprint dedup matches
   - Task tool early-TC reconciliation on resume path
   - Bidirectional ID lookup: defense-in-depth for ID mismatches
+  - Interrupt-based snapshot: build_snapshot_from_interrupts
+  - Checkpoint orphan reconciliation: reconcile_orphans_against_checkpoint
 """
 
 import logging
@@ -20,6 +22,7 @@ from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
     MessageType,
+    SubAgentStatus,
     ToolCallStatus,
 )
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import SubmitApprovalInput
@@ -29,7 +32,11 @@ from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
 from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
 from google.protobuf.struct_pb2 import Struct
 
-from worker.activities.graphton.hitl import ResumeReconciler
+from worker.activities.graphton.hitl import (
+    ResumeReconciler,
+    build_snapshot_from_interrupts,
+    extract_interrupt_tool_call_ids,
+)
 from worker.activities.graphton.status_builder import StatusBuilder
 from worker.activities.graphton.temporal_helpers import slim_status_for_temporal
 
@@ -1159,6 +1166,510 @@ class TestBidirectionalIdLookup:
 
         assert result == {}
         assert matched == set()
+
+
+# =============================================================================
+# InterruptProxy Thread Management
+# =============================================================================
+
+
+class _FakeState:
+    """Minimal stand-in for LangGraph StateSnapshot."""
+
+    def __init__(
+        self,
+        values: dict | None = None,
+        interrupts: list | None = None,
+    ):
+        self.values = values or {}
+        self.interrupts = interrupts or []
+        self.next = () if not interrupts else ("tools",)
+
+
+class _FakeGraph:
+    """Minimal async graph stub for InterruptProxyRunnable tests."""
+
+    def __init__(self):
+        self._state: _FakeState | None = None
+        self.invoke_count = 0
+        self.last_input: Any = None
+        self.last_config: Any = None
+
+    def set_state(self, state: _FakeState | None) -> None:
+        self._state = state
+
+    async def aget_state(self, config: Any) -> _FakeState | None:
+        return self._state
+
+    async def ainvoke(self, input: Any, config: Any = None, **kwargs: Any) -> Any:
+        self.invoke_count += 1
+        self.last_input = input
+        self.last_config = config
+        return {"result": f"run-{self.invoke_count}"}
+
+
+class TestInterruptProxyThreadManagement:
+    """Verify InterruptProxyRunnable reuses the same thread on parent replay.
+
+    The root cause of orphaned WAITING_APPROVAL tool calls was the thread
+    counter incrementing on every ainvoke(), causing resumed sub-agents to
+    start fresh on a new MemorySaver thread while the old thread's tool calls
+    remained stuck.
+    """
+
+    @staticmethod
+    def _make_proxy(graph: _FakeGraph) -> "InterruptProxyRunnable":
+        from graphton.core.interrupt_proxy import InterruptProxyRunnable
+        return InterruptProxyRunnable(inner_graph=graph, name="test-agent")
+
+    @pytest.mark.asyncio
+    async def test_fresh_invocation_uses_thread_zero(self):
+        """First ainvoke() uses thread 0 and does not advance the counter."""
+        graph = _FakeGraph()
+        proxy = self._make_proxy(graph)
+
+        await proxy.ainvoke("hello")
+
+        assert proxy._thread_counter == 0
+        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-0"
+
+    @pytest.mark.asyncio
+    async def test_replay_after_interrupt_reuses_same_thread(self):
+        """When checkpoint has interrupts, ainvoke() resumes on the same thread."""
+        from unittest.mock import patch
+
+        graph = _FakeGraph()
+        graph.set_state(
+            _FakeState(
+                values={"messages": ["prior"]},
+                interrupts=[_MockInterrupt(id="intr-1", value={"tool_call_id": "tc1", "message": "Run?"})],
+            )
+        )
+        proxy = self._make_proxy(graph)
+
+        with patch("graphton.core.interrupt_proxy.interrupt", return_value={"intr-1": {"action": "approve"}}):
+            await proxy.ainvoke("hello")
+
+        assert proxy._thread_counter == 0
+        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-0"
+
+    @pytest.mark.asyncio
+    async def test_completed_thread_advances_counter(self):
+        """When checkpoint shows completion (values but no interrupts), counter advances."""
+        graph = _FakeGraph()
+        graph.set_state(_FakeState(values={"messages": ["done"]}))
+        proxy = self._make_proxy(graph)
+
+        await proxy.ainvoke("new-task")
+
+        assert proxy._thread_counter == 1
+        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-1"
+
+    @pytest.mark.asyncio
+    async def test_two_sequential_invocations_get_different_threads(self):
+        """Sequential completed invocations get incrementing thread IDs."""
+        graph = _FakeGraph()
+        proxy = self._make_proxy(graph)
+
+        # First invocation: no state → fresh on thread 0
+        graph.set_state(None)
+        await proxy.ainvoke("task-1")
+        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-0"
+
+        # Simulate first invocation completed
+        graph.set_state(_FakeState(values={"messages": ["done-1"]}))
+
+        # Second invocation: completed state → advance to thread 1
+        await proxy.ainvoke("task-2")
+        assert proxy._thread_counter == 1
+        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-1"
+
+
+# =============================================================================
+# Sub-Agent Completion Cleanup
+# =============================================================================
+
+
+class TestSubAgentCompletionCleanup:
+    """Verify _handle_sub_agent_end sweeps orphaned WAITING_APPROVAL tool calls.
+
+    When the InterruptProxy restarts a sub-agent on a fresh LangGraph thread,
+    tool calls from the abandoned thread remain WAITING_APPROVAL in the
+    StatusBuilder.  _handle_sub_agent_end must transition these to SKIPPED
+    so they do not leak into pending_approvals.
+    """
+
+    @staticmethod
+    def _make_sub_agent_with_orphaned_tools() -> tuple[StatusBuilder, str]:
+        """Build a StatusBuilder whose sub-agent has orphaned WAITING_APPROVAL TCs."""
+        args = Struct()
+        args.update({"command": "find / -name '*.proto'"})
+
+        orphan_tc = ToolCall(
+            id="toolu_orphan_1",
+            name="execute",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            requires_approval=True,
+        )
+        completed_tc = ToolCall(
+            id="toolu_completed_1",
+            name="read_file",
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+        )
+
+        sa = SubAgentExecution(id="toolu_task_1", name="general-purpose")
+        msg = sa.messages.add()
+        msg.type = MessageType.MESSAGE_AI
+        msg.tool_calls.append(orphan_tc)
+        msg.tool_calls.append(completed_tc)
+
+        status = AgentExecutionStatus()
+        parent_msg = status.messages.add()
+        parent_msg.type = MessageType.MESSAGE_AI
+        parent_tc = parent_msg.tool_calls.add()
+        parent_tc.id = "toolu_task_1"
+        parent_tc.name = "task"
+        parent_tc.status = ToolCallStatus.TOOL_CALL_RUNNING
+
+        status.sub_agent_executions.append(sa)
+
+        builder = StatusBuilder("test_exec", status)
+        builder.populate_fingerprints_from_existing_tool_calls()
+
+        run_id = "task-run-abc"
+        builder._active_sub_agents[run_id] = sa
+        builder._run_id_to_tool_call_id[run_id] = "toolu_task_1"
+
+        return builder, run_id
+
+    def test_orphaned_waiting_approval_skipped_on_completion(self):
+        """WAITING_APPROVAL TC with no decision -> SKIPPED when sub-agent completes."""
+        builder, run_id = self._make_sub_agent_with_orphaned_tools()
+
+        event = {
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": "Sub-agent finished all work"},
+            "metadata": {},
+        }
+        builder._handle_sub_agent_end(event, run_id)
+
+        sa = builder.current_status.sub_agent_executions[0]
+        orphan = sa.messages[0].tool_calls[0]
+        assert orphan.status == ToolCallStatus.TOOL_CALL_SKIPPED
+        assert orphan.approval_action == ApprovalAction.APPROVAL_ACTION_SKIP
+        assert orphan.approval_decided_at != ""
+
+    def test_completed_tool_calls_not_touched(self):
+        """Already-completed TCs must not be altered by the sweep."""
+        builder, run_id = self._make_sub_agent_with_orphaned_tools()
+
+        event = {
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": "done"},
+            "metadata": {},
+        }
+        builder._handle_sub_agent_end(event, run_id)
+
+        sa = builder.current_status.sub_agent_executions[0]
+        completed = sa.messages[0].tool_calls[1]
+        assert completed.status == ToolCallStatus.TOOL_CALL_COMPLETED
+
+    def test_pending_approvals_clear_after_cleanup(self):
+        """build_pending_approvals_snapshot must return empty after cleanup."""
+        builder, run_id = self._make_sub_agent_with_orphaned_tools()
+
+        before = builder.build_pending_approvals_snapshot()
+        assert len(before) == 1
+
+        event = {
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": "done"},
+            "metadata": {},
+        }
+        builder._handle_sub_agent_end(event, run_id)
+
+        after = builder.build_pending_approvals_snapshot()
+        assert len(after) == 0
+
+    def test_cleanup_on_failure(self):
+        """Orphaned TCs are also swept when sub-agent fails."""
+        builder, run_id = self._make_sub_agent_with_orphaned_tools()
+
+        event = {
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": {"error": "timeout", "status": "failed"}},
+            "metadata": {},
+        }
+        builder._handle_sub_agent_end(event, run_id)
+
+        sa = builder.current_status.sub_agent_executions[0]
+        assert sa.status == SubAgentStatus.SUB_AGENT_FAILED
+        orphan = sa.messages[0].tool_calls[0]
+        assert orphan.status == ToolCallStatus.TOOL_CALL_SKIPPED
+
+    def test_already_decided_tool_call_not_overwritten(self):
+        """If a TC has approval_action set (user approved), don't overwrite it."""
+        builder, run_id = self._make_sub_agent_with_orphaned_tools()
+
+        sa = builder.current_status.sub_agent_executions[0]
+        tc = sa.messages[0].tool_calls[0]
+        tc.approval_action = ApprovalAction.APPROVAL_ACTION_APPROVE
+
+        event = {
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": "done"},
+            "metadata": {},
+        }
+        builder._handle_sub_agent_end(event, run_id)
+
+        assert tc.approval_action == ApprovalAction.APPROVAL_ACTION_APPROVE
+        assert tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+
+
+# =============================================================================
+# Interrupt-based snapshot: extract_interrupt_tool_call_ids / build_snapshot
+# =============================================================================
+
+
+class _FakeInterrupt:
+    """Minimal stand-in for a LangGraph Interrupt object."""
+
+    def __init__(self, interrupt_id: str, value: Any) -> None:
+        self.id = interrupt_id
+        self.value = value
+
+
+class TestExtractInterruptToolCallIds:
+    """Verify extract_interrupt_tool_call_ids handles direct + proxy shapes."""
+
+    def test_direct_interrupt(self):
+        interrupts = [
+            _FakeInterrupt("intr-1", {"tool_call_id": "tc_direct_1"}),
+            _FakeInterrupt("intr-2", {"tool_call_id": "tc_direct_2"}),
+        ]
+        result = extract_interrupt_tool_call_ids(interrupts)
+        assert result == {"tc_direct_1", "tc_direct_2"}
+
+    def test_proxy_interrupt(self):
+        interrupts = [
+            _FakeInterrupt("intr-1", {
+                "sub-a": {
+                    "tool_call_id": "tc_proxy_1",
+                    "_proxy_interrupt_id": "pid-1",
+                },
+                "sub-b": {
+                    "tool_call_id": "tc_proxy_2",
+                    "_proxy_interrupt_id": "pid-2",
+                },
+            }),
+        ]
+        result = extract_interrupt_tool_call_ids(interrupts)
+        assert result == {"tc_proxy_1", "tc_proxy_2"}
+
+    def test_mixed_direct_and_proxy(self):
+        interrupts = [
+            _FakeInterrupt("intr-1", {"tool_call_id": "tc_direct"}),
+            _FakeInterrupt("intr-2", {
+                "sub-a": {
+                    "tool_call_id": "tc_proxy",
+                    "_proxy_interrupt_id": "pid-1",
+                },
+            }),
+        ]
+        result = extract_interrupt_tool_call_ids(interrupts)
+        assert result == {"tc_direct", "tc_proxy"}
+
+    def test_empty_interrupts(self):
+        assert extract_interrupt_tool_call_ids([]) == set()
+
+    def test_non_dict_value_skipped(self):
+        interrupts = [_FakeInterrupt("intr-1", "not-a-dict")]
+        assert extract_interrupt_tool_call_ids(interrupts) == set()
+
+    def test_missing_tool_call_id_skipped(self):
+        interrupts = [_FakeInterrupt("intr-1", {"message": "no tc id"})]
+        assert extract_interrupt_tool_call_ids(interrupts) == set()
+
+
+class TestBuildSnapshotFromInterrupts:
+    """Verify build_snapshot_from_interrupts returns sorted PendingApproval list."""
+
+    def test_returns_pending_approvals_for_each_tc_id(self):
+        interrupts = [
+            _FakeInterrupt("intr-1", {"tool_call_id": "tc_b"}),
+            _FakeInterrupt("intr-2", {"tool_call_id": "tc_a"}),
+        ]
+        snapshot = build_snapshot_from_interrupts(interrupts)
+        assert len(snapshot) == 2
+        assert snapshot[0].tool_call_id == "tc_a"
+        assert snapshot[1].tool_call_id == "tc_b"
+
+    def test_empty_interrupts_returns_empty(self):
+        assert build_snapshot_from_interrupts([]) == []
+
+    def test_proxy_interrupts_included(self):
+        interrupts = [
+            _FakeInterrupt("intr-1", {
+                "sub-a": {
+                    "tool_call_id": "tc_proxy",
+                    "_proxy_interrupt_id": "pid-1",
+                },
+            }),
+        ]
+        snapshot = build_snapshot_from_interrupts(interrupts)
+        assert len(snapshot) == 1
+        assert snapshot[0].tool_call_id == "tc_proxy"
+
+
+# =============================================================================
+# Checkpoint orphan reconciliation: reconcile_orphans_against_checkpoint
+# =============================================================================
+
+
+class TestReconcileOrphansAgainstCheckpoint:
+    """Verify ResumeReconciler.reconcile_orphans_against_checkpoint behaviour."""
+
+    def _make_builder_with_waiting_tools(
+        self, *tc_ids: str,
+    ) -> StatusBuilder:
+        tool_calls = [
+            _make_tool_call(tc_id=tc_id, name=f"tool_{tc_id}")
+            for tc_id in tc_ids
+        ]
+        return _make_builder_with_decisions(tool_calls)
+
+    def test_orphaned_tool_calls_skipped(self):
+        """WAITING_APPROVAL TCs not in interrupts or decisions get SKIPPED."""
+        builder = self._make_builder_with_waiting_tools(
+            "tc_real", "tc_orphan",
+        )
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=builder,
+            logger=_logger(),
+        )
+        skipped = reconciler.reconcile_orphans_against_checkpoint(
+            interrupt_tc_ids={"tc_real"},
+            decision_tc_ids=set(),
+        )
+        assert skipped == 1
+        orphan = builder.get_tool_call("tc_orphan")
+        assert orphan.status == ToolCallStatus.TOOL_CALL_SKIPPED
+        assert orphan.approval_action == ApprovalAction.APPROVAL_ACTION_SKIP
+        assert "no matching checkpoint interrupt" in orphan.result
+
+    def test_tool_in_interrupt_set_not_skipped(self):
+        """TCs present in the checkpoint interrupt set remain untouched."""
+        builder = self._make_builder_with_waiting_tools("tc_real")
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=builder,
+            logger=_logger(),
+        )
+        skipped = reconciler.reconcile_orphans_against_checkpoint(
+            interrupt_tc_ids={"tc_real"},
+            decision_tc_ids=set(),
+        )
+        assert skipped == 0
+        tc = builder.get_tool_call("tc_real")
+        assert tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+
+    def test_tool_in_decision_set_not_skipped(self):
+        """TCs that have an approval decision remain untouched."""
+        builder = self._make_builder_with_waiting_tools("tc_decided")
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=builder,
+            logger=_logger(),
+        )
+        skipped = reconciler.reconcile_orphans_against_checkpoint(
+            interrupt_tc_ids=set(),
+            decision_tc_ids={"tc_decided"},
+        )
+        assert skipped == 0
+        tc = builder.get_tool_call("tc_decided")
+        assert tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+
+    def test_already_completed_tool_not_touched(self):
+        """Non-WAITING_APPROVAL TCs are ignored regardless of interrupt set."""
+        tc = _make_tool_call(
+            tc_id="tc_done",
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+        )
+        builder = _make_builder_with_decisions([tc])
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=builder,
+            logger=_logger(),
+        )
+        skipped = reconciler.reconcile_orphans_against_checkpoint(
+            interrupt_tc_ids=set(),
+            decision_tc_ids=set(),
+        )
+        assert skipped == 0
+        assert builder.get_tool_call("tc_done").status == ToolCallStatus.TOOL_CALL_COMPLETED
+
+    def test_already_decided_approval_not_overwritten(self):
+        """WAITING_APPROVAL with existing approval_action is not overwritten."""
+        tc = _make_tool_call(tc_id="tc_approved")
+        tc.approval_action = ApprovalAction.APPROVAL_ACTION_APPROVE
+        builder = _make_builder_with_decisions([tc])
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=builder,
+            logger=_logger(),
+        )
+        skipped = reconciler.reconcile_orphans_against_checkpoint(
+            interrupt_tc_ids=set(),
+            decision_tc_ids=set(),
+        )
+        assert skipped == 0
+        assert builder.get_tool_call("tc_approved").approval_action == ApprovalAction.APPROVAL_ACTION_APPROVE
+
+    def test_mixed_real_and_orphaned(self):
+        """Only orphaned TCs are skipped; real ones survive."""
+        builder = self._make_builder_with_waiting_tools(
+            "tc_real_1", "tc_real_2", "tc_orphan_1", "tc_orphan_2",
+        )
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=builder,
+            logger=_logger(),
+        )
+        skipped = reconciler.reconcile_orphans_against_checkpoint(
+            interrupt_tc_ids={"tc_real_1", "tc_real_2"},
+            decision_tc_ids=set(),
+        )
+        assert skipped == 2
+        assert builder.get_tool_call("tc_real_1").status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+        assert builder.get_tool_call("tc_real_2").status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+        assert builder.get_tool_call("tc_orphan_1").status == ToolCallStatus.TOOL_CALL_SKIPPED
+        assert builder.get_tool_call("tc_orphan_2").status == ToolCallStatus.TOOL_CALL_SKIPPED
+
+    def test_empty_everything_skips_nothing(self):
+        """No tool calls at all → zero skipped."""
+        builder = _make_builder_with_decisions([])
+        reconciler = ResumeReconciler(
+            execution_id="test_exec",
+            status_builder=builder,
+            logger=_logger(),
+        )
+        skipped = reconciler.reconcile_orphans_against_checkpoint(
+            interrupt_tc_ids=set(),
+            decision_tc_ids=set(),
+        )
+        assert skipped == 0
 
 
 # =============================================================================

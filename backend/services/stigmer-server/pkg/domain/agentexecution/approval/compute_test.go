@@ -176,6 +176,81 @@ func TestComputePendingApprovals(t *testing.T) {
 			wantCount: 1,
 			wantIDs:   []string{"tc1"},
 		},
+		{
+			name: "completed sub-agent excluded even with WAITING_APPROVAL tools",
+			subAgentExecutions: []*agentexecutionv1.SubAgentExecution{
+				{
+					Name:   "researcher",
+					Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED,
+					Messages: []*agentexecutionv1.AgentMessage{
+						makeAIMessage(
+							makeToolCall("tc-orphan", "execute", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+						),
+					},
+				},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "failed sub-agent excluded",
+			subAgentExecutions: []*agentexecutionv1.SubAgentExecution{
+				{
+					Name:   "deployer",
+					Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_FAILED,
+					Messages: []*agentexecutionv1.AgentMessage{
+						makeAIMessage(
+							makeToolCall("tc-fail", "deploy", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+						),
+					},
+				},
+			},
+			wantCount: 0,
+		},
+		{
+			name: "running sub-agent still included",
+			subAgentExecutions: []*agentexecutionv1.SubAgentExecution{
+				{
+					Name:   "coder",
+					Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS,
+					Messages: []*agentexecutionv1.AgentMessage{
+						makeAIMessage(
+							makeToolCall("tc-active", "execute", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+						),
+					},
+				},
+			},
+			wantCount:         1,
+			wantIDs:           []string{"tc-active"},
+			wantFromSubAgent:  []bool{true},
+			wantSubAgentNames: []string{"coder"},
+		},
+		{
+			name: "mix of terminal and active sub-agents only active included",
+			subAgentExecutions: []*agentexecutionv1.SubAgentExecution{
+				{
+					Name:   "done-agent",
+					Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED,
+					Messages: []*agentexecutionv1.AgentMessage{
+						makeAIMessage(
+							makeToolCall("tc-done", "execute", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+						),
+					},
+				},
+				{
+					Name:   "live-agent",
+					Status: agentexecutionv1.SubAgentStatus_SUB_AGENT_IN_PROGRESS,
+					Messages: []*agentexecutionv1.AgentMessage{
+						makeAIMessage(
+							makeToolCall("tc-live", "execute", agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL, true, agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED),
+						),
+					},
+				},
+			},
+			wantCount:         1,
+			wantIDs:           []string{"tc-live"},
+			wantFromSubAgent:  []bool{true},
+			wantSubAgentNames: []string{"live-agent"},
+		},
 	}
 
 	for _, tt := range tests {

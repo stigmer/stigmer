@@ -5,7 +5,15 @@ Simplified in T03: ``messages[].tool_calls`` is the single source of truth.
 ``pending_approvals`` is computed server-side.  The LangGraph checkpoint is
 queried directly at resume time.
 
-Only one class remains:
+Public helpers:
+
+  extract_interrupt_tool_call_ids — extracts the set of tool_call_ids from
+      LangGraph checkpoint interrupts (both direct and proxy shapes).
+
+  build_snapshot_from_interrupts — builds the Temporal-coordination
+      ``pending_approvals`` list from checkpoint interrupts.
+
+Classes:
 
   ResumeReconciler — transitions tool calls from WAITING_APPROVAL to their
                      post-decision status using the in-memory index.
@@ -15,14 +23,59 @@ from __future__ import annotations
 
 import logging
 from collections import deque
+from typing import Any
 
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
     ToolCallStatus,
 )
 from ai.stigmer.agentic.agentexecution.v1.io_pb2 import SubmitApprovalInput
+from ai.stigmer.agentic.agentexecution.v1.message_pb2 import PendingApproval
 
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
+
+
+# ---------------------------------------------------------------------------
+# Interrupt helpers
+# ---------------------------------------------------------------------------
+
+
+def extract_interrupt_tool_call_ids(interrupts: Any) -> set[str]:
+    """Extract all tool_call_ids from LangGraph checkpoint interrupts.
+
+    Handles both shapes:
+    - **Direct**: ``intr.value["tool_call_id"]`` (root-agent HITL)
+    - **Proxy**: Nested dicts with ``_proxy_interrupt_id``, each containing
+      ``tool_call_id`` (sub-agent HITL via InterruptProxyRunnable)
+    """
+    tc_ids: set[str] = set()
+    for intr in interrupts:
+        intr_value = intr.value if isinstance(intr.value, dict) else {}
+        direct_tc_id = intr_value.get("tool_call_id", "")
+        if direct_tc_id:
+            tc_ids.add(direct_tc_id)
+        for _sub_id, sub_value in intr_value.items():
+            if not isinstance(sub_value, dict):
+                continue
+            if "_proxy_interrupt_id" not in sub_value:
+                continue
+            sub_tc_id = sub_value.get("tool_call_id", "")
+            if sub_tc_id:
+                tc_ids.add(sub_tc_id)
+    return tc_ids
+
+
+def build_snapshot_from_interrupts(interrupts: Any) -> list[PendingApproval]:
+    """Build ``pending_approvals`` snapshot from checkpoint interrupts.
+
+    Returns one :class:`PendingApproval` per tool_call_id found in the
+    interrupts.  This is the Temporal-coordination signal that tells the Go
+    workflow how many approval signals to collect.
+    """
+    return [
+        PendingApproval(tool_call_id=tc_id)
+        for tc_id in sorted(extract_interrupt_tool_call_ids(interrupts))
+    ]
 
 
 class ResumeReconciler:
@@ -136,6 +189,49 @@ class ResumeReconciler:
             self._execution_id, reconciled_count,
             len(self._sb.tool_call_fingerprints),
         )
+
+    def reconcile_orphans_against_checkpoint(
+        self,
+        interrupt_tc_ids: set[str],
+        decision_tc_ids: set[str],
+    ) -> int:
+        """Mark orphaned WAITING_APPROVAL tool calls as SKIPPED.
+
+        A tool call is orphaned if it is ``WAITING_APPROVAL`` with no
+        recorded decision, AND its ID does not appear in any checkpoint
+        interrupt.  Such tool calls are artifacts of previous sub-agent
+        invocations that completed or restarted on a new thread.
+
+        Returns the number of tool calls skipped.
+        """
+        skipped = 0
+        for tc in self._sb.iter_all_tool_calls():
+            if tc.status != ToolCallStatus.TOOL_CALL_WAITING_APPROVAL:
+                continue
+            if tc.approval_action != ApprovalAction.APPROVAL_ACTION_UNSPECIFIED:
+                continue
+            if tc.id in interrupt_tc_ids or tc.id in decision_tc_ids:
+                continue
+            tc.status = ToolCallStatus.TOOL_CALL_SKIPPED
+            tc.approval_action = ApprovalAction.APPROVAL_ACTION_SKIP
+            tc.approval_decided_at = _utc_timestamp()
+            tc.result = "Auto-skipped: no matching checkpoint interrupt"
+            skipped += 1
+            self._logger.info(
+                "[RESUME_RECONCILE] execution=%s "
+                "tool_call=%s name=%s "
+                "WAITING_APPROVAL -> TOOL_CALL_SKIPPED "
+                "(orphan: not in checkpoint interrupts)",
+                self._execution_id, tc.id, tc.name,
+            )
+        if skipped:
+            self._logger.info(
+                "[RESUME_RECONCILE] execution=%s "
+                "skipped %d orphaned WAITING_APPROVAL tool call(s) "
+                "not present in checkpoint interrupts",
+                self._execution_id, skipped,
+            )
+        return skipped
 
     def _auto_skip_remaining(
         self, decisions_by_tc: dict[str, SubmitApprovalInput],
