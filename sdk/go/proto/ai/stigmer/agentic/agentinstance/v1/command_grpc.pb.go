@@ -39,12 +39,13 @@ type AgentInstanceCommandControllerClient interface {
 	// Create a new agent instance with full state.
 	// Provide organization_id in metadata.org, and complete spec with configuration and secrets.
 	//
-	// Authorization: Uses FGA contextual tuples (handler-level)
+	// Authorization: FGA can_create_instance on parent agent (handler-level)
 	// - Checks can_create_instance on parent agent (via spec.agent_id)
-	// - For org-scoped: Passes contextual tuple agent#organization@organization:target-org
-	// - FGA evaluates membership via contextual tuple (single authorization check)
+	// - Public agents: Any authenticated user can create instances (cross-org allowed)
+	// - Private agents: Only org members and agent owner can create instances
 	//
-	// This pattern eliminates redundant checks by providing organization context to FGA
+	// FGA is the single source of truth — no hardcoded org-matching rules.
+	// Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
 	Create(ctx context.Context, in *AgentInstance, opts ...grpc.CallOption) (*AgentInstance, error)
 	// Update an instance with full state.
 	// Used to update entire instance configuration including metadata, spec, and secrets.
@@ -118,12 +119,13 @@ type AgentInstanceCommandControllerServer interface {
 	// Create a new agent instance with full state.
 	// Provide organization_id in metadata.org, and complete spec with configuration and secrets.
 	//
-	// Authorization: Uses FGA contextual tuples (handler-level)
+	// Authorization: FGA can_create_instance on parent agent (handler-level)
 	// - Checks can_create_instance on parent agent (via spec.agent_id)
-	// - For org-scoped: Passes contextual tuple agent#organization@organization:target-org
-	// - FGA evaluates membership via contextual tuple (single authorization check)
+	// - Public agents: Any authenticated user can create instances (cross-org allowed)
+	// - Private agents: Only org members and agent owner can create instances
 	//
-	// This pattern eliminates redundant checks by providing organization context to FGA
+	// FGA is the single source of truth — no hardcoded org-matching rules.
+	// Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
 	Create(context.Context, *AgentInstance) (*AgentInstance, error)
 	// Update an instance with full state.
 	// Used to update entire instance configuration including metadata, spec, and secrets.
