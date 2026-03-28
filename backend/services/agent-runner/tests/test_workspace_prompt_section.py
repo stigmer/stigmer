@@ -217,53 +217,13 @@ class TestBuildWorkspacePromptSection:
 
     # -- git write-back guidance --------------------------------------------
 
-    def test_git_writeback_section_when_credentials_configured(self):
-        section = build_workspace_prompt_section([_git_provision_with_creds()])
-        assert "### Git Write-Back" in section
-        assert "push changes" in section
-
-    def test_no_writeback_section_when_credentials_not_configured(self):
-        section = build_workspace_prompt_section([_git_provision()])
-        assert "Git Write-Back" not in section
-
-    def test_writeback_follows_description_and_tree(self):
-        result = ProvisionResult(
-            root_dir="/workspace",
-            source_type=SourceType.GIT_REPO,
-            consumed_keys=("GITHUB_TOKEN",),
-            workspace_description="Workspace description.",
-            file_tree="### Project Structure\n\n    - `src/`\n\n1 entry.",
-            git_metadata=GitMetadata(
-                repo_url="https://github.com/acme/my-app",
-                branch="main",
-                base_commit="a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
-                git_credentials_configured=True,
-            ),
-        )
-        section = build_workspace_prompt_section([result])
-        desc_pos = section.find("Workspace description.")
-        tree_pos = section.find("### Project Structure")
-        wb_pos = section.find("### Git Write-Back")
-        assert desc_pos < tree_pos < wb_pos, (
-            "Ordering must be: description < tree < write-back"
-        )
-
-    def test_writeback_contains_branch_rule(self):
-        section = build_workspace_prompt_section([_git_provision_with_creds()])
-        assert "never push directly to the default branch" in section
-
-    def test_writeback_contains_credential_file_warning(self):
-        section = build_workspace_prompt_section([_git_provision_with_creds()])
-        assert "Do NOT read" in section
-        assert ".git-credentials" in section
-
-    def test_writeback_mentions_create_pull_request_tool(self):
-        section = build_workspace_prompt_section([_git_provision_with_creds()])
-        assert "create_pull_request" in section
-
-    def test_no_create_pull_request_without_credentials(self):
-        section = build_workspace_prompt_section([_git_provision()])
-        assert "create_pull_request" not in section
+    def test_no_writeback_section_with_or_without_credentials(self):
+        """Git write-back guidance was removed — the platform now owns
+        the post-execution write-back workflow."""
+        for factory in (_git_provision_with_creds, _git_provision):
+            section = build_workspace_prompt_section([factory()])
+            assert "Git Write-Back" not in section
+            assert "create_pull_request" not in section
 
 
 # =============================================================================
@@ -684,9 +644,8 @@ class TestMultiEntryWorkspacePromptSection:
         assert "/Users/dev/frontend" in section
         assert "/Users/dev/backend" in section
 
-    def test_multi_entry_preamble_has_cwd_and_path_rules(self):
+    def test_multi_entry_preamble_has_path_rules(self):
         section = build_workspace_prompt_section(self._two_local_entries())
-        assert "Current working directory" in section
         assert "Path resolution" in section
         assert "frontend/src/main.py" in section
 
@@ -747,11 +706,12 @@ class TestMultiEntryWorkspacePromptSection:
 
     # -- CWD and path resolution -----------------------------------------------
 
-    def test_multi_entry_cwd_in_preamble(self):
+    def test_multi_entry_no_cwd_in_preamble(self):
+        """CWD line was removed from the multi-entry preamble."""
         section = build_workspace_prompt_section(
             self._two_local_entries(), container_root="/workspace",
         )
-        assert "**Current working directory**: `/workspace`" in section
+        assert "Current working directory" not in section
 
     def test_multi_entry_path_resolution_rules(self):
         section = build_workspace_prompt_section(self._two_local_entries())
@@ -870,54 +830,15 @@ class TestMultiEntryWorkspacePromptSection:
 
     # -- git write-back guidance (multi-entry) ---------------------------------
 
-    def test_multi_entry_git_writeback_when_credentials_configured(self):
-        results = self._two_git_entries_with_creds()
-        section = build_workspace_prompt_section(results)
-        assert "#### Git Write-Back" in section
+    def test_multi_entry_no_writeback_with_or_without_credentials(self):
+        """Git write-back guidance was removed — the platform now owns
+        the post-execution write-back workflow."""
+        for results in (self._two_git_entries_with_creds(), self._two_git_entries()):
+            section = build_workspace_prompt_section(results)
+            assert "Git Write-Back" not in section
 
-    def test_multi_entry_no_writeback_without_credentials(self):
-        results = self._two_git_entries()
-        section = build_workspace_prompt_section(results)
-        assert "Git Write-Back" not in section
-
-    def test_multi_entry_mixed_creds_only_qualified_entry_gets_writeback(self):
-        results = [
-            ProvisionResult(
-                root_dir="/workspace/has-creds",
-                source_type=SourceType.GIT_REPO,
-                consumed_keys=("GITHUB_TOKEN",),
-                workspace_description="git workspace",
-                entry_name="has-creds",
-                git_metadata=GitMetadata(
-                    repo_url="https://github.com/acme/has-creds",
-                    branch="main",
-                    base_commit="a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
-                    git_credentials_configured=True,
-                ),
-            ),
-            ProvisionResult(
-                root_dir="/workspace/no-creds",
-                source_type=SourceType.GIT_REPO,
-                consumed_keys=(),
-                workspace_description="git workspace",
-                entry_name="no-creds",
-                git_metadata=GitMetadata(
-                    repo_url="https://github.com/acme/no-creds",
-                    branch="main",
-                    base_commit="b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3",
-                ),
-            ),
-        ]
-        section = build_workspace_prompt_section(results)
-        assert section.count("Git Write-Back") == 1
-        wb_pos = section.find("Git Write-Back")
-        has_creds_pos = section.find("### has-creds")
-        no_creds_pos = section.find("### no-creds")
-        assert has_creds_pos < wb_pos < no_creds_pos, (
-            "Write-back must appear under has-creds, before no-creds"
-        )
-
-    def test_format_entry_description_git_with_credentials(self):
+    def test_format_entry_description_git_with_credentials_no_writeback(self):
+        """Credentials no longer produce a write-back guidance section."""
         result = ProvisionResult(
             root_dir="/workspace/backend",
             source_type=SourceType.GIT_REPO,
@@ -932,9 +853,8 @@ class TestMultiEntryWorkspacePromptSection:
             ),
         )
         desc = _format_entry_description(result)
-        assert "#### Git Write-Back" in desc
-        assert "push changes" in desc
-        assert "never push directly to the default branch" in desc
+        assert "Git Write-Back" not in desc
+        assert "captured as artifacts" in desc
 
     # -- fixtures for multi-entry tests ----------------------------------------
 
