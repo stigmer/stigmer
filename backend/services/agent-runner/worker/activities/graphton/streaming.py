@@ -239,6 +239,10 @@ class StreamExecutor:
         except Exception as stream_err:
             if type(stream_err).__name__ == "GraphRecursionError":
                 return self._handle_recursion_limit(events_processed, stream_err)
+            self._sb.finalize_active_sub_agents(
+                SubAgentStatus.SUB_AGENT_FAILED,
+                f"Parent execution error: {type(stream_err).__name__}",
+            )
             raise
         finally:
             if hb_task is not None:

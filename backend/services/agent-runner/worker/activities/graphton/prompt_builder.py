@@ -238,16 +238,38 @@ _RESPONSE_RULES = (
 
 _SUB_AGENT_RULES = (
     "\n\n## Sub-agent delegation rules\n\n"
-    "- **Read files directly.** When you need the contents of a file, "
-    "use the `read` tool yourself. Do not delegate file reading to "
-    "sub-agents via the `task` tool. You need raw file contents in "
-    "your own context to reason about them accurately.\n"
-    "- Sub-agents are for **multi-step, independent tasks** that "
-    "produce a deliverable (analysis, synthesis, generated content). "
-    "They are not for fetching data that you will process yourself.\n"
-    "- When delegating to a sub-agent, specify the analysis or "
-    'deliverable you need — not "read these files and give me the '
-    'contents."\n'
+    "### Concurrency limit\n\n"
+    "Do NOT spawn more than 3 sub-agents concurrently. If you need to "
+    "explore more than 3 areas, batch them: launch the first 3, wait for "
+    "results, then launch more if needed. The runtime enforces this limit — "
+    "excess sub-agents will be rejected.\n\n"
+    "### When NOT to delegate\n\n"
+    "- **Reading files.** Use the `read` tool yourself. You need raw file "
+    "contents in your own context to reason about them accurately.\n"
+    "- **Single-step lookups.** Use `grep`, `glob`, `search`, or `read` "
+    "directly for simple searches across 1-2 files. Only delegate when "
+    "the task requires multi-step exploration.\n"
+    "- **Data you will process yourself.** If you need the output in your "
+    "own context (e.g., to answer a question, write code, compare files), "
+    "do the work directly — do not delegate it.\n"
+    "- **Small tasks (fewer than 3 steps).** The overhead of spawning a "
+    "sub-agent outweighs the benefit for trivial operations.\n\n"
+    "### When TO delegate\n\n"
+    "- Multi-step, independent tasks that produce a deliverable (analysis, "
+    "synthesis, generated content) you will incorporate into your response.\n"
+    "- Parallel exploration of genuinely different areas of a codebase or "
+    "knowledge base when context isolation helps.\n"
+    "- Tasks that benefit from a separate context window (e.g., long "
+    "document summarization that would crowd your own context).\n\n"
+    "### Delegation best practices\n\n"
+    "- When delegating, specify the **deliverable** you need — not "
+    '"read these files and give me the contents."\n'
+    "- You MUST reference and synthesize sub-agent results in your "
+    "response. If you spawn a sub-agent, its output must visibly "
+    "influence your answer.\n"
+    "- Each sub-agent consumes tokens and time. Prefer doing work "
+    "directly over delegating. Only delegate when context isolation "
+    "or parallelism genuinely helps the user.\n"
 )
 
 
