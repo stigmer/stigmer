@@ -216,4 +216,32 @@ public interface PendingApprovalOrBuilder extends
    */
   com.google.protobuf.ByteString
       getMcpServerSlugBytes();
+
+  /**
+   * <pre>
+   * Concise subject/description of the sub-agent's task (3-10 words).
+   * Copied from SubAgentExecution.subject when from_sub_agent is true.
+   * Enables UI to show a meaningful label like "Explore CLI rendering code"
+   * instead of the generic agent type name.
+   * Empty when from_sub_agent is false or subject is not available.
+   * </pre>
+   *
+   * <code>string sub_agent_subject = 9 [json_name = "subAgentSubject"];</code>
+   * @return The subAgentSubject.
+   */
+  java.lang.String getSubAgentSubject();
+  /**
+   * <pre>
+   * Concise subject/description of the sub-agent's task (3-10 words).
+   * Copied from SubAgentExecution.subject when from_sub_agent is true.
+   * Enables UI to show a meaningful label like "Explore CLI rendering code"
+   * instead of the generic agent type name.
+   * Empty when from_sub_agent is false or subject is not available.
+   * </pre>
+   *
+   * <code>string sub_agent_subject = 9 [json_name = "subAgentSubject"];</code>
+   * @return The bytes for subAgentSubject.
+   */
+  com.google.protobuf.ByteString
+      getSubAgentSubjectBytes();
 }

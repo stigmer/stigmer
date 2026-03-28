@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/approval.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_approval: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSLAAQoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCSKDAQoZQ2hpbGRBcHByb3ZhbE5vdGlmaWNhdGlvbhIUCgxleGVjdXRpb25faWQYASABKAkSUAoRcGVuZGluZ19hcHByb3ZhbHMYAiADKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsYgZwcm90bzM");
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSLbAQoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgIIAEoCRIZChFzdWJfYWdlbnRfc3ViamVjdBgJIAEoCSKDAQoZQ2hpbGRBcHByb3ZhbE5vdGlmaWNhdGlvbhIUCgxleGVjdXRpb25faWQYASABKAkSUAoRcGVuZGluZ19hcHByb3ZhbHMYAiADKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsYgZwcm90bzM");
 
 /**
  * PendingApproval is a UI-facing projection computed server-side from tool
@@ -126,6 +126,17 @@ export type PendingApproval = Message<"ai.stigmer.agentic.agentexecution.v1.Pend
    * @generated from field: string mcp_server_slug = 8;
    */
   mcpServerSlug: string;
+
+  /**
+   * Concise subject/description of the sub-agent's task (3-10 words).
+   * Copied from SubAgentExecution.subject when from_sub_agent is true.
+   * Enables UI to show a meaningful label like "Explore CLI rendering code"
+   * instead of the generic agent type name.
+   * Empty when from_sub_agent is false or subject is not available.
+   *
+   * @generated from field: string sub_agent_subject = 9;
+   */
+  subAgentSubject: string;
 };
 
 /**

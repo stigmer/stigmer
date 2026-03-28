@@ -62,6 +62,7 @@ private static final long serialVersionUID = 0L;
     requestedAt_ = "";
     subAgentName_ = "";
     mcpServerSlug_ = "";
+    subAgentSubject_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -483,6 +484,61 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int SUB_AGENT_SUBJECT_FIELD_NUMBER = 9;
+  @SuppressWarnings("serial")
+  private volatile java.lang.Object subAgentSubject_ = "";
+  /**
+   * <pre>
+   * Concise subject/description of the sub-agent's task (3-10 words).
+   * Copied from SubAgentExecution.subject when from_sub_agent is true.
+   * Enables UI to show a meaningful label like "Explore CLI rendering code"
+   * instead of the generic agent type name.
+   * Empty when from_sub_agent is false or subject is not available.
+   * </pre>
+   *
+   * <code>string sub_agent_subject = 9 [json_name = "subAgentSubject"];</code>
+   * @return The subAgentSubject.
+   */
+  @java.lang.Override
+  public java.lang.String getSubAgentSubject() {
+    java.lang.Object ref = subAgentSubject_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      subAgentSubject_ = s;
+      return s;
+    }
+  }
+  /**
+   * <pre>
+   * Concise subject/description of the sub-agent's task (3-10 words).
+   * Copied from SubAgentExecution.subject when from_sub_agent is true.
+   * Enables UI to show a meaningful label like "Explore CLI rendering code"
+   * instead of the generic agent type name.
+   * Empty when from_sub_agent is false or subject is not available.
+   * </pre>
+   *
+   * <code>string sub_agent_subject = 9 [json_name = "subAgentSubject"];</code>
+   * @return The bytes for subAgentSubject.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getSubAgentSubjectBytes() {
+    java.lang.Object ref = subAgentSubject_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      subAgentSubject_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -521,6 +577,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerSlug_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 8, mcpServerSlug_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subAgentSubject_)) {
+      com.google.protobuf.GeneratedMessage.writeString(output, 9, subAgentSubject_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -555,6 +614,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerSlug_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(8, mcpServerSlug_);
     }
+    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subAgentSubject_)) {
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(9, subAgentSubject_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -586,6 +648,8 @@ private static final long serialVersionUID = 0L;
         .equals(other.getSubAgentName())) return false;
     if (!getMcpServerSlug()
         .equals(other.getMcpServerSlug())) return false;
+    if (!getSubAgentSubject()
+        .equals(other.getSubAgentSubject())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -614,6 +678,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getSubAgentName().hashCode();
     hash = (37 * hash) + MCP_SERVER_SLUG_FIELD_NUMBER;
     hash = (53 * hash) + getMcpServerSlug().hashCode();
+    hash = (37 * hash) + SUB_AGENT_SUBJECT_FIELD_NUMBER;
+    hash = (53 * hash) + getSubAgentSubject().hashCode();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -780,6 +846,7 @@ private static final long serialVersionUID = 0L;
       fromSubAgent_ = false;
       subAgentName_ = "";
       mcpServerSlug_ = "";
+      subAgentSubject_ = "";
       return this;
     }
 
@@ -837,6 +904,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.mcpServerSlug_ = mcpServerSlug_;
       }
+      if (((from_bitField0_ & 0x00000100) != 0)) {
+        result.subAgentSubject_ = subAgentSubject_;
+      }
     }
 
     @java.lang.Override
@@ -887,6 +957,11 @@ private static final long serialVersionUID = 0L;
       if (!other.getMcpServerSlug().isEmpty()) {
         mcpServerSlug_ = other.mcpServerSlug_;
         bitField0_ |= 0x00000080;
+        onChanged();
+      }
+      if (!other.getSubAgentSubject().isEmpty()) {
+        subAgentSubject_ = other.subAgentSubject_;
+        bitField0_ |= 0x00000100;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -955,6 +1030,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000080;
               break;
             } // case 66
+            case 74: {
+              subAgentSubject_ = input.readStringRequireUtf8();
+              bitField0_ |= 0x00000100;
+              break;
+            } // case 74
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1800,6 +1880,118 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       mcpServerSlug_ = value;
       bitField0_ |= 0x00000080;
+      onChanged();
+      return this;
+    }
+
+    private java.lang.Object subAgentSubject_ = "";
+    /**
+     * <pre>
+     * Concise subject/description of the sub-agent's task (3-10 words).
+     * Copied from SubAgentExecution.subject when from_sub_agent is true.
+     * Enables UI to show a meaningful label like "Explore CLI rendering code"
+     * instead of the generic agent type name.
+     * Empty when from_sub_agent is false or subject is not available.
+     * </pre>
+     *
+     * <code>string sub_agent_subject = 9 [json_name = "subAgentSubject"];</code>
+     * @return The subAgentSubject.
+     */
+    public java.lang.String getSubAgentSubject() {
+      java.lang.Object ref = subAgentSubject_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        subAgentSubject_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Concise subject/description of the sub-agent's task (3-10 words).
+     * Copied from SubAgentExecution.subject when from_sub_agent is true.
+     * Enables UI to show a meaningful label like "Explore CLI rendering code"
+     * instead of the generic agent type name.
+     * Empty when from_sub_agent is false or subject is not available.
+     * </pre>
+     *
+     * <code>string sub_agent_subject = 9 [json_name = "subAgentSubject"];</code>
+     * @return The bytes for subAgentSubject.
+     */
+    public com.google.protobuf.ByteString
+        getSubAgentSubjectBytes() {
+      java.lang.Object ref = subAgentSubject_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        subAgentSubject_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <pre>
+     * Concise subject/description of the sub-agent's task (3-10 words).
+     * Copied from SubAgentExecution.subject when from_sub_agent is true.
+     * Enables UI to show a meaningful label like "Explore CLI rendering code"
+     * instead of the generic agent type name.
+     * Empty when from_sub_agent is false or subject is not available.
+     * </pre>
+     *
+     * <code>string sub_agent_subject = 9 [json_name = "subAgentSubject"];</code>
+     * @param value The subAgentSubject to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSubAgentSubject(
+        java.lang.String value) {
+      if (value == null) { throw new NullPointerException(); }
+      subAgentSubject_ = value;
+      bitField0_ |= 0x00000100;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Concise subject/description of the sub-agent's task (3-10 words).
+     * Copied from SubAgentExecution.subject when from_sub_agent is true.
+     * Enables UI to show a meaningful label like "Explore CLI rendering code"
+     * instead of the generic agent type name.
+     * Empty when from_sub_agent is false or subject is not available.
+     * </pre>
+     *
+     * <code>string sub_agent_subject = 9 [json_name = "subAgentSubject"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearSubAgentSubject() {
+      subAgentSubject_ = getDefaultInstance().getSubAgentSubject();
+      bitField0_ = (bitField0_ & ~0x00000100);
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Concise subject/description of the sub-agent's task (3-10 words).
+     * Copied from SubAgentExecution.subject when from_sub_agent is true.
+     * Enables UI to show a meaningful label like "Explore CLI rendering code"
+     * instead of the generic agent type name.
+     * Empty when from_sub_agent is false or subject is not available.
+     * </pre>
+     *
+     * <code>string sub_agent_subject = 9 [json_name = "subAgentSubject"];</code>
+     * @param value The bytes for subAgentSubject to set.
+     * @return This builder for chaining.
+     */
+    public Builder setSubAgentSubjectBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) { throw new NullPointerException(); }
+      checkByteStringIsUtf8(value);
+      subAgentSubject_ = value;
+      bitField0_ |= 0x00000100;
       onChanged();
       return this;
     }
