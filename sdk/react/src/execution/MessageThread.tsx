@@ -17,6 +17,7 @@ import { cn } from "@stigmer/theme";
 import { isTerminalPhase } from "./execution-phases";
 import { MessageEntry } from "./MessageEntry";
 import { ToolCallGroup } from "./ToolCallGroup";
+import { SubAgentSection } from "./SubAgentSection";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 import { SetupProgress } from "./SetupProgress";
 import { ApprovalCard } from "./ApprovalCard";
@@ -110,6 +111,7 @@ const AUTO_SCROLL_THRESHOLD_PX = 80;
 type ThreadItem =
   | { readonly kind: "message"; readonly message: AgentMessage; readonly key: string }
   | { readonly kind: "tool-group"; readonly toolCalls: readonly ToolCall[]; readonly subAgentExecutions: readonly SubAgentExecution[]; readonly key: string }
+  | { readonly kind: "sub-agent"; readonly subAgentExecution: SubAgentExecution; readonly key: string }
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
   | { readonly kind: "pending-message"; readonly content: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
@@ -176,12 +178,35 @@ function buildThreadItems(
         msg.type === MessageType.MESSAGE_AI &&
         msg.toolCalls.length > 0
       ) {
-        items.push({
-          kind: "tool-group",
-          toolCalls: msg.toolCalls,
-          subAgentExecutions: subAgents,
-          key: `e${ei}-m${mi}-tc`,
-        });
+        const regularTools: ToolCall[] = [];
+        const taskTools: ToolCall[] = [];
+        for (const tc of msg.toolCalls) {
+          if (tc.name === "task") {
+            taskTools.push(tc);
+          } else {
+            regularTools.push(tc);
+          }
+        }
+
+        if (regularTools.length > 0) {
+          items.push({
+            kind: "tool-group",
+            toolCalls: regularTools,
+            subAgentExecutions: subAgents,
+            key: `e${ei}-m${mi}-tc`,
+          });
+        }
+
+        for (let ti = 0; ti < taskTools.length; ti++) {
+          const matched = subAgents.find((sa) => sa.id === taskTools[ti].id);
+          if (matched) {
+            items.push({
+              kind: "sub-agent",
+              subAgentExecution: matched,
+              key: `e${ei}-m${mi}-sa${ti}`,
+            });
+          }
+        }
       }
     }
   }
@@ -346,6 +371,14 @@ export function MessageThread({
                   toolCalls={item.toolCalls}
                   subAgentExecutions={item.subAgentExecutions}
                   formatSummary={formatToolCallSummary}
+                  className="mx-4"
+                />
+              );
+            case "sub-agent":
+              return (
+                <SubAgentSection
+                  key={item.key}
+                  subAgentExecution={item.subAgentExecution}
                   className="mx-4"
                 />
               );
