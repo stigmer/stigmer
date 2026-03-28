@@ -148,7 +148,7 @@ export function ToolCallItem({
 
   const displaySubtitle = isSubAgent
     ? null
-    : category === "shell" && primaryArg
+    : categoryInfo.category === "shell" && primaryArg
       ? normalize(primaryArg)
       : primaryArg;
 

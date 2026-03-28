@@ -31,15 +31,13 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import httpx
-
 from ai.stigmer.agentic.agentexecution.v1.writeback_pb2 import (
     WorkspaceWriteBack,
     WorkspaceWriteBackPhase,
 )
-from ai.stigmer.agentic.session.v1.workspace_pb2 import (
+from ai.stigmer.agentic.session.v1.enum_pb2 import (
     GIT_WRITE_BACK_BRANCH_AND_PR,
 )
-
 from graphton.core.github_api import (
     github_create_pr,
     parse_github_repo,
