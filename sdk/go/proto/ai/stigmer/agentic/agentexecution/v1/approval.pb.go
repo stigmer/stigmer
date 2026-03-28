@@ -93,7 +93,7 @@ type PendingApproval struct {
 	// instead of falling back to raw JSON.
 	//
 	// Examples: "planton-cloud", "github", "slack"
-	McpServerSlug string `protobuf:"bytes,9,opt,name=mcp_server_slug,json=mcpServerSlug,proto3" json:"mcp_server_slug,omitempty"`
+	McpServerSlug string `protobuf:"bytes,8,opt,name=mcp_server_slug,json=mcpServerSlug,proto3" json:"mcp_server_slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -283,7 +283,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_approval_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\"\xaa\x02\n" +
+	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\"\xa4\x02\n" +
 	"\x0fPendingApproval\x12 \n" +
 	"\ftool_call_id\x18\x01 \x01(\tR\n" +
 	"toolCallId\x12\x1b\n" +
@@ -293,7 +293,7 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\frequested_at\x18\x05 \x01(\tR\vrequestedAt\x12$\n" +
 	"\x0efrom_sub_agent\x18\x06 \x01(\bR\ffromSubAgent\x12$\n" +
 	"\x0esub_agent_name\x18\a \x01(\tR\fsubAgentName\x12&\n" +
-	"\x0fmcp_server_slug\x18\t \x01(\tR\rmcpServerSlugJ\x04\b\b\x10\t\"\xa2\x01\n" +
+	"\x0fmcp_server_slug\x18\b \x01(\tR\rmcpServerSlug\"\xa2\x01\n" +
 	"\x19ChildApprovalNotification\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12b\n" +
 	"\x11pending_approvals\x18\x02 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovalsB\xcd\x02\n" +

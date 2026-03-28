@@ -420,7 +420,7 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int MCP_SERVER_SLUG_FIELD_NUMBER = 9;
+  public static final int MCP_SERVER_SLUG_FIELD_NUMBER = 8;
   @SuppressWarnings("serial")
   private volatile java.lang.Object mcpServerSlug_ = "";
   /**
@@ -436,7 +436,7 @@ private static final long serialVersionUID = 0L;
    * Examples: "planton-cloud", "github", "slack"
    * </pre>
    *
-   * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+   * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
    * @return The mcpServerSlug.
    */
   @java.lang.Override
@@ -465,7 +465,7 @@ private static final long serialVersionUID = 0L;
    * Examples: "planton-cloud", "github", "slack"
    * </pre>
    *
-   * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+   * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
    * @return The bytes for mcpServerSlug.
    */
   @java.lang.Override
@@ -519,7 +519,7 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.GeneratedMessage.writeString(output, 7, subAgentName_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerSlug_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 9, mcpServerSlug_);
+      com.google.protobuf.GeneratedMessage.writeString(output, 8, mcpServerSlug_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -553,7 +553,7 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.GeneratedMessage.computeStringSize(7, subAgentName_);
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(mcpServerSlug_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(9, mcpServerSlug_);
+      size += com.google.protobuf.GeneratedMessage.computeStringSize(8, mcpServerSlug_);
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -950,11 +950,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000040;
               break;
             } // case 58
-            case 74: {
+            case 66: {
               mcpServerSlug_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000080;
               break;
-            } // case 74
+            } // case 66
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1686,7 +1686,7 @@ private static final long serialVersionUID = 0L;
      * Examples: "planton-cloud", "github", "slack"
      * </pre>
      *
-     * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+     * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
      * @return The mcpServerSlug.
      */
     public java.lang.String getMcpServerSlug() {
@@ -1714,7 +1714,7 @@ private static final long serialVersionUID = 0L;
      * Examples: "planton-cloud", "github", "slack"
      * </pre>
      *
-     * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+     * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
      * @return The bytes for mcpServerSlug.
      */
     public com.google.protobuf.ByteString
@@ -1743,7 +1743,7 @@ private static final long serialVersionUID = 0L;
      * Examples: "planton-cloud", "github", "slack"
      * </pre>
      *
-     * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+     * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
      * @param value The mcpServerSlug to set.
      * @return This builder for chaining.
      */
@@ -1768,7 +1768,7 @@ private static final long serialVersionUID = 0L;
      * Examples: "planton-cloud", "github", "slack"
      * </pre>
      *
-     * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+     * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
      * @return This builder for chaining.
      */
     public Builder clearMcpServerSlug() {
@@ -1790,7 +1790,7 @@ private static final long serialVersionUID = 0L;
      * Examples: "planton-cloud", "github", "slack"
      * </pre>
      *
-     * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+     * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
      * @param value The bytes for mcpServerSlug to set.
      * @return This builder for chaining.
      */

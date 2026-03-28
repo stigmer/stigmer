@@ -194,7 +194,7 @@ public interface PendingApprovalOrBuilder extends
    * Examples: "planton-cloud", "github", "slack"
    * </pre>
    *
-   * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+   * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
    * @return The mcpServerSlug.
    */
   java.lang.String getMcpServerSlug();
@@ -211,7 +211,7 @@ public interface PendingApprovalOrBuilder extends
    * Examples: "planton-cloud", "github", "slack"
    * </pre>
    *
-   * <code>string mcp_server_slug = 9 [json_name = "mcpServerSlug"];</code>
+   * <code>string mcp_server_slug = 8 [json_name = "mcpServerSlug"];</code>
    * @return The bytes for mcpServerSlug.
    */
   com.google.protobuf.ByteString
