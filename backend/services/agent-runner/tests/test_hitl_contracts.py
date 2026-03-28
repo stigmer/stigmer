@@ -7,10 +7,13 @@ Tests cover:
   - Pending approvals snapshot: Temporal coordination signal
   - slim_status_for_temporal: snapshot preserved through slim copy
   - FIFO queue drain: stale entries removed when fingerprint dedup matches
+  - Task tool early-TC reconciliation on resume path
+  - Bidirectional ID lookup: defense-in-depth for ID mismatches
 """
 
 import logging
 from collections import deque
+from typing import Any
 
 import pytest
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
@@ -835,3 +838,345 @@ class TestProxyInterruptResume:
         )
         assert "proxy" in result
         assert "2 sub-decision" in result
+
+
+# =============================================================================
+# Task tool early-TC reconciliation on resume
+# =============================================================================
+
+
+class TestTaskToolResumeReconciliation:
+    """Verify that task tool calls from prior cycles are correctly reconciled
+    on the resume path.
+
+    The root cause of the sub-agent HITL stuck loop was that
+    ``_create_early_tool_call`` skipped creation for replayed tool_use blocks
+    (they already exist) but did NOT re-queue them for reconciliation.  This
+    caused ``_handle_tool_start_event``'s task handler to fall through to the
+    ``run_id`` fallback, producing UUID-format IDs that diverge from the
+    ``InjectedToolCallId`` in the interrupt payload.
+    """
+
+    @pytest.mark.asyncio
+    async def test_replayed_task_tool_use_re_queued_for_reconciliation(self):
+        """A replayed task tool_use block re-queues the existing TC so that
+        on_tool_start can reconcile it and produce the correct Anthropic ID."""
+        args = Struct()
+        args.update({"description": "research deployment", "subagent_type": "generalPurpose"})
+        tc = ToolCall(
+            id="toolu_AAA",
+            name="task",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+        )
+
+        sa = SubAgentExecution(id="toolu_AAA", name="generalPurpose")
+        builder = _make_builder_with_decisions([tc], sub_agents=[sa])
+
+        assert len(builder._early_tool_call_queue) == 0
+
+        _simulate_tool_use_stream(builder, "task", "toolu_AAA")
+
+        assert len(builder._early_tool_call_queue) == 1
+        temp_id, sa_id = builder._early_tool_call_queue[0]
+        assert temp_id == "toolu_AAA"
+
+    @pytest.mark.asyncio
+    async def test_task_on_tool_start_reconciles_with_re_queued_entry(self):
+        """After the re-queue, on_tool_start for the replayed task reconciles
+        to the existing Anthropic ID instead of falling back to run_id."""
+        args = Struct()
+        args.update({"description": "research patterns", "subagent_type": "generalPurpose"})
+        tc = ToolCall(
+            id="toolu_BBB",
+            name="task",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+        )
+
+        sa = SubAgentExecution(id="toolu_BBB", name="generalPurpose")
+        builder = _make_builder_with_decisions([tc], sub_agents=[sa])
+
+        _simulate_tool_use_stream(builder, "task", "toolu_BBB")
+
+        event = {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "019d-uuid-new-run",
+            "data": {"input": {"description": "research patterns", "subagent_type": "generalPurpose"}},
+        }
+        await builder.process_event(event)
+
+        assert builder._run_id_aliases.get("019d-uuid-new-run") == "toolu_BBB"
+        assert len(builder._early_tool_call_queue) == 0
+
+    @pytest.mark.asyncio
+    async def test_parallel_task_tools_reconcile_independently(self):
+        """Two parallel task tool_use blocks in the same stream response
+        each get their own queue entry and reconcile correctly."""
+        args_a = Struct()
+        args_a.update({"description": "task A", "subagent_type": "generalPurpose"})
+        args_b = Struct()
+        args_b.update({"description": "task B", "subagent_type": "generalPurpose"})
+
+        tc_a = ToolCall(id="toolu_CCC", name="task", args=args_a, status=ToolCallStatus.TOOL_CALL_COMPLETED)
+        tc_b = ToolCall(id="toolu_DDD", name="task", args=args_b, status=ToolCallStatus.TOOL_CALL_COMPLETED)
+
+        sa_a = SubAgentExecution(id="toolu_CCC", name="generalPurpose")
+        sa_b = SubAgentExecution(id="toolu_DDD", name="generalPurpose")
+        builder = _make_builder_with_decisions([tc_a, tc_b], sub_agents=[sa_a, sa_b])
+
+        _simulate_tool_use_stream(builder, "task", "toolu_CCC")
+        _simulate_tool_use_stream(builder, "task", "toolu_DDD")
+
+        assert len(builder._early_tool_call_queue) == 2
+
+        event_a = {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "run-uuid-1",
+            "data": {"input": {"description": "task A", "subagent_type": "generalPurpose"}},
+        }
+        event_b = {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "run-uuid-2",
+            "data": {"input": {"description": "task B", "subagent_type": "generalPurpose"}},
+        }
+
+        await builder.process_event(event_a)
+        await builder.process_event(event_b)
+
+        assert builder._run_id_aliases.get("run-uuid-1") == "toolu_CCC"
+        assert builder._run_id_aliases.get("run-uuid-2") == "toolu_DDD"
+        assert len(builder._early_tool_call_queue) == 0
+
+    @pytest.mark.asyncio
+    async def test_fingerprint_dedup_does_not_block_task_handler(self):
+        """Even if the fingerprint matches a prior-cycle task tool, the task
+        handler must still run so sub-agent lifecycle is managed."""
+        args = Struct()
+        args.update({"description": "deploy service", "subagent_type": "generalPurpose"})
+        tc = ToolCall(
+            id="toolu_EEE",
+            name="task",
+            args=args,
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+        )
+
+        sa = SubAgentExecution(id="toolu_EEE", name="generalPurpose")
+        builder = _make_builder_with_decisions([tc], sub_agents=[sa])
+
+        _simulate_tool_use_stream(builder, "task", "toolu_EEE")
+
+        event = {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "new-task-run-id",
+            "data": {"input": {"description": "deploy service", "subagent_type": "generalPurpose"}},
+        }
+        await builder.process_event(event)
+
+        assert builder._run_id_aliases.get("new-task-run-id") == "toolu_EEE"
+        assert "new-task-run-id" in builder._run_id_to_tool_call_id
+
+
+# =============================================================================
+# Bidirectional ID lookup: defense-in-depth resume matching
+# =============================================================================
+
+
+class TestBidirectionalIdLookup:
+    """Contract tests for the defense-in-depth bidirectional ID lookup in
+    execute_graphton.py's resume matching.
+
+    When the status ToolCall carries a UUID-format ID (from the run_id
+    fallback) but the interrupt payload carries the Anthropic toolu_* ID,
+    the primary ``decisions_by_tc.get(sub_tc_id)`` lookup fails.  The
+    bidirectional fallback pairs unmatched decisions with unmatched
+    interrupts.
+    """
+
+    @staticmethod
+    def _run_matching_with_fallback(
+        interrupts: list[_MockInterrupt],
+        decisions: list[SubmitApprovalInput],
+    ) -> tuple[dict, set[str]]:
+        """Replicate the full matching loop including bidirectional fallback."""
+        from worker.activities.execute_graphton import _build_decision_value
+
+        action_map = {
+            ApprovalAction.APPROVAL_ACTION_APPROVE: "approve",
+            ApprovalAction.APPROVAL_ACTION_SKIP: "skip",
+            ApprovalAction.APPROVAL_ACTION_REJECT: "reject",
+        }
+        decisions_by_tc = {d.tool_call_id: d for d in decisions}
+        resume_dict: dict = {}
+        matched: set[str] = set()
+
+        for intr in interrupts:
+            intr_value = intr.value if isinstance(intr.value, dict) else {}
+            direct_tc_id = intr_value.get("tool_call_id", "")
+            if direct_tc_id:
+                decision = decisions_by_tc.get(direct_tc_id)
+                if decision:
+                    resume_dict[intr.id] = _build_decision_value(decision, action_map)
+                    matched.add(direct_tc_id)
+                continue
+            sub_decisions: dict = {}
+            for sub_id, sub_value in intr_value.items():
+                if not isinstance(sub_value, dict):
+                    continue
+                if "_proxy_interrupt_id" not in sub_value:
+                    continue
+                sub_tc_id = sub_value.get("tool_call_id", "")
+                if not sub_tc_id:
+                    continue
+                decision = decisions_by_tc.get(sub_tc_id)
+                if decision:
+                    sub_decisions[sub_id] = _build_decision_value(decision, action_map)
+                    matched.add(sub_tc_id)
+            if sub_decisions:
+                resume_dict[intr.id] = sub_decisions
+
+        # Bidirectional fallback
+        unmatched = set(decisions_by_tc) - matched
+        if unmatched:
+            intr_tc_to_parent: dict[str, tuple[Any, str, str]] = {}
+            for intr in interrupts:
+                if intr.id in resume_dict:
+                    continue
+                intr_value = intr.value if isinstance(intr.value, dict) else {}
+                direct_tc_id = intr_value.get("tool_call_id", "")
+                if direct_tc_id and direct_tc_id not in matched:
+                    intr_tc_to_parent[direct_tc_id] = (intr, "direct", "")
+                for sub_id, sub_value in intr_value.items():
+                    if not isinstance(sub_value, dict):
+                        continue
+                    if "_proxy_interrupt_id" not in sub_value:
+                        continue
+                    sub_tc_id = sub_value.get("tool_call_id", "")
+                    if sub_tc_id and sub_tc_id not in matched:
+                        intr_tc_to_parent[sub_tc_id] = (intr, "proxy", sub_id)
+
+            for um_tc_id in list(unmatched):
+                decision = decisions_by_tc[um_tc_id]
+                for intr_tc_id, (intr, shape, sub_id) in intr_tc_to_parent.items():
+                    if intr.id in resume_dict and shape == "direct":
+                        continue
+                    if shape == "direct":
+                        resume_dict[intr.id] = _build_decision_value(decision, action_map)
+                        matched.add(um_tc_id)
+                        del intr_tc_to_parent[intr_tc_id]
+                        break
+                    if shape == "proxy":
+                        existing = resume_dict.get(intr.id, {})
+                        existing[sub_id] = _build_decision_value(decision, action_map)
+                        resume_dict[intr.id] = existing
+                        matched.add(um_tc_id)
+                        del intr_tc_to_parent[intr_tc_id]
+                        break
+
+        return resume_dict, matched
+
+    def test_direct_mismatch_resolved_by_fallback(self):
+        """Decision with UUID tool_call_id paired with interrupt's toolu_* ID."""
+        interrupts = [
+            _MockInterrupt(
+                id="intr-1",
+                value={"tool_call_id": "toolu_real_id", "message": "Execute?"},
+            ),
+        ]
+        decisions = [
+            SubmitApprovalInput(
+                tool_call_id="019d-uuid-from-status",
+                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            ),
+        ]
+
+        result, matched = self._run_matching_with_fallback(interrupts, decisions)
+
+        assert "intr-1" in result
+        assert result["intr-1"] == {"action": "approve"}
+        assert "019d-uuid-from-status" in matched
+
+    def test_proxy_mismatch_resolved_by_fallback(self):
+        """Proxy sub-interrupt with UUID decision ID matched to toolu_* interrupt."""
+        from graphton.core.interrupt_proxy import InterruptProxyRunnable
+
+        sub_interrupts = [
+            _MockInterrupt(
+                id="sub-1",
+                value={"tool_call_id": "toolu_sub_real", "message": "Run cmd?"},
+            ),
+        ]
+        proxy_payload = InterruptProxyRunnable._build_proxy_payload(sub_interrupts)
+        parent = _MockInterrupt(id="p-1", value=proxy_payload)
+
+        decisions = [
+            SubmitApprovalInput(
+                tool_call_id="019d-uuid-sub",
+                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            ),
+        ]
+
+        result, matched = self._run_matching_with_fallback([parent], decisions)
+
+        assert "p-1" in result
+        assert result["p-1"]["sub-1"] == {"action": "approve"}
+        assert "019d-uuid-sub" in matched
+
+    def test_no_fallback_needed_when_ids_match(self):
+        """When IDs match normally, fallback is not triggered."""
+        interrupts = [
+            _MockInterrupt(
+                id="intr-1",
+                value={"tool_call_id": "toolu_match", "message": "OK?"},
+            ),
+        ]
+        decisions = [
+            SubmitApprovalInput(
+                tool_call_id="toolu_match",
+                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            ),
+        ]
+
+        result, matched = self._run_matching_with_fallback(interrupts, decisions)
+
+        assert result == {"intr-1": {"action": "approve"}}
+        assert matched == {"toolu_match"}
+
+    def test_empty_resume_dict_when_no_interrupts(self):
+        """When there are no interrupts at all, resume_dict is empty."""
+        decisions = [
+            SubmitApprovalInput(
+                tool_call_id="orphan",
+                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            ),
+        ]
+
+        result, matched = self._run_matching_with_fallback([], decisions)
+
+        assert result == {}
+        assert matched == set()
+
+
+# =============================================================================
+# Helpers
+# =============================================================================
+
+
+def _simulate_tool_use_stream(
+    builder: StatusBuilder, tool_name: str, tool_use_id: str,
+) -> None:
+    """Simulate a streaming tool_use block arriving via on_chat_model_stream.
+
+    Calls ``_create_early_tool_call`` directly, which is the code path
+    exercised when a tool_use block appears in the LLM streaming response.
+    """
+    builder._create_early_tool_call(
+        tool_name=tool_name,
+        tool_use_id=tool_use_id,
+        ns_key="",
+        namespace="",
+    )

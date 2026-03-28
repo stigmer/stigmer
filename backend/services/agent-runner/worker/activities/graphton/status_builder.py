@@ -754,7 +754,12 @@ class StatusBuilder:
                     f"original_tc_id={original_tc_id} "
                     f"(fingerprint dedup on resume path)"
                 )
-            return
+            # Task tools must NOT return here — the task handler below
+            # manages sub-agent lifecycle (reactivation on resume,
+            # SubAgentExecution creation on first run).  The alias set
+            # above is sufficient for the dedup; control falls through.
+            if tool_name != "task":
+                return
 
         # Fallback: resume-aware dedup for reconciled tool calls.
         # Fingerprint dedup above uses raw event args, but
@@ -764,8 +769,11 @@ class StatusBuilder:
         # env var resolution), the fingerprints diverge and the primary
         # check above misses the match.  This fallback uses the explicit
         # reconciled-tool registry populated by ResumeReconciler.
+        #
+        # Task tools are excluded: their lifecycle is managed by the task
+        # handler below via _reconcile_early_tool_call + _handle_sub_agent_start.
         resume_queue = self._reconciled_resume_tool_calls.get(tool_name)
-        if resume_queue:
+        if resume_queue and tool_name != "task":
             original_tc_id = resume_queue.popleft()
             self._run_id_aliases[run_id] = original_tc_id
             self.tool_call_fingerprints.add(fingerprint)
@@ -1856,10 +1864,21 @@ class StatusBuilder:
         # The replayed tool_use blocks carry the same tool_use_id, so the
         # derived temp_id matches an existing ToolCall from the previous
         # cycle.  Skip creation to avoid duplicate messages and tool calls.
+        #
+        # However, we MUST still enqueue the existing TC for reconciliation.
+        # When on_tool_start fires later, _reconcile_early_tool_call needs
+        # to find this entry so it can create a run_id alias to the correct
+        # Anthropic tool_call_id.  Without this, the task handler falls
+        # through to the run_id fallback, producing UUID-format IDs that
+        # diverge from the InjectedToolCallId in the interrupt payload.
         if self._find_tool_call_by_id(temp_id) is not None:
+            _, sub_agent = self._get_execution_context(namespace)
+            sa_id = sub_agent.id if sub_agent else None
+            self._early_tool_call_queue.append((temp_id, sa_id))
             self.logger.info(
                 "[RESUME_DEDUP] execution=%s skipping early tool call "
-                "creation for %s (id=%s already exists from prior cycle)",
+                "creation for %s (id=%s already exists from prior cycle, "
+                "re-queued for reconciliation)",
                 self.execution_id, tool_name, temp_id,
             )
             return
@@ -1918,6 +1937,12 @@ class StatusBuilder:
         alias so that downstream handlers (``on_tool_end``, ``tool_progress``)
         resolve to the same proto.
 
+        On the **resume path**, a TC from the prior cycle is re-queued by
+        ``_create_early_tool_call`` (it already has args, approval status,
+        etc.).  In that case only the run_id alias is registered — the
+        existing state is preserved to avoid overwriting approval decisions
+        that were already recorded.
+
         Returns the reconciled ToolCall, or ``None`` if no match exists.
         """
         _, sub_agent = self._get_execution_context(namespace)
@@ -1931,6 +1956,25 @@ class StatusBuilder:
                 continue
 
             self._early_tool_call_queue.pop(idx)
+
+            # Resume path: TC from a prior cycle was re-queued by
+            # _create_early_tool_call's resume dedup.  The TC is fully
+            # populated (not streaming) and may already have an approval
+            # decision recorded.  Only register the run_id alias so
+            # downstream handlers route correctly.
+            is_resume_requeue = not existing.is_streaming
+            if is_resume_requeue:
+                self._run_id_aliases[run_id] = temp_id
+                fingerprint = self._get_tool_fingerprint(tool_name, tool_args)
+                self._fingerprint_to_tool_call_id[fingerprint] = temp_id
+                self.logger.info(
+                    "[RECONCILE] execution=%s resume-path reconciliation: "
+                    "tool=%s run_id=%s -> existing_tc=%s "
+                    "(alias only, preserving prior-cycle state)",
+                    self.execution_id, tool_name, run_id, temp_id,
+                )
+                return existing
+
             self._flush_tool_input_buffer(temp_id)
 
             existing.result = ""
