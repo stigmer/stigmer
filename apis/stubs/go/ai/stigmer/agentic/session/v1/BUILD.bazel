@@ -6,6 +6,7 @@ go_library(
         "api.pb.go",
         "command.pb.go",
         "command_grpc.pb.go",
+        "enum.pb.go",
         "io.pb.go",
         "query.pb.go",
         "query_grpc.pb.go",

@@ -22,68 +22,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// GitWriteBackMode controls the platform's post-execution git workflow
-// for a git-backed workspace entry.
-//
-// The user sets this when creating a session to opt in to automatic
-// PR creation. The agent never sees or controls this setting.
-type GitWriteBackMode int32
-
-const (
-	// No write-back. File changes remain in the sandbox only.
-	// Artifacts are still published as downloadable files.
-	GitWriteBackMode_GIT_WRITE_BACK_MODE_UNSPECIFIED GitWriteBackMode = 0
-	// After execution completes, the platform automatically:
-	//  1. Detects uncommitted changes via `git diff`
-	//  2. Creates a branch (stigmer/{execution_id_short})
-	//  3. Commits all changes
-	//  4. Pushes the branch to the remote
-	//  5. Creates a pull request targeting the original branch
-	//
-	// The write-back outcome is recorded in
-	// AgentExecutionStatus.workspace_write_backs.
-	GitWriteBackMode_GIT_WRITE_BACK_BRANCH_AND_PR GitWriteBackMode = 1
-)
-
-// Enum value maps for GitWriteBackMode.
-var (
-	GitWriteBackMode_name = map[int32]string{
-		0: "GIT_WRITE_BACK_MODE_UNSPECIFIED",
-		1: "GIT_WRITE_BACK_BRANCH_AND_PR",
-	}
-	GitWriteBackMode_value = map[string]int32{
-		"GIT_WRITE_BACK_MODE_UNSPECIFIED": 0,
-		"GIT_WRITE_BACK_BRANCH_AND_PR":    1,
-	}
-)
-
-func (x GitWriteBackMode) Enum() *GitWriteBackMode {
-	p := new(GitWriteBackMode)
-	*p = x
-	return p
-}
-
-func (x GitWriteBackMode) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (GitWriteBackMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_session_v1_workspace_proto_enumTypes[0].Descriptor()
-}
-
-func (GitWriteBackMode) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_session_v1_workspace_proto_enumTypes[0]
-}
-
-func (x GitWriteBackMode) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use GitWriteBackMode.Descriptor instead.
-func (GitWriteBackMode) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP(), []int{0}
-}
-
 // WorkspaceSource defines where the agent's workspace content comes from.
 //
 // This is a pure source-definition type: it describes the origin of workspace
@@ -417,7 +355,7 @@ var File_ai_stigmer_agentic_session_v1_workspace_proto protoreflect.FileDescript
 
 const file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc = "" +
 	"\n" +
-	"-ai/stigmer/agentic/session/v1/workspace.proto\x12\x1dai.stigmer.agentic.session.v1\x1a\x1bbuf/validate/validate.proto\"\xbe\x01\n" +
+	"-ai/stigmer/agentic/session/v1/workspace.proto\x12\x1dai.stigmer.agentic.session.v1\x1a(ai/stigmer/agentic/session/v1/enum.proto\x1a\x1bbuf/validate/validate.proto\"\xbe\x01\n" +
 	"\x0fWorkspaceSource\x12I\n" +
 	"\bgit_repo\x18\x01 \x01(\v2,.ai.stigmer.agentic.session.v1.GitRepoSourceH\x00R\agitRepo\x12O\n" +
 	"\n" +
@@ -435,10 +373,7 @@ const file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc = "" +
 	"\x06commit\x18\x03 \x01(\tR\x06commit\x12\"\n" +
 	"\x05depth\x18\x04 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00H\x00R\x05depth\x88\x01\x01\x12W\n" +
 	"\x0fwrite_back_mode\x18\x05 \x01(\x0e2/.ai.stigmer.agentic.session.v1.GitWriteBackModeR\rwriteBackModeB\b\n" +
-	"\x06_depth*Y\n" +
-	"\x10GitWriteBackMode\x12#\n" +
-	"\x1fGIT_WRITE_BACK_MODE_UNSPECIFIED\x10\x00\x12 \n" +
-	"\x1cGIT_WRITE_BACK_BRANCH_AND_PR\x10\x01B\xa1\x02\n" +
+	"\x06_depthB\xa1\x02\n" +
 	"!com.ai.stigmer.agentic.session.v1B\x0eWorkspaceProtoP\x01ZSgithub.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/agentic/session/v1;sessionv1\xa2\x02\x04ASAS\xaa\x02\x1dAi.Stigmer.Agentic.Session.V1\xca\x02\x1dAi\\Stigmer\\Agentic\\Session\\V1\xe2\x02)Ai\\Stigmer\\Agentic\\Session\\V1\\GPBMetadata\xea\x02!Ai::Stigmer::Agentic::Session::V1b\x06proto3"
 
 var (
@@ -453,20 +388,19 @@ func file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_session_v1_workspace_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_session_v1_workspace_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ai_stigmer_agentic_session_v1_workspace_proto_goTypes = []any{
-	(GitWriteBackMode)(0),   // 0: ai.stigmer.agentic.session.v1.GitWriteBackMode
-	(*WorkspaceSource)(nil), // 1: ai.stigmer.agentic.session.v1.WorkspaceSource
-	(*WorkspaceEntry)(nil),  // 2: ai.stigmer.agentic.session.v1.WorkspaceEntry
-	(*LocalPathSource)(nil), // 3: ai.stigmer.agentic.session.v1.LocalPathSource
-	(*GitRepoSource)(nil),   // 4: ai.stigmer.agentic.session.v1.GitRepoSource
+	(*WorkspaceSource)(nil), // 0: ai.stigmer.agentic.session.v1.WorkspaceSource
+	(*WorkspaceEntry)(nil),  // 1: ai.stigmer.agentic.session.v1.WorkspaceEntry
+	(*LocalPathSource)(nil), // 2: ai.stigmer.agentic.session.v1.LocalPathSource
+	(*GitRepoSource)(nil),   // 3: ai.stigmer.agentic.session.v1.GitRepoSource
+	(GitWriteBackMode)(0),   // 4: ai.stigmer.agentic.session.v1.GitWriteBackMode
 }
 var file_ai_stigmer_agentic_session_v1_workspace_proto_depIdxs = []int32{
-	4, // 0: ai.stigmer.agentic.session.v1.WorkspaceSource.git_repo:type_name -> ai.stigmer.agentic.session.v1.GitRepoSource
-	3, // 1: ai.stigmer.agentic.session.v1.WorkspaceSource.local_path:type_name -> ai.stigmer.agentic.session.v1.LocalPathSource
-	1, // 2: ai.stigmer.agentic.session.v1.WorkspaceEntry.source:type_name -> ai.stigmer.agentic.session.v1.WorkspaceSource
-	0, // 3: ai.stigmer.agentic.session.v1.GitRepoSource.write_back_mode:type_name -> ai.stigmer.agentic.session.v1.GitWriteBackMode
+	3, // 0: ai.stigmer.agentic.session.v1.WorkspaceSource.git_repo:type_name -> ai.stigmer.agentic.session.v1.GitRepoSource
+	2, // 1: ai.stigmer.agentic.session.v1.WorkspaceSource.local_path:type_name -> ai.stigmer.agentic.session.v1.LocalPathSource
+	0, // 2: ai.stigmer.agentic.session.v1.WorkspaceEntry.source:type_name -> ai.stigmer.agentic.session.v1.WorkspaceSource
+	4, // 3: ai.stigmer.agentic.session.v1.GitRepoSource.write_back_mode:type_name -> ai.stigmer.agentic.session.v1.GitWriteBackMode
 	4, // [4:4] is the sub-list for method output_type
 	4, // [4:4] is the sub-list for method input_type
 	4, // [4:4] is the sub-list for extension type_name
@@ -479,6 +413,7 @@ func file_ai_stigmer_agentic_session_v1_workspace_proto_init() {
 	if File_ai_stigmer_agentic_session_v1_workspace_proto != nil {
 		return
 	}
+	file_ai_stigmer_agentic_session_v1_enum_proto_init()
 	file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes[0].OneofWrappers = []any{
 		(*WorkspaceSource_GitRepo)(nil),
 		(*WorkspaceSource_LocalPath)(nil),
@@ -489,14 +424,13 @@ func file_ai_stigmer_agentic_session_v1_workspace_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc), len(file_ai_stigmer_agentic_session_v1_workspace_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      0,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_ai_stigmer_agentic_session_v1_workspace_proto_goTypes,
 		DependencyIndexes: file_ai_stigmer_agentic_session_v1_workspace_proto_depIdxs,
-		EnumInfos:         file_ai_stigmer_agentic_session_v1_workspace_proto_enumTypes,
 		MessageInfos:      file_ai_stigmer_agentic_session_v1_workspace_proto_msgTypes,
 	}.Build()
 	File_ai_stigmer_agentic_session_v1_workspace_proto = out.File

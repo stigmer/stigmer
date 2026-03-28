@@ -56,37 +56,37 @@ public final class WorkspaceProto extends com.google.protobuf.GeneratedFile {
   static {
     java.lang.String[] descriptorData = {
       "\n-ai/stigmer/agentic/session/v1/workspac" +
-      "e.proto\022\035ai.stigmer.agentic.session.v1\032\033" +
-      "buf/validate/validate.proto\"\276\001\n\017Workspac" +
-      "eSource\022I\n\010git_repo\030\001 \001(\0132,.ai.stigmer.a" +
-      "gentic.session.v1.GitRepoSourceH\000R\007gitRe" +
-      "po\022O\n\nlocal_path\030\002 \001(\0132..ai.stigmer.agen" +
-      "tic.session.v1.LocalPathSourceH\000R\tlocalP" +
-      "athB\017\n\006source\022\005\272H\002\010\001\"}\n\016WorkspaceEntry\022\033" +
-      "\n\004name\030\001 \001(\tB\007\272H\004r\002\020\001R\004name\022N\n\006source\030\002 " +
-      "\001(\0132..ai.stigmer.agentic.session.v1.Work" +
-      "spaceSourceB\006\272H\003\310\001\001R\006source\".\n\017LocalPath" +
-      "Source\022\033\n\004path\030\001 \001(\tB\007\272H\004r\002\020\001R\004path\"\363\002\n\r" +
-      "GitRepoSource\022\252\001\n\003url\030\001 \001(\tB\227\001\272H\223\001\272\001\214\001\n\031" +
-      "git_repo_source.url.https\022Rurl must use " +
-      "HTTPS (e.g. https://github.com/org/repo)" +
-      ". SSH URLs are not supported.\032\033this.star" +
-      "tsWith(\'https://\')\310\001\001R\003url\022\026\n\006branch\030\002 \001" +
-      "(\tR\006branch\022\026\n\006commit\030\003 \001(\tR\006commit\022\"\n\005de" +
-      "pth\030\004 \001(\005B\007\272H\004\032\002(\000H\000R\005depth\210\001\001\022W\n\017write_" +
-      "back_mode\030\005 \001(\0162/.ai.stigmer.agentic.ses" +
-      "sion.v1.GitWriteBackModeR\rwriteBackModeB" +
-      "\010\n\006_depth*Y\n\020GitWriteBackMode\022#\n\037GIT_WRI" +
-      "TE_BACK_MODE_UNSPECIFIED\020\000\022 \n\034GIT_WRITE_" +
-      "BACK_BRANCH_AND_PR\020\001B\251\001B\016WorkspaceProtoP" +
-      "\001\242\002\004ASAS\252\002\035Ai.Stigmer.Agentic.Session.V1" +
-      "\312\002\035Ai\\Stigmer\\Agentic\\Session\\V1\342\002)Ai\\St" +
-      "igmer\\Agentic\\Session\\V1\\GPBMetadata\352\002!A" +
-      "i::Stigmer::Agentic::Session::V1b\006proto3"
+      "e.proto\022\035ai.stigmer.agentic.session.v1\032(" +
+      "ai/stigmer/agentic/session/v1/enum.proto" +
+      "\032\033buf/validate/validate.proto\"\276\001\n\017Worksp" +
+      "aceSource\022I\n\010git_repo\030\001 \001(\0132,.ai.stigmer" +
+      ".agentic.session.v1.GitRepoSourceH\000R\007git" +
+      "Repo\022O\n\nlocal_path\030\002 \001(\0132..ai.stigmer.ag" +
+      "entic.session.v1.LocalPathSourceH\000R\tloca" +
+      "lPathB\017\n\006source\022\005\272H\002\010\001\"}\n\016WorkspaceEntry" +
+      "\022\033\n\004name\030\001 \001(\tB\007\272H\004r\002\020\001R\004name\022N\n\006source\030" +
+      "\002 \001(\0132..ai.stigmer.agentic.session.v1.Wo" +
+      "rkspaceSourceB\006\272H\003\310\001\001R\006source\".\n\017LocalPa" +
+      "thSource\022\033\n\004path\030\001 \001(\tB\007\272H\004r\002\020\001R\004path\"\363\002" +
+      "\n\rGitRepoSource\022\252\001\n\003url\030\001 \001(\tB\227\001\272H\223\001\272\001\214\001" +
+      "\n\031git_repo_source.url.https\022Rurl must us" +
+      "e HTTPS (e.g. https://github.com/org/rep" +
+      "o). SSH URLs are not supported.\032\033this.st" +
+      "artsWith(\'https://\')\310\001\001R\003url\022\026\n\006branch\030\002" +
+      " \001(\tR\006branch\022\026\n\006commit\030\003 \001(\tR\006commit\022\"\n\005" +
+      "depth\030\004 \001(\005B\007\272H\004\032\002(\000H\000R\005depth\210\001\001\022W\n\017writ" +
+      "e_back_mode\030\005 \001(\0162/.ai.stigmer.agentic.s" +
+      "ession.v1.GitWriteBackModeR\rwriteBackMod" +
+      "eB\010\n\006_depthB\251\001B\016WorkspaceProtoP\001\242\002\004ASAS\252" +
+      "\002\035Ai.Stigmer.Agentic.Session.V1\312\002\035Ai\\Sti" +
+      "gmer\\Agentic\\Session\\V1\342\002)Ai\\Stigmer\\Age" +
+      "ntic\\Session\\V1\\GPBMetadata\352\002!Ai::Stigme" +
+      "r::Agentic::Session::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
+          ai.stigmer.agentic.session.v1.EnumProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
         });
     internal_static_ai_stigmer_agentic_session_v1_WorkspaceSource_descriptor =
@@ -114,6 +114,7 @@ public final class WorkspaceProto extends com.google.protobuf.GeneratedFile {
         internal_static_ai_stigmer_agentic_session_v1_GitRepoSource_descriptor,
         new java.lang.String[] { "Url", "Branch", "Commit", "Depth", "WriteBackMode", });
     descriptor.resolveAllFeaturesImmutable();
+    ai.stigmer.agentic.session.v1.EnumProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =
         com.google.protobuf.ExtensionRegistry.newInstance();

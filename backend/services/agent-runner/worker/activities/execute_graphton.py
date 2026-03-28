@@ -752,23 +752,6 @@ async def _execute_graphton_impl(
                 "primary_root_dir": provision_results[0].root_dir if provision_results else None,
             })
 
-        # Incremental git write-back coordinator
-        from worker.activities.graphton.writeback_coordinator import WriteBackCoordinator
-
-        writeback_coordinator: WriteBackCoordinator | None = None
-        if provision_results and session.spec.workspace_entries:
-            writeback_coordinator = WriteBackCoordinator(
-                status_builder=status_builder,
-                execution_id=execution_id,
-                provision_results=provision_results,
-                workspace_entries=list(session.spec.workspace_entries),
-                sandbox=sandbox,
-                workspace_backend=workspace_backend,
-                logger=activity_logger,
-            )
-            if not writeback_coordinator.has_eligible_entries:
-                writeback_coordinator = None
-
         # ─────────────────────────────────────────────────────────────────────────────
         # Workspace integrity flag (resume fast-path safety net)
         #
@@ -1139,7 +1122,24 @@ async def _execute_graphton_impl(
         status_builder = StatusBuilder(execution_id, execution.status, approval_config)
         status_builder.set_display_env_vars(merged_env_vars, secret_keys)
         status_builder.set_workspace_root(workspace_backend.root_dir)
-        
+
+        # Incremental git write-back coordinator
+        from worker.activities.graphton.writeback_coordinator import WriteBackCoordinator
+
+        writeback_coordinator: WriteBackCoordinator | None = None
+        if provision_results and session.spec.workspace_entries:
+            writeback_coordinator = WriteBackCoordinator(
+                status_builder=status_builder,
+                execution_id=execution_id,
+                provision_results=provision_results,
+                workspace_entries=list(session.spec.workspace_entries),
+                sandbox=sandbox,
+                workspace_backend=workspace_backend,
+                logger=activity_logger,
+            )
+            if not writeback_coordinator.has_eligible_entries:
+                writeback_coordinator = None
+
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 5.7: Build ResolvedExecutionContext (Phase 2.5)
         #

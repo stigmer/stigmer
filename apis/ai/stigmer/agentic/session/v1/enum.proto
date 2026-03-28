@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.session.v1;
+
+// GitWriteBackMode controls the platform's post-execution git workflow
+// for a git-backed workspace entry.
+//
+// The user sets this when creating a session to opt in to automatic
+// PR creation. The agent never sees or controls this setting.
+enum GitWriteBackMode {
+  // No write-back. File changes remain in the sandbox only.
+  // Artifacts are still published as downloadable files.
+  GIT_WRITE_BACK_MODE_UNSPECIFIED = 0;
+
+  // After execution completes, the platform automatically:
+  //   1. Detects uncommitted changes via `git diff`
+  //   2. Creates a branch (stigmer/{execution_id_short})
+  //   3. Commits all changes
+  //   4. Pushes the branch to the remote
+  //   5. Creates a pull request targeting the original branch
+  //
+  // The write-back outcome is recorded in
+  // AgentExecutionStatus.workspace_write_backs.
+  GIT_WRITE_BACK_BRANCH_AND_PR = 1;
+}

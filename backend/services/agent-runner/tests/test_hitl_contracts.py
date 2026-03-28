@@ -13,7 +13,6 @@ import logging
 from collections import deque
 
 import pytest
-
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
