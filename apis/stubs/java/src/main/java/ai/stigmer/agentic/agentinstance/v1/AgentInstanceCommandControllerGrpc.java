@@ -223,11 +223,12 @@ public final class AgentInstanceCommandControllerGrpc {
      * <pre>
      * Create a new agent instance with full state.
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: Uses FGA contextual tuples (handler-level)
+     * Authorization: FGA can_create_instance on parent agent (handler-level)
      * - Checks can_create_instance on parent agent (via spec.agent_id)
-     * - For org-scoped: Passes contextual tuple agent#organization&#64;organization:target-org
-     * - FGA evaluates membership via contextual tuple (single authorization check)
-     * This pattern eliminates redundant checks by providing organization context to FGA
+     * - Public agents: Any authenticated user can create instances (cross-org allowed)
+     * - Private agents: Only org members and agent owner can create instances
+     * FGA is the single source of truth — no hardcoded org-matching rules.
+     * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
      */
     default void create(ai.stigmer.agentic.agentinstance.v1.AgentInstance request,
@@ -312,11 +313,12 @@ public final class AgentInstanceCommandControllerGrpc {
      * <pre>
      * Create a new agent instance with full state.
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: Uses FGA contextual tuples (handler-level)
+     * Authorization: FGA can_create_instance on parent agent (handler-level)
      * - Checks can_create_instance on parent agent (via spec.agent_id)
-     * - For org-scoped: Passes contextual tuple agent#organization&#64;organization:target-org
-     * - FGA evaluates membership via contextual tuple (single authorization check)
-     * This pattern eliminates redundant checks by providing organization context to FGA
+     * - Public agents: Any authenticated user can create instances (cross-org allowed)
+     * - Private agents: Only org members and agent owner can create instances
+     * FGA is the single source of truth — no hardcoded org-matching rules.
+     * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
      */
     public void create(ai.stigmer.agentic.agentinstance.v1.AgentInstance request,
@@ -388,11 +390,12 @@ public final class AgentInstanceCommandControllerGrpc {
      * <pre>
      * Create a new agent instance with full state.
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: Uses FGA contextual tuples (handler-level)
+     * Authorization: FGA can_create_instance on parent agent (handler-level)
      * - Checks can_create_instance on parent agent (via spec.agent_id)
-     * - For org-scoped: Passes contextual tuple agent#organization&#64;organization:target-org
-     * - FGA evaluates membership via contextual tuple (single authorization check)
-     * This pattern eliminates redundant checks by providing organization context to FGA
+     * - Public agents: Any authenticated user can create instances (cross-org allowed)
+     * - Private agents: Only org members and agent owner can create instances
+     * FGA is the single source of truth — no hardcoded org-matching rules.
+     * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance create(ai.stigmer.agentic.agentinstance.v1.AgentInstance request) throws io.grpc.StatusException {
@@ -461,11 +464,12 @@ public final class AgentInstanceCommandControllerGrpc {
      * <pre>
      * Create a new agent instance with full state.
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: Uses FGA contextual tuples (handler-level)
+     * Authorization: FGA can_create_instance on parent agent (handler-level)
      * - Checks can_create_instance on parent agent (via spec.agent_id)
-     * - For org-scoped: Passes contextual tuple agent#organization&#64;organization:target-org
-     * - FGA evaluates membership via contextual tuple (single authorization check)
-     * This pattern eliminates redundant checks by providing organization context to FGA
+     * - Public agents: Any authenticated user can create instances (cross-org allowed)
+     * - Private agents: Only org members and agent owner can create instances
+     * FGA is the single source of truth — no hardcoded org-matching rules.
+     * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance create(ai.stigmer.agentic.agentinstance.v1.AgentInstance request) {
@@ -535,11 +539,12 @@ public final class AgentInstanceCommandControllerGrpc {
      * <pre>
      * Create a new agent instance with full state.
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: Uses FGA contextual tuples (handler-level)
+     * Authorization: FGA can_create_instance on parent agent (handler-level)
      * - Checks can_create_instance on parent agent (via spec.agent_id)
-     * - For org-scoped: Passes contextual tuple agent#organization&#64;organization:target-org
-     * - FGA evaluates membership via contextual tuple (single authorization check)
-     * This pattern eliminates redundant checks by providing organization context to FGA
+     * - Public agents: Any authenticated user can create instances (cross-org allowed)
+     * - Private agents: Only org members and agent owner can create instances
+     * FGA is the single source of truth — no hardcoded org-matching rules.
+     * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstance> create(
