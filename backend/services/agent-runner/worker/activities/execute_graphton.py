@@ -377,6 +377,10 @@ async def _execute_graphton_impl(
     # in the finally block for cleanup (close() deletes the Daytona process
     # session used for sandbox command execution).
     workspace_backend = None
+
+    # Agent graph reference, initialized inside the try block.  Needed in
+    # the finally block to access the MCP middleware for explicit cleanup.
+    agent_graph = None
     
     # AsyncExitStack manages the checkpointer lifecycle (SQLite connection,
     # MongoDB client, etc.) across the entire activity execution. Created
@@ -1906,6 +1910,19 @@ async def _execute_graphton_impl(
         return _slim_status_for_temporal(failed_status)
     
     finally:
+        # Close MCP stdio sessions before general cleanup.  During normal
+        # execution the middleware's aafter_agent hook handles this, but when
+        # Temporal cancels the activity (e.g. worker SIGTERM) that hook is
+        # skipped and the AsyncExitStack leaks.  Closing it here — in the
+        # same asyncio task that created the sessions — avoids the anyio
+        # "cancel scope in a different task" error.  See MCP SDK #577.
+        mcp_mw = getattr(agent_graph, "_graphton_mcp_middleware", None)
+        if mcp_mw is not None:
+            try:
+                await mcp_mw._exit_stack.aclose()
+            except Exception:
+                pass
+
         # Clean up workspace backend (deletes the Daytona process session used
         # for sandbox command execution, if one was created).
         if workspace_backend is not None:

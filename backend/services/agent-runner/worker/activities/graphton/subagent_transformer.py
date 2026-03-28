@@ -354,6 +354,7 @@ async def _transform_single_subagent(
             sub_agent_name=name,
         ))
 
+    mcp_middleware = None
     if sub_agent.mcp_access:
         filtered_servers, filtered_tools = _filter_mcp_for_subagent(
             mcp_access_list=list(sub_agent.mcp_access),
@@ -365,19 +366,20 @@ async def _transform_single_subagent(
         
         if filtered_servers and filtered_tools:
             try:
-                mcp_tools = await _create_subagent_mcp_tools(
+                mcp_tool_wrappers, mcp_middleware = await _create_subagent_mcp_tools(
                     mcp_servers=filtered_servers,
                     mcp_tools=filtered_tools,
                     approval_checker=approval_checker,
                     log=log,
                     sub_agent_name=name,
                 )
-                tools.extend(mcp_tools)
+                tools.extend(mcp_tool_wrappers)
                 log.debug(
-                    f"Sub-agent '{name}' has {len(mcp_tools)} MCP tool(s) from "
+                    f"Sub-agent '{name}' has {len(mcp_tool_wrappers)} MCP tool(s) from "
                     f"{len(filtered_servers)} server(s)"
                 )
             except Exception as e:
+                mcp_middleware = None
                 log.error(f"Failed to create MCP tools for sub-agent '{name}': {e}")
     
     # Append response rules so sub-agents don't echo raw file contents.
@@ -435,6 +437,13 @@ async def _transform_single_subagent(
         "system_prompt": system_prompt,
         "tools": tools,
     }
+
+    # Include MCP middleware so its aafter_agent hook fires and closes
+    # the AsyncExitStack holding stdio sessions.  Without this the exit
+    # stack leaks until GC, triggering anyio cancel-scope errors during
+    # event-loop shutdown.  See MCP SDK #577.
+    if mcp_middleware is not None:
+        subagent_dict["middleware"] = [mcp_middleware]
 
     if model_override is not None:
         subagent_dict["model"] = model_override
@@ -538,7 +547,7 @@ async def _create_subagent_mcp_tools(
     approval_checker: Callable[[str, dict[str, Any]], Any] | None,
     log: logging.Logger,
     sub_agent_name: str = "",
-) -> list[BaseTool]:
+) -> tuple[list[BaseTool], Any]:
     """Create MCP tool wrappers for a subagent.
     
     This creates a separate McpToolsLoader for the subagent's filtered MCP config
@@ -554,7 +563,9 @@ async def _create_subagent_mcp_tools(
             payload carries ``from_sub_agent=True``.
         
     Returns:
-        List of BaseTool wrappers for the subagent
+        Tuple of (tool wrappers, McpToolsLoader middleware).  The caller
+        must add the middleware to the subagent's ``middleware`` list so
+        its ``aafter_agent`` hook runs and closes the MCP sessions.
         
     Raises:
         RuntimeError: If MCP tool loading fails
@@ -607,4 +618,4 @@ async def _create_subagent_mcp_tools(
     
     log.debug(f"Created {len(tools)} MCP tool wrapper(s) for subagent")
     
-    return tools
+    return tools, mcp_middleware

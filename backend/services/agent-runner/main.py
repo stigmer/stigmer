@@ -5,6 +5,7 @@ import logging
 import signal
 import sys
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 
@@ -44,6 +45,35 @@ logger = logging.getLogger(__name__)
 shutdown_requested = False
 
 
+def _make_shutdown_exception_handler(
+    original_handler: Any,
+) -> Any:
+    """Build an event-loop exception handler that suppresses expected MCP
+    async-generator cleanup errors during shutdown.
+
+    When the Temporal worker shuts down, in-flight MCP stdio sessions may
+    not have been explicitly closed (the LangGraph ``aafter_agent`` hook
+    is skipped on cancellation).  Python's event-loop finalizer then
+    calls ``aclose()`` on these async generators from a different task
+    than the one that entered the anyio cancel scope, triggering
+    ``RuntimeError: Attempted to exit cancel scope in a different task``.
+    This is a known anyio limitation (MCP SDK #577) and is harmless
+    during shutdown — suppress it to keep logs clean.
+    """
+    def handler(loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
+        message = context.get("message", "")
+        if "closing of asynchronous generator" in message:
+            logger.debug(
+                "Suppressed expected MCP async generator cleanup error during shutdown"
+            )
+            return
+        if original_handler is not None:
+            original_handler(loop, context)
+        else:
+            loop.default_exception_handler(context)
+    return handler
+
+
 async def shutdown_handler(worker: AgentRunner):
     """Gracefully shutdown worker on SIGTERM/SIGINT."""
     global shutdown_requested
@@ -54,6 +84,12 @@ async def shutdown_handler(worker: AgentRunner):
     
     shutdown_requested = True
     logger.info("🛑 Received shutdown signal, stopping worker gracefully...")
+
+    # Swap the event-loop exception handler to suppress expected MCP async
+    # generator cleanup errors that fire after the worker stops.
+    loop = asyncio.get_running_loop()
+    original_handler = loop.get_exception_handler()
+    loop.set_exception_handler(_make_shutdown_exception_handler(original_handler))
     
     try:
         # Shutdown worker (stops accepting tasks, waits for in-flight activities, closes connections)

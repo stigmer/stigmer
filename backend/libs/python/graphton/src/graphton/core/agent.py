@@ -400,6 +400,10 @@ def create_deep_agent(
     # Default empty sequences if None provided
     tools_list = list(tools or [])
     middleware_list = list(middleware or [])
+
+    # Tracks the MCP tools middleware (if created) so callers can close its
+    # AsyncExitStack on forced shutdown.  Set inside the MCP block below.
+    mcp_middleware_ref: Any = None
     
     # Auto-inject loop detection middleware for autonomous agents
     # This prevents infinite loops by tracking tool invocations and intervening
@@ -637,6 +641,7 @@ def create_deep_agent(
             servers=mcp_servers,  # Pass raw configs directly
             tool_filter=mcp_tools,
         )
+        mcp_middleware_ref = mcp_middleware
         
         # If tools were deferred due to async context, load them now
         # This ensures tools are available for eager wrapper creation
@@ -878,6 +883,13 @@ def create_deep_agent(
         effective_limit,
         " (unlimited)" if recursion_limit is None else "",
     )
-    
+
+    # Expose MCP middleware (if any) so callers can explicitly close its
+    # AsyncExitStack during forced shutdown.  During normal execution the
+    # middleware's aafter_agent hook handles cleanup, but when Temporal
+    # cancels an activity (e.g. worker SIGTERM) that hook is skipped and
+    # the exit stack leaks.  See MCP SDK issue #577.
+    configured_agent._graphton_mcp_middleware = mcp_middleware_ref  # type: ignore[attr-defined]
+
     return configured_agent  # type: ignore[no-any-return]
 
