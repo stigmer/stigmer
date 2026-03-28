@@ -12,18 +12,21 @@ export const file_ai_stigmer_agentic_session_v1_enum: GenFile = /*@__PURE__*/
   fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAFiBnByb3RvMw");
 
 /**
- * GitWriteBackMode controls the platform's post-execution git workflow
- * for a git-backed workspace entry.
+ * GitWriteBackMode controls the platform's git workflow for a
+ * git-backed workspace entry.
  *
- * The user sets this when creating a session to opt in to automatic
- * PR creation. The agent never sees or controls this setting.
+ * The platform enables write-back by default when credentials are
+ * available. Users can override this per-session by setting an
+ * explicit mode. The agent never sees or controls this setting.
  *
  * @generated from enum ai.stigmer.agentic.session.v1.GitWriteBackMode
  */
 export enum GitWriteBackMode {
   /**
-   * No write-back. File changes remain in the sandbox only.
-   * Artifacts are still published as downloadable files.
+   * Platform default. Currently treated as write-back enabled when git
+   * credentials are available. Artifacts are still published as
+   * downloadable files regardless of this setting.
+   * Set an explicit mode to override the platform default.
    *
    * @generated from enum value: GIT_WRITE_BACK_MODE_UNSPECIFIED = 0;
    */

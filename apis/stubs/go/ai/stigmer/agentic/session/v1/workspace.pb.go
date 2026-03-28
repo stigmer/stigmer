@@ -270,17 +270,21 @@ type GitRepoSource struct {
 	// Uses proto3 optional to distinguish "not set" from "set to 0."
 	Depth *int32 `protobuf:"varint,4,opt,name=depth,proto3,oneof" json:"depth,omitempty"`
 	// Controls whether the platform automatically creates a branch and
-	// pull request from the agent's file changes after execution completes.
+	// pull request from the agent's file changes during execution.
 	//
 	// This is a platform-level workflow, not an agent-level decision. The
-	// agent focuses on making code changes; the platform packages them.
+	// agent focuses on making code changes; the platform packages them
+	// incrementally — the PR appears the moment the first file is written
+	// and the diff grows in real time as the agent works.
 	//
 	// Requires git credentials to be configured during workspace provisioning
 	// (GITHUB_TOKEN available in the execution environment). If credentials
 	// are not available, the write-back is silently skipped regardless of
 	// this setting.
 	//
-	// Default (UNSPECIFIED): no write-back, current behavior.
+	// Default (UNSPECIFIED): platform decides. Currently defaults to
+	// write-back enabled when git credentials are available. Set an
+	// explicit mode to override.
 	WriteBackMode GitWriteBackMode `protobuf:"varint,5,opt,name=write_back_mode,json=writeBackMode,proto3,enum=ai.stigmer.agentic.session.v1.GitWriteBackMode" json:"write_back_mode,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

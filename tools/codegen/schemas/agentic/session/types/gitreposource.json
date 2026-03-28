@@ -59,7 +59,7 @@
           "GIT_WRITE_BACK_BRANCH_AND_PR"
         ]
       },
-      "description": "Controls whether the platform automatically creates a branch and\n pull request from the agent's file changes after execution completes.\n\n This is a platform-level workflow, not an agent-level decision. The\n agent focuses on making code changes; the platform packages them.\n\n Requires git credentials to be configured during workspace provisioning\n (GITHUB_TOKEN available in the execution environment). If credentials\n are not available, the write-back is silently skipped regardless of\n this setting.\n\n Default (UNSPECIFIED): no write-back, current behavior.",
+      "description": "Controls whether the platform automatically creates a branch and\n pull request from the agent's file changes during execution.\n\n This is a platform-level workflow, not an agent-level decision. The\n agent focuses on making code changes; the platform packages them\n incrementally — the PR appears the moment the first file is written\n and the diff grows in real time as the agent works.\n\n Requires git credentials to be configured during workspace provisioning\n (GITHUB_TOKEN available in the execution environment). If credentials\n are not available, the write-back is silently skipped regardless of\n this setting.\n\n Default (UNSPECIFIED): platform decides. Currently defaults to\n write-back enabled when git credentials are available. Set an\n explicit mode to override.",
       "required": false
     }
   ]
