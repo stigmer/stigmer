@@ -30,8 +30,6 @@ import dataclasses
 import logging
 from typing import TYPE_CHECKING, Any
 
-from worker.workspace.backend import ExecuteResult
-
 import httpx
 from ai.stigmer.agentic.agentexecution.v1.writeback_pb2 import (
     WorkspaceWriteBack,
@@ -46,6 +44,8 @@ from graphton.core.github_api import (
     parse_github_repo,
     parse_token_from_credentials,
 )
+
+from worker.workspace.backend import ExecuteResult
 
 # Write-back modes treated as "enabled" by the platform.
 # UNSPECIFIED = platform decides (currently: enabled when credentials exist).

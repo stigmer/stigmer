@@ -991,6 +991,7 @@ class TestToolAliasSkillReads:
             assert "read" in tool_names
             assert "write" in tool_names
             assert "edit" in tool_names
+            assert "delete" in tool_names
             assert "ls" in tool_names
             assert "glob" in tool_names
             assert "grep" in tool_names
@@ -1007,9 +1008,12 @@ class TestToolAliasSkillReads:
             assert "edit_file" in tool_names, (
                 "edit_file alias must be present to override deepagents' in-memory tool"
             )
+            assert "delete_file" in tool_names, (
+                "delete_file alias must be present to override deepagents' in-memory tool"
+            )
 
-            # Total: 8 primary + 3 aliases = 11
-            assert len(tools) == 11
+            # Total: 9 primary + 4 aliases = 13
+            assert len(tools) == 13
 
     @pytest.mark.asyncio
     async def test_read_tool_reads_skill_relative_path(self, skill_and_backend):

@@ -1218,7 +1218,7 @@ class TestInterruptProxyThreadManagement:
     """
 
     @staticmethod
-    def _make_proxy(graph: _FakeGraph) -> "InterruptProxyRunnable":
+    def _make_proxy(graph: _FakeGraph) -> "InterruptProxyRunnable":  # noqa: F821
         from graphton.core.interrupt_proxy import InterruptProxyRunnable
         return InterruptProxyRunnable(inner_graph=graph, name="test-agent")
 
@@ -1338,7 +1338,8 @@ class TestSubAgentCompletionCleanup:
         builder.populate_fingerprints_from_existing_tool_calls()
 
         run_id = "task-run-abc"
-        builder._active_sub_agents[run_id] = sa
+        sa_ref = builder.current_status.sub_agent_executions[0]
+        builder._active_sub_agents[run_id] = sa_ref
         builder._run_id_to_tool_call_id[run_id] = "toolu_task_1"
 
         return builder, run_id
