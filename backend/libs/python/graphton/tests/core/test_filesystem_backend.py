@@ -415,6 +415,90 @@ class TestReadFileOnDirectory:
 
 
 # =============================================================================
+# delete (file removal with sandbox containment)
+# =============================================================================
+
+
+class TestDeleteFile:
+    """Tests for FilesystemBackend.delete() method."""
+
+    def test_delete_existing_file(self, sandbox: FilesystemBackend) -> None:
+        """delete() removes a file and returns confirmation."""
+        (sandbox.root_dir / "to_delete.txt").write_text("bye")
+        result = sandbox.delete("to_delete.txt")
+        assert result == "Deleted 'to_delete.txt'"
+        assert not (sandbox.root_dir / "to_delete.txt").exists()
+
+    def test_delete_file_in_subdirectory(self, sandbox: FilesystemBackend) -> None:
+        """delete() works for files in nested directories."""
+        (sandbox.root_dir / "sub" / "dir").mkdir(parents=True)
+        (sandbox.root_dir / "sub" / "dir" / "file.txt").write_text("data")
+        result = sandbox.delete("sub/dir/file.txt")
+        assert result == "Deleted 'sub/dir/file.txt'"
+        assert not (sandbox.root_dir / "sub" / "dir" / "file.txt").exists()
+        # Parent directories should remain
+        assert (sandbox.root_dir / "sub" / "dir").is_dir()
+
+    def test_delete_nonexistent_file_raises(self, sandbox: FilesystemBackend) -> None:
+        """delete() raises FileNotFoundError for missing files."""
+        with pytest.raises(FileNotFoundError, match="File not found"):
+            sandbox.delete("nonexistent.txt")
+
+    def test_delete_directory_raises(self, sandbox: FilesystemBackend) -> None:
+        """delete() raises IsADirectoryError for directories."""
+        (sandbox.root_dir / "mydir").mkdir()
+        with pytest.raises(IsADirectoryError, match="is a directory"):
+            sandbox.delete("mydir")
+
+    def test_delete_sandbox_escape_raises(self, sandbox: FilesystemBackend) -> None:
+        """delete() raises ValueError for paths that escape the sandbox."""
+        with pytest.raises(ValueError, match="resolves outside sandbox root"):
+            sandbox.delete("../../etc/passwd")
+
+    def test_delete_with_absolute_path(
+        self, sandbox_with_skills: FilesystemBackend,
+    ) -> None:
+        """delete() resolves absolute sandbox paths correctly."""
+        result = sandbox_with_skills.delete("/bin/skills/abc123hash/SKILL.md")
+        assert "Deleted" in result
+        assert not (
+            sandbox_with_skills.root_dir / "bin" / "skills" / "abc123hash" / "SKILL.md"
+        ).exists()
+
+    def test_delete_with_root_dir_prefix(self, sandbox: FilesystemBackend) -> None:
+        """delete() strips root_dir prefix (same as read/write)."""
+        (sandbox.root_dir / "target.txt").write_text("data")
+        root = str(sandbox.root_dir)
+        result = sandbox.delete(f"{root}/target.txt")
+        assert "Deleted" in result
+        assert not (sandbox.root_dir / "target.txt").exists()
+
+    def test_delete_invalidates_cache(self, tmp_path: Path) -> None:
+        """delete() invalidates the directory listing cache."""
+        sb = FilesystemBackend(root_dir=tmp_path)
+        (tmp_path / "file.txt").write_text("data")
+        sb.list_files(".")
+        assert sb._dir_cache
+
+        sb.delete("file.txt")
+        assert not sb._dir_cache
+        assert not sb._path_type_cache
+
+    def test_delete_with_platform_mount(self, tmp_path: Path) -> None:
+        """delete() removes files through the virtual .stigmer/ mount."""
+        ws = tmp_path / "workspace"
+        pdir = tmp_path / "platform"
+        ws.mkdir()
+        (pdir / "skills").mkdir(parents=True)
+        (pdir / "skills" / "old_skill.md").write_text("old")
+
+        sb = FilesystemBackend(root_dir=ws, platform_dir=pdir)
+        result = sb.delete(".stigmer/skills/old_skill.md")
+        assert "Deleted" in result
+        assert not (pdir / "skills" / "old_skill.md").exists()
+
+
+# =============================================================================
 # execute command with relative skill paths
 # =============================================================================
 

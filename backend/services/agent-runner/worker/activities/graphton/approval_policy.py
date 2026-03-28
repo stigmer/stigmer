@@ -72,6 +72,10 @@ PLATFORM_TOOL_DEFAULTS: dict[str, dict[str, Any]] = {
         "requires_approval": True,
         "message": "Edit file: {{args.path}}",
     },
+    "delete": {
+        "requires_approval": True,
+        "message": "Delete {{args.path}}",
+    },
     "execute": {
         "requires_approval": True,
         "message": "Execute command: {{args.command}}",
@@ -92,6 +96,7 @@ PLATFORM_TOOL_ALIASES: dict[str, str] = {
     "read_file": "read",
     "write_file": "write",
     "edit_file": "edit",
+    "delete_file": "delete",
 }
 
 # Special server name for platform tools (used internally)

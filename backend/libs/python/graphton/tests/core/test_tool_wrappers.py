@@ -16,6 +16,7 @@ from graphton.core.tool_wrappers import (
     ToolExecutionRejectedError,
     _apply_line_range,
     _check_and_handle_approval,
+    _create_delete_tool,
     _create_edit_tool,
     _create_execute_tool,
     _create_glob_tool,
@@ -799,9 +800,9 @@ class TestCreatePlatformToolWrappers:
         return backend
 
     def test_creates_platform_tools(self, mock_backend):
-        """Test that 12 tools are created (9 primary + 3 aliases)."""
+        """Test that 13 tools are created (9 primary + 4 aliases)."""
         tools = create_platform_tool_wrappers(mock_backend)
-        assert len(tools) == 12
+        assert len(tools) == 13
 
     def test_creates_tools_with_correct_names(self, mock_backend):
         """Test that tools have correct names."""
@@ -810,9 +811,8 @@ class TestCreatePlatformToolWrappers:
         
         expected_names = [
             "read", "ls", "glob", "grep", "search",
-            "write", "edit", "execute",
-            "create_pull_request",
-            "read_file", "write_file", "edit_file",
+            "write", "edit", "delete", "execute",
+            "read_file", "write_file", "edit_file", "delete_file",
         ]
         for name in expected_names:
             assert name in tool_names, f"Tool '{name}' not found in {tool_names}"
@@ -830,7 +830,7 @@ class TestCreatePlatformToolWrappers:
             return ApprovalRequirement(requires_approval=False)
         
         tools = create_platform_tool_wrappers(mock_backend, approval_checker=checker)
-        assert len(tools) == 12
+        assert len(tools) == 13
 
     def test_alias_tools_have_redirect_descriptions(self, mock_backend):
         """Alias tools should steer the LLM toward canonical names."""
@@ -841,6 +841,7 @@ class TestCreatePlatformToolWrappers:
             "read_file": "read",
             "write_file": "write",
             "edit_file": "edit",
+            "delete_file": "delete",
         }
 
         for alias_name, canonical_name in aliases_to_canonical.items():
@@ -1790,11 +1791,13 @@ class TestPlatformToolApprovalIntegration:
         # Execute each dangerous tool
         await tool_dict["write"].ainvoke(_tc("write", {"path": "test.txt", "content": "hi"}))
         await tool_dict["edit"].ainvoke(_tc("edit", {"path": "test.txt", "old_text": "old", "new_text": "new"}))
+        await tool_dict["delete"].ainvoke(_tc("delete", {"path": "test.txt"}))
         await tool_dict["execute"].ainvoke(_tc("execute", {"command": "ls"}))
         
         # All dangerous tools should have checked approval
         assert "write" in checked_tools
         assert "edit" in checked_tools
+        assert "delete" in checked_tools
         assert "execute" in checked_tools
 
     @pytest.mark.asyncio
@@ -1831,7 +1834,7 @@ class TestPlatformToolSubAgentContext:
         return backend
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("tool_name", ["execute", "write", "edit", "read"])
+    @pytest.mark.parametrize("tool_name", ["execute", "write", "edit", "delete", "read"])
     async def test_sub_agent_platform_tool_interrupt_has_from_sub_agent_true(
         self, mock_backend, tool_name,
     ):
@@ -1850,6 +1853,7 @@ class TestPlatformToolSubAgentContext:
             "execute": {"command": "ls"},
             "write": {"path": "f.txt", "content": "hi"},
             "edit": {"path": "f.txt", "old_text": "file content", "new_text": "new"},
+            "delete": {"path": "f.txt"},
             "read": {"path": "f.txt"},
         }
 
@@ -2037,3 +2041,119 @@ class TestInjectedToolCallIdValidation:
 
         assert "tool_call_id" in kwargs_tool._injected_args_keys
         assert "tool_call_id" in explicit_tool._injected_args_keys
+
+
+# =============================================================================
+# Delete tool wrapper tests
+# =============================================================================
+
+
+class TestDeleteToolWrapper:
+    """Tests for _create_delete_tool wrapper."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        backend = MagicMock()
+        backend.delete.return_value = "Deleted 'test.txt'"
+        return backend
+
+    @pytest.mark.asyncio
+    async def test_deletes_file(self, mock_backend):
+        """Test that delete tool calls backend.delete correctly."""
+        tool = _create_delete_tool(mock_backend)
+        result = await tool.ainvoke(_tc("delete", {"path": "test.txt"}))
+
+        assert "Deleted" in result.content
+        mock_backend.delete.assert_called_once_with("test.txt")
+
+    @pytest.mark.asyncio
+    async def test_delete_requires_approval(self, mock_backend):
+        """Test that delete tool checks approval."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            if name == "delete":
+                return ApprovalRequirement(requires_approval=True, message="Delete file?")
+            return ApprovalRequirement(requires_approval=False)
+
+        tool = _create_delete_tool(mock_backend, approval_checker=checker)
+
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "approve"}
+            result = await tool.ainvoke(_tc("delete", {"path": "test.txt"}))
+
+        mock_interrupt.assert_called_once()
+        assert "Deleted" in result.content
+
+    @pytest.mark.asyncio
+    async def test_delete_returns_skip_message(self, mock_backend):
+        """Test that delete returns skip message when user skips."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=True, message="Confirm delete?")
+
+        tool = _create_delete_tool(mock_backend, approval_checker=checker)
+
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "skip"}
+            result = await tool.ainvoke(_tc("delete", {"path": "test.txt"}))
+
+        assert "skipped" in result.content.lower()
+        mock_backend.delete.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_delete_returns_reject_message(self, mock_backend):
+        """Test that delete returns reject message when user rejects."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=True, message="Confirm delete?")
+
+        tool = _create_delete_tool(mock_backend, approval_checker=checker)
+
+        with patch("langgraph.types.interrupt") as mock_interrupt:
+            mock_interrupt.return_value = {"action": "reject"}
+            result = await tool.ainvoke(_tc("delete", {"path": "test.txt"}))
+
+        assert "REJECTED" in result.content
+        mock_backend.delete.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_delete_handles_file_not_found(self, mock_backend):
+        """Test that delete handles FileNotFoundError from backend."""
+        mock_backend.delete.side_effect = FileNotFoundError(
+            "File not found: 'missing.txt'"
+        )
+
+        tool = _create_delete_tool(mock_backend)
+        result = await tool.ainvoke(_tc("delete", {"path": "missing.txt"}))
+
+        assert "not found" in result.content.lower() or "error" in result.content.lower()
+
+    @pytest.mark.asyncio
+    async def test_delete_handles_sandbox_escape(self, mock_backend):
+        """Test that delete handles ValueError (sandbox escape) from backend."""
+        mock_backend.delete.side_effect = ValueError(
+            "Path '../../etc/passwd' resolves outside sandbox root"
+        )
+
+        tool = _create_delete_tool(mock_backend)
+        result = await tool.ainvoke(_tc("delete", {"path": "../../etc/passwd"}))
+
+        assert "outside sandbox" in result.content.lower() or "error" in result.content.lower()
+
+    @pytest.mark.asyncio
+    async def test_delete_handles_is_a_directory(self, mock_backend):
+        """Test that delete handles IsADirectoryError from backend."""
+        mock_backend.delete.side_effect = IsADirectoryError(
+            "Cannot delete 'mydir': is a directory, not a file."
+        )
+
+        tool = _create_delete_tool(mock_backend)
+        result = await tool.ainvoke(_tc("delete", {"path": "mydir"}))
+
+        assert "directory" in result.content.lower() or "error" in result.content.lower()
+
+    @pytest.mark.asyncio
+    async def test_delete_without_approval_checker(self, mock_backend):
+        """Test that delete works when no approval checker is provided."""
+        tool = _create_delete_tool(mock_backend, approval_checker=None)
+        result = await tool.ainvoke(_tc("delete", {"path": "test.txt"}))
+
+        assert "Deleted" in result.content
+        mock_backend.delete.assert_called_once_with("test.txt")

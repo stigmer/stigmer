@@ -31,7 +31,9 @@ from worker.streaming import StreamingConfig, StreamingUpdateScheduler
 if TYPE_CHECKING:
     from grpc_client.agent_execution_client import AgentExecutionClient
 
-_FILE_MODIFYING_TOOLS = frozenset({"write", "write_file", "edit", "edit_file"})
+_FILE_MODIFYING_TOOLS = frozenset({
+    "write", "write_file", "edit", "edit_file", "delete", "delete_file",
+})
 
 
 @dataclasses.dataclass(frozen=True)
