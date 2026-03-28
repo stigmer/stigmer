@@ -1154,6 +1154,56 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     return workspaceWriteBacks_.get(index);
   }
 
+  public static final int SETUP_PROGRESS_FIELD_NUMBER = 18;
+  private ai.stigmer.agentic.agentexecution.v1.SetupProgress setupProgress_;
+  /**
+   * <pre>
+   * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+   * Populated progressively as the worker completes setup steps (sandbox init,
+   * workspace provisioning, skill loading, MCP server connection, etc.).
+   * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+   * when phase transitions away from PENDING.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+   * @return Whether the setupProgress field is set.
+   */
+  @java.lang.Override
+  public boolean hasSetupProgress() {
+    return ((bitField0_ & 0x00000010) != 0);
+  }
+  /**
+   * <pre>
+   * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+   * Populated progressively as the worker completes setup steps (sandbox init,
+   * workspace provisioning, skill loading, MCP server connection, etc.).
+   * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+   * when phase transitions away from PENDING.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+   * @return The setupProgress.
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.SetupProgress getSetupProgress() {
+    return setupProgress_ == null ? ai.stigmer.agentic.agentexecution.v1.SetupProgress.getDefaultInstance() : setupProgress_;
+  }
+  /**
+   * <pre>
+   * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+   * Populated progressively as the worker completes setup steps (sandbox init,
+   * workspace provisioning, skill loading, MCP server connection, etc.).
+   * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+   * when phase transitions away from PENDING.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.SetupProgressOrBuilder getSetupProgressOrBuilder() {
+    return setupProgress_ == null ? ai.stigmer.agentic.agentexecution.v1.SetupProgress.getDefaultInstance() : setupProgress_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -1212,6 +1262,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     }
     for (int i = 0; i < workspaceWriteBacks_.size(); i++) {
       output.writeMessage(17, workspaceWriteBacks_.get(i));
+    }
+    if (((bitField0_ & 0x00000010) != 0)) {
+      output.writeMessage(18, getSetupProgress());
     }
     if (((bitField0_ & 0x00000001) != 0)) {
       output.writeMessage(99, getAudit());
@@ -1309,6 +1362,10 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
           }
           size += 2 * count;
         }
+    if (((bitField0_ & 0x00000010) != 0)) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(18, getSetupProgress());
+    }
     if (((bitField0_ & 0x00000001) != 0)) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(99, getAudit());
@@ -1369,6 +1426,11 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         .equals(other.getArtifactsList())) return false;
     if (!getWorkspaceWriteBacksList()
         .equals(other.getWorkspaceWriteBacksList())) return false;
+    if (hasSetupProgress() != other.hasSetupProgress()) return false;
+    if (hasSetupProgress()) {
+      if (!getSetupProgress()
+          .equals(other.getSetupProgress())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -1429,6 +1491,10 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
     if (getWorkspaceWriteBacksCount() > 0) {
       hash = (37 * hash) + WORKSPACE_WRITE_BACKS_FIELD_NUMBER;
       hash = (53 * hash) + getWorkspaceWriteBacksList().hashCode();
+    }
+    if (hasSetupProgress()) {
+      hash = (37 * hash) + SETUP_PROGRESS_FIELD_NUMBER;
+      hash = (53 * hash) + getSetupProgress().hashCode();
     }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
@@ -1596,6 +1662,7 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         internalGetContextInfoFieldBuilder();
         internalGetArtifactsFieldBuilder();
         internalGetWorkspaceWriteBacksFieldBuilder();
+        internalGetSetupProgressFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1663,6 +1730,11 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         workspaceWriteBacksBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00004000);
+      setupProgress_ = null;
+      if (setupProgressBuilder_ != null) {
+        setupProgressBuilder_.dispose();
+        setupProgressBuilder_ = null;
+      }
       return this;
     }
 
@@ -1787,6 +1859,12 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
             ? contextInfo_
             : contextInfoBuilder_.build();
         to_bitField0_ |= 0x00000008;
+      }
+      if (((from_bitField0_ & 0x00008000) != 0)) {
+        result.setupProgress_ = setupProgressBuilder_ == null
+            ? setupProgress_
+            : setupProgressBuilder_.build();
+        to_bitField0_ |= 0x00000010;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -1969,6 +2047,9 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
           }
         }
       }
+      if (other.hasSetupProgress()) {
+        mergeSetupProgress(other.getSetupProgress());
+      }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
       return this;
@@ -2115,6 +2196,13 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
               }
               break;
             } // case 138
+            case 146: {
+              input.readMessage(
+                  internalGetSetupProgressFieldBuilder().getBuilder(),
+                  extensionRegistry);
+              bitField0_ |= 0x00008000;
+              break;
+            } // case 146
             case 794: {
               input.readMessage(
                   internalGetAuditFieldBuilder().getBuilder(),
@@ -6063,6 +6151,199 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue) {
         workspaceWriteBacks_ = null;
       }
       return workspaceWriteBacksBuilder_;
+    }
+
+    private ai.stigmer.agentic.agentexecution.v1.SetupProgress setupProgress_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.SetupProgress, ai.stigmer.agentic.agentexecution.v1.SetupProgress.Builder, ai.stigmer.agentic.agentexecution.v1.SetupProgressOrBuilder> setupProgressBuilder_;
+    /**
+     * <pre>
+     * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+     * Populated progressively as the worker completes setup steps (sandbox init,
+     * workspace provisioning, skill loading, MCP server connection, etc.).
+     * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+     * when phase transitions away from PENDING.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+     * @return Whether the setupProgress field is set.
+     */
+    public boolean hasSetupProgress() {
+      return ((bitField0_ & 0x00008000) != 0);
+    }
+    /**
+     * <pre>
+     * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+     * Populated progressively as the worker completes setup steps (sandbox init,
+     * workspace provisioning, skill loading, MCP server connection, etc.).
+     * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+     * when phase transitions away from PENDING.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+     * @return The setupProgress.
+     */
+    public ai.stigmer.agentic.agentexecution.v1.SetupProgress getSetupProgress() {
+      if (setupProgressBuilder_ == null) {
+        return setupProgress_ == null ? ai.stigmer.agentic.agentexecution.v1.SetupProgress.getDefaultInstance() : setupProgress_;
+      } else {
+        return setupProgressBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+     * Populated progressively as the worker completes setup steps (sandbox init,
+     * workspace provisioning, skill loading, MCP server connection, etc.).
+     * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+     * when phase transitions away from PENDING.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+     */
+    public Builder setSetupProgress(ai.stigmer.agentic.agentexecution.v1.SetupProgress value) {
+      if (setupProgressBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        setupProgress_ = value;
+      } else {
+        setupProgressBuilder_.setMessage(value);
+      }
+      bitField0_ |= 0x00008000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+     * Populated progressively as the worker completes setup steps (sandbox init,
+     * workspace provisioning, skill loading, MCP server connection, etc.).
+     * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+     * when phase transitions away from PENDING.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+     */
+    public Builder setSetupProgress(
+        ai.stigmer.agentic.agentexecution.v1.SetupProgress.Builder builderForValue) {
+      if (setupProgressBuilder_ == null) {
+        setupProgress_ = builderForValue.build();
+      } else {
+        setupProgressBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00008000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+     * Populated progressively as the worker completes setup steps (sandbox init,
+     * workspace provisioning, skill loading, MCP server connection, etc.).
+     * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+     * when phase transitions away from PENDING.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+     */
+    public Builder mergeSetupProgress(ai.stigmer.agentic.agentexecution.v1.SetupProgress value) {
+      if (setupProgressBuilder_ == null) {
+        if (((bitField0_ & 0x00008000) != 0) &&
+          setupProgress_ != null &&
+          setupProgress_ != ai.stigmer.agentic.agentexecution.v1.SetupProgress.getDefaultInstance()) {
+          getSetupProgressBuilder().mergeFrom(value);
+        } else {
+          setupProgress_ = value;
+        }
+      } else {
+        setupProgressBuilder_.mergeFrom(value);
+      }
+      if (setupProgress_ != null) {
+        bitField0_ |= 0x00008000;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+     * Populated progressively as the worker completes setup steps (sandbox init,
+     * workspace provisioning, skill loading, MCP server connection, etc.).
+     * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+     * when phase transitions away from PENDING.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+     */
+    public Builder clearSetupProgress() {
+      bitField0_ = (bitField0_ & ~0x00008000);
+      setupProgress_ = null;
+      if (setupProgressBuilder_ != null) {
+        setupProgressBuilder_.dispose();
+        setupProgressBuilder_ = null;
+      }
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+     * Populated progressively as the worker completes setup steps (sandbox init,
+     * workspace provisioning, skill loading, MCP server connection, etc.).
+     * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+     * when phase transitions away from PENDING.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.SetupProgress.Builder getSetupProgressBuilder() {
+      bitField0_ |= 0x00008000;
+      onChanged();
+      return internalGetSetupProgressFieldBuilder().getBuilder();
+    }
+    /**
+     * <pre>
+     * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+     * Populated progressively as the worker completes setup steps (sandbox init,
+     * workspace provisioning, skill loading, MCP server connection, etc.).
+     * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+     * when phase transitions away from PENDING.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+     */
+    public ai.stigmer.agentic.agentexecution.v1.SetupProgressOrBuilder getSetupProgressOrBuilder() {
+      if (setupProgressBuilder_ != null) {
+        return setupProgressBuilder_.getMessageOrBuilder();
+      } else {
+        return setupProgress_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.SetupProgress.getDefaultInstance() : setupProgress_;
+      }
+    }
+    /**
+     * <pre>
+     * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+     * Populated progressively as the worker completes setup steps (sandbox init,
+     * workspace provisioning, skill loading, MCP server connection, etc.).
+     * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+     * when phase transitions away from PENDING.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+     */
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.SetupProgress, ai.stigmer.agentic.agentexecution.v1.SetupProgress.Builder, ai.stigmer.agentic.agentexecution.v1.SetupProgressOrBuilder> 
+        internalGetSetupProgressFieldBuilder() {
+      if (setupProgressBuilder_ == null) {
+        setupProgressBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.SetupProgress, ai.stigmer.agentic.agentexecution.v1.SetupProgress.Builder, ai.stigmer.agentic.agentexecution.v1.SetupProgressOrBuilder>(
+                getSetupProgress(),
+                getParentForChildren(),
+                isClean());
+        setupProgress_ = null;
+      }
+      return setupProgressBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.AgentExecutionStatus)

@@ -230,6 +230,18 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.ResolvedContext = requestStatus.ResolvedContext
 	}
 
+	// Merge setup_progress (replace with latest from request)
+	if requestStatus.SetupProgress != nil {
+		updated.Status.SetupProgress = requestStatus.SetupProgress
+	}
+	// Clear setup_progress when phase leaves PENDING (defense-in-depth).
+	// The worker stops sending setup_progress once streaming begins, but
+	// an explicit clear prevents stale data from persisting if the phase
+	// transitions via a different code path.
+	if updated.Status.Phase != agentexecutionv1.ExecutionPhase_EXECUTION_PENDING {
+		updated.Status.SetupProgress = nil
+	}
+
 	log.Debug().
 		Str("execution_id", input.ExecutionId).
 		Str("phase", updated.Status.Phase.String()).
@@ -240,6 +252,7 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		Bool("has_usage", updated.Status.Usage != nil).
 		Bool("has_context_info", updated.Status.ContextInfo != nil).
 		Bool("has_resolved_context", updated.Status.ResolvedContext != nil).
+		Bool("has_setup_progress", updated.Status.SetupProgress != nil).
 		Msg("Merged status fields")
 
 	// Store merged execution in context for persist step

@@ -68,6 +68,7 @@ from worker.activities.graphton.subagent_transformer import transform_sub_agents
 from worker.activities.graphton.temporal_helpers import (
     SetupTimer,
     heartbeat_during_setup,
+    report_setup_progress,
 )
 from worker.activities.graphton.temporal_helpers import (
     run_sync_with_heartbeat as _run_sync_with_heartbeat,
@@ -604,6 +605,9 @@ async def _execute_graphton_impl(
             "mode": worker_config.mode,
             "sandbox_type": sandbox_config.get("type"),
         })
+        await report_setup_progress(
+            execution_client, execution_id, "Initializing sandbox\u2026", activity_logger,
+        )
 
         # Create the workspace backend — single point where local-vs-cloud
         # decision is made.  All subsequent code uses workspace_backend for
@@ -654,6 +658,9 @@ async def _execute_graphton_impl(
             "env_var_count": len(merged_env_vars),
             "used_legacy_merge": env_result.used_legacy_merge,
         })
+        await report_setup_progress(
+            execution_client, execution_id, "Configuring environment\u2026", activity_logger,
+        )
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 2.9: Workspace provisioning
@@ -677,6 +684,9 @@ async def _execute_graphton_impl(
         provision_results: list[ProvisionResult] = []
         
         if session.spec.workspace_entries:
+            await report_setup_progress(
+                execution_client, execution_id, "Setting up workspace\u2026", activity_logger,
+            )
             setup_timer.start("workspace_provisioning")
             try:
                 provisioner = WorkspaceProvisioner(log=activity_logger)
@@ -949,6 +959,10 @@ async def _execute_graphton_impl(
             "skill_count": len(skills) if skills else 0,
             "skill_names": [s.metadata.name for s in skills] if skills else [],
         })
+        if skills:
+            await report_setup_progress(
+                execution_client, execution_id, "Loading skills\u2026", activity_logger,
+            )
         
         # ─────────────────────────────────────────────────────────────────────────────
         setup_timer.start("attachments")
@@ -1091,6 +1105,10 @@ async def _execute_graphton_impl(
             "mcp_server_count": len(mcp_servers),
             "mcp_servers": list(mcp_servers_config.keys()) if mcp_servers_config else [],
         })
+        if mcp_servers:
+            await report_setup_progress(
+                execution_client, execution_id, "Connecting tools\u2026", activity_logger,
+            )
         
         # ─────────────────────────────────────────────────────────────────────────────
         # Step 5.6: Build ApprovalConfig and Initialize StatusBuilder (HITL Phase 3A)

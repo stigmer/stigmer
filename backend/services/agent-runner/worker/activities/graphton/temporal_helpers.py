@@ -16,10 +16,16 @@ import functools
 import logging
 import time
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
-from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
+from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+    AgentExecutionStatus,
+    SetupProgress,
+)
 from temporalio import activity
+
+if TYPE_CHECKING:
+    from grpc_client.agent_execution_client import AgentExecutionClient
 
 _T = TypeVar("_T")
 
@@ -102,6 +108,33 @@ def heartbeat_during_setup(phase_name: str, details: dict[str, Any] | None = Non
         "setup_phase": phase_name,
         "details": details or {},
     })
+
+
+async def report_setup_progress(
+    execution_client: AgentExecutionClient,
+    execution_id: str,
+    phase_label: str,
+    logger: logging.Logger,
+) -> None:
+    """Report a user-facing setup phase to subscribers via gRPC UpdateStatus.
+
+    Sends a lightweight status update containing only the ``setup_progress``
+    field.  The merge logic on the server preserves all other status fields.
+
+    Errors are logged but never raised — setup progress is best-effort and
+    must not abort the activity.  The Temporal heartbeat remains the primary
+    liveness mechanism.
+    """
+    try:
+        status = AgentExecutionStatus(
+            setup_progress=SetupProgress(current_phase=phase_label),
+        )
+        await execution_client.update_status(execution_id, status)
+    except Exception:
+        logger.warning(
+            "Failed to report setup progress '%s' for %s (non-fatal)",
+            phase_label, execution_id, exc_info=True,
+        )
 
 
 async def run_sync_with_heartbeat(

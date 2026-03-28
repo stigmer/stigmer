@@ -113,7 +113,7 @@ type ThreadItem =
   | { readonly kind: "phase-badge"; readonly phase: ExecutionPhase; readonly key: string }
   | { readonly kind: "pending-message"; readonly content: string; readonly key: string }
   | { readonly kind: "approval-request"; readonly pendingApproval: PendingApproval; readonly key: string }
-  | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly key: string };
+  | { readonly kind: "setup-progress"; readonly workspaceEntries: readonly WorkspaceEntry[]; readonly serverPhase?: string; readonly key: string };
 
 function hasAiMessages(execution: AgentExecution): boolean {
   const messages = execution.status?.messages;
@@ -196,9 +196,12 @@ function buildThreadItems(
       lastPhase === ExecutionPhase.EXECUTION_PHASE_UNSPECIFIED) &&
     !hasAiMessages(activeStreamExecution)
   ) {
+    const serverPhase =
+      activeStreamExecution.status?.setupProgress?.currentPhase || undefined;
     items.push({
       kind: "setup-progress",
       workspaceEntries: workspaceEntries ?? [],
+      serverPhase,
       key: "setup-progress",
     });
   }
@@ -369,6 +372,7 @@ export function MessageThread({
                 <SetupProgress
                   key={item.key}
                   workspaceEntries={item.workspaceEntries}
+                  serverPhase={item.serverPhase}
                 />
               );
             case "pending-message":
