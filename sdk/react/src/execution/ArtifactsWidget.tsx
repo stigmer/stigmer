@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { cn } from "@stigmer/theme";
 import {
@@ -87,11 +87,27 @@ export function ArtifactsWidget({
   const { artifacts, hasArtifacts, artifactCount } =
     useSessionArtifacts(executions);
 
-  const [previewEntry, setPreviewEntry] =
-    useState<SessionArtifactEntry | null>(null);
+  // Store the dedup key (sandboxPath or name) instead of a snapshot of
+  // the full entry.  The actual entry is derived from the live artifacts
+  // list on every render, so the preview modal always reflects the
+  // latest artifact version — even when a newer execution publishes an
+  // updated artifact for the same path while the modal is open.
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
+
+  const previewEntry = useMemo<SessionArtifactEntry | null>(
+    () =>
+      previewKey !== null
+        ? artifacts.find(
+            (e) =>
+              (e.artifact.sandboxPath || e.artifact.name) === previewKey,
+          ) ?? null
+        : null,
+    [previewKey, artifacts],
+  );
 
   const handlePreview = useCallback(
-    (entry: SessionArtifactEntry) => setPreviewEntry(entry),
+    (entry: SessionArtifactEntry) =>
+      setPreviewKey(entry.artifact.sandboxPath || entry.artifact.name),
     [],
   );
 
@@ -127,7 +143,7 @@ export function ArtifactsWidget({
           org={org}
           isTerminal={previewEntry.isTerminal}
           open
-          onClose={() => setPreviewEntry(null)}
+          onClose={() => setPreviewKey(null)}
           onApplied={onApplied}
         />
       )}
