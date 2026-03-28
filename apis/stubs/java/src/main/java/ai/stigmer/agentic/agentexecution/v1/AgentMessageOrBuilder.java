@@ -154,98 +154,37 @@ public interface AgentMessageOrBuilder extends
 
   /**
    * <pre>
-   * Total tokens consumed to generate this message (prompt + completion tokens).
-   * Zero until message generation completes, or if token usage is unavailable.
-   * Useful for cost tracking and usage analytics at the message level.
+   * LLM call metrics for this message.
+   * Only populated for type == MESSAGE_AI.
+   * Captures the full cost record of the single LLM call that produced this message:
+   * token breakdown, estimated cost, model, provider, and duration.
    * </pre>
    *
-   * <code>int32 token_count = 7 [json_name = "tokenCount"];</code>
-   * @return The tokenCount.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
+   * @return Whether the llmMetrics field is set.
    */
-  int getTokenCount();
-
+  boolean hasLlmMetrics();
   /**
    * <pre>
-   * Wall-clock time in milliseconds from first token to completion.
-   * Measured from when streaming begins until on_chat_model_end event.
-   * Zero until message generation completes.
+   * LLM call metrics for this message.
+   * Only populated for type == MESSAGE_AI.
+   * Captures the full cost record of the single LLM call that produced this message:
+   * token breakdown, estimated cost, model, provider, and duration.
    * </pre>
    *
-   * <code>int32 generation_duration_ms = 8 [json_name = "generationDurationMs"];</code>
-   * @return The generationDurationMs.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
+   * @return The llmMetrics.
    */
-  int getGenerationDurationMs();
-
+  ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics getLlmMetrics();
   /**
    * <pre>
-   * Input tokens consumed by the LLM call that generated this message.
-   * Only meaningful for type == MESSAGE_AI. Zero for other message types.
+   * LLM call metrics for this message.
+   * Only populated for type == MESSAGE_AI.
+   * Captures the full cost record of the single LLM call that produced this message:
+   * token breakdown, estimated cost, model, provider, and duration.
    * </pre>
    *
-   * <code>int32 input_tokens = 9 [json_name = "inputTokens"];</code>
-   * @return The inputTokens.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
    */
-  int getInputTokens();
-
-  /**
-   * <pre>
-   * Output tokens generated for this message.
-   * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-   * </pre>
-   *
-   * <code>int32 output_tokens = 10 [json_name = "outputTokens"];</code>
-   * @return The outputTokens.
-   */
-  int getOutputTokens();
-
-  /**
-   * <pre>
-   * Cache read tokens for the LLM call that generated this message.
-   * Non-zero indicates the prompt hit the provider cache, reducing cost.
-   * Only meaningful for type == MESSAGE_AI.
-   * </pre>
-   *
-   * <code>int32 cache_read_tokens = 11 [json_name = "cacheReadTokens"];</code>
-   * @return The cacheReadTokens.
-   */
-  int getCacheReadTokens();
-
-  /**
-   * <pre>
-   * Estimated cost in USD for this message's LLM call.
-   * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-   * </pre>
-   *
-   * <code>double estimated_cost_usd = 12 [json_name = "estimatedCostUsd"];</code>
-   * @return The estimatedCostUsd.
-   */
-  double getEstimatedCostUsd();
-
-  /**
-   * <pre>
-   * Model that generated this message.
-   * Only meaningful for type == MESSAGE_AI.
-   * Useful when model routing is active and different messages may come
-   * from different models within the same execution.
-   * Example: "claude-sonnet-4-20250514"
-   * </pre>
-   *
-   * <code>string model = 13 [json_name = "model"];</code>
-   * @return The model.
-   */
-  java.lang.String getModel();
-  /**
-   * <pre>
-   * Model that generated this message.
-   * Only meaningful for type == MESSAGE_AI.
-   * Useful when model routing is active and different messages may come
-   * from different models within the same execution.
-   * Example: "claude-sonnet-4-20250514"
-   * </pre>
-   *
-   * <code>string model = 13 [json_name = "model"];</code>
-   * @return The bytes for model.
-   */
-  com.google.protobuf.ByteString
-      getModelBytes();
+  ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder getLlmMetricsOrBuilder();
 }

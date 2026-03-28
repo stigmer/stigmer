@@ -52,8 +52,6 @@ def slim_status_for_temporal(status: AgentExecutionStatus) -> AgentExecutionStat
     )
     for pa in status.pending_approvals:
         slim.pending_approvals.append(pa)
-    if status.HasField("usage"):
-        slim.usage.CopyFrom(status.usage)
     return slim
 
 

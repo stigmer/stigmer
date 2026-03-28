@@ -77,7 +77,10 @@ func openSession(sessionID, orgID string, verbose bool, outputMode OutputMode, c
 	subject := session.ResolvedSubject(ses.GetSpec().GetSubject())
 	wsRoots := localWorkspaceRoots(ses.GetSpec().GetWorkspaceEntries())
 
-	model := latestExec.GetStatus().GetUsage().GetPrimaryModel()
+	var model string
+	if u := computeExecutionUsage(latestExec); u != nil {
+		model = u.PrimaryModel
+	}
 	headerInfo := sessionHeaderInfo{
 		SessionID:  sessionID,
 		Subject:    subject,

@@ -4,7 +4,6 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "ai/stigmer/agentic/agentexecution/v1/message.proto";
-import "ai/stigmer/agentic/agentexecution/v1/usage.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
@@ -59,17 +58,6 @@ message SubAgentExecution {
   // Tool calls are embedded in AI messages via AgentMessage.tool_calls.
   // Ordered chronologically like AgentExecutionStatus.messages.
   repeated AgentMessage messages = 11;
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Usage Metrics (Phase 2.4)
-  //
-  // Token consumption and LLM resource usage for this sub-agent.
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  // Token and LLM resource usage for this sub-agent execution.
-  // Captures only this sub-agent's direct LLM calls.
-  // Isolated from main agent and other sub-agents for accurate cost attribution.
-  UsageMetrics usage = 12;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Display Metadata

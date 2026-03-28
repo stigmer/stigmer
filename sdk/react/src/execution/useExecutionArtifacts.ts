@@ -17,7 +17,7 @@ export interface UseExecutionArtifactsReturn {
  * Pure derivation hook that extracts artifact metadata from an
  * {@link AgentExecution} snapshot.
  *
- * Follows the same pattern as {@link useExecutionUsage}: a `useMemo`-based
+ * Follows the same pattern as {@link useSessionUsage}: a `useMemo`-based
  * derivation with no side effects and no data fetching. The execution
  * object (typically from {@link useExecutionStream}) is the single input.
  *

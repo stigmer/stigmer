@@ -38,6 +38,12 @@ export type {
   UseSessionWriteBacksReturn,
 } from "./useSessionWriteBacks";
 
+export { useSessionUsage } from "./useSessionUsage";
+export type {
+  ModelCostEntry,
+  UseSessionUsageReturn,
+} from "./useSessionUsage";
+
 export { useAgentRefFromSession } from "./useAgentRefFromSession";
 export type { UseAgentRefFromSessionReturn } from "./useAgentRefFromSession";
 

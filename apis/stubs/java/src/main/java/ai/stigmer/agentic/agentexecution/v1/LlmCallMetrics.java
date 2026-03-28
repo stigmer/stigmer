@@ -320,6 +320,22 @@ private static final long serialVersionUID = 0L;
     }
   }
 
+  public static final int TOTAL_TOKENS_FIELD_NUMBER = 11;
+  private int totalTokens_ = 0;
+  /**
+   * <pre>
+   * Total tokens (input + output). Convenience field for quick reference.
+   * Equals: input_tokens + output_tokens
+   * </pre>
+   *
+   * <code>int32 total_tokens = 11 [json_name = "totalTokens"];</code>
+   * @return The totalTokens.
+   */
+  @java.lang.Override
+  public int getTotalTokens() {
+    return totalTokens_;
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -363,6 +379,9 @@ private static final long serialVersionUID = 0L;
     }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(timestamp_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 10, timestamp_);
+    }
+    if (totalTokens_ != 0) {
+      output.writeInt32(11, totalTokens_);
     }
     getUnknownFields().writeTo(output);
   }
@@ -410,6 +429,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(timestamp_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(10, timestamp_);
     }
+    if (totalTokens_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeInt32Size(11, totalTokens_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -446,6 +469,8 @@ private static final long serialVersionUID = 0L;
         != other.getDurationMs()) return false;
     if (!getTimestamp()
         .equals(other.getTimestamp())) return false;
+    if (getTotalTokens()
+        != other.getTotalTokens()) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -478,6 +503,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getDurationMs();
     hash = (37 * hash) + TIMESTAMP_FIELD_NUMBER;
     hash = (53 * hash) + getTimestamp().hashCode();
+    hash = (37 * hash) + TOTAL_TOKENS_FIELD_NUMBER;
+    hash = (53 * hash) + getTotalTokens();
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -639,6 +666,7 @@ private static final long serialVersionUID = 0L;
       estimatedCostUsd_ = 0D;
       durationMs_ = 0;
       timestamp_ = "";
+      totalTokens_ = 0;
       return this;
     }
 
@@ -702,6 +730,9 @@ private static final long serialVersionUID = 0L;
       if (((from_bitField0_ & 0x00000200) != 0)) {
         result.timestamp_ = timestamp_;
       }
+      if (((from_bitField0_ & 0x00000400) != 0)) {
+        result.totalTokens_ = totalTokens_;
+      }
     }
 
     @java.lang.Override
@@ -751,6 +782,9 @@ private static final long serialVersionUID = 0L;
         timestamp_ = other.timestamp_;
         bitField0_ |= 0x00000200;
         onChanged();
+      }
+      if (other.getTotalTokens() != 0) {
+        setTotalTokens(other.getTotalTokens());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -828,6 +862,11 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000200;
               break;
             } // case 82
+            case 88: {
+              totalTokens_ = input.readInt32();
+              bitField0_ |= 0x00000400;
+              break;
+            } // case 88
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1433,6 +1472,53 @@ private static final long serialVersionUID = 0L;
       checkByteStringIsUtf8(value);
       timestamp_ = value;
       bitField0_ |= 0x00000200;
+      onChanged();
+      return this;
+    }
+
+    private int totalTokens_ ;
+    /**
+     * <pre>
+     * Total tokens (input + output). Convenience field for quick reference.
+     * Equals: input_tokens + output_tokens
+     * </pre>
+     *
+     * <code>int32 total_tokens = 11 [json_name = "totalTokens"];</code>
+     * @return The totalTokens.
+     */
+    @java.lang.Override
+    public int getTotalTokens() {
+      return totalTokens_;
+    }
+    /**
+     * <pre>
+     * Total tokens (input + output). Convenience field for quick reference.
+     * Equals: input_tokens + output_tokens
+     * </pre>
+     *
+     * <code>int32 total_tokens = 11 [json_name = "totalTokens"];</code>
+     * @param value The totalTokens to set.
+     * @return This builder for chaining.
+     */
+    public Builder setTotalTokens(int value) {
+
+      totalTokens_ = value;
+      bitField0_ |= 0x00000400;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Total tokens (input + output). Convenience field for quick reference.
+     * Equals: input_tokens + output_tokens
+     * </pre>
+     *
+     * <code>int32 total_tokens = 11 [json_name = "totalTokens"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearTotalTokens() {
+      bitField0_ = (bitField0_ & ~0x00000400);
+      totalTokens_ = 0;
       onChanged();
       return this;
     }

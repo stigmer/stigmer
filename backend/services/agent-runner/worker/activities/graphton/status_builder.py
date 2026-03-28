@@ -424,14 +424,6 @@ class StatusBuilder:
         # Key: (sub_agent_id, message_index), Value: start timestamp
         self._sub_agent_message_start_times: dict[tuple[str, int], datetime] = {}
         
-        # ─────────────────────────────────────────────────────────────────────────
-        # Usage & Cost Tracking (Phase 3)
-        #
-        # All token accounting, pricing lookups, per-call metrics, per-model
-        # aggregation, and duration tracking are delegated to UsageTracker.
-        # StatusBuilder routes events to it and calls build_usage_metrics()
-        # to obtain the proto.
-        # ─────────────────────────────────────────────────────────────────────────
         self._usage_tracker = UsageTracker(execution_id)
         
         # ─────────────────────────────────────────────────────────────────────────
@@ -1124,11 +1116,6 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────
         context, sub_agent = self._get_execution_context(namespace)
         
-        # Record tool duration in UsageTracker
-        if duration_ms is not None:
-            scope = sub_agent.id if sub_agent else MAIN_SCOPE
-            self._usage_tracker.record_tool_duration(duration_ms, scope)
-        
         completed_at = _utc_timestamp(now)
 
         tool_call = self.get_tool_call(resolved_id)
@@ -1529,10 +1516,6 @@ class StatusBuilder:
         ai_message = messages_list[ai_message_index]
         
         ai_message.is_streaming = False
-        ai_message.token_count = total_input_tokens + output_tokens
-        
-        if generation_duration_ms is not None:
-            ai_message.generation_duration_ms = generation_duration_ms
         
         # ─────────────────────────────────────────────────────────────────────────
         # Diagnostic: detect text content dropped during streaming
@@ -1598,20 +1581,7 @@ class StatusBuilder:
             scope=scope,
         )
         
-        # Enrich AgentMessage with per-message cost and model info
-        ai_message.input_tokens = regular_input_tokens
-        ai_message.output_tokens = output_tokens
-        ai_message.cache_read_tokens = cache_read_tokens
-        ai_message.estimated_cost_usd = call_metrics.estimated_cost_usd
-        ai_message.model = model_name
-        
-        # Update the usage proto progressively
-        if sub_agent:
-            sub_agent.usage.CopyFrom(self._usage_tracker.build_usage_metrics(scope))
-        else:
-            self.current_status.usage.CopyFrom(
-                self._usage_tracker.build_usage_metrics(MAIN_SCOPE)
-            )
+        ai_message.llm_metrics.CopyFrom(call_metrics)
         
         self.logger.debug(
             "AI message finalized at index %d scope=%s "
@@ -2336,7 +2306,6 @@ class StatusBuilder:
             wait_ms = int(
                 (datetime.utcnow() - self._approval_wait_started_at).total_seconds() * 1000
             )
-            self._usage_tracker.record_approval_wait(wait_ms, MAIN_SCOPE)
             self._approval_wait_started_at = None
 
         if self._saved_phase_before_approval is not None:
@@ -3085,38 +3054,6 @@ class StatusBuilder:
     # Usage Metrics (Phase 3 — delegated to UsageTracker)
     # ─────────────────────────────────────────────────────────────────────────────
     
-    @property
-    def usage_tracker(self) -> UsageTracker:
-        """Expose tracker for external callers that need cost or call count."""
-        return self._usage_tracker
-    
-    def finalize_usage(self) -> None:
-        """Compute total duration and stamp final usage metrics onto the status.
-
-        Called once when the execution reaches a terminal phase (completed,
-        failed, or cancelled).  Parses the ISO 8601 ``started_at`` /
-        ``completed_at`` timestamps already on the status proto to derive
-        ``total_duration_ms``, then builds the final ``UsageMetrics``.
-        """
-        started = self.current_status.started_at
-        completed = self.current_status.completed_at
-        if started and completed:
-            try:
-                t_start = datetime.fromisoformat(started.replace("Z", "+00:00"))
-                t_end = datetime.fromisoformat(completed.replace("Z", "+00:00"))
-                total_ms = int((t_end - t_start).total_seconds() * 1000)
-                self._usage_tracker.set_total_duration(MAIN_SCOPE, max(0, total_ms))
-            except (ValueError, TypeError):
-                pass
-        
-        self.current_status.usage.CopyFrom(
-            self._usage_tracker.build_usage_metrics(MAIN_SCOPE)
-        )
-        
-        # Also finalize usage for all sub-agents
-        for sa in self.current_status.sub_agent_executions:
-            sa.usage.CopyFrom(self._usage_tracker.build_usage_metrics(sa.id))
-    
     # ─────────────────────────────────────────────────────────────────────────────
     # Resolved Execution Context (Phase 2.5)
     #
@@ -3287,19 +3224,10 @@ class StatusBuilder:
         )
         self._context_info.summarization_events.append(proto_event)
         
-        # Record summarization cost in UsageTracker so it flows into
-        # the total estimated_cost_usd.
-        self._usage_tracker.record_summarization(event, MAIN_SCOPE)
-        
         self._context_info.current_token_count = event.tokens_after
         self._update_utilization()
         self._sync_context_info()
         self.force_next_update = True
-        
-        # Update the usage proto progressively to reflect the new cost
-        self.current_status.usage.CopyFrom(
-            self._usage_tracker.build_usage_metrics(MAIN_SCOPE)
-        )
         
         self.logger.info(
             f"[CONTEXT] execution={self.execution_id} "

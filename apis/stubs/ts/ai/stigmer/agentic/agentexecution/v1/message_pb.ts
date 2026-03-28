@@ -6,6 +6,8 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
 import type { ApprovalAction, MessageType, ToolCallStatus } from "./enum_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb";
+import type { LlmCallMetrics } from "./usage_pb";
+import { file_ai_stigmer_agentic_agentexecution_v1_usage } from "./usage_pb";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb";
 import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
 import type { JsonObject, Message } from "@bufbuild/protobuf";
@@ -14,7 +16,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/message.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_message: GenFile = /*@__PURE__*/
-  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvbWVzc2FnZS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIqoDCgxBZ2VudE1lc3NhZ2USSQoEdHlwZRgBIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5NZXNzYWdlVHlwZUIIukgFggECEAESDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSQgoKdG9vbF9jYWxscxgEIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbBIpCghtZXRhZGF0YRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMaXNfc3RyZWFtaW5nGAYgASgIEhMKC3Rva2VuX2NvdW50GAcgASgFEh4KFmdlbmVyYXRpb25fZHVyYXRpb25fbXMYCCABKAUSFAoMaW5wdXRfdG9rZW5zGAkgASgFEhUKDW91dHB1dF90b2tlbnMYCiABKAUSGQoRY2FjaGVfcmVhZF90b2tlbnMYCyABKAUSGgoSZXN0aW1hdGVkX2Nvc3RfdXNkGAwgASgBEg0KBW1vZGVsGA0gASgJItMECghUb29sQ2FsbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKBGFyZ3MYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Eg4KBnJlc3VsdBgEIAEoCRJOCgZzdGF0dXMYBSABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxTdGF0dXNCCLpIBYIBAhABElMKEmNvbXBvbmVudF9tZXRhZGF0YRgGIAEoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db21wb25lbnRNZXRhZGF0YRISCgpzdGFydGVkX2F0GAcgASgJEhQKDGNvbXBsZXRlZF9hdBgIIAEoCRINCgVlcnJvchgJIAEoCRIZChFyZXF1aXJlc19hcHByb3ZhbBgKIAEoCBIYChBhcHByb3ZhbF9tZXNzYWdlGAsgASgJEh0KFWFwcHJvdmFsX3JlcXVlc3RlZF9hdBgMIAEoCRIbChNhcHByb3ZhbF9kZWNpZGVkX2F0GA0gASgJEhMKC2FwcHJvdmVkX2J5GA4gASgJEk0KD2FwcHJvdmFsX2FjdGlvbhgPIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEFjdGlvbhIUCgxpc19zdHJlYW1pbmcYECABKAgSFwoPbWNwX3NlcnZlcl9zbHVnGBEgASgJEhQKDGFyZ3NfcHJldmlldxgSIAEoCSKEAQoRQ29tcG9uZW50TWV0YWRhdGESFgoOY29tcG9uZW50X3R5cGUYASABKAkSFwoPY29tcG9uZW50X2dyb3VwGAIgASgJEhMKC2xheW91dF9oaW50GAMgASgJEikKCG1ldGFkYXRhGAQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdGIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvbWVzc2FnZS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIs0CCgxBZ2VudE1lc3NhZ2USSQoEdHlwZRgBIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5NZXNzYWdlVHlwZUIIukgFggECEAESDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSQgoKdG9vbF9jYWxscxgEIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbBIpCghtZXRhZGF0YRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMaXNfc3RyZWFtaW5nGAYgASgIEkkKC2xsbV9tZXRyaWNzGAcgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkxsbUNhbGxNZXRyaWNzItMECghUb29sQ2FsbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKBGFyZ3MYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Eg4KBnJlc3VsdBgEIAEoCRJOCgZzdGF0dXMYBSABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxTdGF0dXNCCLpIBYIBAhABElMKEmNvbXBvbmVudF9tZXRhZGF0YRgGIAEoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db21wb25lbnRNZXRhZGF0YRISCgpzdGFydGVkX2F0GAcgASgJEhQKDGNvbXBsZXRlZF9hdBgIIAEoCRINCgVlcnJvchgJIAEoCRIZChFyZXF1aXJlc19hcHByb3ZhbBgKIAEoCBIYChBhcHByb3ZhbF9tZXNzYWdlGAsgASgJEh0KFWFwcHJvdmFsX3JlcXVlc3RlZF9hdBgMIAEoCRIbChNhcHByb3ZhbF9kZWNpZGVkX2F0GA0gASgJEhMKC2FwcHJvdmVkX2J5GA4gASgJEk0KD2FwcHJvdmFsX2FjdGlvbhgPIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEFjdGlvbhIUCgxpc19zdHJlYW1pbmcYECABKAgSFwoPbWNwX3NlcnZlcl9zbHVnGBEgASgJEhQKDGFyZ3NfcHJldmlldxgSIAEoCSKEAQoRQ29tcG9uZW50TWV0YWRhdGESFgoOY29tcG9uZW50X3R5cGUYASABKAkSFwoPY29tcG9uZW50X2dyb3VwGAIgASgJEhMKC2xheW91dF9oaW50GAMgASgJEikKCG1ldGFkYXRhGAQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdGIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_usage, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * Represents a single message in the agent conversation.
@@ -69,66 +71,14 @@ export type AgentMessage = Message<"ai.stigmer.agentic.agentexecution.v1.AgentMe
   isStreaming: boolean;
 
   /**
-   * Total tokens consumed to generate this message (prompt + completion tokens).
-   * Zero until message generation completes, or if token usage is unavailable.
-   * Useful for cost tracking and usage analytics at the message level.
+   * LLM call metrics for this message.
+   * Only populated for type == MESSAGE_AI.
+   * Captures the full cost record of the single LLM call that produced this message:
+   * token breakdown, estimated cost, model, provider, and duration.
    *
-   * @generated from field: int32 token_count = 7;
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7;
    */
-  tokenCount: number;
-
-  /**
-   * Wall-clock time in milliseconds from first token to completion.
-   * Measured from when streaming begins until on_chat_model_end event.
-   * Zero until message generation completes.
-   *
-   * @generated from field: int32 generation_duration_ms = 8;
-   */
-  generationDurationMs: number;
-
-  /**
-   * Input tokens consumed by the LLM call that generated this message.
-   * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-   *
-   * @generated from field: int32 input_tokens = 9;
-   */
-  inputTokens: number;
-
-  /**
-   * Output tokens generated for this message.
-   * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-   *
-   * @generated from field: int32 output_tokens = 10;
-   */
-  outputTokens: number;
-
-  /**
-   * Cache read tokens for the LLM call that generated this message.
-   * Non-zero indicates the prompt hit the provider cache, reducing cost.
-   * Only meaningful for type == MESSAGE_AI.
-   *
-   * @generated from field: int32 cache_read_tokens = 11;
-   */
-  cacheReadTokens: number;
-
-  /**
-   * Estimated cost in USD for this message's LLM call.
-   * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-   *
-   * @generated from field: double estimated_cost_usd = 12;
-   */
-  estimatedCostUsd: number;
-
-  /**
-   * Model that generated this message.
-   * Only meaningful for type == MESSAGE_AI.
-   * Useful when model routing is active and different messages may come
-   * from different models within the same execution.
-   * Example: "claude-sonnet-4-20250514"
-   *
-   * @generated from field: string model = 13;
-   */
-  model: string;
+  llmMetrics?: LlmCallMetrics;
 };
 
 /**

@@ -38,7 +38,6 @@ private static final long serialVersionUID = 0L;
     content_ = "";
     timestamp_ = "";
     toolCalls_ = java.util.Collections.emptyList();
-    model_ = "";
   }
 
   public static final com.google.protobuf.Descriptors.Descriptor
@@ -296,158 +295,51 @@ private static final long serialVersionUID = 0L;
     return isStreaming_;
   }
 
-  public static final int TOKEN_COUNT_FIELD_NUMBER = 7;
-  private int tokenCount_ = 0;
+  public static final int LLM_METRICS_FIELD_NUMBER = 7;
+  private ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llmMetrics_;
   /**
    * <pre>
-   * Total tokens consumed to generate this message (prompt + completion tokens).
-   * Zero until message generation completes, or if token usage is unavailable.
-   * Useful for cost tracking and usage analytics at the message level.
+   * LLM call metrics for this message.
+   * Only populated for type == MESSAGE_AI.
+   * Captures the full cost record of the single LLM call that produced this message:
+   * token breakdown, estimated cost, model, provider, and duration.
    * </pre>
    *
-   * <code>int32 token_count = 7 [json_name = "tokenCount"];</code>
-   * @return The tokenCount.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
+   * @return Whether the llmMetrics field is set.
    */
   @java.lang.Override
-  public int getTokenCount() {
-    return tokenCount_;
-  }
-
-  public static final int GENERATION_DURATION_MS_FIELD_NUMBER = 8;
-  private int generationDurationMs_ = 0;
-  /**
-   * <pre>
-   * Wall-clock time in milliseconds from first token to completion.
-   * Measured from when streaming begins until on_chat_model_end event.
-   * Zero until message generation completes.
-   * </pre>
-   *
-   * <code>int32 generation_duration_ms = 8 [json_name = "generationDurationMs"];</code>
-   * @return The generationDurationMs.
-   */
-  @java.lang.Override
-  public int getGenerationDurationMs() {
-    return generationDurationMs_;
-  }
-
-  public static final int INPUT_TOKENS_FIELD_NUMBER = 9;
-  private int inputTokens_ = 0;
-  /**
-   * <pre>
-   * Input tokens consumed by the LLM call that generated this message.
-   * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-   * </pre>
-   *
-   * <code>int32 input_tokens = 9 [json_name = "inputTokens"];</code>
-   * @return The inputTokens.
-   */
-  @java.lang.Override
-  public int getInputTokens() {
-    return inputTokens_;
-  }
-
-  public static final int OUTPUT_TOKENS_FIELD_NUMBER = 10;
-  private int outputTokens_ = 0;
-  /**
-   * <pre>
-   * Output tokens generated for this message.
-   * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-   * </pre>
-   *
-   * <code>int32 output_tokens = 10 [json_name = "outputTokens"];</code>
-   * @return The outputTokens.
-   */
-  @java.lang.Override
-  public int getOutputTokens() {
-    return outputTokens_;
-  }
-
-  public static final int CACHE_READ_TOKENS_FIELD_NUMBER = 11;
-  private int cacheReadTokens_ = 0;
-  /**
-   * <pre>
-   * Cache read tokens for the LLM call that generated this message.
-   * Non-zero indicates the prompt hit the provider cache, reducing cost.
-   * Only meaningful for type == MESSAGE_AI.
-   * </pre>
-   *
-   * <code>int32 cache_read_tokens = 11 [json_name = "cacheReadTokens"];</code>
-   * @return The cacheReadTokens.
-   */
-  @java.lang.Override
-  public int getCacheReadTokens() {
-    return cacheReadTokens_;
-  }
-
-  public static final int ESTIMATED_COST_USD_FIELD_NUMBER = 12;
-  private double estimatedCostUsd_ = 0D;
-  /**
-   * <pre>
-   * Estimated cost in USD for this message's LLM call.
-   * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-   * </pre>
-   *
-   * <code>double estimated_cost_usd = 12 [json_name = "estimatedCostUsd"];</code>
-   * @return The estimatedCostUsd.
-   */
-  @java.lang.Override
-  public double getEstimatedCostUsd() {
-    return estimatedCostUsd_;
-  }
-
-  public static final int MODEL_FIELD_NUMBER = 13;
-  @SuppressWarnings("serial")
-  private volatile java.lang.Object model_ = "";
-  /**
-   * <pre>
-   * Model that generated this message.
-   * Only meaningful for type == MESSAGE_AI.
-   * Useful when model routing is active and different messages may come
-   * from different models within the same execution.
-   * Example: "claude-sonnet-4-20250514"
-   * </pre>
-   *
-   * <code>string model = 13 [json_name = "model"];</code>
-   * @return The model.
-   */
-  @java.lang.Override
-  public java.lang.String getModel() {
-    java.lang.Object ref = model_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      model_ = s;
-      return s;
-    }
+  public boolean hasLlmMetrics() {
+    return ((bitField0_ & 0x00000002) != 0);
   }
   /**
    * <pre>
-   * Model that generated this message.
-   * Only meaningful for type == MESSAGE_AI.
-   * Useful when model routing is active and different messages may come
-   * from different models within the same execution.
-   * Example: "claude-sonnet-4-20250514"
+   * LLM call metrics for this message.
+   * Only populated for type == MESSAGE_AI.
+   * Captures the full cost record of the single LLM call that produced this message:
+   * token breakdown, estimated cost, model, provider, and duration.
    * </pre>
    *
-   * <code>string model = 13 [json_name = "model"];</code>
-   * @return The bytes for model.
+   * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
+   * @return The llmMetrics.
    */
   @java.lang.Override
-  public com.google.protobuf.ByteString
-      getModelBytes() {
-    java.lang.Object ref = model_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      model_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
+  public ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics getLlmMetrics() {
+    return llmMetrics_ == null ? ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.getDefaultInstance() : llmMetrics_;
+  }
+  /**
+   * <pre>
+   * LLM call metrics for this message.
+   * Only populated for type == MESSAGE_AI.
+   * Captures the full cost record of the single LLM call that produced this message:
+   * token breakdown, estimated cost, model, provider, and duration.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
+   */
+  @java.lang.Override
+  public ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder getLlmMetricsOrBuilder() {
+    return llmMetrics_ == null ? ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.getDefaultInstance() : llmMetrics_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -482,26 +374,8 @@ private static final long serialVersionUID = 0L;
     if (isStreaming_ != false) {
       output.writeBool(6, isStreaming_);
     }
-    if (tokenCount_ != 0) {
-      output.writeInt32(7, tokenCount_);
-    }
-    if (generationDurationMs_ != 0) {
-      output.writeInt32(8, generationDurationMs_);
-    }
-    if (inputTokens_ != 0) {
-      output.writeInt32(9, inputTokens_);
-    }
-    if (outputTokens_ != 0) {
-      output.writeInt32(10, outputTokens_);
-    }
-    if (cacheReadTokens_ != 0) {
-      output.writeInt32(11, cacheReadTokens_);
-    }
-    if (java.lang.Double.doubleToRawLongBits(estimatedCostUsd_) != 0) {
-      output.writeDouble(12, estimatedCostUsd_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(model_)) {
-      com.google.protobuf.GeneratedMessage.writeString(output, 13, model_);
+    if (((bitField0_ & 0x00000002) != 0)) {
+      output.writeMessage(7, getLlmMetrics());
     }
     getUnknownFields().writeTo(output);
   }
@@ -539,32 +413,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeBoolSize(6, isStreaming_);
     }
-    if (tokenCount_ != 0) {
+    if (((bitField0_ & 0x00000002) != 0)) {
       size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(7, tokenCount_);
-    }
-    if (generationDurationMs_ != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(8, generationDurationMs_);
-    }
-    if (inputTokens_ != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(9, inputTokens_);
-    }
-    if (outputTokens_ != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(10, outputTokens_);
-    }
-    if (cacheReadTokens_ != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeInt32Size(11, cacheReadTokens_);
-    }
-    if (java.lang.Double.doubleToRawLongBits(estimatedCostUsd_) != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeDoubleSize(12, estimatedCostUsd_);
-    }
-    if (!com.google.protobuf.GeneratedMessage.isStringEmpty(model_)) {
-      size += com.google.protobuf.GeneratedMessage.computeStringSize(13, model_);
+        .computeMessageSize(7, getLlmMetrics());
     }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
@@ -595,21 +446,11 @@ private static final long serialVersionUID = 0L;
     }
     if (getIsStreaming()
         != other.getIsStreaming()) return false;
-    if (getTokenCount()
-        != other.getTokenCount()) return false;
-    if (getGenerationDurationMs()
-        != other.getGenerationDurationMs()) return false;
-    if (getInputTokens()
-        != other.getInputTokens()) return false;
-    if (getOutputTokens()
-        != other.getOutputTokens()) return false;
-    if (getCacheReadTokens()
-        != other.getCacheReadTokens()) return false;
-    if (java.lang.Double.doubleToLongBits(getEstimatedCostUsd())
-        != java.lang.Double.doubleToLongBits(
-            other.getEstimatedCostUsd())) return false;
-    if (!getModel()
-        .equals(other.getModel())) return false;
+    if (hasLlmMetrics() != other.hasLlmMetrics()) return false;
+    if (hasLlmMetrics()) {
+      if (!getLlmMetrics()
+          .equals(other.getLlmMetrics())) return false;
+    }
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
     return true;
   }
@@ -638,21 +479,10 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + IS_STREAMING_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getIsStreaming());
-    hash = (37 * hash) + TOKEN_COUNT_FIELD_NUMBER;
-    hash = (53 * hash) + getTokenCount();
-    hash = (37 * hash) + GENERATION_DURATION_MS_FIELD_NUMBER;
-    hash = (53 * hash) + getGenerationDurationMs();
-    hash = (37 * hash) + INPUT_TOKENS_FIELD_NUMBER;
-    hash = (53 * hash) + getInputTokens();
-    hash = (37 * hash) + OUTPUT_TOKENS_FIELD_NUMBER;
-    hash = (53 * hash) + getOutputTokens();
-    hash = (37 * hash) + CACHE_READ_TOKENS_FIELD_NUMBER;
-    hash = (53 * hash) + getCacheReadTokens();
-    hash = (37 * hash) + ESTIMATED_COST_USD_FIELD_NUMBER;
-    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
-        java.lang.Double.doubleToLongBits(getEstimatedCostUsd()));
-    hash = (37 * hash) + MODEL_FIELD_NUMBER;
-    hash = (53 * hash) + getModel().hashCode();
+    if (hasLlmMetrics()) {
+      hash = (37 * hash) + LLM_METRICS_FIELD_NUMBER;
+      hash = (53 * hash) + getLlmMetrics().hashCode();
+    }
     hash = (29 * hash) + getUnknownFields().hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -791,6 +621,7 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetToolCallsFieldBuilder();
         internalGetMetadataFieldBuilder();
+        internalGetLlmMetricsFieldBuilder();
       }
     }
     @java.lang.Override
@@ -813,13 +644,11 @@ private static final long serialVersionUID = 0L;
         metadataBuilder_ = null;
       }
       isStreaming_ = false;
-      tokenCount_ = 0;
-      generationDurationMs_ = 0;
-      inputTokens_ = 0;
-      outputTokens_ = 0;
-      cacheReadTokens_ = 0;
-      estimatedCostUsd_ = 0D;
-      model_ = "";
+      llmMetrics_ = null;
+      if (llmMetricsBuilder_ != null) {
+        llmMetricsBuilder_.dispose();
+        llmMetricsBuilder_ = null;
+      }
       return this;
     }
 
@@ -886,25 +715,10 @@ private static final long serialVersionUID = 0L;
         result.isStreaming_ = isStreaming_;
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.tokenCount_ = tokenCount_;
-      }
-      if (((from_bitField0_ & 0x00000080) != 0)) {
-        result.generationDurationMs_ = generationDurationMs_;
-      }
-      if (((from_bitField0_ & 0x00000100) != 0)) {
-        result.inputTokens_ = inputTokens_;
-      }
-      if (((from_bitField0_ & 0x00000200) != 0)) {
-        result.outputTokens_ = outputTokens_;
-      }
-      if (((from_bitField0_ & 0x00000400) != 0)) {
-        result.cacheReadTokens_ = cacheReadTokens_;
-      }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
-        result.estimatedCostUsd_ = estimatedCostUsd_;
-      }
-      if (((from_bitField0_ & 0x00001000) != 0)) {
-        result.model_ = model_;
+        result.llmMetrics_ = llmMetricsBuilder_ == null
+            ? llmMetrics_
+            : llmMetricsBuilder_.build();
+        to_bitField0_ |= 0x00000002;
       }
       result.bitField0_ |= to_bitField0_;
     }
@@ -966,28 +780,8 @@ private static final long serialVersionUID = 0L;
       if (other.getIsStreaming() != false) {
         setIsStreaming(other.getIsStreaming());
       }
-      if (other.getTokenCount() != 0) {
-        setTokenCount(other.getTokenCount());
-      }
-      if (other.getGenerationDurationMs() != 0) {
-        setGenerationDurationMs(other.getGenerationDurationMs());
-      }
-      if (other.getInputTokens() != 0) {
-        setInputTokens(other.getInputTokens());
-      }
-      if (other.getOutputTokens() != 0) {
-        setOutputTokens(other.getOutputTokens());
-      }
-      if (other.getCacheReadTokens() != 0) {
-        setCacheReadTokens(other.getCacheReadTokens());
-      }
-      if (java.lang.Double.doubleToRawLongBits(other.getEstimatedCostUsd()) != 0) {
-        setEstimatedCostUsd(other.getEstimatedCostUsd());
-      }
-      if (!other.getModel().isEmpty()) {
-        model_ = other.model_;
-        bitField0_ |= 0x00001000;
-        onChanged();
+      if (other.hasLlmMetrics()) {
+        mergeLlmMetrics(other.getLlmMetrics());
       }
       this.mergeUnknownFields(other.getUnknownFields());
       onChanged();
@@ -1055,41 +849,13 @@ private static final long serialVersionUID = 0L;
               bitField0_ |= 0x00000020;
               break;
             } // case 48
-            case 56: {
-              tokenCount_ = input.readInt32();
+            case 58: {
+              input.readMessage(
+                  internalGetLlmMetricsFieldBuilder().getBuilder(),
+                  extensionRegistry);
               bitField0_ |= 0x00000040;
               break;
-            } // case 56
-            case 64: {
-              generationDurationMs_ = input.readInt32();
-              bitField0_ |= 0x00000080;
-              break;
-            } // case 64
-            case 72: {
-              inputTokens_ = input.readInt32();
-              bitField0_ |= 0x00000100;
-              break;
-            } // case 72
-            case 80: {
-              outputTokens_ = input.readInt32();
-              bitField0_ |= 0x00000200;
-              break;
-            } // case 80
-            case 88: {
-              cacheReadTokens_ = input.readInt32();
-              bitField0_ |= 0x00000400;
-              break;
-            } // case 88
-            case 97: {
-              estimatedCostUsd_ = input.readDouble();
-              bitField0_ |= 0x00000800;
-              break;
-            } // case 97
-            case 106: {
-              model_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00001000;
-              break;
-            } // case 106
+            } // case 58
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -1882,407 +1648,188 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int tokenCount_ ;
+    private ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llmMetrics_;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics, ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder> llmMetricsBuilder_;
     /**
      * <pre>
-     * Total tokens consumed to generate this message (prompt + completion tokens).
-     * Zero until message generation completes, or if token usage is unavailable.
-     * Useful for cost tracking and usage analytics at the message level.
+     * LLM call metrics for this message.
+     * Only populated for type == MESSAGE_AI.
+     * Captures the full cost record of the single LLM call that produced this message:
+     * token breakdown, estimated cost, model, provider, and duration.
      * </pre>
      *
-     * <code>int32 token_count = 7 [json_name = "tokenCount"];</code>
-     * @return The tokenCount.
+     * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
+     * @return Whether the llmMetrics field is set.
      */
-    @java.lang.Override
-    public int getTokenCount() {
-      return tokenCount_;
+    public boolean hasLlmMetrics() {
+      return ((bitField0_ & 0x00000040) != 0);
     }
     /**
      * <pre>
-     * Total tokens consumed to generate this message (prompt + completion tokens).
-     * Zero until message generation completes, or if token usage is unavailable.
-     * Useful for cost tracking and usage analytics at the message level.
+     * LLM call metrics for this message.
+     * Only populated for type == MESSAGE_AI.
+     * Captures the full cost record of the single LLM call that produced this message:
+     * token breakdown, estimated cost, model, provider, and duration.
      * </pre>
      *
-     * <code>int32 token_count = 7 [json_name = "tokenCount"];</code>
-     * @param value The tokenCount to set.
-     * @return This builder for chaining.
+     * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
+     * @return The llmMetrics.
      */
-    public Builder setTokenCount(int value) {
-
-      tokenCount_ = value;
+    public ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics getLlmMetrics() {
+      if (llmMetricsBuilder_ == null) {
+        return llmMetrics_ == null ? ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.getDefaultInstance() : llmMetrics_;
+      } else {
+        return llmMetricsBuilder_.getMessage();
+      }
+    }
+    /**
+     * <pre>
+     * LLM call metrics for this message.
+     * Only populated for type == MESSAGE_AI.
+     * Captures the full cost record of the single LLM call that produced this message:
+     * token breakdown, estimated cost, model, provider, and duration.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
+     */
+    public Builder setLlmMetrics(ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics value) {
+      if (llmMetricsBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        llmMetrics_ = value;
+      } else {
+        llmMetricsBuilder_.setMessage(value);
+      }
       bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Total tokens consumed to generate this message (prompt + completion tokens).
-     * Zero until message generation completes, or if token usage is unavailable.
-     * Useful for cost tracking and usage analytics at the message level.
+     * LLM call metrics for this message.
+     * Only populated for type == MESSAGE_AI.
+     * Captures the full cost record of the single LLM call that produced this message:
+     * token breakdown, estimated cost, model, provider, and duration.
      * </pre>
      *
-     * <code>int32 token_count = 7 [json_name = "tokenCount"];</code>
-     * @return This builder for chaining.
+     * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
      */
-    public Builder clearTokenCount() {
+    public Builder setLlmMetrics(
+        ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder builderForValue) {
+      if (llmMetricsBuilder_ == null) {
+        llmMetrics_ = builderForValue.build();
+      } else {
+        llmMetricsBuilder_.setMessage(builderForValue.build());
+      }
+      bitField0_ |= 0x00000040;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * LLM call metrics for this message.
+     * Only populated for type == MESSAGE_AI.
+     * Captures the full cost record of the single LLM call that produced this message:
+     * token breakdown, estimated cost, model, provider, and duration.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
+     */
+    public Builder mergeLlmMetrics(ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics value) {
+      if (llmMetricsBuilder_ == null) {
+        if (((bitField0_ & 0x00000040) != 0) &&
+          llmMetrics_ != null &&
+          llmMetrics_ != ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.getDefaultInstance()) {
+          getLlmMetricsBuilder().mergeFrom(value);
+        } else {
+          llmMetrics_ = value;
+        }
+      } else {
+        llmMetricsBuilder_.mergeFrom(value);
+      }
+      if (llmMetrics_ != null) {
+        bitField0_ |= 0x00000040;
+        onChanged();
+      }
+      return this;
+    }
+    /**
+     * <pre>
+     * LLM call metrics for this message.
+     * Only populated for type == MESSAGE_AI.
+     * Captures the full cost record of the single LLM call that produced this message:
+     * token breakdown, estimated cost, model, provider, and duration.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
+     */
+    public Builder clearLlmMetrics() {
       bitField0_ = (bitField0_ & ~0x00000040);
-      tokenCount_ = 0;
-      onChanged();
-      return this;
-    }
-
-    private int generationDurationMs_ ;
-    /**
-     * <pre>
-     * Wall-clock time in milliseconds from first token to completion.
-     * Measured from when streaming begins until on_chat_model_end event.
-     * Zero until message generation completes.
-     * </pre>
-     *
-     * <code>int32 generation_duration_ms = 8 [json_name = "generationDurationMs"];</code>
-     * @return The generationDurationMs.
-     */
-    @java.lang.Override
-    public int getGenerationDurationMs() {
-      return generationDurationMs_;
-    }
-    /**
-     * <pre>
-     * Wall-clock time in milliseconds from first token to completion.
-     * Measured from when streaming begins until on_chat_model_end event.
-     * Zero until message generation completes.
-     * </pre>
-     *
-     * <code>int32 generation_duration_ms = 8 [json_name = "generationDurationMs"];</code>
-     * @param value The generationDurationMs to set.
-     * @return This builder for chaining.
-     */
-    public Builder setGenerationDurationMs(int value) {
-
-      generationDurationMs_ = value;
-      bitField0_ |= 0x00000080;
+      llmMetrics_ = null;
+      if (llmMetricsBuilder_ != null) {
+        llmMetricsBuilder_.dispose();
+        llmMetricsBuilder_ = null;
+      }
       onChanged();
       return this;
     }
     /**
      * <pre>
-     * Wall-clock time in milliseconds from first token to completion.
-     * Measured from when streaming begins until on_chat_model_end event.
-     * Zero until message generation completes.
+     * LLM call metrics for this message.
+     * Only populated for type == MESSAGE_AI.
+     * Captures the full cost record of the single LLM call that produced this message:
+     * token breakdown, estimated cost, model, provider, and duration.
      * </pre>
      *
-     * <code>int32 generation_duration_ms = 8 [json_name = "generationDurationMs"];</code>
-     * @return This builder for chaining.
+     * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
      */
-    public Builder clearGenerationDurationMs() {
-      bitField0_ = (bitField0_ & ~0x00000080);
-      generationDurationMs_ = 0;
+    public ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder getLlmMetricsBuilder() {
+      bitField0_ |= 0x00000040;
       onChanged();
-      return this;
-    }
-
-    private int inputTokens_ ;
-    /**
-     * <pre>
-     * Input tokens consumed by the LLM call that generated this message.
-     * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-     * </pre>
-     *
-     * <code>int32 input_tokens = 9 [json_name = "inputTokens"];</code>
-     * @return The inputTokens.
-     */
-    @java.lang.Override
-    public int getInputTokens() {
-      return inputTokens_;
+      return internalGetLlmMetricsFieldBuilder().getBuilder();
     }
     /**
      * <pre>
-     * Input tokens consumed by the LLM call that generated this message.
-     * Only meaningful for type == MESSAGE_AI. Zero for other message types.
+     * LLM call metrics for this message.
+     * Only populated for type == MESSAGE_AI.
+     * Captures the full cost record of the single LLM call that produced this message:
+     * token breakdown, estimated cost, model, provider, and duration.
      * </pre>
      *
-     * <code>int32 input_tokens = 9 [json_name = "inputTokens"];</code>
-     * @param value The inputTokens to set.
-     * @return This builder for chaining.
+     * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
      */
-    public Builder setInputTokens(int value) {
-
-      inputTokens_ = value;
-      bitField0_ |= 0x00000100;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Input tokens consumed by the LLM call that generated this message.
-     * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-     * </pre>
-     *
-     * <code>int32 input_tokens = 9 [json_name = "inputTokens"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearInputTokens() {
-      bitField0_ = (bitField0_ & ~0x00000100);
-      inputTokens_ = 0;
-      onChanged();
-      return this;
-    }
-
-    private int outputTokens_ ;
-    /**
-     * <pre>
-     * Output tokens generated for this message.
-     * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-     * </pre>
-     *
-     * <code>int32 output_tokens = 10 [json_name = "outputTokens"];</code>
-     * @return The outputTokens.
-     */
-    @java.lang.Override
-    public int getOutputTokens() {
-      return outputTokens_;
-    }
-    /**
-     * <pre>
-     * Output tokens generated for this message.
-     * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-     * </pre>
-     *
-     * <code>int32 output_tokens = 10 [json_name = "outputTokens"];</code>
-     * @param value The outputTokens to set.
-     * @return This builder for chaining.
-     */
-    public Builder setOutputTokens(int value) {
-
-      outputTokens_ = value;
-      bitField0_ |= 0x00000200;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Output tokens generated for this message.
-     * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-     * </pre>
-     *
-     * <code>int32 output_tokens = 10 [json_name = "outputTokens"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearOutputTokens() {
-      bitField0_ = (bitField0_ & ~0x00000200);
-      outputTokens_ = 0;
-      onChanged();
-      return this;
-    }
-
-    private int cacheReadTokens_ ;
-    /**
-     * <pre>
-     * Cache read tokens for the LLM call that generated this message.
-     * Non-zero indicates the prompt hit the provider cache, reducing cost.
-     * Only meaningful for type == MESSAGE_AI.
-     * </pre>
-     *
-     * <code>int32 cache_read_tokens = 11 [json_name = "cacheReadTokens"];</code>
-     * @return The cacheReadTokens.
-     */
-    @java.lang.Override
-    public int getCacheReadTokens() {
-      return cacheReadTokens_;
-    }
-    /**
-     * <pre>
-     * Cache read tokens for the LLM call that generated this message.
-     * Non-zero indicates the prompt hit the provider cache, reducing cost.
-     * Only meaningful for type == MESSAGE_AI.
-     * </pre>
-     *
-     * <code>int32 cache_read_tokens = 11 [json_name = "cacheReadTokens"];</code>
-     * @param value The cacheReadTokens to set.
-     * @return This builder for chaining.
-     */
-    public Builder setCacheReadTokens(int value) {
-
-      cacheReadTokens_ = value;
-      bitField0_ |= 0x00000400;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Cache read tokens for the LLM call that generated this message.
-     * Non-zero indicates the prompt hit the provider cache, reducing cost.
-     * Only meaningful for type == MESSAGE_AI.
-     * </pre>
-     *
-     * <code>int32 cache_read_tokens = 11 [json_name = "cacheReadTokens"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearCacheReadTokens() {
-      bitField0_ = (bitField0_ & ~0x00000400);
-      cacheReadTokens_ = 0;
-      onChanged();
-      return this;
-    }
-
-    private double estimatedCostUsd_ ;
-    /**
-     * <pre>
-     * Estimated cost in USD for this message's LLM call.
-     * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-     * </pre>
-     *
-     * <code>double estimated_cost_usd = 12 [json_name = "estimatedCostUsd"];</code>
-     * @return The estimatedCostUsd.
-     */
-    @java.lang.Override
-    public double getEstimatedCostUsd() {
-      return estimatedCostUsd_;
-    }
-    /**
-     * <pre>
-     * Estimated cost in USD for this message's LLM call.
-     * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-     * </pre>
-     *
-     * <code>double estimated_cost_usd = 12 [json_name = "estimatedCostUsd"];</code>
-     * @param value The estimatedCostUsd to set.
-     * @return This builder for chaining.
-     */
-    public Builder setEstimatedCostUsd(double value) {
-
-      estimatedCostUsd_ = value;
-      bitField0_ |= 0x00000800;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Estimated cost in USD for this message's LLM call.
-     * Only meaningful for type == MESSAGE_AI. Zero for other message types.
-     * </pre>
-     *
-     * <code>double estimated_cost_usd = 12 [json_name = "estimatedCostUsd"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearEstimatedCostUsd() {
-      bitField0_ = (bitField0_ & ~0x00000800);
-      estimatedCostUsd_ = 0D;
-      onChanged();
-      return this;
-    }
-
-    private java.lang.Object model_ = "";
-    /**
-     * <pre>
-     * Model that generated this message.
-     * Only meaningful for type == MESSAGE_AI.
-     * Useful when model routing is active and different messages may come
-     * from different models within the same execution.
-     * Example: "claude-sonnet-4-20250514"
-     * </pre>
-     *
-     * <code>string model = 13 [json_name = "model"];</code>
-     * @return The model.
-     */
-    public java.lang.String getModel() {
-      java.lang.Object ref = model_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        model_ = s;
-        return s;
+    public ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder getLlmMetricsOrBuilder() {
+      if (llmMetricsBuilder_ != null) {
+        return llmMetricsBuilder_.getMessageOrBuilder();
       } else {
-        return (java.lang.String) ref;
+        return llmMetrics_ == null ?
+            ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.getDefaultInstance() : llmMetrics_;
       }
     }
     /**
      * <pre>
-     * Model that generated this message.
-     * Only meaningful for type == MESSAGE_AI.
-     * Useful when model routing is active and different messages may come
-     * from different models within the same execution.
-     * Example: "claude-sonnet-4-20250514"
+     * LLM call metrics for this message.
+     * Only populated for type == MESSAGE_AI.
+     * Captures the full cost record of the single LLM call that produced this message:
+     * token breakdown, estimated cost, model, provider, and duration.
      * </pre>
      *
-     * <code>string model = 13 [json_name = "model"];</code>
-     * @return The bytes for model.
+     * <code>.ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics llm_metrics = 7 [json_name = "llmMetrics"];</code>
      */
-    public com.google.protobuf.ByteString
-        getModelBytes() {
-      java.lang.Object ref = model_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        model_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
+    private com.google.protobuf.SingleFieldBuilder<
+        ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics, ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder> 
+        internalGetLlmMetricsFieldBuilder() {
+      if (llmMetricsBuilder_ == null) {
+        llmMetricsBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+            ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics, ai.stigmer.agentic.agentexecution.v1.LlmCallMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.LlmCallMetricsOrBuilder>(
+                getLlmMetrics(),
+                getParentForChildren(),
+                isClean());
+        llmMetrics_ = null;
       }
-    }
-    /**
-     * <pre>
-     * Model that generated this message.
-     * Only meaningful for type == MESSAGE_AI.
-     * Useful when model routing is active and different messages may come
-     * from different models within the same execution.
-     * Example: "claude-sonnet-4-20250514"
-     * </pre>
-     *
-     * <code>string model = 13 [json_name = "model"];</code>
-     * @param value The model to set.
-     * @return This builder for chaining.
-     */
-    public Builder setModel(
-        java.lang.String value) {
-      if (value == null) { throw new NullPointerException(); }
-      model_ = value;
-      bitField0_ |= 0x00001000;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Model that generated this message.
-     * Only meaningful for type == MESSAGE_AI.
-     * Useful when model routing is active and different messages may come
-     * from different models within the same execution.
-     * Example: "claude-sonnet-4-20250514"
-     * </pre>
-     *
-     * <code>string model = 13 [json_name = "model"];</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearModel() {
-      model_ = getDefaultInstance().getModel();
-      bitField0_ = (bitField0_ & ~0x00001000);
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Model that generated this message.
-     * Only meaningful for type == MESSAGE_AI.
-     * Useful when model routing is active and different messages may come
-     * from different models within the same execution.
-     * Example: "claude-sonnet-4-20250514"
-     * </pre>
-     *
-     * <code>string model = 13 [json_name = "model"];</code>
-     * @param value The bytes for model to set.
-     * @return This builder for chaining.
-     */
-    public Builder setModelBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) { throw new NullPointerException(); }
-      checkByteStringIsUtf8(value);
-      model_ = value;
-      bitField0_ |= 0x00001000;
-      onChanged();
-      return this;
+      return llmMetricsBuilder_;
     }
 
     // @@protoc_insertion_point(builder_scope:ai.stigmer.agentic.agentexecution.v1.AgentMessage)

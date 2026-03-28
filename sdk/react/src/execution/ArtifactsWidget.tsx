@@ -51,7 +51,7 @@ export interface ArtifactsWidgetProps {
  *
  * Returns `null` when the executions list is empty or no execution
  * has artifacts, matching the conditional-render pattern of
- * {@link ExecutionProgress} and {@link ExecutionCostSummary}.
+ * {@link ExecutionProgress} and {@link UsageWidget}.
  *
  * Renders without card chrome — each {@link ArtifactCard} provides its
  * own border and padding. The consumer controls the container styling

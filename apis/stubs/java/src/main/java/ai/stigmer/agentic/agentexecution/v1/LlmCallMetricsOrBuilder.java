@@ -142,4 +142,15 @@ public interface LlmCallMetricsOrBuilder extends
    */
   com.google.protobuf.ByteString
       getTimestampBytes();
+
+  /**
+   * <pre>
+   * Total tokens (input + output). Convenience field for quick reference.
+   * Equals: input_tokens + output_tokens
+   * </pre>
+   *
+   * <code>int32 total_tokens = 11 [json_name = "totalTokens"];</code>
+   * @return The totalTokens.
+   */
+  int getTotalTokens();
 }

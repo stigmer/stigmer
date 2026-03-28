@@ -1300,17 +1300,6 @@ async def _execute_graphton_impl(
                 cost_pricing["cache_read_price_per_million"],
             )
 
-        # Build truncation callback to wire middleware → UsageTracker (Phase 3B).
-        # The callback is invoked each time the tool truncation middleware
-        # truncates a tool result, forwarding the character count to the
-        # usage tracker for accumulation in UsageMetrics.tool_result_chars_truncated.
-        from worker.activities.graphton.usage_tracker import MAIN_SCOPE
-
-        def _on_tool_truncation(tool_name: str, chars_truncated: int) -> None:
-            status_builder.usage_tracker.record_tool_truncation(
-                chars_truncated, MAIN_SCOPE,
-            )
-
         # Step 6: Create Graphton agent at runtime with EXISTING sandbox
         # Note: MCP servers are passed if configured, providing external tool access
         setup_timer.start("agent_creation")
@@ -1568,7 +1557,7 @@ async def _execute_graphton_impl(
             summarization_config=summarization_config,
             summarization_callback=status_builder,
             max_tool_result_chars=max_tool_result_chars,
-            tool_truncation_callback=_on_tool_truncation,
+            tool_truncation_callback=None,
             max_cost_usd=max_cost_usd,
             cost_pricing=cost_pricing,
             **llm_kwargs,
@@ -2069,10 +2058,8 @@ async def _execute_graphton_impl(
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
             status_builder.current_status.error = error_message
             
-            # Stamp completed_at and finalize usage so partial cost data is persisted
             if not status_builder.current_status.completed_at:
                 status_builder.current_status.completed_at = _utc_timestamp()
-            status_builder.finalize_usage()
             
             failed_status = status_builder.current_status
         else:

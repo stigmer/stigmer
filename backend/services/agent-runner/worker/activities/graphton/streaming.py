@@ -424,7 +424,6 @@ class StreamExecutor:
             self._sb.current_status.error = error
         if not self._sb.current_status.completed_at:
             self._sb.current_status.completed_at = _utc_timestamp()
-        self._sb.finalize_usage()
         return self._slim_status(self._sb.current_status)
 
     async def _persist_terminal_status(self, label: str) -> None:

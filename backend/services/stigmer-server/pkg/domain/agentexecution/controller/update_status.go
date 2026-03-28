@@ -215,11 +215,6 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.GetSubAgentExecutions(),
 	)
 
-	// Merge usage (replace with latest cumulative snapshot from request)
-	if requestStatus.Usage != nil {
-		updated.Status.Usage = requestStatus.Usage
-	}
-
 	// Merge context_info (replace with latest from request)
 	if requestStatus.ContextInfo != nil {
 		updated.Status.ContextInfo = requestStatus.ContextInfo
@@ -249,7 +244,6 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		Int("artifacts_count", len(updated.Status.Artifacts)).
 		Int("write_backs_count", len(updated.Status.WorkspaceWriteBacks)).
 		Int("pending_approvals_count", len(updated.Status.PendingApprovals)).
-		Bool("has_usage", updated.Status.Usage != nil).
 		Bool("has_context_info", updated.Status.ContextInfo != nil).
 		Bool("has_resolved_context", updated.Status.ResolvedContext != nil).
 		Bool("has_setup_progress", updated.Status.SetupProgress != nil).

@@ -86,7 +86,7 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
       "(\001R\034cacheCreationPricePerMillion\022>\n\034cach" +
       "e_read_price_per_million\030\013 \001(\001R\030cacheRea" +
       "dPricePerMillion\022,\n\022estimated_cost_usd\030\014" +
-      " \001(\001R\020estimatedCostUsd\"\363\002\n\016LlmCallMetric" +
+      " \001(\001R\020estimatedCostUsd\"\226\003\n\016LlmCallMetric" +
       "s\022\032\n\010sequence\030\001 \001(\005R\010sequence\022\024\n\005model\030\002" +
       " \001(\tR\005model\022\032\n\010provider\030\003 \001(\tR\010provider\022" +
       "!\n\014input_tokens\030\004 \001(\005R\013inputTokens\022#\n\rou" +
@@ -95,12 +95,13 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
       "ens\022*\n\021cache_read_tokens\030\007 \001(\005R\017cacheRea" +
       "dTokens\022,\n\022estimated_cost_usd\030\010 \001(\001R\020est" +
       "imatedCostUsd\022\037\n\013duration_ms\030\t \001(\005R\ndura" +
-      "tionMs\022\034\n\ttimestamp\030\n \001(\tR\ttimestampB\301\001B" +
-      "\nUsageProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agenti" +
-      "c.Agentexecution.V1\312\002$Ai\\Stigmer\\Agentic" +
-      "\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Agentic\\" +
-      "Agentexecution\\V1\\GPBMetadata\352\002(Ai::Stig" +
-      "mer::Agentic::Agentexecution::V1b\006proto3"
+      "tionMs\022\034\n\ttimestamp\030\n \001(\tR\ttimestamp\022!\n\014" +
+      "total_tokens\030\013 \001(\005R\013totalTokensB\301\001B\nUsag" +
+      "eProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Age" +
+      "ntexecution.V1\312\002$Ai\\Stigmer\\Agentic\\Agen" +
+      "texecution\\V1\342\0020Ai\\Stigmer\\Agentic\\Agent" +
+      "execution\\V1\\GPBMetadata\352\002(Ai::Stigmer::" +
+      "Agentic::Agentexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -123,7 +124,7 @@ public final class UsageProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallMetrics_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_LlmCallMetrics_descriptor,
-        new java.lang.String[] { "Sequence", "Model", "Provider", "InputTokens", "OutputTokens", "CacheCreationTokens", "CacheReadTokens", "EstimatedCostUsd", "DurationMs", "Timestamp", });
+        new java.lang.String[] { "Sequence", "Model", "Provider", "InputTokens", "OutputTokens", "CacheCreationTokens", "CacheReadTokens", "EstimatedCostUsd", "DurationMs", "Timestamp", "TotalTokens", });
     descriptor.resolveAllFeaturesImmutable();
   }
 

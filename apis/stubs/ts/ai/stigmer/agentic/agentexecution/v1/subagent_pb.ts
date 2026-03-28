@@ -8,8 +8,6 @@ import type { SubAgentStatus } from "./enum_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb";
 import type { AgentMessage } from "./message_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_message } from "./message_pb";
-import type { UsageMetrics } from "./usage_pb";
-import { file_ai_stigmer_agentic_agentexecution_v1_usage } from "./usage_pb";
 import { file_buf_validate_validate } from "../../../../../buf/validate/validate_pb";
 import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
 import type { JsonObject, Message } from "@bufbuild/protobuf";
@@ -18,7 +16,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/subagent.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_subagent: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvc3ViYWdlbnQucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKaAwoRU3ViQWdlbnRFeGVjdXRpb24SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVpbnB1dBgDIAEoCRIOCgZvdXRwdXQYBCABKAkSTgoGc3RhdHVzGAUgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlN1YkFnZW50U3RhdHVzQgi6SAWCAQIQARISCgpzdGFydGVkX2F0GAYgASgJEhQKDGNvbXBsZXRlZF9hdBgHIAEoCRINCgVlcnJvchgIIAEoCRIpCghtZXRhZGF0YRgJIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSRAoIbWVzc2FnZXMYCyADKAsyMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRNZXNzYWdlEkEKBXVzYWdlGAwgASgLMjIuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlVzYWdlTWV0cmljcxIPCgdzdWJqZWN0GA0gASgJYgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message, file_ai_stigmer_agentic_agentexecution_v1_usage, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvc3ViYWdlbnQucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSLXAgoRU3ViQWdlbnRFeGVjdXRpb24SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVpbnB1dBgDIAEoCRIOCgZvdXRwdXQYBCABKAkSTgoGc3RhdHVzGAUgASgOMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLlN1YkFnZW50U3RhdHVzQgi6SAWCAQIQARISCgpzdGFydGVkX2F0GAYgASgJEhQKDGNvbXBsZXRlZF9hdBgHIAEoCRINCgVlcnJvchgIIAEoCRIpCghtZXRhZGF0YRgJIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSRAoIbWVzc2FnZXMYCyADKAsyMi5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuQWdlbnRNZXNzYWdlEg8KB3N1YmplY3QYDSABKAliBnByb3RvMw", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_message, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * Represents a sub-agent invocation within an execution.
@@ -108,15 +106,6 @@ export type SubAgentExecution = Message<"ai.stigmer.agentic.agentexecution.v1.Su
    * @generated from field: repeated ai.stigmer.agentic.agentexecution.v1.AgentMessage messages = 11;
    */
   messages: AgentMessage[];
-
-  /**
-   * Token and LLM resource usage for this sub-agent execution.
-   * Captures only this sub-agent's direct LLM calls.
-   * Isolated from main agent and other sub-agents for accurate cost attribution.
-   *
-   * @generated from field: ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12;
-   */
-  usage?: UsageMetrics;
 
   /**
    * Concise, human-readable summary of the sub-agent's task (3-10 words).

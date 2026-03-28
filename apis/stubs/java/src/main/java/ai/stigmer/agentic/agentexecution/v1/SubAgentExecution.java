@@ -550,50 +550,6 @@ private static final long serialVersionUID = 0L;
     return messages_.get(index);
   }
 
-  public static final int USAGE_FIELD_NUMBER = 12;
-  private ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage_;
-  /**
-   * <pre>
-   * Token and LLM resource usage for this sub-agent execution.
-   * Captures only this sub-agent's direct LLM calls.
-   * Isolated from main agent and other sub-agents for accurate cost attribution.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-   * @return Whether the usage field is set.
-   */
-  @java.lang.Override
-  public boolean hasUsage() {
-    return ((bitField0_ & 0x00000002) != 0);
-  }
-  /**
-   * <pre>
-   * Token and LLM resource usage for this sub-agent execution.
-   * Captures only this sub-agent's direct LLM calls.
-   * Isolated from main agent and other sub-agents for accurate cost attribution.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-   * @return The usage.
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.UsageMetrics getUsage() {
-    return usage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance() : usage_;
-  }
-  /**
-   * <pre>
-   * Token and LLM resource usage for this sub-agent execution.
-   * Captures only this sub-agent's direct LLM calls.
-   * Isolated from main agent and other sub-agents for accurate cost attribution.
-   * </pre>
-   *
-   * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-   */
-  @java.lang.Override
-  public ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder getUsageOrBuilder() {
-    return usage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance() : usage_;
-  }
-
   public static final int SUBJECT_FIELD_NUMBER = 13;
   @SuppressWarnings("serial")
   private volatile java.lang.Object subject_ = "";
@@ -695,9 +651,6 @@ private static final long serialVersionUID = 0L;
     for (int i = 0; i < messages_.size(); i++) {
       output.writeMessage(11, messages_.get(i));
     }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      output.writeMessage(12, getUsage());
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subject_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 13, subject_);
     }
@@ -748,10 +701,6 @@ private static final long serialVersionUID = 0L;
           }
           size += 1 * count;
         }
-    if (((bitField0_ & 0x00000002) != 0)) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(12, getUsage());
-    }
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(subject_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(13, subject_);
     }
@@ -792,11 +741,6 @@ private static final long serialVersionUID = 0L;
     }
     if (!getMessagesList()
         .equals(other.getMessagesList())) return false;
-    if (hasUsage() != other.hasUsage()) return false;
-    if (hasUsage()) {
-      if (!getUsage()
-          .equals(other.getUsage())) return false;
-    }
     if (!getSubject()
         .equals(other.getSubject())) return false;
     if (!getUnknownFields().equals(other.getUnknownFields())) return false;
@@ -833,10 +777,6 @@ private static final long serialVersionUID = 0L;
     if (getMessagesCount() > 0) {
       hash = (37 * hash) + MESSAGES_FIELD_NUMBER;
       hash = (53 * hash) + getMessagesList().hashCode();
-    }
-    if (hasUsage()) {
-      hash = (37 * hash) + USAGE_FIELD_NUMBER;
-      hash = (53 * hash) + getUsage().hashCode();
     }
     hash = (37 * hash) + SUBJECT_FIELD_NUMBER;
     hash = (53 * hash) + getSubject().hashCode();
@@ -978,7 +918,6 @@ private static final long serialVersionUID = 0L;
               .alwaysUseFieldBuilders) {
         internalGetMetadataFieldBuilder();
         internalGetMessagesFieldBuilder();
-        internalGetUsageFieldBuilder();
       }
     }
     @java.lang.Override
@@ -1005,11 +944,6 @@ private static final long serialVersionUID = 0L;
         messagesBuilder_.clear();
       }
       bitField0_ = (bitField0_ & ~0x00000200);
-      usage_ = null;
-      if (usageBuilder_ != null) {
-        usageBuilder_.dispose();
-        usageBuilder_ = null;
-      }
       subject_ = "";
       return this;
     }
@@ -1089,12 +1023,6 @@ private static final long serialVersionUID = 0L;
         to_bitField0_ |= 0x00000001;
       }
       if (((from_bitField0_ & 0x00000400) != 0)) {
-        result.usage_ = usageBuilder_ == null
-            ? usage_
-            : usageBuilder_.build();
-        to_bitField0_ |= 0x00000002;
-      }
-      if (((from_bitField0_ & 0x00000800) != 0)) {
         result.subject_ = subject_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -1179,12 +1107,9 @@ private static final long serialVersionUID = 0L;
           }
         }
       }
-      if (other.hasUsage()) {
-        mergeUsage(other.getUsage());
-      }
       if (!other.getSubject().isEmpty()) {
         subject_ = other.subject_;
-        bitField0_ |= 0x00000800;
+        bitField0_ |= 0x00000400;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1273,16 +1198,9 @@ private static final long serialVersionUID = 0L;
               }
               break;
             } // case 90
-            case 98: {
-              input.readMessage(
-                  internalGetUsageFieldBuilder().getBuilder(),
-                  extensionRegistry);
-              bitField0_ |= 0x00000400;
-              break;
-            } // case 98
             case 106: {
               subject_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00000800;
+              bitField0_ |= 0x00000400;
               break;
             } // case 106
             default: {
@@ -2581,181 +2499,6 @@ private static final long serialVersionUID = 0L;
       return messagesBuilder_;
     }
 
-    private ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage_;
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.UsageMetrics, ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder> usageBuilder_;
-    /**
-     * <pre>
-     * Token and LLM resource usage for this sub-agent execution.
-     * Captures only this sub-agent's direct LLM calls.
-     * Isolated from main agent and other sub-agents for accurate cost attribution.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-     * @return Whether the usage field is set.
-     */
-    public boolean hasUsage() {
-      return ((bitField0_ & 0x00000400) != 0);
-    }
-    /**
-     * <pre>
-     * Token and LLM resource usage for this sub-agent execution.
-     * Captures only this sub-agent's direct LLM calls.
-     * Isolated from main agent and other sub-agents for accurate cost attribution.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-     * @return The usage.
-     */
-    public ai.stigmer.agentic.agentexecution.v1.UsageMetrics getUsage() {
-      if (usageBuilder_ == null) {
-        return usage_ == null ? ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance() : usage_;
-      } else {
-        return usageBuilder_.getMessage();
-      }
-    }
-    /**
-     * <pre>
-     * Token and LLM resource usage for this sub-agent execution.
-     * Captures only this sub-agent's direct LLM calls.
-     * Isolated from main agent and other sub-agents for accurate cost attribution.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-     */
-    public Builder setUsage(ai.stigmer.agentic.agentexecution.v1.UsageMetrics value) {
-      if (usageBuilder_ == null) {
-        if (value == null) {
-          throw new NullPointerException();
-        }
-        usage_ = value;
-      } else {
-        usageBuilder_.setMessage(value);
-      }
-      bitField0_ |= 0x00000400;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Token and LLM resource usage for this sub-agent execution.
-     * Captures only this sub-agent's direct LLM calls.
-     * Isolated from main agent and other sub-agents for accurate cost attribution.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-     */
-    public Builder setUsage(
-        ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder builderForValue) {
-      if (usageBuilder_ == null) {
-        usage_ = builderForValue.build();
-      } else {
-        usageBuilder_.setMessage(builderForValue.build());
-      }
-      bitField0_ |= 0x00000400;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Token and LLM resource usage for this sub-agent execution.
-     * Captures only this sub-agent's direct LLM calls.
-     * Isolated from main agent and other sub-agents for accurate cost attribution.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-     */
-    public Builder mergeUsage(ai.stigmer.agentic.agentexecution.v1.UsageMetrics value) {
-      if (usageBuilder_ == null) {
-        if (((bitField0_ & 0x00000400) != 0) &&
-          usage_ != null &&
-          usage_ != ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance()) {
-          getUsageBuilder().mergeFrom(value);
-        } else {
-          usage_ = value;
-        }
-      } else {
-        usageBuilder_.mergeFrom(value);
-      }
-      if (usage_ != null) {
-        bitField0_ |= 0x00000400;
-        onChanged();
-      }
-      return this;
-    }
-    /**
-     * <pre>
-     * Token and LLM resource usage for this sub-agent execution.
-     * Captures only this sub-agent's direct LLM calls.
-     * Isolated from main agent and other sub-agents for accurate cost attribution.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-     */
-    public Builder clearUsage() {
-      bitField0_ = (bitField0_ & ~0x00000400);
-      usage_ = null;
-      if (usageBuilder_ != null) {
-        usageBuilder_.dispose();
-        usageBuilder_ = null;
-      }
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     * Token and LLM resource usage for this sub-agent execution.
-     * Captures only this sub-agent's direct LLM calls.
-     * Isolated from main agent and other sub-agents for accurate cost attribution.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder getUsageBuilder() {
-      bitField0_ |= 0x00000400;
-      onChanged();
-      return internalGetUsageFieldBuilder().getBuilder();
-    }
-    /**
-     * <pre>
-     * Token and LLM resource usage for this sub-agent execution.
-     * Captures only this sub-agent's direct LLM calls.
-     * Isolated from main agent and other sub-agents for accurate cost attribution.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-     */
-    public ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder getUsageOrBuilder() {
-      if (usageBuilder_ != null) {
-        return usageBuilder_.getMessageOrBuilder();
-      } else {
-        return usage_ == null ?
-            ai.stigmer.agentic.agentexecution.v1.UsageMetrics.getDefaultInstance() : usage_;
-      }
-    }
-    /**
-     * <pre>
-     * Token and LLM resource usage for this sub-agent execution.
-     * Captures only this sub-agent's direct LLM calls.
-     * Isolated from main agent and other sub-agents for accurate cost attribution.
-     * </pre>
-     *
-     * <code>.ai.stigmer.agentic.agentexecution.v1.UsageMetrics usage = 12 [json_name = "usage"];</code>
-     */
-    private com.google.protobuf.SingleFieldBuilder<
-        ai.stigmer.agentic.agentexecution.v1.UsageMetrics, ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder> 
-        internalGetUsageFieldBuilder() {
-      if (usageBuilder_ == null) {
-        usageBuilder_ = new com.google.protobuf.SingleFieldBuilder<
-            ai.stigmer.agentic.agentexecution.v1.UsageMetrics, ai.stigmer.agentic.agentexecution.v1.UsageMetrics.Builder, ai.stigmer.agentic.agentexecution.v1.UsageMetricsOrBuilder>(
-                getUsage(),
-                getParentForChildren(),
-                isClean());
-        usage_ = null;
-      }
-      return usageBuilder_;
-    }
-
     private java.lang.Object subject_ = "";
     /**
      * <pre>
@@ -2826,7 +2569,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       subject_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
@@ -2845,7 +2588,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearSubject() {
       subject_ = getDefaultInstance().getSubject();
-      bitField0_ = (bitField0_ & ~0x00000800);
+      bitField0_ = (bitField0_ & ~0x00000400);
       onChanged();
       return this;
     }
@@ -2868,7 +2611,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       subject_ = value;
-      bitField0_ |= 0x00000800;
+      bitField0_ |= 0x00000400;
       onChanged();
       return this;
     }
