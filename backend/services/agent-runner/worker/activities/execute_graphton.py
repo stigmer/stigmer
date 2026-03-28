@@ -131,6 +131,37 @@ from worker.workspace import (
 # at module level for backward compatibility with existing test imports.
 
 
+def _build_decision_value(
+    decision: SubmitApprovalInput,
+    action_map: dict[ApprovalAction, str],
+) -> dict[str, str]:
+    """Build the resume value dict for a single approval decision."""
+    dv: dict[str, str] = {"action": action_map.get(decision.action, "unknown")}
+    if decision.comment:
+        dv["comment"] = decision.comment
+    return dv
+
+
+def _summarize_resume_entry(interrupt_id: str, value: Any) -> str:
+    """Format one entry from the resume dict for logging.
+
+    Handles both direct decisions (``{"action": "approve"}``) and proxy
+    payloads (``{sub_id: {"action": "approve"}, ...}``).
+    """
+    if isinstance(value, dict) and "action" in value:
+        return f"interrupt={interrupt_id[:16]} action={value['action']}"
+    if isinstance(value, dict):
+        sub_actions = [
+            sv.get("action", "?") for sv in value.values() if isinstance(sv, dict)
+        ]
+        return (
+            f"interrupt={interrupt_id[:16]} "
+            f"proxy({len(sub_actions)} sub-decision(s): "
+            f"{', '.join(sub_actions)})"
+        )
+    return f"interrupt={interrupt_id[:16]} value={value!r}"
+
+
 @activity.defn(name="ExecuteGraphton")
 async def execute_graphton(
     execution_id: str,
@@ -1628,6 +1659,22 @@ async def _execute_graphton_impl(
         # approval_decisions carry tool_call_id + action.  The checkpoint
         # carries interrupt objects whose payload includes tool_call_id.
         # We join on tool_call_id to pair each decision with its interrupt_id.
+        #
+        # Two interrupt shapes exist:
+        #
+        #   Direct (main-agent tool):
+        #     intr.value = {"tool_call_id": "tc_abc", "message": "..."}
+        #     resume_dict[intr.id] = {"action": "approve"}
+        #
+        #   Proxied (sub-agent tool via InterruptProxyRunnable):
+        #     intr.value = {sub_id_1: {"tool_call_id": "tc_xyz", ...,
+        #                              "_proxy_interrupt_id": sub_id_1}, ...}
+        #     resume_dict[intr.id] = {sub_id_1: {"action": "approve"}, ...}
+        #
+        # The proxy shape is produced by _build_proxy_payload() which wraps
+        # each sub-agent interrupt under its interrupt ID.  The nested resume
+        # dict is passed through by InterruptProxyRunnable as
+        # Command(resume=decisions) to the sub-agent graph.
         if approval_decisions:
             decisions_by_tc: dict[str, SubmitApprovalInput] = {
                 d.tool_call_id: d for d in approval_decisions
@@ -1636,29 +1683,51 @@ async def _execute_graphton_impl(
                 cast(RunnableConfig, config),
             )
 
-            resume_dict: dict[str, dict[str, str]] = {}
+            resume_dict: dict[str, Any] = {}
             if graph_state and graph_state.interrupts:
                 for intr in graph_state.interrupts:
                     intr_value = intr.value if isinstance(intr.value, dict) else {}
-                    intr_tc_id = intr_value.get("tool_call_id", "")
-                    decision = decisions_by_tc.get(intr_tc_id)
-                    if decision:
-                        action_str = _action_map.get(decision.action, "unknown")
-                        dv: dict[str, str] = {"action": action_str}
-                        if decision.comment:
-                            dv["comment"] = decision.comment
-                        resume_dict[intr.id] = dv
+
+                    direct_tc_id = intr_value.get("tool_call_id", "")
+                    if direct_tc_id:
+                        decision = decisions_by_tc.get(direct_tc_id)
+                        if decision:
+                            resume_dict[intr.id] = _build_decision_value(
+                                decision, _action_map,
+                            )
+                        continue
+
+                    # Proxy payload: values are sub-interrupt dicts keyed by
+                    # sub-interrupt ID, each containing tool_call_id and
+                    # _proxy_interrupt_id (set by InterruptProxyRunnable).
+                    sub_decisions: dict[str, dict[str, str]] = {}
+                    for sub_id, sub_value in intr_value.items():
+                        if not isinstance(sub_value, dict):
+                            continue
+                        if "_proxy_interrupt_id" not in sub_value:
+                            continue
+                        sub_tc_id = sub_value.get("tool_call_id", "")
+                        if not sub_tc_id:
+                            continue
+                        decision = decisions_by_tc.get(sub_tc_id)
+                        if decision:
+                            sub_decisions[sub_id] = _build_decision_value(
+                                decision, _action_map,
+                            )
+                    if sub_decisions:
+                        resume_dict[intr.id] = sub_decisions
 
             if resume_dict:
                 is_resume_from_approval = True
                 resume_decision = resume_dict
                 activity_logger.info(
-                    f"🔄 Batch resume from {len(resume_dict)} approval(s) for "
-                    f"execution {execution_id}: "
-                    + ", ".join(
-                        f"interrupt_id={iid} action={d['action']}"
-                        for iid, d in resume_dict.items()
-                    )
+                    "[RESUME] Matched %d interrupt(s) for execution %s: %s",
+                    len(resume_dict),
+                    execution_id,
+                    ", ".join(
+                        _summarize_resume_entry(iid, val)
+                        for iid, val in resume_dict.items()
+                    ),
                 )
             else:
                 activity_logger.warning(
@@ -1721,20 +1790,17 @@ async def _execute_graphton_impl(
         if is_resume_from_approval and resume_decision is not None:
             from langgraph.types import Command
             graph_input = Command(resume=resume_decision)
-            if isinstance(resume_decision, dict) and "action" not in resume_decision:
-                summary = ", ".join(
-                    f"{iid[:12]}...={d.get('action', '?')}"
-                    for iid, d in resume_decision.items()
-                )
-                activity_logger.info(
-                    f"Resuming Graphton agent (batch) for execution {execution_id} "
-                    f"({len(resume_decision)} interrupt(s): {summary})"
-                )
-            else:
-                activity_logger.info(
-                    f"Resuming Graphton agent (legacy) for execution {execution_id} "
-                    f"(decision={resume_decision.get('action', '?')})"
-                )
+            summary = ", ".join(
+                _summarize_resume_entry(iid, val)
+                for iid, val in resume_decision.items()
+            )
+            activity_logger.info(
+                "Resuming Graphton agent for execution %s "
+                "(%d interrupt(s): %s)",
+                execution_id,
+                len(resume_decision),
+                summary,
+            )
         else:
             graph_input = langgraph_input
             activity_logger.info(

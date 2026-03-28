@@ -581,3 +581,257 @@ class TestFifoQueueDrainOnFingerprintDedup:
             f"New tool call should NOT be aliased to an old entry, "
             f"but was aliased to {builder._run_id_aliases.get(new_run_id)}"
         )
+
+
+# =============================================================================
+# Proxy interrupt round-trip: InterruptProxy -> resume matching
+# =============================================================================
+
+
+class _MockInterrupt:
+    """Minimal stand-in for a LangGraph interrupt object."""
+
+    def __init__(self, *, id: str, value: object) -> None:  # noqa: A002
+        self.id = id
+        self.value = value
+
+
+class TestProxyInterruptResume:
+    """Contract tests between InterruptProxyRunnable._build_proxy_payload
+    and the resume matching loop in execute_graphton.py.
+
+    The proxy wraps sub-agent interrupts into a nested dict.  The resume
+    loop must detect the proxy shape and build a nested resume dict that
+    InterruptProxyRunnable passes through as Command(resume=decisions)
+    to the sub-agent graph.
+    """
+
+    @staticmethod
+    def _action_map() -> dict[int, str]:
+        return {
+            ApprovalAction.APPROVAL_ACTION_APPROVE: "approve",
+            ApprovalAction.APPROVAL_ACTION_SKIP: "skip",
+            ApprovalAction.APPROVAL_ACTION_REJECT: "reject",
+        }
+
+    @staticmethod
+    def _run_matching(
+        interrupts: list[_MockInterrupt],
+        decisions: list[SubmitApprovalInput],
+    ) -> dict:
+        """Replicate the matching loop from execute_graphton.py."""
+        from worker.activities.execute_graphton import _build_decision_value
+
+        action_map = TestProxyInterruptResume._action_map()
+        decisions_by_tc = {d.tool_call_id: d for d in decisions}
+        resume_dict: dict = {}
+
+        for intr in interrupts:
+            intr_value = intr.value if isinstance(intr.value, dict) else {}
+
+            direct_tc_id = intr_value.get("tool_call_id", "")
+            if direct_tc_id:
+                decision = decisions_by_tc.get(direct_tc_id)
+                if decision:
+                    resume_dict[intr.id] = _build_decision_value(
+                        decision, action_map,
+                    )
+                continue
+
+            sub_decisions: dict = {}
+            for sub_id, sub_value in intr_value.items():
+                if not isinstance(sub_value, dict):
+                    continue
+                if "_proxy_interrupt_id" not in sub_value:
+                    continue
+                sub_tc_id = sub_value.get("tool_call_id", "")
+                if not sub_tc_id:
+                    continue
+                decision = decisions_by_tc.get(sub_tc_id)
+                if decision:
+                    sub_decisions[sub_id] = _build_decision_value(
+                        decision, action_map,
+                    )
+            if sub_decisions:
+                resume_dict[intr.id] = sub_decisions
+
+        return resume_dict
+
+    def test_direct_interrupt_matches(self):
+        """Direct interrupt (main-agent tool) matches on top-level tool_call_id."""
+        interrupts = [
+            _MockInterrupt(
+                id="intr-1",
+                value={"tool_call_id": "tc_abc", "message": "Delete file?"},
+            ),
+        ]
+        decisions = [
+            SubmitApprovalInput(
+                tool_call_id="tc_abc",
+                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            ),
+        ]
+
+        result = self._run_matching(interrupts, decisions)
+
+        assert result == {"intr-1": {"action": "approve"}}
+
+    def test_proxy_interrupt_matches(self):
+        """Proxied sub-agent interrupts match on nested tool_call_id."""
+        from graphton.core.interrupt_proxy import InterruptProxyRunnable
+
+        sub_interrupts = [
+            _MockInterrupt(
+                id="sub-intr-a",
+                value={"tool_call_id": "tc_xyz", "message": "git clone?"},
+            ),
+            _MockInterrupt(
+                id="sub-intr-b",
+                value={"tool_call_id": "tc_123", "message": "rm -rf?"},
+            ),
+        ]
+        proxy_payload = InterruptProxyRunnable._build_proxy_payload(
+            sub_interrupts,
+        )
+
+        parent_interrupt = _MockInterrupt(id="parent-intr-1", value=proxy_payload)
+
+        decisions = [
+            SubmitApprovalInput(
+                tool_call_id="tc_xyz",
+                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            ),
+            SubmitApprovalInput(
+                tool_call_id="tc_123",
+                action=ApprovalAction.APPROVAL_ACTION_SKIP,
+            ),
+        ]
+
+        result = self._run_matching([parent_interrupt], decisions)
+
+        assert "parent-intr-1" in result
+        nested = result["parent-intr-1"]
+        assert isinstance(nested, dict)
+        assert nested["sub-intr-a"] == {"action": "approve"}
+        assert nested["sub-intr-b"] == {"action": "skip"}
+
+    def test_proxy_partial_decisions(self):
+        """Only sub-interrupts with matching decisions appear in the resume dict."""
+        from graphton.core.interrupt_proxy import InterruptProxyRunnable
+
+        sub_interrupts = [
+            _MockInterrupt(
+                id="sub-a",
+                value={"tool_call_id": "tc_1", "message": "cmd 1"},
+            ),
+            _MockInterrupt(
+                id="sub-b",
+                value={"tool_call_id": "tc_2", "message": "cmd 2"},
+            ),
+        ]
+        proxy_payload = InterruptProxyRunnable._build_proxy_payload(sub_interrupts)
+        parent = _MockInterrupt(id="p-1", value=proxy_payload)
+
+        decisions = [
+            SubmitApprovalInput(
+                tool_call_id="tc_1",
+                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            ),
+        ]
+
+        result = self._run_matching([parent], decisions)
+
+        nested = result["p-1"]
+        assert "sub-a" in nested
+        assert "sub-b" not in nested
+
+    def test_mixed_direct_and_proxy(self):
+        """Both direct and proxy interrupts in the same checkpoint are handled."""
+        from graphton.core.interrupt_proxy import InterruptProxyRunnable
+
+        sub_interrupts = [
+            _MockInterrupt(
+                id="sub-x",
+                value={"tool_call_id": "tc_sub", "message": "sub tool"},
+            ),
+        ]
+        proxy_payload = InterruptProxyRunnable._build_proxy_payload(sub_interrupts)
+
+        interrupts = [
+            _MockInterrupt(
+                id="direct-1",
+                value={"tool_call_id": "tc_main", "message": "main tool"},
+            ),
+            _MockInterrupt(id="proxy-1", value=proxy_payload),
+        ]
+
+        decisions = [
+            SubmitApprovalInput(
+                tool_call_id="tc_main",
+                action=ApprovalAction.APPROVAL_ACTION_REJECT,
+            ),
+            SubmitApprovalInput(
+                tool_call_id="tc_sub",
+                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            ),
+        ]
+
+        result = self._run_matching(interrupts, decisions)
+
+        assert result["direct-1"] == {"action": "reject"}
+        assert result["proxy-1"]["sub-x"] == {"action": "approve"}
+
+    def test_no_match_returns_empty(self):
+        """When no interrupt matches any decision, resume_dict is empty."""
+        interrupts = [
+            _MockInterrupt(
+                id="intr-1",
+                value={"tool_call_id": "tc_unrelated", "message": "..."},
+            ),
+        ]
+        decisions = [
+            SubmitApprovalInput(
+                tool_call_id="tc_nonexistent",
+                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            ),
+        ]
+
+        result = self._run_matching(interrupts, decisions)
+
+        assert result == {}
+
+    def test_proxy_payload_structure(self):
+        """_build_proxy_payload preserves tool_call_id and adds _proxy_interrupt_id."""
+        from graphton.core.interrupt_proxy import InterruptProxyRunnable
+
+        sub_interrupts = [
+            _MockInterrupt(
+                id="si-1",
+                value={"tool_call_id": "tc_hello", "message": "hello"},
+            ),
+        ]
+        payload = InterruptProxyRunnable._build_proxy_payload(sub_interrupts)
+
+        assert "si-1" in payload
+        entry = payload["si-1"]
+        assert entry["tool_call_id"] == "tc_hello"
+        assert entry["message"] == "hello"
+        assert entry["_proxy_interrupt_id"] == "si-1"
+
+    def test_summarize_direct(self):
+        """_summarize_resume_entry formats direct decisions correctly."""
+        from worker.activities.execute_graphton import _summarize_resume_entry
+
+        result = _summarize_resume_entry("abcd1234efgh5678", {"action": "approve"})
+        assert "action=approve" in result
+
+    def test_summarize_proxy(self):
+        """_summarize_resume_entry formats proxy payloads correctly."""
+        from worker.activities.execute_graphton import _summarize_resume_entry
+
+        result = _summarize_resume_entry(
+            "parent-id-123456",
+            {"sub-a": {"action": "approve"}, "sub-b": {"action": "skip"}},
+        )
+        assert "proxy" in result
+        assert "2 sub-decision" in result
