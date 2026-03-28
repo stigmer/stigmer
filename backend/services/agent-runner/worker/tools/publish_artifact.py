@@ -155,6 +155,20 @@ async def _publish_from_sandbox(
         kind = ExecutionArtifactKind.EXECUTION_ARTIFACT_KIND_FILE
         filename = name
         content_type = _guess_content_type(filename)
+
+        # Diagnostic: log the first 200 bytes of content read from the
+        # sandbox so operators can verify the artifact matches what the
+        # write tool intended (helps diagnose path-mismatch or stale-read
+        # issues where the published artifact differs from what was written).
+        try:
+            preview = content[:200] if isinstance(content, bytes) else content.encode()[:200]
+            logger.info(
+                "Artifact content preview (first 200 bytes): "
+                "path=%s, size=%d, preview=%r",
+                path, len(content), preview,
+            )
+        except Exception:
+            pass
     
     # Upload to storage
     content_hash = hashlib.sha256(content).hexdigest()

@@ -182,6 +182,7 @@ class WorkspaceProvisioner:
         *,
         target_subdir: str | None = None,
         tree_heading_level: int = 3,
+        configure_credentials: bool = False,
     ) -> ProvisionResult:
         """Provision workspace content.
 
@@ -202,6 +203,11 @@ class WorkspaceProvisioner:
                 section (default 3 → ``###``).  Multi-entry callers
                 pass 4 so the tree nests under per-entry ``###``
                 headings.
+            configure_credentials: When ``True``, configure a git
+                credential store for push/fetch access in the sandbox.
+                Decoupled from ``is_local_mode`` because sandboxes on
+                local overlay filesystems use ``is_local_mode=True`` but
+                still need credentials for git write-back.
 
         Returns:
             A ``ProvisionResult`` describing what was provisioned.
@@ -213,6 +219,7 @@ class WorkspaceProvisioner:
         result = self._dispatch(
             workspace_source, backend, merged_env, is_local_mode,
             target_subdir=target_subdir,
+            configure_credentials=configure_credentials,
         )
 
         result = self._enrich_with_file_tree(
@@ -249,6 +256,7 @@ class WorkspaceProvisioner:
         backend: WorkspaceBackend,
         merged_env: dict[str, str],
         is_local_mode: bool,
+        configure_credentials: bool = False,
     ) -> list[ProvisionResult]:
         """Provision multiple workspace entries.
 
@@ -271,6 +279,8 @@ class WorkspaceProvisioner:
             backend: The ``WorkspaceBackend`` for command execution.
             merged_env: Fully-merged environment (``dict[str, str]``).
             is_local_mode: Whether the runner is in local mode.
+            configure_credentials: When ``True``, configure git
+                credential stores for push/fetch access in the sandbox.
 
         Returns:
             One ``ProvisionResult`` per entry, in the same order.
@@ -302,6 +312,7 @@ class WorkspaceProvisioner:
                 source, backend, merged_env, is_local_mode,
                 target_subdir=target_subdir,
                 tree_heading_level=heading_level,
+                configure_credentials=configure_credentials,
             )
             result = dataclasses.replace(result, entry_name=name)
             results.append(result)
@@ -326,6 +337,7 @@ class WorkspaceProvisioner:
         is_local_mode: bool,
         *,
         target_subdir: str | None = None,
+        configure_credentials: bool = False,
     ) -> ProvisionResult:
         # Deferred imports to break the provisioner ↔ sources cycle.
         from worker.workspace.sources import empty as empty_source
@@ -347,6 +359,7 @@ class WorkspaceProvisioner:
                 merged_env,
                 target_subdir=target_subdir,
                 is_local_mode=is_local_mode,
+                configure_credentials=configure_credentials,
             )
 
         if workspace_source.HasField("local_path"):  # type: ignore[attr-defined]
