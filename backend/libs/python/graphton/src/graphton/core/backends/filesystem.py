@@ -599,6 +599,47 @@ class FilesystemBackend:
             result += f"\n\n  ... truncated (showing {self._MAX_LISTING_ENTRIES} of {len(dirs) + len(files)} entries)"
         return result
 
+    def delete(self, path: str) -> str:
+        """Delete a file from the workspace.
+
+        Only regular files may be deleted. Attempting to delete a directory
+        raises ``IsADirectoryError`` — use shell commands for recursive
+        directory removal (which carries its own approval gate via the
+        ``execute`` tool).
+
+        Args:
+            path: Relative path to the file within the workspace.
+
+        Returns:
+            Confirmation message including the deleted path.
+
+        Raises:
+            ValueError: If path escapes sandbox root.
+            FileNotFoundError: If the file does not exist.
+            IsADirectoryError: If the path points to a directory.
+        """
+        self._invalidate_cache()
+        file_path = self._resolve_sandbox_path(path)
+
+        if not file_path.exists():
+            diag = f"File not found: '{path}' (resolved to '{file_path}')"
+            parent = file_path.parent
+            if parent.exists():
+                siblings = sorted(item.name for item in parent.iterdir())
+                diag += f". Parent directory '{parent.name}/' contains: {siblings}"
+            else:
+                diag += f". Parent directory '{parent}' also does not exist"
+            raise FileNotFoundError(diag)
+
+        if file_path.is_dir():
+            raise IsADirectoryError(
+                f"Cannot delete '{path}': is a directory, not a file. "
+                "Use the execute tool with 'rm -rf' for directory removal."
+            )
+
+        file_path.unlink()
+        return f"Deleted '{path}'"
+
     def write(self, path: str, content: str) -> None:
         """Write content to file (deepagents compatible interface)."""
         self.write_file(path, content)

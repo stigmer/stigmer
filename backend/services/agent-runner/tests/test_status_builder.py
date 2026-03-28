@@ -3332,6 +3332,41 @@ class TestPlatformToolApprovalDefaults:
         assert result.requires_approval is True
         assert result.source == "platform_default"
     
+    def test_platform_tool_delete_requires_approval(self):
+        """Test that 'delete' platform tool requires approval by default."""
+        from worker.activities.graphton.approval_policy import (
+            PLATFORM_SERVER_NAME,
+            resolve_tool_approval,
+        )
+        
+        result = resolve_tool_approval(
+            tool_name="delete",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is True
+        assert result.source == "platform_default"
+        assert result.mcp_server == PLATFORM_SERVER_NAME
+        assert "{{args.path}}" in result.message
+
+    def test_platform_tool_delete_file_alias_requires_approval(self):
+        """Test that 'delete_file' alias resolves to 'delete' and requires approval."""
+        from worker.activities.graphton.approval_policy import resolve_tool_approval
+        
+        result = resolve_tool_approval(
+            tool_name="delete_file",
+            mcp_server_name="",
+            auto_approve_all=False,
+            tool_approval_overrides=[],
+            default_tool_approvals=[],
+        )
+        
+        assert result.requires_approval is True
+        assert result.source == "platform_default"
+
     def test_platform_tool_ls_no_approval_required(self):
         """Test that 'ls' platform tool does not require approval."""
         from worker.activities.graphton.approval_policy import resolve_tool_approval
@@ -3400,6 +3435,7 @@ class TestPlatformToolApprovalDefaults:
         assert is_platform_tool("read") is True
         assert is_platform_tool("write") is True
         assert is_platform_tool("edit") is True
+        assert is_platform_tool("delete") is True
         assert is_platform_tool("execute") is True
         assert is_platform_tool("ls") is True
         assert is_platform_tool("glob") is True
@@ -3410,6 +3446,7 @@ class TestPlatformToolApprovalDefaults:
         assert is_platform_tool("read_file") is True
         assert is_platform_tool("write_file") is True
         assert is_platform_tool("edit_file") is True
+        assert is_platform_tool("delete_file") is True
         
         # Non-platform tools
         assert is_platform_tool("delete_repository") is False

@@ -296,6 +296,41 @@ class WorkspaceNormalizingBackend:
         self._path_type_cache[norm_path] = result
         return result
 
+    def delete(self, path: str) -> str:
+        """Delete a file with path normalisation.
+
+        Only regular files may be deleted. The path is normalised to
+        sandbox-relative form before delegating to the inner backend via
+        ``execute("rm ...")``.  Using ``rm`` (not ``rm -rf``) ensures
+        directories are rejected at the shell level, matching the
+        files-only semantics of :class:`FilesystemBackend.delete`.
+
+        Args:
+            path: Agent-space path to the file.
+
+        Returns:
+            Confirmation message.
+
+        Raises:
+            RuntimeError: If the file does not exist or the rm command fails.
+        """
+        self._invalidate_cache()
+        norm_path = self._normalize(path)
+        safe_path = shlex.quote(norm_path)
+        result = to_execution_result(
+            self._inner.execute(f"rm {safe_path}"),
+        )
+        if result.exit_code != 0:
+            stderr = result.stderr.strip() if result.stderr else ""
+            if "No such file" in stderr or "cannot remove" in stderr:
+                raise FileNotFoundError(
+                    f"File not found: '{path}' (normalised to '{norm_path}')"
+                )
+            raise RuntimeError(
+                f"Failed to delete '{path}': {stderr or 'unknown error'}"
+            )
+        return f"Deleted '{path}'"
+
     def execute(self, command: str, **kwargs: Any) -> ExecutionResult:
         """Execute shell command with injected env vars.
 

@@ -5,7 +5,7 @@ This module dynamically creates @tool decorated wrapper functions for:
 1. **MCP Tools**: Tools from MCP (Model Context Protocol) servers, loaded via middleware.
    The wrappers delegate to actual MCP tools loaded by the middleware.
 
-2. **Platform Tools**: Sandbox/filesystem tools (read, write, edit, execute, ls, glob, grep)
+2. **Platform Tools**: Sandbox/filesystem tools (read, write, edit, delete, execute, ls, glob, grep)
    that are provided to agents with sandbox access. These tools interact with the
    backend (FilesystemBackend, DaytonaBackend, etc.) for file and command operations.
 
@@ -29,7 +29,7 @@ Platform tools are divided into two categories based on risk:
 - **Safe tools** (no approval by default): read, ls, glob, grep
   Read-only operations that don't modify files or execute commands.
 
-- **Dangerous tools** (require approval by default): write, edit, execute
+- **Dangerous tools** (require approval by default): write, edit, delete, execute
   Operations that can modify the filesystem or execute arbitrary commands.
 
 Example:
@@ -581,7 +581,7 @@ def create_platform_tool_wrappers(
 ) -> list[Callable[..., Any]]:
     """Create approval-aware wrappers for platform tools (sandbox/filesystem tools).
     
-    This function creates LangChain-compatible tool wrappers for all 9 platform tools
+    This function creates LangChain-compatible tool wrappers for all platform tools
     that delegate to a backend (FilesystemBackend, DaytonaBackend, etc.).
     
     Platform tools are divided into two categories:
@@ -596,26 +596,28 @@ def create_platform_tool_wrappers(
     **Dangerous tools** (write/execute operations, require approval by default):
     - write: Write content to a file
     - edit: Edit a file by replacing text
+    - delete: Delete a file
     - execute: Execute shell commands
     
     **Aliases** (override deepagents' in-memory tools with filesystem-backed ones):
     - read_file: Alias for read (overrides deepagents' in-memory read_file)
     - write_file: Alias for write (overrides deepagents' in-memory write_file)
     - edit_file: Alias for edit (overrides deepagents' in-memory edit_file)
+    - delete_file: Alias for delete
     
     When approval_checker is provided, the dangerous tool wrappers check if approval
     is required before executing, using the same interrupt/resume pattern as MCP tools.
     Safe tools may also be configured to require approval via the approval_checker.
     
     Args:
-        backend: Backend instance with methods like read(), write(), execute(),
-            list_files(). Must implement the backend protocol.
+        backend: Backend instance with methods like read(), write(), delete(),
+            execute(), list_files(). Must implement the backend protocol.
         approval_checker: Optional callable that checks if tool requires approval.
             Signature: (tool_name, tool_args) -> ApprovalRequirement
             If None, tools execute without approval check.
         
     Returns:
-        List of 11 @tool decorated functions for platform tools (8 primary + 3 aliases)
+        List of 13 @tool decorated functions for platform tools (9 primary + 4 aliases)
         
     Example:
         >>> from graphton.core.sandbox_factory import create_sandbox_backend
@@ -623,10 +625,10 @@ def create_platform_tool_wrappers(
         >>> 
         >>> backend = create_sandbox_backend({"type": "filesystem", "root_dir": "/workspace"})
         >>> tools = create_platform_tool_wrappers(backend, approval_checker=my_checker)
-        >>> # tools contains: read, ls, glob, grep, search, write, edit, execute,
-        >>> #                  read_file, write_file, edit_file
+        >>> # tools contains: read, ls, glob, grep, search, write, edit, delete, execute,
+        >>> #                  read_file, write_file, edit_file, delete_file
         >>> len(tools)
-        11
+        13
     
     """
     tools: list[Callable[..., Any]] = []
@@ -659,6 +661,9 @@ def create_platform_tool_wrappers(
     
     # edit: Edit file by replacing text
     tools.append(_create_edit_tool(backend, approval_checker, sub_agent_name=sub_agent_name))
+    
+    # delete: Delete a file
+    tools.append(_create_delete_tool(backend, approval_checker, sub_agent_name=sub_agent_name))
     
     # execute: Execute shell commands
     tools.append(_create_execute_tool(backend, approval_checker, sub_agent_name=sub_agent_name))
@@ -710,6 +715,7 @@ def create_platform_tool_wrappers(
     _register_alias(_create_read_tool, "read_file", "read", backend, approval_checker, tools, sub_agent_name=sub_agent_name)
     _register_alias(_create_write_tool, "write_file", "write", backend, approval_checker, tools, sub_agent_name=sub_agent_name)
     _register_alias(_create_edit_tool, "edit_file", "edit", backend, approval_checker, tools, sub_agent_name=sub_agent_name)
+    _register_alias(_create_delete_tool, "delete_file", "delete", backend, approval_checker, tools, sub_agent_name=sub_agent_name)
     
     tool_names = [getattr(t, 'name', 'unknown') for t in tools]
     logger.info(
@@ -1385,6 +1391,69 @@ def _create_edit_tool(
     
     edit.name = "edit"  # type: ignore[attr-defined]
     return edit  # type: ignore[return-value]
+
+
+def _create_delete_tool(
+    backend: Any,  # noqa: ANN401
+    approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
+    sub_agent_name: str = "",
+) -> Callable[..., Any]:
+    """Create approval-aware delete tool wrapper.
+
+    The delete tool removes a single file from the workspace.  Directory
+    deletion is intentionally unsupported — recursive removal is a much
+    more destructive operation that should go through the ``execute`` tool
+    with its own approval gate.
+
+    Args:
+        backend: Backend instance with delete() method
+        approval_checker: Optional approval checker
+        sub_agent_name: Retained for factory signature compatibility. Not used
+            in interrupt payloads (display fields come from the ToolCall proto).
+
+    Returns:
+        @tool decorated function for deleting files
+    """
+    @tool
+    async def delete(
+        config: RunnableConfig,
+        tool_call_id: Annotated[str, InjectedToolCallId],
+        path: str,
+    ) -> str:
+        """Delete a file from the workspace.
+
+        Removes a single file at the given path.  Cannot delete
+        directories — use the ``execute`` tool with ``rm -rf`` for that.
+
+        Args:
+            path: Relative path to the file within the workspace
+
+        Returns:
+            Confirmation message or error description
+        """
+        tool_args = {"path": path}
+
+        skip_result = _check_and_handle_approval(
+            "delete", tool_args, approval_checker,
+            tool_call_id=tool_call_id,
+        )
+        if skip_result is not None:
+            return skip_result
+
+        try:
+            logger.info("Deleting file: %s", path)
+            result = backend.delete(path)
+            logger.info("Deleted file '%s'", path)
+            return result
+        except (FileNotFoundError, IsADirectoryError, ValueError) as e:
+            logger.warning("delete tool failed for '%s': %s", path, e)
+            return enrich_error_message("delete", str(e))
+        except Exception as e:
+            logger.warning("delete tool failed for '%s': %s", path, e)
+            return enrich_error_message("delete", str(e))
+
+    delete.name = "delete"  # type: ignore[attr-defined]
+    return delete  # type: ignore[return-value]
 
 
 def _create_ls_tool(
