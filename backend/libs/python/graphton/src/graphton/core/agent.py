@@ -511,10 +511,13 @@ def create_deep_agent(
     if subagents is not None:
         if checkpointer is not None and approval_checker is not None:
             from graphton.core.interrupt_proxy import compile_subagent_with_proxy
+            from graphton.core.subagent_limiter import SubAgentGate
             
+            gate = SubAgentGate()
             compiled_subagents = []
             for sa in subagents:
                 if "runnable" in sa:
+                    sa["runnable"] = gate.wrap(sa["runnable"], name=sa.get("name", "pre-compiled"))
                     compiled_subagents.append(sa)
                     continue
                 
@@ -578,12 +581,15 @@ def create_deep_agent(
                     description=sa_desc,
                     middleware=sa_middleware,
                 )
+                compiled_sa["runnable"] = gate.wrap(compiled_sa["runnable"], name=sa_name)
                 compiled_subagents.append(compiled_sa)
             
             transformed_subagents = compiled_subagents
             logger.info(
-                "Compiled %d sub-agent(s) with InterruptProxy for HITL approval",
+                "Compiled %d sub-agent(s) with InterruptProxy + concurrency gate "
+                "(max %d concurrent) for HITL approval",
                 len(compiled_subagents),
+                gate._max,
             )
         else:
             if summarization_config is not None and summarization_config.enabled:
@@ -854,12 +860,18 @@ def create_deep_agent(
     # DEFAULT_RECURSION_LIMIT (10,000 as of langgraph 1.0.x).
     # Graphton applies an explicit recursion_limit via with_config() below
     # to control the top-level graph's limit independently.
+    # Disable deepagents' internal general-purpose sub-agent.  It creates
+    # an ungated clone of the main agent that bypasses our concurrency
+    # limiter, enabling unbounded parallel delegation.  Agents that need
+    # delegation define explicit sub-agents via AgentSpec.sub_agents —
+    # those go through the gated InterruptProxy path above.
     agent = deepagents_create_deep_agent(
         model=model_instance,
         tools=tools_list,
         system_prompt=enhanced_prompt,
         middleware=middleware_list,
         subagents=transformed_subagents or [],
+        general_purpose_agent=False,
         context_schema=context_schema,
         checkpointer=checkpointer,
         backend=deepagents_backend,
