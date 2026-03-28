@@ -7,7 +7,22 @@ import (
 	"github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/commons/apiresource"
 )
 
-func makeExecution(id, sessionID, agentID, org, startedAt string, usage *agentexecutionv1.UsageMetrics, subAgents []*agentexecutionv1.SubAgentExecution, contextInfo *agentexecutionv1.ContextInfo) *agentexecutionv1.AgentExecution {
+func makeAIMessage(inputTokens, outputTokens, cacheCreation, cacheRead int32, cost float64, model, provider string) *agentexecutionv1.AgentMessage {
+	return &agentexecutionv1.AgentMessage{
+		Type: agentexecutionv1.MessageType_MESSAGE_AI,
+		LlmMetrics: &agentexecutionv1.LlmCallMetrics{
+			InputTokens:         inputTokens,
+			OutputTokens:        outputTokens,
+			CacheCreationTokens: cacheCreation,
+			CacheReadTokens:     cacheRead,
+			EstimatedCostUsd:    cost,
+			Model:               model,
+			Provider:            provider,
+		},
+	}
+}
+
+func makeExecution(id, sessionID, agentID, org, startedAt string, messages []*agentexecutionv1.AgentMessage, subAgents []*agentexecutionv1.SubAgentExecution, contextInfo *agentexecutionv1.ContextInfo) *agentexecutionv1.AgentExecution {
 	return &agentexecutionv1.AgentExecution{
 		Metadata: &apiresource.ApiResourceMetadata{
 			Id:   id,
@@ -22,45 +37,26 @@ func makeExecution(id, sessionID, agentID, org, startedAt string, usage *agentex
 			StartedAt:          startedAt,
 			CompletedAt:        startedAt,
 			Phase:              agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
-			Usage:              usage,
+			Messages:           messages,
 			SubAgentExecutions: subAgents,
 			ContextInfo:        contextInfo,
 		},
 	}
 }
 
-func makeUsage(prompt, completion, total, llmCalls int32, cost float64, model, provider string, modelBreakdown []*agentexecutionv1.ModelUsage) *agentexecutionv1.UsageMetrics {
-	return &agentexecutionv1.UsageMetrics{
-		PromptTokens:     prompt,
-		CompletionTokens: completion,
-		TotalTokens:      total,
-		LlmCallCount:     llmCalls,
-		EstimatedCostUsd: cost,
-		PrimaryModel:     model,
-		PrimaryProvider:  provider,
-		ModelBreakdown:   modelBreakdown,
-	}
-}
-
-func makeModelUsage(model, provider string, input, output, cacheCreate, cacheRead, calls int32, cost float64) *agentexecutionv1.ModelUsage {
-	return &agentexecutionv1.ModelUsage{
-		Model:               model,
-		Provider:            provider,
-		InputTokens:         input,
-		OutputTokens:        output,
-		CacheCreationTokens: cacheCreate,
-		CacheReadTokens:     cacheRead,
-		CallCount:           calls,
-		EstimatedCostUsd:    cost,
-	}
-}
-
 func TestExecutionTotalCost(t *testing.T) {
 	exec := makeExecution("e1", "s1", "a1", "org", "2026-03-10T10:00:00Z",
-		makeUsage(100, 50, 150, 2, 0.10, "claude-sonnet-4", "anthropic", nil),
+		[]*agentexecutionv1.AgentMessage{
+			makeAIMessage(50, 25, 0, 0, 0.05, "claude-sonnet-4", "anthropic"),
+			makeAIMessage(50, 25, 0, 0, 0.05, "claude-sonnet-4", "anthropic"),
+		},
 		[]*agentexecutionv1.SubAgentExecution{
-			{Usage: makeUsage(20, 10, 30, 1, 0.02, "claude-haiku-4", "anthropic", nil)},
-			{Usage: makeUsage(30, 15, 45, 1, 0.03, "claude-haiku-4", "anthropic", nil)},
+			{Messages: []*agentexecutionv1.AgentMessage{
+				makeAIMessage(20, 10, 0, 0, 0.02, "claude-haiku-4", "anthropic"),
+			}},
+			{Messages: []*agentexecutionv1.AgentMessage{
+				makeAIMessage(30, 15, 0, 0, 0.03, "claude-haiku-4", "anthropic"),
+			}},
 		},
 		nil,
 	)
@@ -82,7 +78,10 @@ func TestExecutionTotalCost_NilUsage(t *testing.T) {
 
 func TestExecutionTotalSummarizationCost(t *testing.T) {
 	exec := makeExecution("e1", "s1", "a1", "org", "2026-03-10T10:00:00Z",
-		makeUsage(100, 50, 150, 2, 0.10, "claude-sonnet-4", "anthropic", nil),
+		[]*agentexecutionv1.AgentMessage{
+			makeAIMessage(50, 25, 0, 0, 0.05, "claude-sonnet-4", "anthropic"),
+			makeAIMessage(50, 25, 0, 0, 0.05, "claude-sonnet-4", "anthropic"),
+		},
 		nil,
 		&agentexecutionv1.ContextInfo{
 			SummarizationEvents: []*agentexecutionv1.SummarizationEvent{
@@ -102,14 +101,23 @@ func TestExecutionTotalSummarizationCost(t *testing.T) {
 func TestAggregateUsageMetrics(t *testing.T) {
 	executions := []*agentexecutionv1.AgentExecution{
 		makeExecution("e1", "s1", "a1", "org", "2026-03-10T10:00:00Z",
-			makeUsage(1000, 500, 1500, 3, 0.10, "claude-sonnet-4", "anthropic", nil),
+			[]*agentexecutionv1.AgentMessage{
+				makeAIMessage(300, 150, 0, 0, 0.04, "claude-sonnet-4", "anthropic"),
+				makeAIMessage(300, 150, 0, 0, 0.04, "claude-sonnet-4", "anthropic"),
+				makeAIMessage(300, 150, 0, 0, 0.04, "claude-sonnet-4", "anthropic"),
+			},
 			[]*agentexecutionv1.SubAgentExecution{
-				{Usage: makeUsage(200, 100, 300, 1, 0.02, "claude-haiku-4", "anthropic", nil)},
+				{Messages: []*agentexecutionv1.AgentMessage{
+					makeAIMessage(200, 100, 0, 0, 0.02, "claude-haiku-4", "anthropic"),
+				}},
 			},
 			nil,
 		),
 		makeExecution("e2", "s1", "a1", "org", "2026-03-10T11:00:00Z",
-			makeUsage(800, 400, 1200, 2, 0.08, "claude-sonnet-4", "anthropic", nil),
+			[]*agentexecutionv1.AgentMessage{
+				makeAIMessage(450, 225, 0, 0, 0.03, "claude-sonnet-4", "anthropic"),
+				makeAIMessage(450, 225, 0, 0, 0.03, "claude-sonnet-4", "anthropic"),
+			},
 			nil,
 			nil,
 		),
@@ -137,16 +145,17 @@ func TestAggregateUsageMetrics(t *testing.T) {
 func TestMergeModelBreakdowns(t *testing.T) {
 	executions := []*agentexecutionv1.AgentExecution{
 		makeExecution("e1", "s1", "a1", "org", "2026-03-10T10:00:00Z",
-			makeUsage(0, 0, 0, 0, 0, "", "", []*agentexecutionv1.ModelUsage{
-				makeModelUsage("claude-sonnet-4", "anthropic", 500, 200, 0, 100, 2, 0.05),
-				makeModelUsage("claude-haiku-4", "anthropic", 100, 50, 0, 0, 1, 0.01),
-			}),
+			[]*agentexecutionv1.AgentMessage{
+				makeAIMessage(250, 100, 0, 50, 0.025, "claude-sonnet-4", "anthropic"),
+				makeAIMessage(250, 100, 0, 50, 0.025, "claude-sonnet-4", "anthropic"),
+				makeAIMessage(100, 50, 0, 0, 0.01, "claude-haiku-4", "anthropic"),
+			},
 			nil, nil,
 		),
 		makeExecution("e2", "s1", "a1", "org", "2026-03-10T11:00:00Z",
-			makeUsage(0, 0, 0, 0, 0, "", "", []*agentexecutionv1.ModelUsage{
-				makeModelUsage("claude-sonnet-4", "anthropic", 300, 150, 0, 80, 1, 0.03),
-			}),
+			[]*agentexecutionv1.AgentMessage{
+				makeAIMessage(300, 150, 0, 80, 0.03, "claude-sonnet-4", "anthropic"),
+			},
 			nil, nil,
 		),
 	}
@@ -157,7 +166,6 @@ func TestMergeModelBreakdowns(t *testing.T) {
 		t.Fatalf("expected 2 merged entries, got %d", len(merged))
 	}
 
-	// Sorted by cost descending, so sonnet should be first
 	sonnet := merged[0]
 	if sonnet.GetModel() != "claude-sonnet-4" {
 		t.Errorf("first entry model = %s, want claude-sonnet-4", sonnet.GetModel())
@@ -181,9 +189,13 @@ func TestMergeModelBreakdowns(t *testing.T) {
 
 func TestBuildExecutionSummary(t *testing.T) {
 	exec := makeExecution("e1", "s1", "a1", "org", "2026-03-10T10:00:00Z",
-		makeUsage(1000, 500, 1500, 3, 0.10, "claude-sonnet-4", "anthropic", nil),
+		[]*agentexecutionv1.AgentMessage{
+			makeAIMessage(800, 300, 0, 0, 0.10, "claude-sonnet-4", "anthropic"),
+		},
 		[]*agentexecutionv1.SubAgentExecution{
-			{Usage: makeUsage(200, 100, 300, 1, 0.02, "claude-haiku-4", "anthropic", nil)},
+			{Messages: []*agentexecutionv1.AgentMessage{
+				makeAIMessage(200, 100, 0, 0, 0.02, "claude-haiku-4", "anthropic"),
+			}},
 		},
 		nil,
 	)
@@ -282,11 +294,15 @@ func TestGroupByDate(t *testing.T) {
 func TestBuildSessionSummary(t *testing.T) {
 	executions := []*agentexecutionv1.AgentExecution{
 		makeExecution("e1", "s1", "a1", "org", "2026-03-10T08:00:00Z",
-			makeUsage(1000, 500, 1500, 3, 0.10, "claude-sonnet-4", "anthropic", nil),
+			[]*agentexecutionv1.AgentMessage{
+				makeAIMessage(1000, 500, 0, 0, 0.10, "claude-sonnet-4", "anthropic"),
+			},
 			nil, nil,
 		),
 		makeExecution("e2", "s1", "a1", "org", "2026-03-10T14:00:00Z",
-			makeUsage(800, 400, 1200, 2, 0.08, "claude-sonnet-4", "anthropic", nil),
+			[]*agentexecutionv1.AgentMessage{
+				makeAIMessage(800, 400, 0, 0, 0.08, "claude-sonnet-4", "anthropic"),
+			},
 			nil, nil,
 		),
 	}
@@ -313,11 +329,20 @@ func TestBuildSessionSummary(t *testing.T) {
 func TestBuildDailyCostEntries(t *testing.T) {
 	executions := []*agentexecutionv1.AgentExecution{
 		makeExecution("e1", "s1", "a1", "org", "2026-03-10T08:00:00Z",
-			makeUsage(0, 0, 1000, 0, 0.05, "", "", nil), nil, nil),
+			[]*agentexecutionv1.AgentMessage{
+				makeAIMessage(500, 500, 0, 0, 0.05, "", ""),
+			},
+			nil, nil),
 		makeExecution("e2", "s1", "a1", "org", "2026-03-10T14:00:00Z",
-			makeUsage(0, 0, 2000, 0, 0.10, "", "", nil), nil, nil),
+			[]*agentexecutionv1.AgentMessage{
+				makeAIMessage(1000, 1000, 0, 0, 0.10, "", ""),
+			},
+			nil, nil),
 		makeExecution("e3", "s1", "a1", "org", "2026-03-11T09:00:00Z",
-			makeUsage(0, 0, 500, 0, 0.03, "", "", nil), nil, nil),
+			[]*agentexecutionv1.AgentMessage{
+				makeAIMessage(250, 250, 0, 0, 0.03, "", ""),
+			},
+			nil, nil),
 	}
 
 	entries := buildDailyCostEntries(executions)

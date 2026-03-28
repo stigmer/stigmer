@@ -2030,11 +2030,7 @@ async def _execute_graphton_impl(
         error_str = str(e)
         error_message = f"Execution failed: [{exc_type}] {error_str}"
         
-        # Import required types for error message
-
-
-        
-        error_msg = AgentMessage(
+        fail_system_msg = AgentMessage(
             type=MessageType.MESSAGE_SYSTEM,
             content=f"❌ Error: {error_message}",
             timestamp=_utc_timestamp(),
@@ -2048,8 +2044,7 @@ async def _execute_graphton_impl(
                 f"Parent execution failed: {error_message}",
             )
 
-            # Use status_builder for rich error reporting
-            status_builder.current_status.messages.append(error_msg)
+            status_builder.current_status.messages.append(fail_system_msg)
 
             # Finalize context info before returning (Phase 3)
             # Even on failure, we want to capture any context tracking data
@@ -2064,7 +2059,6 @@ async def _execute_graphton_impl(
             failed_status = status_builder.current_status
         else:
             # Early failure before status_builder was created
-            # Create minimal failed status (similar to outer handler)
             activity_logger.warning(
                 f"status_builder not initialized - creating minimal failed status for {execution_id}"
             )
@@ -2072,7 +2066,7 @@ async def _execute_graphton_impl(
                 phase=ExecutionPhase.EXECUTION_FAILED,
                 error=error_message,
                 messages=[
-                    error_msg,
+                    fail_system_msg,
                     AgentMessage(
                         type=MessageType.MESSAGE_SYSTEM,
                         content="Execution failed during initialization before agent could start.",
