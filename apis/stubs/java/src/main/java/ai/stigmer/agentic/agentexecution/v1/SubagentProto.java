@@ -31,6 +31,11 @@ public final class SubagentProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_TodosEntry_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_TodosEntry_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -44,31 +49,38 @@ public final class SubagentProto extends com.google.protobuf.GeneratedFile {
       "ubagent.proto\022$ai.stigmer.agentic.agente" +
       "xecution.v1\032/ai/stigmer/agentic/agentexe" +
       "cution/v1/enum.proto\0322ai/stigmer/agentic" +
-      "/agentexecution/v1/message.proto\032\033buf/va" +
-      "lidate/validate.proto\032\034google/protobuf/s" +
-      "truct.proto\"\264\003\n\021SubAgentExecution\022\016\n\002id\030" +
-      "\001 \001(\tR\002id\022\022\n\004name\030\002 \001(\tR\004name\022\024\n\005input\030\003" +
-      " \001(\tR\005input\022\026\n\006output\030\004 \001(\tR\006output\022V\n\006s" +
-      "tatus\030\005 \001(\01624.ai.stigmer.agentic.agentex" +
-      "ecution.v1.SubAgentStatusB\010\272H\005\202\001\002\020\001R\006sta" +
-      "tus\022\035\n\nstarted_at\030\006 \001(\tR\tstartedAt\022!\n\014co" +
-      "mpleted_at\030\007 \001(\tR\013completedAt\022\024\n\005error\030\010" +
-      " \001(\tR\005error\0223\n\010metadata\030\t \001(\0132\027.google.p" +
-      "rotobuf.StructR\010metadata\022N\n\010messages\030\013 \003" +
-      "(\01322.ai.stigmer.agentic.agentexecution.v" +
-      "1.AgentMessageR\010messages\022\030\n\007subject\030\r \001(" +
-      "\tR\007subjectB\304\001B\rSubagentProtoP\001\242\002\004ASAA\252\002$" +
-      "Ai.Stigmer.Agentic.Agentexecution.V1\312\002$A" +
-      "i\\Stigmer\\Agentic\\Agentexecution\\V1\342\0020Ai" +
-      "\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMe" +
-      "tadata\352\002(Ai::Stigmer::Agentic::Agentexec" +
-      "ution::V1b\006proto3"
+      "/agentexecution/v1/message.proto\032/ai/sti" +
+      "gmer/agentic/agentexecution/v1/todo.prot" +
+      "o\032\033buf/validate/validate.proto\032\034google/p" +
+      "rotobuf/struct.proto\"\370\004\n\021SubAgentExecuti" +
+      "on\022\016\n\002id\030\001 \001(\tR\002id\022\022\n\004name\030\002 \001(\tR\004name\022\024" +
+      "\n\005input\030\003 \001(\tR\005input\022\026\n\006output\030\004 \001(\tR\006ou" +
+      "tput\022V\n\006status\030\005 \001(\01624.ai.stigmer.agenti" +
+      "c.agentexecution.v1.SubAgentStatusB\010\272H\005\202" +
+      "\001\002\020\001R\006status\022\035\n\nstarted_at\030\006 \001(\tR\tstarte" +
+      "dAt\022!\n\014completed_at\030\007 \001(\tR\013completedAt\022\024" +
+      "\n\005error\030\010 \001(\tR\005error\0223\n\010metadata\030\t \001(\0132\027" +
+      ".google.protobuf.StructR\010metadata\022N\n\010mes" +
+      "sages\030\013 \003(\01322.ai.stigmer.agentic.agentex" +
+      "ecution.v1.AgentMessageR\010messages\022\030\n\007sub" +
+      "ject\030\r \001(\tR\007subject\022X\n\005todos\030\016 \003(\0132B.ai." +
+      "stigmer.agentic.agentexecution.v1.SubAge" +
+      "ntExecution.TodosEntryR\005todos\032h\n\nTodosEn" +
+      "try\022\020\n\003key\030\001 \001(\tR\003key\022D\n\005value\030\002 \001(\0132..a" +
+      "i.stigmer.agentic.agentexecution.v1.Todo" +
+      "ItemR\005value:\0028\001B\304\001B\rSubagentProtoP\001\242\002\004AS" +
+      "AA\252\002$Ai.Stigmer.Agentic.Agentexecution.V" +
+      "1\312\002$Ai\\Stigmer\\Agentic\\Agentexecution\\V1" +
+      "\342\0020Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\" +
+      "GPBMetadata\352\002(Ai::Stigmer::Agentic::Agen" +
+      "texecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
           ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor(),
           ai.stigmer.agentic.agentexecution.v1.MessageProto.getDescriptor(),
+          ai.stigmer.agentic.agentexecution.v1.TodoProto.getDescriptor(),
           build.buf.validate.ValidateProto.getDescriptor(),
           com.google.protobuf.StructProto.getDescriptor(),
         });
@@ -77,10 +89,17 @@ public final class SubagentProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_descriptor,
-        new java.lang.String[] { "Id", "Name", "Input", "Output", "Status", "StartedAt", "CompletedAt", "Error", "Metadata", "Messages", "Subject", });
+        new java.lang.String[] { "Id", "Name", "Input", "Output", "Status", "StartedAt", "CompletedAt", "Error", "Metadata", "Messages", "Subject", "Todos", });
+    internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_TodosEntry_descriptor =
+      internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_descriptor.getNestedType(0);
+    internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_TodosEntry_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+        internal_static_ai_stigmer_agentic_agentexecution_v1_SubAgentExecution_TodosEntry_descriptor,
+        new java.lang.String[] { "Key", "Value", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.agentexecution.v1.MessageProto.getDescriptor();
+    ai.stigmer.agentic.agentexecution.v1.TodoProto.getDescriptor();
     build.buf.validate.ValidateProto.getDescriptor();
     com.google.protobuf.StructProto.getDescriptor();
     com.google.protobuf.ExtensionRegistry registry =

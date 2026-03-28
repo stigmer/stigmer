@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package ai.stigmer.agentic.agentexecution.v1;
+
+import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
+
+// Represents a single item in the agent's todo list.
+// Used by the write_todos tool to track multi-step tasks and progress.
+//
+// Shared by both AgentExecutionStatus (main agent) and SubAgentExecution
+// (sub-agent), so it lives in its own file to avoid circular imports.
+message TodoItem {
+  // Unique identifier for this todo item.
+  string id = 1;
+
+  // Description of the task to be completed.
+  string content = 2;
+
+  // Current status of the todo item.
+  TodoStatus status = 3;
+
+  // ISO 8601 timestamp when the todo was created.
+  string created_at = 4;
+
+  // ISO 8601 timestamp when the todo was last updated.
+  string updated_at = 5;
+}

@@ -9,6 +9,7 @@ import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "ai/stigmer/agentic/agentexecution/v1/message.proto";
 import "ai/stigmer/agentic/agentexecution/v1/spec.proto";
 import "ai/stigmer/agentic/agentexecution/v1/subagent.proto";
+import "ai/stigmer/agentic/agentexecution/v1/todo.proto";
 import "ai/stigmer/agentic/agentexecution/v1/writeback.proto";
 import "ai/stigmer/commons/apiresource/metadata.proto";
 import "ai/stigmer/commons/apiresource/status.proto";
@@ -238,23 +239,4 @@ message SetupProgress {
   // Examples: "Initializing sandbox…", "Setting up workspace…", "Loading skills…"
   // Empty when setup phase reporting has not started or is complete.
   string current_phase = 1;
-}
-
-// Represents a single item in the agent's todo list.
-// Used by the write_todos tool to track multi-step tasks and progress.
-message TodoItem {
-  // Unique identifier for this todo item.
-  string id = 1;
-
-  // Description of the task to be completed.
-  string content = 2;
-
-  // Current status of the todo item.
-  TodoStatus status = 3;
-
-  // ISO 8601 timestamp when the todo was created.
-  string created_at = 4;
-
-  // ISO 8601 timestamp when the todo was last updated.
-  string updated_at = 5;
 }

@@ -16,7 +16,7 @@ from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
-from ai.stigmer.agentic.agentexecution.v1.api_pb2 import TodoItem
+from ai.stigmer.agentic.agentexecution.v1.todo_pb2 import TodoItem
 from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
 from ai.stigmer.agentic.agentexecution.v1.context_pb2 import (
@@ -791,16 +791,13 @@ class StatusBuilder:
         # Handle planning tools
         if tool_name in PLANNING_TOOLS:
             if tool_name == "write_todos":
+                todos_data = tool_args.get("todos", [])
+                if not todos_data:
+                    return
                 _, sub_agent = self._get_execution_context(namespace)
                 if sub_agent is not None:
-                    self.logger.debug(
-                        f"[PLANNING] execution={self.execution_id} "
-                        f"skipping sub-agent write_todos "
-                        f"(sub_agent_id={sub_agent.id})"
-                    )
-                    return
-                todos_data = tool_args.get("todos", [])
-                if todos_data:
+                    self._update_sub_agent_todos(sub_agent, todos_data)
+                else:
                     self._update_todos(todos_data)
             return
         
@@ -2279,6 +2276,46 @@ class StatusBuilder:
 
         self.logger.info(
             "Updated todos: %d item(s) in snapshot", len(todos_data),
+        )
+
+    def _update_sub_agent_todos(
+        self, sub_agent: SubAgentExecution, todos_data: list
+    ) -> None:
+        """Replace the todo snapshot on a sub-agent execution.
+
+        Same snapshot-replacement semantics as ``_update_todos`` but targets
+        ``sub_agent.todos`` instead of ``self.current_status.todos``.
+        """
+        status_map = {
+            "pending": TodoStatus.TODO_PENDING,
+            "in_progress": TodoStatus.TODO_IN_PROGRESS,
+            "completed": TodoStatus.TODO_COMPLETED,
+            "cancelled": TodoStatus.TODO_CANCELLED,
+        }
+
+        sub_agent.todos.clear()
+
+        now = _utc_timestamp()
+        for idx, todo_dict in enumerate(todos_data):
+            todo_id = todo_dict.get("id") or f"todo-{idx}"
+
+            status_str = todo_dict.get("status", "pending").lower()
+            status_enum = status_map.get(status_str, TodoStatus.TODO_PENDING)
+
+            todo_item = TodoItem(
+                id=todo_id,
+                content=todo_dict.get("content", ""),
+                status=status_enum,
+                created_at=todo_dict.get("created_at", now),
+                updated_at=now,
+            )
+
+            sub_agent.todos[todo_id].CopyFrom(todo_item)
+
+        self.logger.info(
+            "Updated sub-agent todos: %d item(s) (sub_agent_id=%s)",
+            len(todos_data),
+            sub_agent.id,
         )
     
     # ─────────────────────────────────────────────────────────────────────────────

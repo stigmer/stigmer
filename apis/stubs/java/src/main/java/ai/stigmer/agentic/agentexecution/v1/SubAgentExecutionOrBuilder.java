@@ -300,4 +300,73 @@ public interface SubAgentExecutionOrBuilder extends
    */
   com.google.protobuf.ByteString
       getSubjectBytes();
+
+  /**
+   * <pre>
+   * Todo list tracking multi-step tasks and progress for this sub-agent.
+   * Updated via write_todos tool when called within a sub-agent context.
+   * Snapshot replacement semantics: each update carries the full list.
+   * Key: todo item ID, Value: todo item details
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+   */
+  int getTodosCount();
+  /**
+   * <pre>
+   * Todo list tracking multi-step tasks and progress for this sub-agent.
+   * Updated via write_todos tool when called within a sub-agent context.
+   * Snapshot replacement semantics: each update carries the full list.
+   * Key: todo item ID, Value: todo item details
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+   */
+  boolean containsTodos(
+      java.lang.String key);
+  /**
+   * Use {@link #getTodosMap()} instead.
+   */
+  @java.lang.Deprecated
+  java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem>
+  getTodos();
+  /**
+   * <pre>
+   * Todo list tracking multi-step tasks and progress for this sub-agent.
+   * Updated via write_todos tool when called within a sub-agent context.
+   * Snapshot replacement semantics: each update carries the full list.
+   * Key: todo item ID, Value: todo item details
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+   */
+  java.util.Map<java.lang.String, ai.stigmer.agentic.agentexecution.v1.TodoItem>
+  getTodosMap();
+  /**
+   * <pre>
+   * Todo list tracking multi-step tasks and progress for this sub-agent.
+   * Updated via write_todos tool when called within a sub-agent context.
+   * Snapshot replacement semantics: each update carries the full list.
+   * Key: todo item ID, Value: todo item details
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+   */
+  /* nullable */
+ai.stigmer.agentic.agentexecution.v1.TodoItem getTodosOrDefault(
+      java.lang.String key,
+      /* nullable */
+ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
+  /**
+   * <pre>
+   * Todo list tracking multi-step tasks and progress for this sub-agent.
+   * Updated via write_todos tool when called within a sub-agent context.
+   * Snapshot replacement semantics: each update carries the full list.
+   * Key: todo item ID, Value: todo item details
+   * </pre>
+   *
+   * <code>map&lt;string, .ai.stigmer.agentic.agentexecution.v1.TodoItem&gt; todos = 14 [json_name = "todos"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.TodoItem getTodosOrThrow(
+      java.lang.String key);
 }

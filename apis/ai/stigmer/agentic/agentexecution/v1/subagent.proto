@@ -4,6 +4,7 @@ package ai.stigmer.agentic.agentexecution.v1;
 
 import "ai/stigmer/agentic/agentexecution/v1/enum.proto";
 import "ai/stigmer/agentic/agentexecution/v1/message.proto";
+import "ai/stigmer/agentic/agentexecution/v1/todo.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
@@ -70,4 +71,16 @@ message SubAgentExecution {
   // Used as the primary display label in collapsed and expanded UI views.
   // Examples: "Explore CLI rendering code", "Fix auth middleware tests"
   string subject = 13;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Sub-Agent Task Progress
+  //
+  // Mirrors AgentExecutionStatus.todos for the sub-agent scope.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Todo list tracking multi-step tasks and progress for this sub-agent.
+  // Updated via write_todos tool when called within a sub-agent context.
+  // Snapshot replacement semantics: each update carries the full list.
+  // Key: todo item ID, Value: todo item details
+  map<string, TodoItem> todos = 14;
 }

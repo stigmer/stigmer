@@ -5,6 +5,7 @@ from ai.stigmer.agentic.agentexecution.v1 import enum_pb2 as _enum_pb2
 from ai.stigmer.agentic.agentexecution.v1 import message_pb2 as _message_pb2
 from ai.stigmer.agentic.agentexecution.v1 import spec_pb2 as _spec_pb2
 from ai.stigmer.agentic.agentexecution.v1 import subagent_pb2 as _subagent_pb2
+from ai.stigmer.agentic.agentexecution.v1 import todo_pb2 as _todo_pb2
 from ai.stigmer.agentic.agentexecution.v1 import writeback_pb2 as _writeback_pb2
 from ai.stigmer.commons.apiresource import metadata_pb2 as _metadata_pb2
 from ai.stigmer.commons.apiresource import status_pb2 as _status_pb2
@@ -38,8 +39,8 @@ class AgentExecutionStatus(_message.Message):
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
         key: str
-        value: TodoItem
-        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[TodoItem, _Mapping]] = ...) -> None: ...
+        value: _todo_pb2.TodoItem
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[_todo_pb2.TodoItem, _Mapping]] = ...) -> None: ...
     AUDIT_FIELD_NUMBER: _ClassVar[int]
     MESSAGES_FIELD_NUMBER: _ClassVar[int]
     PHASE_FIELD_NUMBER: _ClassVar[int]
@@ -62,7 +63,7 @@ class AgentExecutionStatus(_message.Message):
     error: str
     started_at: str
     completed_at: str
-    todos: _containers.MessageMap[str, TodoItem]
+    todos: _containers.MessageMap[str, _todo_pb2.TodoItem]
     callback_token: bytes
     resolved_context: _context_pb2.ResolvedExecutionContext
     pending_approvals: _containers.RepeatedCompositeFieldContainer[_approval_pb2.PendingApproval]
@@ -70,24 +71,10 @@ class AgentExecutionStatus(_message.Message):
     artifacts: _containers.RepeatedCompositeFieldContainer[_artifact_pb2.ExecutionArtifact]
     workspace_write_backs: _containers.RepeatedCompositeFieldContainer[_writeback_pb2.WorkspaceWriteBack]
     setup_progress: SetupProgress
-    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., messages: _Optional[_Iterable[_Union[_message_pb2.AgentMessage, _Mapping]]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., sub_agent_executions: _Optional[_Iterable[_Union[_subagent_pb2.SubAgentExecution, _Mapping]]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., todos: _Optional[_Mapping[str, TodoItem]] = ..., callback_token: _Optional[bytes] = ..., resolved_context: _Optional[_Union[_context_pb2.ResolvedExecutionContext, _Mapping]] = ..., pending_approvals: _Optional[_Iterable[_Union[_approval_pb2.PendingApproval, _Mapping]]] = ..., context_info: _Optional[_Union[_context_pb2.ContextInfo, _Mapping]] = ..., artifacts: _Optional[_Iterable[_Union[_artifact_pb2.ExecutionArtifact, _Mapping]]] = ..., workspace_write_backs: _Optional[_Iterable[_Union[_writeback_pb2.WorkspaceWriteBack, _Mapping]]] = ..., setup_progress: _Optional[_Union[SetupProgress, _Mapping]] = ...) -> None: ...
+    def __init__(self, audit: _Optional[_Union[_status_pb2.ApiResourceAudit, _Mapping]] = ..., messages: _Optional[_Iterable[_Union[_message_pb2.AgentMessage, _Mapping]]] = ..., phase: _Optional[_Union[_enum_pb2.ExecutionPhase, str]] = ..., sub_agent_executions: _Optional[_Iterable[_Union[_subagent_pb2.SubAgentExecution, _Mapping]]] = ..., error: _Optional[str] = ..., started_at: _Optional[str] = ..., completed_at: _Optional[str] = ..., todos: _Optional[_Mapping[str, _todo_pb2.TodoItem]] = ..., callback_token: _Optional[bytes] = ..., resolved_context: _Optional[_Union[_context_pb2.ResolvedExecutionContext, _Mapping]] = ..., pending_approvals: _Optional[_Iterable[_Union[_approval_pb2.PendingApproval, _Mapping]]] = ..., context_info: _Optional[_Union[_context_pb2.ContextInfo, _Mapping]] = ..., artifacts: _Optional[_Iterable[_Union[_artifact_pb2.ExecutionArtifact, _Mapping]]] = ..., workspace_write_backs: _Optional[_Iterable[_Union[_writeback_pb2.WorkspaceWriteBack, _Mapping]]] = ..., setup_progress: _Optional[_Union[SetupProgress, _Mapping]] = ...) -> None: ...
 
 class SetupProgress(_message.Message):
     __slots__ = ("current_phase",)
     CURRENT_PHASE_FIELD_NUMBER: _ClassVar[int]
     current_phase: str
     def __init__(self, current_phase: _Optional[str] = ...) -> None: ...
-
-class TodoItem(_message.Message):
-    __slots__ = ("id", "content", "status", "created_at", "updated_at")
-    ID_FIELD_NUMBER: _ClassVar[int]
-    CONTENT_FIELD_NUMBER: _ClassVar[int]
-    STATUS_FIELD_NUMBER: _ClassVar[int]
-    CREATED_AT_FIELD_NUMBER: _ClassVar[int]
-    UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
-    id: str
-    content: str
-    status: _enum_pb2.TodoStatus
-    created_at: str
-    updated_at: str
-    def __init__(self, id: _Optional[str] = ..., content: _Optional[str] = ..., status: _Optional[_Union[_enum_pb2.TodoStatus, str]] = ..., created_at: _Optional[str] = ..., updated_at: _Optional[str] = ...) -> None: ...

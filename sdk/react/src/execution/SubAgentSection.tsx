@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { SubAgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/subagent_pb";
+import type { TodoItem } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/todo_pb";
 import type { AgentMessage, ToolCall } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import {
   MessageType,
@@ -11,6 +12,12 @@ import { cn } from "@stigmer/theme";
 import { formatDuration } from "./ToolCallDetail";
 import { MessageEntry } from "./MessageEntry";
 import { ToolCallGroup } from "./ToolCallGroup";
+import {
+  TodoList,
+  TodoInProgressIcon,
+  findActiveTodo,
+  todoCompletionSummary,
+} from "./TodoList";
 
 export interface SubAgentSectionProps {
   readonly subAgentExecution: SubAgentExecution;
@@ -123,6 +130,24 @@ function CollapsibleCard({
     setExpanded((v) => !v);
   };
 
+  const hasTodos =
+    sub.todos != null && Object.keys(sub.todos).length > 0;
+  const isRunning = sub.status === SubAgentStatus.SUB_AGENT_IN_PROGRESS;
+  const isCompleted = sub.status === SubAgentStatus.SUB_AGENT_COMPLETED;
+
+  const activeTodo = useMemo(() => findActiveTodo(sub.todos), [sub.todos]);
+  const completionLabel = useMemo(
+    () => (isCompleted && hasTodos ? todoCompletionSummary(sub.todos) : null),
+    [sub.todos, isCompleted, hasTodos],
+  );
+
+  const collapsedPreview =
+    isRunning && activeTodo
+      ? activeTodo.content
+      : isCompleted && completionLabel
+        ? completionLabel
+        : null;
+
   const ariaLabel = `Sub-agent: ${displayLabel}, ${statusInfo.label}`;
 
   return (
@@ -165,6 +190,20 @@ function CollapsibleCard({
         <ChevronIcon expanded={expanded} />
       </button>
 
+      {/* Active todo preview — visible when collapsed */}
+      {collapsedPreview && !expanded && (
+        <div className="flex items-center gap-1.5 px-2.5 pb-1.5 text-xs text-muted-foreground">
+          <span className="ml-[20px] shrink-0" aria-hidden="true">
+            {isRunning && activeTodo ? (
+              <TodoInProgressIcon />
+            ) : (
+              <TodoCompletedSmallIcon />
+            )}
+          </span>
+          <span className="min-w-0 truncate">{collapsedPreview}</span>
+        </div>
+      )}
+
       {/* Expanded content — CSS grid-rows animation */}
       <div
         className={cn(
@@ -177,6 +216,7 @@ function CollapsibleCard({
             <div className="border-t border-border/50 px-2.5 pb-2 pt-1.5">
               <SubAgentThreadContent
                 threadItems={threadItems}
+                todos={sub.todos}
                 isFailed={isFailed}
                 error={sub.error}
               />
@@ -243,6 +283,7 @@ function FlatContent({
 
       <SubAgentThreadContent
         threadItems={threadItems}
+        todos={sub.todos}
         isFailed={isFailed}
         error={sub.error}
       />
@@ -256,17 +297,23 @@ function FlatContent({
 
 interface SubAgentThreadContentProps {
   readonly threadItems: SubAgentThreadItem[];
+  readonly todos?: { readonly [key: string]: TodoItem };
   readonly isFailed: boolean;
   readonly error: string;
 }
 
 function SubAgentThreadContent({
   threadItems,
+  todos,
   isFailed,
   error,
 }: SubAgentThreadContentProps) {
+  const hasTodos = todos != null && Object.keys(todos).length > 0;
+
   return (
     <>
+      {hasTodos && <TodoList todos={todos!} className="pb-1" />}
+
       {threadItems.length > 0 && (
         <div className="flex flex-col gap-1 pb-1">
           {threadItems.map((item) => {
@@ -438,6 +485,23 @@ function DotIcon() {
   return (
     <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
       <circle cx="4" cy="4" r="2.5" />
+    </svg>
+  );
+}
+
+function TodoCompletedSmallIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2.5 6L5 8.5L9.5 3.5" />
     </svg>
   );
 }
