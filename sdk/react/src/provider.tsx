@@ -1,15 +1,28 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { Stigmer } from "@stigmer/sdk";
+import type { Stigmer, DeploymentMode } from "@stigmer/sdk";
 import { cn, resolvePresetClass } from "@stigmer/theme";
 import type { ThemePresetId } from "@stigmer/theme";
 import { StigmerContext } from "./context";
+import { DeploymentModeContext } from "./deployment-mode";
 
 export interface StigmerProviderProps {
   /** A configured {@link Stigmer} client instance. */
   readonly client: Stigmer;
   readonly children: ReactNode;
+  /**
+   * Deployment mode of the connected Stigmer backend.
+   *
+   * - `"local"` — local Go CLI server (OSS). Cloud-only resources
+   *   (API keys, IAM, identity management) are unavailable.
+   * - `"cloud"` — Stigmer Cloud. All resources are available.
+   *
+   * Defaults to `"cloud"` so existing consumers see no change.
+   * The Stigmer Console derives this from the API URL hostname.
+   * Platform builders pass it based on their deployment context.
+   */
+  readonly deploymentMode?: DeploymentMode;
   /**
    * Built-in theme preset to apply.
    *
@@ -60,6 +73,7 @@ export interface StigmerProviderProps {
 export function StigmerProvider({
   client,
   children,
+  deploymentMode = "cloud",
   preset,
   className,
 }: StigmerProviderProps) {
@@ -67,7 +81,9 @@ export function StigmerProvider({
 
   return (
     <StigmerContext.Provider value={client}>
-      <div className={cn("stgm", presetClass, className)}>{children}</div>
+      <DeploymentModeContext.Provider value={deploymentMode}>
+        <div className={cn("stgm", presetClass, className)}>{children}</div>
+      </DeploymentModeContext.Provider>
     </StigmerContext.Provider>
   );
 }

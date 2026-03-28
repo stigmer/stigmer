@@ -5,6 +5,7 @@ import { Stigmer } from "@stigmer/sdk";
 import { StigmerProvider } from "@stigmer/react";
 import { useAuth } from "@/auth/use-auth";
 import { getApiBaseUrl } from "@/config/env";
+import { useDeploymentMode } from "@/hooks/useDeploymentMode";
 
 /**
  * Bridges the console's auth system to the Stigmer SDK provider.
@@ -14,10 +15,14 @@ import { getApiBaseUrl } from "@/config/env";
  * UNAUTHENTICATED responses). The client instance is memoized on the
  * token-provider callback to avoid unnecessary re-creation.
  *
+ * Also derives the deployment mode from the API URL hostname and passes
+ * it to the SDK provider so components can gate cloud-only features.
+ *
  * Must be rendered as a child of `AuthGuard` (auth must be resolved first).
  */
 export function StigmerTransportBridge({ children }: { children: ReactNode }) {
   const { accessToken, logout } = useAuth();
+  const deploymentMode = useDeploymentMode();
 
   const getAccessToken = useCallback(() => accessToken, [accessToken]);
   const onUnauthenticated = useCallback(() => logout(), [logout]);
@@ -33,7 +38,7 @@ export function StigmerTransportBridge({ children }: { children: ReactNode }) {
   );
 
   return (
-    <StigmerProvider client={client}>
+    <StigmerProvider client={client} deploymentMode={deploymentMode}>
       {children}
     </StigmerProvider>
   );
