@@ -46,6 +46,20 @@ export interface McpServerDetailViewProps {
   readonly onVisibilityChange?: (v: ApiResourceVisibility) => void;
   /** `true` while a visibility update RPC is in flight. */
   readonly isVisibilityPending?: boolean;
+  /**
+   * Called after the approval-policy generation session and execution
+   * have been created successfully.
+   *
+   * When provided, the component delegates post-trigger behavior to the
+   * consumer (e.g. navigating to a session page) instead of rendering
+   * the inline {@link ApprovalPolicyGeneratorPanel}.
+   *
+   * When omitted, the inline panel is shown as a fallback.
+   */
+  readonly onPolicySessionCreated?: (info: {
+    sessionId: string;
+    executionId: string;
+  }) => void;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -78,6 +92,7 @@ export function McpServerDetailView({
   onResourceLoad,
   onVisibilityChange,
   isVisibilityPending,
+  onPolicySessionCreated,
   className,
 }: McpServerDetailViewProps) {
   const { mcpServer, isLoading, error, refetch } = useMcpServer(org, slug);
@@ -149,11 +164,18 @@ export function McpServerDetailView({
     try {
       const yaml = serializeMcpServerYaml(mcpServer);
       const result = await policySession.trigger(yaml, org, slug);
-      setPolicyPanelExecutionId(result.executionId);
+      if (onPolicySessionCreated) {
+        onPolicySessionCreated({
+          sessionId: result.sessionId,
+          executionId: result.executionId,
+        });
+      } else {
+        setPolicyPanelExecutionId(result.executionId);
+      }
     } catch {
       // error state is managed by the hook
     }
-  }, [mcpServer, org, slug, policySession]);
+  }, [mcpServer, org, slug, policySession, onPolicySessionCreated]);
 
   const handlePolicyPanelComplete = useCallback(() => {
     refetch();
