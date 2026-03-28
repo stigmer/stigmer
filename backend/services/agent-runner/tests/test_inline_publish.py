@@ -5,8 +5,8 @@ Tests cover:
 - StatusBuilder.add_artifact immediately syncs to current_status.artifacts
 - StatusBuilder.add_artifact sets force_next_update
 - StatusBuilder.finalize_context_info reconciles inline-synced artifacts
-- StreamExecutor._maybe_trigger_inline_publish fires on write/edit tool_end
-- StreamExecutor._maybe_trigger_inline_publish ignores non-write tools
+- StreamExecutor._on_file_modifying_tool_end fires on write/edit tool_end
+- StreamExecutor._on_file_modifying_tool_end ignores non-write tools
 - StreamExecutor.pending_publish_tasks tracks background tasks
 """
 
@@ -148,7 +148,7 @@ class TestStatusBuilderAddArtifact:
 
 
 class TestStreamExecutorInlinePublish:
-    """Tests for _maybe_trigger_inline_publish in StreamExecutor."""
+    """Tests for _on_file_modifying_tool_end in StreamExecutor."""
 
     def _make_executor(self, on_file_written=None):
         from worker.activities.graphton.streaming import StreamExecutor
@@ -206,7 +206,7 @@ class TestStreamExecutorInlinePublish:
             "run_id": "run-write-1",
             "data": {"output": "ok"},
         }
-        executor._maybe_trigger_inline_publish(event)
+        executor._on_file_modifying_tool_end(event)
 
         assert len(executor._pending_publishes) == 1
         task = next(iter(executor._pending_publishes))
@@ -223,7 +223,7 @@ class TestStreamExecutorInlinePublish:
             "run_id": "run-read-1",
             "data": {"output": "content"},
         }
-        executor._maybe_trigger_inline_publish(event)
+        executor._on_file_modifying_tool_end(event)
 
         assert len(executor._pending_publishes) == 0
 
@@ -236,7 +236,7 @@ class TestStreamExecutorInlinePublish:
             "name": "write",
             "run_id": "run-write-1",
         }
-        executor._maybe_trigger_inline_publish(event)
+        executor._on_file_modifying_tool_end(event)
 
         assert len(executor._pending_publishes) == 0
 
@@ -249,7 +249,7 @@ class TestStreamExecutorInlinePublish:
             "run_id": "run-write-1",
             "data": {"output": "ok"},
         }
-        executor._maybe_trigger_inline_publish(event)
+        executor._on_file_modifying_tool_end(event)
 
         assert len(executor._pending_publishes) == 0
 
@@ -274,7 +274,7 @@ class TestStreamExecutorInlinePublish:
             "run_id": "run-edit-1",
             "data": {"output": "ok"},
         }
-        executor._maybe_trigger_inline_publish(event)
+        executor._on_file_modifying_tool_end(event)
 
         assert len(executor._pending_publishes) == 1
         await next(iter(executor._pending_publishes))
@@ -292,7 +292,7 @@ class TestStreamExecutorInlinePublish:
             "run_id": "run-write-1",
             "data": {"output": "ok"},
         }
-        executor._maybe_trigger_inline_publish(event)
+        executor._on_file_modifying_tool_end(event)
 
         await asyncio.sleep(0.05)
 
