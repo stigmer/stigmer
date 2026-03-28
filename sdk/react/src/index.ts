@@ -52,6 +52,7 @@ export {
   useSessionList,
   useSessionExecutions,
   useSessionConversation,
+  useSessionArtifacts,
   useAgentRefFromSession,
   groupSessionsByTime,
   PENDING_SUBJECT,
@@ -68,6 +69,8 @@ export type {
   UseSessionExecutionsReturn,
   SendFollowUpOptions,
   UseSessionConversationReturn,
+  SessionArtifactEntry,
+  UseSessionArtifactsReturn,
   UseAgentRefFromSessionReturn,
   SessionGroup,
 } from "./session";
