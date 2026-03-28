@@ -255,7 +255,7 @@ const STATUS_COLOR: Record<ItemStatus, string> = {
 // Category-specific icons (inline SVG, SDK pattern)
 // ---------------------------------------------------------------------------
 
-const CATEGORY_ICON: Record<ToolCategory, () => React.JSX.Element> = {
+export const CATEGORY_ICON: Record<ToolCategory, () => React.JSX.Element> = {
   shell: TerminalIcon,
   read: FileIcon,
   write: FilePenIcon,

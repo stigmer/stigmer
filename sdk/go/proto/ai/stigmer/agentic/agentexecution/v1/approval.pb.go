@@ -83,7 +83,17 @@ type PendingApproval struct {
 	// Name of the sub-agent if from_sub_agent is true.
 	// Example: "code-reviewer", "researcher", "debugger"
 	// Empty if from_sub_agent is false.
-	SubAgentName  string `protobuf:"bytes,7,opt,name=sub_agent_name,json=subAgentName,proto3" json:"sub_agent_name,omitempty"`
+	SubAgentName string `protobuf:"bytes,7,opt,name=sub_agent_name,json=subAgentName,proto3" json:"sub_agent_name,omitempty"`
+	// Slug of the MCP server that provides this tool.
+	// Copied from ToolCall.mcp_server_slug for UI convenience.
+	// Empty for built-in sandbox tools (read, write, shell, etc.).
+	//
+	// Enables the approval card to classify MCP tools and render
+	// structured argument previews (scalar grids, humanized names)
+	// instead of falling back to raw JSON.
+	//
+	// Examples: "planton-cloud", "github", "slack"
+	McpServerSlug string `protobuf:"bytes,9,opt,name=mcp_server_slug,json=mcpServerSlug,proto3" json:"mcp_server_slug,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -163,6 +173,13 @@ func (x *PendingApproval) GetFromSubAgent() bool {
 func (x *PendingApproval) GetSubAgentName() string {
 	if x != nil {
 		return x.SubAgentName
+	}
+	return ""
+}
+
+func (x *PendingApproval) GetMcpServerSlug() string {
+	if x != nil {
+		return x.McpServerSlug
 	}
 	return ""
 }
@@ -266,7 +283,7 @@ var File_ai_stigmer_agentic_agentexecution_v1_approval_proto protoreflect.FileDe
 
 const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\n" +
-	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\"\x82\x02\n" +
+	"3ai/stigmer/agentic/agentexecution/v1/approval.proto\x12$ai.stigmer.agentic.agentexecution.v1\"\xaa\x02\n" +
 	"\x0fPendingApproval\x12 \n" +
 	"\ftool_call_id\x18\x01 \x01(\tR\n" +
 	"toolCallId\x12\x1b\n" +
@@ -275,7 +292,8 @@ const file_ai_stigmer_agentic_agentexecution_v1_approval_proto_rawDesc = "" +
 	"\fargs_preview\x18\x04 \x01(\tR\vargsPreview\x12!\n" +
 	"\frequested_at\x18\x05 \x01(\tR\vrequestedAt\x12$\n" +
 	"\x0efrom_sub_agent\x18\x06 \x01(\bR\ffromSubAgent\x12$\n" +
-	"\x0esub_agent_name\x18\a \x01(\tR\fsubAgentNameJ\x04\b\b\x10\t\"\xa2\x01\n" +
+	"\x0esub_agent_name\x18\a \x01(\tR\fsubAgentName\x12&\n" +
+	"\x0fmcp_server_slug\x18\t \x01(\tR\rmcpServerSlugJ\x04\b\b\x10\t\"\xa2\x01\n" +
 	"\x19ChildApprovalNotification\x12!\n" +
 	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12b\n" +
 	"\x11pending_approvals\x18\x02 \x03(\v25.ai.stigmer.agentic.agentexecution.v1.PendingApprovalR\x10pendingApprovalsB\xcd\x02\n" +

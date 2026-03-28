@@ -54,12 +54,13 @@ func projectToolCall(tc *agentexecutionv1.ToolCall, fromSubAgent bool, subAgentN
 	}
 
 	return &agentexecutionv1.PendingApproval{
-		ToolCallId:   tc.GetId(),
-		ToolName:     tc.GetName(),
-		Message:      tc.GetApprovalMessage(),
-		ArgsPreview:  tc.GetArgsPreview(),
-		RequestedAt:  tc.GetApprovalRequestedAt(),
-		FromSubAgent: fromSubAgent,
-		SubAgentName: subAgentName,
+		ToolCallId:    tc.GetId(),
+		ToolName:      tc.GetName(),
+		Message:       tc.GetApprovalMessage(),
+		ArgsPreview:   tc.GetArgsPreview(),
+		RequestedAt:   tc.GetApprovalRequestedAt(),
+		FromSubAgent:  fromSubAgent,
+		SubAgentName:  subAgentName,
+		McpServerSlug: tc.GetMcpServerSlug(),
 	}
 }

@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/approval.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_approval: GenFile = /*@__PURE__*/
-  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSKtAQoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJSgQICBAJIoMBChlDaGlsZEFwcHJvdmFsTm90aWZpY2F0aW9uEhQKDGV4ZWN1dGlvbl9pZBgBIAEoCRJQChFwZW5kaW5nX2FwcHJvdmFscxgCIAMoCzI1LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5QZW5kaW5nQXBwcm92YWxiBnByb3RvMw");
+  fileDesc("CjNhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvYXBwcm92YWwucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MSLGAQoPUGVuZGluZ0FwcHJvdmFsEhQKDHRvb2xfY2FsbF9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIUCgxhcmdzX3ByZXZpZXcYBCABKAkSFAoMcmVxdWVzdGVkX2F0GAUgASgJEhYKDmZyb21fc3ViX2FnZW50GAYgASgIEhYKDnN1Yl9hZ2VudF9uYW1lGAcgASgJEhcKD21jcF9zZXJ2ZXJfc2x1ZxgJIAEoCUoECAgQCSKDAQoZQ2hpbGRBcHByb3ZhbE5vdGlmaWNhdGlvbhIUCgxleGVjdXRpb25faWQYASABKAkSUAoRcGVuZGluZ19hcHByb3ZhbHMYAiADKAsyNS5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuUGVuZGluZ0FwcHJvdmFsYgZwcm90bzM");
 
 /**
  * PendingApproval is a UI-facing projection computed server-side from tool
@@ -111,6 +111,21 @@ export type PendingApproval = Message<"ai.stigmer.agentic.agentexecution.v1.Pend
    * @generated from field: string sub_agent_name = 7;
    */
   subAgentName: string;
+
+  /**
+   * Slug of the MCP server that provides this tool.
+   * Copied from ToolCall.mcp_server_slug for UI convenience.
+   * Empty for built-in sandbox tools (read, write, shell, etc.).
+   *
+   * Enables the approval card to classify MCP tools and render
+   * structured argument previews (scalar grids, humanized names)
+   * instead of falling back to raw JSON.
+   *
+   * Examples: "planton-cloud", "github", "slack"
+   *
+   * @generated from field: string mcp_server_slug = 9;
+   */
+  mcpServerSlug: string;
 };
 
 /**
