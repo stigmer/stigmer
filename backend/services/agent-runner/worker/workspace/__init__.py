@@ -178,13 +178,30 @@ async def initialize_workspace(
     # No volume mount — local overlay is ~2,360x faster than FUSE+S3
     # for file-creation-heavy workloads like git checkout.
     workspace_root = DAYTONA_WORKSPACE_MOUNT_PATH
-    log.info(
-        "Local-overlay workspace: workspace_root=%s",
-        workspace_root,
-    )
+
+    # Resolve sandbox root so the backend can compute the rebase prefix
+    # needed for artifact publishing (sandbox.fs resolves paths relative
+    # to the sandbox root, not the workspace root).
+    try:
+        sandbox_root = sandbox.get_work_dir().rstrip("/")
+        log.info(
+            "Local-overlay workspace: workspace_root=%s, sandbox_root=%s",
+            workspace_root,
+            sandbox_root,
+        )
+    except Exception as exc:
+        sandbox_root = "/home/daytona"
+        log.warning(
+            "sandbox.get_work_dir() failed (%s); defaulting sandbox_root "
+            "to '%s'",
+            exc,
+            sandbox_root,
+        )
 
     backend = DaytonaWorkspaceBackend(
-        sandbox=sandbox, workspace_root=workspace_root,
+        sandbox=sandbox,
+        workspace_root=workspace_root,
+        sandbox_root=sandbox_root,
     )
     # Cloud-mode platform_dir deferred to Phase B.
     return WorkspaceInitResult(

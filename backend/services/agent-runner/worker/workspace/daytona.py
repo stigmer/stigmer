@@ -54,7 +54,12 @@ class DaytonaWorkspaceBackend:
         explicit cleanup is preferred.
     """
 
-    def __init__(self, sandbox: Any, workspace_root: str) -> None:
+    def __init__(
+        self,
+        sandbox: Any,
+        workspace_root: str,
+        sandbox_root: str | None = None,
+    ) -> None:
         if sandbox is None:
             raise ValueError("sandbox must not be None")
         if not workspace_root or not workspace_root.startswith("/"):
@@ -65,6 +70,31 @@ class DaytonaWorkspaceBackend:
 
         self._sandbox = sandbox
         self._workspace_root = workspace_root.rstrip("/")
+        self._sandbox_root = (sandbox_root or workspace_root).rstrip("/")
+
+        # Rebase prefix: the relative path from sandbox root to workspace
+        # root.  When the workspace root is a subdirectory of the sandbox
+        # root (e.g. /home/daytona/workspace under /home/daytona), paths
+        # normalised by stripping the workspace-root prefix need this
+        # prefix prepended so sandbox.fs resolves to the correct location.
+        if (
+            self._workspace_root != self._sandbox_root
+            and self._workspace_root.startswith(self._sandbox_root + "/")
+        ):
+            self._rebase_prefix = self._workspace_root[
+                len(self._sandbox_root) + 1 :
+            ]
+        else:
+            self._rebase_prefix = ""
+
+        if self._rebase_prefix:
+            logger.info(
+                "DaytonaWorkspaceBackend: rebase prefix = '%s' "
+                "(workspace_root='%s', sandbox_root='%s')",
+                self._rebase_prefix,
+                self._workspace_root,
+                self._sandbox_root,
+            )
 
         self._ensure_workspace_root()
 
@@ -227,6 +257,59 @@ class DaytonaWorkspaceBackend:
         self._sandbox.process.create_session(self._session_id)
         self._session_created = True
         logger.debug("Created Daytona process session: %s", self._session_id)
+
+    def _normalize(self, path: str) -> str:
+        """Translate an agent-space path into a sandbox-relative path.
+
+        The artifact publisher calls ``sandbox.fs.get_file_info(path)``
+        which resolves *path* relative to the **sandbox root**, not the
+        workspace root.  When the workspace root is a subdirectory of
+        the sandbox root (e.g. ``/home/daytona/workspace`` under
+        ``/home/daytona``), a bare relative path like
+        ``mcp-server-stigmer.yaml`` must be rebased to
+        ``workspace/mcp-server-stigmer.yaml``.
+
+        Steps:
+            1. Strip workspace-root prefix (prevents double-prefix).
+            2. Strip leading ``/`` (defense-in-depth).
+            3. Prepend rebase prefix when workspace root is a
+               subdirectory of sandbox root.
+
+        Examples (workspace_root = ``/home/daytona/workspace``,
+        sandbox_root = ``/home/daytona``, rebase_prefix = ``workspace``):
+
+        >>> backend._normalize("mcp-server-stigmer.yaml")
+        'workspace/mcp-server-stigmer.yaml'
+        >>> backend._normalize("/home/daytona/workspace/bin/skills/a/SKILL.md")
+        'workspace/bin/skills/a/SKILL.md'
+        >>> backend._normalize("/bin/skills/a/SKILL.md")
+        'workspace/bin/skills/a/SKILL.md'
+        """
+        prefix = self._workspace_root + "/"
+        if path.startswith(prefix):
+            relative = path[len(prefix):]
+        elif path == self._workspace_root:
+            relative = ""
+        else:
+            relative = path.lstrip("/")
+
+        if self._rebase_prefix:
+            result = (
+                f"{self._rebase_prefix}/{relative}" if relative else self._rebase_prefix
+            )
+        else:
+            result = relative or "."
+
+        if result != path:
+            logger.debug(
+                "Normalized path: '%s' -> '%s' "
+                "(workspace_root='%s', sandbox_root='%s')",
+                path,
+                result,
+                self._workspace_root,
+                self._sandbox_root,
+            )
+        return result
 
     def _abs(self, rel_path: str) -> str:
         """Resolve *rel_path* to an absolute sandbox path.
