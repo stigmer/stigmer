@@ -7,13 +7,24 @@ import { cn } from "@stigmer/theme";
 export interface SetupProgressProps {
   /**
    * Workspace entries from the session spec. When git-sourced entries
-   * are present, the indicator shows workspace-specific messaging
-   * (e.g. "Setting up workspace...") to match the backend's actual
-   * setup sequence.
+   * are present, the fallback indicator shows workspace-specific messaging
+   * (e.g. "Setting up workspace...").
    */
   readonly workspaceEntries?: readonly WorkspaceEntry[];
+  /**
+   * Server-reported setup phase label from
+   * `AgentExecutionStatus.setup_progress.current_phase`.
+   *
+   * When non-empty, rendered directly — the timer-based fallback is
+   * bypassed.  When absent or empty (older backends that don't emit
+   * setup progress), the component falls back to the time-based
+   * step sequence derived from `workspaceEntries`.
+   */
+  readonly serverPhase?: string;
   readonly className?: string;
 }
+
+/* ── Timer-based fallback (used when no serverPhase is available) ─── */
 
 interface SetupStep {
   readonly message: string;
@@ -55,28 +66,33 @@ function buildSteps(
  * Animated inline indicator shown in the message thread while an
  * execution is in the `PENDING` phase and no AI messages have arrived.
  *
- * Cycles through contextual status messages derived from the session
- * configuration (workspace entries, etc.) to communicate that the
- * backend is actively setting up the sandbox, cloning repositories,
- * merging environment variables, loading skills, and connecting MCP
- * servers.
+ * **Server-driven mode** — when the backend reports
+ * `setup_progress.current_phase` through the execution stream, the
+ * component renders the server-reported label directly.
  *
- * Uses time-based progression that approximates the backend's actual
- * setup sequence. A future backend-enriched phase (surfacing real
- * setup phase labels through the execution stream) can replace the
- * timer with server-reported progress.
+ * **Timer-based fallback** — when `serverPhase` is absent (older
+ * backends), the component cycles through contextual status messages
+ * derived from the session configuration on a fixed interval.
  *
  * All visual properties flow through `--stgm-*` tokens.
  *
  * @example
  * ```tsx
+ * // Server-driven (preferred)
+ * <SetupProgress serverPhase={execution.status?.setupProgress?.currentPhase} />
+ *
+ * // Fallback (no server phase available)
  * <SetupProgress workspaceEntries={session.spec?.workspaceEntries} />
  * ```
  */
 export function SetupProgress({
   workspaceEntries,
+  serverPhase,
   className,
 }: SetupProgressProps) {
+  const useServerPhase = !!serverPhase;
+
+  /* ── Timer-based fallback state ─────────────────────────────────── */
   const steps = useMemo(() => buildSteps(workspaceEntries), [workspaceEntries]);
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -85,6 +101,7 @@ export function SetupProgress({
   }, [steps]);
 
   useEffect(() => {
+    if (useServerPhase) return;
     if (stepIndex >= steps.length - 1) return;
 
     const timer = setTimeout(() => {
@@ -92,9 +109,11 @@ export function SetupProgress({
     }, steps[stepIndex].durationMs);
 
     return () => clearTimeout(timer);
-  }, [stepIndex, steps]);
+  }, [useServerPhase, stepIndex, steps]);
 
-  const currentMessage = steps[Math.min(stepIndex, steps.length - 1)].message;
+  /* ── Resolve display message ────────────────────────────────────── */
+  const currentMessage =
+    serverPhase || steps[Math.min(stepIndex, steps.length - 1)].message;
 
   return (
     <div

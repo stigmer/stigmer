@@ -224,6 +224,32 @@ message AgentExecutionStatus {
   //
   // @since Platform-Owned Git Write-Back
   repeated WorkspaceWriteBack workspace_write_backs = 17;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Setup Progress (Real-Time Setup Phase Reporting)
+  //
+  // Replaces the frontend's timer-based approximation with server-reported
+  // setup phases so subscribers see what the worker is actually doing.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+  // Populated progressively as the worker completes setup steps (sandbox init,
+  // workspace provisioning, skill loading, MCP server connection, etc.).
+  // Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+  // when phase transitions away from PENDING.
+  SetupProgress setup_progress = 18;
+}
+
+// Setup progress reported by the agent-runner during the EXECUTION_PENDING phase.
+//
+// Designed as a sub-message (rather than a bare string) so future fields
+// (completed_phases, total_phases, phase_index) can be added without
+// deprecation or breaking changes.
+message SetupProgress {
+  // Human-readable label for the current setup phase.
+  // Examples: "Initializing sandbox…", "Setting up workspace…", "Loading skills…"
+  // Empty when setup phase reporting has not started or is complete.
+  string current_phase = 1;
 }
 
 // Represents a single item in the agent's todo list.

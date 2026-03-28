@@ -827,4 +827,43 @@ ai.stigmer.agentic.agentexecution.v1.TodoItem defaultValue);
    */
   ai.stigmer.agentic.agentexecution.v1.WorkspaceWriteBackOrBuilder getWorkspaceWriteBacksOrBuilder(
       int index);
+
+  /**
+   * <pre>
+   * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+   * Populated progressively as the worker completes setup steps (sandbox init,
+   * workspace provisioning, skill loading, MCP server connection, etc.).
+   * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+   * when phase transitions away from PENDING.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+   * @return Whether the setupProgress field is set.
+   */
+  boolean hasSetupProgress();
+  /**
+   * <pre>
+   * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+   * Populated progressively as the worker completes setup steps (sandbox init,
+   * workspace provisioning, skill loading, MCP server connection, etc.).
+   * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+   * when phase transitions away from PENDING.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+   * @return The setupProgress.
+   */
+  ai.stigmer.agentic.agentexecution.v1.SetupProgress getSetupProgress();
+  /**
+   * <pre>
+   * Real-time setup progress reported by the agent-runner during EXECUTION_PENDING.
+   * Populated progressively as the worker completes setup steps (sandbox init,
+   * workspace provisioning, skill loading, MCP server connection, etc.).
+   * Only meaningful while phase == EXECUTION_PENDING. Cleared by the server
+   * when phase transitions away from PENDING.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.SetupProgress setup_progress = 18 [json_name = "setupProgress"];</code>
+   */
+  ai.stigmer.agentic.agentexecution.v1.SetupProgressOrBuilder getSetupProgressOrBuilder();
 }
