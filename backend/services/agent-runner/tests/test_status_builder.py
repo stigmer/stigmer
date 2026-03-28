@@ -1237,12 +1237,17 @@ class TestSubAgentInternals:
         assert run_id in status_builder._active_sub_agents
 
     @pytest.mark.asyncio
-    async def test_task_tool_does_not_create_regular_tool_call(self, status_builder):
-        """Test that 'task' tool does NOT create a regular ToolCall entry."""
+    async def test_task_tool_creates_parent_tool_call(self, status_builder):
+        """Task tool creates a ToolCall on the parent AI message.
+
+        The parent ToolCall gives the frontend a rendering slot for the
+        SubAgentSection (ToolCallGroup maps tc.id -> SubAgentExecution.id).
+        """
+        run_id = "task-run-456"
         event = {
             "event": "on_tool_start",
             "name": "task",
-            "run_id": "task-run-456",
+            "run_id": run_id,
             "data": {
                 "input": {
                     "subagent_type": "researcher",
@@ -1251,15 +1256,23 @@ class TestSubAgentInternals:
             },
             "metadata": {}
         }
-        
+
         await status_builder.process_event(event)
-        
-        # No regular tool calls should be created
-        assert status_builder.tool_call_count() == 0
-        assert len(status_builder.current_status.messages) == 0
-        
-        # But sub-agent should exist
+
+        assert status_builder.tool_call_count() == 1
+        assert len(status_builder.current_status.messages) == 1
+
+        parent_ai = status_builder.current_status.messages[0]
+        assert parent_ai.type == MessageType.MESSAGE_AI
+        assert len(parent_ai.tool_calls) == 1
+        tc = parent_ai.tool_calls[0]
+        assert tc.name == "task"
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+
+        # Sub-agent should also exist, with id matching the ToolCall.id
         assert len(status_builder.current_status.sub_agent_executions) == 1
+        sa = status_builder.current_status.sub_agent_executions[0]
+        assert sa.id == tc.id
 
     @pytest.mark.asyncio
     async def test_sub_agent_completion_sets_output(self, status_builder):
@@ -1375,9 +1388,12 @@ class TestSubAgentInternals:
             "metadata": {"langgraph_checkpoint_ns": namespace}
         })
         
-        # Verify tool call is in sub-agent messages, not main agent
-        assert sum(len(m.tool_calls) for m in status_builder.current_status.messages) == 0
-        
+        # Main agent has exactly 1 tool call (the "task" ToolCall itself)
+        main_tcs = [tc for m in status_builder.current_status.messages for tc in m.tool_calls]
+        assert len(main_tcs) == 1
+        assert main_tcs[0].name == "task"
+
+        # Sub-agent's internal tool call goes to the sub-agent's messages
         sub_agent = status_builder.current_status.sub_agent_executions[0]
         sa_tcs = [tc for m in sub_agent.messages for tc in m.tool_calls]
         assert len(sa_tcs) == 1
@@ -1415,9 +1431,11 @@ class TestSubAgentInternals:
             "metadata": {"langgraph_checkpoint_ns": namespace}
         })
         
-        # Verify message is in sub-agent, not main agent
-        assert len(status_builder.current_status.messages) == 0  # Not in main
-        
+        # Main agent has 1 AI message (the parent containing the "task" ToolCall)
+        assert len(status_builder.current_status.messages) == 1
+        assert status_builder.current_status.messages[0].tool_calls[0].name == "task"
+
+        # Sub-agent's AI message content routes to the sub-agent, not main
         sub_agent = status_builder.current_status.sub_agent_executions[0]
         assert len(sub_agent.messages) == 1
         assert sub_agent.messages[0].content == "I'll help you with that."
@@ -1534,9 +1552,11 @@ class TestSubAgentInternals:
         sa2_tcs = [tc for m in sub_agent_2.messages for tc in m.tool_calls]
         assert len(sa2_tcs) == 1
         assert sa2_tcs[0].name == "write_file"
-        
-        # Main agent should have no tool calls
-        assert sum(len(m.tool_calls) for m in status_builder.current_status.messages) == 0
+
+        # Main agent has exactly the 2 "task" ToolCalls (one per sub-agent)
+        main_tcs = [tc for m in status_builder.current_status.messages for tc in m.tool_calls]
+        assert len(main_tcs) == 2
+        assert all(tc.name == "task" for tc in main_tcs)
 
     @pytest.mark.asyncio
     async def test_main_agent_events_unaffected(self, status_builder):
@@ -2065,6 +2085,146 @@ class TestSubAgentInternals:
         # Verify the namespace was registered as a side effect
         assert namespace in status_builder._namespace_to_sub_agent_id
 
+    # ── Early ToolCall reconciliation for task tool ──────────────────────
+
+    @pytest.mark.asyncio
+    async def test_task_early_tool_call_reconciliation(self, status_builder):
+        """When an early ToolCall exists for a 'task' tool, SubAgentExecution.id
+        uses the Anthropic tool_call_id so the frontend can match them."""
+
+        tool_use_id = "toolu_01ABC123"
+        run_id = "task-early-reconcile"
+
+        # Simulate the early ToolCall (normally created by on_chat_model_stream)
+        status_builder._create_early_tool_call(
+            tool_name="task",
+            tool_use_id=tool_use_id,
+            ns_key="",
+            namespace="",
+        )
+
+        assert status_builder.tool_call_count() == 1
+        early_tc = status_builder.get_tool_call(tool_use_id)
+        assert early_tc is not None
+        assert early_tc.name == "task"
+
+        # Process on_tool_start for the task tool
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "researcher",
+                    "description": "Explore the codebase",
+                }
+            },
+            "metadata": {},
+        })
+
+        # ToolCall count unchanged (reconciled, not duplicated)
+        assert status_builder.tool_call_count() == 1
+
+        sa = status_builder.current_status.sub_agent_executions[0]
+        assert sa.id == tool_use_id
+        assert sa.name == "researcher"
+
+        # run_id -> tool_call_id mapping is registered
+        assert status_builder._run_id_to_tool_call_id[run_id] == tool_use_id
+
+    # ── Resume deduplication ─────────────────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_resume_dedup_prevents_duplicate_sub_agents(self, status_builder):
+        """Replaying on_tool_start for an already-existing sub-agent
+        reactivates it instead of creating a duplicate."""
+
+        run_id_1 = "task-resume-orig"
+
+        # First invocation: creates the sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id_1,
+            "data": {
+                "input": {
+                    "subagent_type": "explorer",
+                    "description": "Find references",
+                }
+            },
+            "metadata": {},
+        })
+
+        assert len(status_builder.current_status.sub_agent_executions) == 1
+        sa = status_builder.current_status.sub_agent_executions[0]
+        original_sa_id = sa.id
+
+        # Second invocation with a NEW run_id (simulating resume after approval)
+        # but same tool_call_id because the AI message is replayed.
+        #
+        # To simulate this, we need a matching sa_id.  In production the early
+        # ToolCall dedup prevents a duplicate early TC, so the reconciliation
+        # returns the same tool_call_id.  For the unit test, we directly call
+        # _handle_sub_agent_start.
+        run_id_2 = "task-resume-replay"
+        await status_builder._handle_sub_agent_start(
+            event={
+                "event": "on_tool_start",
+                "name": "task",
+                "run_id": run_id_2,
+            },
+            tool_args={"subagent_type": "explorer", "description": "Find references"},
+            run_id=run_id_2,
+            tool_call_id=original_sa_id,
+        )
+
+        # Still only 1 SubAgentExecution — not duplicated
+        assert len(status_builder.current_status.sub_agent_executions) == 1
+        assert status_builder.current_status.sub_agent_executions[0].id == original_sa_id
+
+        # New run_id maps to the existing sub-agent
+        assert run_id_2 in status_builder._active_sub_agents
+
+    # ── Sub-agent completion marks parent ToolCall as COMPLETED ──────────
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_end_completes_parent_tool_call(self, status_builder):
+        """When a sub-agent completes, the parent 'task' ToolCall is also
+        marked COMPLETED so the frontend shows finished state."""
+
+        run_id = "task-tc-complete"
+
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {
+                "input": {
+                    "subagent_type": "worker",
+                    "description": "Do work",
+                }
+            },
+            "metadata": {},
+        })
+
+        # Verify task ToolCall is RUNNING
+        parent_ai = status_builder.current_status.messages[0]
+        assert len(parent_ai.tool_calls) == 1
+        tc = parent_ai.tool_calls[0]
+        assert tc.status == ToolCallStatus.TOOL_CALL_RUNNING
+
+        # Complete the sub-agent
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": "Work done"},
+            "metadata": {},
+        })
+
+        assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED
+        assert tc.completed_at != ""
+
 
 # =============================================================================
 # Sub-Agent Scenario Tests (PR5 — multi-step interaction coverage)
@@ -2222,7 +2382,11 @@ class TestSubAgentScenarios:
         sa_b_tcs = [tc for m in sa_b.messages for tc in m.tool_calls]
         assert len(sa_b_tcs) == 1
         assert sa_b_tcs[0].name == "pytest"
-        assert sum(len(m.tool_calls) for m in status_builder.current_status.messages) == 0
+
+        # Main agent has exactly 2 "task" ToolCalls (one per sub-agent)
+        main_tcs = [tc for m in status_builder.current_status.messages for tc in m.tool_calls]
+        assert len(main_tcs) == 2
+        assert all(tc.name == "task" for tc in main_tcs)
 
         # Complete SA-B first
         await status_builder.process_event({
@@ -2356,8 +2520,11 @@ class TestNamespaceRegistrationStrategies:
             "metadata": {"langgraph_checkpoint_ns": "root-two:y|node-b"}
         })
 
-        # Tool call should be in sub-agent messages, not main
-        assert sum(len(m.tool_calls) for m in status_builder.current_status.messages) == 0
+        # Main agent has 1 "task" ToolCall; sub-agent internal tools go to sub-agent
+        main_tcs = [tc for m in status_builder.current_status.messages for tc in m.tool_calls]
+        assert len(main_tcs) == 1
+        assert main_tcs[0].name == "task"
+
         sub_agent = status_builder.current_status.sub_agent_executions[0]
         tool_names = [tc.name for m in sub_agent.messages for tc in m.tool_calls]
         assert "list_files" in tool_names
@@ -2549,7 +2716,10 @@ class TestConcurrentSubAgentNamespaceRegistration:
                 "metadata": {"langgraph_checkpoint_ns": f"{ns_root}|child"},
             })
 
-        assert sum(len(m.tool_calls) for m in status_builder.current_status.messages) == 0
+        # Main agent has 4 "task" ToolCalls (one per sub-agent)
+        main_tcs = [tc for m in status_builder.current_status.messages for tc in m.tool_calls]
+        assert len(main_tcs) == 4
+        assert all(tc.name == "task" for tc in main_tcs)
 
         for sa_id in sa_ids:
             sa = status_builder._active_sub_agents[sa_id]

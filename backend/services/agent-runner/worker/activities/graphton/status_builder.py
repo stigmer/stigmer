@@ -396,6 +396,12 @@ class StatusBuilder:
         # events from LangGraph still route to the correct proto.
         self._completed_sub_agents: dict[str, SubAgentExecution] = {}
 
+        # Bridge between LangGraph run_ids and Anthropic tool_call_ids.
+        # SubAgentExecution.id uses the tool_call_id (for frontend matching),
+        # while _active_sub_agents and namespace registration use the run_id.
+        # Key: LangGraph run_id, Value: tool_call_id (= SubAgentExecution.id)
+        self._run_id_to_tool_call_id: dict[str, str] = {}
+
         # Map namespace to sub-agent run_id for event routing
         # Key: namespace string, Value: sub-agent run_id
         self._namespace_to_sub_agent_id: dict[str, str] = {}
@@ -800,10 +806,47 @@ class StatusBuilder:
         
         # ─────────────────────────────────────────────────────────────────────
         # Sub-Agent Detection (Phase 2.3): "task" tool invokes a sub-agent
+        #
+        # Reconcile the early ToolCall (created from the tool_use stream
+        # block) so it persists in the parent AI message — this is the slot
+        # the frontend uses to render SubAgentSection.  Extract the
+        # tool_call_id so SubAgentExecution.id matches ToolCall.id.
         # ─────────────────────────────────────────────────────────────────────
         if tool_name == "task":
-            await self._handle_sub_agent_start(event, tool_args, run_id)
-            return  # Don't create regular ToolCall for task tool
+            tool_call_id: str | None = None
+            early_tc = self._reconcile_early_tool_call(tool_name, run_id, tool_args, namespace)
+            if early_tc is not None:
+                tool_call_id = early_tc.id
+            else:
+                # No early ToolCall (e.g. checkpoint replay where the stream
+                # did not re-emit tool_use blocks).  Create one now so the
+                # frontend has a tool call slot for the sub-agent.
+                ns_key = namespace or ""
+                display_args = self._humanize_args_for_display(tool_args) if tool_args else {}
+                args_struct = Struct()
+                if display_args:
+                    args_struct.update(display_args)
+                now = datetime.utcnow()
+                tool_call = ToolCall(
+                    id=run_id,
+                    name=tool_name,
+                    args=args_struct,
+                    args_preview=self._create_args_preview(tool_args),
+                    result="",
+                    status=ToolCallStatus.TOOL_CALL_RUNNING,
+                    component_metadata=ComponentMetadata(
+                        component_type=infer_component_type(tool_name),
+                        component_group="main-agent-tools",
+                    ),
+                    started_at=_utc_timestamp(now),
+                )
+                parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
+                parent_ai.tool_calls.append(tool_call)
+                self._tool_call_index[run_id] = parent_ai.tool_calls[-1]
+                tool_call_id = run_id
+
+            await self._handle_sub_agent_start(event, tool_args, run_id, tool_call_id=tool_call_id)
+            return
         
         # ─────────────────────────────────────────────────────────────────────
         # Early Tool Call Reconciliation (Live Write Streaming UX)
@@ -1181,7 +1224,7 @@ class StatusBuilder:
             # When a tool_use block appears in the stream, create the ToolCall
             # right away so the CLI replaces the idle "Thinking…" indicator
             # with the actual tool name (e.g. "Write: …").
-            skip_early_tools = frozenset(PLANNING_TOOLS) | {"task"}
+            skip_early_tools = frozenset(PLANNING_TOOLS)
             for block in chunk_data.content:
                 try:
                     if self._block_attr(block, "type") == "tool_use":
@@ -2586,20 +2629,53 @@ class StatusBuilder:
                 f"pending={self._pending_sub_agent_ids}"
             )
     
-    async def _handle_sub_agent_start(self, event: dict[str, Any], tool_args: dict[str, Any], run_id: str) -> None:
+    async def _handle_sub_agent_start(
+        self,
+        event: dict[str, Any],
+        tool_args: dict[str, Any],
+        run_id: str,
+        *,
+        tool_call_id: str | None = None,
+    ) -> None:
         """Handle task tool invocation — creates SubAgentExecution.
 
         In deepagents' task tool, ``description`` is the full task prompt (the
         only text parameter alongside ``subagent_type``).  We map it to
         ``input`` and generate a concise ``subject`` via an economy-tier LLM.
 
+        The SubAgentExecution.id is set to *tool_call_id* (the Anthropic
+        ``tool_use`` id, e.g. ``toolu_XXXXX``) so the frontend can match it
+        against the ToolCall.id on the parent AI message.  The LangGraph
+        *run_id* is stored separately in ``_active_sub_agents`` for namespace
+        registration (which operates on run_ids from LangGraph events).
+
         Args:
             event: The on_tool_start event dictionary.
             tool_args: Unwrapped tool arguments.
-            run_id: The run_id for this tool invocation.
+            run_id: The LangGraph run_id for this tool invocation.
+            tool_call_id: The Anthropic tool_use id from the early ToolCall.
+                Falls back to *run_id* when unavailable.
         """
+        sa_id = tool_call_id or run_id
+
+        # ── Resume deduplication ──────────────────────────────────────────
+        # On resume, LangGraph replays from checkpoint and re-fires
+        # on_tool_start for task tools.  Avoid creating duplicate
+        # SubAgentExecution entries.
+        for existing_sa in self.current_status.sub_agent_executions:
+            if existing_sa.id == sa_id:
+                self._active_sub_agents[run_id] = existing_sa
+                self._run_id_to_tool_call_id[run_id] = sa_id
+                if run_id not in self._pending_sub_agent_ids:
+                    self._pending_sub_agent_ids.append(run_id)
+                self.logger.info(
+                    "[SUBAGENT] execution=%s resume reactivation: "
+                    "sa_id=%s run_id=%s (skipping duplicate creation)",
+                    self.execution_id, sa_id, run_id,
+                )
+                return
+
         sub_agent_name = tool_args.get("subagent_type", "") or tool_args.get("agent_type", "") or "unknown"
-        # deepagents' task tool uses "description" as the full task prompt
         sub_agent_input = (
             tool_args.get("description", "")
             or tool_args.get("input", "")
@@ -2622,7 +2698,7 @@ class StatusBuilder:
 
         now = datetime.utcnow()
         sub_agent = SubAgentExecution(
-            id=run_id,
+            id=sa_id,
             name=sub_agent_name,
             input=sub_agent_input,
             subject=subject,
@@ -2637,6 +2713,7 @@ class StatusBuilder:
         # (messages, tool_calls, usage) write to the actual status proto.
         self.current_status.sub_agent_executions.append(sub_agent)
         self._active_sub_agents[run_id] = self.current_status.sub_agent_executions[-1]
+        self._run_id_to_tool_call_id[run_id] = sa_id
 
         # Enqueue for causal namespace registration.
         # The next unregistered multi-segment namespace will be associated
@@ -2647,61 +2724,80 @@ class StatusBuilder:
 
         self.logger.info(
             f"[SUBAGENT] execution={self.execution_id} "
-            f"sub_agent={sub_agent_name} id={run_id} "
+            f"sub_agent={sub_agent_name} sa_id={sa_id} run_id={run_id} "
             f"subject={subject!r} status=IN_PROGRESS "
             f"(pending namespace registration)"
         )
     
     def _handle_sub_agent_end(self, event: dict[str, Any], run_id: str) -> None:
-        """
-        Handle task tool completion - finalize SubAgentExecution.
-        
-        This is called when the "task" tool returns, indicating the sub-agent
-        has completed its work (successfully or with failure).
-        
+        """Handle task tool completion — finalize SubAgentExecution.
+
+        Uses ``_active_sub_agents[run_id]`` for a direct proto reference when
+        available, falling back to a linear scan by ``tool_call_id`` (the
+        SubAgentExecution.id) when the dict entry is missing.
+
+        Also marks the corresponding ToolCall on the parent AI message as
+        COMPLETED so the frontend shows the sub-agent as finished.
+
         Args:
-            event: The on_tool_end event dictionary
-            run_id: The run_id for this task tool invocation
+            event: The on_tool_end event dictionary.
+            run_id: The LangGraph run_id for this task tool invocation.
         """
         output_raw = event.get("data", {}).get("output", "")
         output = self._extract_tool_result_content(output_raw)
         now = datetime.utcnow()
-        
-        # Check for error indicators in output
+
         is_error = False
         error_message = ""
         if isinstance(output_raw, dict):
             if output_raw.get("error") or output_raw.get("status") == "failed":
                 is_error = True
-                error_message = output_raw.get("error", "") or output_raw.get("message", "Sub-agent failed")
-        
-        # Find and update the sub-agent execution
-        found = False
-        for sub_agent in self.current_status.sub_agent_executions:
-            if sub_agent.id == run_id:
-                found = True
-                sub_agent.output = output
-                sub_agent.completed_at = _utc_timestamp(now)
-
-                if is_error:
-                    sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
-                    sub_agent.error = error_message
-                else:
-                    sub_agent.status = SubAgentStatus.SUB_AGENT_COMPLETED
-
-                self.logger.debug(
-                    f"[SUBAGENT] execution={self.execution_id} "
-                    f"id={run_id} status={'FAILED' if is_error else 'COMPLETED'}"
+                error_message = (
+                    output_raw.get("error", "")
+                    or output_raw.get("message", "Sub-agent failed")
                 )
-                break
 
-        if not found:
-            self.logger.warning(
-                f"[SUBAGENT] execution={self.execution_id} "
-                f"_handle_sub_agent_end: no SubAgentExecution found for "
-                f"run_id={run_id} "
-                f"known_ids={[sa.id for sa in self.current_status.sub_agent_executions]}"
+        # Prefer the direct proto reference from _active_sub_agents.
+        sub_agent_ref = self._active_sub_agents.get(run_id)
+        if sub_agent_ref is None:
+            # Fallback: scan by tool_call_id (SubAgentExecution.id)
+            sa_id = self._run_id_to_tool_call_id.get(run_id, run_id)
+            for sa in self.current_status.sub_agent_executions:
+                if sa.id == sa_id:
+                    sub_agent_ref = sa
+                    break
+
+        if sub_agent_ref is not None:
+            sub_agent_ref.output = output
+            sub_agent_ref.completed_at = _utc_timestamp(now)
+            if is_error:
+                sub_agent_ref.status = SubAgentStatus.SUB_AGENT_FAILED
+                sub_agent_ref.error = error_message
+            else:
+                sub_agent_ref.status = SubAgentStatus.SUB_AGENT_COMPLETED
+            self.logger.debug(
+                "[SUBAGENT] execution=%s sa_id=%s run_id=%s status=%s",
+                self.execution_id, sub_agent_ref.id, run_id,
+                "FAILED" if is_error else "COMPLETED",
             )
+        else:
+            self.logger.warning(
+                "[SUBAGENT] execution=%s _handle_sub_agent_end: "
+                "no SubAgentExecution found for run_id=%s "
+                "known_ids=%s",
+                self.execution_id, run_id,
+                [sa.id for sa in self.current_status.sub_agent_executions],
+            )
+
+        # Mark the parent ToolCall as COMPLETED so the frontend reflects
+        # the sub-agent's finished state.
+        tc_id = self._run_id_to_tool_call_id.get(run_id)
+        if tc_id:
+            parent_tc = self.get_tool_call(tc_id)
+            if parent_tc is not None:
+                parent_tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
+                parent_tc.completed_at = _utc_timestamp(now)
+                parent_tc.result = output[:_MAX_STATUS_RESULT_CHARS] if output else ""
 
         # Move from active to completed (preserving reference for late events).
         # Namespace mappings are NOT deleted — late-arriving events from
