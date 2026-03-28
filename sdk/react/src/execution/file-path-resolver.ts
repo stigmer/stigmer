@@ -62,7 +62,15 @@ export function resolveGitBrowseUrl(
   if (!repoPath) return null;
 
   const ref = commit || branch || "HEAD";
-  const cleanRelPath = relPath.replace(/^\/+/, "");
+  let cleanRelPath = relPath.replace(/^\/+/, "");
+
+  // Guard against relPath that accidentally duplicates the org/repo
+  // already encoded in gitUrl (e.g. relPath = "acme/app/src/main.go"
+  // when repoPath is "acme/app"). Strip the redundant prefix so the
+  // final URL doesn't contain the repo path twice.
+  if (cleanRelPath.startsWith(repoPath + "/")) {
+    cleanRelPath = cleanRelPath.slice(repoPath.length + 1);
+  }
 
   return `https://github.com/${repoPath}/blob/${ref}/${cleanRelPath}`;
 }
@@ -83,9 +91,9 @@ export type ResolvedPathAction =
  * 1. **Platform paths** (`.stigmer/` prefix) → copy raw path.
  * 2. **Workspace paths** → match against workspace entries:
  *    - Single entry: treat path as relative to that entry.
- *    - Multiple entries: match first path segment against entry names.
- *      Unmatched segments fall back to the first entry (optimistic —
- *      single-workspace sessions are the common case).
+ *    - Multiple entries: scan path segments for an entry name match
+ *      (handles org-prefixed paths like `plantonhq/agent-fleet/...`).
+ *      Unmatched paths fall back to the first entry.
  * 3. **Git source** → construct GitHub blob URL.
  * 4. **Local source** → join with absolute local path for copy.
  * 5. **Fallback** → copy the raw path.
@@ -139,8 +147,11 @@ export function resolvePathAction(
 /**
  * Matches a workspace-relative path against entries. With a single
  * entry the path is used as-is. With multiple entries the first path
- * segment is tested against entry names; unmatched paths fall back to
- * the first entry (same strategy as the CLI).
+ * segment is tested against entry names. When the first segment
+ * doesn't match, deeper segments are scanned — this handles tool-call
+ * paths that embed an org prefix (e.g. `plantonhq/agent-fleet/...`
+ * where the entry name is `agent-fleet`). Unmatched paths fall back
+ * to the first entry.
  */
 function matchWorkspaceEntry(
   relPath: string,
@@ -150,13 +161,14 @@ function matchWorkspaceEntry(
     return { entry: entries[0], relPath };
   }
 
-  const slashIdx = relPath.indexOf("/");
-  const firstSegment = slashIdx >= 0 ? relPath.slice(0, slashIdx) : relPath;
+  const segments = relPath.split("/");
 
-  for (const entry of entries) {
-    if (entry.name === firstSegment) {
-      const rest = slashIdx >= 0 ? relPath.slice(slashIdx + 1) : "";
-      return { entry, relPath: rest };
+  for (let i = 0; i < segments.length; i++) {
+    for (const entry of entries) {
+      if (entry.name === segments[i]) {
+        const rest = segments.slice(i + 1).join("/");
+        return { entry, relPath: rest };
+      }
     }
   }
 
