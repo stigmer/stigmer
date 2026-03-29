@@ -142,7 +142,7 @@ class ResumeReconciler:
         approval_decisions: list[SubmitApprovalInput],
     ) -> None:
         """Run the full reconciliation pipeline."""
-        # Rebuild _tool_call_index BEFORE the reconciliation loop so that
+        # Rebuild the tool call index BEFORE the reconciliation loop so that
         # get_tool_call() and iter_all_tool_calls() can find persisted tool
         # calls from the previous execution cycle.
         self._sb.rebuild_index_from_persisted_status()
@@ -208,7 +208,7 @@ class ResumeReconciler:
             "reconciled %d tool call(s), "
             "index size=%d",
             self._execution_id, reconciled_count,
-            len(self._sb._tool_call_index),
+            self._sb.tool_call_count(),
         )
 
     def reconcile_orphans_against_checkpoint(

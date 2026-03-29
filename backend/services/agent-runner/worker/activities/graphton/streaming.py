@@ -135,7 +135,7 @@ class StreamExecutor:
             return None
 
         run_id = event.get("run_id", "")
-        resolved_id = self._sb._resolve_run_id(run_id)
+        resolved_id = self._sb.resolve_run_id(run_id)
         path = ""
         tc = self._sb.get_tool_call(resolved_id)
         if tc is not None:
