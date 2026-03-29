@@ -37,9 +37,13 @@ func makeAIMessageWithToolCalls(toolCalls ...*agentexecutionv1.ToolCall) *agente
 }
 
 func makeExecutionWithMessages(messages []*agentexecutionv1.AgentMessage, subAgents []*agentexecutionv1.SubAgentExecution) *agentexecutionv1.AgentExecution {
+	return makeExecutionWithPhase(agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL, messages, subAgents)
+}
+
+func makeExecutionWithPhase(phase agentexecutionv1.ExecutionPhase, messages []*agentexecutionv1.AgentMessage, subAgents []*agentexecutionv1.SubAgentExecution) *agentexecutionv1.AgentExecution {
 	return &agentexecutionv1.AgentExecution{
 		Status: &agentexecutionv1.AgentExecutionStatus{
-			Phase:              agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
+			Phase:              phase,
 			Messages:           messages,
 			SubAgentExecutions: subAgents,
 			PendingApprovals:   approval.ComputePendingApprovals(messages, subAgents),

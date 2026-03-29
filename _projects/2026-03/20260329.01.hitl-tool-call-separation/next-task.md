@@ -13,9 +13,18 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: in-progress
-- **Last Session**: March 29, 2026 (Session 3) — T03 implementation completed (Go, Java, Python)
-- **Active Task**: T03 complete. Next: T04 (Phase Gate Relaxation)
+- **Last Session**: March 29, 2026 (Session 4) — Removed 8-second optimistic dismiss grace from frontend
+- **Active Task**: T04 (Phase Gate Relaxation) in progress in a separate conversation
 - **Plan Approved**: Yes
+
+## Session Progress (2026-03-29, Session 4)
+- Analyzed the `DISMISS_GRACE_MS` (8s) optimistic dismissal pattern in the frontend HITL approval flow
+- Confirmed it was a pre-T01 workaround now made redundant by T01 (atomic SubmitApproval) + T02 (approval field preservation) + T03 (stream publish from submitApproval)
+- Removed the entire dismiss mechanism: `dismissTimestamps` state, reconciliation `useEffect`, `dismissedApprovalIds` from hook return and `MessageThread` props
+- Simplified `pendingApprovals` to read directly from the execution stream (single source of truth)
+- Removed optimistic dismissal tests and unused imports
+- 4 files changed, 162 lines removed
+- Committed: stigmer `3ba85a74`
 
 ## Session Progress (2026-03-29, Session 3)
 - Implemented T03: DB-Driven Resume across all three language components
@@ -44,12 +53,19 @@ Drop this file into your conversation to quickly resume work on this project.
 - Tests: Go (3), Java (6), Python (8)
 - Committed: stigmer `pending`, stigmer-cloud `pending`
 
+### Frontend: Remove Optimistic Dismiss Grace (Session 4)
+- Removed `DISMISS_GRACE_MS` (8s) workaround from `useSessionConversation`
+- Removed `dismissedApprovalIds` from `UseSessionConversationReturn` and `MessageThreadProps` public API
+- Simplified `pendingApprovals` to stream-driven (single source of truth)
+- Committed: stigmer `3ba85a74`
+
 ## Next Steps
-1. **T04**: Phase Gate Relaxation — relax phase constraints so approvals can be submitted even after the workflow resumes
+1. **T04**: Phase Gate Relaxation — relax phase constraints so approvals can be submitted even after the workflow resumes (in progress in separate conversation)
 
 ## Context for Resume
 - T01 and T02 are **code-complete and committed** in both repos but **not yet pushed**
 - T03 is **code-complete and committed** in both repos but **not yet pushed**
+- Frontend dismiss grace removal is **committed** in stigmer but **not yet pushed**
 - The field-ownership model is enforced: `SubmitApproval` owns `approval_action`, `approval_decided_at`, `approved_by`; `update_status` owns everything else
 - The workflow now waits for a single `approvalGateResolved` signal per HITL cycle instead of counting N individual signals
 - Python activity detects resume via LangGraph checkpoint interrupts and reads decisions from the DB-loaded execution object
@@ -64,6 +80,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - **Big bang deployment (T03)**: No Temporal versioning or dual-signaling. In-flight HITL workflows break on restart.
 - **Signal name `approvalGateResolved`**: Signals that the approval gate has resolved (all decided or rejected), not that workflow should resume.
 - **Python backward compat (T03)**: Both Temporal-args and DB-driven decision paths are supported. Old workflows sending decisions still work.
+- **Dismiss grace removal**: The 8s `DISMISS_GRACE_MS` was a pre-T01 workaround. With T01+T02+T03, `submitApproval` publishes the updated execution (with recomputed `pending_approvals`) to the stream, so the frontend gets the update within milliseconds. `submittingApprovalIds` covers the in-flight RPC window.
 
 ## Essential Files to Review
 
