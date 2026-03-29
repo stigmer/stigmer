@@ -57,12 +57,15 @@ const (
 //
 // ## Temporal Integration
 //
-// After persisting the resolved state, the handler sends a submitApproval signal
-// to the running Temporal workflow. The workflow receives this signal and:
-//  1. Unblocks its signal channel
-//  2. Collects approval decisions (one per pending tool call)
-//  3. Re-invokes the Python activity with the decisions
-//  4. Python processes the decisions and resumes execution
+// After persisting the resolved state, the handler sends an approvalGateResolved
+// signal to the running Temporal workflow ONLY when the gate has fully resolved:
+//   - REJECT action: signal immediately (Python auto-skips remaining tool calls)
+//   - All decided: signal when pending_approvals becomes empty
+//   - Otherwise: no signal — the workflow continues waiting
+//
+// The workflow waits for exactly one approvalGateResolved signal per approval
+// cycle, then re-invokes Python. Python reads the approval decisions from the
+// DB (not from Temporal args) and resumes execution.
 func (c *AgentExecutionController) SubmitApproval(ctx context.Context, input *agentexecutionv1.SubmitApprovalInput) (*agentexecutionv1.AgentExecution, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, input)
 
@@ -84,7 +87,7 @@ func (c *AgentExecutionController) SubmitApproval(ctx context.Context, input *ag
 //  2. LoadExisting               - Load AgentExecution from store
 //  3. ValidateApproval           - Validate phase, tool_call_id match, idempotency
 //  4. RecordApprovalDecision     - Record decision on ToolCall, broadcast to subscribers
-//  5. SignalWorkflow             - Send Temporal signal to running workflow
+//  5. SignalWorkflow             - Conditionally send approvalGateResolved signal
 //  6. BuildResponse              - Return current execution state (with audit log)
 func (c *AgentExecutionController) buildSubmitApprovalPipeline() *pipeline.Pipeline[*agentexecutionv1.SubmitApprovalInput] {
 	return pipeline.NewPipeline[*agentexecutionv1.SubmitApprovalInput]("agent-execution-submit-approval").
@@ -332,12 +335,18 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 	return nil
 }
 
-// signalWorkflowStep sends a Temporal signal to the running workflow.
+// signalWorkflowStep conditionally sends an approvalGateResolved signal to the
+// running Temporal workflow when the approval gate has fully resolved.
+//
+// The signal is sent when either:
+//   - The submitted action is REJECT (immediate resume — Python auto-skips remaining)
+//   - All pending tool calls have received decisions (pending_approvals is empty)
+//
+// If neither condition is met, no signal is sent — the workflow continues waiting
+// for the remaining approvals.
 //
 // If the workflow is no longer running (WorkflowNotFound), this step reconciles
-// the execution status in the database to FAILED. This prevents executions from
-// being permanently stuck in WAITING_FOR_APPROVAL when the backing workflow has
-// terminated unexpectedly (e.g., infrastructure failure, manual termination).
+// the execution status in the database to FAILED.
 type signalWorkflowStep struct {
 	workflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
 	store           store.Store
@@ -352,13 +361,11 @@ func (s *signalWorkflowStep) Name() string {
 }
 
 func (s *signalWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.SubmitApprovalInput]) error {
-	// Skip if this is an idempotent request (already processed)
 	if isIdempotent, ok := ctx.Get(IsIdempotentRequestKey).(bool); ok && isIdempotent {
 		log.Debug().Msg("Skipping workflow signal for idempotent request")
 		return nil
 	}
 
-	// Skip if workflow creator is not available (graceful degradation)
 	if s.workflowCreator == nil {
 		log.Warn().Msg("Workflow creator not available - skipping Temporal signal")
 		return nil
@@ -367,20 +374,38 @@ func (s *signalWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutio
 	input := ctx.Input()
 	execution := ctx.Get(steps.TargetResourceKey).(*agentexecutionv1.AgentExecution)
 	executionID := execution.GetMetadata().GetId()
+	action := input.GetAction()
+	pendingRemaining := len(execution.GetStatus().GetPendingApprovals())
+
+	isReject := action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
+	allDecided := pendingRemaining == 0
+
+	if !isReject && !allDecided {
+		log.Info().
+			Str("execution_id", executionID).
+			Str("tool_call_id", input.GetToolCallId()).
+			Str("action", action.String()).
+			Int("pending_approvals_remaining", pendingRemaining).
+			Msg("Approval recorded, gate not yet resolved — waiting for remaining approvals")
+		return nil
+	}
+
+	reason := "all tool calls decided"
+	if isReject {
+		reason = "REJECT triggers immediate resume"
+	}
 
 	log.Info().
 		Str("execution_id", executionID).
 		Str("tool_call_id", input.GetToolCallId()).
-		Str("action", input.GetAction().String()).
-		Msg("Signaling Temporal workflow with approval decision")
+		Str("action", action.String()).
+		Str("reason", reason).
+		Int("pending_approvals_remaining", pendingRemaining).
+		Msg("Approval gate resolved — sending approvalGateResolved signal")
 
-	err := s.workflowCreator.SignalApproval(executionID, input)
+	err := s.workflowCreator.SignalApprovalGateResolved(executionID)
 	if err != nil {
 		if errors.Is(err, agentexecutiontemporal.ErrWorkflowNotFound) {
-			// Workflow not running - reconcile the stale execution status.
-			// The DB still shows WAITING_FOR_APPROVAL but the workflow that would
-			// process the approval no longer exists. Update to FAILED so the
-			// execution is not permanently stuck.
 			log.Warn().
 				Str("execution_id", executionID).
 				Msg("Workflow not found - reconciling stale execution status to FAILED")
@@ -402,7 +427,8 @@ func (s *signalWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutio
 
 	log.Info().
 		Str("execution_id", executionID).
-		Msg("Successfully signaled workflow with approval decision")
+		Str("reason", reason).
+		Msg("Successfully sent approvalGateResolved signal to workflow")
 
 	return nil
 }

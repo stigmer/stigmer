@@ -146,6 +146,58 @@ func (c *InvokeAgentExecutionWorkflowCreator) SignalApproval(executionID string,
 	return nil
 }
 
+// SignalApprovalGateResolved sends an approvalGateResolved signal to a running
+// agent execution workflow, indicating that the approval gate for the current
+// HITL cycle has fully resolved.
+//
+// This is sent by SubmitApproval when either:
+//   - All pending tool calls have received decisions (gate fully cleared)
+//   - A REJECT action was submitted (immediate resume, Python auto-skips remaining)
+//
+// The workflow waits for exactly one of these signals per approval cycle,
+// replacing the previous pattern of counting N individual submitApproval signals.
+func (c *InvokeAgentExecutionWorkflowCreator) SignalApprovalGateResolved(executionID string) error {
+	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeAgentExecutionWorkflowName, executionID)
+
+	log.Info().
+		Str("workflow_id", workflowID).
+		Str("execution_id", executionID).
+		Msg("Sending approvalGateResolved signal to workflow")
+
+	err := c.workflowClient.SignalWorkflow(
+		context.Background(),
+		workflowID,
+		"",
+		SignalApprovalGateResolved,
+		nil,
+	)
+
+	if err != nil {
+		var notFoundErr *serviceerror.NotFound
+		if errors.As(err, &notFoundErr) {
+			log.Warn().
+				Str("workflow_id", workflowID).
+				Str("execution_id", executionID).
+				Msg("Workflow not found - may have already completed")
+			return fmt.Errorf("workflow not found for execution %s: %w", executionID, ErrWorkflowNotFound)
+		}
+
+		log.Error().
+			Err(err).
+			Str("workflow_id", workflowID).
+			Str("execution_id", executionID).
+			Msg("Failed to signal workflow")
+		return fmt.Errorf("failed to signal workflow: %w", err)
+	}
+
+	log.Info().
+		Str("workflow_id", workflowID).
+		Str("execution_id", executionID).
+		Msg("Successfully sent approvalGateResolved signal to workflow")
+
+	return nil
+}
+
 // ErrWorkflowNotFound is returned when the workflow is not running.
 // This typically means the execution has already completed or failed.
 var ErrWorkflowNotFound = errors.New("workflow not found")
