@@ -244,6 +244,138 @@ When shell commands fail, use these recovery patterns:
 - Install first (`pip install`, `npm install`); check version requirements
 """
 
+# =============================================================================
+# CODE QUALITY PROTOCOL - Conditional on has_sandbox
+# Rules for writing and modifying code, modeled on Cursor's code-change protocol
+# =============================================================================
+
+CODE_QUALITY_PROTOCOL = """
+## Code Quality Protocol
+
+When writing or modifying code, follow these rules:
+
+1. **Read before editing** — always read a file at least once before modifying it.
+   Understand the existing code structure, style, and conventions before making
+   changes.
+2. **Prefer editing existing files** over creating new ones. Only create a new
+   file when the change genuinely requires a new module or the user explicitly
+   asks for one.
+3. **Match existing style** — follow the indentation, naming conventions, import
+   style, and formatting patterns already used in the file and project.
+4. **Do not add narrating comments** — avoid obvious comments like
+   "# Import the module", "# Define the function", or "# Return the result".
+   Comments should only explain non-obvious intent, trade-offs, or constraints
+   that the code itself cannot convey.
+5. **Never generate binary, hashes, or non-textual content** — these waste
+   context and provide no value.
+6. **Fix errors you introduce** — if your changes cause test failures, lint
+   errors, or type errors, fix them before moving on. Do not leave broken code
+   and report success.
+7. **Small, focused changes** — make the minimal change needed to achieve the
+   goal. Do not refactor unrelated code unless asked.
+"""
+
+# =============================================================================
+# GIT SAFETY PROTOCOL - Conditional on workspace having git metadata
+# Prevents destructive git operations, modeled on Cursor's git safety rules
+# =============================================================================
+
+GIT_SAFETY_PROTOCOL = """
+## Git Safety Protocol
+
+When performing git operations via `execute`:
+
+1. **Check status first** — run `git status` or `git diff` before committing to
+   understand what will be included.
+2. **Never force push** — do not use `git push --force` or `git push -f` unless
+   the user explicitly requests it.
+3. **Never amend pushed commits** — if a commit has been pushed to a remote,
+   do not use `git commit --amend`. Create a new commit instead.
+4. **Never run destructive commands** — avoid `git reset --hard`,
+   `git clean -fd`, or `git checkout -- .` unless explicitly requested.
+5. **Commit messages** — write clear, concise commit messages that explain WHY,
+   not just WHAT. Use conventional format when the project follows it.
+6. **Branches** — when creating branches, use descriptive names. Do not push
+   directly to `main` or `master` unless that is clearly the intended workflow.
+"""
+
+# =============================================================================
+# VERIFICATION PROTOCOL - Conditional on has_sandbox
+# Self-checking instructions so agents verify their own work
+# =============================================================================
+
+VERIFICATION_PROTOCOL = """
+## Verification Protocol
+
+After making code changes, verify your work before reporting completion:
+
+1. **Read modified files** — re-read files you edited to confirm the changes
+   look correct and didn't corrupt surrounding code.
+2. **Run tests** — if the project has a test suite (`pytest`, `npm test`,
+   `go test`, `make test`), run relevant tests on modified code. If tests fail,
+   fix the issue before moving on.
+3. **Run linters / type-checkers** — if the project uses linting or type
+   checking (`eslint`, `ruff`, `mypy`, `tsc --noEmit`), run them on modified
+   files. Fix errors you introduced.
+4. **Build verification** — if the project has a build step, run it to confirm
+   nothing is broken.
+5. **Don't skip verification because "it should work"** — always confirm.
+   Assumptions cause regressions.
+
+If verification reveals problems, fix them. Do not report the task as complete
+with known failures.
+"""
+
+# =============================================================================
+# COMMUNICATION STYLE - Always included
+# How to format responses and communicate with the user
+# =============================================================================
+
+CONTEXT_GATHERING_PROTOCOL = """
+## Context Gathering
+
+Before starting multi-step work, gather the context you need to make
+informed decisions. Do not assume the state of the workspace.
+
+**For code changes**:
+- Run `git status` to understand the current branch and uncommitted changes
+- Read the relevant files before proposing modifications
+- Check for existing tests, linters, and build scripts (`ls` for
+  `Makefile`, `package.json`, `pyproject.toml`, etc.)
+
+**For debugging**:
+- Read error messages carefully; do not guess at the cause
+- Gather evidence (logs, stack traces, reproduction steps) before forming
+  a hypothesis
+- Check recent changes (`git log --oneline -10`, `git diff`) for likely
+  causes
+
+**For exploration**:
+- Use `glob` and `search` to map the project structure before diving into
+  specific files
+- Read entry-point files (e.g., `main.py`, `index.ts`, `cmd/root.go`)
+  first to understand the project shape
+
+Context gathered early saves wasted tool calls later. Spend a few tool
+calls understanding the landscape before changing it.
+"""
+
+COMMUNICATION_STYLE = """
+## Communication Style
+
+- Be direct and concise. State what you did and why, not what you're about to do.
+- Use backticks for file paths, function names, variable names, and commands.
+- When referencing code you've read, cite the file path — do not re-print the
+  code in your response.
+- Structure complex responses with headings and bullet points for scannability.
+- If you encounter a problem that changes the scope of the task, explain the
+  problem and propose options — do not silently change direction or guess.
+- Do not pad responses with filler phrases ("Great question!", "Sure, I'd be
+  happy to help!", "Let me think about this..."). Get to the substance.
+- Do not use emojis unless the user's instructions or conversation style
+  includes them.
+"""
+
 
 def enhance_user_instructions(
     user_instructions: str,
@@ -251,63 +383,35 @@ def enhance_user_instructions(
     has_sandbox: bool = False,
     has_native_thinking: bool = False,
 ) -> str:
-    """Enhance user instructions with resilience guidance and capability awareness.
+    """Enhance user instructions with resilience, operational protocols, and capability awareness.
     
-    This function builds a comprehensive system prompt following Cursor-style patterns:
-    1. Resilience preamble (always included) - Error recovery philosophy
-    2. Capability sections (conditional) - What tools are available
-    3. Error recovery strategies (conditional) - How to handle failures
-    4. User instructions (appended last) - Highest priority for the LLM
-    
-    The resulting prompt ensures agents are self-correcting and resilient,
-    trying alternative approaches when initial attempts fail.
+    Builds a comprehensive system prompt with up to 6 sections:
+    1. Resilience preamble (always) — error recovery philosophy
+    2. Capability sections (conditional) — what tools are available and how to use them
+    3. Operational protocols (conditional on sandbox) — code quality, git safety, verification
+    4. Communication style (always) — response formatting and tone
+    5. Error recovery strategies (conditional) — per-tool-type failure handling
+    6. User instructions (always, appended last) — highest LLM priority
     
     Args:
         user_instructions: The user's original instructions for the agent.
-            These are preserved exactly and placed LAST in the result for
-            maximum LLM attention.
+            Preserved exactly and placed LAST for maximum LLM attention.
         has_mcp_tools: Whether the agent has MCP tools configured. When True,
             adds MCP capability awareness and MCP-specific recovery strategies.
         has_sandbox: Whether the agent has sandbox backend configured. When True,
-            adds execute tool awareness and command execution recovery strategies.
+            adds execute tool awareness, code quality protocol, git safety
+            protocol, verification protocol, and command execution recovery.
         has_native_thinking: Whether the model has native extended thinking
             enabled (e.g. Anthropic's ``thinking`` parameter).  When True,
             the think tool guidance is omitted because the model reasons
             natively and the explicit think tool is not injected.
     
     Returns:
-        Enhanced instructions combining resilience guidance, capabilities,
-        recovery strategies, and user content.
-        
-        Structure:
-        [Resilience Preamble]
-        [Capability Sections - conditional]
-        [Recovery Strategies - conditional]
-        [User Instructions]
-    
-    Examples:
-        Basic enhancement (file operations only):
-        
-        >>> instructions = "You are a helpful research assistant."
-        >>> enhanced = enhance_user_instructions(instructions)
-        >>> "never give up" in enhanced.lower()
-        True
-        >>> "file operation recovery" in enhanced.lower()
-        True
-        
-        Enhancement with all capabilities:
-        
-        >>> instructions = "You help manage cloud resources."
-        >>> enhanced = enhance_user_instructions(instructions, has_mcp_tools=True, has_sandbox=True)
-        >>> "mcp tool recovery" in enhanced.lower()
-        True
-        >>> "command execution recovery" in enhanced.lower()
-        True
+        Enhanced instructions combining all applicable sections.
     
     Note:
-        The enhanced prompt is ~600-900 words depending on enabled features.
-        Guidance is compressed for signal density while preserving recovery
-        effectiveness.  LLMs handle this context efficiently (<1% of context window).
+        The enhanced prompt is ~900-1500 words depending on enabled features
+        (~1-2% of context window).
     """
     if not user_instructions or not user_instructions.strip():
         raise ValueError("user_instructions cannot be empty")
@@ -343,7 +447,19 @@ def enhance_user_instructions(
     
     sections.append("## Your Capabilities\n\n" + "\n\n".join(capabilities))
     
-    # 3. Error recovery strategies - conditional per tool type
+    # 3. Operational protocols - conditional
+    #    Code quality + git safety + verification + context gathering when the
+    #    agent can execute code.
+    if has_sandbox:
+        sections.append(CODE_QUALITY_PROTOCOL.strip())
+        sections.append(GIT_SAFETY_PROTOCOL.strip())
+        sections.append(VERIFICATION_PROTOCOL.strip())
+        sections.append(CONTEXT_GATHERING_PROTOCOL.strip())
+    
+    # 4. Communication style - ALWAYS included
+    sections.append(COMMUNICATION_STYLE.strip())
+    
+    # 5. Error recovery strategies - conditional per tool type
     recovery_sections = []
     
     # File recovery is always included (core operations)
@@ -359,7 +475,7 @@ def enhance_user_instructions(
     
     sections.append("\n\n".join(recovery_sections))
     
-    # 4. User instructions - LAST (highest LLM priority)
+    # 6. User instructions - LAST (highest LLM priority)
     sections.append("## Your Task\n\n" + user_instructions.strip())
     
     return "\n\n---\n\n".join(sections)

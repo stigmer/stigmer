@@ -234,6 +234,14 @@ _RESPONSE_RULES = (
     '"Below is the complete content", '
     '"Here are the contents of the files", or similar. '
     "The user did not ask you to display file contents.\n"
+    "- Use backticks for file paths, function names, variable names, "
+    "and shell commands (e.g., `src/main.py`, `handleRequest()`, "
+    "`npm install`).\n"
+    "- When referencing code, cite the file path — do not re-print "
+    "code blocks that the user can see in tool results.\n"
+    "- Structure complex answers with headings and bullet points.\n"
+    "- If you encounter something unexpected that changes the scope, "
+    "explain the issue and propose options before proceeding.\n"
 )
 
 _SUB_AGENT_RULES = (
