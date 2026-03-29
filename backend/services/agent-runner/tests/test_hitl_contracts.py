@@ -988,6 +988,135 @@ class TestTaskToolResumeReconciliation:
         assert builder._run_id_aliases.get("new-task-run-id") == "toolu_EEE"
         assert "new-task-run-id" in builder._run_id_to_tool_call_id
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # No-AI-replay resume: prepare_task_tool_resume_queue
+    #
+    # These tests cover the scenario where astream_events does NOT replay
+    # the AI message's tool_use blocks (the AI node was checkpointed, not
+    # re-executed).  prepare_task_tool_resume_queue pre-populates the
+    # _early_tool_call_queue from persisted status so that the existing
+    # reconciliation machinery still works.
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def test_prepare_task_tool_resume_queue_populates_queue(self):
+        """prepare_task_tool_resume_queue() populates _early_tool_call_queue
+        from persisted task tool calls with matching SubAgentExecutions."""
+        args_a = Struct()
+        args_a.update({"description": "research deployment", "subagent_type": "generalPurpose"})
+        args_b = Struct()
+        args_b.update({"description": "scan infra charts", "subagent_type": "explore"})
+
+        tc_a = ToolCall(id="toolu_RQ1", name="task", args=args_a, status=ToolCallStatus.TOOL_CALL_COMPLETED)
+        tc_b = ToolCall(id="toolu_RQ2", name="task", args=args_b, status=ToolCallStatus.TOOL_CALL_COMPLETED)
+
+        sa_a = SubAgentExecution(id="toolu_RQ1", name="generalPurpose")
+        sa_b = SubAgentExecution(id="toolu_RQ2", name="explore")
+        builder = _make_builder_with_decisions([tc_a, tc_b], sub_agents=[sa_a, sa_b])
+
+        assert len(builder._early_tool_call_queue) == 0
+
+        queued = builder.prepare_task_tool_resume_queue()
+
+        assert queued == 2
+        assert len(builder._early_tool_call_queue) == 2
+        assert builder._early_tool_call_queue[0] == ("toolu_RQ1", None)
+        assert builder._early_tool_call_queue[1] == ("toolu_RQ2", None)
+
+    @pytest.mark.asyncio
+    async def test_task_on_tool_start_without_ai_replay_reactivates_subagent(self):
+        """End-to-end: persisted status with 3 task tools + SubAgentExecutions.
+        Call prepare_task_tool_resume_queue(), then fire on_tool_start events
+        with new run_ids.  Existing SubAgentExecutions must be reactivated,
+        not duplicated."""
+        tool_calls = []
+        sub_agents = []
+        for i, (tc_id, desc, sa_type) in enumerate([
+            ("toolu_SA1", "discover docs", "generalPurpose"),
+            ("toolu_SA2", "find infra charts", "explore"),
+            ("toolu_SA3", "scan API protos", "generalPurpose"),
+        ]):
+            args = Struct()
+            args.update({"description": desc, "subagent_type": sa_type})
+            tool_calls.append(ToolCall(
+                id=tc_id, name="task", args=args,
+                status=ToolCallStatus.TOOL_CALL_COMPLETED,
+            ))
+            sub_agents.append(SubAgentExecution(id=tc_id, name=sa_type))
+
+        builder = _make_builder_with_decisions(tool_calls, sub_agents=sub_agents)
+        builder.prepare_task_tool_resume_queue()
+
+        for i, (tc_id, desc, sa_type) in enumerate([
+            ("toolu_SA1", "discover docs", "generalPurpose"),
+            ("toolu_SA2", "find infra charts", "explore"),
+            ("toolu_SA3", "scan API protos", "generalPurpose"),
+        ]):
+            event = {
+                "event": "on_tool_start",
+                "name": "task",
+                "run_id": f"new-run-uuid-{i}",
+                "data": {"input": {"description": desc, "subagent_type": sa_type}},
+            }
+            await builder.process_event(event)
+
+        assert len(builder.current_status.sub_agent_executions) == 3
+
+        for i, tc_id in enumerate(["toolu_SA1", "toolu_SA2", "toolu_SA3"]):
+            assert builder._run_id_aliases.get(f"new-run-uuid-{i}") == tc_id
+            assert f"new-run-uuid-{i}" in builder._active_sub_agents
+
+        assert len(builder._early_tool_call_queue) == 0
+
+    def test_prepare_skips_task_tools_without_subagent(self):
+        """Task tool calls without a corresponding SubAgentExecution are NOT
+        queued — they may be genuinely new tasks not yet started."""
+        args_with_sa = Struct()
+        args_with_sa.update({"description": "has sub-agent", "subagent_type": "generalPurpose"})
+        args_no_sa = Struct()
+        args_no_sa.update({"description": "no sub-agent yet", "subagent_type": "explore"})
+
+        tc_with = ToolCall(id="toolu_HAS", name="task", args=args_with_sa, status=ToolCallStatus.TOOL_CALL_COMPLETED)
+        tc_without = ToolCall(id="toolu_NOSA", name="task", args=args_no_sa, status=ToolCallStatus.TOOL_CALL_RUNNING)
+
+        sa = SubAgentExecution(id="toolu_HAS", name="generalPurpose")
+        builder = _make_builder_with_decisions([tc_with, tc_without], sub_agents=[sa])
+
+        queued = builder.prepare_task_tool_resume_queue()
+
+        assert queued == 1
+        assert len(builder._early_tool_call_queue) == 1
+        assert builder._early_tool_call_queue[0] == ("toolu_HAS", None)
+
+    @pytest.mark.asyncio
+    async def test_prepare_is_idempotent_with_ai_replay(self):
+        """If both prepare_task_tool_resume_queue() and _create_early_tool_call
+        (via _simulate_tool_use_stream) run, reconciliation still works
+        correctly without duplicate side effects."""
+        args = Struct()
+        args.update({"description": "deploy service", "subagent_type": "generalPurpose"})
+        tc = ToolCall(id="toolu_IDEM", name="task", args=args, status=ToolCallStatus.TOOL_CALL_COMPLETED)
+        sa = SubAgentExecution(id="toolu_IDEM", name="generalPurpose")
+        builder = _make_builder_with_decisions([tc], sub_agents=[sa])
+
+        queued = builder.prepare_task_tool_resume_queue()
+        assert queued == 1
+
+        _simulate_tool_use_stream(builder, "task", "toolu_IDEM")
+
+        assert len(builder._early_tool_call_queue) == 2
+
+        event = {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "run-idem-uuid",
+            "data": {"input": {"description": "deploy service", "subagent_type": "generalPurpose"}},
+        }
+        await builder.process_event(event)
+
+        assert builder._run_id_aliases.get("run-idem-uuid") == "toolu_IDEM"
+        assert len(builder.current_status.sub_agent_executions) == 1
+        assert len(builder._early_tool_call_queue) == 1
+
 
 # =============================================================================
 # Bidirectional ID lookup: defense-in-depth resume matching
