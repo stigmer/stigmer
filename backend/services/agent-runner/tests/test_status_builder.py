@@ -6998,11 +6998,11 @@ class TestRebuildFromProto:
         from worker.activities.graphton.execution_state import ExecutionState
 
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
-        tc_a = ai_msg.tool_calls.add(
+        ai_msg.tool_calls.add(
             id="toolu_A", name="write",
             status=ToolCallStatus.TOOL_CALL_COMPLETED,
         )
-        tc_b = ai_msg.tool_calls.add(
+        ai_msg.tool_calls.add(
             id="toolu_B", name="read",
             status=ToolCallStatus.TOOL_CALL_RUNNING,
         )
@@ -7018,6 +7018,7 @@ class TestRebuildFromProto:
     def test_indexes_sub_agent_tool_calls(self, mock_initial_status):
         """Tool calls inside sub-agent messages are also indexed."""
         from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
+
         from worker.activities.graphton.execution_state import ExecutionState
 
         sa = SubAgentExecution(
@@ -7039,6 +7040,7 @@ class TestRebuildFromProto:
     def test_indexes_completed_sub_agents(self, mock_initial_status):
         """Completed/failed/cancelled sub-agents populate completed_sub_agents."""
         from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
+
         from worker.activities.graphton.execution_state import ExecutionState
 
         sa_done = SubAgentExecution(
@@ -7063,7 +7065,6 @@ class TestRebuildFromProto:
 
     def test_copies_artifacts(self):
         """Proto artifacts are copied into state.artifacts."""
-        from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
         from worker.activities.graphton.execution_state import ExecutionState
 
         proto = AgentExecutionStatus()

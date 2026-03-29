@@ -75,9 +75,9 @@ When starting a new session:
 **T05 Completed**: 2026-03-29 (namespace heuristics replaced with parent_ids-based deterministic routing)
 **T06 Completed**: 2026-03-29 (end-to-end pause/resume fix across Go, Java, Python)
 **T07 Completed**: 2026-03-29 (ExecutionState reducer refactor — explicit typed state model)
-**Current Task**: T08 (handler extraction — shrink StatusBuilder below 500 lines)
-**Next Code Task**: T08 (handler extraction)
-**Status**: Active — T02+T03+T04+T05+T06+T07 complete, T08 unblocked
+**T08 Completed**: 2026-03-29 (handler extraction — StatusBuilder 3,289 → 417 lines)
+**Current Task**: None — all planned tasks through T08 complete
+**Status**: Active — T02+T03+T04+T05+T06+T07+T08 complete
 
 ### T02 Key Finding
 v2 events do NOT carry `tool_call_id`. Solution: a ~10-line `ToolCallIdCapture`
@@ -177,6 +177,22 @@ Files changed: 13 (6 modified stigmer + 2 new stigmer + 3 modified stigmer-cloud
 - `ToolCallIdCapture` placed in its own module per "StatusBuilder Is NOT a Dumping Ground"
 - Used `TYPE_CHECKING` guard for the import, string annotation for the constructor param
 
+## Session Progress (2026-03-29, session 6)
+
+### What was accomplished
+- **Completed T08: Handler Extraction** — final steps (5-7) of the 7-step plan
+- Extracted `tool_event.py` (472 lines): tool start/end/progress, approval checks, todos, arg humanization
+- Created `chat_model.py` (499 lines): chat model stream/end, AI message assembly, usage metrics
+- Moved `ensure_parent_ai_message` → `streaming_buffers.py`, `prepare_task_tool_resume_queue` → `sub_agent.py`
+- Rewrote `status_builder.py` as 417-line thin orchestrator (87% reduction from 3,289)
+- All 282 `test_status_builder.py` tests pass — zero regressions
+- Committed: `602b2309`
+
+### Key decisions
+- Thin delegation stubs preserved on `StatusBuilder` for public API and test mock compatibility
+- `sb._update_todos()` call pattern in handler modules ensures test mocks intercept correctly
+- Re-exports from `status_builder.py` maintain backward compatibility for external consumers
+
 ## Session Progress (2026-03-29, session 5)
 
 ### What was accomplished
@@ -202,22 +218,24 @@ Files changed: 13 (6 modified stigmer + 2 new stigmer + 3 modified stigmer-cloud
 - Python persistence unified through `retry_executor` in terminal_status path
 
 ## Next Steps (when you return)
-1. T08 — Extract event handlers into focused collaborator modules (shrink StatusBuilder below 500 lines)
-2. The sub-grouped `ExecutionState` serves as natural parameter boundaries for handler extraction
+1. Review the task list in `next-task.md` for any remaining tasks beyond T08
+2. Consider integration testing across the full refactored stack
 3. Note: InterruptProxyRunnable elimination (separate project) further simplifies the codebase
+4. The `feat/status-builder-hardening` branch is ready for PR review
 
 ## Context for Resume
-- T07 is fully committed (see below) — all state is now in `self.state.*` instead of `self._*`
+- T08 is fully committed (`602b2309`) — `StatusBuilder` is now 417 lines
 - `execution_state.py` defines the typed state model — read it first to understand field layout
-- `current_status` is now a property delegating to `self.state.proto`
+- `graphton/handlers/` contains 6 modules (2,576 lines total) with all extracted event logic
 - `ToolCallIdCapture` is the single authority for run_id resolution (callback + alias layers)
-- T08 should focus on extracting the 2,500+ lines of event handlers into focused modules
+- `current_status` is a property delegating to `self.state.proto`
+- Handler modules use `sb: StatusBuilder` first-arg pattern; `TYPE_CHECKING` prevents circular imports
 
 ## Quick Commands
 
 After loading context:
-- "Start T08 planning" - Handler extraction to shrink StatusBuilder
 - "Show project status" - Get overview of progress
+- "Create PR" - Open PR for the `feat/status-builder-hardening` branch
 - "Review the plan" - Read the v2 task plan
 
 ---

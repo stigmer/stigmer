@@ -67,7 +67,6 @@ from worker.activities.graphton.session_context_merge import (
 )
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
-from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
 from worker.activities.graphton.temporal_helpers import (
     SetupTimer,
@@ -80,6 +79,7 @@ from worker.activities.graphton.temporal_helpers import (
 from worker.activities.graphton.temporal_helpers import (
     slim_status_for_temporal as _slim_status_for_temporal,
 )
+from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 from worker.activities.relevance import (
     WorkspaceRoot,
     build_relevance_prompt_section,

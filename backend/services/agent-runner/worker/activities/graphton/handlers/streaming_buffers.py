@@ -22,6 +22,7 @@ from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
     ToolCall,
 )
 from google.protobuf.struct_pb2 import Struct
+
 from worker.activities.graphton.approval_policy import render_approval_message
 from worker.component_type_inference import infer_component_type
 

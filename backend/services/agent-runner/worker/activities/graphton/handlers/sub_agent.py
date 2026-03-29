@@ -17,7 +17,6 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     SubAgentStatus,
     ToolCallStatus,
 )
-from ai.stigmer.agentic.agentexecution.v1.message_pb2 import ToolCall
 from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
 from graphton.core import ModelRegistry
 from graphton.core.models import parse_model_string

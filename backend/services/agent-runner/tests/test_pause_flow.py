@@ -6,7 +6,7 @@ Covers:
 - CancelledError cooperative flow: is_cancelled() -> CancelledError -> _handle_pause -> return
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
