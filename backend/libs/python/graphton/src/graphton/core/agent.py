@@ -518,12 +518,19 @@ def create_deep_agent(
     #
     # Sub-agents passed as CompiledSubAgent (with 'runnable' key) are used
     # by deepagents as-is, bypassing its internal compilation.
+    # Outer-scope state for deferred GP sub-agent compilation.  The HITL
+    # branch compiles explicit sub-agents eagerly but defers GP compilation
+    # until sandbox platform tools and MCP tools are available later.
+    _hitl_gate: Any = None
+    _pending_gp_config: dict[str, Any] | None = None
+
     transformed_subagents = None
     if checkpointer is not None and approval_checker is not None:
         from graphton.core.interrupt_proxy import compile_subagent_with_proxy
         from graphton.core.subagent_limiter import SubAgentGate
 
-        gate = SubAgentGate()
+        _hitl_gate = SubAgentGate()
+        gate = _hitl_gate
         compiled_subagents: list[dict[str, Any]] = []
 
         # 1. Compile explicit sub-agents (if any).
@@ -597,22 +604,26 @@ def create_deep_agent(
                 compiled_sa["runnable"] = gate.wrap(compiled_sa["runnable"], name=sa_name)
                 compiled_subagents.append(compiled_sa)
 
-        # 2. Inject a gated general-purpose sub-agent.
+        # 2. Defer general-purpose sub-agent compilation.
         #
-        # This overrides deepagents' automatic ungated clone by providing
-        # an explicit CompiledSubAgent named "general-purpose".  It gets
-        # the same model and system prompt as the main agent, compiled
-        # through compile_subagent_with_proxy (which uses create_agent,
-        # not create_deep_agent — so no recursive `task` tool) and
-        # wrapped with the shared SubAgentGate.
+        # The GP sub-agent needs the same platform tools (shell, read,
+        # write, etc.) and MCP tools as the main agent, but those are
+        # created later in this function.  Compiling here with
+        # tools=list(tools or []) would produce a sub-agent with ZERO
+        # tools (since `tools` is typically None from execute_graphton),
+        # causing the model to emit tool calls as raw XML text instead
+        # of using native function calling.
+        #
+        # We store the injection intent and compile after sandbox
+        # platform tools and MCP tools are available.
+        #
+        # compile_subagent_with_proxy uses create_agent (not
+        # create_deep_agent), so the GP sub-agent has no `task` tool
+        # and cannot recursively spawn sub-sub-agents.
         #
         # We use `system_prompt` (not `enhanced_prompt`) because prompt
-        # enhancement happens later and adds graphton-specific capability
-        # awareness that doesn't apply to sub-agents compiled via
-        # create_agent().  The tools list is populated later (sandbox
-        # platform tools + MCP tools), so we defer tool assignment by
-        # storing a reference that will be filled in before the call to
-        # deepagents_create_deep_agent().
+        # enhancement adds graphton-specific capability awareness that
+        # doesn't apply to sub-agents compiled via create_agent().
         if general_purpose_agent:
             gp_middleware: list[Any] = []
             if summarization_config is not None and summarization_config.enabled:
@@ -624,26 +635,11 @@ def create_deep_agent(
                     callback=None,
                 ))
 
-            gp_sa = compile_subagent_with_proxy(
-                model=model_instance,
-                tools=list(tools or []),
-                system_prompt=system_prompt,
-                name="general-purpose",
-                description=(
-                    "General-purpose sub-agent with the same capabilities "
-                    "as the main agent. Use for multi-step tasks that "
-                    "benefit from context isolation or parallelism."
-                ),
-                middleware=gp_middleware,
-            )
-            gp_sa["runnable"] = gate.wrap(gp_sa["runnable"], name="general-purpose")
-            compiled_subagents.append(gp_sa)
-            logger.info(
-                "Injected gated general-purpose sub-agent "
-                "(tools=%d, model=%s)",
-                len(tools_list),
-                type(model_instance).__name__,
-            )
+            _pending_gp_config = {
+                "model": model_instance,
+                "system_prompt": system_prompt,
+                "middleware": gp_middleware,
+            }
 
         transformed_subagents = compiled_subagents
         logger.info(
@@ -680,6 +676,10 @@ def create_deep_agent(
         else:
             transformed_subagents = subagents
     
+    # Tracks MCP tool wrappers so the deferred GP sub-agent compilation
+    # can include them.  Populated inside the MCP block below.
+    mcp_tool_wrappers: list[Any] = []
+
     # MCP integration (Universal Authentication Framework)
     if mcp_servers and mcp_tools:
         # Import MCP modules only when needed
@@ -820,6 +820,7 @@ def create_deep_agent(
     # Graphton's explicit tools (read, write, edit, execute + aliases) still
     # take precedence over middleware-created tools in LangChain's ToolNode.
     deepagents_backend = None
+    sandbox_backend = None
     if sandbox_config:
         from graphton.core.backends.deepagents_adapter import DeepAgentsBackendAdapter
         from graphton.core.sandbox_factory import create_sandbox_backend
@@ -868,6 +869,63 @@ def create_deep_agent(
         logger.info(
             "Skipping think tool injection — model has native extended thinking"
         )
+
+    # ── Deferred GP sub-agent compilation ──────────────────────────────
+    # The HITL branch stored the GP injection intent above.  Now that
+    # sandbox platform tools and MCP tools are available, compile the
+    # GP sub-agent with the full tool set.  This ensures the model uses
+    # native function calling instead of outputting raw XML text.
+    if _pending_gp_config is not None and _hitl_gate is not None:
+        from graphton.core.interrupt_proxy import compile_subagent_with_proxy
+
+        gp_tools: list[Any] = []
+
+        if sandbox_backend is not None:
+            from graphton.core.tool_wrappers import create_platform_tool_wrappers
+            gp_platform_tools = create_platform_tool_wrappers(
+                backend=sandbox_backend,
+                approval_checker=approval_checker,
+                sub_agent_name="general-purpose",
+            )
+            gp_tools.extend(gp_platform_tools)
+
+        if mcp_tool_wrappers:
+            gp_tools.extend(mcp_tool_wrappers)
+
+        if not has_native_thinking:
+            gp_tools.append(create_think_tool())
+
+        if gp_tools:
+            gp_sa = compile_subagent_with_proxy(
+                model=_pending_gp_config["model"],
+                tools=gp_tools,
+                system_prompt=_pending_gp_config["system_prompt"],
+                name="general-purpose",
+                description=(
+                    "General-purpose sub-agent with the same capabilities "
+                    "as the main agent. Use for multi-step tasks that "
+                    "benefit from context isolation or parallelism."
+                ),
+                middleware=_pending_gp_config["middleware"],
+            )
+            gp_sa["runnable"] = _hitl_gate.wrap(
+                gp_sa["runnable"], name="general-purpose",
+            )
+            if transformed_subagents is not None:
+                transformed_subagents.append(gp_sa)
+            logger.info(
+                "Injected gated general-purpose sub-agent "
+                "(tools=%d, model=%s)",
+                len(gp_tools),
+                type(_pending_gp_config["model"]).__name__,
+            )
+        else:
+            logger.warning(
+                "Skipping general-purpose sub-agent injection — "
+                "no sandbox or MCP tools available. Without tools, "
+                "the GP sub-agent would output raw text instead of "
+                "using native function calling."
+            )
 
     # ── Tool count observability ────────────────────────────────────────
     # Model tool-selection accuracy degrades with many tools (research
