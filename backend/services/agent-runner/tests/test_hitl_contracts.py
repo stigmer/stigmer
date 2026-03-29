@@ -35,6 +35,7 @@ from google.protobuf.struct_pb2 import Struct
 from worker.activities.graphton.hitl import (
     ResumeReconciler,
     build_snapshot_from_interrupts,
+    extract_approval_decisions_from_execution,
     extract_interrupt_tool_call_ids,
 )
 from worker.activities.graphton.status_builder import StatusBuilder
@@ -1671,6 +1672,153 @@ class TestReconcileOrphansAgainstCheckpoint:
             decision_tc_ids=set(),
         )
         assert skipped == 0
+
+
+# =============================================================================
+# T03: extract_approval_decisions_from_execution (DB-driven resume)
+# =============================================================================
+
+
+class TestExtractApprovalDecisionsFromExecution:
+    """Verify that approval decisions are correctly extracted from a DB-loaded
+    AgentExecution's tool calls for the DB-driven resume path (T03).
+    """
+
+    @staticmethod
+    def _make_execution(
+        root_tool_calls: list[ToolCall] | None = None,
+        sub_agent_tool_calls: list[ToolCall] | None = None,
+    ):
+        """Build a minimal AgentExecution-like proto with tool calls."""
+        from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
+            AgentExecution,
+        )
+
+        execution = AgentExecution()
+        if root_tool_calls:
+            msg = execution.status.messages.add()
+            msg.type = MessageType.MESSAGE_AI
+            for tc in root_tool_calls:
+                msg.tool_calls.append(tc)
+        if sub_agent_tool_calls:
+            sa = execution.status.sub_agent_executions.add()
+            sa.name = "test-sub-agent"
+            msg = sa.messages.add()
+            msg.type = MessageType.MESSAGE_AI
+            for tc in sub_agent_tool_calls:
+                msg.tool_calls.append(tc)
+        return execution
+
+    def test_extracts_approved_tool_calls(self):
+        tc = ToolCall(
+            id="tc_1",
+            name="delete_file",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+            approval_action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            approved_by="user@example.com",
+        )
+        execution = self._make_execution(root_tool_calls=[tc])
+
+        decisions = extract_approval_decisions_from_execution(execution)
+
+        assert len(decisions) == 1
+        assert decisions[0].tool_call_id == "tc_1"
+        assert decisions[0].action == ApprovalAction.APPROVAL_ACTION_APPROVE
+        assert decisions[0].comment == "user@example.com"
+
+    def test_extracts_rejected_tool_calls(self):
+        tc = ToolCall(
+            id="tc_reject",
+            name="dangerous_tool",
+            status=ToolCallStatus.TOOL_CALL_SKIPPED,
+            approval_action=ApprovalAction.APPROVAL_ACTION_REJECT,
+        )
+        execution = self._make_execution(root_tool_calls=[tc])
+
+        decisions = extract_approval_decisions_from_execution(execution)
+
+        assert len(decisions) == 1
+        assert decisions[0].tool_call_id == "tc_reject"
+        assert decisions[0].action == ApprovalAction.APPROVAL_ACTION_REJECT
+
+    def test_skips_undecided_tool_calls(self):
+        decided = ToolCall(
+            id="tc_decided",
+            name="write_file",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+            approval_action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+        )
+        undecided = ToolCall(
+            id="tc_pending",
+            name="read_file",
+            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
+            approval_action=ApprovalAction.APPROVAL_ACTION_UNSPECIFIED,
+        )
+        execution = self._make_execution(root_tool_calls=[decided, undecided])
+
+        decisions = extract_approval_decisions_from_execution(execution)
+
+        assert len(decisions) == 1
+        assert decisions[0].tool_call_id == "tc_decided"
+
+    def test_extracts_from_sub_agent_messages(self):
+        sub_tc = ToolCall(
+            id="tc_sub",
+            name="execute",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+            approval_action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+        )
+        execution = self._make_execution(sub_agent_tool_calls=[sub_tc])
+
+        decisions = extract_approval_decisions_from_execution(execution)
+
+        assert len(decisions) == 1
+        assert decisions[0].tool_call_id == "tc_sub"
+
+    def test_extracts_from_both_root_and_sub_agent(self):
+        root_tc = ToolCall(
+            id="tc_root",
+            name="deploy",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+            approval_action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+        )
+        sub_tc = ToolCall(
+            id="tc_sub",
+            name="execute",
+            status=ToolCallStatus.TOOL_CALL_SKIPPED,
+            approval_action=ApprovalAction.APPROVAL_ACTION_SKIP,
+        )
+        execution = self._make_execution(
+            root_tool_calls=[root_tc],
+            sub_agent_tool_calls=[sub_tc],
+        )
+
+        decisions = extract_approval_decisions_from_execution(execution)
+
+        assert len(decisions) == 2
+        ids = {d.tool_call_id for d in decisions}
+        assert ids == {"tc_root", "tc_sub"}
+
+    def test_empty_execution_returns_empty(self):
+        execution = self._make_execution()
+
+        decisions = extract_approval_decisions_from_execution(execution)
+
+        assert decisions == []
+
+    def test_empty_approved_by_becomes_empty_comment(self):
+        tc = ToolCall(
+            id="tc_1",
+            name="tool",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+            approval_action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+        )
+        execution = self._make_execution(root_tool_calls=[tc])
+
+        decisions = extract_approval_decisions_from_execution(execution)
+
+        assert len(decisions) == 1
+        assert decisions[0].comment == ""
 
 
 # =============================================================================

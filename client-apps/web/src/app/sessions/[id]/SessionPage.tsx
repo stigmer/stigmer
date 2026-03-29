@@ -189,7 +189,6 @@ function SessionPageInner({ id }: { id: string }) {
             pendingUserMessage={conv.pendingUserMessage}
             onApprovalSubmit={conv.submitApproval}
             submittingApprovalIds={conv.submittingApprovalIds}
-            dismissedApprovalIds={conv.dismissedApprovalIds}
             workspaceEntries={conv.workspaceEntries}
             sandboxWorkspaceRoot={sandboxWorkspaceRoot}
             className="flex-1 lg:pr-[208px]"

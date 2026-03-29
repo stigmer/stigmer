@@ -27,9 +27,9 @@ import (
 //   - Updates are processed by AgentExecutionUpdateHandler (custom status merge logic)
 //   - Final status is returned to workflow for observability
 //
-// 3. If tool requires approval (HITL), waits for submitApproval signal
-//   - Signal unblocks the workflow
-//   - Workflow re-invokes Python activity with approval decision
+// 3. If tool requires approval (HITL), waits for approvalGateResolved signal
+//   - SubmitApproval handler sends signal when all decisions are in or on REJECT
+//   - Workflow re-invokes Python activity (decisions read from DB by Python)
 //   - Loop continues until execution completes or max approvals reached
 //
 // Status Update Strategy:
@@ -38,15 +38,11 @@ import (
 //
 // HITL Approval Flow:
 // - Python activity returns with EXECUTION_WAITING_FOR_APPROVAL phase
-// - Workflow waits for submitApproval signal via Workflow.GetSignalChannel
-// - Signal carries SubmitApprovalInput with action (APPROVE/SKIP/REJECT)
-// - Workflow embeds decision in execution and re-invokes Python activity
+// - Workflow waits for a single approvalGateResolved signal
+// - SubmitApproval handler sends the signal when the gate resolves
+// - Workflow re-invokes Python (Python reads decisions from DB)
 // - Max 100 approval cycles to prevent infinite loops
-type InvokeAgentExecutionWorkflowImpl struct {
-	// pendingApprovalDecision stores the approval decision received via signal.
-	// This field is set by the signal handler and read by the approval loop.
-	pendingApprovalDecision *agentexecutionv1.SubmitApprovalInput
-}
+type InvokeAgentExecutionWorkflowImpl struct{}
 
 // Run implements InvokeAgentExecutionWorkflow.Run
 func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *InvokeAgentExecutionWorkflowInput) error {
@@ -115,12 +111,12 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *Invo
 }
 
 // MaxApprovalCycles is the maximum number of approval iterations to prevent infinite loops.
-// Each tool call requiring approval counts as one cycle.
 const MaxApprovalCycles = 100
 
-// SignalSubmitApproval is the signal name for approval submissions.
-// This must match the constant in temporal/workflow_types.go.
-const SignalSubmitApproval = "submitApproval"
+// SignalApprovalGateResolved is the signal sent by SubmitApproval when the approval
+// gate has fully resolved (all tool calls decided, or a REJECT was submitted).
+// Must match the constant in temporal/workflow_types.go.
+const SignalApprovalGateResolved = "approvalGateResolved"
 
 // executeGraphtonFlow executes the Graphton agent flow with polyglot activities.
 //
@@ -135,15 +131,13 @@ const SignalSubmitApproval = "submitApproval"
 // Slim-Payload Pattern:
 // The workflow passes only executionID (not the full AgentExecution proto) to
 // the Python activity.  The Python activity hydrates the execution from the
-// database via gRPC, keeping Temporal payloads small and bounded.  Approval
-// decisions are forwarded as a small list of SubmitApprovalInput messages.
+// database via gRPC, keeping Temporal payloads small and bounded.
 //
 // HITL Approval Loop:
 // When Python activity returns with EXECUTION_WAITING_FOR_APPROVAL, the workflow:
-//   - Waits for submitApproval signal(s)
-//   - Collects SubmitApprovalInput decisions
-//   - Re-invokes Python activity with (executionID, threadID, decisions)
-//   - Python correlates decisions with pending_approvals from the DB
+//   - Waits for a single approvalGateResolved signal from the SubmitApproval handler
+//   - Re-invokes Python activity with (executionID, threadID, nil)
+//   - Python reads approval decisions from the DB (single source of truth)
 //   - Continues until terminal state or max cycles reached
 func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Context, input *InvokeAgentExecutionWorkflowInput) error {
 	logger := workflow.GetLogger(ctx)
@@ -216,18 +210,16 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		"phase_value", int32(finalStatus.GetPhase()),
 		"pending_approvals", len(finalStatus.GetPendingApprovals()))
 
-	// Step 3: HITL Approval Loop (Batch Approval)
+	// Step 3: HITL Approval Loop (DB-Driven Resume)
 	//
 	// When the Python activity returns EXECUTION_WAITING_FOR_APPROVAL, the
-	// status may carry one OR more pending_approvals (one per interrupted
-	// tool call).  We collect ALL approval signals before re-invoking the
-	// activity so that the Python side can correlate decisions with
-	// pending_approvals from the DB and construct a single
-	//   Command(resume={interrupt_id_A: decision_A, interrupt_id_B: decision_B, ...})
-	// avoiding repeated node re-executions.
+	// workflow waits for a single approvalGateResolved signal. The SubmitApproval
+	// handler sends this signal when either all pending tool calls have received
+	// decisions, or a REJECT is submitted (triggering immediate resume).
 	//
-	// Falls back to single-signal behaviour when pending_approvals is empty
-	// (legacy path).
+	// On resume, the workflow re-invokes Python with nil decisions. Python reads
+	// the approval decisions directly from the DB (set by SubmitApproval via
+	// atomic $set) and constructs the LangGraph resume command.
 	approvalCycle := 0
 	for finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		approvalCycle++
@@ -236,82 +228,37 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			return fmt.Errorf("max approval cycles (%d) reached - possible infinite loop", MaxApprovalCycles)
 		}
 
-		// Use the activity's pending_approvals snapshot for signal counting.
-		// Python populates this as a point-in-time coordination signal at
-		// interrupt time via StatusBuilder.build_pending_approvals_snapshot().
-		// Reading from DB is unsafe: the SubmitApproval handler may have
-		// already recorded decisions (mutating the DB projection via
-		// ComputePendingApprovals) before the workflow reads it.
-		pendingApprovals := finalStatus.GetPendingApprovals()
-		pendingCount := len(pendingApprovals)
+		pendingCount := len(finalStatus.GetPendingApprovals())
 
-		signalsNeeded := pendingCount
-		if signalsNeeded == 0 {
-			signalsNeeded = 1
-		}
-
-		firstToolCallId := ""
-		if pendingCount > 0 {
-			firstToolCallId = pendingApprovals[0].GetToolCallId()
-		}
-
-		logger.Info("Execution waiting for approval",
+		logger.Info("Execution waiting for approval — waiting for approvalGateResolved signal",
 			"execution_id", executionID,
 			"cycle", approvalCycle,
-			"pending_count", signalsNeeded,
-			"first_tool_call", firstToolCallId)
+			"pending_count", pendingCount)
 
-		// Belt-and-suspenders: persist the WAITING_FOR_APPROVAL phase to the
-		// database for StreamBroker broadcast. With computed projections,
-		// pending_approvals are always recomputed from messages so there's
-		// no merge race — safe to persist the full status.
 		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
 			logger.Warn("Failed to persist WAITING_FOR_APPROVAL status before signal wait (non-fatal)",
 				"execution_id", executionID, "error", err.Error())
 		}
 
-		approvalDecisions := make([]*agentexecutionv1.SubmitApprovalInput, 0, signalsNeeded)
-
-		for i := 0; i < signalsNeeded; i++ {
-			approvalInput, err := w.waitForApprovalSignal(ctx, executionID)
-			if err != nil {
-				return err
-			}
-
-			logger.Info("Received approval signal",
+		if pendingCount == 0 {
+			logger.Warn("pending_approvals is empty but phase is WAITING_FOR_APPROVAL — "+
+				"re-invoking Python immediately to resolve inconsistency",
 				"execution_id", executionID,
-				"signal_index", i+1,
-				"signals_needed", signalsNeeded,
-				"tool_call_id", approvalInput.GetToolCallId(),
-				"action", approvalInput.GetAction().String())
+				"cycle", approvalCycle)
+		} else {
+			signalChan := workflow.GetSignalChannel(ctx, SignalApprovalGateResolved)
+			signalChan.Receive(ctx, nil)
 
-			approvalDecisions = append(approvalDecisions, approvalInput)
-
-			// For REJECT, short-circuit: no need to collect more signals.
-			if approvalInput.GetAction() == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT {
-				logger.Info("Tool rejected -- skipping remaining approvals",
-					"execution_id", executionID,
-					"tool_call_id", approvalInput.GetToolCallId())
-				break
-			}
+			logger.Info("Received approvalGateResolved signal",
+				"execution_id", executionID,
+				"cycle", approvalCycle)
 		}
 
-		// Re-invoke Python activity with collected approval decisions.
-		// The activity will fetch the latest execution from DB (which has
-		// pending_approvals with interrupt_ids) and correlate them with
-		// the decisions to build the LangGraph resume command.
-		//
-		// Wrap in ApprovalDecisionList so the Go SDK serialises it as a
-		// proto.Message (json/protobuf encoding) rather than a bare JSON
-		// array (json/plain), which the Python SDK cannot decode.
-		logger.Info("Re-invoking Graphton with approval decisions",
+		logger.Info("Re-invoking Graphton after approval gate resolved",
 			"execution_id", executionID,
-			"decisions_collected", len(approvalDecisions))
+			"cycle", approvalCycle)
 
-		decisionList := &agentexecutionv1.ApprovalDecisionList{
-			Decisions: approvalDecisions,
-		}
-		finalStatus, err = executeGraphtonActivity.ExecuteGraphton(executionID, threadID, decisionList)
+		finalStatus, err = executeGraphtonActivity.ExecuteGraphton(executionID, threadID, nil)
 		if err != nil {
 			return w.wrapActivityError("ExecuteGraphton", err)
 		}
@@ -321,7 +268,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			return fmt.Errorf("python activity returned null status after approval - this should never happen")
 		}
 
-		// Diagnostic: log deserialized slim status after approval re-invocation
 		logger.Info("Activity returned slim status after approval",
 			"execution_id", executionID,
 			"phase", finalStatus.GetPhase().String(),
@@ -353,33 +299,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 	}
 
 	return nil
-}
-
-// waitForApprovalSignal waits for a submitApproval signal from the handler.
-//
-// This method blocks until a signal is received. The signal carries the
-// SubmitApprovalInput with the user's decision (APPROVE/SKIP/REJECT).
-//
-// The workflow uses Workflow.GetSignalChannel to receive signals, which
-// is the recommended pattern for signal handling in Temporal Go SDK.
-func (w *InvokeAgentExecutionWorkflowImpl) waitForApprovalSignal(ctx workflow.Context, executionID string) (*agentexecutionv1.SubmitApprovalInput, error) {
-	logger := workflow.GetLogger(ctx)
-
-	// Get signal channel for submitApproval
-	signalChan := workflow.GetSignalChannel(ctx, SignalSubmitApproval)
-
-	logger.Info("Waiting for submitApproval signal...", "execution_id", executionID)
-
-	// Block until signal received
-	var approvalInput agentexecutionv1.SubmitApprovalInput
-	signalChan.Receive(ctx, &approvalInput)
-
-	logger.Info("Received submitApproval signal",
-		"execution_id", executionID,
-		"tool_call_id", approvalInput.GetToolCallId(),
-		"action", approvalInput.GetAction().String())
-
-	return &approvalInput, nil
 }
 
 // wrapActivityError wraps activity errors with helpful context for troubleshooting.

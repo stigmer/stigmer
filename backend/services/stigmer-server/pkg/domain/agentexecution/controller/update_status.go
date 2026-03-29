@@ -191,6 +191,17 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.WorkspaceWriteBacks = requestStatus.WorkspaceWriteBacks
 	}
 
+	// Preserve approval fields (approval_action, approval_decided_at, approved_by)
+	// that were atomically recorded by SubmitApproval. Python always sends
+	// UNSPECIFIED for these fields, so without this step the wholesale message
+	// replacement above would erase user-submitted approval decisions.
+	approval.PreserveApprovalFields(
+		updated.Status.GetMessages(),
+		updated.Status.GetSubAgentExecutions(),
+		existing.Status.GetMessages(),
+		existing.Status.GetSubAgentExecutions(),
+	)
+
 	// Update phase (if provided)
 	if requestStatus.Phase != agentexecutionv1.ExecutionPhase_EXECUTION_PHASE_UNSPECIFIED {
 		updated.Status.Phase = requestStatus.Phase

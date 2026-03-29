@@ -3,6 +3,7 @@ package agentexecution
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -14,7 +15,6 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
-	"google.golang.org/protobuf/proto"
 )
 
 // Context keys for inter-step communication
@@ -29,8 +29,8 @@ const (
 //
 // ## Preconditions
 //
-//   - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase
-//   - tool_call_id must match an entry in status.pending_approvals
+//   - Execution must be in EXECUTION_WAITING_FOR_APPROVAL or EXECUTION_IN_PROGRESS phase
+//   - tool_call_id must reference a ToolCall with status TOOL_CALL_WAITING_APPROVAL
 //   - action must be APPROVE, SKIP, or REJECT (not UNSPECIFIED)
 //
 // ## Behavior by Action
@@ -57,12 +57,15 @@ const (
 //
 // ## Temporal Integration
 //
-// After persisting the resolved state, the handler sends a submitApproval signal
-// to the running Temporal workflow. The workflow receives this signal and:
-//  1. Unblocks its signal channel
-//  2. Collects approval decisions (one per pending tool call)
-//  3. Re-invokes the Python activity with the decisions
-//  4. Python processes the decisions and resumes execution
+// After persisting the resolved state, the handler sends an approvalGateResolved
+// signal to the running Temporal workflow ONLY when the gate has fully resolved:
+//   - REJECT action: signal immediately (Python auto-skips remaining tool calls)
+//   - All decided: signal when pending_approvals becomes empty
+//   - Otherwise: no signal — the workflow continues waiting
+//
+// The workflow waits for exactly one approvalGateResolved signal per approval
+// cycle, then re-invokes Python. Python reads the approval decisions from the
+// DB (not from Temporal args) and resumes execution.
 func (c *AgentExecutionController) SubmitApproval(ctx context.Context, input *agentexecutionv1.SubmitApprovalInput) (*agentexecutionv1.AgentExecution, error) {
 	reqCtx := pipeline.NewRequestContext(ctx, input)
 
@@ -84,7 +87,7 @@ func (c *AgentExecutionController) SubmitApproval(ctx context.Context, input *ag
 //  2. LoadExisting               - Load AgentExecution from store
 //  3. ValidateApproval           - Validate phase, tool_call_id match, idempotency
 //  4. RecordApprovalDecision     - Record decision on ToolCall, broadcast to subscribers
-//  5. SignalWorkflow             - Send Temporal signal to running workflow
+//  5. SignalWorkflow             - Conditionally send approvalGateResolved signal
 //  6. BuildResponse              - Return current execution state (with audit log)
 func (c *AgentExecutionController) buildSubmitApprovalPipeline() *pipeline.Pipeline[*agentexecutionv1.SubmitApprovalInput] {
 	return pipeline.NewPipeline[*agentexecutionv1.SubmitApprovalInput]("agent-execution-submit-approval").
@@ -179,14 +182,16 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 	requestedAction := input.GetAction()
 	currentPhase := execution.GetStatus().GetPhase()
 
-	// Validate phase: Must be EXECUTION_WAITING_FOR_APPROVAL
-	if currentPhase != agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
+	// Validate phase: approval is accepted during active execution phases where
+	// tool calls may be awaiting decisions. Terminal and pre-start phases are rejected.
+	if currentPhase != agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL &&
+		currentPhase != agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS {
 		log.Debug().
 			Str("execution_id", executionID).
 			Str("current_phase", currentPhase.String()).
-			Msg("Execution not in WAITING_FOR_APPROVAL phase")
+			Msg("Execution not in an approvable phase")
 		return grpclib.FailedPreconditionError(
-			"execution %s is in phase %s, expected EXECUTION_WAITING_FOR_APPROVAL",
+			"execution %s is in phase %s, approval requires EXECUTION_WAITING_FOR_APPROVAL or EXECUTION_IN_PROGRESS",
 			executionID, currentPhase.String(),
 		)
 	}
@@ -238,6 +243,9 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 // recordApprovalDecisionStep records the user's approval decision on the matching
 // ToolCall, recomputes pending_approvals (so the approved entry disappears
 // immediately), persists, and broadcasts to subscribers.
+//
+// Uses store.UpdateResource for atomic read-modify-write to prevent concurrent
+// SubmitApproval calls from overwriting each other's approval decisions.
 type recordApprovalDecisionStep struct {
 	store        store.Store
 	streamBroker *StreamBroker
@@ -258,43 +266,67 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 	}
 
 	input := ctx.Input()
-	execution := ctx.Get(steps.TargetResourceKey).(*agentexecutionv1.AgentExecution)
-	executionID := execution.GetMetadata().GetId()
+	executionID := input.GetAgentExecutionId()
 	toolCallId := input.GetToolCallId()
 	action := input.GetAction()
-
-	updated := proto.Clone(execution).(*agentexecutionv1.AgentExecution)
-	if updated.Status == nil {
-		updated.Status = &agentexecutionv1.AgentExecutionStatus{}
-	}
-
 	now := time.Now().UTC().Format(time.RFC3339)
-	if tc := findToolCallInExecution(updated, toolCallId); tc != nil {
-		tc.ApprovalAction = action
-		tc.ApprovalDecidedAt = now
-	}
 
-	// Recompute pending_approvals — the approved entry disappears because
-	// its approval_action is now set (no longer UNSPECIFIED).
-	updated.Status.PendingApprovals = approval.ComputePendingApprovals(
-		updated.Status.GetMessages(),
-		updated.Status.GetSubAgentExecutions(),
+	updated := &agentexecutionv1.AgentExecution{}
+
+	err := s.store.UpdateResource(
+		ctx.Context(),
+		apiresourcekind.ApiResourceKind_agent_execution,
+		executionID,
+		updated,
+		func() error {
+			// Re-check under the write lock: the tool call must still exist
+			// and must not already have a decision (guards against TOCTOU races
+			// where a concurrent request recorded a decision between our
+			// validation step and this locked update).
+			tc := findToolCallInExecution(updated, toolCallId)
+			if tc == nil {
+				return fmt.Errorf("tool call %s no longer exists in execution %s", toolCallId, executionID)
+			}
+			if tc.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED {
+				return fmt.Errorf("tool call %s already has approval action %s (concurrent approval won the race)",
+					toolCallId, tc.GetApprovalAction().String())
+			}
+
+			tc.ApprovalAction = action
+			tc.ApprovalDecidedAt = now
+
+			if updated.Status == nil {
+				updated.Status = &agentexecutionv1.AgentExecutionStatus{}
+			}
+
+			// Recompute pending_approvals — the approved entry disappears because
+			// its approval_action is now set (no longer UNSPECIFIED).
+			updated.Status.PendingApprovals = approval.ComputePendingApprovals(
+				updated.Status.GetMessages(),
+				updated.Status.GetSubAgentExecutions(),
+			)
+
+			return nil
+		},
 	)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return grpclib.NotFoundError("agent_execution", executionID)
+		}
+		log.Error().
+			Err(err).
+			Str("execution_id", executionID).
+			Str("tool_call_id", toolCallId).
+			Msg("Failed to atomically record approval decision")
+		return grpclib.InternalError(err, "failed to persist approval decision")
+	}
 
 	log.Info().
 		Str("execution_id", executionID).
 		Str("tool_call_id", toolCallId).
 		Str("action", action.String()).
-		Int("pending_approvals_remaining", len(updated.Status.PendingApprovals)).
+		Int("pending_approvals_remaining", len(updated.GetStatus().GetPendingApprovals())).
 		Msg("Recorded approval decision on ToolCall, recomputed pending_approvals")
-
-	if err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_agent_execution, executionID, updated); err != nil {
-		log.Error().
-			Err(err).
-			Str("execution_id", executionID).
-			Msg("Failed to persist approval decision")
-		return grpclib.InternalError(err, "failed to persist approval decision")
-	}
 
 	if s.streamBroker != nil {
 		s.streamBroker.Broadcast(updated)
@@ -305,12 +337,18 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 	return nil
 }
 
-// signalWorkflowStep sends a Temporal signal to the running workflow.
+// signalWorkflowStep conditionally sends an approvalGateResolved signal to the
+// running Temporal workflow when the approval gate has fully resolved.
+//
+// The signal is sent when either:
+//   - The submitted action is REJECT (immediate resume — Python auto-skips remaining)
+//   - All pending tool calls have received decisions (pending_approvals is empty)
+//
+// If neither condition is met, no signal is sent — the workflow continues waiting
+// for the remaining approvals.
 //
 // If the workflow is no longer running (WorkflowNotFound), this step reconciles
-// the execution status in the database to FAILED. This prevents executions from
-// being permanently stuck in WAITING_FOR_APPROVAL when the backing workflow has
-// terminated unexpectedly (e.g., infrastructure failure, manual termination).
+// the execution status in the database to FAILED.
 type signalWorkflowStep struct {
 	workflowCreator *agentexecutiontemporal.InvokeAgentExecutionWorkflowCreator
 	store           store.Store
@@ -325,13 +363,11 @@ func (s *signalWorkflowStep) Name() string {
 }
 
 func (s *signalWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutionv1.SubmitApprovalInput]) error {
-	// Skip if this is an idempotent request (already processed)
 	if isIdempotent, ok := ctx.Get(IsIdempotentRequestKey).(bool); ok && isIdempotent {
 		log.Debug().Msg("Skipping workflow signal for idempotent request")
 		return nil
 	}
 
-	// Skip if workflow creator is not available (graceful degradation)
 	if s.workflowCreator == nil {
 		log.Warn().Msg("Workflow creator not available - skipping Temporal signal")
 		return nil
@@ -340,20 +376,38 @@ func (s *signalWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutio
 	input := ctx.Input()
 	execution := ctx.Get(steps.TargetResourceKey).(*agentexecutionv1.AgentExecution)
 	executionID := execution.GetMetadata().GetId()
+	action := input.GetAction()
+	pendingRemaining := len(execution.GetStatus().GetPendingApprovals())
+
+	isReject := action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
+	allDecided := pendingRemaining == 0
+
+	if !isReject && !allDecided {
+		log.Info().
+			Str("execution_id", executionID).
+			Str("tool_call_id", input.GetToolCallId()).
+			Str("action", action.String()).
+			Int("pending_approvals_remaining", pendingRemaining).
+			Msg("Approval recorded, gate not yet resolved — waiting for remaining approvals")
+		return nil
+	}
+
+	reason := "all tool calls decided"
+	if isReject {
+		reason = "REJECT triggers immediate resume"
+	}
 
 	log.Info().
 		Str("execution_id", executionID).
 		Str("tool_call_id", input.GetToolCallId()).
-		Str("action", input.GetAction().String()).
-		Msg("Signaling Temporal workflow with approval decision")
+		Str("action", action.String()).
+		Str("reason", reason).
+		Int("pending_approvals_remaining", pendingRemaining).
+		Msg("Approval gate resolved — sending approvalGateResolved signal")
 
-	err := s.workflowCreator.SignalApproval(executionID, input)
+	err := s.workflowCreator.SignalApprovalGateResolved(executionID)
 	if err != nil {
 		if errors.Is(err, agentexecutiontemporal.ErrWorkflowNotFound) {
-			// Workflow not running - reconcile the stale execution status.
-			// The DB still shows WAITING_FOR_APPROVAL but the workflow that would
-			// process the approval no longer exists. Update to FAILED so the
-			// execution is not permanently stuck.
 			log.Warn().
 				Str("execution_id", executionID).
 				Msg("Workflow not found - reconciling stale execution status to FAILED")
@@ -375,7 +429,8 @@ func (s *signalWorkflowStep) Execute(ctx *pipeline.RequestContext[*agentexecutio
 
 	log.Info().
 		Str("execution_id", executionID).
-		Msg("Successfully signaled workflow with approval decision")
+		Str("reason", reason).
+		Msg("Successfully sent approvalGateResolved signal to workflow")
 
 	return nil
 }

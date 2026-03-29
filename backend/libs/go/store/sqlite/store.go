@@ -484,6 +484,59 @@ func (s *Store) SaveResource(ctx context.Context, kind apiresourcekind.ApiResour
 	return nil
 }
 
+// UpdateResource atomically reads a resource, applies a caller-supplied
+// modification, and persists the result. The entire read-modify-write is
+// serialized under writeMu so concurrent updates to the same resource cannot
+// overwrite each other.
+func (s *Store) UpdateResource(ctx context.Context, kind apiresourcekind.ApiResourceKind, id string, msg proto.Message, modify func() error) error {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.db == nil {
+		return fmt.Errorf("store is closed")
+	}
+
+	// Read
+	var data []byte
+	err := s.db.QueryRowContext(ctx,
+		`SELECT data FROM resources WHERE kind = ? AND id = ?`,
+		kind.String(), id).Scan(&data)
+
+	if err == sql.ErrNoRows {
+		return fmt.Errorf("%w: %s/%s", store.ErrNotFound, kind.String(), id)
+	}
+	if err != nil {
+		return fmt.Errorf("read resource for update: %w", err)
+	}
+
+	if err := proto.Unmarshal(data, msg); err != nil {
+		return fmt.Errorf("unmarshal proto for update: %w", err)
+	}
+
+	// Modify (caller mutates msg in place)
+	if err := modify(); err != nil {
+		return err
+	}
+
+	// Write
+	data, err = proto.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("marshal proto after update: %w", err)
+	}
+
+	_, err = s.db.ExecContext(ctx,
+		`INSERT OR REPLACE INTO resources (kind, id, data, updated_at) VALUES (?, ?, ?, datetime('now'))`,
+		kind.String(), id, data)
+	if err != nil {
+		return fmt.Errorf("save resource after update: %w", err)
+	}
+
+	return nil
+}
+
 // GetResource retrieves a resource by kind and ID.
 // Returns store.ErrNotFound if the resource does not exist.
 func (s *Store) GetResource(ctx context.Context, kind apiresourcekind.ApiResourceKind, id string, msg proto.Message) error {

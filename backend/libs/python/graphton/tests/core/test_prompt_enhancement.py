@@ -11,15 +11,20 @@ Tests cover:
 import pytest
 
 from graphton.core.prompt_enhancement import (
+    CODE_QUALITY_PROTOCOL,
+    COMMUNICATION_STYLE,
+    CONTEXT_GATHERING_PROTOCOL,
     EXECUTE_CAPABILITY,
     EXECUTION_RECOVERY_STRATEGIES,
     FILE_RECOVERY_STRATEGIES,
     FILESYSTEM_CAPABILITY,
+    GIT_SAFETY_PROTOCOL,
     MCP_RECOVERY_STRATEGIES,
     MCP_TOOLS_CAPABILITY,
     PLANNING_CAPABILITY,
     RESILIENCE_PREAMBLE,
     THINK_CAPABILITY,
+    VERIFICATION_PROTOCOL,
     enhance_user_instructions,
 )
 
@@ -100,23 +105,28 @@ class TestCapabilitySections:
         assert "edit_file" in lower
         assert "internal override" in lower or "do not use" in lower
 
-    def test_filesystem_capability_includes_editing_efficiency(self):
-        """Test that file system capability includes editing efficiency guidance."""
+    def test_filesystem_capability_includes_editing_protocol(self):
+        """Test that file system capability includes editing protocol guidance."""
         lower = FILESYSTEM_CAPABILITY.lower()
-        assert "editing efficiency" in lower
+        assert "editing protocol" in lower
         assert "`edit`" in FILESYSTEM_CAPABILITY
         assert "`write`" in FILESYSTEM_CAPABILITY
         assert "`old_text`" in FILESYSTEM_CAPABILITY
         assert "`new_text`" in FILESYSTEM_CAPABILITY
 
     def test_filesystem_capability_prefers_edit_over_write(self):
-        """Test that editing efficiency guidance steers toward edit for modifications."""
+        """Test that editing protocol steers toward edit for modifications."""
         lower = FILESYSTEM_CAPABILITY.lower()
-        assert "prefer `edit` over" in FILESYSTEM_CAPABILITY.lower() or \
-               "prefer ``edit`` over" in FILESYSTEM_CAPABILITY.lower()
-        assert "multiple `edit` calls" in FILESYSTEM_CAPABILITY.lower() or \
-               "multiple ``edit`` calls" in FILESYSTEM_CAPABILITY.lower()
+        assert "prefer `edit` over" in lower or "prefer ``edit`` over" in lower
+        assert "multiple `edit` calls" in lower or "multiple ``edit`` calls" in lower
         assert "reserve `write`" in lower or "reserve ``write``" in lower
+
+    def test_filesystem_capability_includes_anti_patterns(self):
+        """Test that file system capability includes do-not list."""
+        lower = FILESYSTEM_CAPABILITY.lower()
+        assert "do not" in lower
+        assert "`cat`" in FILESYSTEM_CAPABILITY or "cat" in lower
+        assert "`sed`" in FILESYSTEM_CAPABILITY or "sed" in lower
 
     def test_mcp_tools_capability_content(self):
         """Test MCP tools capability section content."""
@@ -168,6 +178,76 @@ class TestRecoveryStrategies:
         assert "exit code" in EXECUTION_RECOVERY_STRATEGIES.lower()
         assert "timeout" in EXECUTION_RECOVERY_STRATEGIES.lower()
         assert "dependencies" in EXECUTION_RECOVERY_STRATEGIES.lower()
+
+
+# =============================================================================
+# TestOperationalProtocols - Tests for code quality, git safety, verification
+# =============================================================================
+
+
+class TestOperationalProtocols:
+    """Tests for operational protocol sections."""
+
+    def test_code_quality_protocol_content(self):
+        """Test code quality protocol includes key rules."""
+        lower = CODE_QUALITY_PROTOCOL.lower()
+        assert "read before editing" in lower
+        assert "match existing style" in lower
+        assert "fix errors you introduce" in lower
+
+    def test_git_safety_protocol_content(self):
+        """Test git safety protocol includes key rules."""
+        lower = GIT_SAFETY_PROTOCOL.lower()
+        assert "never force push" in lower
+        assert "never amend pushed commits" in lower
+        assert "git status" in lower
+
+    def test_verification_protocol_content(self):
+        """Test verification protocol includes key steps."""
+        lower = VERIFICATION_PROTOCOL.lower()
+        assert "read modified files" in lower
+        assert "run tests" in lower
+        assert "run linters" in lower
+
+    def test_communication_style_content(self):
+        """Test communication style includes key guidance."""
+        lower = COMMUNICATION_STYLE.lower()
+        assert "backtick" in lower
+        assert "concise" in lower or "direct" in lower
+
+    def test_context_gathering_protocol_content(self):
+        """Test context gathering protocol includes key guidance."""
+        lower = CONTEXT_GATHERING_PROTOCOL.lower()
+        assert "git status" in lower
+        assert "before starting" in lower
+        assert "debugging" in lower or "debug" in lower
+
+    def test_protocols_included_with_sandbox(self):
+        """Test that operational protocols are included when sandbox is enabled."""
+        enhanced = enhance_user_instructions(
+            "Test assistant.", has_sandbox=True,
+        )
+        lower = enhanced.lower()
+        assert "code quality protocol" in lower
+        assert "git safety protocol" in lower
+        assert "verification protocol" in lower
+        assert "context gathering" in lower
+
+    def test_protocols_excluded_without_sandbox(self):
+        """Test that operational protocols are excluded without sandbox."""
+        enhanced = enhance_user_instructions(
+            "Test assistant.", has_sandbox=False,
+        )
+        lower = enhanced.lower()
+        assert "code quality protocol" not in lower
+        assert "git safety protocol" not in lower
+        assert "verification protocol" not in lower
+        assert "context gathering" not in lower
+
+    def test_communication_style_always_included(self):
+        """Test that communication style is always included."""
+        enhanced = enhance_user_instructions("Test assistant.")
+        assert "communication style" in enhanced.lower()
 
 
 # =============================================================================
@@ -313,33 +393,41 @@ class TestEnhanceUserInstructions:
             has_sandbox=True,
         )
         
-        # All sections should be present
-        assert "error recovery philosophy" in enhanced.lower()
-        assert "your capabilities" in enhanced.lower()
-        assert "planning system" in enhanced.lower()
-        assert "file system" in enhanced.lower()
-        assert "think tool" in enhanced.lower()
-        assert "mcp tools" in enhanced.lower()
-        assert "execute tool" in enhanced.lower()
-        assert "file operation recovery" in enhanced.lower()
-        assert "mcp tool recovery" in enhanced.lower()
-        assert "command execution recovery" in enhanced.lower()
-        assert "your task" in enhanced.lower()
+        lower = enhanced.lower()
+        # Resilience + capabilities
+        assert "error recovery philosophy" in lower
+        assert "your capabilities" in lower
+        assert "planning system" in lower
+        assert "file system" in lower
+        assert "think tool" in lower
+        assert "mcp tools" in lower
+        assert "execute tool" in lower
+        # Operational protocols (sandbox-conditional)
+        assert "code quality protocol" in lower
+        assert "git safety protocol" in lower
+        assert "verification protocol" in lower
+        # Communication style
+        assert "communication style" in lower
+        # Recovery strategies
+        assert "file operation recovery" in lower
+        assert "mcp tool recovery" in lower
+        assert "command execution recovery" in lower
+        # User task
+        assert "your task" in lower
 
     def test_prompt_size_reasonable(self):
-        """Test that enhanced prompt size is reasonable (~800-1200 words)."""
+        """Test that enhanced prompt size is reasonable."""
         enhanced = enhance_user_instructions(
             "Test assistant.",
             has_mcp_tools=True,
             has_sandbox=True,
         )
         
-        # Count words (rough estimate)
         word_count = len(enhanced.split())
         
-        # Should be between 600 and 1600 words for full enhancement
-        assert word_count >= 600, f"Prompt too short: {word_count} words"
-        assert word_count <= 1600, f"Prompt too long: {word_count} words"
+        # Full enhancement with all protocols: ~900-2200 words
+        assert word_count >= 900, f"Prompt too short: {word_count} words"
+        assert word_count <= 2200, f"Prompt too long: {word_count} words"
 
 
 # =============================================================================

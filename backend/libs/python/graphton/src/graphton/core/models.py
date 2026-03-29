@@ -35,16 +35,18 @@ ANTHROPIC_DEFAULTS = {
     "max_tokens": 20000,  # Deep Agents need high token limits for reasoning
 }
 
-# Token budget for Anthropic's native extended thinking.
-# Controls the maximum tokens Claude can spend on internal reasoning before
-# producing a response.  Must be less than max_tokens (20,000 > 10,000 ✓).
-# Claude may use fewer tokens than the budget, especially for simpler tasks.
-DEFAULT_THINKING_BUDGET = 10_000
+# Token budget for Anthropic's native extended thinking (manual mode).
+# Used by models that support ``supports_thinking`` (e.g. Sonnet 4.6).
+# Must be less than max_tokens (20,000 > 16,000 ✓).
+# Claude may use fewer tokens than the budget for simpler tasks.
+DEFAULT_THINKING_BUDGET = 16_000
 
 # Effort level for Anthropic's adaptive thinking (Opus 4.6, Sonnet 4.6).
 # Passed via ``output_config.effort`` in the API request.
 # Valid values: "low", "medium", "high", "max" (max is Opus 4.6 only).
-DEFAULT_THINKING_EFFORT = "medium"
+# "high" produces thorough, multi-step reasoning comparable to Cursor-class
+# coding agents.  Use "medium" only if cost is a primary constraint.
+DEFAULT_THINKING_EFFORT = "high"
 
 OLLAMA_DEFAULTS = {
     "base_url": "http://localhost:11434",

@@ -77,6 +77,11 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 		status = &agentexecutionv1.AgentExecutionStatus{}
 	}
 
+	// Snapshot existing messages/sub-agents before replacement so we can
+	// preserve SubmitApproval-owned fields that Python doesn't know about.
+	existingMessages := status.GetMessages()
+	existingSubAgents := status.GetSubAgentExecutions()
+
 	// Messages: Replace with latest from worker (complete list)
 	if len(statusUpdates.GetMessages()) > 0 {
 		log.Debug().
@@ -94,6 +99,17 @@ func (a *UpdateExecutionStatusActivityImpl) UpdateExecutionStatus(ctx context.Co
 			Msg("Replacing sub_agent_executions")
 		status.SubAgentExecutions = statusUpdates.SubAgentExecutions
 	}
+
+	// Preserve approval fields (approval_action, approval_decided_at, approved_by)
+	// that were atomically recorded by SubmitApproval. Python always sends
+	// UNSPECIFIED for these fields, so without this step the wholesale message
+	// replacement above would erase user-submitted approval decisions.
+	approval.PreserveApprovalFields(
+		status.GetMessages(),
+		status.GetSubAgentExecutions(),
+		existingMessages,
+		existingSubAgents,
+	)
 
 	// Todos: Replace with latest from worker
 	if len(statusUpdates.GetTodos()) > 0 {
