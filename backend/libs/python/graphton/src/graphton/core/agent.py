@@ -159,10 +159,10 @@ def create_deep_agent(
             Set higher (25-50) for complex tasks, lower (10-15) for simple ones.
         budget_warning_pct: Percentage of the recursion limit at which the model
             receives a SystemMessage asking it to wrap up (default: 80).  Only
-            applies when ``recursion_limit`` is set. Must be between 50 and 95.
-            At 80% of the estimated budget, the model is told
-            to prioritise completing its current task and summarising remaining work.
-            This turns the hard GraphRecursionError into graceful degradation.
+            applies in threshold mode (when ``recursion_limit`` is set).  Must
+            be between 50 and 95.  When ``recursion_limit`` is ``None``
+            (unlimited), the middleware switches to periodic mode — advisory
+            nudges every 50 model rounds with escalating urgency.
         checkpointer: Optional LangGraph checkpointer for interrupt/resume support.
             Required for HITL (human-in-the-loop) approval flow where tool execution
             can be paused for user approval. Supports MemorySaver for testing or
@@ -418,16 +418,29 @@ def create_deep_agent(
     )
     middleware_list.append(loop_detection)
     
-    # Auto-inject execution budget middleware when a concrete recursion_limit
-    # is set.  When unlimited (None), there is no budget to warn about and
-    # skipping the middleware also removes one after_model graph node per
-    # round, reducing per-round super-step cost.
+    # Auto-inject execution budget middleware.
+    #
+    # When recursion_limit is set: threshold mode — single warning at
+    # budget_warning_pct% of the estimated model rounds.
+    #
+    # When unlimited (None): periodic mode — advisory nudges every 50
+    # model rounds (up to 4 times) with escalating urgency.  This keeps
+    # the model aware of elapsed work and encourages efficient task
+    # completion without imposing a hard ceiling.
+    main_agent_advisory_interval = 50
+    main_agent_max_advisories = 4
+
     if recursion_limit is not None:
         execution_budget = ExecutionBudgetMiddleware(
             recursion_limit=recursion_limit,
             warning_pct=budget_warning_pct,
         )
-        middleware_list.append(execution_budget)
+    else:
+        execution_budget = ExecutionBudgetMiddleware(
+            warning_interval=main_agent_advisory_interval,
+            max_warnings=main_agent_max_advisories,
+        )
+    middleware_list.append(execution_budget)
     
     # Auto-inject tool truncation middleware (Phase 3B).
     # Always active — enforces a per-tool-result character ceiling to prevent
@@ -498,11 +511,10 @@ def create_deep_agent(
     #
     # HITL path (checkpointer + approval_checker present):
     #   All sub-agents — both explicit and the general-purpose agent — are
-    #   compiled with their own MemorySaver and wrapped in
-    #   InterruptProxyRunnable + SubAgentGate.  InterruptProxy ensures ALL
-    #   sub-agent tool interrupts are captured and correctly proxied to the
-    #   parent graph for user approval.  SubAgentGate enforces a shared
-    #   concurrency limit (max 3 by default) across all sub-agents.
+    #   compiled with checkpointer=None (LangGraph native per-invocation
+    #   mode) and wrapped in SubAgentGate for concurrency limiting.
+    #   Sub-agent interrupt() calls propagate natively to the parent
+    #   checkpoint with the direct value shape — no proxy layer needed.
     #
     #   The general-purpose sub-agent is always injected as an explicit
     #   CompiledSubAgent named "general-purpose".  deepagents auto-creates
@@ -526,7 +538,7 @@ def create_deep_agent(
 
     transformed_subagents = None
     if checkpointer is not None and approval_checker is not None:
-        from graphton.core.interrupt_proxy import compile_subagent_with_proxy
+        from graphton.core.subagent import compile_subagent
         from graphton.core.subagent_limiter import SubAgentGate
 
         _hitl_gate = SubAgentGate()
@@ -593,13 +605,14 @@ def create_deep_agent(
                         summarization_config.target_tokens,
                     )
 
-                compiled_sa = compile_subagent_with_proxy(
+                compiled_sa = compile_subagent(
                     model=sa_model,
                     tools=sa_tools,
                     system_prompt=sa_prompt,
                     name=sa_name,
                     description=sa_desc,
                     middleware=sa_middleware,
+                    recursion_limit=recursion_limit,
                 )
                 compiled_sa["runnable"] = gate.wrap(compiled_sa["runnable"], name=sa_name)
                 compiled_subagents.append(compiled_sa)
@@ -617,9 +630,9 @@ def create_deep_agent(
         # We store the injection intent and compile after sandbox
         # platform tools and MCP tools are available.
         #
-        # compile_subagent_with_proxy uses create_agent (not
-        # create_deep_agent), so the GP sub-agent has no `task` tool
-        # and cannot recursively spawn sub-sub-agents.
+        # compile_subagent uses create_agent (not create_deep_agent),
+        # so the GP sub-agent has no `task` tool and cannot recursively
+        # spawn sub-sub-agents.
         #
         # We use `system_prompt` (not `enhanced_prompt`) because prompt
         # enhancement adds graphton-specific capability awareness that
@@ -639,12 +652,13 @@ def create_deep_agent(
                 "model": model_instance,
                 "system_prompt": system_prompt,
                 "middleware": gp_middleware,
+                "recursion_limit": recursion_limit,
             }
 
         transformed_subagents = compiled_subagents
         logger.info(
-            "Compiled %d sub-agent(s) with InterruptProxy + concurrency gate "
-            "(max %d concurrent) for HITL approval",
+            "Compiled %d sub-agent(s) with native interrupt propagation "
+            "+ concurrency gate (max %d concurrent) for HITL approval",
             len(compiled_subagents),
             gate._max,
         )
@@ -876,7 +890,7 @@ def create_deep_agent(
     # GP sub-agent with the full tool set.  This ensures the model uses
     # native function calling instead of outputting raw XML text.
     if _pending_gp_config is not None and _hitl_gate is not None:
-        from graphton.core.interrupt_proxy import compile_subagent_with_proxy
+        from graphton.core.subagent import compile_subagent
 
         gp_tools: list[Any] = []
 
@@ -896,7 +910,7 @@ def create_deep_agent(
             gp_tools.append(create_think_tool())
 
         if gp_tools:
-            gp_sa = compile_subagent_with_proxy(
+            gp_sa = compile_subagent(
                 model=_pending_gp_config["model"],
                 tools=gp_tools,
                 system_prompt=_pending_gp_config["system_prompt"],
@@ -907,6 +921,7 @@ def create_deep_agent(
                     "benefit from context isolation or parallelism."
                 ),
                 middleware=_pending_gp_config["middleware"],
+                recursion_limit=_pending_gp_config.get("recursion_limit"),
             )
             gp_sa["runnable"] = _hitl_gate.wrap(
                 gp_sa["runnable"], name="general-purpose",

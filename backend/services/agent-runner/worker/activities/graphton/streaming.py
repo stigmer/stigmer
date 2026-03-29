@@ -135,7 +135,7 @@ class StreamExecutor:
             return None
 
         run_id = event.get("run_id", "")
-        resolved_id = self._sb._resolve_run_id(run_id)
+        resolved_id = self._sb.resolve_run_id(run_id)
         path = ""
         tc = self._sb.get_tool_call(resolved_id)
         if tc is not None:
@@ -367,10 +367,27 @@ class StreamExecutor:
         force = self._sb.force_next_update
         if force:
             self._sb.force_next_update = False
+
+        # Check if any deferred sub-agent completion has drained.  This
+        # sets force_next_update (captured in the next iteration) only
+        # after the drain window elapses, giving late LangGraph events
+        # time to be batched into the same gRPC update.
+        completion_drained = self._sb.should_flush_completions(
+            time.monotonic(),
+        )
+        if completion_drained and not force:
+            force = self._sb.force_next_update
+            if force:
+                self._sb.force_next_update = False
+
         if not (force or scheduler.should_send_update(events_processed)):
             return events_processed, last_hb_time
 
-        reason = "force_tool_update" if force else scheduler.get_update_reason_str()
+        reason = (
+            "force_tool_update"
+            if force
+            else scheduler.get_update_reason_str()
+        )
         time_since = scheduler.get_time_since_last_update_ms()
         events_since = scheduler.get_events_since_last_update(events_processed)
 
@@ -457,25 +474,9 @@ class StreamExecutor:
                 "from this checkpoint."
             ),
         )
-        asyncio.get_event_loop().run_until_complete(
-            self._persist_terminal_status("PAUSE")
-        ) if False else None  # noqa  — intentionally deferred; see below
-
-        # _persist_terminal_status is async but CancelledError handlers
-        # cannot await (the task is already cancelled). Best-effort via
-        # create_task in the finally block of execute() won't run either.
-        # Inline the sync gRPC call:
-        try:
-            import asyncio as _aio
-            _aio.get_event_loop().create_task(
-                self._exec_client.update_status(
-                    execution_id=self._execution_id,
-                    status=self._sb.current_status,
-                )
-            )
-        except Exception as err:
-            self._log.warning("[PAUSE] Failed to send status update: %s", err)
-
+        # No persistence here — the caller (execute_graphton.py) handles
+        # terminal status persistence via retry_executor for all terminal
+        # paths uniformly (pause, stall, recursion limit).
         return StreamResult(events_processed=events_processed, terminal_status=slim)
 
     def _handle_stall(self, events_processed: int) -> StreamResult:

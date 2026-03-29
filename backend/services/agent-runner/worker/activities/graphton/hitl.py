@@ -1,21 +1,19 @@
 """
 Human-in-the-Loop (HITL) approval flow logic.
 
-Simplified in T03: ``messages[].tool_calls`` is the single source of truth.
-``pending_approvals`` is computed server-side.  The LangGraph checkpoint is
-queried directly at resume time.
+``messages[].tool_calls`` is the single source of truth.
+``pending_approvals`` is computed server-side by Go/Java
+``ComputePendingApprovals``.  The LangGraph checkpoint is queried
+directly at resume time.
 
 Public helpers:
 
   extract_interrupt_tool_call_ids — extracts the set of tool_call_ids from
-      LangGraph checkpoint interrupts (both direct and proxy shapes).
+      LangGraph checkpoint interrupts.
 
-  build_snapshot_from_interrupts — builds the Temporal-coordination
-      ``pending_approvals`` list from checkpoint interrupts.
-
-  extract_approval_decisions_from_execution — builds the same
+  extract_approval_decisions_from_execution — builds a
       ``list[SubmitApprovalInput]`` from a DB-loaded execution's tool calls
-      (T03 DB-driven resume path).
+      (DB-driven resume path).
 
 Classes:
 
@@ -26,10 +24,8 @@ Classes:
 from __future__ import annotations
 
 import logging
-from collections import deque
 from typing import Any
 
-from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
     ToolCallStatus,
@@ -46,39 +42,17 @@ from worker.activities.graphton.status_builder import StatusBuilder, _utc_timest
 def extract_interrupt_tool_call_ids(interrupts: Any) -> set[str]:
     """Extract all tool_call_ids from LangGraph checkpoint interrupts.
 
-    Handles both shapes:
-    - **Direct**: ``intr.value["tool_call_id"]`` (root-agent HITL)
-    - **Proxy**: Nested dicts with ``_proxy_interrupt_id``, each containing
-      ``tool_call_id`` (sub-agent HITL via InterruptProxyRunnable)
+    All interrupts use the direct shape: ``intr.value["tool_call_id"]``.
+    Both root-agent and sub-agent interrupts propagate with this same
+    shape thanks to LangGraph's native per-invocation subgraph mode.
     """
     tc_ids: set[str] = set()
     for intr in interrupts:
         intr_value = intr.value if isinstance(intr.value, dict) else {}
-        direct_tc_id = intr_value.get("tool_call_id", "")
-        if direct_tc_id:
-            tc_ids.add(direct_tc_id)
-        for _sub_id, sub_value in intr_value.items():
-            if not isinstance(sub_value, dict):
-                continue
-            if "_proxy_interrupt_id" not in sub_value:
-                continue
-            sub_tc_id = sub_value.get("tool_call_id", "")
-            if sub_tc_id:
-                tc_ids.add(sub_tc_id)
+        tc_id = intr_value.get("tool_call_id", "")
+        if tc_id:
+            tc_ids.add(tc_id)
     return tc_ids
-
-
-def build_snapshot_from_interrupts(interrupts: Any) -> list[PendingApproval]:
-    """Build ``pending_approvals`` snapshot from checkpoint interrupts.
-
-    Returns one :class:`PendingApproval` per tool_call_id found in the
-    interrupts.  This is the Temporal-coordination signal that tells the Go
-    workflow how many approval signals to collect.
-    """
-    return [
-        PendingApproval(tool_call_id=tc_id)
-        for tc_id in sorted(extract_interrupt_tool_call_ids(interrupts))
-    ]
 
 
 def extract_approval_decisions_from_execution(
@@ -123,10 +97,10 @@ class ResumeReconciler:
     On resume, the StatusBuilder is initialized with DB-persisted status that
     already contains tool calls in WAITING_APPROVAL state.  This class:
 
-    1. Transitions each decided tool call to RUNNING / SKIPPED
-    2. Auto-skips remaining WAITING_APPROVAL tools on REJECT
-    3. Clears stale ``completed_at`` from the previous cycle
-    4. Pre-populates fingerprints for LangGraph replay dedup
+    1. Rebuilds the in-memory index from persisted status
+    2. Transitions each decided tool call to RUNNING / SKIPPED
+    3. Auto-skips remaining WAITING_APPROVAL tools on REJECT
+    4. Clears stale ``completed_at`` from the previous cycle
     """
 
     _APPROVAL_TO_STATUS = {
@@ -152,10 +126,10 @@ class ResumeReconciler:
         approval_decisions: list[SubmitApprovalInput],
     ) -> None:
         """Run the full reconciliation pipeline."""
-        # Populate _tool_call_index and fingerprints BEFORE the reconciliation
-        # loop so that get_tool_call() and iter_all_tool_calls() can find
-        # persisted tool calls from the previous execution cycle.
-        self._sb.populate_fingerprints_from_existing_tool_calls()
+        # Rebuild the tool call index BEFORE the reconciliation loop so that
+        # get_tool_call() and iter_all_tool_calls() can find persisted tool
+        # calls from the previous execution cycle.
+        self._sb.rebuild_index_from_persisted_status()
 
         decisions_by_tc = {d.tool_call_id: d for d in approval_decisions}
         reconciled_count = 0
@@ -193,14 +167,6 @@ class ResumeReconciler:
             if decision.action == ApprovalAction.APPROVAL_ACTION_REJECT:
                 has_reject = True
 
-            # Register for resume-aware dedup so _handle_tool_start_event
-            # can match the re-fired event even when fingerprints diverge.
-            if new_status == ToolCallStatus.TOOL_CALL_RUNNING:
-                q = self._sb._reconciled_resume_tool_calls.setdefault(
-                    tc.name, deque(),
-                )
-                q.append(tc.id)
-
             self._logger.info(
                 "[RESUME_RECONCILE] execution=%s "
                 "tool_call=%s name=%s "
@@ -224,9 +190,9 @@ class ResumeReconciler:
         self._logger.info(
             "[RESUME_RECONCILE] execution=%s "
             "reconciled %d tool call(s), "
-            "populated %d fingerprint(s)",
+            "index size=%d",
             self._execution_id, reconciled_count,
-            len(self._sb.tool_call_fingerprints),
+            self._sb.tool_call_count(),
         )
 
     def reconcile_orphans_against_checkpoint(

@@ -59,11 +59,11 @@ class TestStatusBuilderAddArtifact:
 
     def _import_and_create(self):
         """Import StatusBuilder and create an instance with minimal deps."""
+        from worker.activities.graphton.execution_state import ExecutionState
         from worker.activities.graphton.status_builder import StatusBuilder
 
         sb = StatusBuilder.__new__(StatusBuilder)
-        sb.current_status = AgentExecutionStatus()
-        sb._artifacts = []
+        sb.state = ExecutionState(proto=AgentExecutionStatus())
         sb.execution_id = "test-exec"
         sb.force_next_update = False
         sb.logger = logging.getLogger("test")
@@ -77,7 +77,7 @@ class TestStatusBuilderAddArtifact:
 
         assert len(sb.current_status.artifacts) == 1
         assert sb.current_status.artifacts[0].sandbox_path == "project/file.txt"
-        assert len(sb._artifacts) == 1
+        assert len(sb.state.artifacts) == 1
 
     def test_add_artifact_sets_force_next_update(self):
         sb = self._import_and_create()
@@ -98,8 +98,8 @@ class TestStatusBuilderAddArtifact:
 
         assert len(sb.current_status.artifacts) == 1
         assert sb.current_status.artifacts[0].size_bytes == 200
-        assert len(sb._artifacts) == 1
-        assert sb._artifacts[0].size_bytes == 200
+        assert len(sb.state.artifacts) == 1
+        assert sb.state.artifacts[0].size_bytes == 200
 
     def test_add_artifact_different_paths_appended(self):
         sb = self._import_and_create()
@@ -110,11 +110,11 @@ class TestStatusBuilderAddArtifact:
         sb.add_artifact(artifact_b)
 
         assert len(sb.current_status.artifacts) == 2
-        assert len(sb._artifacts) == 2
+        assert len(sb.state.artifacts) == 2
 
     def test_finalize_context_info_does_not_duplicate(self):
         sb = self._import_and_create()
-        sb._context_info = None
+        sb.state.context_info = None
         artifact = _make_artifact("file.txt", "project/file.txt")
 
         sb.add_artifact(artifact)
@@ -127,13 +127,13 @@ class TestStatusBuilderAddArtifact:
         """Artifacts added to _artifacts but not yet in current_status
         (e.g. from post-stream safety net before finalize) are synced."""
         sb = self._import_and_create()
-        sb._context_info = None
+        sb.state.context_info = None
 
         artifact_inline = _make_artifact("a.txt", "a.txt")
         sb.add_artifact(artifact_inline)
 
         artifact_safety = _make_artifact("b.txt", "b.txt")
-        sb._artifacts.append(artifact_safety)
+        sb.state.artifacts.append(artifact_safety)
 
         sb.finalize_context_info()
         paths = [a.sandbox_path for a in sb.current_status.artifacts]
@@ -171,7 +171,7 @@ class TestStreamExecutorInlinePublish:
         sb.current_status = MagicMock()
         sb.current_status.tool_calls = [tc_write, tc_read]
         sb.force_next_update = False
-        sb._resolve_run_id = lambda rid: rid
+        sb.resolve_run_id = lambda rid: rid
         sb.get_tool_call = lambda tc_id: next(
             (tc for tc in sb.current_status.tool_calls if tc.id == tc_id), None
         )
