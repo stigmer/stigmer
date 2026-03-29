@@ -73,9 +73,10 @@ When starting a new session:
 **T04 Completed**: 2026-03-29 (fingerprint dedup replaced with identity-based lookup)
 **T03 Completed**: 2026-03-29 (namespace routing via parent_ids confirmed — Approach B)
 **T05 Completed**: 2026-03-29 (namespace heuristics replaced with parent_ids-based deterministic routing)
-**Current Task**: T06 or T07 (see next steps)
-**Next Code Task**: T06 (pause fix standalone), T07 (ExecutionState reducer refactor)
-**Status**: Active — T02+T03+T04+T05 complete, T06/T07 unblocked
+**T06 Completed**: 2026-03-29 (end-to-end pause/resume fix across Go, Java, Python)
+**Current Task**: T07 (ExecutionState reducer refactor)
+**Next Code Task**: T07 (ExecutionState reducer refactor)
+**Status**: Active — T02+T03+T04+T05+T06 complete, T07 unblocked
 
 ### T02 Key Finding
 v2 events do NOT carry `tool_call_id`. Solution: a ~10-line `ToolCallIdCapture`
@@ -113,6 +114,32 @@ Files changed:
 - Modified: `status_builder.py` (production rewrite + cleanup)
 - Tests: `test_status_builder.py` (rewrote 2 test classes, updated ~20 namespace events)
 
+### T06 Completion Summary
+Fixed the broken pause/resume mechanism end-to-end across Go, Java, and Python.
+The Go workflow now consumes pause/resume signals (modeled after the proven Java
+implementation), the Java Cloud service gained the missing Pause/Resume RPC handlers,
+and the Python activity persists terminal status reliably through the normal retry path.
+
+**Go (stigmer OSS):**
+- Added `SignalPause`/`SignalResume` constants to `workflow_types.go` and `invoke_workflow.go`
+- Updated `lifecycle_steps.go` to use constants instead of inline strings
+- Refactored `executeGraphtonFlow`: outer pause/resume loop with `workflow.Go()` + `workflow.WithCancel()`
+- Extracted `executeGraphtonWithHitl()` matching Java's structure
+- 5 workflow tests (pause→resume, normal, HITL, multi-cycle, FAILED)
+
+**Java (stigmer-cloud):**
+- Added `SIGNAL_PAUSE`/`SIGNAL_RESUME` constants to `AgentExecutionTemporalWorkflowTypes`
+- Added explicit `@SignalMethod(name=...)` to workflow interface
+- Created `AgentExecutionPauseHandler` and `AgentExecutionResumeHandler` with full pipeline
+- Added pause/resume tests to `InvokeAgentExecutionWorkflowSignalTest`
+
+**Python (shared):**
+- Removed unreliable `create_task` persistence from `_handle_pause` in `streaming.py`
+- Added `retry_executor` persistence to terminal_status early-return path in `execute_graphton.py`
+- 5 unit tests for pause flow
+
+Files changed: 13 (6 modified stigmer + 2 new stigmer + 3 modified stigmer-cloud + 2 new stigmer-cloud)
+
 ## Session Progress (2026-03-29, session 3)
 
 ### What was accomplished
@@ -149,16 +176,42 @@ Files changed:
 - `ToolCallIdCapture` placed in its own module per "StatusBuilder Is NOT a Dumping Ground"
 - Used `TYPE_CHECKING` guard for the import, string annotation for the constructor param
 
+## Session Progress (2026-03-29, session 4)
+
+### What was accomplished
+- Completed T06: End-to-end pause/resume fix across Go, Java, and Python
+- **Go workflow**: Refactored `executeGraphtonFlow` with outer pause/resume loop using `workflow.Go()` + `workflow.WithCancel()`, extracted `executeGraphtonWithHitl()` for clarity
+- **Go constants**: Added `SignalPause`/`SignalResume` to `workflow_types.go` and `invoke_workflow.go`, updated `lifecycle_steps.go` to use them
+- **Java constants**: Added `SIGNAL_PAUSE`/`SIGNAL_RESUME` to `AgentExecutionTemporalWorkflowTypes`, explicit `@SignalMethod(name=...)` on workflow interface
+- **Java RPC handlers**: Created `AgentExecutionPauseHandler` and `AgentExecutionResumeHandler` with full pipeline (validate, signal, update phase, persist, publish)
+- **Python persistence**: Removed unreliable `create_task` from `_handle_pause`, added `retry_executor` persistence to terminal_status early-return path in `execute_graphton.py`
+- **Tests**: 5 Go workflow tests, 2 Java signal tests, 5 Python pause flow tests — all passing
+- **Cross-platform verification**: Confirmed that Go receives `CancelledError` on workflow context cancellation regardless of whether Python activity returns normally, ensuring the workflow logic is robust
+
+### Key decisions
+- Modeled Go workflow after proven Java `CancellationScope` + `Async.procedure` pattern
+- `MaxPauseCycles = 50` safety limit to prevent infinite pause/resume loops
+- Defense-in-depth: workflow persists PAUSED status even though Python activity also persists
+- Terminal status persistence (pause, stall, recursion limit) unified through `retry_executor` in `execute_graphton.py`
+- Java handlers follow exact same pipeline pattern as existing handlers (LoadExisting → Authorize → Validate → Signal → UpdatePhase → Persist → Publish)
+
+### Key finding
+The original "Python-side persistence bug" was actually a much deeper architectural gap: the Go Temporal workflow was not consuming pause signals at all, so activity cancellation never happened. The Java workflow had the right structure but lacked RPC handlers to send the signals. The fix required coordinated changes across all three languages.
+
 ## Next Steps (when you return)
-1. T06 — Fix pause handling (standalone task, can be done anytime)
-2. T07 — ExecutionState reducer refactor (fold `_run_id_aliases` into capture or eliminate)
-3. T08+ — Continue reducer pattern simplification per plan
-4. Note: InterruptProxyRunnable elimination (separate project) further simplifies the codebase
+1. T07 — ExecutionState reducer refactor (fold `_run_id_aliases` into capture or eliminate)
+2. T08+ — Continue reducer pattern simplification per plan
+3. Note: InterruptProxyRunnable elimination (separate project) further simplifies the codebase
+
+## Context for Resume
+- T06 changes span two repos: `stigmer` (Go + Python) and `stigmer-cloud` (Java)
+- Both repos need to be committed separately — stigmer-cloud changes are on `main` branch
+- The Java workflow implementation (`InvokeAgentExecutionWorkflowImpl.java`) already had pause/resume logic; only constants, interface annotations, and RPC handlers were added
+- The Go workflow implementation was the most significant change — `invoke_workflow_impl.go` gained ~120 net lines
 
 ## Quick Commands
 
 After loading context:
-- "Start T06 implementation" - Fix pause handling (standalone)
 - "Start T07 implementation" - ExecutionState reducer refactor
 - "Show project status" - Get overview of progress
 - "Review the plan" - Read the v2 task plan

@@ -474,25 +474,9 @@ class StreamExecutor:
                 "from this checkpoint."
             ),
         )
-        asyncio.get_event_loop().run_until_complete(
-            self._persist_terminal_status("PAUSE")
-        ) if False else None  # noqa  — intentionally deferred; see below
-
-        # _persist_terminal_status is async but CancelledError handlers
-        # cannot await (the task is already cancelled). Best-effort via
-        # create_task in the finally block of execute() won't run either.
-        # Inline the sync gRPC call:
-        try:
-            import asyncio as _aio
-            _aio.get_event_loop().create_task(
-                self._exec_client.update_status(
-                    execution_id=self._execution_id,
-                    status=self._sb.current_status,
-                )
-            )
-        except Exception as err:
-            self._log.warning("[PAUSE] Failed to send status update: %s", err)
-
+        # No persistence here — the caller (execute_graphton.py) handles
+        # terminal status persistence via retry_executor for all terminal
+        # paths uniformly (pause, stall, recursion limit).
         return StreamResult(events_processed=events_processed, terminal_status=slim)
 
     def _handle_stall(self, events_processed: int) -> StreamResult:
