@@ -1943,7 +1943,22 @@ async def _execute_graphton_impl(
                     "call(s) against checkpoint before streaming",
                     execution_id, orphan_count,
                 )
-        
+
+            # ── Step 7.8: Pre-queue task tools for sub-agent resume ───────
+            #
+            # On resume from a sub-agent HITL interrupt, astream_events does
+            # not replay the AI message's tool_use blocks (the AI node was
+            # checkpointed, not re-executed).  Without this, the task handler
+            # falls back to run_id as tool_call_id, creating duplicate
+            # SubAgentExecution entries on every resume cycle.
+            task_tc_count = status_builder.prepare_task_tool_resume_queue()
+            if task_tc_count:
+                activity_logger.info(
+                    "[RESUME] execution=%s — pre-queued %d task tool call(s) "
+                    "for sub-agent resume reconciliation",
+                    execution_id, task_tc_count,
+                )
+
         # Log total setup time before entering the streaming phase.
         # This is the boundary between "setup" and "execution" — any time
         # spent beyond this point is in the LangGraph streaming loop.

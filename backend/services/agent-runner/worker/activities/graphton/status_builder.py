@@ -1647,7 +1647,63 @@ class StatusBuilder:
 
         for sub_agent in self.current_status.sub_agent_executions:
             _index_tool_calls(sub_agent.messages)
-    
+
+    def prepare_task_tool_resume_queue(self) -> int:
+        """Pre-populate the early tool call queue for task tools on resume.
+
+        On resume from a sub-agent HITL interrupt, ``astream_events`` does
+        NOT replay the AI message's ``tool_use`` blocks — the AI node
+        completed in a prior checkpoint and is not re-executed.  Only
+        ``on_tool_start`` fires (from the tool node re-execution).  This
+        leaves ``_early_tool_call_queue`` empty, causing the task handler
+        to fall back to ``run_id`` as the ``tool_call_id``, which doesn't
+        match the original Anthropic ``toolu_*`` ID stored on the
+        SubAgentExecution.  The result is duplicate SubAgentExecution
+        entries on every resume cycle.
+
+        This method simulates what ``_create_early_tool_call`` would have
+        done by scanning persisted messages for task tool calls that have
+        a corresponding SubAgentExecution and queueing them for
+        ``_reconcile_early_tool_call``.
+
+        Safe against double-queueing: if ``astream_events`` also replays
+        the AI message on some resume paths, ``_create_early_tool_call``'s
+        existing dedup re-queues the same entry.
+        ``_reconcile_early_tool_call`` pops the first match; any leftover
+        entry is harmless.
+
+        Must be called **after** ``populate_fingerprints_from_existing_tool_calls``
+        (which builds ``_tool_call_index``) and **before** the stream starts.
+
+        Returns the number of task tool calls queued.
+        """
+        sa_ids = {sa.id for sa in self.current_status.sub_agent_executions}
+        queued = 0
+
+        for msg in self.current_status.messages:
+            if msg.type != MessageType.MESSAGE_AI:
+                continue
+            for tc in msg.tool_calls:
+                if tc.name != "task" or not tc.id:
+                    continue
+                if tc.id not in sa_ids:
+                    continue
+                already_queued = any(
+                    tid == tc.id for tid, _ in self._early_tool_call_queue
+                )
+                if already_queued:
+                    continue
+
+                self._early_tool_call_queue.append((tc.id, None))
+                queued += 1
+                self.logger.info(
+                    "[RESUME_PREP] execution=%s pre-queued task TC %s "
+                    "for sub-agent resume reconciliation",
+                    self.execution_id, tc.id,
+                )
+
+        return queued
+
     def _extract_tool_result_content(self, result: Any) -> str:
         """Extract displayable content string from a tool result.
 
