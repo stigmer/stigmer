@@ -147,22 +147,9 @@ def _build_decision_value(
 
 
 def _summarize_resume_entry(interrupt_id: str, value: Any) -> str:
-    """Format one entry from the resume dict for logging.
-
-    Handles both direct decisions (``{"action": "approve"}``) and proxy
-    payloads (``{sub_id: {"action": "approve"}, ...}``).
-    """
+    """Format one entry from the resume dict for logging."""
     if isinstance(value, dict) and "action" in value:
         return f"interrupt={interrupt_id[:16]} action={value['action']}"
-    if isinstance(value, dict):
-        sub_actions = [
-            sv.get("action", "?") for sv in value.values() if isinstance(sv, dict)
-        ]
-        return (
-            f"interrupt={interrupt_id[:16]} "
-            f"proxy({len(sub_actions)} sub-decision(s): "
-            f"{', '.join(sub_actions)})"
-        )
     return f"interrupt={interrupt_id[:16]} value={value!r}"
 
 
@@ -1714,21 +1701,11 @@ async def _execute_graphton_impl(
         # carries interrupt objects whose payload includes tool_call_id.
         # We join on tool_call_id to pair each decision with its interrupt_id.
         #
-        # Two interrupt shapes exist:
+        # All interrupts use the direct shape (both root-agent and sub-agent
+        # tools propagate identically via LangGraph native subgraph mode):
         #
-        #   Direct (main-agent tool):
         #     intr.value = {"tool_call_id": "tc_abc", "message": "..."}
         #     resume_dict[intr.id] = {"action": "approve"}
-        #
-        #   Proxied (sub-agent tool via InterruptProxyRunnable):
-        #     intr.value = {sub_id_1: {"tool_call_id": "tc_xyz", ...,
-        #                              "_proxy_interrupt_id": sub_id_1}, ...}
-        #     resume_dict[intr.id] = {sub_id_1: {"action": "approve"}, ...}
-        #
-        # The proxy shape is produced by _build_proxy_payload() which wraps
-        # each sub-agent interrupt under its interrupt ID.  The nested resume
-        # dict is passed through by InterruptProxyRunnable as
-        # Command(resume=decisions) to the sub-agent graph.
         if approval_decisions:
             decisions_by_tc: dict[str, SubmitApprovalInput] = {
                 d.tool_call_id: d for d in approval_decisions
@@ -1743,37 +1720,14 @@ async def _execute_graphton_impl(
             if graph_state and graph_state.interrupts:
                 for intr in graph_state.interrupts:
                     intr_value = intr.value if isinstance(intr.value, dict) else {}
-
-                    direct_tc_id = intr_value.get("tool_call_id", "")
-                    if direct_tc_id:
-                        decision = decisions_by_tc.get(direct_tc_id)
+                    tc_id = intr_value.get("tool_call_id", "")
+                    if tc_id:
+                        decision = decisions_by_tc.get(tc_id)
                         if decision:
                             resume_dict[intr.id] = _build_decision_value(
                                 decision, _action_map,
                             )
-                            matched_decision_tc_ids.add(direct_tc_id)
-                        continue
-
-                    # Proxy payload: values are sub-interrupt dicts keyed by
-                    # sub-interrupt ID, each containing tool_call_id and
-                    # _proxy_interrupt_id (set by InterruptProxyRunnable).
-                    sub_decisions: dict[str, dict[str, str]] = {}
-                    for sub_id, sub_value in intr_value.items():
-                        if not isinstance(sub_value, dict):
-                            continue
-                        if "_proxy_interrupt_id" not in sub_value:
-                            continue
-                        sub_tc_id = sub_value.get("tool_call_id", "")
-                        if not sub_tc_id:
-                            continue
-                        decision = decisions_by_tc.get(sub_tc_id)
-                        if decision:
-                            sub_decisions[sub_id] = _build_decision_value(
-                                decision, _action_map,
-                            )
-                            matched_decision_tc_ids.add(sub_tc_id)
-                    if sub_decisions:
-                        resume_dict[intr.id] = sub_decisions
+                            matched_decision_tc_ids.add(tc_id)
 
             # ── Defense-in-depth: bidirectional ID lookup ─────────────────
             #
@@ -1782,73 +1736,39 @@ async def _execute_graphton_impl(
             # (run_id fallback) while the interrupt payload carries the
             # Anthropic toolu_* ID.  Build a reverse mapping from interrupt
             # tool_call_ids to the parent interrupt, then try to pair each
-            # unmatched decision with an unmatched interrupt within the same
-            # proxy payload.
+            # unmatched decision with an unmatched interrupt.
             unmatched_decision_tc_ids = set(decisions_by_tc) - matched_decision_tc_ids
             if unmatched_decision_tc_ids and graph_state and graph_state.interrupts:
-                # Collect all interrupt tool_call_ids that were NOT matched
-                intr_tc_to_parent: dict[str, tuple[Any, str, str]] = {}
+                intr_tc_to_parent: dict[str, Any] = {}
                 for intr in graph_state.interrupts:
                     if intr.id in resume_dict:
                         continue
                     intr_value = intr.value if isinstance(intr.value, dict) else {}
-                    direct_tc_id = intr_value.get("tool_call_id", "")
-                    if direct_tc_id and direct_tc_id not in matched_decision_tc_ids:
-                        intr_tc_to_parent[direct_tc_id] = (intr, "direct", "")
-                    for sub_id, sub_value in intr_value.items():
-                        if not isinstance(sub_value, dict):
-                            continue
-                        if "_proxy_interrupt_id" not in sub_value:
-                            continue
-                        sub_tc_id = sub_value.get("tool_call_id", "")
-                        if sub_tc_id and sub_tc_id not in matched_decision_tc_ids:
-                            intr_tc_to_parent[sub_tc_id] = (intr, "proxy", sub_id)
+                    tc_id = intr_value.get("tool_call_id", "")
+                    if tc_id and tc_id not in matched_decision_tc_ids:
+                        intr_tc_to_parent[tc_id] = intr
 
-                # For each unmatched decision, check if it maps to a known
-                # interrupt via a different ID (identity mismatch).
-                # This is a diagnostic fallback — it should not normally trigger.
                 for um_tc_id in list(unmatched_decision_tc_ids):
                     decision = decisions_by_tc[um_tc_id]
-                    for intr_tc_id, (intr, shape, sub_id) in intr_tc_to_parent.items():
-                        if intr.id in resume_dict and shape == "direct":
+                    for intr_tc_id, intr in intr_tc_to_parent.items():
+                        if intr.id in resume_dict:
                             continue
-                        if shape == "direct":
-                            resume_dict[intr.id] = _build_decision_value(
-                                decision, _action_map,
-                            )
-                            matched_decision_tc_ids.add(um_tc_id)
-                            activity_logger.warning(
-                                "[RESUME_ID_MISMATCH] execution=%s "
-                                "decision.tool_call_id=%s matched to "
-                                "interrupt.tool_call_id=%s (interrupt=%s) "
-                                "via bidirectional fallback. This indicates "
-                                "a StatusBuilder ID mismatch that should be "
-                                "fixed at the source.",
-                                execution_id, um_tc_id,
-                                intr_tc_id, intr.id[:16],
-                            )
-                            del intr_tc_to_parent[intr_tc_id]
-                            break
-                        if shape == "proxy":
-                            existing = resume_dict.get(intr.id, {})
-                            existing[sub_id] = _build_decision_value(
-                                decision, _action_map,
-                            )
-                            resume_dict[intr.id] = existing
-                            matched_decision_tc_ids.add(um_tc_id)
-                            activity_logger.warning(
-                                "[RESUME_ID_MISMATCH] execution=%s "
-                                "decision.tool_call_id=%s matched to "
-                                "proxy sub_tc_id=%s (interrupt=%s, "
-                                "sub_id=%s) via bidirectional fallback. "
-                                "This indicates a StatusBuilder ID "
-                                "mismatch that should be fixed at the "
-                                "source.",
-                                execution_id, um_tc_id,
-                                intr_tc_id, intr.id[:16], sub_id,
-                            )
-                            del intr_tc_to_parent[intr_tc_id]
-                            break
+                        resume_dict[intr.id] = _build_decision_value(
+                            decision, _action_map,
+                        )
+                        matched_decision_tc_ids.add(um_tc_id)
+                        activity_logger.warning(
+                            "[RESUME_ID_MISMATCH] execution=%s "
+                            "decision.tool_call_id=%s matched to "
+                            "interrupt.tool_call_id=%s (interrupt=%s) "
+                            "via bidirectional fallback. This indicates "
+                            "a StatusBuilder ID mismatch that should be "
+                            "fixed at the source.",
+                            execution_id, um_tc_id,
+                            intr_tc_id, intr.id[:16],
+                        )
+                        del intr_tc_to_parent[intr_tc_id]
+                        break
 
             if resume_dict:
                 is_resume_from_approval = True
@@ -1868,14 +1788,9 @@ async def _execute_graphton_impl(
                 if graph_state and graph_state.interrupts:
                     for intr in graph_state.interrupts:
                         intr_value = intr.value if isinstance(intr.value, dict) else {}
-                        direct_tc = intr_value.get("tool_call_id", "")
-                        if direct_tc:
-                            intr_tc_ids.append(f"direct:{direct_tc}")
-                        for sub_id, sv in intr_value.items():
-                            if isinstance(sv, dict) and sv.get("tool_call_id"):
-                                intr_tc_ids.append(
-                                    f"proxy:{sv['tool_call_id']}"
-                                )
+                        tc_id = intr_value.get("tool_call_id", "")
+                        if tc_id:
+                            intr_tc_ids.append(tc_id)
 
                 error_msg = (
                     f"Approval resume failed: {len(approval_decisions)} "

@@ -440,14 +440,13 @@ class _MockInterrupt:
         self.value = value
 
 
-class TestProxyInterruptResume:
-    """Contract tests between InterruptProxyRunnable._build_proxy_payload
-    and the resume matching loop in execute_graphton.py.
+class TestDirectInterruptResume:
+    """Contract tests for the direct interrupt shape used by both root-agent
+    and sub-agent tools (via LangGraph native per-invocation mode).
 
-    The proxy wraps sub-agent interrupts into a nested dict.  The resume
-    loop must detect the proxy shape and build a nested resume dict that
-    InterruptProxyRunnable passes through as Command(resume=decisions)
-    to the sub-agent graph.
+    All interrupts have the same shape:
+        intr.value = {"tool_call_id": "tc_abc", "message": "..."}
+        resume_dict[intr.id] = {"action": "approve"}
     """
 
     @staticmethod
@@ -466,43 +465,24 @@ class TestProxyInterruptResume:
         """Replicate the matching loop from execute_graphton.py."""
         from worker.activities.execute_graphton import _build_decision_value
 
-        action_map = TestProxyInterruptResume._action_map()
+        action_map = TestDirectInterruptResume._action_map()
         decisions_by_tc = {d.tool_call_id: d for d in decisions}
         resume_dict: dict = {}
 
         for intr in interrupts:
             intr_value = intr.value if isinstance(intr.value, dict) else {}
-
-            direct_tc_id = intr_value.get("tool_call_id", "")
-            if direct_tc_id:
-                decision = decisions_by_tc.get(direct_tc_id)
+            tc_id = intr_value.get("tool_call_id", "")
+            if tc_id:
+                decision = decisions_by_tc.get(tc_id)
                 if decision:
                     resume_dict[intr.id] = _build_decision_value(
                         decision, action_map,
                     )
-                continue
-
-            sub_decisions: dict = {}
-            for sub_id, sub_value in intr_value.items():
-                if not isinstance(sub_value, dict):
-                    continue
-                if "_proxy_interrupt_id" not in sub_value:
-                    continue
-                sub_tc_id = sub_value.get("tool_call_id", "")
-                if not sub_tc_id:
-                    continue
-                decision = decisions_by_tc.get(sub_tc_id)
-                if decision:
-                    sub_decisions[sub_id] = _build_decision_value(
-                        decision, action_map,
-                    )
-            if sub_decisions:
-                resume_dict[intr.id] = sub_decisions
 
         return resume_dict
 
     def test_direct_interrupt_matches(self):
-        """Direct interrupt (main-agent tool) matches on top-level tool_call_id."""
+        """Direct interrupt matches on top-level tool_call_id."""
         interrupts = [
             _MockInterrupt(
                 id="intr-1",
@@ -520,95 +500,18 @@ class TestProxyInterruptResume:
 
         assert result == {"intr-1": {"action": "approve"}}
 
-    def test_proxy_interrupt_matches(self):
-        """Proxied sub-agent interrupts match on nested tool_call_id."""
-        from graphton.core.interrupt_proxy import InterruptProxyRunnable
-
-        sub_interrupts = [
+    def test_multiple_interrupts_match(self):
+        """Multiple direct interrupts (root + sub-agent) all match correctly."""
+        interrupts = [
             _MockInterrupt(
-                id="sub-intr-a",
-                value={"tool_call_id": "tc_xyz", "message": "git clone?"},
+                id="intr-root",
+                value={"tool_call_id": "tc_main", "message": "main tool"},
             ),
             _MockInterrupt(
-                id="sub-intr-b",
-                value={"tool_call_id": "tc_123", "message": "rm -rf?"},
-            ),
-        ]
-        proxy_payload = InterruptProxyRunnable._build_proxy_payload(
-            sub_interrupts,
-        )
-
-        parent_interrupt = _MockInterrupt(id="parent-intr-1", value=proxy_payload)
-
-        decisions = [
-            SubmitApprovalInput(
-                tool_call_id="tc_xyz",
-                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            ),
-            SubmitApprovalInput(
-                tool_call_id="tc_123",
-                action=ApprovalAction.APPROVAL_ACTION_SKIP,
-            ),
-        ]
-
-        result = self._run_matching([parent_interrupt], decisions)
-
-        assert "parent-intr-1" in result
-        nested = result["parent-intr-1"]
-        assert isinstance(nested, dict)
-        assert nested["sub-intr-a"] == {"action": "approve"}
-        assert nested["sub-intr-b"] == {"action": "skip"}
-
-    def test_proxy_partial_decisions(self):
-        """Only sub-interrupts with matching decisions appear in the resume dict."""
-        from graphton.core.interrupt_proxy import InterruptProxyRunnable
-
-        sub_interrupts = [
-            _MockInterrupt(
-                id="sub-a",
-                value={"tool_call_id": "tc_1", "message": "cmd 1"},
-            ),
-            _MockInterrupt(
-                id="sub-b",
-                value={"tool_call_id": "tc_2", "message": "cmd 2"},
-            ),
-        ]
-        proxy_payload = InterruptProxyRunnable._build_proxy_payload(sub_interrupts)
-        parent = _MockInterrupt(id="p-1", value=proxy_payload)
-
-        decisions = [
-            SubmitApprovalInput(
-                tool_call_id="tc_1",
-                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            ),
-        ]
-
-        result = self._run_matching([parent], decisions)
-
-        nested = result["p-1"]
-        assert "sub-a" in nested
-        assert "sub-b" not in nested
-
-    def test_mixed_direct_and_proxy(self):
-        """Both direct and proxy interrupts in the same checkpoint are handled."""
-        from graphton.core.interrupt_proxy import InterruptProxyRunnable
-
-        sub_interrupts = [
-            _MockInterrupt(
-                id="sub-x",
+                id="intr-sub",
                 value={"tool_call_id": "tc_sub", "message": "sub tool"},
             ),
         ]
-        proxy_payload = InterruptProxyRunnable._build_proxy_payload(sub_interrupts)
-
-        interrupts = [
-            _MockInterrupt(
-                id="direct-1",
-                value={"tool_call_id": "tc_main", "message": "main tool"},
-            ),
-            _MockInterrupt(id="proxy-1", value=proxy_payload),
-        ]
-
         decisions = [
             SubmitApprovalInput(
                 tool_call_id="tc_main",
@@ -622,8 +525,8 @@ class TestProxyInterruptResume:
 
         result = self._run_matching(interrupts, decisions)
 
-        assert result["direct-1"] == {"action": "reject"}
-        assert result["proxy-1"]["sub-x"] == {"action": "approve"}
+        assert result["intr-root"] == {"action": "reject"}
+        assert result["intr-sub"] == {"action": "approve"}
 
     def test_no_match_returns_empty(self):
         """When no interrupt matches any decision, resume_dict is empty."""
@@ -644,23 +547,29 @@ class TestProxyInterruptResume:
 
         assert result == {}
 
-    def test_proxy_payload_structure(self):
-        """_build_proxy_payload preserves tool_call_id and adds _proxy_interrupt_id."""
-        from graphton.core.interrupt_proxy import InterruptProxyRunnable
-
-        sub_interrupts = [
+    def test_partial_decisions(self):
+        """Only interrupts with matching decisions appear in the resume dict."""
+        interrupts = [
             _MockInterrupt(
-                id="si-1",
-                value={"tool_call_id": "tc_hello", "message": "hello"},
+                id="intr-1",
+                value={"tool_call_id": "tc_1", "message": "cmd 1"},
+            ),
+            _MockInterrupt(
+                id="intr-2",
+                value={"tool_call_id": "tc_2", "message": "cmd 2"},
             ),
         ]
-        payload = InterruptProxyRunnable._build_proxy_payload(sub_interrupts)
+        decisions = [
+            SubmitApprovalInput(
+                tool_call_id="tc_1",
+                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            ),
+        ]
 
-        assert "si-1" in payload
-        entry = payload["si-1"]
-        assert entry["tool_call_id"] == "tc_hello"
-        assert entry["message"] == "hello"
-        assert entry["_proxy_interrupt_id"] == "si-1"
+        result = self._run_matching(interrupts, decisions)
+
+        assert "intr-1" in result
+        assert "intr-2" not in result
 
     def test_summarize_direct(self):
         """_summarize_resume_entry formats direct decisions correctly."""
@@ -668,17 +577,6 @@ class TestProxyInterruptResume:
 
         result = _summarize_resume_entry("abcd1234efgh5678", {"action": "approve"})
         assert "action=approve" in result
-
-    def test_summarize_proxy(self):
-        """_summarize_resume_entry formats proxy payloads correctly."""
-        from worker.activities.execute_graphton import _summarize_resume_entry
-
-        result = _summarize_resume_entry(
-            "parent-id-123456",
-            {"sub-a": {"action": "approve"}, "sub-b": {"action": "skip"}},
-        )
-        assert "proxy" in result
-        assert "2 sub-decision" in result
 
 
 # =============================================================================
@@ -968,7 +866,7 @@ class TestBidirectionalIdLookup:
 
     When the status ToolCall carries a UUID-format ID (from the run_id
     fallback) but the interrupt payload carries the Anthropic toolu_* ID,
-    the primary ``decisions_by_tc.get(sub_tc_id)`` lookup fails.  The
+    the primary ``decisions_by_tc.get(tc_id)`` lookup fails.  The
     bidirectional fallback pairs unmatched decisions with unmatched
     interrupts.
     """
@@ -992,66 +890,34 @@ class TestBidirectionalIdLookup:
 
         for intr in interrupts:
             intr_value = intr.value if isinstance(intr.value, dict) else {}
-            direct_tc_id = intr_value.get("tool_call_id", "")
-            if direct_tc_id:
-                decision = decisions_by_tc.get(direct_tc_id)
+            tc_id = intr_value.get("tool_call_id", "")
+            if tc_id:
+                decision = decisions_by_tc.get(tc_id)
                 if decision:
                     resume_dict[intr.id] = _build_decision_value(decision, action_map)
-                    matched.add(direct_tc_id)
-                continue
-            sub_decisions: dict = {}
-            for sub_id, sub_value in intr_value.items():
-                if not isinstance(sub_value, dict):
-                    continue
-                if "_proxy_interrupt_id" not in sub_value:
-                    continue
-                sub_tc_id = sub_value.get("tool_call_id", "")
-                if not sub_tc_id:
-                    continue
-                decision = decisions_by_tc.get(sub_tc_id)
-                if decision:
-                    sub_decisions[sub_id] = _build_decision_value(decision, action_map)
-                    matched.add(sub_tc_id)
-            if sub_decisions:
-                resume_dict[intr.id] = sub_decisions
+                    matched.add(tc_id)
 
         # Bidirectional fallback
         unmatched = set(decisions_by_tc) - matched
         if unmatched:
-            intr_tc_to_parent: dict[str, tuple[Any, str, str]] = {}
+            intr_tc_to_parent: dict[str, Any] = {}
             for intr in interrupts:
                 if intr.id in resume_dict:
                     continue
                 intr_value = intr.value if isinstance(intr.value, dict) else {}
-                direct_tc_id = intr_value.get("tool_call_id", "")
-                if direct_tc_id and direct_tc_id not in matched:
-                    intr_tc_to_parent[direct_tc_id] = (intr, "direct", "")
-                for sub_id, sub_value in intr_value.items():
-                    if not isinstance(sub_value, dict):
-                        continue
-                    if "_proxy_interrupt_id" not in sub_value:
-                        continue
-                    sub_tc_id = sub_value.get("tool_call_id", "")
-                    if sub_tc_id and sub_tc_id not in matched:
-                        intr_tc_to_parent[sub_tc_id] = (intr, "proxy", sub_id)
+                tc_id = intr_value.get("tool_call_id", "")
+                if tc_id and tc_id not in matched:
+                    intr_tc_to_parent[tc_id] = intr
 
             for um_tc_id in list(unmatched):
                 decision = decisions_by_tc[um_tc_id]
-                for intr_tc_id, (intr, shape, sub_id) in intr_tc_to_parent.items():
-                    if intr.id in resume_dict and shape == "direct":
+                for intr_tc_id, intr in intr_tc_to_parent.items():
+                    if intr.id in resume_dict:
                         continue
-                    if shape == "direct":
-                        resume_dict[intr.id] = _build_decision_value(decision, action_map)
-                        matched.add(um_tc_id)
-                        del intr_tc_to_parent[intr_tc_id]
-                        break
-                    if shape == "proxy":
-                        existing = resume_dict.get(intr.id, {})
-                        existing[sub_id] = _build_decision_value(decision, action_map)
-                        resume_dict[intr.id] = existing
-                        matched.add(um_tc_id)
-                        del intr_tc_to_parent[intr_tc_id]
-                        break
+                    resume_dict[intr.id] = _build_decision_value(decision, action_map)
+                    matched.add(um_tc_id)
+                    del intr_tc_to_parent[intr_tc_id]
+                    break
 
         return resume_dict, matched
 
@@ -1075,32 +941,6 @@ class TestBidirectionalIdLookup:
         assert "intr-1" in result
         assert result["intr-1"] == {"action": "approve"}
         assert "019d-uuid-from-status" in matched
-
-    def test_proxy_mismatch_resolved_by_fallback(self):
-        """Proxy sub-interrupt with UUID decision ID matched to toolu_* interrupt."""
-        from graphton.core.interrupt_proxy import InterruptProxyRunnable
-
-        sub_interrupts = [
-            _MockInterrupt(
-                id="sub-1",
-                value={"tool_call_id": "toolu_sub_real", "message": "Run cmd?"},
-            ),
-        ]
-        proxy_payload = InterruptProxyRunnable._build_proxy_payload(sub_interrupts)
-        parent = _MockInterrupt(id="p-1", value=proxy_payload)
-
-        decisions = [
-            SubmitApprovalInput(
-                tool_call_id="019d-uuid-sub",
-                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            ),
-        ]
-
-        result, matched = self._run_matching_with_fallback([parent], decisions)
-
-        assert "p-1" in result
-        assert result["p-1"]["sub-1"] == {"action": "approve"}
-        assert "019d-uuid-sub" in matched
 
     def test_no_fallback_needed_when_ids_match(self):
         """When IDs match normally, fallback is not triggered."""
@@ -1138,123 +978,6 @@ class TestBidirectionalIdLookup:
 
 
 # =============================================================================
-# InterruptProxy Thread Management
-# =============================================================================
-
-
-class _FakeState:
-    """Minimal stand-in for LangGraph StateSnapshot."""
-
-    def __init__(
-        self,
-        values: dict | None = None,
-        interrupts: list | None = None,
-    ):
-        self.values = values or {}
-        self.interrupts = interrupts or []
-        self.next = () if not interrupts else ("tools",)
-
-
-class _FakeGraph:
-    """Minimal async graph stub for InterruptProxyRunnable tests."""
-
-    def __init__(self):
-        self._state: _FakeState | None = None
-        self.invoke_count = 0
-        self.last_input: Any = None
-        self.last_config: Any = None
-
-    def set_state(self, state: _FakeState | None) -> None:
-        self._state = state
-
-    async def aget_state(self, config: Any) -> _FakeState | None:
-        return self._state
-
-    async def ainvoke(self, input: Any, config: Any = None, **kwargs: Any) -> Any:
-        self.invoke_count += 1
-        self.last_input = input
-        self.last_config = config
-        return {"result": f"run-{self.invoke_count}"}
-
-
-class TestInterruptProxyThreadManagement:
-    """Verify InterruptProxyRunnable reuses the same thread on parent replay.
-
-    The root cause of orphaned WAITING_APPROVAL tool calls was the thread
-    counter incrementing on every ainvoke(), causing resumed sub-agents to
-    start fresh on a new MemorySaver thread while the old thread's tool calls
-    remained stuck.
-    """
-
-    @staticmethod
-    def _make_proxy(graph: _FakeGraph) -> "InterruptProxyRunnable":  # noqa: F821
-        from graphton.core.interrupt_proxy import InterruptProxyRunnable
-        return InterruptProxyRunnable(inner_graph=graph, name="test-agent")
-
-    @pytest.mark.asyncio
-    async def test_fresh_invocation_uses_thread_zero(self):
-        """First ainvoke() uses thread 0 and does not advance the counter."""
-        graph = _FakeGraph()
-        proxy = self._make_proxy(graph)
-
-        await proxy.ainvoke("hello")
-
-        assert proxy._thread_counter == 0
-        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-0"
-
-    @pytest.mark.asyncio
-    async def test_replay_after_interrupt_reuses_same_thread(self):
-        """When checkpoint has interrupts, ainvoke() resumes on the same thread."""
-        from unittest.mock import patch
-
-        graph = _FakeGraph()
-        graph.set_state(
-            _FakeState(
-                values={"messages": ["prior"]},
-                interrupts=[_MockInterrupt(id="intr-1", value={"tool_call_id": "tc1", "message": "Run?"})],
-            )
-        )
-        proxy = self._make_proxy(graph)
-
-        with patch("graphton.core.interrupt_proxy.interrupt", return_value={"intr-1": {"action": "approve"}}):
-            await proxy.ainvoke("hello")
-
-        assert proxy._thread_counter == 0
-        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-0"
-
-    @pytest.mark.asyncio
-    async def test_completed_thread_advances_counter(self):
-        """When checkpoint shows completion (values but no interrupts), counter advances."""
-        graph = _FakeGraph()
-        graph.set_state(_FakeState(values={"messages": ["done"]}))
-        proxy = self._make_proxy(graph)
-
-        await proxy.ainvoke("new-task")
-
-        assert proxy._thread_counter == 1
-        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-1"
-
-    @pytest.mark.asyncio
-    async def test_two_sequential_invocations_get_different_threads(self):
-        """Sequential completed invocations get incrementing thread IDs."""
-        graph = _FakeGraph()
-        proxy = self._make_proxy(graph)
-
-        # First invocation: no state → fresh on thread 0
-        graph.set_state(None)
-        await proxy.ainvoke("task-1")
-        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-0"
-
-        # Simulate first invocation completed
-        graph.set_state(_FakeState(values={"messages": ["done-1"]}))
-
-        # Second invocation: completed state → advance to thread 1
-        await proxy.ainvoke("task-2")
-        assert proxy._thread_counter == 1
-        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-1"
-
-
-# =============================================================================
 # Sub-Agent Completion Cleanup
 # =============================================================================
 
@@ -1262,10 +985,10 @@ class TestInterruptProxyThreadManagement:
 class TestSubAgentCompletionCleanup:
     """Verify _handle_sub_agent_end sweeps orphaned WAITING_APPROVAL tool calls.
 
-    When the InterruptProxy restarts a sub-agent on a fresh LangGraph thread,
-    tool calls from the abandoned thread remain WAITING_APPROVAL in the
-    StatusBuilder.  _handle_sub_agent_end must transition these to SKIPPED
-    so they do not leak into pending_approvals.
+    When a sub-agent completes, tool calls that were WAITING_APPROVAL but
+    never received a decision remain in the StatusBuilder.
+    _handle_sub_agent_end must transition these to SKIPPED so they do not
+    leak into pending_approvals.
     """
 
     @staticmethod
@@ -1431,34 +1154,23 @@ class TestExtractInterruptToolCallIds:
         result = extract_interrupt_tool_call_ids(interrupts)
         assert result == {"tc_direct_1", "tc_direct_2"}
 
-    def test_proxy_interrupt(self):
+    def test_sub_agent_interrupt_same_shape(self):
+        """Sub-agent interrupts use the same direct shape as root-agent tools."""
         interrupts = [
-            _FakeInterrupt("intr-1", {
-                "sub-a": {
-                    "tool_call_id": "tc_proxy_1",
-                    "_proxy_interrupt_id": "pid-1",
-                },
-                "sub-b": {
-                    "tool_call_id": "tc_proxy_2",
-                    "_proxy_interrupt_id": "pid-2",
-                },
-            }),
+            _FakeInterrupt("intr-sub-1", {"tool_call_id": "tc_sub_1", "message": "sub tool 1"}),
+            _FakeInterrupt("intr-sub-2", {"tool_call_id": "tc_sub_2", "message": "sub tool 2"}),
         ]
         result = extract_interrupt_tool_call_ids(interrupts)
-        assert result == {"tc_proxy_1", "tc_proxy_2"}
+        assert result == {"tc_sub_1", "tc_sub_2"}
 
-    def test_mixed_direct_and_proxy(self):
+    def test_mixed_root_and_sub_agent(self):
+        """Root and sub-agent interrupts are both direct shape."""
         interrupts = [
             _FakeInterrupt("intr-1", {"tool_call_id": "tc_direct"}),
-            _FakeInterrupt("intr-2", {
-                "sub-a": {
-                    "tool_call_id": "tc_proxy",
-                    "_proxy_interrupt_id": "pid-1",
-                },
-            }),
+            _FakeInterrupt("intr-2", {"tool_call_id": "tc_sub"}),
         ]
         result = extract_interrupt_tool_call_ids(interrupts)
-        assert result == {"tc_direct", "tc_proxy"}
+        assert result == {"tc_direct", "tc_sub"}
 
     def test_empty_interrupts(self):
         assert extract_interrupt_tool_call_ids([]) == set()
@@ -1488,18 +1200,14 @@ class TestBuildSnapshotFromInterrupts:
     def test_empty_interrupts_returns_empty(self):
         assert build_snapshot_from_interrupts([]) == []
 
-    def test_proxy_interrupts_included(self):
+    def test_sub_agent_interrupts_included(self):
+        """Sub-agent interrupts use the same direct shape and are included."""
         interrupts = [
-            _FakeInterrupt("intr-1", {
-                "sub-a": {
-                    "tool_call_id": "tc_proxy",
-                    "_proxy_interrupt_id": "pid-1",
-                },
-            }),
+            _FakeInterrupt("intr-sub", {"tool_call_id": "tc_sub", "message": "sub tool"}),
         ]
         snapshot = build_snapshot_from_interrupts(interrupts)
         assert len(snapshot) == 1
-        assert snapshot[0].tool_call_id == "tc_proxy"
+        assert snapshot[0].tool_call_id == "tc_sub"
 
 
 # =============================================================================

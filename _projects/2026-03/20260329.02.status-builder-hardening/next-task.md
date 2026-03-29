@@ -71,14 +71,24 @@ When starting a new session:
 **Plan Revised**: 2026-03-29 19:30 (v2 — reducer pattern simplification)
 **T02 Completed**: 2026-03-29 (tool_call_id availability confirmed via callback handler approach)
 **T04 Completed**: 2026-03-29 (fingerprint dedup replaced with identity-based lookup)
-**Current Task**: T03 (Research: namespace injection feasibility) — in progress in separate conversation
-**Next Code Task**: T05 (Replace _run_id_to_tool_call_id with _tool_call_index), T06 (pause fix standalone)
-**Status**: Active — T02+T04 complete, T03 in progress
+**T03 Completed**: 2026-03-29 (namespace routing via parent_ids confirmed — Approach B)
+**Current Task**: T05 (Replace namespace heuristics with parent_ids-based deterministic routing)
+**Next Code Task**: T05, T06 (pause fix standalone)
+**Status**: Active — T02+T03+T04 complete, T05 unblocked
 
 ### T02 Key Finding
 v2 events do NOT carry `tool_call_id`. Solution: a ~10-line `ToolCallIdCapture`
 callback handler captures `{run_id → tool_call_id}` from the callback API (which
 does receive it). Works for ALL tools universally. See `tasks/T02_0_research.md`.
+
+### T03 Key Finding
+`parent_ids` on v2 events traces the full callback chain from sub-agent events
+back to the parent invocation context (including the task tool's `run_id` that
+StatusBuilder already knows). Namespace roots are SHARED across concurrent
+sub-agents from the same parent node — root-prefix matching is inherently wrong
+for disambiguation. `parent_ids` provides deterministic mapping without heuristics.
+Approach A (checkpoint_ns injection) discarded — unnecessary and couples to
+InterruptProxyRunnable which is being eliminated. See `tasks/T03_0_research.md`.
 
 ### T04 Completion Summary
 Replaced SHA256 fingerprint dedup with identity-based lookup via `ToolCallIdCapture`.
@@ -108,10 +118,11 @@ Net: -197 lines. All 1,375 tests pass. Files changed:
 - Used `TYPE_CHECKING` guard for the import, string annotation for the constructor param
 
 ## Next Steps (when you return)
-1. Complete T03 research (in progress in separate conversation)
-2. Start T05 — replace `_run_id_to_tool_call_id` with `_tool_call_index` lookups
+1. T03 research COMPLETE — `parent_ids` confirmed as deterministic routing mechanism
+2. Start T05 — replace namespace heuristic cascade with `parent_ids`-based registration
 3. T06 (pause fix) can be done anytime as a standalone task
 4. T07 — ExecutionState refactor (fold `_run_id_aliases` into capture or eliminate)
+5. Note: InterruptProxyRunnable elimination (separate project) will further simplify T05
 
 ## Quick Commands
 

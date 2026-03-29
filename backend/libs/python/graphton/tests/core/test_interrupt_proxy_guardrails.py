@@ -1,6 +1,6 @@
-"""Tests for sub-agent guardrail middleware injection in compile_subagent_with_proxy.
+"""Tests for sub-agent guardrail middleware injection in compile_subagent.
 
-Verifies that compile_subagent_with_proxy auto-injects guardrail middleware:
+Verifies that compile_subagent auto-injects guardrail middleware:
 - LoopDetectionMiddleware (prevents infinite tool loops)
 - ToolTruncationMiddleware (caps per-tool-result character count)
 - ExecutionBudgetMiddleware (periodic advisory nudges every 30 rounds)
@@ -22,7 +22,7 @@ from graphton.core.interrupt_proxy import (
     _SUB_AGENT_ADVISORY_INTERVAL,
     _SUB_AGENT_MAX_ADVISORIES,
     _UNLIMITED_RECURSION,
-    compile_subagent_with_proxy,
+    compile_subagent,
 )
 from graphton.core.loop_detection import LoopDetectionMiddleware
 from graphton.core.tool_truncation import ToolTruncationMiddleware
@@ -44,7 +44,7 @@ def mock_tools():
 
 
 class TestGuardrailInjection:
-    """Verify that compile_subagent_with_proxy injects guardrail middleware."""
+    """Verify that compile_subagent injects guardrail middleware."""
 
     @patch("graphton.core.interrupt_proxy.create_agent")
     def test_injects_loop_detection(self, mock_create_agent, mock_model, mock_tools):
@@ -52,7 +52,7 @@ class TestGuardrailInjection:
         mock_graph.with_config = MagicMock(return_value=mock_graph)
         mock_create_agent.return_value = mock_graph
 
-        compile_subagent_with_proxy(
+        compile_subagent(
             model=mock_model,
             tools=mock_tools,
             system_prompt="test",
@@ -72,7 +72,7 @@ class TestGuardrailInjection:
         mock_graph.with_config = MagicMock(return_value=mock_graph)
         mock_create_agent.return_value = mock_graph
 
-        compile_subagent_with_proxy(
+        compile_subagent(
             model=mock_model,
             tools=mock_tools,
             system_prompt="test",
@@ -93,7 +93,7 @@ class TestGuardrailInjection:
         mock_graph.with_config = MagicMock(return_value=mock_graph)
         mock_create_agent.return_value = mock_graph
 
-        compile_subagent_with_proxy(
+        compile_subagent(
             model=mock_model,
             tools=mock_tools,
             system_prompt="test",
@@ -122,7 +122,7 @@ class TestGuardrailInjection:
         sentinel = MagicMock()
         sentinel.__class__.__name__ = "CallerMiddleware"
 
-        compile_subagent_with_proxy(
+        compile_subagent(
             model=mock_model,
             tools=mock_tools,
             system_prompt="test",
@@ -144,7 +144,7 @@ class TestGuardrailInjection:
         mock_graph.with_config = MagicMock(return_value=mock_graph)
         mock_create_agent.return_value = mock_graph
 
-        compile_subagent_with_proxy(
+        compile_subagent(
             model=mock_model,
             tools=mock_tools,
             system_prompt="test",
@@ -157,6 +157,45 @@ class TestGuardrailInjection:
 
         assert len(middleware_list) == 3
 
+    @patch("graphton.core.interrupt_proxy.create_agent")
+    def test_no_checkpointer_passed(self, mock_create_agent, mock_model, mock_tools):
+        """compile_subagent must NOT pass checkpointer to create_agent
+        (LangGraph per-invocation mode: sub-agent inherits parent's)."""
+        mock_graph = MagicMock()
+        mock_graph.with_config = MagicMock(return_value=mock_graph)
+        mock_create_agent.return_value = mock_graph
+
+        compile_subagent(
+            model=mock_model,
+            tools=mock_tools,
+            system_prompt="test",
+            name="test-sa",
+            description="test sub-agent",
+        )
+
+        call_kwargs = mock_create_agent.call_args
+        assert "checkpointer" not in (call_kwargs.kwargs or {})
+
+    @patch("graphton.core.interrupt_proxy.create_agent")
+    def test_returns_compiled_graph_directly(self, mock_create_agent, mock_model, mock_tools):
+        """The returned runnable should be the compiled graph, not a proxy wrapper."""
+        mock_graph = MagicMock()
+        configured_graph = MagicMock()
+        mock_graph.with_config = MagicMock(return_value=configured_graph)
+        mock_create_agent.return_value = mock_graph
+
+        result = compile_subagent(
+            model=mock_model,
+            tools=mock_tools,
+            system_prompt="test",
+            name="test-sa",
+            description="test sub-agent",
+        )
+
+        assert result["runnable"] is configured_graph
+        assert result["name"] == "test-sa"
+        assert result["description"] == "test sub-agent"
+
 
 class TestRecursionLimitForwarding:
     """Verify recursion_limit is forwarded to the compiled graph."""
@@ -167,7 +206,7 @@ class TestRecursionLimitForwarding:
         mock_graph.with_config = MagicMock(return_value=mock_graph)
         mock_create_agent.return_value = mock_graph
 
-        compile_subagent_with_proxy(
+        compile_subagent(
             model=mock_model,
             tools=mock_tools,
             system_prompt="test",
@@ -185,7 +224,7 @@ class TestRecursionLimitForwarding:
         mock_graph.with_config = MagicMock(return_value=mock_graph)
         mock_create_agent.return_value = mock_graph
 
-        compile_subagent_with_proxy(
+        compile_subagent(
             model=mock_model,
             tools=mock_tools,
             system_prompt="test",
@@ -205,7 +244,7 @@ class TestRecursionLimitForwarding:
         mock_graph.with_config = MagicMock(return_value=mock_graph)
         mock_create_agent.return_value = mock_graph
 
-        compile_subagent_with_proxy(
+        compile_subagent(
             model=mock_model,
             tools=mock_tools,
             system_prompt="test",
