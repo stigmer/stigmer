@@ -714,6 +714,16 @@ class StatusBuilder:
         if isinstance(namespace, tuple):
             namespace = ":".join(str(x) for x in namespace)
         
+        # Register namespace -> sub-agent mapping for EVERY event type.
+        # _register_sub_agent_namespace is idempotent (returns immediately
+        # for already-registered or single-segment namespaces), so calling
+        # it universally is safe and cheap.  This ensures that namespace
+        # variants arriving via on_chat_model_stream, on_tool_end, etc.
+        # are registered before _get_execution_context performs its exact
+        # lookup in the type-specific handler.
+        if namespace:
+            self._register_sub_agent_namespace(namespace)
+        
         # Route by event type.  Each handler is wrapped so a single bad
         # event never crashes the entire activity stream.
         handler: (
@@ -814,14 +824,6 @@ class StatusBuilder:
             return
 
         self.tool_call_fingerprints.add(fingerprint)
-
-        # Register namespace early — before any special-case handlers — so
-        # that PLANNING_TOOLS and task-tool handlers can distinguish sub-agent
-        # events from main-agent events via _get_execution_context().
-        # _register_sub_agent_namespace is idempotent (returns immediately
-        # for already-registered or single-segment namespaces).
-        if namespace:
-            self._register_sub_agent_namespace(namespace)
 
         # Handle planning tools
         if tool_name in PLANNING_TOOLS:
@@ -3031,29 +3033,74 @@ class StatusBuilder:
             "mid_execution": mid_execution,
         }
 
+    def _flush_pending_completions(self) -> list[str]:
+        """Immediately drain all pending completion flushes.
+
+        Sub-agents whose ``on_tool_end`` fired (and were moved to
+        ``_completed_sub_agents`` with COMPLETED status) may still be
+        sitting in the deferred flush queue.  Draining them before crash
+        finalization ensures their COMPLETED status is included in the
+        next gRPC update rather than being silently dropped.
+
+        Returns:
+            List of run_ids that were flushed.
+        """
+        if not self._pending_completion_flush:
+            return []
+
+        flushed = list(self._pending_completion_flush.keys())
+        self._pending_completion_flush.clear()
+        if flushed:
+            self.force_next_update = True
+        return flushed
+
     def finalize_active_sub_agents(self, status: SubAgentStatus, error: str) -> None:
-        """Transition all active sub-agents to a terminal state.
+        """Transition active sub-agents to a terminal state.
 
         Called when the parent execution terminates abnormally (error or stall)
         to ensure no sub-agent remains stuck in IN_PROGRESS.
+
+        Sub-agents that already reached a terminal status (COMPLETED, FAILED,
+        or CANCELLED) — for example because their ``on_tool_end`` fired but
+        the deferred completion flush hadn't drained yet — are preserved.
+        Only genuinely in-progress sub-agents receive the forced status.
 
         Args:
             status: Terminal status to assign (typically SUB_AGENT_FAILED or
                     SUB_AGENT_CANCELLED).
             error: Explanation of why the sub-agent was terminated.
         """
+        flushed = self._flush_pending_completions()
+        if flushed:
+            self.logger.info(
+                f"[SUBAGENT] execution={self.execution_id} "
+                f"flushed {len(flushed)} pending completion(s) before "
+                f"finalization: {flushed}"
+            )
+
         if not self._active_sub_agents:
             return
 
         now = _utc_timestamp()
         finalized_ids: list[str] = []
+        preserved_ids: list[str] = []
+
+        terminal_statuses = {
+            SubAgentStatus.SUB_AGENT_COMPLETED,
+            SubAgentStatus.SUB_AGENT_FAILED,
+            SubAgentStatus.SUB_AGENT_CANCELLED,
+        }
 
         for run_id, sub_agent in list(self._active_sub_agents.items()):
-            sub_agent.status = status
-            sub_agent.error = error
-            sub_agent.completed_at = now
+            if sub_agent.status in terminal_statuses or sub_agent.output:
+                preserved_ids.append(run_id)
+            else:
+                sub_agent.status = status
+                sub_agent.error = error
+                sub_agent.completed_at = now
+                finalized_ids.append(run_id)
+
             self._completed_sub_agents[run_id] = sub_agent
-            finalized_ids.append(run_id)
 
         self._active_sub_agents.clear()
 
@@ -3062,6 +3109,12 @@ class StatusBuilder:
             f"finalized {len(finalized_ids)} active sub-agent(s) "
             f"-> {SubAgentStatus.Name(status)}: {finalized_ids}"
         )
+        if preserved_ids:
+            self.logger.info(
+                f"[SUBAGENT] execution={self.execution_id} "
+                f"preserved {len(preserved_ids)} sub-agent(s) with "
+                f"existing terminal status or output: {preserved_ids}"
+            )
 
     def finalize_active_sub_agents_differentiated(self, error_context: str) -> int:
         """Transition active sub-agents using differentiated statuses.
@@ -3070,6 +3123,9 @@ class StatusBuilder:
         ``SUB_AGENT_CANCELLED``; sub-agents with messages or tool calls
         (mid-execution) receive ``SUB_AGENT_FAILED``.
 
+        Sub-agents that already reached a terminal status or have produced
+        output are preserved — their existing status is not overwritten.
+
         Args:
             error_context: High-level description of why termination occurred
                 (e.g. "Parent execution terminated abnormally").
@@ -3077,43 +3133,69 @@ class StatusBuilder:
         Returns:
             Number of sub-agents finalized.
         """
+        flushed = self._flush_pending_completions()
+        if flushed:
+            self.logger.info(
+                f"[SUBAGENT] execution={self.execution_id} "
+                f"flushed {len(flushed)} pending completion(s) before "
+                f"differentiated finalization: {flushed}"
+            )
+
         if not self._active_sub_agents:
             return 0
 
         now = _utc_timestamp()
         cancelled_ids: list[str] = []
         failed_ids: list[str] = []
+        preserved_ids: list[str] = []
+
+        terminal_statuses = {
+            SubAgentStatus.SUB_AGENT_COMPLETED,
+            SubAgentStatus.SUB_AGENT_FAILED,
+            SubAgentStatus.SUB_AGENT_CANCELLED,
+        }
 
         for run_id, sub_agent in list(self._active_sub_agents.items()):
-            tc_count = sum(len(m.tool_calls) for m in sub_agent.messages)
-            has_activity = len(sub_agent.messages) > 0
-            if has_activity:
-                sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
-                sub_agent.error = (
-                    f"{error_context}: sub-agent was running "
-                    f"({len(sub_agent.messages)} messages, "
-                    f"{tc_count} tool calls)"
-                )
-                failed_ids.append(run_id)
+            if sub_agent.status in terminal_statuses or sub_agent.output:
+                preserved_ids.append(run_id)
             else:
-                sub_agent.status = SubAgentStatus.SUB_AGENT_CANCELLED
-                sub_agent.error = (
-                    f"{error_context}: sub-agent was spawned but never began execution"
-                )
-                cancelled_ids.append(run_id)
+                tc_count = sum(len(m.tool_calls) for m in sub_agent.messages)
+                has_activity = len(sub_agent.messages) > 0
+                if has_activity:
+                    sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
+                    sub_agent.error = (
+                        f"{error_context}: sub-agent was running "
+                        f"({len(sub_agent.messages)} messages, "
+                        f"{tc_count} tool calls)"
+                    )
+                    failed_ids.append(run_id)
+                else:
+                    sub_agent.status = SubAgentStatus.SUB_AGENT_CANCELLED
+                    sub_agent.error = (
+                        f"{error_context}: sub-agent was spawned but never began execution"
+                    )
+                    cancelled_ids.append(run_id)
 
-            sub_agent.completed_at = now
+                sub_agent.completed_at = now
+
             self._completed_sub_agents[run_id] = sub_agent
 
         total = len(self._active_sub_agents)
         self._active_sub_agents.clear()
 
+        finalized = len(cancelled_ids) + len(failed_ids)
         self.logger.info(
             f"[SUBAGENT] execution={self.execution_id} "
-            f"finalized {total} orphaned sub-agent(s) — "
+            f"finalized {finalized}/{total} orphaned sub-agent(s) — "
             f"CANCELLED (zero-message): {cancelled_ids}, "
             f"FAILED (mid-execution): {failed_ids}"
         )
+        if preserved_ids:
+            self.logger.info(
+                f"[SUBAGENT] execution={self.execution_id} "
+                f"preserved {len(preserved_ids)} sub-agent(s) with "
+                f"existing terminal status or output: {preserved_ids}"
+            )
         return total
 
     def finalize_sub_agents_from_checkpoint_validation(
@@ -3151,6 +3233,8 @@ class StatusBuilder:
         Returns:
             Number of sub-agents finalized.
         """
+        self._flush_pending_completions()
+
         if not self._active_sub_agents:
             return 0
 

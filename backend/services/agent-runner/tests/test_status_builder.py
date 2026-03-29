@@ -6661,3 +6661,276 @@ class TestDeferredCompletionFlush:
 
         assert status_builder.force_next_update is False
         assert run_id in status_builder._pending_completion_flush
+
+
+# =============================================================================
+# Tests for universal namespace registration in process_event (Issue 2 fix)
+# =============================================================================
+
+
+class TestUniversalNamespaceRegistration:
+    """Verify that _register_sub_agent_namespace is called for every event type.
+
+    Before this fix, _register_sub_agent_namespace was only called from
+    _handle_tool_start_event, causing namespace variants arriving via
+    on_chat_model_stream or on_tool_end to fail the exact lookup in
+    _get_execution_context and fall back to the main agent context.
+
+    The fix moves the call into process_event itself, so it runs for
+    ALL event types before dispatching to the type-specific handler.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _patch_subject_gen(self):
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="",
+        ):
+            yield
+
+    def _make_task_start_event(self, run_id: str) -> dict:
+        return {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"input": {"subagent_type": "helper", "description": "test"}},
+            "metadata": {"langgraph_checkpoint_ns": f"tools:{run_id}"},
+        }
+
+    def _make_chat_model_stream_event(self, namespace: str) -> dict:
+        return {
+            "event": "on_chat_model_stream",
+            "name": "ChatModel",
+            "run_id": "stream-run-1",
+            "data": {"chunk": {"content": "hello"}},
+            "metadata": {"langgraph_checkpoint_ns": namespace},
+        }
+
+    def _make_tool_end_event(self, run_id: str, namespace: str) -> dict:
+        return {
+            "event": "on_tool_end",
+            "name": "read",
+            "run_id": run_id,
+            "data": {"output": "file content"},
+            "metadata": {"langgraph_checkpoint_ns": namespace},
+        }
+
+    @pytest.mark.asyncio
+    async def test_chat_model_stream_registers_namespace(self, status_builder):
+        """on_chat_model_stream events trigger namespace registration."""
+        root_ns = "tools:sa-root-1"
+        child_ns = f"{root_ns}|tools:inner-1"
+
+        await status_builder.process_event(self._make_task_start_event("sa-root-1"))
+
+        await status_builder.process_event(
+            self._make_chat_model_stream_event(child_ns)
+        )
+
+        assert child_ns in status_builder._namespace_to_sub_agent_id
+
+    @pytest.mark.asyncio
+    async def test_tool_end_registers_namespace(self, status_builder):
+        """on_tool_end events trigger namespace registration."""
+        root_ns = "tools:sa-root-2"
+        child_ns = f"{root_ns}|tools:nested-2"
+
+        await status_builder.process_event(self._make_task_start_event("sa-root-2"))
+
+        await status_builder.process_event(
+            self._make_tool_end_event("nested-tool-run", child_ns)
+        )
+
+        assert child_ns in status_builder._namespace_to_sub_agent_id
+
+    @pytest.mark.asyncio
+    async def test_single_segment_namespace_ignored(self, status_builder):
+        """Single-segment namespaces are not registered (they're main agent)."""
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "name": "ChatModel",
+            "run_id": "main-run",
+            "data": {"chunk": {"content": "hi"}},
+            "metadata": {"langgraph_checkpoint_ns": "main"},
+        })
+
+        assert "main" not in status_builder._namespace_to_sub_agent_id
+
+    @pytest.mark.asyncio
+    async def test_registration_is_idempotent(self, status_builder):
+        """Calling registration multiple times for same namespace is safe."""
+        root_ns = "tools:sa-idem"
+
+        await status_builder.process_event(self._make_task_start_event("sa-idem"))
+
+        for _ in range(5):
+            await status_builder.process_event(
+                self._make_chat_model_stream_event(root_ns)
+            )
+
+        assert root_ns in status_builder._namespace_to_sub_agent_id
+
+
+# =============================================================================
+# Tests for finalization preserving terminal status (Issue 3 fix)
+# =============================================================================
+
+
+class TestFinalizationPreservesTerminalStatus:
+    """Verify that finalize_active_sub_agents and
+    finalize_active_sub_agents_differentiated preserve sub-agents that
+    already have a terminal status (COMPLETED, FAILED, CANCELLED) or
+    have produced output.
+
+    Before this fix, the crash handler blindly overwrote all active
+    sub-agents to FAILED, even if some had logically completed.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _patch_subject_gen(self):
+        with patch(
+            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="",
+        ):
+            yield
+
+    def _make_task_start_event(self, run_id: str, description: str = "do work") -> dict:
+        return {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"input": {"subagent_type": "helper", "description": description}},
+            "metadata": {},
+        }
+
+    @pytest.mark.asyncio
+    async def test_completed_sub_agent_preserved_by_uniform_finalize(self, status_builder):
+        """Sub-agent with COMPLETED status is not overwritten to FAILED."""
+        await status_builder.process_event(
+            self._make_task_start_event("sa-done", "finished task")
+        )
+        sa = status_builder._active_sub_agents["sa-done"]
+        sa.status = SubAgentStatus.SUB_AGENT_COMPLETED
+        sa.output = "result data"
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "Parent execution error: BadRequestError",
+        )
+
+        finalized = status_builder._completed_sub_agents["sa-done"]
+        assert finalized.status == SubAgentStatus.SUB_AGENT_COMPLETED
+        assert finalized.output == "result data"
+
+    @pytest.mark.asyncio
+    async def test_in_progress_sub_agent_gets_forced_status(self, status_builder):
+        """Sub-agent still IN_PROGRESS is correctly marked FAILED."""
+        await status_builder.process_event(
+            self._make_task_start_event("sa-wip", "working")
+        )
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "Parent execution error: BadRequestError",
+        )
+
+        finalized = status_builder._completed_sub_agents["sa-wip"]
+        assert finalized.status == SubAgentStatus.SUB_AGENT_FAILED
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_with_output_preserved(self, status_builder):
+        """Sub-agent with non-empty output is preserved even without terminal status."""
+        await status_builder.process_event(
+            self._make_task_start_event("sa-out", "has output")
+        )
+        sa = status_builder._active_sub_agents["sa-out"]
+        sa.output = "partial result"
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "Parent execution error",
+        )
+
+        finalized = status_builder._completed_sub_agents["sa-out"]
+        assert finalized.output == "partial result"
+        assert finalized.status != SubAgentStatus.SUB_AGENT_FAILED
+
+    @pytest.mark.asyncio
+    async def test_mixed_finalization_preserves_and_finalizes(self, status_builder):
+        """Mix of completed and in-progress sub-agents handled correctly."""
+        await status_builder.process_event(
+            self._make_task_start_event("sa-completed", "done")
+        )
+        await status_builder.process_event(
+            self._make_task_start_event("sa-running", "still going")
+        )
+
+        completed_sa = status_builder._active_sub_agents["sa-completed"]
+        completed_sa.status = SubAgentStatus.SUB_AGENT_COMPLETED
+        completed_sa.output = "finished"
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "stall detected",
+        )
+
+        assert status_builder._completed_sub_agents["sa-completed"].status == SubAgentStatus.SUB_AGENT_COMPLETED
+        assert status_builder._completed_sub_agents["sa-running"].status == SubAgentStatus.SUB_AGENT_FAILED
+        assert len(status_builder._active_sub_agents) == 0
+
+    @pytest.mark.asyncio
+    async def test_differentiated_finalize_preserves_completed(self, status_builder):
+        """finalize_active_sub_agents_differentiated also preserves terminal status."""
+        await status_builder.process_event(
+            self._make_task_start_event("sa-ok", "completed task")
+        )
+        await status_builder.process_event(
+            self._make_task_start_event("sa-wip", "mid execution")
+        )
+
+        ok_sa = status_builder._active_sub_agents["sa-ok"]
+        ok_sa.status = SubAgentStatus.SUB_AGENT_COMPLETED
+        ok_sa.output = "success"
+
+        wip_sa = status_builder._active_sub_agents["sa-wip"]
+        wip_sa.messages.append(AgentMessage(content="working on it"))
+
+        count = status_builder.finalize_active_sub_agents_differentiated(
+            error_context="Parent terminated abnormally"
+        )
+
+        assert count == 2
+        assert status_builder._completed_sub_agents["sa-ok"].status == SubAgentStatus.SUB_AGENT_COMPLETED
+        assert status_builder._completed_sub_agents["sa-wip"].status == SubAgentStatus.SUB_AGENT_FAILED
+
+    @pytest.mark.asyncio
+    async def test_pending_completion_flushed_before_finalization(self, status_builder):
+        """Pending completion flush entries are drained before crash finalization."""
+        import time
+
+        await status_builder.process_event(
+            self._make_task_start_event("sa-flush", "completed recently")
+        )
+
+        sa = status_builder._active_sub_agents.pop("sa-flush")
+        sa.status = SubAgentStatus.SUB_AGENT_COMPLETED
+        sa.output = "done"
+        status_builder._completed_sub_agents["sa-flush"] = sa
+        status_builder._pending_completion_flush["sa-flush"] = time.monotonic()
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "Parent crashed",
+        )
+
+        assert len(status_builder._pending_completion_flush) == 0
+        assert status_builder.force_next_update is True
+
+    @pytest.mark.asyncio
+    async def test_flush_pending_completions_on_empty_is_noop(self, status_builder):
+        """_flush_pending_completions on empty dict is a safe no-op."""
+        flushed = status_builder._flush_pending_completions()
+        assert flushed == []
+        assert status_builder.force_next_update is False

@@ -17,19 +17,32 @@ Supports two operating modes:
 
 Hooks
 -----
-    aafter_model  -- Runs after every model call.  Increments the round
-                     counter and decides whether to inject a warning.
+    awrap_model_call -- Wraps every model call.  Increments the round
+                        counter after the call returns and, when the
+                        threshold is reached, appends the advisory to
+                        the *next* model call's input messages.  This
+                        avoids injecting a message between AIMessage
+                        (tool_use) and ToolMessage (tool_result) in the
+                        LangGraph state, which violates Anthropic's
+                        message ordering constraint.
 
-    abefore_agent -- Resets per-invocation state at the start of each
-                     graph invocation.
+    abefore_agent   -- Resets per-invocation state at the start of each
+                       graph invocation.
 
-    aafter_agent  -- Logs budget usage stats at the end of execution.
+    aafter_agent    -- Logs budget usage stats at the end of execution.
 """
 
+import dataclasses
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Any
 
-from langchain.agents.middleware.types import AgentMiddleware, AgentState
+from langchain.agents.middleware.types import (
+    AgentMiddleware,
+    AgentState,
+    ModelRequest,
+    ModelResponse,
+)
 from langchain_core.messages import SystemMessage
 from langgraph.runtime import Runtime
 
@@ -142,6 +155,7 @@ class ExecutionBudgetMiddleware(AgentMiddleware):
 
         self._model_round_count = 0
         self._warning_count = 0
+        self._pending_advisory: SystemMessage | None = None
 
         if self._periodic:
             logger.info(
@@ -214,6 +228,7 @@ class ExecutionBudgetMiddleware(AgentMiddleware):
         """Reset per-invocation state at the start of each execution."""
         self._model_round_count = 0
         self._warning_count = 0
+        self._pending_advisory = None
 
         if self._periodic:
             self._next_warning_round = self.warning_interval  # type: ignore[assignment]
@@ -225,24 +240,47 @@ class ExecutionBudgetMiddleware(AgentMiddleware):
         logger.debug("Execution budget state reset for new invocation")
         return None
 
-    async def aafter_model(
+    async def awrap_model_call(
         self,
-        state: AgentState[Any],
-        runtime: Runtime[None] | dict[str, Any],
-    ) -> dict[str, Any] | None:
-        """Track model rounds and inject warnings when appropriate.
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], Awaitable[ModelResponse]],
+    ) -> ModelResponse:
+        """Track model rounds and inject budget advisories safely.
 
-        **Threshold mode**: single SystemMessage at the computed warning
-        round, then silent.
+        Advisory messages are prepended to the model's *input* rather
+        than appended to its *output*.  This ensures the advisory never
+        lands between an ``AIMessage(tool_use)`` and its corresponding
+        ``ToolMessage(tool_result)`` in the LangGraph state — which
+        would violate Anthropic's strict message-ordering constraint and
+        cause a ``BadRequestError``.
 
-        **Periodic mode**: SystemMessage every ``warning_interval``
-        rounds, up to ``max_warnings`` times, with escalating urgency.
+        Flow:
+        1. If a previous round queued a ``_pending_advisory``, prepend
+           it to ``request.messages`` so the model sees it as context.
+        2. Call the underlying model via ``handler``.
+        3. Increment the round counter and evaluate whether the *next*
+           round should receive an advisory (stored in
+           ``_pending_advisory`` for step 1 of the next call).
         """
-        self._model_round_count += 1
+        if self._pending_advisory is not None:
+            advisory = self._pending_advisory
+            self._pending_advisory = None
+            messages = list(request.messages)
+            messages.append(advisory)
+            request = dataclasses.replace(request, messages=messages)
 
+        response = await handler(request)
+
+        self._model_round_count += 1
+        self._evaluate_budget()
+
+        return response
+
+    def _evaluate_budget(self) -> None:
+        """Check if the current round triggers an advisory for the next call."""
         if self._periodic:
             if self._warning_count >= self.max_warnings:
-                return None
+                return
 
             if self._model_round_count >= self._next_warning_round:
                 self._warning_count += 1
@@ -251,18 +289,18 @@ class ExecutionBudgetMiddleware(AgentMiddleware):
                 logger.warning(
                     "EXECUTION BUDGET ADVISORY (%d/%d): "
                     "model round %d (interval=%d). "
-                    "Injecting periodic guidance.",
+                    "Queuing periodic guidance for next model call.",
                     self._warning_count,
                     self.max_warnings,
                     self._model_round_count,
                     self.warning_interval,
                 )
 
-                return {"messages": [self._create_periodic_warning()]}
+                self._pending_advisory = self._create_periodic_warning()
 
         else:
             if self._warning_count > 0:
-                return None
+                return
 
             if self._model_round_count >= self._next_warning_round:
                 self._warning_count = 1
@@ -271,16 +309,14 @@ class ExecutionBudgetMiddleware(AgentMiddleware):
                 logger.warning(
                     "EXECUTION BUDGET WARNING: model round %d of ~%d "
                     "(~%d%% of recursion_limit=%d used). "
-                    "Injecting wrap-up guidance.",
+                    "Queuing wrap-up guidance for next model call.",
                     self._model_round_count,
                     estimated_total,
                     self.warning_pct,
                     self.recursion_limit,
                 )
 
-                return {"messages": [self._create_threshold_warning()]}
-
-        return None
+                self._pending_advisory = self._create_threshold_warning()
 
     async def aafter_agent(
         self,
