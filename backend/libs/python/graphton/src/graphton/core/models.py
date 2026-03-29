@@ -12,7 +12,13 @@ from typing import Any
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from pydantic import PrivateAttr
@@ -58,6 +64,67 @@ OLLAMA_DEFAULTS = {
 _CACHE_CONTROL_EPHEMERAL: dict[str, str] = {"type": "ephemeral"}
 
 
+def _reorder_tool_result_pairing(
+    messages: list[BaseMessage],
+) -> list[BaseMessage]:
+    """Ensure ToolMessages immediately follow their AIMessage(tool_calls).
+
+    Guardrail middleware ``aafter_model`` hooks inject messages into graph
+    state **between** the model's ``AIMessage(tool_calls=[…])`` and the
+    subsequent ``ToolMessage``(s) produced by the tools node.  After the
+    ``SystemMessage → HumanMessage`` conversion the sequence looks like::
+
+        AIMessage(tool_calls=[{id: X}])
+        HumanMessage("[System] advisory")   ← injected by middleware
+        ToolMessage(tool_call_id=X)
+
+    While ``langchain_anthropic``'s ``_merge_messages`` merges consecutive
+    user-role messages, the interleaved ordering can still cause::
+
+        anthropic.BadRequestError: messages.N: tool_use ids were found
+        without tool_result blocks immediately after
+
+    This function defensively reorders the messages so that every
+    ``AIMessage(tool_calls)`` is immediately followed by its
+    ``ToolMessage``(s), with any interleaved messages deferred to after
+    the tool results::
+
+        AIMessage(tool_calls=[{id: X}])
+        ToolMessage(tool_call_id=X)
+        HumanMessage("[System] advisory")   ← safe position
+    """
+    if not messages:
+        return messages
+
+    result: list[BaseMessage] = []
+    i = 0
+    while i < len(messages):
+        msg = messages[i]
+
+        if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
+            result.append(msg)
+            i += 1
+
+            deferred: list[BaseMessage] = []
+            while i < len(messages):
+                next_msg = messages[i]
+                if isinstance(next_msg, ToolMessage):
+                    result.append(next_msg)
+                    i += 1
+                elif isinstance(next_msg, AIMessage):
+                    break
+                else:
+                    deferred.append(next_msg)
+                    i += 1
+
+            result.extend(deferred)
+        else:
+            result.append(msg)
+            i += 1
+
+    return result
+
+
 def _sanitize_non_leading_system_messages(
     messages: list[BaseMessage],
 ) -> list[BaseMessage]:
@@ -74,12 +141,12 @@ def _sanitize_non_leading_system_messages(
     ``SystemMessage`` objects mid-conversation via ``aafter_model`` to guide
     the model.  This function preserves the leading system block and converts
     any later ``SystemMessage`` to ``HumanMessage`` with a ``[System]``
-    prefix, keeping the guidance at its original conversational position while
-    satisfying the Anthropic API constraint.
+    prefix, keeping the guidance visible while satisfying the API constraint.
 
-    The conversion is safe for Anthropic's message format: a ``HumanMessage``
-    adjacent to ``ToolMessage`` objects merges into the same ``user`` turn,
-    which the API accepts as mixed text + ``tool_result`` content blocks.
+    After conversion, ``_reorder_tool_result_pairing`` ensures any converted
+    advisory that landed between an ``AIMessage(tool_calls)`` and its
+    ``ToolMessage``(s) is moved **after** the tool results so the Anthropic
+    API's ``tool_use → tool_result`` pairing contract is never broken.
     """
     if not messages:
         return messages
@@ -112,7 +179,8 @@ def _sanitize_non_leading_system_messages(
             result.append(HumanMessage(content=f"[System] {msg.content}"))
         else:
             result.append(msg)
-    return result
+
+    return _reorder_tool_result_pairing(result)
 
 
 class _EagerToolStreamingChatAnthropic(ChatAnthropic):  # type: ignore[override]
