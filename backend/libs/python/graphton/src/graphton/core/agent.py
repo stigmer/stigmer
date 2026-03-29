@@ -600,6 +600,7 @@ def create_deep_agent(
                     name=sa_name,
                     description=sa_desc,
                     middleware=sa_middleware,
+                    recursion_limit=recursion_limit,
                 )
                 compiled_sa["runnable"] = gate.wrap(compiled_sa["runnable"], name=sa_name)
                 compiled_subagents.append(compiled_sa)
@@ -639,6 +640,7 @@ def create_deep_agent(
                 "model": model_instance,
                 "system_prompt": system_prompt,
                 "middleware": gp_middleware,
+                "recursion_limit": recursion_limit,
             }
 
         transformed_subagents = compiled_subagents
@@ -907,6 +909,7 @@ def create_deep_agent(
                     "benefit from context isolation or parallelism."
                 ),
                 middleware=_pending_gp_config["middleware"],
+                recursion_limit=_pending_gp_config.get("recursion_limit"),
             )
             gp_sa["runnable"] = _hitl_gate.wrap(
                 gp_sa["runnable"], name="general-purpose",

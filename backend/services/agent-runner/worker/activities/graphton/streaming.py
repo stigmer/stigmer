@@ -367,10 +367,27 @@ class StreamExecutor:
         force = self._sb.force_next_update
         if force:
             self._sb.force_next_update = False
+
+        # Check if any deferred sub-agent completion has drained.  This
+        # sets force_next_update (captured in the next iteration) only
+        # after the drain window elapses, giving late LangGraph events
+        # time to be batched into the same gRPC update.
+        completion_drained = self._sb.should_flush_completions(
+            time.monotonic(),
+        )
+        if completion_drained and not force:
+            force = self._sb.force_next_update
+            if force:
+                self._sb.force_next_update = False
+
         if not (force or scheduler.should_send_update(events_processed)):
             return events_processed, last_hb_time
 
-        reason = "force_tool_update" if force else scheduler.get_update_reason_str()
+        reason = (
+            "force_tool_update"
+            if force
+            else scheduler.get_update_reason_str()
+        )
         time_since = scheduler.get_time_since_last_update_ms()
         events_since = scheduler.get_events_since_last_update(events_processed)
 
