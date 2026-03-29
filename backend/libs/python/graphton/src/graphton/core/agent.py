@@ -494,33 +494,46 @@ def create_deep_agent(
             "present" if summarization_callback is not None else "none",
         )
     
-    # Transform subagents to DeepAgents format if provided.
+    # Transform subagents to DeepAgents format.
     #
-    # When a checkpointer AND approval_checker are both available, custom
-    # sub-agents are compiled with their own MemorySaver and wrapped in
-    # InterruptProxyRunnable.  This ensures ALL sub-agent tool interrupts
-    # are captured (not just the first) and correctly proxied to the parent
-    # graph for user approval.  Without this, deepagents compiles custom
-    # sub-agents with checkpointer=False, which causes GraphInterrupt to
-    # propagate as a raw exception — only one interrupt survives, and the
-    # sub-agent can never be resumed, leading to approval deadlocks.
+    # HITL path (checkpointer + approval_checker present):
+    #   All sub-agents — both explicit and the general-purpose agent — are
+    #   compiled with their own MemorySaver and wrapped in
+    #   InterruptProxyRunnable + SubAgentGate.  InterruptProxy ensures ALL
+    #   sub-agent tool interrupts are captured and correctly proxied to the
+    #   parent graph for user approval.  SubAgentGate enforces a shared
+    #   concurrency limit (max 3 by default) across all sub-agents.
+    #
+    #   The general-purpose sub-agent is always injected as an explicit
+    #   CompiledSubAgent named "general-purpose".  deepagents auto-creates
+    #   an ungated general-purpose clone when no subagent with that name is
+    #   present; by providing our own gated version we override that
+    #   behaviour and ensure the general-purpose agent shares the same
+    #   concurrency gate and HITL approval flow as all other sub-agents.
+    #
+    # Non-HITL path (no checkpointer or no approval_checker):
+    #   Explicit sub-agents are passed through with optional summarization
+    #   middleware.  deepagents auto-creates its own general-purpose agent
+    #   (ungated), which is acceptable for non-HITL usage.
     #
     # Sub-agents passed as CompiledSubAgent (with 'runnable' key) are used
     # by deepagents as-is, bypassing its internal compilation.
     transformed_subagents = None
-    if subagents is not None:
-        if checkpointer is not None and approval_checker is not None:
-            from graphton.core.interrupt_proxy import compile_subagent_with_proxy
-            from graphton.core.subagent_limiter import SubAgentGate
-            
-            gate = SubAgentGate()
-            compiled_subagents = []
+    if checkpointer is not None and approval_checker is not None:
+        from graphton.core.interrupt_proxy import compile_subagent_with_proxy
+        from graphton.core.subagent_limiter import SubAgentGate
+
+        gate = SubAgentGate()
+        compiled_subagents: list[dict[str, Any]] = []
+
+        # 1. Compile explicit sub-agents (if any).
+        if subagents is not None:
             for sa in subagents:
                 if "runnable" in sa:
                     sa["runnable"] = gate.wrap(sa["runnable"], name=sa.get("name", "pre-compiled"))
                     compiled_subagents.append(sa)
                     continue
-                
+
                 sa_tools = sa.get("tools", list(tools or []))
                 sa_name = sa.get("name", "unnamed")
                 sa_desc = sa.get("description", f"Sub-agent: {sa_name}")
@@ -556,7 +569,7 @@ def create_deep_agent(
                         )
                 else:
                     sa_model = model_instance
-                
+
                 if summarization_config is not None and summarization_config.enabled:
                     from graphton.core.summarization_middleware import (
                         ContextSummarizationMiddleware,
@@ -572,7 +585,7 @@ def create_deep_agent(
                         summarization_config.trigger_threshold,
                         summarization_config.target_tokens,
                     )
-                
+
                 compiled_sa = compile_subagent_with_proxy(
                     model=sa_model,
                     tools=sa_tools,
@@ -583,41 +596,89 @@ def create_deep_agent(
                 )
                 compiled_sa["runnable"] = gate.wrap(compiled_sa["runnable"], name=sa_name)
                 compiled_subagents.append(compiled_sa)
-            
-            transformed_subagents = compiled_subagents
+
+        # 2. Inject a gated general-purpose sub-agent.
+        #
+        # This overrides deepagents' automatic ungated clone by providing
+        # an explicit CompiledSubAgent named "general-purpose".  It gets
+        # the same model and system prompt as the main agent, compiled
+        # through compile_subagent_with_proxy (which uses create_agent,
+        # not create_deep_agent — so no recursive `task` tool) and
+        # wrapped with the shared SubAgentGate.
+        #
+        # We use `system_prompt` (not `enhanced_prompt`) because prompt
+        # enhancement happens later and adds graphton-specific capability
+        # awareness that doesn't apply to sub-agents compiled via
+        # create_agent().  The tools list is populated later (sandbox
+        # platform tools + MCP tools), so we defer tool assignment by
+        # storing a reference that will be filled in before the call to
+        # deepagents_create_deep_agent().
+        if general_purpose_agent:
+            gp_middleware: list[Any] = []
+            if summarization_config is not None and summarization_config.enabled:
+                from graphton.core.summarization_middleware import (
+                    ContextSummarizationMiddleware,
+                )
+                gp_middleware.insert(0, ContextSummarizationMiddleware(
+                    config=summarization_config,
+                    callback=None,
+                ))
+
+            gp_sa = compile_subagent_with_proxy(
+                model=model_instance,
+                tools=list(tools or []),
+                system_prompt=system_prompt,
+                name="general-purpose",
+                description=(
+                    "General-purpose sub-agent with the same capabilities "
+                    "as the main agent. Use for multi-step tasks that "
+                    "benefit from context isolation or parallelism."
+                ),
+                middleware=gp_middleware,
+            )
+            gp_sa["runnable"] = gate.wrap(gp_sa["runnable"], name="general-purpose")
+            compiled_subagents.append(gp_sa)
             logger.info(
-                "Compiled %d sub-agent(s) with InterruptProxy + concurrency gate "
-                "(max %d concurrent) for HITL approval",
-                len(compiled_subagents),
-                gate._max,
+                "Injected gated general-purpose sub-agent "
+                "(tools=%d, model=%s)",
+                len(tools_list),
+                type(model_instance).__name__,
+            )
+
+        transformed_subagents = compiled_subagents
+        logger.info(
+            "Compiled %d sub-agent(s) with InterruptProxy + concurrency gate "
+            "(max %d concurrent) for HITL approval",
+            len(compiled_subagents),
+            gate._max,
+        )
+    elif subagents is not None:
+        if summarization_config is not None and summarization_config.enabled:
+            from graphton.core.summarization_middleware import ContextSummarizationMiddleware
+
+            augmented_subagents = []
+            for sa in subagents:
+                if "runnable" in sa:
+                    augmented_subagents.append(sa)
+                    continue
+                sa_copy = dict(sa)
+                sa_mw = list(sa_copy.get("middleware", []))
+                sa_mw.insert(0, ContextSummarizationMiddleware(
+                    config=summarization_config,
+                    callback=None,
+                ))
+                sa_copy["middleware"] = sa_mw
+                augmented_subagents.append(sa_copy)
+            transformed_subagents = augmented_subagents
+            logger.info(
+                "Injected summarization middleware into %d sub-agent(s) "
+                "(non-HITL path, trigger=%d, target=%d)",
+                len(augmented_subagents),
+                summarization_config.trigger_threshold,
+                summarization_config.target_tokens,
             )
         else:
-            if summarization_config is not None and summarization_config.enabled:
-                from graphton.core.summarization_middleware import ContextSummarizationMiddleware
-                
-                augmented_subagents = []
-                for sa in subagents:
-                    if "runnable" in sa:
-                        augmented_subagents.append(sa)
-                        continue
-                    sa_copy = dict(sa)
-                    sa_mw = list(sa_copy.get("middleware", []))
-                    sa_mw.insert(0, ContextSummarizationMiddleware(
-                        config=summarization_config,
-                        callback=None,
-                    ))
-                    sa_copy["middleware"] = sa_mw
-                    augmented_subagents.append(sa_copy)
-                transformed_subagents = augmented_subagents
-                logger.info(
-                    "Injected summarization middleware into %d sub-agent(s) "
-                    "(non-HITL path, trigger=%d, target=%d)",
-                    len(augmented_subagents),
-                    summarization_config.trigger_threshold,
-                    summarization_config.target_tokens,
-                )
-            else:
-                transformed_subagents = subagents
+            transformed_subagents = subagents
     
     # MCP integration (Universal Authentication Framework)
     if mcp_servers and mcp_tools:
@@ -849,29 +910,30 @@ def create_deep_agent(
 
     # Create the Deep Agent using deepagents library.
     #
-    # deepagents 0.4.x internally creates SubAgentMiddleware (with a
-    # general-purpose subagent) and FilesystemMiddleware.  When `backend`
-    # is provided, FilesystemMiddleware uses it instead of the default
-    # StateBackend.  This is critical: without a SandboxBackendProtocol-
-    # compliant backend, the middleware strips the execute tool from the
-    # model's tool set (both main agent and sub-agents).
+    # deepagents 0.4.x internally creates SubAgentMiddleware and
+    # FilesystemMiddleware.  When `backend` is provided,
+    # FilesystemMiddleware uses it instead of the default StateBackend.
+    # This is critical: without a SandboxBackendProtocol-compliant
+    # backend, the middleware strips the execute tool from the model's
+    # tool set (both main agent and sub-agents).
+    #
+    # General-purpose sub-agent handling:
+    #   deepagents auto-creates an ungated general-purpose sub-agent
+    #   when no subagent named "general-purpose" is present.  In the
+    #   HITL path above, we inject our own gated "general-purpose"
+    #   CompiledSubAgent so deepagents skips auto-creation.  In the
+    #   non-HITL path, deepagents' default behaviour is acceptable.
     #
     # The recursion_limit for subagent graphs defaults to
     # DEFAULT_RECURSION_LIMIT (10,000 as of langgraph 1.0.x).
-    # Graphton applies an explicit recursion_limit via with_config() below
-    # to control the top-level graph's limit independently.
-    # Disable deepagents' internal general-purpose sub-agent.  It creates
-    # an ungated clone of the main agent that bypasses our concurrency
-    # limiter, enabling unbounded parallel delegation.  Agents that need
-    # delegation define explicit sub-agents via AgentSpec.sub_agents —
-    # those go through the gated InterruptProxy path above.
+    # Graphton applies an explicit recursion_limit via with_config()
+    # below to control the top-level graph's limit independently.
     agent = deepagents_create_deep_agent(
         model=model_instance,
         tools=tools_list,
         system_prompt=enhanced_prompt,
         middleware=middleware_list,
         subagents=transformed_subagents or [],
-        general_purpose_agent=False,
         context_schema=context_schema,
         checkpointer=checkpointer,
         backend=deepagents_backend,

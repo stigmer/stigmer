@@ -549,7 +549,8 @@ class TestSubAgentSummarizationPropagation:
             summarization_config=summarization_config,
         )
 
-        assert mock_compile_proxy.call_count == 2
+        # 2 explicit + 1 general-purpose = 3 compile calls
+        assert mock_compile_proxy.call_count == 3
 
         for call in mock_compile_proxy.call_args_list:
             mw_list = call.kwargs.get("middleware") or call[1].get("middleware", [])
@@ -602,8 +603,9 @@ class TestSubAgentSummarizationPropagation:
                 if isinstance(m, ContextSummarizationMiddleware):
                     instances.append(m)
 
-        assert len(instances) == 2
-        assert instances[0] is not instances[1]
+        # 2 explicit + 1 general-purpose = 3 distinct instances
+        assert len(instances) == 3
+        assert len(set(id(i) for i in instances)) == 3
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
@@ -639,7 +641,11 @@ class TestSubAgentSummarizationPropagation:
             summarization_config=summarization_config,
         )
 
-        mock_compile_proxy.assert_not_called()
+        # Pre-compiled sub-agent skips compilation, but the auto-injected
+        # general-purpose sub-agent still triggers one compile call.
+        assert mock_compile_proxy.call_count == 1
+        gp_call = mock_compile_proxy.call_args
+        assert gp_call.kwargs["name"] == "general-purpose"
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")

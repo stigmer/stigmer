@@ -99,9 +99,10 @@ class TestSubagentModelRouting:
         override_call = mock_parse_model.call_args_list[1]
         assert override_call.kwargs["model"] == "claude-haiku-4.5"
 
-        # compile_subagent_with_proxy received the override model
-        compile_call = mock_compile_proxy.call_args
-        assert compile_call.kwargs["model"] is mock_override
+        # First compile call is the explicit sub-agent with override model.
+        # Last call is the auto-injected general-purpose sub-agent.
+        explicit_call = mock_compile_proxy.call_args_list[0]
+        assert explicit_call.kwargs["model"] is mock_override
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
@@ -132,8 +133,9 @@ class TestSubagentModelRouting:
         # parse_model_string called only once (for parent)
         assert mock_parse_model.call_count == 1
 
-        compile_call = mock_compile_proxy.call_args
-        assert compile_call.kwargs["model"] is pre_built
+        # First compile call is the explicit sub-agent with pre-built model.
+        explicit_call = mock_compile_proxy.call_args_list[0]
+        assert explicit_call.kwargs["model"] is pre_built
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
@@ -162,8 +164,9 @@ class TestSubagentModelRouting:
         # parse_model_string called only once (for parent)
         assert mock_parse_model.call_count == 1
 
-        compile_call = mock_compile_proxy.call_args
-        assert compile_call.kwargs["model"] is mock_parent
+        # First compile call is the explicit sub-agent with parent model.
+        explicit_call = mock_compile_proxy.call_args_list[0]
+        assert explicit_call.kwargs["model"] is mock_parent
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
@@ -202,7 +205,8 @@ class TestSubagentModelRouting:
             approval_checker=MagicMock(),
         )
 
-        assert mock_compile_proxy.call_count == 2
+        # 2 explicit + 1 general-purpose = 3 compile calls
+        assert mock_compile_proxy.call_count == 3
 
         # First sub-agent: parent model
         first_call = mock_compile_proxy.call_args_list[0]
@@ -211,3 +215,8 @@ class TestSubagentModelRouting:
         # Second sub-agent: override model
         second_call = mock_compile_proxy.call_args_list[1]
         assert second_call.kwargs["model"] is mock_haiku
+
+        # Third (auto-injected general-purpose): parent model
+        gp_call = mock_compile_proxy.call_args_list[2]
+        assert gp_call.kwargs["name"] == "general-purpose"
+        assert gp_call.kwargs["model"] is mock_parent

@@ -163,8 +163,8 @@ class TestAgentCreation:
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.agent.parse_model_string")
-    def test_subagents_passed_directly(self, mock_parse, mock_create):
-        """Verify subagents are passed directly without general_purpose_agent gating."""
+    def test_subagents_passed_directly_non_hitl(self, mock_parse, mock_create):
+        """Verify subagents are passed through in non-HITL path (no checkpointer)."""
         from graphton import create_deep_agent
 
         mock_model = MagicMock()
@@ -181,13 +181,35 @@ class TestAgentCreation:
             model="gpt-4",
             system_prompt="Test assistant.",
             subagents=test_subagents,
-            general_purpose_agent=False,
         )
 
         call_kwargs = mock_create.call_args.kwargs
         assert call_kwargs["subagents"] == test_subagents, (
-            "Subagents should be passed directly to deepagents regardless of "
-            "general_purpose_agent setting"
+            "Subagents should be passed directly to deepagents in non-HITL path"
+        )
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_general_purpose_agent_not_forwarded_to_deepagents(self, mock_parse, mock_create):
+        """Verify general_purpose_agent is never forwarded to deepagents."""
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        create_deep_agent(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            general_purpose_agent=False,
+        )
+
+        call_kwargs = mock_create.call_args.kwargs
+        assert "general_purpose_agent" not in call_kwargs, (
+            "general_purpose_agent must not be forwarded to deepagents — "
+            "the parameter does not exist in deepagents' create_deep_agent"
         )
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
@@ -507,3 +529,259 @@ class TestBudgetWarningPctValidator:
             budget_warning_pct=95,
         )
         assert config.budget_warning_pct == 95
+
+
+# =============================================================================
+# TestGatedGeneralPurposeSubAgent - General-purpose sub-agent injection
+# =============================================================================
+
+
+class TestGatedGeneralPurposeSubAgent:
+    """Tests for the gated general-purpose sub-agent injection in create_deep_agent.
+
+    When a checkpointer AND approval_checker are both present (HITL path),
+    graphton injects an explicit CompiledSubAgent named "general-purpose"
+    compiled through compile_subagent_with_proxy and wrapped with
+    SubAgentGate.  This overrides deepagents' automatic ungated clone.
+    """
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_hitl_no_explicit_subagents_injects_general_purpose(
+        self, mock_parse, mock_compile, mock_create
+    ):
+        """HITL path with subagents=None injects a single 'general-purpose' CompiledSubAgent."""
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        mock_runnable = MagicMock()
+        mock_compile.return_value = {
+            "name": "general-purpose",
+            "description": "GP",
+            "runnable": mock_runnable,
+        }
+
+        mock_checkpointer = MagicMock()
+        mock_checker = MagicMock()
+
+        create_deep_agent(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            subagents=None,
+            checkpointer=mock_checkpointer,
+            approval_checker=mock_checker,
+        )
+
+        mock_compile.assert_called_once()
+        compile_kwargs = mock_compile.call_args.kwargs
+        assert compile_kwargs["name"] == "general-purpose"
+
+        call_kwargs = mock_create.call_args.kwargs
+        subagents_passed = call_kwargs["subagents"]
+        assert len(subagents_passed) == 1
+        assert subagents_passed[0]["name"] == "general-purpose"
+        # Runnable should be gate-wrapped (not the original mock_runnable)
+        assert subagents_passed[0]["runnable"] is not mock_runnable
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_hitl_with_explicit_subagents_appends_general_purpose(
+        self, mock_parse, mock_compile, mock_create
+    ):
+        """HITL path with explicit sub-agents appends 'general-purpose' alongside them."""
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        call_count = [0]
+        def compile_side_effect(**kwargs):
+            call_count[0] += 1
+            return {
+                "name": kwargs["name"],
+                "description": kwargs["description"],
+                "runnable": MagicMock(),
+            }
+        mock_compile.side_effect = compile_side_effect
+
+        mock_checkpointer = MagicMock()
+        mock_checker = MagicMock()
+        test_subagents = [
+            {"name": "researcher", "description": "Research agent", "system_prompt": "Research."}
+        ]
+
+        create_deep_agent(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            subagents=test_subagents,
+            checkpointer=mock_checkpointer,
+            approval_checker=mock_checker,
+        )
+
+        assert mock_compile.call_count == 2
+        call_kwargs = mock_create.call_args.kwargs
+        subagents_passed = call_kwargs["subagents"]
+        assert len(subagents_passed) == 2
+        names = [sa["name"] for sa in subagents_passed]
+        assert "researcher" in names
+        assert "general-purpose" in names
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_non_hitl_path_no_injection(self, mock_parse, mock_create):
+        """Non-HITL path (no checkpointer) does not inject general-purpose sub-agent."""
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        test_subagents = [
+            {"name": "researcher", "description": "Research agent", "system_prompt": "Research."}
+        ]
+
+        create_deep_agent(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            subagents=test_subagents,
+        )
+
+        call_kwargs = mock_create.call_args.kwargs
+        subagents_passed = call_kwargs["subagents"]
+        names = [sa["name"] for sa in subagents_passed]
+        assert "general-purpose" not in names
+        assert subagents_passed == test_subagents
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_general_purpose_agent_false_skips_injection(
+        self, mock_parse, mock_compile, mock_create
+    ):
+        """general_purpose_agent=False in HITL path does not inject general-purpose sub-agent."""
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        mock_checkpointer = MagicMock()
+        mock_checker = MagicMock()
+
+        create_deep_agent(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            subagents=None,
+            checkpointer=mock_checkpointer,
+            approval_checker=mock_checker,
+            general_purpose_agent=False,
+        )
+
+        mock_compile.assert_not_called()
+        call_kwargs = mock_create.call_args.kwargs
+        subagents_passed = call_kwargs["subagents"]
+        assert len(subagents_passed) == 0
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_general_purpose_uses_main_agent_model_and_prompt(
+        self, mock_parse, mock_compile, mock_create
+    ):
+        """General-purpose sub-agent is compiled with the main agent's model and prompt."""
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+        mock_compile.return_value = {
+            "name": "general-purpose",
+            "description": "GP",
+            "runnable": MagicMock(),
+        }
+
+        mock_checkpointer = MagicMock()
+        mock_checker = MagicMock()
+
+        create_deep_agent(
+            model="gpt-4",
+            system_prompt="You are a helpful coding assistant.",
+            subagents=None,
+            checkpointer=mock_checkpointer,
+            approval_checker=mock_checker,
+        )
+
+        compile_kwargs = mock_compile.call_args.kwargs
+        assert compile_kwargs["model"] is mock_model
+        assert compile_kwargs["system_prompt"] == "You are a helpful coding assistant."
+        assert compile_kwargs["name"] == "general-purpose"
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_general_purpose_shares_gate_with_explicit_subagents(
+        self, mock_parse, mock_compile, mock_create
+    ):
+        """General-purpose sub-agent shares the same SubAgentGate as explicit sub-agents."""
+        from graphton import create_deep_agent
+        from graphton.core.subagent_limiter import _GatedRunnable
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        def compile_side_effect(**kwargs):
+            return {
+                "name": kwargs["name"],
+                "description": kwargs["description"],
+                "runnable": MagicMock(),
+            }
+        mock_compile.side_effect = compile_side_effect
+
+        mock_checkpointer = MagicMock()
+        mock_checker = MagicMock()
+        test_subagents = [
+            {"name": "researcher", "description": "Research agent", "system_prompt": "Research."}
+        ]
+
+        create_deep_agent(
+            model="gpt-4",
+            system_prompt="Test assistant.",
+            subagents=test_subagents,
+            checkpointer=mock_checkpointer,
+            approval_checker=mock_checker,
+        )
+
+        call_kwargs = mock_create.call_args.kwargs
+        subagents_passed = call_kwargs["subagents"]
+        assert len(subagents_passed) == 2
+
+        runnables = [sa["runnable"] for sa in subagents_passed]
+        for r in runnables:
+            assert isinstance(r, _GatedRunnable), (
+                f"Expected _GatedRunnable, got {type(r).__name__}"
+            )
+
+        # Both runnables must share the same gate instance
+        gates = [r._gate for r in runnables]
+        assert gates[0] is gates[1], (
+            "Explicit and general-purpose sub-agents must share the same SubAgentGate"
+        )
