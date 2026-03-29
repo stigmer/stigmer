@@ -29,8 +29,8 @@ const (
 //
 // ## Preconditions
 //
-//   - Execution must be in EXECUTION_WAITING_FOR_APPROVAL phase
-//   - tool_call_id must match an entry in status.pending_approvals
+//   - Execution must be in EXECUTION_WAITING_FOR_APPROVAL or EXECUTION_IN_PROGRESS phase
+//   - tool_call_id must reference a ToolCall with status TOOL_CALL_WAITING_APPROVAL
 //   - action must be APPROVE, SKIP, or REJECT (not UNSPECIFIED)
 //
 // ## Behavior by Action
@@ -182,14 +182,16 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 	requestedAction := input.GetAction()
 	currentPhase := execution.GetStatus().GetPhase()
 
-	// Validate phase: Must be EXECUTION_WAITING_FOR_APPROVAL
-	if currentPhase != agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
+	// Validate phase: approval is accepted during active execution phases where
+	// tool calls may be awaiting decisions. Terminal and pre-start phases are rejected.
+	if currentPhase != agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL &&
+		currentPhase != agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS {
 		log.Debug().
 			Str("execution_id", executionID).
 			Str("current_phase", currentPhase.String()).
-			Msg("Execution not in WAITING_FOR_APPROVAL phase")
+			Msg("Execution not in an approvable phase")
 		return grpclib.FailedPreconditionError(
-			"execution %s is in phase %s, expected EXECUTION_WAITING_FOR_APPROVAL",
+			"execution %s is in phase %s, approval requires EXECUTION_WAITING_FOR_APPROVAL or EXECUTION_IN_PROGRESS",
 			executionID, currentPhase.String(),
 		)
 	}
