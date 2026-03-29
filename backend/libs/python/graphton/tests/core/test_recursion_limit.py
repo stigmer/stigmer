@@ -785,3 +785,148 @@ class TestGatedGeneralPurposeSubAgent:
         assert gates[0] is gates[1], (
             "Explicit and general-purpose sub-agents must share the same SubAgentGate"
         )
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.agent.parse_model_string")
+    @patch("graphton.core.tool_wrappers.create_platform_tool_wrappers")
+    @patch("graphton.core.sandbox_factory.create_sandbox_backend")
+    def test_gp_subagent_receives_platform_tools(
+        self, mock_create_sandbox, mock_platform_tools,
+        mock_parse, mock_compile, mock_create
+    ):
+        """GP sub-agent receives sandbox platform tools when sandbox_config is provided."""
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        mock_sandbox_backend = MagicMock()
+        mock_create_sandbox.return_value = mock_sandbox_backend
+
+        mock_read_tool = MagicMock()
+        mock_write_tool = MagicMock()
+        mock_platform_tools.return_value = [mock_read_tool, mock_write_tool]
+
+        mock_compile.return_value = {
+            "name": "general-purpose",
+            "description": "GP",
+            "runnable": MagicMock(),
+        }
+
+        with patch(
+            "graphton.core.backends.deepagents_adapter.DeepAgentsBackendAdapter"
+        ) as mock_adapter_cls:
+            mock_adapter = MagicMock()
+            mock_adapter_cls.return_value = mock_adapter
+            with patch(
+                "deepagents.backends.protocol.SandboxBackendProtocol",
+                new=type(mock_adapter),
+            ):
+                create_deep_agent(
+                    model="gpt-4",
+                    system_prompt="Test assistant for sandbox tools.",
+                    checkpointer=MagicMock(),
+                    approval_checker=MagicMock(),
+                    sandbox_config={"type": "filesystem", "root_dir": "/tmp"},
+                )
+
+        gp_compile_call = mock_compile.call_args
+        gp_tools = gp_compile_call.kwargs["tools"]
+        assert len(gp_tools) >= 2, (
+            f"GP sub-agent should receive platform tools, got {len(gp_tools)}"
+        )
+        assert mock_read_tool in gp_tools
+        assert mock_write_tool in gp_tools
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.agent.parse_model_string")
+    @patch("graphton.core.tool_wrappers.create_platform_tool_wrappers")
+    @patch("graphton.core.sandbox_factory.create_sandbox_backend")
+    def test_gp_platform_tools_tagged_with_sub_agent_name(
+        self, mock_create_sandbox, mock_platform_tools,
+        mock_parse, mock_compile, mock_create
+    ):
+        """GP sub-agent's platform tools are created with sub_agent_name='general-purpose'."""
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        mock_sandbox_backend = MagicMock()
+        mock_create_sandbox.return_value = mock_sandbox_backend
+        mock_platform_tools.return_value = [MagicMock()]
+
+        mock_compile.return_value = {
+            "name": "general-purpose",
+            "description": "GP",
+            "runnable": MagicMock(),
+        }
+
+        mock_checker = MagicMock()
+
+        with patch(
+            "graphton.core.backends.deepagents_adapter.DeepAgentsBackendAdapter"
+        ) as mock_adapter_cls:
+            mock_adapter = MagicMock()
+            mock_adapter_cls.return_value = mock_adapter
+            with patch(
+                "deepagents.backends.protocol.SandboxBackendProtocol",
+                new=type(mock_adapter),
+            ):
+                create_deep_agent(
+                    model="gpt-4",
+                    system_prompt="Test assistant for sub-agent tagging.",
+                    checkpointer=MagicMock(),
+                    approval_checker=mock_checker,
+                    sandbox_config={"type": "filesystem", "root_dir": "/tmp"},
+                )
+
+        # create_platform_tool_wrappers is called twice:
+        # 1. For the main agent (no sub_agent_name)
+        # 2. For the GP sub-agent (sub_agent_name="general-purpose")
+        assert mock_platform_tools.call_count == 2
+        gp_call = mock_platform_tools.call_args_list[1]
+        assert gp_call.kwargs.get("sub_agent_name") == "general-purpose"
+        assert gp_call.kwargs.get("approval_checker") is mock_checker
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_gp_subagent_skipped_when_no_tools_available(
+        self, mock_parse, mock_compile, mock_create
+    ):
+        """GP sub-agent is skipped when no sandbox, MCP, or think tool is available."""
+        from langchain_anthropic import ChatAnthropic
+
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock(spec=ChatAnthropic)
+        mock_model.thinking = {"type": "enabled", "budget_tokens": 10000}
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            create_deep_agent(
+                model="claude-opus-4.6",
+                system_prompt="Test assistant for no-tool scenario.",
+                checkpointer=MagicMock(),
+                approval_checker=MagicMock(),
+            )
+
+        mock_compile.assert_not_called()
+        call_kwargs = mock_create.call_args.kwargs
+        subagents_passed = call_kwargs["subagents"]
+        assert len(subagents_passed) == 0, (
+            "GP sub-agent should not be injected without any tools"
+        )
