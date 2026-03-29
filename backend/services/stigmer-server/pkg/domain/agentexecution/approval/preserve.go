@@ -36,8 +36,8 @@ func PreserveApprovalFields(
 
 // approvalSnapshot holds the three fields owned by SubmitApproval.
 type approvalSnapshot struct {
-	action    agentexecutionv1.ApprovalAction
-	decidedAt string
+	action     agentexecutionv1.ApprovalAction
+	decidedAt  string
 	approvedBy string
 }
 
