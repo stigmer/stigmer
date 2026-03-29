@@ -12,19 +12,18 @@ nudges only, no hard stop.
 
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from graphton.core.execution_budget import ExecutionBudgetMiddleware
+from graphton.core.loop_detection import LoopDetectionMiddleware
 from graphton.core.subagent import (
     _SUB_AGENT_ADVISORY_INTERVAL,
     _SUB_AGENT_MAX_ADVISORIES,
     _UNLIMITED_RECURSION,
     compile_subagent,
 )
-from graphton.core.loop_detection import LoopDetectionMiddleware
 from graphton.core.tool_truncation import ToolTruncationMiddleware
 
 

@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
-	agentexecutionv1 "github.com/stigmer/stigmer/apis/stubs/go/ai/stigmer/agentic/agentexecution/v1"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows"
 	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/client"

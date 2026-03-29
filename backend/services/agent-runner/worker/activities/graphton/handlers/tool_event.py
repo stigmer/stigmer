@@ -5,17 +5,32 @@ All functions receive the ``StatusBuilder`` instance as their first argument.
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+    ExecutionPhase,
+    TodoStatus,
+    ToolCallStatus,
+)
 from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
     ComponentMetadata,
     ToolCall,
 )
+from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
+from ai.stigmer.agentic.agentexecution.v1.todo_pb2 import TodoItem
 from google.protobuf.struct_pb2 import Struct
-from worker.activities.graphton.approval_policy import render_approval_message
-from graphton.core.backends.platform_mount import humanize_sandbox_paths
+from graphton.core.backends.platform_mount import (
+    humanize_platform_refs,
+    humanize_sandbox_paths,
+    resolve_display_env_vars,
+)
+from worker.activities.graphton.approval_policy import (
+    ApprovalRequirement,
+    render_approval_message,
+    resolve_tool_approval,
+)
 from worker.activities.graphton.handlers import formatting
 from worker.component_type_inference import infer_component_type
 
@@ -81,7 +96,7 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
             tool_call_id_val = early_tc.id
         else:
             ns_key = namespace or ""
-            display_args = sb._humanize_args_for_display(tool_args) if tool_args else {}
+            display_args = humanize_args_for_display(sb, tool_args) if tool_args else {}
             args_struct = Struct()
             if display_args:
                 args_struct.update(display_args)
@@ -90,7 +105,7 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
                 id=run_id,
                 name=tool_name,
                 args=args_struct,
-                args_preview=sb._create_args_preview(tool_args),
+                args_preview=create_args_preview(sb, tool_args),
                 result="",
                 status=ToolCallStatus.TOOL_CALL_RUNNING,
                 component_metadata=ComponentMetadata(
@@ -117,9 +132,9 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
         component_group="main-agent-tools",
     )
 
-    approval_requirement = sb._check_tool_approval_requirement(tool_name, tool_args)
+    approval_requirement = check_approval_requirement(sb, tool_name, tool_args)
 
-    display_args = sb._humanize_args_for_display(tool_args) if tool_args else {}
+    display_args = humanize_args_for_display(sb, tool_args) if tool_args else {}
     args_struct = Struct()
     if display_args:
         args_struct.update(display_args)
@@ -139,7 +154,7 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
         id=run_id,
         name=tool_name,
         args=args_struct,
-        args_preview=sb._create_args_preview(tool_args),
+        args_preview=create_args_preview(sb, tool_args),
         result="",
         status=initial_status,
         component_metadata=component_metadata,
@@ -175,7 +190,7 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
     )
 
     if approval_requirement.requires_approval:
-        sb._set_waiting_for_approval_phase(tool_name, run_id)
+        set_waiting_for_approval_phase(sb, tool_name, run_id)
 
 
 def handle_tool_progress(sb: StatusBuilder, event: dict[str, Any], namespace: str = "") -> None:
@@ -274,3 +289,184 @@ def handle_tool_end(sb: StatusBuilder, event: dict[str, Any], namespace: str = "
         f"tool={tool_name} run_id={run_id} resolved_id={resolved_id} "
         f"status=COMPLETED duration_ms={duration_ms or 'N/A'}"
     )
+
+
+def check_approval_requirement(
+    sb: StatusBuilder,
+    tool_name: str,
+    tool_args: dict[str, Any],
+) -> ApprovalRequirement:
+    """Check if a tool requires approval based on the configured policy chain."""
+    if sb._approval_config is None:
+        return ApprovalRequirement(
+            requires_approval=False,
+            message="",
+            source="none",
+        )
+
+    mcp_server_name = sb._approval_config.get_mcp_server_for_tool(tool_name)
+    default_policies = sb._approval_config.get_default_policies_for_tool(tool_name)
+
+    return resolve_tool_approval(
+        tool_name=tool_name,
+        mcp_server_name=mcp_server_name,
+        auto_approve_all=sb._approval_config.auto_approve_all,
+        tool_approval_overrides=sb._approval_config.tool_approval_overrides,
+        default_tool_approvals=default_policies,
+    )
+
+
+def set_waiting_for_approval_phase(
+    sb: StatusBuilder, tool_name: str, run_id: str,
+) -> None:
+    """Transition execution phase to WAITING_FOR_APPROVAL."""
+    post_approval_statuses = frozenset({
+        ToolCallStatus.TOOL_CALL_RUNNING,
+        ToolCallStatus.TOOL_CALL_COMPLETED,
+        ToolCallStatus.TOOL_CALL_FAILED,
+        ToolCallStatus.TOOL_CALL_SKIPPED,
+    })
+    tc_id = sb._tool_call_id_capture.resolve(run_id)
+    existing_tc = sb.get_tool_call(tc_id)
+    if existing_tc is not None and existing_tc.status in post_approval_statuses:
+        sb.logger.warning(
+            "[APPROVAL_GUARD] execution=%s tool=%s tc_id=%s "
+            "skipping phase transition — tool call already in "
+            "post-approval state %s",
+            sb.execution_id, tool_name, tc_id,
+            ToolCallStatus.Name(existing_tc.status),
+        )
+        return
+
+    if sb.state.approval.saved_phase is None:
+        sb.state.approval.saved_phase = sb.current_status.phase
+        from datetime import datetime as _dt
+        sb.state.approval.wait_started_at = _dt.utcnow()
+    sb.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+
+    sb.state.approval.pending.append(run_id)
+    sb.force_next_update = True
+
+    sb.logger.info(
+        f"[APPROVAL] execution={sb.execution_id} "
+        f"tool={tool_name} run_id={run_id} tc_id={tc_id} "
+        f"status=WAITING_APPROVAL "
+        f"pending_count={len(sb.state.approval.pending)}"
+    )
+
+
+def update_todos(sb: StatusBuilder, todos_data: list) -> None:
+    """Replace the todo snapshot in the local execution status."""
+    status_map = {
+        "pending": TodoStatus.TODO_PENDING,
+        "in_progress": TodoStatus.TODO_IN_PROGRESS,
+        "completed": TodoStatus.TODO_COMPLETED,
+        "cancelled": TodoStatus.TODO_CANCELLED,
+    }
+
+    sb.current_status.todos.clear()
+
+    now = _utc_timestamp()
+    for idx, todo_dict in enumerate(todos_data):
+        todo_id = todo_dict.get("id") or f"todo-{idx}"
+        status_str = todo_dict.get("status", "pending").lower()
+        status_enum = status_map.get(status_str, TodoStatus.TODO_PENDING)
+        todo_item = TodoItem(
+            id=todo_id,
+            content=todo_dict.get("content", ""),
+            status=status_enum,
+            created_at=todo_dict.get("created_at", now),
+            updated_at=now,
+        )
+        sb.current_status.todos[todo_id].CopyFrom(todo_item)
+
+    sb.logger.info("Updated todos: %d item(s) in snapshot", len(todos_data))
+
+
+def update_sub_agent_todos(
+    sb: StatusBuilder, sub_agent: SubAgentExecution, todos_data: list,
+) -> None:
+    """Replace the todo snapshot on a sub-agent execution."""
+    status_map = {
+        "pending": TodoStatus.TODO_PENDING,
+        "in_progress": TodoStatus.TODO_IN_PROGRESS,
+        "completed": TodoStatus.TODO_COMPLETED,
+        "cancelled": TodoStatus.TODO_CANCELLED,
+    }
+
+    sub_agent.todos.clear()
+
+    now = _utc_timestamp()
+    for idx, todo_dict in enumerate(todos_data):
+        todo_id = todo_dict.get("id") or f"todo-{idx}"
+        status_str = todo_dict.get("status", "pending").lower()
+        status_enum = status_map.get(status_str, TodoStatus.TODO_PENDING)
+        todo_item = TodoItem(
+            id=todo_id,
+            content=todo_dict.get("content", ""),
+            status=status_enum,
+            created_at=todo_dict.get("created_at", now),
+            updated_at=now,
+        )
+        sub_agent.todos[todo_id].CopyFrom(todo_item)
+
+    sb.logger.info(
+        "Updated sub-agent todos: %d item(s) (sub_agent_id=%s)",
+        len(todos_data), sub_agent.id,
+    )
+
+
+def humanize_args_for_display(
+    sb: StatusBuilder, tool_args: dict[str, Any],
+) -> dict[str, Any]:
+    """Return a shallow copy of *tool_args* with string values humanized."""
+    if not tool_args:
+        return tool_args
+
+    result: dict[str, Any] = {}
+    for key, value in tool_args.items():
+        if isinstance(value, str):
+            value = humanize_platform_refs(value)
+            value = resolve_display_env_vars(
+                value, sb._display_env_vars, sb._secret_keys,
+            )
+            value = humanize_sandbox_paths(value, sb._workspace_root)
+        result[key] = value
+    return result
+
+
+def create_args_preview(sb: StatusBuilder, tool_args: dict[str, Any]) -> str:
+    """Create a sanitized preview of tool arguments for UI display."""
+    if not tool_args:
+        return "{}"
+
+    sensitive_patterns = [
+        "password", "passwd", "pwd",
+        "token", "api_key", "apikey", "api-key",
+        "secret", "credential", "auth",
+        "private_key", "privatekey", "private-key",
+    ]
+
+    def sanitize_value(key: str, value: Any) -> Any:
+        key_lower = key.lower()
+        for pattern in sensitive_patterns:
+            if pattern in key_lower:
+                return "***REDACTED***"
+        if isinstance(value, str):
+            value = humanize_platform_refs(value)
+            value = resolve_display_env_vars(
+                value, sb._display_env_vars, sb._secret_keys,
+            )
+            return value
+        if isinstance(value, dict):
+            return {k: sanitize_value(k, v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [sanitize_value(str(i), v) for i, v in enumerate(value)]
+        return value
+
+    sanitized = {k: sanitize_value(k, v) for k, v in tool_args.items()}
+
+    try:
+        return json.dumps(sanitized, indent=2, default=str)
+    except (TypeError, ValueError):
+        return "{}"

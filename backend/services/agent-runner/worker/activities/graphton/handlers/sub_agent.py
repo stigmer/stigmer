@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
+    MessageType,
     SubAgentStatus,
     ToolCallStatus,
 )
@@ -559,3 +560,44 @@ def finalize_from_checkpoint_validation(
         )
 
     return total
+
+
+def prepare_task_tool_resume_queue(sb: StatusBuilder) -> int:
+    """Pre-populate the early tool call queue for task tools on resume.
+
+    On resume from a sub-agent HITL interrupt, ``astream_events`` does
+    NOT replay the AI message's ``tool_use`` blocks.  This method scans
+    persisted messages for task tool calls that have a corresponding
+    SubAgentExecution and queues them for reconciliation.
+
+    Must be called **after** ``rebuild_index_from_persisted_status``
+    and **before** the stream starts.
+
+    Returns the number of task tool calls queued.
+    """
+    sa_ids = {sa.id for sa in sb.current_status.sub_agent_executions}
+    queued = 0
+
+    for msg in sb.current_status.messages:
+        if msg.type != MessageType.MESSAGE_AI:
+            continue
+        for tc in msg.tool_calls:
+            if tc.name != "task" or not tc.id:
+                continue
+            if tc.id not in sa_ids:
+                continue
+            already_queued = any(
+                tid == tc.id for tid, _ in sb.state.early_tool_call_queue
+            )
+            if already_queued:
+                continue
+
+            sb.state.early_tool_call_queue.append((tc.id, None))
+            queued += 1
+            sb.logger.info(
+                "[RESUME_PREP] execution=%s pre-queued task TC %s "
+                "for sub-agent resume reconciliation",
+                sb.execution_id, tc.id,
+            )
+
+    return queued

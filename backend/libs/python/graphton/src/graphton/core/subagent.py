@@ -95,8 +95,8 @@ def compile_subagent(
     from graphton.core.execution_budget import ExecutionBudgetMiddleware
     from graphton.core.loop_detection import LoopDetectionMiddleware
     from graphton.core.tool_truncation import (
-        ToolTruncationMiddleware,
         _DEFAULT_MAX_CHARS as _DEFAULT_TRUNCATION,
+        ToolTruncationMiddleware,
     )
 
     effective_limit = (

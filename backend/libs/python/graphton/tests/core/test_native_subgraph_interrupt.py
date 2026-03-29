@@ -22,16 +22,14 @@ project).  They confirm whether parent_ids on v2 events can replace the
 from __future__ import annotations
 
 import asyncio
-from typing import Annotated, Any
+from typing import Any
 
 import pytest
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
-from langchain_core.tools import tool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
-from langgraph.graph.message import add_messages
-from langgraph.types import Command, Interrupt, interrupt
+from langgraph.types import Command, interrupt
 
 
 # ---------------------------------------------------------------------------
@@ -150,7 +148,6 @@ class TestConcurrentCheckpointIsolation:
 
         # Track checkpoint_ns values seen during invocations
         observed_namespaces: list[str] = []
-        invocation_barrier = asyncio.Barrier(2)
 
         def recording_node(state: MessagesState, config: RunnableConfig) -> dict:
             ns = config.get("configurable", {}).get("checkpoint_ns", "")
@@ -220,8 +217,6 @@ class TestInterruptThroughGate:
     async def test_interrupt_propagates_through_try_finally(self):
         """Simulates SubAgentGate's try/finally pattern around a sub-agent
         that calls interrupt()."""
-        from langgraph.errors import GraphInterrupt
-
         checkpointer = MemorySaver()
         subgraph = _build_interrupting_subgraph()
 

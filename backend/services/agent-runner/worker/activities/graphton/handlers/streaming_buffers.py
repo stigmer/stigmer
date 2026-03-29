@@ -15,8 +15,9 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType, ToolCallStatus
 from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
+    AgentMessage,
     ComponentMetadata,
     ToolCall,
 )
@@ -179,8 +180,8 @@ def create_early_tool_call(
         mcp_server_slug=mcp_server_slug,
     )
 
-    parent_ai = sb._ensure_parent_ai_message(
-        ns_key, namespace, llm_run_id=llm_run_id,
+    parent_ai = ensure_parent_ai_message(
+        sb, ns_key, namespace, llm_run_id=llm_run_id,
     )
     parent_ai.tool_calls.append(tool_call)
     sb.state.tool_calls[temp_id] = parent_ai.tool_calls[-1]
@@ -324,8 +325,8 @@ def start_thinking_stream(
         started_at=_utc_timestamp(now),
     )
 
-    parent_ai = sb._ensure_parent_ai_message(
-        ns_key, namespace, llm_run_id=llm_run_id,
+    parent_ai = ensure_parent_ai_message(
+        sb, ns_key, namespace, llm_run_id=llm_run_id,
     )
     parent_ai.tool_calls.append(tool_call)
     sb.state.tool_calls[tc_id] = parent_ai.tool_calls[-1]
@@ -481,7 +482,7 @@ def flush_thinking_buffer(sb: StatusBuilder, ns_key: str, namespace: str) -> Non
         completed_at=completed_ts,
     )
 
-    parent_ai = sb._ensure_parent_ai_message(ns_key, namespace)
+    parent_ai = ensure_parent_ai_message(sb, ns_key, namespace)
     parent_ai.tool_calls.append(fallback_tc)
     sb.state.tool_calls[fallback_tc.id] = parent_ai.tool_calls[-1]
 
@@ -492,3 +493,46 @@ def flush_thinking_buffer(sb: StatusBuilder, ns_key: str, namespace: str) -> Non
         len(thinking_text),
         namespace or "main",
     )
+
+
+def ensure_parent_ai_message(
+    sb: StatusBuilder,
+    ns_key: str,
+    namespace: str,
+    llm_run_id: str = "",
+) -> AgentMessage:
+    """Return the current parent AI message, creating an empty one if needed.
+
+    When a tool call (including thinking) fires before the LLM has produced
+    any text, there is no AI message to attach it to.  This method creates
+    a zero-content ``MESSAGE_AI`` so the tool call has a parent.
+    """
+    existing = sb.state.current_ai_message.get(ns_key)
+    if existing is not None:
+        return existing
+
+    _, sub_agent = sb._get_execution_context(namespace)
+    messages_list = sub_agent.messages if sub_agent else sb.current_status.messages
+
+    now = datetime.utcnow()
+    ai_message = AgentMessage(
+        type=MessageType.MESSAGE_AI,
+        content="",
+        timestamp=_utc_timestamp(now),
+        is_streaming=False,
+    )
+    messages_list.append(ai_message)
+    managed = messages_list[-1]
+    sb.state.current_ai_message[ns_key] = managed
+
+    if llm_run_id:
+        sb.state.messages_by_run[llm_run_id] = managed
+
+    sb.logger.debug(
+        "[AI_MSG] execution=%s created empty parent AI message "
+        "namespace=%s llm_run_id=%s (tool call arrived before text)",
+        sb.execution_id,
+        namespace or "main",
+        llm_run_id or "none",
+    )
+    return managed
