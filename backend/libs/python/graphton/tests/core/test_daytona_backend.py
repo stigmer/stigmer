@@ -18,7 +18,12 @@ from unittest.mock import MagicMock
 import pytest
 
 from graphton.core.backends.daytona import WorkspaceNormalizingBackend
-from graphton.core.backends.types import ExecutionResult, to_execution_result
+from graphton.core.backends.types import (
+    ExecutionResult,
+    to_execution_result,
+    to_file_list,
+    to_is_directory,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -603,3 +608,228 @@ class TestExecuteResultTranslation:
         assert isinstance(result, ExecutionResult)
         call_args = inner_backend.execute.call_args[0][0]
         assert "export TOKEN=" in call_args
+
+
+# ---------------------------------------------------------------------------
+# to_file_list() normalisation
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _FakeFileInfo:
+    """Mimics deepagents' FileInfo (dataclass with .path and .is_dir)."""
+
+    path: str
+    is_dir: bool = False
+
+
+class TestToFileList:
+    """Tests for the to_file_list() normalisation helper."""
+
+    def test_prefers_list_files_over_ls_info(self) -> None:
+        """When the backend has both methods, list_files() takes precedence."""
+        inner = MagicMock()
+        inner.list_files.return_value = ["src", "README.md"]
+        inner.ls_info.return_value = [
+            _FakeFileInfo(path="src", is_dir=True),
+            _FakeFileInfo(path="README.md"),
+        ]
+        result = to_file_list(inner, ".")
+        assert result == ["src", "README.md"]
+        inner.list_files.assert_called_once_with(".")
+        inner.ls_info.assert_not_called()
+
+    def test_falls_back_to_ls_info_object_style(self) -> None:
+        """Backend with only ls_info (dataclass FileInfo) works correctly."""
+        inner = MagicMock(spec=["ls_info"])
+        inner.ls_info.return_value = [
+            _FakeFileInfo(path="src", is_dir=True),
+            _FakeFileInfo(path="README.md"),
+            _FakeFileInfo(path="main.py"),
+        ]
+        result = to_file_list(inner, ".")
+        assert result == ["src", "README.md", "main.py"]
+
+    def test_falls_back_to_ls_info_dict_style(self) -> None:
+        """Backend with only ls_info (dict FileInfo) works correctly."""
+        inner = MagicMock(spec=["ls_info"])
+        inner.ls_info.return_value = [
+            {"path": "src", "is_dir": True},
+            {"path": "README.md", "is_dir": False},
+        ]
+        result = to_file_list(inner, ".")
+        assert result == ["src", "README.md"]
+
+    def test_ls_info_extracts_basename_from_full_path(self) -> None:
+        """ls_info returning full relative paths still yields bare names."""
+        inner = MagicMock(spec=["ls_info"])
+        inner.ls_info.return_value = [
+            _FakeFileInfo(path="project/src", is_dir=True),
+            _FakeFileInfo(path="project/README.md"),
+        ]
+        result = to_file_list(inner, "project")
+        assert result == ["src", "README.md"]
+
+    def test_raises_when_neither_method_available(self) -> None:
+        """Clean error when the backend has neither list_files nor ls_info."""
+        inner = MagicMock(spec=[])
+        with pytest.raises(AttributeError, match="neither list_files.*nor ls_info"):
+            to_file_list(inner, ".")
+
+
+# ---------------------------------------------------------------------------
+# to_is_directory() normalisation
+# ---------------------------------------------------------------------------
+
+
+class TestToIsDirectory:
+    """Tests for the to_is_directory() normalisation helper."""
+
+    def test_prefers_is_directory_over_ls_info(self) -> None:
+        inner = MagicMock()
+        inner.is_directory.return_value = True
+        result = to_is_directory(inner, "src")
+        assert result is True
+        inner.is_directory.assert_called_once_with("src")
+
+    def test_falls_back_to_ls_info_object_style(self) -> None:
+        """Backend with only ls_info correctly detects directories."""
+        inner = MagicMock(spec=["ls_info"])
+        inner.ls_info.return_value = [
+            _FakeFileInfo(path="src", is_dir=True),
+            _FakeFileInfo(path="README.md", is_dir=False),
+        ]
+        assert to_is_directory(inner, "src") is True
+        assert to_is_directory(inner, "README.md") is False
+
+    def test_falls_back_to_ls_info_dict_style(self) -> None:
+        """Backend with only ls_info (dict FileInfo) correctly detects directories."""
+        inner = MagicMock(spec=["ls_info"])
+        inner.ls_info.return_value = [
+            {"path": "data", "is_dir": True},
+            {"path": "config.yaml", "is_dir": False},
+        ]
+        assert to_is_directory(inner, "data") is True
+        assert to_is_directory(inner, "config.yaml") is False
+
+    def test_returns_false_for_unknown_entry(self) -> None:
+        """Returns False when the entry is not found in parent listing."""
+        inner = MagicMock(spec=["ls_info"])
+        inner.ls_info.return_value = [
+            _FakeFileInfo(path="src", is_dir=True),
+        ]
+        assert to_is_directory(inner, "nonexistent") is False
+
+    def test_returns_false_when_neither_method_available(self) -> None:
+        """Returns False (defensive) when backend has no useful method."""
+        inner = MagicMock(spec=[])
+        assert to_is_directory(inner, "anything") is False
+
+    def test_returns_false_when_ls_info_raises(self) -> None:
+        """ls_info errors are swallowed; returns False defensively."""
+        inner = MagicMock(spec=["ls_info"])
+        inner.ls_info.side_effect = RuntimeError("sandbox down")
+        assert to_is_directory(inner, "src") is False
+
+    def test_uses_parent_directory_for_ls_info(self) -> None:
+        """ls_info is called on the *parent* of the target path."""
+        inner = MagicMock(spec=["ls_info"])
+        inner.ls_info.return_value = [
+            _FakeFileInfo(path="scripts", is_dir=True),
+        ]
+        to_is_directory(inner, "bin/scripts")
+        inner.ls_info.assert_called_once_with("bin")
+
+
+# ---------------------------------------------------------------------------
+# WorkspaceNormalizingBackend with ls_info-only backend (real DaytonaBackend)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def ls_info_backend() -> MagicMock:
+    """Mock backend that has ls_info but NOT list_files/is_directory.
+
+    This simulates the real DaytonaBackend from deepagents_cli which
+    implements SandboxBackendProtocol (ls_info) not graphton's interface.
+    """
+    backend = MagicMock(spec=["ls_info", "read", "write", "execute"])
+    backend.read.return_value = ""
+    return backend
+
+
+class TestWorkspaceNormalizingWithLsInfoBackend:
+    """Integration tests: WorkspaceNormalizingBackend over an ls_info-only backend."""
+
+    def test_list_files_works_via_ls_info(
+        self, ls_info_backend: MagicMock,
+    ) -> None:
+        ls_info_backend.ls_info.return_value = [
+            _FakeFileInfo(path="SKILL.md", is_dir=False),
+            _FakeFileInfo(path="scripts", is_dir=True),
+        ]
+        ls_info_backend.read.side_effect = FileNotFoundError
+        w = WorkspaceNormalizingBackend(ls_info_backend, workspace_root="/workspace")
+        entries = w.list_files("bin/skills")
+        assert "SKILL.md" in entries
+        assert "scripts" in entries
+        ls_info_backend.ls_info.assert_called_once_with("bin/skills")
+
+    def test_list_files_with_rebase_via_ls_info(
+        self, ls_info_backend: MagicMock,
+    ) -> None:
+        ls_info_backend.ls_info.return_value = [
+            _FakeFileInfo(path="src", is_dir=True),
+        ]
+        ls_info_backend.read.side_effect = FileNotFoundError
+        w = WorkspaceNormalizingBackend(
+            ls_info_backend,
+            workspace_root="/home/daytona/workspace",
+            sandbox_root="/home/daytona",
+        )
+        entries = w.list_files("project")
+        assert entries == ["src"]
+        ls_info_backend.ls_info.assert_called_once_with("workspace/project")
+
+    def test_is_directory_works_via_ls_info(
+        self, ls_info_backend: MagicMock,
+    ) -> None:
+        ls_info_backend.ls_info.return_value = [
+            _FakeFileInfo(path="src", is_dir=True),
+            _FakeFileInfo(path="README.md", is_dir=False),
+        ]
+        w = WorkspaceNormalizingBackend(ls_info_backend, workspace_root="/workspace")
+        assert w.is_directory("src") is True
+        assert w.is_directory("README.md") is False
+
+    def test_list_files_gitignore_filtering_with_ls_info(
+        self, ls_info_backend: MagicMock,
+    ) -> None:
+        """Gitignore filtering works correctly over ls_info backend."""
+        ls_info_backend.read.return_value = "*.pyc\nbuild/\n"
+        ls_info_backend.ls_info.return_value = [
+            _FakeFileInfo(path="src", is_dir=True),
+            _FakeFileInfo(path="build", is_dir=True),
+            _FakeFileInfo(path="main.py", is_dir=False),
+            _FakeFileInfo(path="cache.pyc", is_dir=False),
+        ]
+        w = WorkspaceNormalizingBackend(ls_info_backend, workspace_root="/workspace")
+        entries = w.list_files(".")
+        assert "src" in entries
+        assert "main.py" in entries
+        assert "build" not in entries
+        assert "cache.pyc" not in entries
+
+    def test_list_files_cache_with_ls_info(
+        self, ls_info_backend: MagicMock,
+    ) -> None:
+        """Caching works correctly when backed by ls_info."""
+        ls_info_backend.read.side_effect = FileNotFoundError
+        ls_info_backend.ls_info.return_value = [
+            _FakeFileInfo(path="src", is_dir=True),
+        ]
+        w = WorkspaceNormalizingBackend(ls_info_backend, workspace_root="/workspace")
+        first = w.list_files(".")
+        second = w.list_files(".")
+        assert first == second
+        ls_info_backend.ls_info.assert_called_once()
