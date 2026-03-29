@@ -42,6 +42,7 @@ from typing import Any
 from langchain.agents import create_agent  # type: ignore[import-untyped]
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.runnables import Runnable, RunnableConfig
+from langchain_core.runnables.config import ensure_config, merge_configs
 from langchain_core.tools import BaseTool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command, interrupt
@@ -101,7 +102,17 @@ class InterruptProxyRunnable(Runnable):
     async def ainvoke(self, input: Any, config: RunnableConfig | None = None, **kwargs: Any) -> Any:  # noqa: A002
         thread_id, sa_config = self._current_thread_config()
 
+        # Merge the parent's callback context with our thread config.
+        # ensure_config() inherits the active callback manager from the
+        # parent graph's astream_events context.  merge_configs() layers
+        # our thread_id on top so checkpointing stays isolated while
+        # callback events flow through the parent for proper namespace
+        # metadata propagation to StatusBuilder.
+        parent_ctx = ensure_config(config)
+        merged = merge_configs(parent_ctx, sa_config)
+
         # Probe the current thread's checkpoint to decide: resume vs fresh.
+        # Checkpoint lookups only need thread_id, so bare sa_config suffices.
         state = await self._safe_get_state(sa_config)
 
         if state is not None and getattr(state, "interrupts", None):
@@ -118,7 +129,7 @@ class InterruptProxyRunnable(Runnable):
                 len(decisions) if isinstance(decisions, dict) else 1,
             )
             result = await self.inner_graph.ainvoke(
-                Command(resume=decisions), config=sa_config,
+                Command(resume=decisions), config=merged,
             )
         else:
             # If a completed checkpoint exists on this thread, a previous
@@ -127,6 +138,7 @@ class InterruptProxyRunnable(Runnable):
             if state is not None and getattr(state, "values", None):
                 self._thread_counter += 1
                 thread_id, sa_config = self._current_thread_config()
+                merged = merge_configs(parent_ctx, sa_config)
                 logger.info(
                     "[InterruptProxy:%s] Prior thread completed, "
                     "advancing to thread %s",
@@ -138,7 +150,7 @@ class InterruptProxyRunnable(Runnable):
                 "[InterruptProxy:%s] Starting fresh sub-agent on thread %s",
                 self.name, thread_id,
             )
-            result = await self.inner_graph.ainvoke(input, config=sa_config)
+            result = await self.inner_graph.ainvoke(input, config=merged)
 
         # After the invocation, check whether the sub-agent paused again.
         state = await self._safe_get_state(sa_config)
@@ -160,7 +172,7 @@ class InterruptProxyRunnable(Runnable):
                     self.name,
                 )
                 result = await self.inner_graph.ainvoke(
-                    Command(resume=maybe_decisions), config=sa_config,
+                    Command(resume=maybe_decisions), config=merged,
                 )
 
         return result
