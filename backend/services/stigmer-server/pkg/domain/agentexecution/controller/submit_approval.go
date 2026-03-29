@@ -3,6 +3,7 @@ package agentexecution
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -14,7 +15,6 @@ import (
 	"github.com/stigmer/stigmer/backend/libs/go/store"
 	"github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval"
 	agentexecutiontemporal "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal"
-	"google.golang.org/protobuf/proto"
 )
 
 // Context keys for inter-step communication
@@ -238,6 +238,9 @@ func (s *validateApprovalStep) Execute(ctx *pipeline.RequestContext[*agentexecut
 // recordApprovalDecisionStep records the user's approval decision on the matching
 // ToolCall, recomputes pending_approvals (so the approved entry disappears
 // immediately), persists, and broadcasts to subscribers.
+//
+// Uses store.UpdateResource for atomic read-modify-write to prevent concurrent
+// SubmitApproval calls from overwriting each other's approval decisions.
 type recordApprovalDecisionStep struct {
 	store        store.Store
 	streamBroker *StreamBroker
@@ -258,43 +261,67 @@ func (s *recordApprovalDecisionStep) Execute(ctx *pipeline.RequestContext[*agent
 	}
 
 	input := ctx.Input()
-	execution := ctx.Get(steps.TargetResourceKey).(*agentexecutionv1.AgentExecution)
-	executionID := execution.GetMetadata().GetId()
+	executionID := input.GetAgentExecutionId()
 	toolCallId := input.GetToolCallId()
 	action := input.GetAction()
-
-	updated := proto.Clone(execution).(*agentexecutionv1.AgentExecution)
-	if updated.Status == nil {
-		updated.Status = &agentexecutionv1.AgentExecutionStatus{}
-	}
-
 	now := time.Now().UTC().Format(time.RFC3339)
-	if tc := findToolCallInExecution(updated, toolCallId); tc != nil {
-		tc.ApprovalAction = action
-		tc.ApprovalDecidedAt = now
-	}
 
-	// Recompute pending_approvals — the approved entry disappears because
-	// its approval_action is now set (no longer UNSPECIFIED).
-	updated.Status.PendingApprovals = approval.ComputePendingApprovals(
-		updated.Status.GetMessages(),
-		updated.Status.GetSubAgentExecutions(),
+	updated := &agentexecutionv1.AgentExecution{}
+
+	err := s.store.UpdateResource(
+		ctx.Context(),
+		apiresourcekind.ApiResourceKind_agent_execution,
+		executionID,
+		updated,
+		func() error {
+			// Re-check under the write lock: the tool call must still exist
+			// and must not already have a decision (guards against TOCTOU races
+			// where a concurrent request recorded a decision between our
+			// validation step and this locked update).
+			tc := findToolCallInExecution(updated, toolCallId)
+			if tc == nil {
+				return fmt.Errorf("tool call %s no longer exists in execution %s", toolCallId, executionID)
+			}
+			if tc.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED {
+				return fmt.Errorf("tool call %s already has approval action %s (concurrent approval won the race)",
+					toolCallId, tc.GetApprovalAction().String())
+			}
+
+			tc.ApprovalAction = action
+			tc.ApprovalDecidedAt = now
+
+			if updated.Status == nil {
+				updated.Status = &agentexecutionv1.AgentExecutionStatus{}
+			}
+
+			// Recompute pending_approvals — the approved entry disappears because
+			// its approval_action is now set (no longer UNSPECIFIED).
+			updated.Status.PendingApprovals = approval.ComputePendingApprovals(
+				updated.Status.GetMessages(),
+				updated.Status.GetSubAgentExecutions(),
+			)
+
+			return nil
+		},
 	)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return grpclib.NotFoundError("agent_execution", executionID)
+		}
+		log.Error().
+			Err(err).
+			Str("execution_id", executionID).
+			Str("tool_call_id", toolCallId).
+			Msg("Failed to atomically record approval decision")
+		return grpclib.InternalError(err, "failed to persist approval decision")
+	}
 
 	log.Info().
 		Str("execution_id", executionID).
 		Str("tool_call_id", toolCallId).
 		Str("action", action.String()).
-		Int("pending_approvals_remaining", len(updated.Status.PendingApprovals)).
+		Int("pending_approvals_remaining", len(updated.GetStatus().GetPendingApprovals())).
 		Msg("Recorded approval decision on ToolCall, recomputed pending_approvals")
-
-	if err := s.store.SaveResource(ctx.Context(), apiresourcekind.ApiResourceKind_agent_execution, executionID, updated); err != nil {
-		log.Error().
-			Err(err).
-			Str("execution_id", executionID).
-			Msg("Failed to persist approval decision")
-		return grpclib.InternalError(err, "failed to persist approval decision")
-	}
 
 	if s.streamBroker != nil {
 		s.streamBroker.Broadcast(updated)
