@@ -13,6 +13,10 @@ Public helpers:
   build_snapshot_from_interrupts — builds the Temporal-coordination
       ``pending_approvals`` list from checkpoint interrupts.
 
+  extract_approval_decisions_from_execution — builds the same
+      ``list[SubmitApprovalInput]`` from a DB-loaded execution's tool calls
+      (T03 DB-driven resume path).
+
 Classes:
 
   ResumeReconciler — transitions tool calls from WAITING_APPROVAL to their
@@ -75,6 +79,42 @@ def build_snapshot_from_interrupts(interrupts: Any) -> list[PendingApproval]:
         PendingApproval(tool_call_id=tc_id)
         for tc_id in sorted(extract_interrupt_tool_call_ids(interrupts))
     ]
+
+
+def extract_approval_decisions_from_execution(
+    execution,
+) -> list[SubmitApprovalInput]:
+    """Extract approval decisions from a DB-loaded AgentExecution.
+
+    After T01, ``SubmitApproval`` atomically sets ``approval_action`` and
+    ``approval_decided_at`` on each tool call.  This function scans all
+    tool calls (root and sub-agent messages) and builds the same
+    ``list[SubmitApprovalInput]`` that :class:`ResumeReconciler` expects.
+
+    Used by the DB-driven resume path (T03): when the workflow sends no
+    approval decisions via Temporal args, the activity detects a resume via
+    LangGraph interrupts and calls this function to extract the decisions
+    from the execution loaded in Step 0.
+    """
+    decisions: list[SubmitApprovalInput] = []
+    for msg in execution.status.messages:
+        for tc in msg.tool_calls:
+            if tc.approval_action != ApprovalAction.APPROVAL_ACTION_UNSPECIFIED:
+                decisions.append(SubmitApprovalInput(
+                    tool_call_id=tc.id,
+                    action=tc.approval_action,
+                    comment=tc.approved_by or "",
+                ))
+    for sa in execution.status.sub_agent_executions:
+        for msg in sa.messages:
+            for tc in msg.tool_calls:
+                if tc.approval_action != ApprovalAction.APPROVAL_ACTION_UNSPECIFIED:
+                    decisions.append(SubmitApprovalInput(
+                        tool_call_id=tc.id,
+                        action=tc.approval_action,
+                        comment=tc.approved_by or "",
+                    ))
+    return decisions
 
 
 class ResumeReconciler:

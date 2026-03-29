@@ -65,13 +65,6 @@ export interface MessageThreadProps {
    */
   readonly submittingApprovalIds?: ReadonlySet<string>;
   /**
-   * Tool call IDs to exclude from the approval list. Used for
-   * optimistic removal after a decision has been submitted --
-   * the card disappears immediately without waiting for the next
-   * stream snapshot. Managed by {@link useSessionConversation}.
-   */
-  readonly dismissedApprovalIds?: ReadonlySet<string>;
-  /**
    * Workspace entries from the session spec. When provided, file
    * paths in tool call rendering become interactive — git-sourced
    * paths open on GitHub, local paths offer copy-to-clipboard.
@@ -131,7 +124,6 @@ function buildThreadItems(
   activeStreamExecution: AgentExecution | null | undefined,
   pendingUserMessage: string | null | undefined,
   includeApprovals: boolean,
-  dismissedApprovalIds: ReadonlySet<string> | undefined,
   workspaceEntries: readonly WorkspaceEntry[] | undefined,
 ): ThreadItem[] {
   const items: ThreadItem[] = [];
@@ -246,7 +238,6 @@ function buildThreadItems(
     const allApprovals = lastExec?.status?.pendingApprovals ?? [];
     for (let ai = 0; ai < allApprovals.length; ai++) {
       const approval = allApprovals[ai];
-      if (dismissedApprovalIds?.has(approval.toolCallId)) continue;
       items.push({
         kind: "approval-request",
         pendingApproval: approval,
@@ -301,7 +292,6 @@ export function MessageThread({
   formatToolCallSummary,
   onApprovalSubmit,
   submittingApprovalIds,
-  dismissedApprovalIds,
   workspaceEntries,
   onFilePathClick,
   sandboxWorkspaceRoot,
@@ -311,8 +301,8 @@ export function MessageThread({
 
   const includeApprovals = onApprovalSubmit != null;
   const items = useMemo(
-    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, dismissedApprovalIds, workspaceEntries),
-    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, dismissedApprovalIds, workspaceEntries],
+    () => buildThreadItems(executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries),
+    [executions, activeStreamExecution, pendingUserMessage, includeApprovals, workspaceEntries],
   );
 
   const handleScroll = useCallback(() => {

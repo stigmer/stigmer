@@ -51,6 +51,23 @@ type Store interface {
 	//   - msg: pointer to proto message to unmarshal into (must be initialized)
 	GetResource(ctx context.Context, kind apiresourcekind.ApiResourceKind, id string, msg proto.Message) error
 
+	// UpdateResource performs an atomic read-modify-write on a resource.
+	//
+	// The store reads the resource into msg, calls modify (which should mutate
+	// msg in place), then persists the modified message. The entire operation
+	// is serialized against concurrent writes so that two concurrent updates
+	// to the same resource never overwrite each other's changes.
+	//
+	// Returns ErrNotFound if the resource does not exist.
+	// If modify returns an error, the write is skipped and that error is returned.
+	//
+	// Parameters:
+	//   - kind: resource kind enum (e.g., ApiResourceKind_agent_execution)
+	//   - id: unique resource identifier
+	//   - msg: pointer to proto message to unmarshal into (must be initialized)
+	//   - modify: function that mutates msg; called exactly once under the write lock
+	UpdateResource(ctx context.Context, kind apiresourcekind.ApiResourceKind, id string, msg proto.Message, modify func() error) error
+
 	// ListResources retrieves all resources of a given kind.
 	// Returns an empty slice (not nil) if no resources exist.
 	//
