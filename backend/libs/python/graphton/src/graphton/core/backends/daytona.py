@@ -31,7 +31,12 @@ from typing import Any
 from deepagents.backends.protocol import BackendProtocol  # type: ignore[import-untyped]
 
 from graphton.core.backends.gitignore_filter import GitIgnoreFilter
-from graphton.core.backends.types import ExecutionResult, to_execution_result
+from graphton.core.backends.types import (
+    ExecutionResult,
+    to_execution_result,
+    to_file_list,
+    to_is_directory,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -267,7 +272,7 @@ class WorkspaceNormalizingBackend:
         if cached is not None:
             return list(cached)
 
-        entries = self._inner.list_files(norm_path)
+        entries = to_file_list(self._inner, norm_path)
         gitignore = self._get_gitignore()
         if gitignore is not None:
             ws_rel = self._workspace_relative(path)
@@ -292,7 +297,7 @@ class WorkspaceNormalizingBackend:
         cached = self._path_type_cache.get(norm_path)
         if cached is not None:
             return cached
-        result = self._inner.is_directory(norm_path)
+        result = to_is_directory(self._inner, norm_path)
         self._path_type_cache[norm_path] = result
         return result
 
