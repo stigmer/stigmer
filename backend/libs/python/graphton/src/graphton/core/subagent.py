@@ -96,6 +96,8 @@ def compile_subagent(
     from graphton.core.loop_detection import LoopDetectionMiddleware
     from graphton.core.tool_truncation import (
         _DEFAULT_MAX_CHARS as _DEFAULT_TRUNCATION,
+    )
+    from graphton.core.tool_truncation import (
         ToolTruncationMiddleware,
     )
 

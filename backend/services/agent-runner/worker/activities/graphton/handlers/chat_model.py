@@ -9,12 +9,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
+from ai.stigmer.agentic.agentexecution.v1.message_pb2 import AgentMessage
+
 from worker.activities.graphton.handlers import formatting, streaming_buffers
 from worker.activities.graphton.handlers.tool_event import PLANNING_TOOLS
 from worker.activities.graphton.usage_tracker import MAIN_SCOPE
-
-from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType
-from ai.stigmer.agentic.agentexecution.v1.message_pb2 import AgentMessage
 
 if TYPE_CHECKING:
     from worker.activities.graphton.status_builder import StatusBuilder
