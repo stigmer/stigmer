@@ -20,4 +20,13 @@ const (
 	// was submitted (which triggers immediate resume — Python auto-skips remaining
 	// tool calls). The workflow waits for exactly one of these per approval cycle.
 	SignalApprovalGateResolved = "approvalGateResolved"
+
+	// SignalPause is sent by the Pause RPC handler to gracefully pause a running execution.
+	// The workflow cancels the activity, waits for it to save a LangGraph checkpoint,
+	// then waits for a SignalResume before re-invoking.
+	SignalPause = "pause"
+
+	// SignalResume is sent by the Resume RPC handler to continue a paused execution.
+	// The workflow re-invokes the Python activity, which loads from the LangGraph checkpoint.
+	SignalResume = "resume"
 )

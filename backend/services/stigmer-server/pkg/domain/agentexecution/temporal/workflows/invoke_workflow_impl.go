@@ -113,6 +113,9 @@ func (w *InvokeAgentExecutionWorkflowImpl) Run(ctx workflow.Context, input *Invo
 // MaxApprovalCycles is the maximum number of approval iterations to prevent infinite loops.
 const MaxApprovalCycles = 100
 
+// MaxPauseCycles is the maximum number of pause/resume cycles to prevent infinite loops.
+const MaxPauseCycles = 100
+
 // SignalApprovalGateResolved is the signal sent by SubmitApproval when the approval
 // gate has fully resolved (all tool calls decided, or a REJECT was submitted).
 // Must match the constant in temporal/workflow_types.go.
@@ -122,23 +125,21 @@ const SignalApprovalGateResolved = "approvalGateResolved"
 //
 // Orchestrates:
 // 1. Python activity: Ensure thread (on "execution" queue)
-// 2. Python activity: Execute agent (on "execution" queue)
+// 2. Python activity: Execute agent (on "execution" queue), with pause/resume
 //   - During execution, agent-runner sends progressive status updates via gRPC
 //   - Final status is returned for Temporal observability
 //
-// 3. Approval loop: If tool requires approval, wait for signal and re-invoke
+// 3. Pause/resume outer loop: If a "pause" signal arrives while the activity is
 //
-// Slim-Payload Pattern:
-// The workflow passes only executionID (not the full AgentExecution proto) to
-// the Python activity.  The Python activity hydrates the execution from the
-// database via gRPC, keeping Temporal payloads small and bounded.
+//	running, the workflow cancels the activity (Python saves a LangGraph
+//	checkpoint), waits for a "resume" signal, then re-invokes.
 //
-// HITL Approval Loop:
-// When Python activity returns with EXECUTION_WAITING_FOR_APPROVAL, the workflow:
-//   - Waits for a single approvalGateResolved signal from the SubmitApproval handler
-//   - Re-invokes Python activity with (executionID, threadID, nil)
-//   - Python reads approval decisions from the DB (single source of truth)
-//   - Continues until terminal state or max cycles reached
+// 4. HITL approval loop (inside the pause scope): If a tool requires approval,
+//
+//	wait for approvalGateResolved signal and re-invoke.
+//
+// Modeled after the Java implementation's CancellationScope + Async.procedure
+// pattern (InvokeAgentExecutionWorkflowImpl.java lines 452-533).
 func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Context, input *InvokeAgentExecutionWorkflowInput) error {
 	logger := workflow.GetLogger(ctx)
 
@@ -161,14 +162,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 	logger.Info("Thread ensured", "thread_id", threadID)
 
 	// Step 1.5: Generate session subject (fire-and-forget, non-blocking)
-	//
-	// Runs in parallel with the main agent execution -- uses an economy-tier LLM
-	// to replace the "Auto-created session" sentinel with a concise, human-readable
-	// title derived from the user's first message and agent context.
-	//
-	// Modelled on the Java workflow's Async.procedure() pattern. Failures are
-	// logged and swallowed; a missing subject is cosmetic and must never block
-	// or affect the outcome of the main execution.
 	workflow.Go(ctx, func(ctx workflow.Context) {
 		subjectActivity := activities.NewGenerateSessionSubjectActivityStub(ctx, activityTaskQueue)
 		if err := subjectActivity.GenerateSessionSubject(executionID); err != nil {
@@ -178,54 +171,158 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 		}
 	})
 
-	// Step 2: Execute Graphton with thread_id (Python activity)
-	// Python activity:
-	// - Fetches AgentExecution from DB via gRPC get(executionID)
-	// - Executes agent and processes events
-	// - Sends progressive status updates via gRPC (real-time)
-	// - Returns final status to workflow (for observability)
+	// Step 2: Execute Graphton with pause/resume loop
+	//
+	// The outer loop handles pause/resume. When a "pause" signal arrives, the
+	// workflow cancels the activity context (which propagates to the running
+	// activity AND any HITL approval waits), then blocks on a "resume" signal
+	// before re-invoking.
+	//
+	// Pattern: workflow.Go() monitors the pause signal and calls cancelActivity()
+	// when received — equivalent to Java's Async.procedure + CancellationScope.
 	logger.Info("Step 2: Executing Graphton agent", "execution_id", executionID, "thread_id", threadID)
-	logger.Info("Agent-runner will fetch execution from DB and send progressive status updates via gRPC during execution")
+
+	pauseCh := workflow.GetSignalChannel(ctx, SignalPause)
+	resumeCh := workflow.GetSignalChannel(ctx, SignalResume)
+
+	var finalStatus *agentexecutionv1.AgentExecutionStatus
+	pauseCycle := 0
+
+	for {
+		var pauseRequested bool
+		activityCtx, cancelActivity := workflow.WithCancel(ctx)
+
+		// Monitor for pause signal concurrently. The goroutine is tied to
+		// activityCtx so it is cleaned up when the context is cancelled
+		// (either by pause or by normal completion calling cancelActivity).
+		workflow.Go(activityCtx, func(gCtx workflow.Context) {
+			var reason string
+			if !pauseCh.Receive(gCtx, &reason) {
+				return // context cancelled — not a real signal
+			}
+			logger.Info("Pause signal received",
+				"execution_id", executionID, "reason", reason)
+			pauseRequested = true
+			cancelActivity()
+		})
+
+		// Execute the agent with HITL approval loop (uses cancellable context)
+		finalStatus, err = w.executeGraphtonWithHitl(
+			activityCtx, activityTaskQueue, executionID, threadID,
+		)
+
+		if err != nil && pauseRequested {
+			// Activity (or HITL wait) was cancelled for pause.
+			pauseCycle++
+			if pauseCycle > MaxPauseCycles {
+				logger.Error("Max pause cycles reached",
+					"execution_id", executionID, "cycles", pauseCycle)
+				return fmt.Errorf("max pause cycles (%d) reached - possible infinite loop", MaxPauseCycles)
+			}
+
+			logger.Info("Execution paused — checkpoint saved, waiting for resume signal",
+				"execution_id", executionID, "pause_cycle", pauseCycle)
+
+			// Defense-in-depth: persist PAUSED status from the workflow.
+			// The Pause RPC pipeline already set PAUSED in the DB, but this
+			// ensures the latest messages/tool_calls from the activity's final
+			// gRPC update are also reflected.
+			pausedStatus := &agentexecutionv1.AgentExecutionStatus{
+				Phase: agentexecutionv1.ExecutionPhase_EXECUTION_PAUSED,
+			}
+			if persistErr := w.persistFinalStatus(ctx, executionID, pausedStatus); persistErr != nil {
+				logger.Warn("Failed to persist PAUSED status (non-fatal)",
+					"execution_id", executionID, "error", persistErr.Error())
+			}
+
+			// Wait for resume signal (on PARENT context — not cancelled)
+			resumeCh.Receive(ctx, nil)
+
+			logger.Info("Resume signal received — restarting activity from checkpoint",
+				"execution_id", executionID, "pause_cycle", pauseCycle)
+			continue
+		}
+
+		// Normal completion or error — cancel the activity context to clean up
+		// the pause-monitoring goroutine.
+		cancelActivity()
+
+		if err != nil {
+			return w.wrapActivityError("ExecuteGraphton", err)
+		}
+
+		// Activity completed normally
+		break
+	}
+
+	logger.Info("Graphton execution completed - final slim status received",
+		"execution_id", executionID,
+		"phase", finalStatus.GetPhase().String(),
+		"pending_approvals", len(finalStatus.GetPendingApprovals()),
+		"pause_cycles", pauseCycle)
+
+	// Defense-in-depth: persist FAILED status as a fallback. The primary path
+	// is Python's gRPC update_status call, but if that failed (transient network
+	// issue, server down), the error would be silently lost.
+	if finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED {
+		logger.Warn("Activity returned EXECUTION_FAILED -- persisting as fallback",
+			"execution_id", executionID,
+			"error", finalStatus.GetError())
+
+		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
+			logger.Error("Failed to persist fallback FAILED status",
+				"execution_id", executionID, "error", err.Error())
+		}
+	}
+
+	return nil
+}
+
+// executeGraphtonWithHitl runs the ExecuteGraphton activity and handles the HITL
+// approval loop. It uses the provided context for all blocking operations, so the
+// caller can cancel it (e.g., for pause).
+//
+// Extracted from executeGraphtonFlow to work with the pause/resume cancellation
+// scope, matching Java's executeGraphtonWithHitl() pattern.
+func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonWithHitl(
+	ctx workflow.Context,
+	activityTaskQueue string,
+	executionID string,
+	threadID string,
+) (*agentexecutionv1.AgentExecutionStatus, error) {
+	logger := workflow.GetLogger(ctx)
 
 	executeGraphtonActivity := activities.NewExecuteGraphtonActivityStub(ctx, activityTaskQueue)
 
-	// Initial execution -- no approval decisions on first invocation
 	finalStatus, err := executeGraphtonActivity.ExecuteGraphton(executionID, threadID, nil)
 	if err != nil {
-		return w.wrapActivityError("ExecuteGraphton", err)
+		return nil, err
 	}
 
-	// Defensive null check
 	if finalStatus == nil {
 		logger.Error("ExecuteGraphton returned NULL status", "execution_id", executionID)
-		return fmt.Errorf("python activity returned null status - this should never happen")
+		return nil, fmt.Errorf("python activity returned null status - this should never happen")
 	}
 
-	// Diagnostic: log the deserialized activity return value.
-	// Note: messages and tool_calls are intentionally omitted from the slim
-	// return payload (they're already persisted to DB via gRPC during execution).
 	logger.Info("Activity returned slim status",
 		"execution_id", executionID,
 		"phase", finalStatus.GetPhase().String(),
 		"phase_value", int32(finalStatus.GetPhase()),
 		"pending_approvals", len(finalStatus.GetPendingApprovals()))
 
-	// Step 3: HITL Approval Loop (DB-Driven Resume)
+	// HITL Approval Loop (DB-Driven Resume)
 	//
-	// When the Python activity returns EXECUTION_WAITING_FOR_APPROVAL, the
-	// workflow waits for a single approvalGateResolved signal. The SubmitApproval
-	// handler sends this signal when either all pending tool calls have received
-	// decisions, or a REJECT is submitted (triggering immediate resume).
+	// When Python returns EXECUTION_WAITING_FOR_APPROVAL, the workflow waits for
+	// a single approvalGateResolved signal, then re-invokes Python.
 	//
-	// On resume, the workflow re-invokes Python with nil decisions. Python reads
-	// the approval decisions directly from the DB (set by SubmitApproval via
-	// atomic $set) and constructs the LangGraph resume command.
+	// All blocking operations use the provided ctx so that cancellation (from the
+	// pause/resume outer loop) propagates through.
 	approvalCycle := 0
 	for finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL {
 		approvalCycle++
 		if approvalCycle > MaxApprovalCycles {
 			logger.Error("Max approval cycles reached", "execution_id", executionID, "cycles", approvalCycle)
-			return fmt.Errorf("max approval cycles (%d) reached - possible infinite loop", MaxApprovalCycles)
+			return nil, fmt.Errorf("max approval cycles (%d) reached - possible infinite loop", MaxApprovalCycles)
 		}
 
 		pendingCount := len(finalStatus.GetPendingApprovals())
@@ -260,12 +357,12 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 
 		finalStatus, err = executeGraphtonActivity.ExecuteGraphton(executionID, threadID, nil)
 		if err != nil {
-			return w.wrapActivityError("ExecuteGraphton", err)
+			return nil, err
 		}
 
 		if finalStatus == nil {
 			logger.Error("ExecuteGraphton returned NULL status after approval", "execution_id", executionID)
-			return fmt.Errorf("python activity returned null status after approval - this should never happen")
+			return nil, fmt.Errorf("python activity returned null status after approval - this should never happen")
 		}
 
 		logger.Info("Activity returned slim status after approval",
@@ -276,29 +373,7 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonFlow(ctx workflow.Cont
 			"cycle", approvalCycle)
 	}
 
-	logger.Info("Graphton execution completed - final slim status received",
-		"phase", finalStatus.GetPhase().String(),
-		"pending_approvals", len(finalStatus.GetPendingApprovals()),
-		"approval_cycles", approvalCycle)
-
-	// Defense-in-depth: If the Python activity returned FAILED status, persist it
-	// as a fallback. The primary persistence path is the Python gRPC update_status
-	// call, but if that call failed (transient network issue, server down, etc.),
-	// the error would be silently lost because the activity returned successfully
-	// from Temporal's perspective. This ensures the failed state -- including the
-	// error message -- is always persisted and broadcast to subscribers.
-	if finalStatus.GetPhase() == agentexecutionv1.ExecutionPhase_EXECUTION_FAILED {
-		logger.Warn("Activity returned EXECUTION_FAILED -- persisting as fallback",
-			"execution_id", executionID,
-			"error", finalStatus.GetError())
-
-		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
-			logger.Error("Failed to persist fallback FAILED status",
-				"execution_id", executionID, "error", err.Error())
-		}
-	}
-
-	return nil
+	return finalStatus, nil
 }
 
 // wrapActivityError wraps activity errors with helpful context for troubleshooting.

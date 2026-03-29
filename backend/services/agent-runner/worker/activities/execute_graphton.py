@@ -1960,6 +1960,31 @@ async def _execute_graphton_impl(
             graph_input, is_resume=is_resume_from_approval,
         )
         if stream_result.terminal_status is not None:
+            terminal_phase = status_builder.current_status.phase
+            try:
+                activity_logger.info(
+                    "Sending terminal status update with retry (phase=%s)",
+                    ExecutionPhase.Name(terminal_phase),
+                )
+                await retry_executor.execute(
+                    operation=lambda: execution_client.update_status(
+                        execution_id=execution_id,
+                        status=status_builder.current_status,
+                    ),
+                    operation_name="terminal_status_update",
+                    context={
+                        "execution_id": execution_id,
+                        "phase": ExecutionPhase.Name(terminal_phase),
+                    },
+                )
+            except GrpcRetryExhaustedError as e:
+                activity_logger.error(
+                    "Terminal status persistence failed after retries: %s", e,
+                )
+            except Exception as e:
+                activity_logger.error(
+                    "Unexpected error persisting terminal status: %s", e,
+                )
             return stream_result.terminal_status
 
         from worker.activities.graphton.post_stream import process_post_stream
