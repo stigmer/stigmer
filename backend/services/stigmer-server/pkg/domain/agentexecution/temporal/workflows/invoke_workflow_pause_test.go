@@ -15,15 +15,15 @@ import (
 // Stub activity functions for registration. The Temporal test env requires
 // actual Go functions registered under the correct names so that
 // workflow.ExecuteActivity calls can be matched and mocked.
-func stubEnsureThread(_ string, _ string) (string, error)           { return "", nil }
-func stubGenerateSessionSubject(_ string) error                     { return nil }
+func stubEnsureThread(_ string, _ string) (string, error) { return "", nil }
+func stubGenerateSessionSubject(_ string) error           { return nil }
 func stubExecuteGraphton(_ string, _ string, _ *agentexecutionv1.ApprovalDecisionList) (*agentexecutionv1.AgentExecutionStatus, error) {
 	return nil, nil
 }
 func stubUpdateExecutionStatus(_ string, _ *agentexecutionv1.AgentExecutionStatus) error {
 	return nil
 }
-func stubDeleteExecutionContext(_ string) error                          { return nil }
+func stubDeleteExecutionContext(_ string) error { return nil }
 func stubLoadAgentExecution(_ string) (*agentexecutionv1.AgentExecution, error) {
 	return nil, nil
 }

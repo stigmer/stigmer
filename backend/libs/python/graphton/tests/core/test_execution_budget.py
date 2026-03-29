@@ -26,7 +26,6 @@ Covers both operating modes:
 from __future__ import annotations
 
 import dataclasses
-from unittest.mock import MagicMock
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -511,7 +510,6 @@ class TestAwrapModelCallPeriodic:
         assert periodic_small._warning_count == 3
 
         for _ in range(20):
-            old_advisory = periodic_small._pending_advisory
             periodic_small._pending_advisory = None
             await periodic_small.awrap_model_call(_make_request(), _mock_handler)
             assert periodic_small._pending_advisory is None

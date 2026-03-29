@@ -427,8 +427,8 @@ def create_deep_agent(
     # model rounds (up to 4 times) with escalating urgency.  This keeps
     # the model aware of elapsed work and encourages efficient task
     # completion without imposing a hard ceiling.
-    _MAIN_AGENT_ADVISORY_INTERVAL = 50
-    _MAIN_AGENT_MAX_ADVISORIES = 4
+    main_agent_advisory_interval = 50
+    main_agent_max_advisories = 4
 
     if recursion_limit is not None:
         execution_budget = ExecutionBudgetMiddleware(
@@ -437,8 +437,8 @@ def create_deep_agent(
         )
     else:
         execution_budget = ExecutionBudgetMiddleware(
-            warning_interval=_MAIN_AGENT_ADVISORY_INTERVAL,
-            max_warnings=_MAIN_AGENT_MAX_ADVISORIES,
+            warning_interval=main_agent_advisory_interval,
+            max_warnings=main_agent_max_advisories,
         )
     middleware_list.append(execution_budget)
     

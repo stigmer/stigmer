@@ -10,4 +10,14 @@ Modules
 -------
 formatting
     Stateless content-extraction and display-formatting utilities.
+streaming_buffers
+    Streaming buffer management for early tool calls, thinking, and tool input.
+sub_agent
+    Sub-agent lifecycle: start, end, finalization, subject generation.
+context
+    Context info, summarization events, artifacts, workspace write-backs.
+tool_event
+    Tool start/end/progress, approval checks, todos, arg humanization.
+chat_model
+    Chat model stream/end: AI message creation, usage metric capture.
 """
