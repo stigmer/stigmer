@@ -150,6 +150,17 @@ func TestHitlApprovalLoopWithoutPause(t *testing.T) {
 	const executionID = "exec-hitl"
 	registerCommonMocks(env, threadID)
 
+	// The workflow reads pending_approvals from DB via loadExecution(), not
+	// from the slim status returned by the activity.
+	env.OnActivity(stubLoadAgentExecution, mock.Anything).
+		Return(&agentexecutionv1.AgentExecution{
+			Status: &agentexecutionv1.AgentExecutionStatus{
+				PendingApprovals: []*agentexecutionv1.PendingApproval{
+					{ToolCallId: "tc-1"},
+				},
+			},
+		}, nil)
+
 	callCount := 0
 	env.OnActivity(stubExecuteGraphton, mock.Anything, mock.Anything, mock.Anything).
 		Return(func(eid string, tid string, ad *agentexecutionv1.ApprovalDecisionList) (*agentexecutionv1.AgentExecutionStatus, error) {
@@ -157,9 +168,6 @@ func TestHitlApprovalLoopWithoutPause(t *testing.T) {
 			if callCount == 1 {
 				return &agentexecutionv1.AgentExecutionStatus{
 					Phase: agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL,
-					PendingApprovals: []*agentexecutionv1.PendingApproval{
-						{ToolCallId: "tc-1"},
-					},
 				}, nil
 			}
 			return &agentexecutionv1.AgentExecutionStatus{

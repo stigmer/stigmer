@@ -43,16 +43,18 @@ def slim_status_for_temporal(status: AgentExecutionStatus) -> AgentExecutionStat
     The full status is already persisted via progressive gRPC updates.
     Returning only workflow-critical fields keeps the Temporal payload
     well under the ~2 MB limit.
+
+    ``pending_approvals`` is intentionally omitted — the Go/Java workflow
+    reads the authoritative pending list from the DB via ``loadExecution()``
+    after persisting this status.  See ``ComputePendingApprovals`` in
+    ``approval/compute.go``.
     """
-    slim = AgentExecutionStatus(
+    return AgentExecutionStatus(
         phase=status.phase,
         error=status.error,
         started_at=status.started_at,
         completed_at=status.completed_at,
     )
-    for pa in status.pending_approvals:
-        slim.pending_approvals.append(pa)
-    return slim
 
 
 class SetupTimer:

@@ -60,7 +60,7 @@ class TestSubagentModelRouting:
     """HITL path: per-sub-agent model override in create_deep_agent."""
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent")
+    @patch("graphton.core.subagent.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_string_model_override_resolved_via_parse_model_string(
         self,
@@ -105,7 +105,7 @@ class TestSubagentModelRouting:
         assert explicit_call.kwargs["model"] is mock_override
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent")
+    @patch("graphton.core.subagent.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_model_instance_used_directly(
         self,
@@ -138,7 +138,7 @@ class TestSubagentModelRouting:
         assert explicit_call.kwargs["model"] is pre_built
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent")
+    @patch("graphton.core.subagent.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_no_model_key_uses_parent_model(
         self,
@@ -169,7 +169,7 @@ class TestSubagentModelRouting:
         assert explicit_call.kwargs["model"] is mock_parent
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent")
+    @patch("graphton.core.subagent.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_mixed_subagents_each_get_correct_model(
         self,

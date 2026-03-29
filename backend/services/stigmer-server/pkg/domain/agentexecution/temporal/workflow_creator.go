@@ -46,8 +46,8 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgen
 
 	// NOTE: No WorkflowRunTimeout is set intentionally. This workflow supports
 	// human-in-the-loop (HITL) approval flows where the workflow blocks waiting
-	// for a submitApproval signal. Humans may take minutes, hours, or days to
-	// respond -- any finite timeout would contradict the durable execution promise.
+	// for an approvalGateResolved signal. Humans may take minutes, hours, or days
+	// to respond -- any finite timeout would contradict the durable execution promise.
 	// Activity-level timeouts (StartToCloseTimeout, HeartbeatTimeout) already
 	// protect against stuck activities; the workflow itself is just an orchestrator.
 	options := client.StartWorkflowOptions{
@@ -84,68 +84,6 @@ func (c *InvokeAgentExecutionWorkflowCreator) Create(input *workflows.InvokeAgen
 	return nil
 }
 
-// SignalApproval sends a submitApproval signal to a running agent execution workflow.
-//
-// This is called by AgentExecutionSubmitApprovalHandler when a user submits
-// an approval decision for a tool call. The workflow receives this signal
-// and unblocks its Workflow.await() to resume execution with the decision.
-//
-// Parameters:
-//   - executionID: The agent execution ID (used to construct workflow ID)
-//   - input: The approval input containing tool_call_id, action, and comment
-//
-// Returns:
-//   - ErrWorkflowNotFound if the workflow is not running
-//   - Other errors for transient Temporal failures
-//
-// Thread Safety: This method is safe for concurrent use.
-func (c *InvokeAgentExecutionWorkflowCreator) SignalApproval(executionID string, input *agentexecutionv1.SubmitApprovalInput) error {
-	// Workflow ID format: stigmer/agent-execution/invoke/{execution-id}
-	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeAgentExecutionWorkflowName, executionID)
-
-	log.Info().
-		Str("workflow_id", workflowID).
-		Str("execution_id", executionID).
-		Str("tool_call_id", input.GetToolCallId()).
-		Str("action", input.GetAction().String()).
-		Msg("Sending submitApproval signal to workflow")
-
-	// Send signal to workflow
-	err := c.workflowClient.SignalWorkflow(
-		context.Background(),
-		workflowID,
-		"", // Run ID - empty means latest run
-		SignalSubmitApproval,
-		input,
-	)
-
-	if err != nil {
-		// Check for workflow not found error
-		var notFoundErr *serviceerror.NotFound
-		if errors.As(err, &notFoundErr) {
-			log.Warn().
-				Str("workflow_id", workflowID).
-				Str("execution_id", executionID).
-				Msg("Workflow not found - may have already completed")
-			return fmt.Errorf("workflow not found for execution %s: %w", executionID, ErrWorkflowNotFound)
-		}
-
-		log.Error().
-			Err(err).
-			Str("workflow_id", workflowID).
-			Str("execution_id", executionID).
-			Msg("Failed to signal workflow")
-		return fmt.Errorf("failed to signal workflow: %w", err)
-	}
-
-	log.Info().
-		Str("workflow_id", workflowID).
-		Str("execution_id", executionID).
-		Msg("Successfully sent submitApproval signal to workflow")
-
-	return nil
-}
-
 // SignalApprovalGateResolved sends an approvalGateResolved signal to a running
 // agent execution workflow, indicating that the approval gate for the current
 // HITL cycle has fully resolved.
@@ -154,8 +92,7 @@ func (c *InvokeAgentExecutionWorkflowCreator) SignalApproval(executionID string,
 //   - All pending tool calls have received decisions (gate fully cleared)
 //   - A REJECT action was submitted (immediate resume, Python auto-skips remaining)
 //
-// The workflow waits for exactly one of these signals per approval cycle,
-// replacing the previous pattern of counting N individual submitApproval signals.
+// The workflow waits for exactly one of these signals per approval cycle.
 func (c *InvokeAgentExecutionWorkflowCreator) SignalApprovalGateResolved(executionID string) error {
 	workflowID := fmt.Sprintf("%s/%s", workflows.InvokeAgentExecutionWorkflowName, executionID)
 

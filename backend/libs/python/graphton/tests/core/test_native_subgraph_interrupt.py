@@ -142,7 +142,7 @@ class TestNativeInterruptPropagation:
 
 class TestConcurrentCheckpointIsolation:
     """Verify that concurrent sub-agent invocations get distinct checkpoint_ns
-    values, preventing the deadlock that InterruptProxyRunnable caused."""
+    values, preventing checkpoint contention."""
 
     @pytest.mark.asyncio
     async def test_concurrent_subagents_get_distinct_namespaces(self):
@@ -402,7 +402,7 @@ class TestT03NamespaceFormat:
     events from main-agent events.  Root-prefix matching (the first segment
     before '|') routes subsequent events from the same sub-agent without
     re-registration.  This test confirms the format holds with native
-    per-invocation subgraphs (no InterruptProxyRunnable).
+    per-invocation subgraphs.
     """
 
     @pytest.mark.asyncio
