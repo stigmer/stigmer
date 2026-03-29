@@ -413,13 +413,6 @@ class StatusBuilder:
         # Key: namespace string, Value: sub-agent run_id
         self._namespace_to_sub_agent_id: dict[str, str] = {}
         
-        # Causal namespace registration: when "task" tools start, we record
-        # their sub-agent IDs in FIFO order.  The next unregistered multi-segment
-        # namespace (indicating a nested sub-graph) is associated with the
-        # front-of-queue sub-agent.  Supports concurrent sub-agent launches
-        # where multiple task tools start before any child events arrive.
-        self._pending_sub_agent_ids: list[str] = []
-        
         # Subject deduplication: tracks how many times each subject has been
         # assigned so duplicate subjects get a numeric suffix (e.g., "(2)").
         self._subject_counts: dict[str, int] = {}
@@ -712,7 +705,7 @@ class StatusBuilder:
         # are registered before _get_execution_context performs its exact
         # lookup in the type-specific handler.
         if namespace:
-            self._register_sub_agent_namespace(namespace)
+            self._register_sub_agent_namespace(namespace, event)
         
         # Route by event type.  Each handler is wrapped so a single bad
         # event never crashes the entire activity stream.
@@ -1130,7 +1123,7 @@ class StatusBuilder:
         
         # Try to register namespace for event routing
         if namespace:
-            self._register_sub_agent_namespace(namespace)
+            self._register_sub_agent_namespace(namespace, event)
         
         # ─────────────────────────────────────────────────────────────────────
         # LLM Turn-Boundary Detection
@@ -2599,109 +2592,57 @@ class StatusBuilder:
             )
         return self.current_status, None
     
-    def _register_sub_agent_namespace(self, namespace: str) -> None:
-        """
-        Register namespace -> sub-agent mapping when child event arrives.
-        
-        Uses four strategies in priority order:
-        
-        1. **Root-prefix matching**: Multi-segment namespaces (containing "|")
-           share a root segment (before the first "|") when they originate
-           from the same sub-agent.  If any already-registered namespace
-           shares the same root, the new namespace inherits the mapping.
-        
-        2. **Substring matching** (legacy): Checks if any active sub-agent's
-           run_id appears in the namespace string.
-        
-        3. **Causal correlation**: When "task" tools start sub-agents,
-           their IDs are appended to ``_pending_sub_agent_ids`` (FIFO).
-           The first unregistered multi-segment namespace is associated
-           with the front-of-queue sub-agent.  This handles the common
-           case where LangGraph checkpoint UUIDs differ from the task
-           tool's event run_id, including concurrent sub-agent launches.
-        
-        4. **Sole-active-agent fallback**: When exactly one sub-agent is
-           active, all multi-segment namespaces must originate from it
-           (there is no other candidate).  This covers the common case
-           where a sub-agent's internal graph nodes produce events with
-           namespace roots that differ from the initially registered one.
-        
-        Single-segment namespaces (no "|") are from the main agent's graph
+    def _register_sub_agent_namespace(
+        self, namespace: str, event: dict[str, Any],
+    ) -> None:
+        """Register namespace -> sub-agent mapping via ``parent_ids``.
+
+        v2 ``astream_events`` carry a ``parent_ids`` list tracing the full
+        callback chain.  When a sub-agent event arrives, at least one entry
+        in ``parent_ids`` is the task tool's ``run_id`` — the same key stored
+        in ``_active_sub_agents``.  This provides a deterministic mapping
+        without heuristics (no root-prefix, no FIFO queue, no substring
+        matching, no sole-active fallback).
+
+        Single-segment namespaces (no ``|``) are from the main agent's graph
         nodes and are intentionally not registered.
-        
+
         Args:
-            namespace: LangGraph checkpoint namespace string
+            namespace: LangGraph checkpoint namespace string.
+            event: The full v2 astream_events event dict (carries
+                ``parent_ids`` at the top level).
         """
         if not namespace or namespace in self._namespace_to_sub_agent_id:
             return
-        
-        is_multi_segment = "|" in namespace
-        ns_root = namespace.split("|")[0]
-        
-        # Strategy 1: root-prefix matching against already-registered namespaces.
-        # When a sub-agent has been identified via any namespace variant, all
-        # namespaces sharing the same root segment (before the first "|") are
-        # from the same sub-agent graph.
-        if is_multi_segment:
-            for registered_ns, sub_agent_id in self._namespace_to_sub_agent_id.items():
-                if registered_ns.split("|")[0] == ns_root:
-                    self._namespace_to_sub_agent_id[namespace] = sub_agent_id
-                    self.logger.debug(
-                        f"[SUBAGENT] Prefix-matched namespace={namespace} "
-                        f"-> sub_agent={sub_agent_id} "
-                        f"(via root={ns_root})"
-                    )
-                    return
-        
-        # Strategy 2: substring matching (legacy — works when run_id is in namespace)
-        for sub_agent_id in self._active_sub_agents:
-            if sub_agent_id in namespace:
-                self._namespace_to_sub_agent_id[namespace] = sub_agent_id
-                self.logger.info(
-                    f"[SUBAGENT] Substring-matched namespace={namespace} "
-                    f"-> sub_agent={sub_agent_id}"
-                )
-                return
-        
-        # Strategy 3: causal correlation with pending sub-agent.
-        # Only for multi-segment namespaces — single-segment namespaces are
-        # from the main agent's graph nodes, not from sub-agents.
-        if is_multi_segment and self._pending_sub_agent_ids:
-            sub_agent_id = self._pending_sub_agent_ids[0]
-            if sub_agent_id in self._active_sub_agents:
-                self._namespace_to_sub_agent_id[namespace] = sub_agent_id
-                self._pending_sub_agent_ids.pop(0)
-                self.logger.info(
-                    f"[SUBAGENT] Causal registration: namespace={namespace} "
-                    f"-> sub_agent={sub_agent_id}"
-                )
-                return
-        
-        # Strategy 4: sole-active-agent fallback.
-        # When exactly one sub-agent is active, all multi-segment namespaces
-        # must originate from it -- there is no other candidate.
-        if is_multi_segment and len(self._active_sub_agents) == 1:
-            sub_agent_id = next(iter(self._active_sub_agents))
-            self._namespace_to_sub_agent_id[namespace] = sub_agent_id
-            self.logger.debug(
-                f"[SUBAGENT] Sole-active fallback: namespace={namespace} "
-                f"-> sub_agent={sub_agent_id}"
-            )
+
+        if "|" not in namespace:
             return
-        
-        # Diagnostic: warn about unresolvable multi-segment namespaces.
-        # At this point multiple sub-agents are active and we cannot
-        # determine which one owns this namespace.  Deduplicate so we
-        # only warn once per unique namespace.
-        if is_multi_segment and namespace not in self._warned_namespaces:
-            self._warned_namespaces.add(namespace)
-            self.logger.warning(
-                f"[NS_DIAG] Namespace registration failed: "
-                f"execution={self.execution_id} "
-                f"namespace={namespace} "
-                f"active_sub_agents={list(self._active_sub_agents.keys())} "
-                f"pending={self._pending_sub_agent_ids}"
-            )
+
+        parent_ids: list[str] = event.get("parent_ids", [])
+        for pid in parent_ids:
+            if pid in self._active_sub_agents:
+                self._namespace_to_sub_agent_id[namespace] = pid
+                self.logger.debug(
+                    "[SUBAGENT] namespace=%s -> sub_agent=%s (via parent_ids)",
+                    namespace, pid,
+                )
+                return
+            if pid in self._completed_sub_agents:
+                self._namespace_to_sub_agent_id[namespace] = pid
+                self.logger.debug(
+                    "[SUBAGENT] namespace=%s -> completed sub_agent=%s "
+                    "(via parent_ids)",
+                    namespace, pid,
+                )
+                return
+
+        self.logger.debug(
+            "[SUBAGENT] execution=%s namespace=%s not resolved: "
+            "parent_ids=%s matched neither active=%s nor completed=%s",
+            self.execution_id, namespace, parent_ids,
+            list(self._active_sub_agents.keys()),
+            list(self._completed_sub_agents.keys()),
+        )
     
     async def _handle_sub_agent_start(
         self,
@@ -2740,8 +2681,6 @@ class StatusBuilder:
             if existing_sa.id == sa_id:
                 self._active_sub_agents[run_id] = existing_sa
                 self._run_id_to_tool_call_id[run_id] = sa_id
-                if run_id not in self._pending_sub_agent_ids:
-                    self._pending_sub_agent_ids.append(run_id)
                 self.logger.info(
                     "[SUBAGENT] execution=%s resume reactivation: "
                     "sa_id=%s run_id=%s (skipping duplicate creation)",
@@ -2789,18 +2728,12 @@ class StatusBuilder:
         self._active_sub_agents[run_id] = self.current_status.sub_agent_executions[-1]
         self._run_id_to_tool_call_id[run_id] = sa_id
 
-        # Enqueue for causal namespace registration.
-        # The next unregistered multi-segment namespace will be associated
-        # with the front-of-queue sub-agent (FIFO for concurrent launches).
-        self._pending_sub_agent_ids.append(run_id)
-
         self.force_next_update = True
 
         self.logger.info(
             f"[SUBAGENT] execution={self.execution_id} "
             f"sub_agent={sub_agent_name} sa_id={sa_id} run_id={run_id} "
-            f"subject={subject!r} status=IN_PROGRESS "
-            f"(pending namespace registration)"
+            f"subject={subject!r} status=IN_PROGRESS"
         )
     
     def _handle_sub_agent_end(self, event: dict[str, Any], run_id: str) -> None:
@@ -2881,9 +2814,6 @@ class StatusBuilder:
         # LangGraph can still route to the correct SubAgentExecution.
         if run_id in self._active_sub_agents:
             self._completed_sub_agents[run_id] = self._active_sub_agents.pop(run_id)
-
-        if run_id in self._pending_sub_agent_ids:
-            self._pending_sub_agent_ids.remove(run_id)
 
         # Defer the gRPC flush instead of forcing it immediately.  Late
         # LangGraph events (on_chat_model_end, on_tool_end for nested tools)
