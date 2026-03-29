@@ -72,9 +72,10 @@ When starting a new session:
 **T02 Completed**: 2026-03-29 (tool_call_id availability confirmed via callback handler approach)
 **T04 Completed**: 2026-03-29 (fingerprint dedup replaced with identity-based lookup)
 **T03 Completed**: 2026-03-29 (namespace routing via parent_ids confirmed — Approach B)
-**Current Task**: T05 (Replace namespace heuristics with parent_ids-based deterministic routing)
-**Next Code Task**: T05, T06 (pause fix standalone)
-**Status**: Active — T02+T03+T04 complete, T05 unblocked
+**T05 Completed**: 2026-03-29 (namespace heuristics replaced with parent_ids-based deterministic routing)
+**Current Task**: T06 or T07 (see next steps)
+**Next Code Task**: T06 (pause fix standalone), T07 (ExecutionState reducer refactor)
+**Status**: Active — T02+T03+T04+T05 complete, T06/T07 unblocked
 
 ### T02 Key Finding
 v2 events do NOT carry `tool_call_id`. Solution: a ~10-line `ToolCallIdCapture`
@@ -99,6 +100,37 @@ Net: -197 lines. All 1,375 tests pass. Files changed:
 - Modified: `status_builder.py`, `execute_graphton.py`, `hitl.py`
 - Tests: `test_status_builder.py`, `test_hitl_contracts.py`
 
+### T05 Completion Summary
+Replaced the 4-strategy heuristic cascade in `_register_sub_agent_namespace` with a
+single deterministic `parent_ids` lookup. v2 `astream_events` carry `parent_ids` at
+the top level — the task tool's `run_id` appears in the chain, matching the key in
+`_active_sub_agents`. Net: -56 lines (273 added, 329 deleted). All 2,711 tests pass.
+Deleted:
+- `_pending_sub_agent_ids` list (FIFO queue for causal correlation)
+- 4 heuristic strategies: root-prefix, substring, FIFO causal, sole-active fallback
+- `_warned_namespaces` usage in `_register_sub_agent_namespace` (kept in `_get_execution_context`)
+Files changed:
+- Modified: `status_builder.py` (production rewrite + cleanup)
+- Tests: `test_status_builder.py` (rewrote 2 test classes, updated ~20 namespace events)
+
+## Session Progress (2026-03-29, session 3)
+
+### What was accomplished
+- Completed T05: replace namespace heuristic cascade with `parent_ids`-based deterministic routing
+- Rewrote `_register_sub_agent_namespace` — new signature `(self, namespace, event)`, ~25-line body
+- Updated both call sites (`process_event`, `_handle_chat_model_stream_event`) to pass full `event`
+- Deleted `_pending_sub_agent_ids` from `__init__`, `_handle_sub_agent_start`, `_handle_sub_agent_end`
+- Removed `_warned_namespaces` usage from `_register_sub_agent_namespace` (kept in `_get_execution_context`)
+- Rewrote `TestNamespaceRegistrationStrategies` + `TestConcurrentSubAgentNamespaceRegistration` with `parent_ids` tests
+- Updated ~20 test events to multi-segment namespaces with `parent_ids` field
+- Deleted 12 `_pending_sub_agent_ids` assertions from test suite
+- Full test suite: 2,711 passed (1,369 agent-runner + 1,342 graphton), 0 failed
+
+### Key decisions
+- Failure to resolve namespace is DEBUG level, not WARNING — unresolvable namespaces are normal for main-graph nodes
+- Kept `_warned_namespaces` in `_get_execution_context` to prevent log flooding for downstream routing misses
+- Multi-segment check (`"|" not in namespace`) used as fast early-exit — single-segment = main-agent graph node
+
 ## Session Progress (2026-03-29, session 2)
 
 ### What was accomplished
@@ -118,17 +150,16 @@ Net: -197 lines. All 1,375 tests pass. Files changed:
 - Used `TYPE_CHECKING` guard for the import, string annotation for the constructor param
 
 ## Next Steps (when you return)
-1. T03 research COMPLETE — `parent_ids` confirmed as deterministic routing mechanism
-2. Start T05 — replace namespace heuristic cascade with `parent_ids`-based registration
-3. T06 (pause fix) can be done anytime as a standalone task
-4. T07 — ExecutionState refactor (fold `_run_id_aliases` into capture or eliminate)
-5. Note: InterruptProxyRunnable elimination (separate project) will further simplify T05
+1. T06 — Fix pause handling (standalone task, can be done anytime)
+2. T07 — ExecutionState reducer refactor (fold `_run_id_aliases` into capture or eliminate)
+3. T08+ — Continue reducer pattern simplification per plan
+4. Note: InterruptProxyRunnable elimination (separate project) further simplifies the codebase
 
 ## Quick Commands
 
 After loading context:
-- "Start T05 implementation" - Replace _run_id_to_tool_call_id with _tool_call_index
 - "Start T06 implementation" - Fix pause handling (standalone)
+- "Start T07 implementation" - ExecutionState reducer refactor
 - "Show project status" - Get overview of progress
 - "Review the plan" - Read the v2 task plan
 
