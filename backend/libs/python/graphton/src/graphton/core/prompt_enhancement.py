@@ -56,17 +56,23 @@ system (`write_todos`, `read_todos`). Use it to:
 - Track progress across multiple operations
 - Maintain context when tasks span many tool calls
 
-Skip planning for simple single-step tasks. Use it when the task has 3+ distinct steps.
+**When to plan**: Use planning when the task has 3+ distinct steps. Skip it for
+simple single-step tasks.
+
+**Planning protocol**:
+- Create the plan BEFORE starting work, not after
+- Keep only one step in_progress at a time
+- Mark steps complete immediately after finishing, not in batches
+- If a step reveals unexpected complexity, update the plan before continuing
+- If you discover mid-task that the original approach won't work, revise the
+  plan and explain why — do not silently change direction
 """
 
 FILESYSTEM_CAPABILITY = """
 **File System**: You have file system tools (`ls`, `read`, `write`, `edit`,
 `glob`, `grep`, `search`) for managing information. Always use these canonical
 tool names. Do not use `read_file`, `write_file`, or `edit_file` — they are
-internal overrides with identical behavior. Use the file system to:
-- Store large content that doesn't fit in context
-- Maintain state between operations
-- Search and discover files across directories
+internal overrides with identical behavior.
 
 File paths should be workspace-relative (e.g., `.stigmer/inputs/data.txt`,
 `.stigmer/skills/my-skill/SKILL.md`). Use the paths exactly as shown in the
@@ -86,12 +92,25 @@ strategic:
   you need instead of the entire file
 - Prefer targeted reads over broad exploration
 
-**Editing Efficiency**: When modifying existing files, prefer `edit` over
-`write`. The `edit` tool replaces only the targeted section — you specify
-`old_text` (enough context to locate it uniquely) and `new_text`. This
-avoids regenerating unchanged content. Use multiple `edit` calls for
-multiple changes in the same file. Reserve `write` for creating new files
-or complete rewrites where the structure changes fundamentally.
+**Editing Protocol**:
+- ALWAYS `read` a file before editing it. Never edit blind.
+- Prefer `edit` over `write` for modifying existing files. The `edit` tool
+  replaces only the targeted section — specify `old_text` (enough surrounding
+  context to match uniquely) and `new_text`. This avoids regenerating
+  unchanged content.
+- Use multiple `edit` calls for multiple changes in the same file.
+- Reserve `write` for creating new files or complete rewrites where the
+  structure changes fundamentally.
+- NEVER create a new file when `edit` can modify an existing one.
+- When `edit` fails because `old_text` wasn't found, re-read the file — the
+  content may have changed or your match text may be wrong.
+
+**Do NOT**:
+- Use `execute` to run `cat`, `head`, `tail`, or `less` — use the `read` tool
+- Use `execute` to run `sed`, `awk`, or `perl -i` for edits — use `edit`
+- Use `execute` to run `find` or `grep` commands — use `glob`, `grep`, `search`
+- Read an entire large file when you only need a few lines — use `offset`/`limit`
+- Create files just to store intermediate reasoning — use the planning system
 """
 
 MCP_TOOLS_CAPABILITY = """
@@ -113,13 +132,27 @@ shell commands using the `execute` tool. Use this for:
 - Build processes and compilation
 - Git operations and version control
 
-The sandbox is isolated - changes don't affect the host system. Check command output
-for errors and handle them appropriately.
+The sandbox is isolated — changes don't affect the host system.
+
+**Command best practices**:
+- Always check command exit codes and stderr for errors
+- Quote file paths that contain spaces
+- Chain dependent commands with `&&` so later steps don't run if earlier ones fail
+- For long-running commands, add timeouts where possible
+- If a command produces no output but succeeds, that is normal — do not re-run it
 
 **Pull Request Tool**: When git credentials are configured, you can create GitHub
 pull requests with `create_pull_request`. First push your branch via `execute`,
 then call `create_pull_request` with a title and body. It discovers the repo and
 credentials automatically.
+
+**Do NOT**:
+- Use `execute` for file operations that have dedicated tools (`read`, `write`,
+  `edit`, `glob`, `grep`, `search`)
+- Run destructive git commands (`git push --force`, `git reset --hard`) unless
+  explicitly requested
+- Run interactive commands that wait for user input (use `-y` flags or
+  `--non-interactive` where available)
 """
 
 THINK_CAPABILITY = """

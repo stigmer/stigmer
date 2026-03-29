@@ -330,16 +330,20 @@ async def _execute_graphton_impl(
     # ─────────────────────────────────────────────────────────────────────────────
     # Resume-Aware Logging
     #
-    # When re-invoked after approval, emit a prominent log banner so operators
-    # can immediately distinguish fresh executions from resume paths in logs.
+    # When re-invoked after approval via Temporal args, emit a prominent log
+    # banner. DB-driven resume (T03 path, where decisions come from the DB
+    # rather than Temporal args) is detected later in Step 7.5 after the
+    # LangGraph agent graph is created and the checkpoint can be inspected.
     # ─────────────────────────────────────────────────────────────────────────────
     is_resume = bool(approval_decisions)
     if is_resume:
         activity_logger.info("=" * 80)
         activity_logger.info(
-            f"🔄 [RESUME] ExecuteGraphton re-invoked after approval for "
-            f"execution={execution_id}, thread_id={thread_id}, "
-            f"decisions={len(approval_decisions)}, attempt={attempt}"
+            "[RESUME] ExecuteGraphton re-invoked after approval for "
+            "execution=%s, thread_id=%s, "
+            "decisions=%d (Temporal args), attempt=%d",
+            execution_id, thread_id,
+            len(approval_decisions), attempt,
         )
         activity_logger.info("=" * 80)
     
@@ -1647,21 +1651,20 @@ async def _execute_graphton_impl(
         )
         
         # ─────────────────────────────────────────────────────────────────────────────
-        # Step 7.5: Check for Resume from HITL Approval (Batch Approval)
+        # Step 7.5: Check for Resume from HITL Approval
         #
-        # If the workflow passed approval_decisions, it means the execution was
-        # previously interrupted for approval (WAITING_FOR_APPROVAL) and the user
-        # has submitted decisions.  We query the LangGraph checkpoint directly to
-        # match each decision's tool_call_id to the corresponding interrupt_id,
-        # building Command(resume={id_A: decision_A, ...}).
+        # Two paths lead here:
         #
-        # With **Batch Approval**, the LLM may have issued N tool calls that each
-        # required approval.  All N decisions are collected before the Temporal
-        # workflow re-invokes this activity.  We build a dict that maps each
-        # LangGraph interrupt_id to its decision value and pass it as a single
-        #   Command(resume={id_A: decision_A, id_B: decision_B, ...})
-        # so the graph processes every interrupt in one re-execution of the
-        # tools node — avoiding repeated node re-runs and idempotency issues.
+        # (a) Temporal args path (legacy / backward compat): the workflow passed
+        #     approval_decisions via ApprovalDecisionList.
+        #
+        # (b) DB-driven resume (T03): the workflow sends nil decisions.  We detect
+        #     a resume by checking the LangGraph checkpoint for pending interrupts.
+        #     If interrupts exist, we extract approval decisions from the DB-loaded
+        #     execution (SubmitApproval already set approval_action on each tool call).
+        #
+        # In both cases, the result is a list[SubmitApprovalInput] that feeds into
+        # the existing interrupt-matching logic below.
         # ─────────────────────────────────────────────────────────────────────────────
         
         resume_decision: dict[str, Any] | None = None
@@ -1673,6 +1676,28 @@ async def _execute_graphton_impl(
             ApprovalAction.APPROVAL_ACTION_SKIP: "skip",
             ApprovalAction.APPROVAL_ACTION_REJECT: "reject",
         }
+        
+        # DB-driven resume: if no decisions were passed via Temporal args,
+        # detect a resume by checking the LangGraph checkpoint for pending
+        # interrupts, then extract decisions from the DB-loaded execution.
+        if not approval_decisions:
+            _db_graph_state = await agent_graph.aget_state(
+                cast(RunnableConfig, config),
+            )
+            if _db_graph_state and getattr(_db_graph_state, "interrupts", None):
+                from worker.activities.graphton.hitl import (
+                    extract_approval_decisions_from_execution,
+                )
+                approval_decisions = extract_approval_decisions_from_execution(
+                    execution,
+                )
+                activity_logger.info(
+                    "[RESUME] DB-driven: extracted %d approval decision(s) "
+                    "from execution %s (tool_call_ids: %s)",
+                    len(approval_decisions),
+                    execution_id,
+                    [d.tool_call_id for d in approval_decisions],
+                )
         
         # --- Build resume dict by querying the LangGraph checkpoint directly ---
         #

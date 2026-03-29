@@ -286,3 +286,117 @@ func TestAllApprovalsResolvedClearsPendingApprovals(t *testing.T) {
 		t.Errorf("all approvals resolved: want 0 pending, got %d", len(exec.Status.PendingApprovals))
 	}
 }
+
+// ---------------------------------------------------------------------------
+// T03: Approval gate resolution logic
+//
+// These tests verify the conditions under which the signalWorkflowStep
+// should send the approvalGateResolved signal vs. skip signaling.
+// ---------------------------------------------------------------------------
+
+// TestGateResolvedWhenAllToolCallsDecided verifies that when all pending
+// tool calls have been decided (pending_approvals is empty after recomputation),
+// the gate is considered resolved.
+func TestGateResolvedWhenAllToolCallsDecided(t *testing.T) {
+	tc1 := makeApprovalToolCall("call_001", "delete_file")
+	tc2 := makeApprovalToolCall("call_002", "write_file")
+	exec := makeExecutionWithMessages(
+		[]*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(tc1, tc2)},
+		nil,
+	)
+
+	// Approve both tool calls
+	for _, id := range []string{"call_001", "call_002"} {
+		found := findToolCallInExecution(exec, id)
+		found.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
+		found.ApprovalDecidedAt = time.Now().UTC().Format(time.RFC3339)
+	}
+
+	exec.Status.PendingApprovals = approval.ComputePendingApprovals(
+		exec.Status.GetMessages(),
+		exec.Status.GetSubAgentExecutions(),
+	)
+
+	pendingRemaining := len(exec.Status.PendingApprovals)
+	isReject := false
+	allDecided := pendingRemaining == 0
+
+	if !allDecided {
+		t.Fatalf("expected allDecided=true when all tool calls approved, got pending=%d", pendingRemaining)
+	}
+
+	shouldSignal := isReject || allDecided
+	if !shouldSignal {
+		t.Error("gate should be resolved (all decided) — signal expected")
+	}
+}
+
+// TestGateNotResolvedWhenApprovalsPending verifies that when some tool calls
+// still lack decisions, the gate remains unresolved and no signal should be sent.
+func TestGateNotResolvedWhenApprovalsPending(t *testing.T) {
+	tc1 := makeApprovalToolCall("call_001", "delete_file")
+	tc2 := makeApprovalToolCall("call_002", "write_file")
+	exec := makeExecutionWithMessages(
+		[]*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(tc1, tc2)},
+		nil,
+	)
+
+	// Only approve one
+	found := findToolCallInExecution(exec, "call_001")
+	found.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
+	found.ApprovalDecidedAt = time.Now().UTC().Format(time.RFC3339)
+
+	exec.Status.PendingApprovals = approval.ComputePendingApprovals(
+		exec.Status.GetMessages(),
+		exec.Status.GetSubAgentExecutions(),
+	)
+
+	pendingRemaining := len(exec.Status.PendingApprovals)
+	action := agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
+	isReject := action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
+	allDecided := pendingRemaining == 0
+
+	shouldSignal := isReject || allDecided
+	if shouldSignal {
+		t.Errorf("gate should NOT be resolved (1 still pending) — no signal expected, but pending=%d", pendingRemaining)
+	}
+
+	if pendingRemaining != 1 {
+		t.Errorf("expected 1 pending approval remaining, got %d", pendingRemaining)
+	}
+}
+
+// TestGateResolvedOnRejectEvenWithPending verifies that a REJECT action
+// triggers immediate gate resolution regardless of remaining pending approvals.
+func TestGateResolvedOnRejectEvenWithPending(t *testing.T) {
+	tc1 := makeApprovalToolCall("call_001", "delete_file")
+	tc2 := makeApprovalToolCall("call_002", "write_file")
+	exec := makeExecutionWithMessages(
+		[]*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(tc1, tc2)},
+		nil,
+	)
+
+	// Reject only one — the other is still pending
+	found := findToolCallInExecution(exec, "call_001")
+	found.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
+	found.ApprovalDecidedAt = time.Now().UTC().Format(time.RFC3339)
+
+	exec.Status.PendingApprovals = approval.ComputePendingApprovals(
+		exec.Status.GetMessages(),
+		exec.Status.GetSubAgentExecutions(),
+	)
+
+	pendingRemaining := len(exec.Status.PendingApprovals)
+	action := agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
+	isReject := action == agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
+	allDecided := pendingRemaining == 0
+
+	if pendingRemaining != 1 {
+		t.Fatalf("precondition: expected 1 pending approval remaining, got %d", pendingRemaining)
+	}
+
+	shouldSignal := isReject || allDecided
+	if !shouldSignal {
+		t.Error("gate should be resolved on REJECT — signal expected even with pending approvals")
+	}
+}

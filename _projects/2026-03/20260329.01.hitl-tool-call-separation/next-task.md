@@ -13,18 +13,17 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 - **Status**: in-progress
-- **Last Session**: March 29, 2026 (Session 2) — T02 implementation completed (both Go and Java)
-- **Active Task**: T02 complete. Next: T03 (DB-Driven Resume)
+- **Last Session**: March 29, 2026 (Session 3) — T03 implementation completed (Go, Java, Python)
+- **Active Task**: T03 complete. Next: T04 (Phase Gate Relaxation)
 - **Plan Approved**: Yes
 
-## Session Progress (2026-03-29, Session 2)
-- T02 plan reviewed and approved
-- Implemented `PreserveApprovalFields` helper in Go (`approval/preserve.go`) with 8 unit tests
-- Wired into Go gRPC handler (`update_status.go`) and Temporal activity (`update_status_impl.go`)
-- Implemented `ApprovalFieldPreserver` helper in Java (`ApprovalFieldPreserver.java`) with 8 unit tests
-- Wired into Java gRPC handler (`AgentExecutionUpdateStatusHandler.java`) and Temporal activity (`UpdateExecutionStatusActivityImpl.java`)
-- All four code paths (Go gRPC, Go Temporal, Java gRPC, Java Temporal) now preserve approval decisions during message replacement
-- Both repos committed
+## Session Progress (2026-03-29, Session 3)
+- Implemented T03: DB-Driven Resume across all three language components
+- Added `approvalGateResolved` signal constant and conditional gate logic to Go and Java SubmitApproval handlers
+- Refactored Go and Java workflows from signal-counting loop to single `approvalGateResolved` wait
+- Added Python DB-driven resume detection: `extract_approval_decisions_from_execution()` in `hitl.py`, checkpoint interrupt detection in `execute_graphton.py`
+- Added tests: Go (3 gate check contract tests), Java (6 signal workflow tests), Python (8 decision extraction tests)
+- Both repos have uncommitted T03 changes ready for commit
 
 ## Completed Tasks
 
@@ -38,22 +37,33 @@ Drop this file into your conversation to quickly resume work on this project.
 - Java: `ApprovalFieldPreserver.java` + 8 tests, wired into gRPC + Temporal handlers
 - Committed: stigmer `02b4ca67`, stigmer-cloud `5398e432`
 
+### T03: DB-Driven Resume (Session 3)
+- Go: Conditional `approvalGateResolved` signal in SubmitApproval, single-signal workflow wait, removed signal-counting loop
+- Java: Conditional `approvalGateResolved` signal, `Workflow.await()` on boolean flag, `submitApproval` handler kept as no-op
+- Python: `extract_approval_decisions_from_execution()` in `hitl.py`, LangGraph interrupt-based resume detection in `execute_graphton.py`
+- Tests: Go (3), Java (6), Python (8)
+- Committed: stigmer `pending`, stigmer-cloud `pending`
+
 ## Next Steps
-1. **T03**: DB-Driven Resume — change the Temporal workflow to resume based on DB state rather than signal counting, batch the signal into a single "all-approved" signal
-2. **T04**: Phase Gate Relaxation — relax phase constraints so approvals can be submitted even after the workflow resumes
+1. **T04**: Phase Gate Relaxation — relax phase constraints so approvals can be submitted even after the workflow resumes
 
 ## Context for Resume
 - T01 and T02 are **code-complete and committed** in both repos but **not yet pushed**
-- The field-ownership model is now enforced: `SubmitApproval` owns `approval_action`, `approval_decided_at`, `approved_by`; `update_status` owns everything else
-- The Go preserve helper mutates protos in place (pointer-based); Java rebuilds immutable proto lists via `toBuilder()`
-- The preservation step runs after message replacement but before `ComputePendingApprovals`, so the derived `pending_approvals` field always reflects preserved decisions
-- T03 will require Temporal workflow changes — this is a coordinated deployment across Go, Java, and Python
+- T03 is **code-complete and committed** in both repos but **not yet pushed**
+- The field-ownership model is enforced: `SubmitApproval` owns `approval_action`, `approval_decided_at`, `approved_by`; `update_status` owns everything else
+- The workflow now waits for a single `approvalGateResolved` signal per HITL cycle instead of counting N individual signals
+- Python activity detects resume via LangGraph checkpoint interrupts and reads decisions from the DB-loaded execution object
+- Java `submitApproval()` signal handler is kept as a no-op for Temporal interface compatibility
+- Deployment is "big bang" — in-flight HITL workflows will fail with non-determinism errors on restart
 
 ## Design Decisions
-- **T01 scope narrowed**: Signal behavior unchanged in T01 (each approval sends its own Temporal signal). Signal refactoring deferred to T03 to allow independent deployment.
-- **Two-phase pending_approvals update (Java)**: The critical atomicity is on `approval_action`/`approval_decided_at`. `pending_approvals` is a derived projection that tolerates brief staleness.
-- **Flat index by tool_call_id**: Approval index is global (not scoped to root vs sub-agent). UUIDs guarantee uniqueness, and this handles hypothetical cross-scope scenarios safely.
-- **UNSPECIFIED-only overwrite**: Preservation only applies when incoming `approval_action` is UNSPECIFIED. If a sender ever provides a non-UNSPECIFIED value, it is respected.
+- **T01 scope narrowed**: Signal behavior unchanged in T01. Signal refactoring deferred to T03.
+- **Two-phase pending_approvals update (Java)**: Critical atomicity is on `approval_action`/`approval_decided_at`. `pending_approvals` is a derived projection that tolerates brief staleness.
+- **Flat index by tool_call_id**: Approval index is global, not scoped to root vs sub-agent. UUIDs guarantee uniqueness.
+- **UNSPECIFIED-only overwrite**: Preservation only applies when incoming `approval_action` is UNSPECIFIED.
+- **Big bang deployment (T03)**: No Temporal versioning or dual-signaling. In-flight HITL workflows break on restart.
+- **Signal name `approvalGateResolved`**: Signals that the approval gate has resolved (all decided or rejected), not that workflow should resume.
+- **Python backward compat (T03)**: Both Temporal-args and DB-driven decision paths are supported. Old workflows sending decisions still work.
 
 ## Essential Files to Review
 
@@ -101,12 +111,12 @@ When starting a new session:
 3. [ ] Review design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T03
+6. [ ] Continue with T04
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T03" - Start the next task
+- "Continue with T04" - Start the next task
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 
