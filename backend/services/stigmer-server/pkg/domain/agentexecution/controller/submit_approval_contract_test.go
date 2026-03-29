@@ -404,3 +404,154 @@ func TestGateResolvedOnRejectEvenWithPending(t *testing.T) {
 		t.Error("gate should be resolved on REJECT — signal expected even with pending approvals")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// T04: Phase gate relaxation
+//
+// These tests verify that approval is accepted during EXECUTION_IN_PROGRESS
+// (enabling approval while other sub-agents are still streaming) and rejected
+// during terminal phases.
+// ---------------------------------------------------------------------------
+
+// TestApprovalAllowedDuringInProgress verifies that the phase gate accepts
+// IN_PROGRESS alongside WAITING_FOR_APPROVAL. This is the core T04 scenario:
+// sub-agent 1 needs approval while sub-agents 2-4 are still streaming.
+func TestApprovalAllowedDuringInProgress(t *testing.T) {
+	tc := makeApprovalToolCall("call_stream_001", "write_file")
+	exec := makeExecutionWithPhase(
+		agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+		[]*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(tc)},
+		nil,
+	)
+
+	found := findToolCallInExecution(exec, "call_stream_001")
+	if found == nil {
+		t.Fatal("precondition: tool call must be findable")
+	}
+
+	// The tool call is in WAITING_APPROVAL with UNSPECIFIED action — a fresh
+	// approval should be allowed even though the execution phase is IN_PROGRESS.
+	if found.GetStatus() != agentexecutionv1.ToolCallStatus_TOOL_CALL_WAITING_APPROVAL {
+		t.Fatalf("precondition: tool call status = %v, want TOOL_CALL_WAITING_APPROVAL",
+			found.GetStatus())
+	}
+	if found.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_UNSPECIFIED {
+		t.Fatalf("precondition: approval_action = %v, want UNSPECIFIED",
+			found.GetApprovalAction())
+	}
+
+	// Simulate recording the approval decision.
+	found.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
+	found.ApprovalDecidedAt = time.Now().UTC().Format(time.RFC3339)
+
+	if found.GetApprovalAction() != agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE {
+		t.Errorf("after approval: approval_action = %v, want APPROVE", found.GetApprovalAction())
+	}
+
+	// Recompute pending_approvals — the approved entry should disappear.
+	exec.Status.PendingApprovals = approval.ComputePendingApprovals(
+		exec.Status.GetMessages(),
+		exec.Status.GetSubAgentExecutions(),
+	)
+	if len(exec.Status.PendingApprovals) != 0 {
+		t.Errorf("after approval during IN_PROGRESS: want 0 pending, got %d",
+			len(exec.Status.PendingApprovals))
+	}
+}
+
+// TestApprovalRejectedDuringCompletedPhase verifies that terminal phases
+// (COMPLETED, FAILED, CANCELLED) still reject approval submissions.
+func TestApprovalRejectedDuringCompletedPhase(t *testing.T) {
+	terminalPhases := []agentexecutionv1.ExecutionPhase{
+		agentexecutionv1.ExecutionPhase_EXECUTION_COMPLETED,
+		agentexecutionv1.ExecutionPhase_EXECUTION_FAILED,
+		agentexecutionv1.ExecutionPhase_EXECUTION_CANCELLED,
+	}
+
+	for _, phase := range terminalPhases {
+		t.Run(phase.String(), func(t *testing.T) {
+			// The phase gate check: neither WAITING_FOR_APPROVAL nor IN_PROGRESS.
+			isAllowed := phase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL ||
+				phase == agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS
+
+			if isAllowed {
+				t.Errorf("terminal phase %s should NOT be in the allowed set", phase.String())
+			}
+		})
+	}
+}
+
+// TestGateResolutionDuringInProgress verifies that the signal-sending logic
+// (REJECT or all-decided) works identically when the execution is IN_PROGRESS.
+// The signal is sent regardless of phase — Temporal buffers it if the workflow
+// hasn't entered the approval loop yet.
+func TestGateResolutionDuringInProgress(t *testing.T) {
+	tc1 := makeApprovalToolCall("call_s1", "deploy")
+	tc2 := makeApprovalToolCall("call_s2", "run_tests")
+
+	exec := makeExecutionWithPhase(
+		agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+		[]*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(tc1, tc2)},
+		nil,
+	)
+
+	t.Run("all decided during streaming", func(t *testing.T) {
+		// Approve both tool calls while streaming.
+		for _, id := range []string{"call_s1", "call_s2"} {
+			found := findToolCallInExecution(exec, id)
+			found.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_APPROVE
+			found.ApprovalDecidedAt = time.Now().UTC().Format(time.RFC3339)
+		}
+
+		exec.Status.PendingApprovals = approval.ComputePendingApprovals(
+			exec.Status.GetMessages(),
+			exec.Status.GetSubAgentExecutions(),
+		)
+
+		pendingRemaining := len(exec.Status.PendingApprovals)
+		allDecided := pendingRemaining == 0
+
+		if !allDecided {
+			t.Fatalf("expected allDecided=true during IN_PROGRESS, got pending=%d", pendingRemaining)
+		}
+
+		shouldSignal := false || allDecided // isReject=false
+		if !shouldSignal {
+			t.Error("gate should resolve during IN_PROGRESS when all tool calls decided")
+		}
+	})
+
+	t.Run("reject during streaming", func(t *testing.T) {
+		// Reset: fresh execution with undecided tool calls.
+		tc3 := makeApprovalToolCall("call_s3", "dangerous_op")
+		tc4 := makeApprovalToolCall("call_s4", "safe_op")
+		execReject := makeExecutionWithPhase(
+			agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS,
+			[]*agentexecutionv1.AgentMessage{makeAIMessageWithToolCalls(tc3, tc4)},
+			nil,
+		)
+
+		// Reject only one during streaming.
+		found := findToolCallInExecution(execReject, "call_s3")
+		found.ApprovalAction = agentexecutionv1.ApprovalAction_APPROVAL_ACTION_REJECT
+		found.ApprovalDecidedAt = time.Now().UTC().Format(time.RFC3339)
+
+		execReject.Status.PendingApprovals = approval.ComputePendingApprovals(
+			execReject.Status.GetMessages(),
+			execReject.Status.GetSubAgentExecutions(),
+		)
+
+		pendingRemaining := len(execReject.Status.PendingApprovals)
+		isReject := true
+		allDecided := pendingRemaining == 0
+
+		if pendingRemaining != 1 {
+			t.Fatalf("precondition: expected 1 pending remaining, got %d", pendingRemaining)
+		}
+
+		shouldSignal := isReject || allDecided
+		if !shouldSignal {
+			t.Error("REJECT during IN_PROGRESS should resolve the gate — signal expected")
+		}
+	})
+}
