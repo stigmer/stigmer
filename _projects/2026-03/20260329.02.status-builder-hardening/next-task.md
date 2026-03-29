@@ -70,46 +70,54 @@ When starting a new session:
 **Created**: 2026-03-29 14:37
 **Plan Revised**: 2026-03-29 19:30 (v2 — reducer pattern simplification)
 **T02 Completed**: 2026-03-29 (tool_call_id availability confirmed via callback handler approach)
-**Current Task**: T03 (Research: namespace injection feasibility)
-**Next Code Task**: T04 (Replace fingerprint dedup with tool_call_id lookup — unblocked by T02)
-**Status**: Active — T02 complete, T03 pending, T04 unblocked
+**T04 Completed**: 2026-03-29 (fingerprint dedup replaced with identity-based lookup)
+**Current Task**: T03 (Research: namespace injection feasibility) — in progress in separate conversation
+**Next Code Task**: T05 (Replace _run_id_to_tool_call_id with _tool_call_index), T06 (pause fix standalone)
+**Status**: Active — T02+T04 complete, T03 in progress
 
 ### T02 Key Finding
 v2 events do NOT carry `tool_call_id`. Solution: a ~10-line `ToolCallIdCapture`
 callback handler captures `{run_id → tool_call_id}` from the callback API (which
-does receive it). Works for ALL tools universally. Eliminates 3 dictionaries, 2
-methods, and ~100 lines of fingerprint/FIFO dedup logic. See `tasks/T02_0_research.md`.
+does receive it). Works for ALL tools universally. See `tasks/T02_0_research.md`.
 
-## Session Progress (2026-03-29)
+### T04 Completion Summary
+Replaced SHA256 fingerprint dedup with identity-based lookup via `ToolCallIdCapture`.
+Deleted 3 dictionaries (`tool_call_fingerprints`, `_fingerprint_to_tool_call_id`,
+`_reconciled_resume_tool_calls`), 2 methods, ~100 lines of fingerprint/FIFO logic.
+Net: -197 lines. All 1,375 tests pass. Files changed:
+- New: `tool_call_id_capture.py` (focused collaborator)
+- Modified: `status_builder.py`, `execute_graphton.py`, `hitl.py`
+- Tests: `test_status_builder.py`, `test_hitl_contracts.py`
+
+## Session Progress (2026-03-29, session 2)
 
 ### What was accomplished
-- Reviewed and approved v2 plan (T01_0_plan.md)
-- Completed T02 research: traced LangGraph/LangChain event pipeline across 5 framework layers
-- Discovered that `_filter_injected_args` blocks the naive `InjectedToolCallId` approach
-- Identified `ToolCallIdCapture` callback handler as the clean, universal solution
-- Wrote comprehensive research document (`tasks/T02_0_research.md`, 304 lines)
-- Updated `_roles/005_ai_engineer.md` with architectural principles from HITL learnings
+- Completed T04: replace fingerprint dedup with `ToolCallIdCapture` identity lookup
+- Created `tool_call_id_capture.py` — focused callback handler (~45 lines)
+- Wired capture into execute_graphton.py (constructor + config callbacks)
+- Replaced 60-line fingerprint+FIFO dedup block with ~15-line identity lookup
+- Renamed `populate_fingerprints_from_existing_tool_calls` → `rebuild_index_from_persisted_status`
+- Deleted `_get_tool_fingerprint()`, removed hashlib/deque imports
+- Cleaned hitl.py: renamed method, deleted FIFO block, updated logging
+- Rewrote 4 alias tests, deleted 4 fingerprint tests, updated 8+ test method calls
+- Full test suite: 1,375 passed, 0 failed
 
 ### Key decisions
-- Callback handler approach chosen over modifying tool wrappers (universal coverage, simpler)
-- Live validation skipped — findings based on reading actual installed package source code
-
-### Surprise discovered
-`BaseTool._filter_injected_args` strips `InjectedToolCallId` values from callback inputs
-before they reach the v2 event emitter. This means `data.input` will never contain
-`tool_call_id` regardless of wrapper annotations. The callback handler approach is
-necessary and also superior (works for ALL tools without per-wrapper changes).
+- Kept `_run_id_aliases` for T04 scope discipline — deferring to T07 for broader identity cleanup
+- `ToolCallIdCapture` placed in its own module per "StatusBuilder Is NOT a Dumping Ground"
+- Used `TYPE_CHECKING` guard for the import, string annotation for the constructor param
 
 ## Next Steps (when you return)
-1. Start T03 research — namespace injection feasibility in Graphton sub-graph construction
-2. Start T04 implementation — replace fingerprint dedup with `ToolCallIdCapture` (unblocked)
+1. Complete T03 research (in progress in separate conversation)
+2. Start T05 — replace `_run_id_to_tool_call_id` with `_tool_call_index` lookups
 3. T06 (pause fix) can be done anytime as a standalone task
+4. T07 — ExecutionState refactor (fold `_run_id_aliases` into capture or eliminate)
 
 ## Quick Commands
 
 After loading context:
-- "Start T03 research" - Investigate namespace injection in Graphton sub-graph construction
-- "Start T04 implementation" - Replace fingerprint dedup with tool_call_id lookup (requires T02 findings)
+- "Start T05 implementation" - Replace _run_id_to_tool_call_id with _tool_call_index
+- "Start T06 implementation" - Fix pause handling (standalone)
 - "Show project status" - Get overview of progress
 - "Review the plan" - Read the v2 task plan
 

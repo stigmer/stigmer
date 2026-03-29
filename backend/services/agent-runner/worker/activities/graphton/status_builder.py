@@ -6,16 +6,17 @@ Status is returned to the Temporal workflow, which orchestrates persistence
 via Java activity (polyglot pattern).
 """
 
-import hashlib
 import inspect
 import json
 import logging
 import time
-from collections import deque
 from collections.abc import Callable, Coroutine, Iterator
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
+
+if TYPE_CHECKING:
+    from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 
 from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
@@ -316,6 +317,7 @@ class StatusBuilder:
         execution_id: str,
         initial_status: Any,
         approval_config: ApprovalConfig | None = None,
+        tool_call_id_capture: "ToolCallIdCapture | None" = None,
     ):
         """
         Initialize status builder.
@@ -326,6 +328,9 @@ class StatusBuilder:
             approval_config: Optional approval policy configuration. When provided,
                            tools matching approval policies will be set to
                            WAITING_APPROVAL status instead of RUNNING.
+            tool_call_id_capture: Callback handler that captures {run_id → tool_call_id}
+                from the LangChain callback API. Used for identity-based dedup on the
+                resume path.
         """
         self.execution_id = execution_id
         self.current_status = initial_status
@@ -334,9 +339,10 @@ class StatusBuilder:
         # Approval policy configuration (HITL Phase 2)
         # When set, tool calls are checked against policies before execution
         self._approval_config = approval_config
-        
-        # Track tool calls for deduplication
-        self.tool_call_fingerprints: set = set()
+
+        # Callback handler that maps LangGraph tool run_id → model tool_call_id.
+        # Used for identity-based resume dedup in _handle_tool_start_event.
+        self._tool_call_id_capture = tool_call_id_capture
         
         # In-memory index from tool_call_id to the ToolCall proto reference
         # inside a message's repeated field.  Mutations via these references
@@ -468,31 +474,15 @@ class StatusBuilder:
         #
         # On the resume path, LangGraph generates fresh run_ids for resumed
         # tools, but the StatusBuilder already holds the original tool call
-        # (with the original run_id) from the previous invocation.  Fingerprint
-        # deduplication in _handle_tool_start_event correctly prevents a
-        # duplicate ToolCall, but the new run_id is lost — so on_tool_end
-        # cannot find the existing tool call to mark it COMPLETED.
+        # (with the original tool_call_id) from the previous invocation.
+        # Identity-based dedup in _handle_tool_start_event detects the
+        # duplicate via ToolCallIdCapture, but the new run_id must still
+        # reach the existing ToolCall on on_tool_end / on_tool_progress.
         #
         # _run_id_aliases maps {new_run_id -> original_tool_call_id} so that
-        # on_tool_end and on_tool_progress can resolve the alias and update
-        # the correct tool call.
-        #
-        # _fingerprint_to_tool_call_id maps {fingerprint -> tool_call.id} and
-        # is populated by populate_fingerprints_from_existing_tool_calls().
-        # It allows the deduplication check to discover which existing tool
-        # call a duplicate fingerprint belongs to.
+        # _resolve_run_id() can bridge the gap.
         # ─────────────────────────────────────────────────────────────────────────
         self._run_id_aliases: dict[str, str] = {}
-        self._fingerprint_to_tool_call_id: dict[str, str] = {}
-
-        # Resume-aware dedup: tool calls recently reconciled from WAITING_APPROVAL
-        # to RUNNING by ResumeReconciler.  Keyed by tool_name → deque of
-        # tool_call_ids (FIFO order preserves match ordering when the same tool
-        # appears multiple times).  Consumed by _handle_tool_start_event as a
-        # fallback when fingerprint dedup fails (fingerprints are computed from
-        # display args in populate_fingerprints but raw args in the event, which
-        # can diverge due to humanization).
-        self._reconciled_resume_tool_calls: dict[str, deque[str]] = {}
 
         # ─────────────────────────────────────────────────────────────────────────
         # Execution Artifacts Tracking (Artifact Lifecycle)
@@ -763,67 +753,32 @@ class StatusBuilder:
         
         tool_args = self._unwrap_tool_args(tool_args_raw)
         
-        # Check for duplicate.
+        # Identity-based resume dedup.
         # On the resume-after-approval path, LangGraph re-fires on_tool_start
-        # for resumed tools with a NEW run_id.  The fingerprint matches an
-        # existing entry (populated by populate_fingerprints_from_existing_tool_calls),
-        # so we correctly skip creating a duplicate ToolCall.  However, the
-        # subsequent on_tool_end event carries this new run_id and must be able
-        # to find the original ToolCall.  We record a run-ID alias so that
-        # _resolve_run_id() can bridge the gap.
-        fingerprint = self._get_tool_fingerprint(tool_name, tool_args)
-        if fingerprint in self.tool_call_fingerprints:
-            original_tc_id = self._fingerprint_to_tool_call_id.get(fingerprint)
-            if original_tc_id and run_id != original_tc_id:
-                self._run_id_aliases[run_id] = original_tc_id
-                # Keep the FIFO queue in sync: remove the matched entry so
-                # the fallback doesn't retain stale slots that could capture
-                # genuinely new tool calls with the same tool name.
-                resume_queue = self._reconciled_resume_tool_calls.get(tool_name)
-                if resume_queue:
-                    try:
-                        resume_queue.remove(original_tc_id)
-                    except ValueError:
-                        pass
+        # for resumed tools with a NEW run_id.  The ToolCallIdCapture callback
+        # handler maps that run_id to the model's stable tool_call_id, which
+        # is already indexed from the prior cycle (via rebuild_index_from_persisted_status).
+        # We register a run-ID alias so on_tool_end / on_tool_progress can find
+        # the existing ToolCall, then return early (dedup).
+        tool_call_id = (
+            self._tool_call_id_capture.get(run_id)
+            if self._tool_call_id_capture is not None
+            else None
+        )
+        if tool_call_id:
+            existing = self._tool_call_index.get(tool_call_id)
+            if existing is not None and not existing.is_streaming:
+                if run_id != tool_call_id:
+                    self._run_id_aliases[run_id] = tool_call_id
                 self.logger.info(
-                    f"[RESUME_ALIAS] execution={self.execution_id} "
-                    f"tool={tool_name} new_run_id={run_id} -> "
-                    f"original_tc_id={original_tc_id} "
-                    f"(fingerprint dedup on resume path)"
+                    "[IDENTITY_DEDUP] execution=%s tool=%s run_id=%s -> "
+                    "existing_tc=%s (resume path, alias only)",
+                    self.execution_id, tool_name, run_id, tool_call_id,
                 )
-            # Task tools must NOT return here — the task handler below
-            # manages sub-agent lifecycle (reactivation on resume,
-            # SubAgentExecution creation on first run).  The alias set
-            # above is sufficient for the dedup; control falls through.
-            if tool_name != "task":
-                return
-
-        # Fallback: resume-aware dedup for reconciled tool calls.
-        # Fingerprint dedup above uses raw event args, but
-        # populate_fingerprints_from_existing_tool_calls computes from
-        # humanized display args stored in the proto Struct.  When
-        # _humanize_args_for_display transforms values (e.g. platform refs,
-        # env var resolution), the fingerprints diverge and the primary
-        # check above misses the match.  This fallback uses the explicit
-        # reconciled-tool registry populated by ResumeReconciler.
-        #
-        # Task tools are excluded: their lifecycle is managed by the task
-        # handler below via _reconcile_early_tool_call + _handle_sub_agent_start.
-        resume_queue = self._reconciled_resume_tool_calls.get(tool_name)
-        if resume_queue and tool_name != "task":
-            original_tc_id = resume_queue.popleft()
-            self._run_id_aliases[run_id] = original_tc_id
-            self.tool_call_fingerprints.add(fingerprint)
-            self._fingerprint_to_tool_call_id[fingerprint] = original_tc_id
-            self.logger.info(
-                f"[RESUME_ALIAS] execution={self.execution_id} "
-                f"tool={tool_name} new_run_id={run_id} -> "
-                f"original_tc_id={original_tc_id} "
-                f"(reconciled resume fallback)"
-            )
-            return
-
-        self.tool_call_fingerprints.add(fingerprint)
+                # Task tools fall through to the sub-agent lifecycle handler
+                # below; all other tools are fully deduped.
+                if tool_name != "task":
+                    return
 
         # Handle planning tools
         if tool_name in PLANNING_TOOLS:
@@ -1116,7 +1071,7 @@ class StatusBuilder:
         # On the resume path, LangGraph assigns a new run_id to the resumed
         # tool execution.  The existing ToolCall was created in a previous
         # invocation with its original run_id.  _handle_tool_start_event
-        # recorded an alias when fingerprint deduplication fired; resolve it
+        # recorded an alias when identity-based dedup fired; resolve it
         # here so we can find and update the correct ToolCall.
         # ─────────────────────────────────────────────────────────────────────
         resolved_id = self._resolve_run_id(run_id)
@@ -1648,21 +1603,14 @@ class StatusBuilder:
             return args["input"]
         return args
     
-    def _get_tool_fingerprint(self, tool_name: str, tool_args: dict[str, Any]) -> str:
-        """Create fingerprint for deduplication."""
-        fingerprint_data = f"{tool_name}:{json.dumps(tool_args, sort_keys=True)}"
-        return hashlib.sha256(fingerprint_data.encode()).hexdigest()
-    
-    def populate_fingerprints_from_existing_tool_calls(self) -> None:
-        """Pre-populate fingerprints and the in-memory index from persisted messages.
+    def rebuild_index_from_persisted_status(self) -> None:
+        """Rebuild ``_tool_call_index`` from persisted messages.
 
-        On the resume-after-approval path, the StatusBuilder is initialized with
-        the DB-persisted status that already contains tool calls embedded in
-        messages.  LangGraph may re-fire ``on_tool_start`` events for resumed
-        tools; pre-populating fingerprints prevents duplicate entries.
-
-        Also rebuilds ``_tool_call_index`` so that all subsequent lookups work
-        against the message-embedded references.
+        On the resume-after-approval path, the StatusBuilder is initialized
+        with the DB-persisted status that already contains tool calls embedded
+        in messages.  This method walks those messages and re-populates the
+        in-memory index so that ``get_tool_call`` and ``iter_all_tool_calls``
+        resolve correctly for the subsequent stream cycle.
         """
         def _index_tool_calls(messages: Any) -> None:
             for message in messages:
@@ -1671,14 +1619,6 @@ class StatusBuilder:
                 for i, tc in enumerate(message.tool_calls):
                     if tc.id:
                         self._tool_call_index[tc.id] = message.tool_calls[i]
-                    try:
-                        args_dict: dict[str, Any] = dict(tc.args) if tc.args else {}
-                        fingerprint = self._get_tool_fingerprint(tc.name, args_dict)
-                        self.tool_call_fingerprints.add(fingerprint)
-                        if tc.id:
-                            self._fingerprint_to_tool_call_id[fingerprint] = tc.id
-                    except Exception:
-                        pass
 
         _index_tool_calls(self.current_status.messages)
 
@@ -1709,7 +1649,7 @@ class StatusBuilder:
         ``_reconcile_early_tool_call`` pops the first match; any leftover
         entry is harmless.
 
-        Must be called **after** ``populate_fingerprints_from_existing_tool_calls``
+        Must be called **after** ``rebuild_index_from_persisted_status``
         (which builds ``_tool_call_index``) and **before** the stream starts.
 
         Returns the number of task tool calls queued.
@@ -1997,11 +1937,10 @@ class StatusBuilder:
         alias so that downstream handlers (``on_tool_end``, ``tool_progress``)
         resolve to the same proto.
 
-        On the **resume path**, a TC from the prior cycle is re-queued by
-        ``_create_early_tool_call`` (it already has args, approval status,
-        etc.).  In that case only the run_id alias is registered — the
-        existing state is preserved to avoid overwriting approval decisions
-        that were already recorded.
+        On the **resume path**, a TC from the prior cycle may be re-queued
+        by ``_create_early_tool_call``.  In that case only the run_id alias
+        is registered — existing state is preserved to avoid overwriting
+        approval decisions already recorded.
 
         Returns the reconciled ToolCall, or ``None`` if no match exists.
         """
@@ -2025,8 +1964,6 @@ class StatusBuilder:
             is_resume_requeue = not existing.is_streaming
             if is_resume_requeue:
                 self._run_id_aliases[run_id] = temp_id
-                fingerprint = self._get_tool_fingerprint(tool_name, tool_args)
-                self._fingerprint_to_tool_call_id[fingerprint] = temp_id
                 self.logger.info(
                     "[RECONCILE] execution=%s resume-path reconciliation: "
                     "tool=%s run_id=%s -> existing_tc=%s "
@@ -2068,9 +2005,6 @@ class StatusBuilder:
             self._tool_start_times[run_id] = self._tool_start_times.pop(
                 temp_id, datetime.utcnow()
             )
-
-            fingerprint = self._get_tool_fingerprint(tool_name, tool_args)
-            self._fingerprint_to_tool_call_id[fingerprint] = temp_id
 
             if approval.requires_approval:
                 self._set_waiting_for_approval_phase(tool_name, run_id)

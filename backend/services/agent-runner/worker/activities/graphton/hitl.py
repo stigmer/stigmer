@@ -26,7 +26,6 @@ Classes:
 from __future__ import annotations
 
 import logging
-from collections import deque
 from typing import Any
 
 from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
@@ -123,10 +122,10 @@ class ResumeReconciler:
     On resume, the StatusBuilder is initialized with DB-persisted status that
     already contains tool calls in WAITING_APPROVAL state.  This class:
 
-    1. Transitions each decided tool call to RUNNING / SKIPPED
-    2. Auto-skips remaining WAITING_APPROVAL tools on REJECT
-    3. Clears stale ``completed_at`` from the previous cycle
-    4. Pre-populates fingerprints for LangGraph replay dedup
+    1. Rebuilds the in-memory index from persisted status
+    2. Transitions each decided tool call to RUNNING / SKIPPED
+    3. Auto-skips remaining WAITING_APPROVAL tools on REJECT
+    4. Clears stale ``completed_at`` from the previous cycle
     """
 
     _APPROVAL_TO_STATUS = {
@@ -152,10 +151,10 @@ class ResumeReconciler:
         approval_decisions: list[SubmitApprovalInput],
     ) -> None:
         """Run the full reconciliation pipeline."""
-        # Populate _tool_call_index and fingerprints BEFORE the reconciliation
-        # loop so that get_tool_call() and iter_all_tool_calls() can find
-        # persisted tool calls from the previous execution cycle.
-        self._sb.populate_fingerprints_from_existing_tool_calls()
+        # Rebuild _tool_call_index BEFORE the reconciliation loop so that
+        # get_tool_call() and iter_all_tool_calls() can find persisted tool
+        # calls from the previous execution cycle.
+        self._sb.rebuild_index_from_persisted_status()
 
         decisions_by_tc = {d.tool_call_id: d for d in approval_decisions}
         reconciled_count = 0
@@ -193,14 +192,6 @@ class ResumeReconciler:
             if decision.action == ApprovalAction.APPROVAL_ACTION_REJECT:
                 has_reject = True
 
-            # Register for resume-aware dedup so _handle_tool_start_event
-            # can match the re-fired event even when fingerprints diverge.
-            if new_status == ToolCallStatus.TOOL_CALL_RUNNING:
-                q = self._sb._reconciled_resume_tool_calls.setdefault(
-                    tc.name, deque(),
-                )
-                q.append(tc.id)
-
             self._logger.info(
                 "[RESUME_RECONCILE] execution=%s "
                 "tool_call=%s name=%s "
@@ -224,9 +215,9 @@ class ResumeReconciler:
         self._logger.info(
             "[RESUME_RECONCILE] execution=%s "
             "reconciled %d tool call(s), "
-            "populated %d fingerprint(s)",
+            "index size=%d",
             self._execution_id, reconciled_count,
-            len(self._sb.tool_call_fingerprints),
+            len(self._sb._tool_call_index),
         )
 
     def reconcile_orphans_against_checkpoint(

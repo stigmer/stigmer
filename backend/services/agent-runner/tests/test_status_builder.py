@@ -4914,26 +4914,28 @@ class TestRunIdAliasResolution:
     transition to COMPLETED on the resume-after-approval path.
 
     When a tool call is interrupted for approval and then resumed, LangGraph
-    generates a new run_id for the resumed execution.  The fingerprint
-    deduplication in _handle_tool_start_event records an alias from the new
-    run_id to the original tool_call.id so that _handle_tool_end_event can
-    find and update the correct ToolCall.
+    generates a new run_id for the resumed execution.  The identity-based
+    dedup in _handle_tool_start_event (via ToolCallIdCapture) records an
+    alias from the new run_id to the original tool_call.id so that
+    _handle_tool_end_event can find and update the correct ToolCall.
     """
 
     @pytest.mark.asyncio
-    async def test_alias_recorded_on_duplicate_fingerprint(self, mock_initial_status):
-        """When a duplicate fingerprint is detected after
-        populate_fingerprints_from_existing_tool_calls, the new run_id is
-        recorded as an alias for the original tool call id."""
+    async def test_alias_recorded_on_identity_dedup(self, mock_initial_status):
+        """When a resumed on_tool_start fires with a new run_id, the
+        ToolCallIdCapture mapping resolves it to the existing tool_call_id.
+        The new run_id is recorded as an alias."""
         from google.protobuf.struct_pb2 import Struct
 
-        original_run_id = "original-run-001"
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
+        original_tc_id = "toolu_original_001"
         new_run_id = "resumed-run-002"
 
         args = Struct()
         args.update({"path": "/bin/skills/agent-drafter/SKILL.md", "content": "..."})
         existing_tc = ToolCall(
-            id=original_run_id,
+            id=original_tc_id,
             name="write",
             args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
@@ -4942,8 +4944,12 @@ class TestRunIdAliasResolution:
         ai_msg.tool_calls.append(existing_tc)
         mock_initial_status.messages.append(ai_msg)
 
-        builder = StatusBuilder("exec-alias-1", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        capture = ToolCallIdCapture()
+        capture._run_id_to_tool_call_id[new_run_id] = original_tc_id
+
+        builder = StatusBuilder("exec-alias-1", mock_initial_status,
+                                tool_call_id_capture=capture)
+        builder.rebuild_index_from_persisted_status()
 
         event = {
             "event": "on_tool_start",
@@ -4953,7 +4959,7 @@ class TestRunIdAliasResolution:
         }
         await builder.process_event(event)
 
-        assert builder._run_id_aliases.get(new_run_id) == original_run_id
+        assert builder._run_id_aliases.get(new_run_id) == original_tc_id
         assert builder.tool_call_count() == 1
 
     @pytest.mark.asyncio
@@ -4962,7 +4968,9 @@ class TestRunIdAliasResolution:
         original tool call from RUNNING to COMPLETED."""
         from google.protobuf.struct_pb2 import Struct
 
-        original_run_id = "orig-run-100"
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
+        original_tc_id = "toolu_orig_100"
         new_run_id = "new-run-200"
 
         args = Struct()
@@ -4970,15 +4978,19 @@ class TestRunIdAliasResolution:
 
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
         ai_msg.tool_calls.append(ToolCall(
-            id=original_run_id,
+            id=original_tc_id,
             name="write",
             args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
         ))
         mock_initial_status.messages.append(ai_msg)
 
-        builder = StatusBuilder("exec-alias-2", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        capture = ToolCallIdCapture()
+        capture._run_id_to_tool_call_id[new_run_id] = original_tc_id
+
+        builder = StatusBuilder("exec-alias-2", mock_initial_status,
+                                tool_call_id_capture=capture)
+        builder.rebuild_index_from_persisted_status()
 
         start_event = {
             "event": "on_tool_start",
@@ -4996,7 +5008,7 @@ class TestRunIdAliasResolution:
         }
         await builder.process_event(end_event)
 
-        tc = builder.get_tool_call(original_run_id)
+        tc = builder.get_tool_call(original_tc_id)
         assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED
         assert tc.result == "File written successfully"
 
@@ -5008,10 +5020,12 @@ class TestRunIdAliasResolution:
         to COMPLETED when their resumed on_tool_end events carry new run_ids."""
         from google.protobuf.struct_pb2 import Struct
 
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
         files = [
-            ("orig-A", "new-A", "/skill/SKILL.md"),
-            ("orig-B", "new-B", "/skill/references/proto.md"),
-            ("orig-C", "new-C", "/skill/references/cli.md"),
+            ("toolu_A", "new-A", "/skill/SKILL.md"),
+            ("toolu_B", "new-B", "/skill/references/proto.md"),
+            ("toolu_C", "new-C", "/skill/references/cli.md"),
         ]
 
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
@@ -5024,8 +5038,13 @@ class TestRunIdAliasResolution:
             ))
         mock_initial_status.messages.append(ai_msg)
 
-        builder = StatusBuilder("exec-alias-3", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        capture = ToolCallIdCapture()
+        for orig_id, new_id, _ in files:
+            capture._run_id_to_tool_call_id[new_id] = orig_id
+
+        builder = StatusBuilder("exec-alias-3", mock_initial_status,
+                                tool_call_id_capture=capture)
+        builder.rebuild_index_from_persisted_status()
 
         for orig_id, new_id, path in files:
             await builder.process_event({
@@ -5067,22 +5086,28 @@ class TestRunIdAliasResolution:
         tool call's result."""
         from google.protobuf.struct_pb2 import Struct
 
-        original_run_id = "orig-progress-1"
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
+        original_tc_id = "toolu_progress_1"
         new_run_id = "new-progress-1"
 
         args = Struct()
         args.update({"command": "ls -la"})
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
         ai_msg.tool_calls.append(ToolCall(
-            id=original_run_id,
+            id=original_tc_id,
             name="execute",
             args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
         ))
         mock_initial_status.messages.append(ai_msg)
 
-        builder = StatusBuilder("exec-alias-4", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        capture = ToolCallIdCapture()
+        capture._run_id_to_tool_call_id[new_run_id] = original_tc_id
+
+        builder = StatusBuilder("exec-alias-4", mock_initial_status,
+                                tool_call_id_capture=capture)
+        builder.rebuild_index_from_persisted_status()
 
         await builder.process_event({
             "event": "on_tool_start",
@@ -5090,7 +5115,7 @@ class TestRunIdAliasResolution:
             "run_id": new_run_id,
             "data": {"input": {"command": "ls -la"}},
         })
-        assert builder._run_id_aliases.get(new_run_id) == original_run_id
+        assert builder._run_id_aliases.get(new_run_id) == original_tc_id
 
         await builder.process_event({
             "event": "on_custom_event",
@@ -5099,7 +5124,7 @@ class TestRunIdAliasResolution:
             "data": {"chunk": "total 42\n"},
         })
 
-        tc = builder.get_tool_call(original_run_id)
+        tc = builder.get_tool_call(original_tc_id)
         assert tc.result == "total 42\n"
         assert tc.is_streaming is True
 
@@ -5121,7 +5146,7 @@ class TestRunIdAliasResolution:
         mock_initial_status.messages.append(ai_msg)
 
         builder = StatusBuilder("exec-force-1", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        builder.rebuild_index_from_persisted_status()
         builder.force_next_update = False
 
         await builder.process_event({
@@ -5151,7 +5176,7 @@ class TestRunIdAliasResolution:
         mock_initial_status.messages.append(ai_msg)
 
         builder = StatusBuilder("exec-force-2", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        builder.rebuild_index_from_persisted_status()
 
         await builder.process_event({
             "event": "on_custom_event",
@@ -5176,32 +5201,37 @@ class TestRunIdAliasResolution:
 
     @pytest.mark.asyncio
     async def test_no_alias_when_run_id_matches_existing(self, mock_initial_status):
-        """No alias is recorded when the new run_id happens to match the
-        existing tool call id (edge case: same run_id across invocations)."""
+        """No alias is recorded when the capture resolves run_id to itself
+        (edge case: tool_call_id matches the run_id)."""
         from google.protobuf.struct_pb2 import Struct
 
-        same_run_id = "same-run-999"
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
+        same_id = "toolu_same_999"
         args = Struct()
         args.update({"path": "/file.txt", "content": "data"})
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
         ai_msg.tool_calls.append(ToolCall(
-            id=same_run_id, name="write", args=args,
+            id=same_id, name="write", args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
         ))
         mock_initial_status.messages.append(ai_msg)
 
-        builder = StatusBuilder("exec-alias-5", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        capture = ToolCallIdCapture()
+        capture._run_id_to_tool_call_id[same_id] = same_id
 
-        # on_tool_start with the SAME run_id — no alias needed.
+        builder = StatusBuilder("exec-alias-5", mock_initial_status,
+                                tool_call_id_capture=capture)
+        builder.rebuild_index_from_persisted_status()
+
         await builder.process_event({
             "event": "on_tool_start",
             "name": "write",
-            "run_id": same_run_id,
+            "run_id": same_id,
             "data": {"input": {"path": "/file.txt", "content": "data"}},
         })
 
-        assert same_run_id not in builder._run_id_aliases
+        assert same_id not in builder._run_id_aliases
 
 
 # =============================================================================

@@ -67,6 +67,7 @@ from worker.activities.graphton.session_context_merge import (
 )
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.status_builder import StatusBuilder, _utc_timestamp
+from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 from worker.activities.graphton.subagent_transformer import transform_sub_agents
 from worker.activities.graphton.temporal_helpers import (
     SetupTimer,
@@ -1179,8 +1180,15 @@ async def _execute_graphton_impl(
             f"tool_mapping={len(approval_config.tool_to_mcp_server)} tools"
         )
         
+        # Capture tool_call_id from the callback API so StatusBuilder can
+        # resolve the model's identity for each tool invocation.
+        tool_call_id_capture = ToolCallIdCapture()
+
         # Initialize status builder with approval config
-        status_builder = StatusBuilder(execution_id, execution.status, approval_config)
+        status_builder = StatusBuilder(
+            execution_id, execution.status, approval_config,
+            tool_call_id_capture=tool_call_id_capture,
+        )
         status_builder.set_display_env_vars(merged_env_vars, secret_keys)
         status_builder.set_workspace_root(workspace_backend.root_dir)
 
@@ -1640,6 +1648,7 @@ async def _execute_graphton_impl(
                 "org": execution.metadata.org,
             },
             "recursion_limit": effective_recursion_limit,
+            "callbacks": [tool_call_id_capture],
         }
         
         activity_logger.info(
