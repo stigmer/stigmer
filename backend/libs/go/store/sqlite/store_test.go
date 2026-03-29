@@ -538,6 +538,175 @@ func TestStore_ConcurrentReadWrite(t *testing.T) {
 }
 
 // =============================================================================
+// UpdateResource Tests
+// =============================================================================
+
+func TestStore_UpdateResource_Basic(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	kindNameStr, err := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Seed a resource
+	agent := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       kindNameStr,
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:   "agent-update-test",
+			Name: "original-name",
+		},
+		Spec: &agentv1.AgentSpec{Description: "original"},
+	}
+	require.NoError(t, s.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, agent))
+
+	// Atomically update the description
+	target := &agentv1.Agent{}
+	err = s.UpdateResource(ctx, apiresourcekind.ApiResourceKind_agent, "agent-update-test", target, func() error {
+		target.Spec.Description = "updated-via-UpdateResource"
+		return nil
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "updated-via-UpdateResource", target.Spec.Description)
+	assert.Equal(t, "original-name", target.Metadata.Name)
+
+	// Verify persisted
+	verify := &agentv1.Agent{}
+	require.NoError(t, s.GetResource(ctx, apiresourcekind.ApiResourceKind_agent, "agent-update-test", verify))
+	assert.Equal(t, "updated-via-UpdateResource", verify.Spec.Description)
+}
+
+func TestStore_UpdateResource_NotFound(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	ctx := context.Background()
+	target := &agentv1.Agent{}
+	err = s.UpdateResource(ctx, apiresourcekind.ApiResourceKind_agent, "non-existent", target, func() error {
+		return nil
+	})
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, store.ErrNotFound))
+}
+
+func TestStore_UpdateResource_ModifyError_SkipsWrite(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	kindNameStr, err := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	agent := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       kindNameStr,
+		Metadata:   &apiresource.ApiResourceMetadata{Id: "agent-modify-err", Name: "original"},
+		Spec:       &agentv1.AgentSpec{Description: "should-not-change"},
+	}
+	require.NoError(t, s.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, agent))
+
+	// modify returns an error — the write must be skipped
+	modifyErr := errors.New("validation failed in modify callback")
+	target := &agentv1.Agent{}
+	err = s.UpdateResource(ctx, apiresourcekind.ApiResourceKind_agent, "agent-modify-err", target, func() error {
+		target.Spec.Description = "mutated-but-not-saved"
+		return modifyErr
+	})
+	require.ErrorIs(t, err, modifyErr)
+
+	// Verify the original value is preserved
+	verify := &agentv1.Agent{}
+	require.NoError(t, s.GetResource(ctx, apiresourcekind.ApiResourceKind_agent, "agent-modify-err", verify))
+	assert.Equal(t, "should-not-change", verify.Spec.Description)
+}
+
+func TestStore_UpdateResource_ConcurrentUpdates_NoLostWrites(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "test.sqlite")
+	s, err := NewStore(dbPath)
+	require.NoError(t, err)
+	defer s.Close()
+
+	kindNameStr, err := apiresourcelib.GetKindName(apiresourcekind.ApiResourceKind_agent)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Seed an agent with two tags we'll update concurrently.
+	// Tags is a map, so concurrent updates to different keys should both survive.
+	agent := &agentv1.Agent{
+		ApiVersion: "agentic.stigmer.ai/v1",
+		Kind:       kindNameStr,
+		Metadata: &apiresource.ApiResourceMetadata{
+			Id:     "agent-concurrent-update",
+			Name:   "concurrent-test",
+			Labels: map[string]string{},
+		},
+		Spec: &agentv1.AgentSpec{Description: "initial"},
+	}
+	require.NoError(t, s.SaveResource(ctx, apiresourcekind.ApiResourceKind_agent, agent.Metadata.Id, agent))
+
+	// Two goroutines concurrently update different labels on the same resource.
+	// With the old read-modify-write-SaveResource pattern, one would overwrite
+	// the other. With UpdateResource, both must survive.
+	var wg sync.WaitGroup
+	errs := make(chan error, 2)
+
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		target := &agentv1.Agent{}
+		if err := s.UpdateResource(ctx, apiresourcekind.ApiResourceKind_agent, "agent-concurrent-update", target, func() error {
+			if target.Metadata.Labels == nil {
+				target.Metadata.Labels = map[string]string{}
+			}
+			target.Metadata.Labels["writer-a"] = "value-a"
+			return nil
+		}); err != nil {
+			errs <- err
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		target := &agentv1.Agent{}
+		if err := s.UpdateResource(ctx, apiresourcekind.ApiResourceKind_agent, "agent-concurrent-update", target, func() error {
+			if target.Metadata.Labels == nil {
+				target.Metadata.Labels = map[string]string{}
+			}
+			target.Metadata.Labels["writer-b"] = "value-b"
+			return nil
+		}); err != nil {
+			errs <- err
+		}
+	}()
+
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Fatalf("concurrent UpdateResource error: %v", err)
+	}
+
+	// Both labels must be present — no lost writes.
+	verify := &agentv1.Agent{}
+	require.NoError(t, s.GetResource(ctx, apiresourcekind.ApiResourceKind_agent, "agent-concurrent-update", verify))
+	assert.Equal(t, "value-a", verify.Metadata.Labels["writer-a"], "writer-a label should survive concurrent update")
+	assert.Equal(t, "value-b", verify.Metadata.Labels["writer-b"], "writer-b label should survive concurrent update")
+}
+
+// =============================================================================
 // List Resources Empty Results Tests
 // =============================================================================
 
