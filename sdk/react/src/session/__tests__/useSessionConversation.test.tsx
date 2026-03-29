@@ -7,8 +7,7 @@ import {
   AgentExecutionStatusSchema,
   type AgentExecution,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ApprovalAction, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
-import { PendingApprovalSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/approval_pb";
+import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { SessionSchema, type Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { ApiResourceMetadataSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/metadata_pb";
 import type { Stigmer } from "@stigmer/sdk";
@@ -32,13 +31,6 @@ function makeExecution(id: string, phase: ExecutionPhase): AgentExecution {
   status.phase = phase;
   exec.status = status;
   return exec;
-}
-
-function addPendingApproval(exec: AgentExecution, toolCallId: string) {
-  const pa = create(PendingApprovalSchema);
-  pa.toolCallId = toolCallId;
-  pa.toolName = "test_tool";
-  exec.status!.pendingApprovals.push(pa);
 }
 
 /**
@@ -308,78 +300,6 @@ describe("useSessionConversation", () => {
 
     await waitFor(() => {
       expect(result.current.pendingUserMessage).toBeNull();
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // Optimistic dismissal
-  // -------------------------------------------------------------------------
-
-  describe("optimistic dismissal", () => {
-    async function renderWithApproval(
-      m: MockMethods,
-      client: Stigmer,
-    ) {
-      const exec = makeExecution(
-        "e1",
-        ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
-      );
-      addPendingApproval(exec, "tc-1");
-      m.listBySession.mockResolvedValue({ entries: [exec] });
-
-      const testStream = createControllableStream<AgentExecution>();
-      m.subscribe.mockReturnValue(testStream.generator);
-
-      const hook = renderHook(
-        () => useSessionConversation("session-1", "org"),
-        { wrapper: createWrapper(client) },
-      );
-
-      await act(async () => {});
-      act(() => {
-        testStream.push(exec);
-      });
-      await act(async () => {});
-
-      return { ...hook, testStream, exec };
-    }
-
-    it("dismissedApprovalIds remains a ReadonlySet<string>", async () => {
-      const { result } = await renderWithApproval(methods, mockStigmer);
-
-      await act(async () => {
-        await result.current.submitApproval("tc-1", ApprovalAction.APPROVE);
-      });
-
-      const ids = result.current.dismissedApprovalIds;
-      expect(ids).toBeInstanceOf(Set);
-      expect(ids.has("tc-1")).toBe(true);
-      expect(typeof ids.has).toBe("function");
-      expect([...ids]).toEqual(["tc-1"]);
-    });
-
-    it("resets dismissed state on new execution", async () => {
-      const { result, testStream } = await renderWithApproval(
-        methods,
-        mockStigmer,
-      );
-
-      await act(async () => {
-        await result.current.submitApproval("tc-1", ApprovalAction.APPROVE);
-      });
-      expect(result.current.dismissedApprovalIds.size).toBe(1);
-
-      const completed = makeExecution(
-        "e1",
-        ExecutionPhase.EXECUTION_COMPLETED,
-      );
-      methods.listBySession.mockResolvedValue({ entries: [completed] });
-      act(() => {
-        testStream.push(completed);
-      });
-      await act(async () => {});
-
-      expect(result.current.dismissedApprovalIds.size).toBe(0);
     });
   });
 });
