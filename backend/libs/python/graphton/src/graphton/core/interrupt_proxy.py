@@ -220,7 +220,11 @@ class InterruptProxyRunnable(Runnable):
         return payload
 
 
-_DEFAULT_SUB_AGENT_RECURSION_LIMIT: int = 50
+_UNLIMITED_RECURSION: int = 10_000_000
+
+
+_SUB_AGENT_ADVISORY_INTERVAL: int = 30
+_SUB_AGENT_MAX_ADVISORIES: int = 4
 
 
 def compile_subagent_with_proxy(
@@ -236,20 +240,27 @@ def compile_subagent_with_proxy(
     """Compile a sub-agent graph with a MemorySaver and wrap it in an
     :class:`InterruptProxyRunnable`.
 
-    Automatically injects the same guardrail middleware that
-    :func:`create_deep_agent` provides for the main agent:
+    Automatically injects guardrail middleware:
 
     - **LoopDetectionMiddleware** — prevents infinite tool loops by
       detecting repetitive invocation patterns.
-    - **ExecutionBudgetMiddleware** — warns the model to wrap up when
-      approaching the recursion limit (80% threshold).
     - **ToolTruncationMiddleware** — caps per-tool-result character
       count to prevent context blowup.
+    - **ExecutionBudgetMiddleware** (periodic mode) — nudges the model
+      every 30 model rounds with escalating urgency (up to 4 times).
+
+    Sub-agents run with effectively unlimited recursion (matching the
+    main agent and industry peers like Cursor and Claude Code).  The
+    primary safety mechanisms are loop detection (catches stuck agents),
+    cost cap (when configured), and context summarization (prevents
+    token overflow) — not a step-count ceiling.  The budget middleware
+    provides advisory nudges only; it does not stop execution.
 
     Args:
         recursion_limit: Maximum super-steps for the sub-agent graph.
-            Defaults to :data:`_DEFAULT_SUB_AGENT_RECURSION_LIMIT` (50),
-            which allows ~25 tool-call rounds.
+            ``None`` (default) means unlimited — the sub-agent runs
+            until loop detection or the task completes.  When set to a
+            positive integer, LangGraph enforces that hard limit.
 
     Returns a dict compatible with deepagents' ``CompiledSubAgent`` TypedDict
     (keys: ``name``, ``description``, ``runnable``).
@@ -265,20 +276,20 @@ def compile_subagent_with_proxy(
     effective_limit = (
         recursion_limit
         if recursion_limit is not None
-        else _DEFAULT_SUB_AGENT_RECURSION_LIMIT
+        else _UNLIMITED_RECURSION
     )
 
     effective_middleware = list(middleware or [])
 
     effective_middleware.append(LoopDetectionMiddleware(enabled=True))
 
-    effective_middleware.append(ExecutionBudgetMiddleware(
-        recursion_limit=effective_limit,
-        warning_pct=80,
-    ))
-
     effective_middleware.append(ToolTruncationMiddleware(
         max_chars=_DEFAULT_TRUNCATION,
+    ))
+
+    effective_middleware.append(ExecutionBudgetMiddleware(
+        warning_interval=_SUB_AGENT_ADVISORY_INTERVAL,
+        max_warnings=_SUB_AGENT_MAX_ADVISORIES,
     ))
 
     checkpointer = MemorySaver()
@@ -302,11 +313,15 @@ def compile_subagent_with_proxy(
 
     logger.info(
         "Compiled sub-agent '%s' with InterruptProxy "
-        "(tools=%d, middleware=%d, recursion_limit=%d)",
+        "(tools=%d, middleware=%d, recursion_limit=%d%s, "
+        "advisory_interval=%d, max_advisories=%d)",
         name,
         len(tools),
         len(effective_middleware),
         effective_limit,
+        " (unlimited)" if recursion_limit is None else "",
+        _SUB_AGENT_ADVISORY_INTERVAL,
+        _SUB_AGENT_MAX_ADVISORIES,
     )
 
     return {

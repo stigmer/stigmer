@@ -159,10 +159,10 @@ def create_deep_agent(
             Set higher (25-50) for complex tasks, lower (10-15) for simple ones.
         budget_warning_pct: Percentage of the recursion limit at which the model
             receives a SystemMessage asking it to wrap up (default: 80).  Only
-            applies when ``recursion_limit`` is set. Must be between 50 and 95.
-            At 80% of the estimated budget, the model is told
-            to prioritise completing its current task and summarising remaining work.
-            This turns the hard GraphRecursionError into graceful degradation.
+            applies in threshold mode (when ``recursion_limit`` is set).  Must
+            be between 50 and 95.  When ``recursion_limit`` is ``None``
+            (unlimited), the middleware switches to periodic mode — advisory
+            nudges every 50 model rounds with escalating urgency.
         checkpointer: Optional LangGraph checkpointer for interrupt/resume support.
             Required for HITL (human-in-the-loop) approval flow where tool execution
             can be paused for user approval. Supports MemorySaver for testing or
@@ -418,16 +418,29 @@ def create_deep_agent(
     )
     middleware_list.append(loop_detection)
     
-    # Auto-inject execution budget middleware when a concrete recursion_limit
-    # is set.  When unlimited (None), there is no budget to warn about and
-    # skipping the middleware also removes one after_model graph node per
-    # round, reducing per-round super-step cost.
+    # Auto-inject execution budget middleware.
+    #
+    # When recursion_limit is set: threshold mode — single warning at
+    # budget_warning_pct% of the estimated model rounds.
+    #
+    # When unlimited (None): periodic mode — advisory nudges every 50
+    # model rounds (up to 4 times) with escalating urgency.  This keeps
+    # the model aware of elapsed work and encourages efficient task
+    # completion without imposing a hard ceiling.
+    _MAIN_AGENT_ADVISORY_INTERVAL = 50
+    _MAIN_AGENT_MAX_ADVISORIES = 4
+
     if recursion_limit is not None:
         execution_budget = ExecutionBudgetMiddleware(
             recursion_limit=recursion_limit,
             warning_pct=budget_warning_pct,
         )
-        middleware_list.append(execution_budget)
+    else:
+        execution_budget = ExecutionBudgetMiddleware(
+            warning_interval=_MAIN_AGENT_ADVISORY_INTERVAL,
+            max_warnings=_MAIN_AGENT_MAX_ADVISORIES,
+        )
+    middleware_list.append(execution_budget)
     
     # Auto-inject tool truncation middleware (Phase 3B).
     # Always active — enforces a per-tool-result character ceiling to prevent
