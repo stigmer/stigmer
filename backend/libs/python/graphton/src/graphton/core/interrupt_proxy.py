@@ -220,6 +220,9 @@ class InterruptProxyRunnable(Runnable):
         return payload
 
 
+_DEFAULT_SUB_AGENT_RECURSION_LIMIT: int = 50
+
+
 def compile_subagent_with_proxy(
     *,
     model: BaseChatModel,
@@ -228,14 +231,55 @@ def compile_subagent_with_proxy(
     name: str,
     description: str,
     middleware: list[Any] | None = None,
+    recursion_limit: int | None = None,
 ) -> dict[str, Any]:
     """Compile a sub-agent graph with a MemorySaver and wrap it in an
     :class:`InterruptProxyRunnable`.
 
+    Automatically injects the same guardrail middleware that
+    :func:`create_deep_agent` provides for the main agent:
+
+    - **LoopDetectionMiddleware** — prevents infinite tool loops by
+      detecting repetitive invocation patterns.
+    - **ExecutionBudgetMiddleware** — warns the model to wrap up when
+      approaching the recursion limit (80% threshold).
+    - **ToolTruncationMiddleware** — caps per-tool-result character
+      count to prevent context blowup.
+
+    Args:
+        recursion_limit: Maximum super-steps for the sub-agent graph.
+            Defaults to :data:`_DEFAULT_SUB_AGENT_RECURSION_LIMIT` (50),
+            which allows ~25 tool-call rounds.
+
     Returns a dict compatible with deepagents' ``CompiledSubAgent`` TypedDict
     (keys: ``name``, ``description``, ``runnable``).
     """
+    from graphton.core.execution_budget import ExecutionBudgetMiddleware
+    from graphton.core.loop_detection import LoopDetectionMiddleware
+    from graphton.core.tool_truncation import (
+        ToolTruncationMiddleware,
+        _DEFAULT_MAX_CHARS as _DEFAULT_TRUNCATION,
+    )
     from langgraph.checkpoint.memory import MemorySaver
+
+    effective_limit = (
+        recursion_limit
+        if recursion_limit is not None
+        else _DEFAULT_SUB_AGENT_RECURSION_LIMIT
+    )
+
+    effective_middleware = list(middleware or [])
+
+    effective_middleware.append(LoopDetectionMiddleware(enabled=True))
+
+    effective_middleware.append(ExecutionBudgetMiddleware(
+        recursion_limit=effective_limit,
+        warning_pct=80,
+    ))
+
+    effective_middleware.append(ToolTruncationMiddleware(
+        max_chars=_DEFAULT_TRUNCATION,
+    ))
 
     checkpointer = MemorySaver()
 
@@ -243,8 +287,12 @@ def compile_subagent_with_proxy(
         model,
         system_prompt=system_prompt,
         tools=tools,
-        middleware=middleware or [],
+        middleware=effective_middleware,
         checkpointer=checkpointer,
+    )
+
+    compiled_graph = compiled_graph.with_config(
+        {"recursion_limit": effective_limit},
     )
 
     proxy = InterruptProxyRunnable(
@@ -254,10 +302,11 @@ def compile_subagent_with_proxy(
 
     logger.info(
         "Compiled sub-agent '%s' with InterruptProxy "
-        "(tools=%d, middleware=%d)",
+        "(tools=%d, middleware=%d, recursion_limit=%d)",
         name,
         len(tools),
-        len(middleware or []),
+        len(effective_middleware),
+        effective_limit,
     )
 
     return {

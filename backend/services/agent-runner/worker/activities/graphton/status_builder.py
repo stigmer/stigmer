@@ -10,6 +10,7 @@ import hashlib
 import inspect
 import json
 import logging
+import time
 from collections import deque
 from collections.abc import Callable, Coroutine, Iterator
 from datetime import datetime
@@ -569,6 +570,15 @@ class StatusBuilder:
         # if no further LangGraph events arrive).
         self.force_next_update: bool = False
 
+        # Deferred completion flush for sub-agents.  When a sub-agent
+        # completes (on_tool_end for "task"), we record the monotonic
+        # timestamp here instead of setting force_next_update.  This allows
+        # a short drain window for late LangGraph events (on_chat_model_end,
+        # on_tool_end for nested tools) to be processed and batched into
+        # the same gRPC update that carries the COMPLETED status — preventing
+        # the UI from showing "Completed" while messages still stream in.
+        self._pending_completion_flush: dict[str, float] = {}
+
         # Resolved agent env vars used by _create_args_preview to expand
         # $VAR references in display strings.  Set via set_display_env_vars()
         # once the merged environment is available.
@@ -633,6 +643,31 @@ class StatusBuilder:
     def tool_call_count(self) -> int:
         """Return the total number of tracked tool calls."""
         return len(self._tool_call_index)
+
+    _COMPLETION_DRAIN_MS: float = 300.0
+
+    def should_flush_completions(self, now_monotonic: float) -> bool:
+        """Check whether any pending sub-agent completion has drained.
+
+        Returns True (and sets :attr:`force_next_update`) when at least one
+        sub-agent completion has been pending for longer than
+        ``_COMPLETION_DRAIN_MS``.  The drain window allows late LangGraph
+        events to be batched into the same gRPC update that carries the
+        COMPLETED status.
+        """
+        if not self._pending_completion_flush:
+            return False
+        threshold = self._COMPLETION_DRAIN_MS / 1000.0
+        flushed: list[str] = []
+        for run_id, recorded_at in self._pending_completion_flush.items():
+            if (now_monotonic - recorded_at) >= threshold:
+                flushed.append(run_id)
+        if flushed:
+            for run_id in flushed:
+                del self._pending_completion_flush[run_id]
+            self.force_next_update = True
+            return True
+        return False
 
     def build_pending_approvals_snapshot(self) -> list[PendingApproval]:
         """Build pending_approvals snapshot for the Temporal slim status.
@@ -2914,7 +2949,13 @@ class StatusBuilder:
         if run_id in self._pending_sub_agent_ids:
             self._pending_sub_agent_ids.remove(run_id)
 
-        self.force_next_update = True
+        # Defer the gRPC flush instead of forcing it immediately.  Late
+        # LangGraph events (on_chat_model_end, on_tool_end for nested tools)
+        # arrive shortly after on_tool_end for "task".  The drain window
+        # lets them be batched into the same update that carries the
+        # COMPLETED status, preventing the UI from showing "Completed"
+        # while messages still stream in.
+        self._pending_completion_flush[run_id] = time.monotonic()
 
     def _finalize_orphaned_tool_calls(
         self, sub_agent: SubAgentExecution, now: datetime,

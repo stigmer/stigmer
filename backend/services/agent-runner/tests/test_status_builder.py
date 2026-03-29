@@ -1720,8 +1720,8 @@ class TestSubAgentInternals:
         )
 
     @pytest.mark.asyncio
-    async def test_sub_agent_end_forces_status_update(self, status_builder):
-        """Sub-agent completion sets force_next_update so the status push is immediate."""
+    async def test_sub_agent_end_defers_flush_via_pending_completion(self, status_builder):
+        """Sub-agent completion records a deferred flush instead of setting force_next_update."""
         run_id = "task-force-update"
 
         await status_builder.process_event({
@@ -1742,7 +1742,8 @@ class TestSubAgentInternals:
             "metadata": {},
         })
 
-        assert status_builder.force_next_update is True
+        assert status_builder.force_next_update is False
+        assert run_id in status_builder._pending_completion_flush
 
     # ── Gap 9: Late event routing ───────────────────────────────────────────
 
@@ -6553,3 +6554,110 @@ class TestTurnBoundaryAndUsageTracking:
         assert len(status_builder.current_status.messages) == 2
         assert status_builder.current_status.messages[0].content == ""
         assert status_builder.current_status.messages[1].content == "Answer"
+
+
+# =============================================================================
+# Deferred Completion Flush (Drain Delay)
+# =============================================================================
+
+
+class TestDeferredCompletionFlush:
+    """Tests for the deferred sub-agent completion flush mechanism.
+
+    When a sub-agent completes, the status builder records a pending flush
+    timestamp instead of immediately setting force_next_update.  This allows
+    late LangGraph events to be batched into the same gRPC update.
+    """
+
+    @pytest.fixture
+    def status_builder(self, mock_initial_status):
+        return StatusBuilder(
+            execution_id="test-drain-delay",
+            initial_status=mock_initial_status,
+        )
+
+    @pytest.fixture
+    def mock_initial_status(self):
+        status = MagicMock()
+        status.messages = []
+        status.sub_agent_executions = []
+        status.todos = {}
+        status.artifacts = []
+        status.resolved_context = ResolvedExecutionContext()
+        status.context_info = ContextInfo()
+        return status
+
+    def test_should_flush_empty(self, status_builder):
+        """No pending completions means no flush."""
+        import time
+
+        assert status_builder.should_flush_completions(time.monotonic()) is False
+        assert status_builder.force_next_update is False
+
+    def test_should_flush_before_drain_window(self, status_builder):
+        """Flush returns False when still within the drain window."""
+        import time
+
+        now = time.monotonic()
+        status_builder._pending_completion_flush["sa-1"] = now
+
+        assert status_builder.should_flush_completions(now + 0.1) is False
+        assert status_builder.force_next_update is False
+        assert "sa-1" in status_builder._pending_completion_flush
+
+    def test_should_flush_after_drain_window(self, status_builder):
+        """Flush returns True and sets force_next_update after the drain window elapses."""
+        import time
+
+        now = time.monotonic()
+        status_builder._pending_completion_flush["sa-1"] = now
+
+        result = status_builder.should_flush_completions(
+            now + (StatusBuilder._COMPLETION_DRAIN_MS / 1000.0) + 0.001,
+        )
+
+        assert result is True
+        assert status_builder.force_next_update is True
+        assert "sa-1" not in status_builder._pending_completion_flush
+
+    def test_should_flush_partial_drain(self, status_builder):
+        """Only entries past the drain window are flushed; others remain."""
+        import time
+
+        now = time.monotonic()
+        status_builder._pending_completion_flush["sa-old"] = now
+        status_builder._pending_completion_flush["sa-new"] = now + 1.0
+
+        result = status_builder.should_flush_completions(
+            now + (StatusBuilder._COMPLETION_DRAIN_MS / 1000.0) + 0.001,
+        )
+
+        assert result is True
+        assert "sa-old" not in status_builder._pending_completion_flush
+        assert "sa-new" in status_builder._pending_completion_flush
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_end_populates_pending_flush(self, status_builder):
+        """Sub-agent on_tool_end for 'task' populates _pending_completion_flush."""
+        run_id = "task-drain-test"
+
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"input": {"subagent_type": "helper", "input": "test"}},
+            "metadata": {},
+        })
+
+        status_builder.force_next_update = False
+
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": "completed"},
+            "metadata": {},
+        })
+
+        assert status_builder.force_next_update is False
+        assert run_id in status_builder._pending_completion_flush
