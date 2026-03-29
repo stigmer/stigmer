@@ -1693,9 +1693,6 @@ class TestExtractApprovalDecisionsFromExecution:
         from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
             AgentExecution,
         )
-        from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
-            AgentMessage,
-        )
 
         execution = AgentExecution()
         if root_tool_calls:
