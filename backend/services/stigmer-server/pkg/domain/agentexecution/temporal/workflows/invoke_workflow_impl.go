@@ -307,13 +307,14 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonWithHitl(
 	logger.Info("Activity returned slim status",
 		"execution_id", executionID,
 		"phase", finalStatus.GetPhase().String(),
-		"phase_value", int32(finalStatus.GetPhase()),
-		"pending_approvals", len(finalStatus.GetPendingApprovals()))
+		"phase_value", int32(finalStatus.GetPhase()))
 
 	// HITL Approval Loop (DB-Driven Resume)
 	//
-	// When Python returns EXECUTION_WAITING_FOR_APPROVAL, the workflow waits for
-	// a single approvalGateResolved signal, then re-invokes Python.
+	// When Python returns EXECUTION_WAITING_FOR_APPROVAL, the workflow persists
+	// the status, loads the execution from DB to get the authoritative
+	// pending_approvals (computed by ComputePendingApprovals on every
+	// UpdateStatus write), then waits for a single approvalGateResolved signal.
 	//
 	// All blocking operations use the provided ctx so that cancellation (from the
 	// pause/resume outer loop) propagates through.
@@ -325,17 +326,28 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonWithHitl(
 			return nil, fmt.Errorf("max approval cycles (%d) reached - possible infinite loop", MaxApprovalCycles)
 		}
 
-		pendingCount := len(finalStatus.GetPendingApprovals())
+		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
+			logger.Warn("Failed to persist WAITING_FOR_APPROVAL status before signal wait (non-fatal)",
+				"execution_id", executionID, "error", err.Error())
+		}
+
+		// Read pending_approvals from DB — the single source of truth.
+		// ComputePendingApprovals runs on every UpdateStatus write, so
+		// the DB always has the authoritative count.
+		dbExecution, loadErr := w.loadExecution(ctx, executionID)
+		pendingCount := 0
+		if loadErr != nil {
+			logger.Warn("Failed to load execution from DB for pending count (non-fatal, will wait for signal)",
+				"execution_id", executionID, "error", loadErr.Error())
+			pendingCount = 1 // assume pending to avoid skipping the signal wait
+		} else {
+			pendingCount = len(dbExecution.GetStatus().GetPendingApprovals())
+		}
 
 		logger.Info("Execution waiting for approval — waiting for approvalGateResolved signal",
 			"execution_id", executionID,
 			"cycle", approvalCycle,
 			"pending_count", pendingCount)
-
-		if err := w.persistFinalStatus(ctx, executionID, finalStatus); err != nil {
-			logger.Warn("Failed to persist WAITING_FOR_APPROVAL status before signal wait (non-fatal)",
-				"execution_id", executionID, "error", err.Error())
-		}
 
 		if pendingCount == 0 {
 			logger.Warn("pending_approvals is empty but phase is WAITING_FOR_APPROVAL — "+
@@ -369,7 +381,6 @@ func (w *InvokeAgentExecutionWorkflowImpl) executeGraphtonWithHitl(
 			"execution_id", executionID,
 			"phase", finalStatus.GetPhase().String(),
 			"phase_value", int32(finalStatus.GetPhase()),
-			"pending_approvals", len(finalStatus.GetPendingApprovals()),
 			"cycle", approvalCycle)
 	}
 

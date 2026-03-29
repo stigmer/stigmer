@@ -538,7 +538,7 @@ def create_deep_agent(
 
     transformed_subagents = None
     if checkpointer is not None and approval_checker is not None:
-        from graphton.core.interrupt_proxy import compile_subagent
+        from graphton.core.subagent import compile_subagent
         from graphton.core.subagent_limiter import SubAgentGate
 
         _hitl_gate = SubAgentGate()
@@ -890,7 +890,7 @@ def create_deep_agent(
     # GP sub-agent with the full tool set.  This ensures the model uses
     # native function calling instead of outputting raw XML text.
     if _pending_gp_config is not None and _hitl_gate is not None:
-        from graphton.core.interrupt_proxy import compile_subagent
+        from graphton.core.subagent import compile_subagent
 
         gp_tools: list[Any] = []
 

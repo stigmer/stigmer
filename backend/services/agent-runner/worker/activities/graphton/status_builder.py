@@ -16,6 +16,18 @@ from typing import Any
 from uuid import uuid4
 
 from worker.activities.graphton.execution_state import ExecutionState
+from worker.activities.graphton.handlers import (
+    chat_model as chat_model_handlers,
+    context as context_handlers,
+    formatting,
+    streaming_buffers,
+    sub_agent as sub_agent_handlers,
+    tool_event as tool_event_handlers,
+)
+from worker.activities.graphton.handlers.sub_agent import (
+    _MAX_SUBJECT_LENGTH,
+    _generate_sub_agent_subject,
+)
 from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 
 from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
@@ -65,119 +77,6 @@ from worker.config import Config
 
 _logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Sub-Agent Subject Generation
-#
-# Generates a concise task title for sub-agent executions using an economy-tier
-# LLM. Follows the same pattern as session subject generation in
-# generate_session_subject.py.
-# ─────────────────────────────────────────────────────────────────────────────
-
-_MAX_SUBJECT_LENGTH = 50
-
-_SUBJECT_SYSTEM_PROMPT = """\
-You are a task title generator. Given a task description delegated to a \
-sub-agent, produce a concise task title.
-
-Rules:
-- 3 to 7 words, maximum 50 characters
-- Lead with the most specific differentiator — the directory, file, module, \
-or unique aspect. Put shared/common context last.
-  Good: "apis/ protobuf Cloud Resource types"
-  Bad:  "Research Cloud Resource protobuf definitions"
-- If the description mentions a specific path or directory, include it
-- Be specific (e.g. "Fix auth middleware tests" not "Fix tests")
-- No filler words ("help with", "please", "I need", "research", "explore")
-- The title MUST be unique — it must NOT duplicate any of the existing titles \
-listed below. Focus on what makes THIS task different from the others.
-- No quotes, no punctuation at the end
-- Output ONLY the title, nothing else"""
-
-
-async def _generate_sub_agent_subject(
-    input_text: str,
-    sub_agent_name: str,
-    existing_subjects: list[str] | None = None,
-) -> str:
-    """Generate a concise task title for a sub-agent from its input prompt.
-
-    Uses ``ModelRegistry.get_summarization_model()`` to select the cheapest
-    available model (claude-haiku-4.5 / gpt-4o-mini / same model for Ollama),
-    keeping costs negligible even with many sub-agent invocations per execution.
-
-    When *existing_subjects* is provided (non-empty), the LLM is instructed to
-    produce a title that does not duplicate any of them, ensuring visual
-    differentiation in the UI.
-
-    Returns the generated subject (stripped, truncated to 50 chars), or an
-    empty string on any failure so callers can fall back gracefully.
-    """
-    if not input_text:
-        return ""
-
-    try:
-        worker_config = Config.load_from_env()
-        economy_model = ModelRegistry.get_summarization_model(
-            worker_config.llm.model_name
-        )
-
-        llm_kwargs: dict = {}
-        if worker_config.llm.provider == "ollama":
-            llm_kwargs["base_url"] = worker_config.llm.base_url
-        elif worker_config.llm.provider in ("anthropic", "openai"):
-            llm_kwargs["api_key"] = worker_config.llm.api_key
-
-        model = parse_model_string(
-            economy_model,
-            max_tokens=100,
-            temperature=0.7,
-            **llm_kwargs,
-        )
-
-        truncated_input = input_text[:2000] if len(input_text) > 2000 else input_text
-
-        existing_block = ""
-        if existing_subjects:
-            titles = "\n".join(f"- {s}" for s in existing_subjects)
-            existing_block = (
-                f"\nExisting titles (do NOT repeat these):\n{titles}\n"
-            )
-
-        user_prompt = (
-            f'Sub-agent type: {sub_agent_name}\n'
-            f'{existing_block}\n'
-            f'Task description:\n"{truncated_input}"\n\n'
-            f'Generate the title:'
-        )
-
-        response = await model.ainvoke([
-            SystemMessage(content=_SUBJECT_SYSTEM_PROMPT),
-            HumanMessage(content=user_prompt),
-        ])
-
-        content = response.content
-        if not isinstance(content, str):
-            content = (
-                "".join(str(part) for part in content)
-                if isinstance(content, list)
-                else str(content)
-            )
-        subject = content.strip().strip('"').strip("'")
-
-        if subject and len(subject) > _MAX_SUBJECT_LENGTH:
-            subject = subject[:_MAX_SUBJECT_LENGTH - 3] + "..."
-
-        return subject or ""
-
-    except Exception:
-        _logger.debug(
-            "Sub-agent subject generation failed (non-critical), "
-            "falling back to empty subject",
-            exc_info=True,
-        )
-        return ""
-
-
 # Planning tools that update execution state without UI display
 PLANNING_TOOLS = {
     'write_todos',
@@ -189,94 +88,15 @@ PLANNING_TOOLS = {
 # (see graphton.core.tool_wrappers._MAX_TOOL_OUTPUT_CHARS).
 _MAX_STATUS_RESULT_CHARS: int = 50_000
 
-# Maps tool names to the arg field(s) that contain the bulk displayable content
-# (ordered by priority).  Used by the input-streaming extractor to pull clean
-# content from the accumulating partial JSON and pipe it into tool_call.result.
-# Tools not listed here either generate tiny args (< 1 s) or have no meaningful
-# content to stream — they are left with an empty result during the early phase.
-_TOOL_CONTENT_FIELDS: dict[str, list[str]] = {
-    "write":          ["contents", "content", "file_content"],
-    "write_file":     ["contents", "content", "file_content"],
-    "create_file":    ["contents", "content", "file_content"],
-    "overwrite_file": ["contents", "content", "file_content"],
-    "edit":           ["new_text", "new_string", "replacement", "content"],
-    "edit_file":      ["new_text", "new_string", "replacement", "content"],
-    "think":          ["thought"],
-}
+_TOOL_CONTENT_FIELDS = streaming_buffers._TOOL_CONTENT_FIELDS
 
 # Read-only tools whose result content is replaced with a size-only placeholder
 # in the persisted state.  The file path is already in tc.args; full content
 # lives in the LangGraph checkpoint DB if ever needed.
 _READ_ONLY_TOOLS: set[str] = {"read", "read_file"}
 
-# JSON escape → Python character mapping (single-char sequences).
-_JSON_ESCAPES: dict[str, str] = {
-    "n": "\n", "t": "\t", "r": "\r",
-    '"': '"', "\\": "\\", "/": "/",
-    "b": "\b", "f": "\f",
-}
-
-
-def _find_json_string_value_start(partial_json: str, field_name: str) -> int:
-    """Return the index of the first content character of a JSON string value.
-
-    Searches *partial_json* for ``"<field_name>"`` followed by ``:`` and ``"``,
-    skipping optional whitespace.  Returns the index immediately after the
-    opening quote, or ``-1`` if the pattern has not yet appeared.
-
-    Robust against missing whitespace (``"key":"val"``) and extra whitespace
-    (``"key" :  "val"``).
-    """
-    marker = f'"{field_name}"'
-    pos = partial_json.find(marker)
-    if pos < 0:
-        return -1
-    after_key = pos + len(marker)
-    colon_pos = partial_json.find(":", after_key)
-    if colon_pos < 0:
-        return -1
-    quote_pos = partial_json.find('"', colon_pos + 1)
-    if quote_pos < 0:
-        return -1
-    return quote_pos + 1
-
-
-def _json_unescape_partial(s: str) -> str:
-    """Unescape a partial JSON string value.
-
-    Converts standard JSON escape sequences (``\\n``, ``\\t``, ``\\"``, etc.)
-    to their Python equivalents.  Processing stops at the closing ``"`` (end of
-    JSON string) or at the end of the input (string is still being generated).
-
-    A trailing backslash with no following character is silently dropped to
-    avoid showing a garbled escape that is not yet complete.
-    """
-    out: list[str] = []
-    i = 0
-    n = len(s)
-    while i < n:
-        ch = s[i]
-        if ch == "\\":
-            if i + 1 >= n:
-                break  # incomplete escape at boundary — drop it
-            nxt = s[i + 1]
-            if nxt == "u":
-                if i + 5 < n:
-                    try:
-                        out.append(chr(int(s[i + 2 : i + 6], 16)))
-                        i += 6
-                        continue
-                    except ValueError:
-                        pass
-                break  # incomplete \\uXXXX — wait for more data
-            out.append(_JSON_ESCAPES.get(nxt, nxt))
-            i += 2
-        elif ch == '"':
-            break  # end of JSON string value
-        else:
-            out.append(ch)
-            i += 1
-    return "".join(out)
+_find_json_string_value_start = streaming_buffers._find_json_string_value_start
+_json_unescape_partial = streaming_buffers._json_unescape_partial
 
 
 def _utc_timestamp(dt: datetime | None = None) -> str:
@@ -447,31 +267,6 @@ class StatusBuilder:
             return True
         return False
 
-    def build_pending_approvals_snapshot(self) -> list[PendingApproval]:
-        """Build pending_approvals snapshot for the Temporal slim status.
-
-        This is a point-in-time coordination signal for the Temporal workflow,
-        NOT a DB-persisted projection.  The DB projection is computed
-        server-side by Go/Java ``ComputePendingApprovals`` on every
-        ``UpdateStatus`` write (DD-001).
-
-        The Temporal workflow uses this snapshot to determine how many
-        approval signals to collect before re-invoking the Python activity.
-        Reading from the DB is unsafe because the ``SubmitApproval`` handler
-        may have already recorded decisions (mutating the DB projection)
-        before the workflow reads it.
-        """
-        result: list[PendingApproval] = []
-        for tc in self.iter_all_tool_calls():
-            if (
-                tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-                and tc.requires_approval
-                and tc.approval_action
-                == ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
-            ):
-                result.append(PendingApproval(tool_call_id=tc.id))
-        return result
-
     async def process_event(self, event: dict[str, Any]) -> None:
         """
         Process astream_events v2 event and update local status.
@@ -531,189 +326,8 @@ class StatusBuilder:
                 )
     
     async def _handle_tool_start_event(self, event: dict[str, Any], namespace: str = "") -> None:
-        """Handle on_tool_start event - updates local status."""
-        tool_name = event.get("name", "")
-        tool_args_raw = event.get("data", {}).get("input", {})
-        run_id = event.get("run_id", "")
-        
-        if not tool_name or not run_id:
-            return
-        
-        tool_args = self._unwrap_tool_args(tool_args_raw)
-        
-        # Identity-based resume dedup.
-        # On the resume-after-approval path, LangGraph re-fires on_tool_start
-        # for resumed tools with a NEW run_id.  The ToolCallIdCapture callback
-        # handler maps that run_id to the model's stable tool_call_id, which
-        # is already indexed from the prior cycle (via rebuild_index_from_persisted_status).
-        # We register a run-ID alias so on_tool_end / on_tool_progress can find
-        # the existing ToolCall, then return early (dedup).
-        tool_call_id = self._tool_call_id_capture.get(run_id)
-        if tool_call_id:
-            existing = self.state.tool_calls.get(tool_call_id)
-            if existing is not None and not existing.is_streaming:
-                if run_id != tool_call_id:
-                    self._tool_call_id_capture.register_alias(run_id, tool_call_id)
-                self.logger.info(
-                    "[IDENTITY_DEDUP] execution=%s tool=%s run_id=%s -> "
-                    "existing_tc=%s (resume path, alias only)",
-                    self.execution_id, tool_name, run_id, tool_call_id,
-                )
-                # Task tools fall through to the sub-agent lifecycle handler
-                # below; all other tools are fully deduped.
-                if tool_name != "task":
-                    return
-
-        # Handle planning tools
-        if tool_name in PLANNING_TOOLS:
-            if tool_name == "write_todos":
-                todos_data = tool_args.get("todos", [])
-                if not todos_data:
-                    return
-                _, sub_agent = self._get_execution_context(namespace)
-                if sub_agent is not None:
-                    self._update_sub_agent_todos(sub_agent, todos_data)
-                else:
-                    self._update_todos(todos_data)
-            return
-        
-        # ─────────────────────────────────────────────────────────────────────
-        # Sub-Agent Detection (Phase 2.3): "task" tool invokes a sub-agent
-        #
-        # Reconcile the early ToolCall (created from the tool_use stream
-        # block) so it persists in the parent AI message — this is the slot
-        # the frontend uses to render SubAgentSection.  Extract the
-        # tool_call_id so SubAgentExecution.id matches ToolCall.id.
-        # ─────────────────────────────────────────────────────────────────────
-        if tool_name == "task":
-            tool_call_id: str | None = None
-            early_tc = self._reconcile_early_tool_call(tool_name, run_id, tool_args, namespace)
-            if early_tc is not None:
-                tool_call_id = early_tc.id
-            else:
-                # No early ToolCall (e.g. checkpoint replay where the stream
-                # did not re-emit tool_use blocks).  Create one now so the
-                # frontend has a tool call slot for the sub-agent.
-                ns_key = namespace or ""
-                display_args = self._humanize_args_for_display(tool_args) if tool_args else {}
-                args_struct = Struct()
-                if display_args:
-                    args_struct.update(display_args)
-                now = datetime.utcnow()
-                tool_call = ToolCall(
-                    id=run_id,
-                    name=tool_name,
-                    args=args_struct,
-                    args_preview=self._create_args_preview(tool_args),
-                    result="",
-                    status=ToolCallStatus.TOOL_CALL_RUNNING,
-                    component_metadata=ComponentMetadata(
-                        component_type=infer_component_type(tool_name),
-                        component_group="main-agent-tools",
-                    ),
-                    started_at=_utc_timestamp(now),
-                )
-                parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
-                parent_ai.tool_calls.append(tool_call)
-                self.state.tool_calls[run_id] = parent_ai.tool_calls[-1]
-                tool_call_id = run_id
-
-            await self._handle_sub_agent_start(event, tool_args, run_id, tool_call_id=tool_call_id)
-            return
-        
-        # ─────────────────────────────────────────────────────────────────────
-        # Early Tool Call Reconciliation (Live Write Streaming UX)
-        #
-        # If _create_early_tool_call already created a ToolCall for this
-        # invocation (from a tool_use stream block), reconcile it: populate
-        # args, register the real run_id alias, and handle approval — then
-        # return without creating a duplicate.
-        # ─────────────────────────────────────────────────────────────────────
-        early_tc = self._reconcile_early_tool_call(tool_name, run_id, tool_args, namespace)
-        if early_tc is not None:
-            # The index holds a reference INTO the message's repeated field,
-            # so _reconcile_early_tool_call already mutated the message copy.
-            return
-        
-        # Create component metadata
-        component_type = infer_component_type(tool_name)
-        component_metadata = ComponentMetadata(
-            component_type=component_type,
-            component_group="main-agent-tools",
-        )
-        
-        # ─────────────────────────────────────────────────────────────────────
-        # Approval Check (HITL Phase 2): Check if tool requires user approval
-        # ─────────────────────────────────────────────────────────────────────
-        approval_requirement = self._check_tool_approval_requirement(tool_name, tool_args)
-        
-        # Create tool call with appropriate initial status
-        # If approval required: WAITING_APPROVAL, otherwise: RUNNING
-        display_args = self._humanize_args_for_display(tool_args) if tool_args else {}
-        args_struct = Struct()
-        if display_args:
-            args_struct.update(display_args)
-        
-        now = datetime.utcnow()
-        initial_status = (
-            ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-            if approval_requirement.requires_approval
-            else ToolCallStatus.TOOL_CALL_RUNNING
-        )
-        
-        mcp_server_slug = ""
-        if self._approval_config is not None:
-            mcp_server_slug = self._approval_config.get_mcp_server_for_tool(tool_name)
-        
-        tool_call = ToolCall(
-            id=run_id,
-            name=tool_name,
-            args=args_struct,
-            args_preview=self._create_args_preview(tool_args),
-            result="",
-            status=initial_status,
-            component_metadata=component_metadata,
-            started_at=_utc_timestamp(now),
-            mcp_server_slug=mcp_server_slug,
-        )
-        
-        # If approval required, populate approval fields on the ToolCall
-        if approval_requirement.requires_approval:
-            rendered_message = render_approval_message(
-                template=approval_requirement.message,
-                tool_name=tool_name,
-                tool_args=tool_args,
-            )
-            tool_call.requires_approval = True
-            tool_call.approval_message = rendered_message
-            tool_call.approval_requested_at = _utc_timestamp(now)
-        
-        # Track start time for duration calculation (even for approval-pending tools)
-        self.state.tool_start_times[run_id] = now
-        
-        # ─────────────────────────────────────────────────────────────────────
-        # Namespace-Based Routing (Phase 2.3): Route to correct execution context
-        # ─────────────────────────────────────────────────────────────────────
-        context, sub_agent = self._get_execution_context(namespace)
-        ns_key = namespace or ""
-        
-        # Determine context info for logging
-        status_name = ToolCallStatus.Name(initial_status)
-        
-        # Attach tool call to the parent AI message — the single source of
-        # truth.  The in-memory _tool_call_index provides O(1) lookup by ID.
-        parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
-        parent_ai.tool_calls.append(tool_call)
-        self.state.tool_calls[run_id] = parent_ai.tool_calls[-1]
-        
-        context_desc = f"sub_agent={sub_agent.id}" if sub_agent else "main_agent"
-        self.logger.debug(
-            f"[TOOL] execution={self.execution_id} {context_desc} "
-            f"tool={tool_name} run_id={run_id} status={status_name}"
-        )
-        
-        if approval_requirement.requires_approval:
-            self._set_waiting_for_approval_phase(tool_name, run_id)
+        """Delegate to :func:`tool_event_handlers.handle_tool_start`."""
+        await tool_event_handlers.handle_tool_start(self, event, namespace)
     
     def _ensure_parent_ai_message(
         self,
@@ -775,135 +389,12 @@ class StatusBuilder:
         return managed
 
     def _handle_tool_progress_event(self, event: dict[str, Any], namespace: str = "") -> None:
-        """Handle on_custom_event with name='tool_progress'.
-        
-        Appends a progress chunk to the ToolCall's result field and sets
-        is_streaming=True. This enables live output streaming for tools
-        that support progressive output (e.g., execute/shell stdout).
-        
-        The run_id is read from the event-level field (same as on_tool_start/
-        on_tool_end) — NOT from the data payload. dispatch_custom_event called
-        within a @tool function inherits the tool's run context, so the run_id
-        automatically matches.
-        
-        Expected event structure:
-            {
-                "event": "on_custom_event",
-                "name": "tool_progress",
-                "run_id": str,           # Inherited from tool's run context
-                "data": {"chunk": str},  # Partial output to append
-            }
-        """
-        run_id = event.get("run_id", "")
-        chunk = event.get("data", {}).get("chunk", "")
-        
-        if not run_id or not chunk:
-            return
-
-        chunk = humanize_sandbox_paths(chunk, self._workspace_root)
-
-        # Resolve run-ID alias (resume-after-approval path)
-        resolved_id = self._tool_call_id_capture.resolve(run_id)
-        
-        tool_call = self.get_tool_call(resolved_id)
-        if tool_call is None:
-            self.logger.debug(
-                f"[TOOL_PROGRESS] execution={self.execution_id} "
-                f"run_id={run_id} resolved_id={resolved_id} "
-                f"ignored (tool call not found)"
-            )
-            return
-        
-        was_streaming = tool_call.is_streaming
-
-        current_len = len(tool_call.result)
-        if current_len < _MAX_STATUS_RESULT_CHARS:
-            remaining = _MAX_STATUS_RESULT_CHARS - current_len
-            tool_call.result += chunk[:remaining]
-            if len(chunk) > remaining:
-                tool_call.result += "\n[output truncated for display]"
-        tool_call.is_streaming = True
-
-        if not was_streaming:
-            self.force_next_update = True
-
-        self.logger.debug(
-            f"[TOOL_PROGRESS] execution={self.execution_id} "
-            f"run_id={run_id} resolved_id={resolved_id} "
-            f"chunk_len={len(chunk)} total_len={len(tool_call.result)}"
-        )
+        """Delegate to :func:`tool_event_handlers.handle_tool_progress`."""
+        tool_event_handlers.handle_tool_progress(self, event, namespace)
     
     def _handle_tool_end_event(self, event: dict[str, Any], namespace: str = "") -> None:
-        """Handle on_tool_end event - updates local status with COMPLETED status."""
-        tool_name = event.get("name", "")
-        run_id = event.get("run_id", "")
-        tool_result_raw = event.get("data", {}).get("output", "")
-        
-        if not run_id or tool_name in PLANNING_TOOLS:
-            return
-        
-        # ─────────────────────────────────────────────────────────────────────
-        # Sub-Agent Completion (Phase 2.3): task tool returns sub-agent result
-        # ─────────────────────────────────────────────────────────────────────
-        if tool_name == "task":
-            self._handle_sub_agent_end(event, run_id)
-            return
-        
-        # ─────────────────────────────────────────────────────────────────────
-        # Run-ID Alias Resolution (Resume-After-Approval Fix)
-        #
-        # On the resume path, LangGraph assigns a new run_id to the resumed
-        # tool execution.  The existing ToolCall was created in a previous
-        # invocation with its original run_id.  _handle_tool_start_event
-        # recorded an alias when identity-based dedup fired; resolve it
-        # here so we can find and update the correct ToolCall.
-        # ─────────────────────────────────────────────────────────────────────
-        resolved_id = self._tool_call_id_capture.resolve(run_id)
-        
-        tool_result_content = self._extract_tool_result_content(tool_result_raw)
-
-        if tool_name in _READ_ONLY_TOOLS:
-            persisted_result = f"[content omitted - {len(tool_result_content)} chars]"
-        elif len(tool_result_content) > _MAX_STATUS_RESULT_CHARS:
-            persisted_result = (
-                tool_result_content[:_MAX_STATUS_RESULT_CHARS]
-                + "\n[output truncated for display]"
-            )
-        else:
-            persisted_result = tool_result_content
-
-        persisted_result = humanize_sandbox_paths(
-            persisted_result, self._workspace_root,
-        )
-
-        now = datetime.utcnow()
-        
-        # Calculate execution duration if we tracked the start time
-        duration_ms = None
-        if run_id in self.state.tool_start_times:
-            start_time = self.state.tool_start_times.pop(run_id)
-            duration_ms = int((now - start_time).total_seconds() * 1000)
-        
-        # ─────────────────────────────────────────────────────────────────────
-        # Namespace-Based Routing: Update in correct execution context
-        # ─────────────────────────────────────────────────────────────────────
-        context, sub_agent = self._get_execution_context(namespace)
-        
-        completed_at = _utc_timestamp(now)
-
-        tool_call = self.get_tool_call(resolved_id)
-        if tool_call is not None:
-            tool_call.result = persisted_result
-            tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
-            tool_call.completed_at = completed_at
-            tool_call.is_streaming = False
-        
-        context_desc = f"sub_agent={sub_agent.id}" if sub_agent else "main_agent"
-        self.logger.debug(
-            f"[TOOL] execution={self.execution_id} {context_desc} "
-            f"tool={tool_name} run_id={run_id} resolved_id={resolved_id} "
-            f"status=COMPLETED duration_ms={duration_ms or 'N/A'}"
-        )
+        """Delegate to :func:`tool_event_handlers.handle_tool_end`."""
+        tool_event_handlers.handle_tool_end(self, event, namespace)
     
     def _handle_chat_model_stream_event(self, event: dict[str, Any], namespace: str = "") -> None:
         """Handle on_chat_model_stream event - updates local status."""
@@ -952,8 +443,8 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────
         if hasattr(chunk_data, "content") and isinstance(chunk_data.content, list):
             ns_key = namespace or ""
-            thinking_text = self._extract_thinking_content(chunk_data.content)
-            text_in_same_chunk = self._extract_string_content(chunk_data.content)
+            thinking_text = formatting.extract_thinking_content(chunk_data.content)
+            text_in_same_chunk = formatting.extract_string_content(chunk_data.content)
             
             # Diagnostic: log mixed chunks and empty extractions
             if thinking_text and text_in_same_chunk:
@@ -971,7 +462,7 @@ class StatusBuilder:
                     "thinking", "tool_use", "input_json_delta",
                 })
                 block_types = [
-                    self._block_attr(b, "type", type(b).__name__)
+                    formatting.block_attr(b, "type", type(b).__name__)
                     for b in chunk_data.content[:5]
                 ]
                 is_expected = (
@@ -995,9 +486,9 @@ class StatusBuilder:
             skip_early_tools = frozenset(PLANNING_TOOLS)
             for block in chunk_data.content:
                 try:
-                    if self._block_attr(block, "type") == "tool_use":
-                        t_name = self._block_attr(block, "name")
-                        t_id = self._block_attr(block, "id")
+                    if formatting.block_attr(block, "type") == "tool_use":
+                        t_name = formatting.block_attr(block, "name")
+                        t_id = formatting.block_attr(block, "id")
                         if t_name and t_name not in skip_early_tools:
                             self._create_early_tool_call(
                                 t_name, t_id, ns_key, namespace,
@@ -1015,10 +506,10 @@ class StatusBuilder:
             # render it progressively (same mechanism as thinking streaming).
             for block in chunk_data.content:
                 try:
-                    if self._block_attr(block, "type") == "input_json_delta":
-                        partial = self._block_attr(block, "partial_json")
+                    if formatting.block_attr(block, "type") == "input_json_delta":
+                        partial = formatting.block_attr(block, "partial_json")
                         if partial:
-                            self._accumulate_tool_input(ns_key, partial)
+                            streaming_buffers.accumulate_tool_input(self, ns_key, partial)
                 except Exception:
                     self.logger.exception(
                         f"[TOOL_INPUT_ERROR] execution={self.execution_id} "
@@ -1030,12 +521,12 @@ class StatusBuilder:
                     self.state.thinking.buffers.get(ns_key, "") + thinking_text
                 )
                 if ns_key not in self.state.thinking.tool_call_ids:
-                    self._start_thinking_stream(
+                    streaming_buffers.start_thinking_stream(self,
                         ns_key, namespace, self.state.thinking.buffers[ns_key],
                         llm_run_id=run_id,
                     )
                 else:
-                    self._update_thinking_stream(ns_key)
+                    streaming_buffers.update_thinking_stream(self, ns_key)
                 
                 if not text_in_same_chunk:
                     return
@@ -1049,7 +540,7 @@ class StatusBuilder:
             if isinstance(chunk_content, str):
                 token = chunk_content
             elif isinstance(chunk_content, list):
-                token = self._extract_string_content(chunk_content)
+                token = formatting.extract_string_content(chunk_content)
         
         if not token:
             return
@@ -1059,7 +550,7 @@ class StatusBuilder:
         # timeline before the AI message that follows it.
         ns_key = namespace or ""
         if self.state.thinking.buffers.get(ns_key):
-            self._flush_thinking_buffer(ns_key, namespace)
+            streaming_buffers.flush_thinking_buffer(self, ns_key, namespace)
         
         # ─────────────────────────────────────────────────────────────────────
         # run_id-Based Message Isolation
@@ -1157,7 +648,7 @@ class StatusBuilder:
         # (e.g. the model only produced thinking + tool_use, no text block).
         ns_key = namespace or ""
         if self.state.thinking.buffers.get(ns_key):
-            self._flush_thinking_buffer(ns_key, namespace)
+            streaming_buffers.flush_thinking_buffer(self, ns_key, namespace)
         
         # ─────────────────────────────────────────────────────────────────────
         # run_id-Based Message Resolution (with backwards-scan fallback)
@@ -1304,13 +795,13 @@ class StatusBuilder:
                 if isinstance(oc, str):
                     final_text = oc
                 elif isinstance(oc, list):
-                    final_text = self._extract_string_content(oc)
+                    final_text = formatting.extract_string_content(oc)
             elif isinstance(output_data, dict) and "content" in output_data:
                 oc = output_data["content"]
                 if isinstance(oc, str):
                     final_text = oc
                 elif isinstance(oc, list):
-                    final_text = self._extract_string_content(oc)
+                    final_text = formatting.extract_string_content(oc)
             
             streamed_text = ai_message.content
             if final_text and final_text != streamed_text:
@@ -1375,14 +866,6 @@ class StatusBuilder:
         to *run_id* unchanged.
         """
         return self._tool_call_id_capture.resolve(run_id)
-    
-    def _unwrap_tool_args(self, args: dict[str, Any]) -> dict[str, Any]:
-        """Unwrap LangGraph arg wrappers."""
-        if "kwargs" in args and isinstance(args["kwargs"], dict):
-            return args["kwargs"]
-        if "input" in args and isinstance(args["input"], dict) and len(args) == 1:
-            return args["input"]
-        return args
     
     def rebuild_index_from_persisted_status(self) -> None:
         """Reconstruct proto-derivable indexes from the persisted status.
@@ -1452,585 +935,24 @@ class StatusBuilder:
         return queued
 
     def _extract_tool_result_content(self, result: Any) -> str:
-        """Extract displayable content string from a tool result.
-
-        Handles the five result shapes that flow through LangGraph astream_events:
-        - str: Direct string results (most common for simple tools)
-        - LangGraph message objects (ToolMessage, AIMessage): Extract .content
-        - LangGraph Command objects: Extract ToolMessage content from .update
-        - dict: Extract from 'output'/'content' keys, or JSON-serialize
-        - list: Extract text from MCP content blocks, or JSON-serialize
-        """
-        if isinstance(result, str):
-            return result
-        # Handle LangGraph message objects (ToolMessage, AIMessage, etc.)
-        # Uses duck typing on .content to stay decoupled from langchain_core.
-        if hasattr(result, "content"):
-            content = result.content
-            if isinstance(content, str):
-                return content
-            if isinstance(content, list):
-                return self._extract_string_content(content)
-        # Handle LangGraph Command objects (returned after approval resume).
-        # When a tool goes through interrupt()/resume, on_tool_end may emit a
-        # Command object instead of the plain tool return value. The Command's
-        # .update dict contains state channel data; the "messages" channel holds
-        # ToolMessage objects with the human-readable result.
-        # Uses duck typing on .update to stay decoupled from langgraph.types.
-        # Once identified as a Command, we commit to extracting from it — even
-        # if the result is empty — rather than falling through to str(result)
-        # which would produce a useless repr string.
-        if hasattr(result, "update") and isinstance(getattr(result, "update", None), dict):
-            return self._extract_command_content(result.update)
-        if isinstance(result, dict):
-            if "output" in result:
-                return result.get("output", "")
-            if "content" in result:
-                return str(result["content"])
-            return json.dumps(result, indent=2)
-        if isinstance(result, list):
-            extracted = self._extract_string_content(result)
-            if extracted:
-                return extracted
-            try:
-                return json.dumps(result, indent=2, default=str)
-            except (TypeError, ValueError):
-                pass
-        self.logger.warning(
-            f"[TOOL] Unknown result type {type(result).__name__} for tool result "
-            f"extraction, falling back to str(). Preview: {str(result)[:200]}"
-        )
-        return str(result)
+        """Delegate to :func:`formatting.extract_tool_result_content`."""
+        return formatting.extract_tool_result_content(result)
     
-    def _format_tool_message_content(
-        self,
-        tool_name: str,
-        args: Struct | None,
-        result: str,
-    ) -> str:
-        """Format tool message content for CLI display.
-        
-        Creates a human-readable summary of the tool call for streaming display.
-        
-        Args:
-            tool_name: Name of the tool that was called
-            args: Tool arguments as Struct proto
-            result: Tool result string
-            
-        Returns:
-            Formatted string like "read(path='file.txt') -> 123 chars"
-        """
-        # Format arguments summary
-        args_summary = ""
-        if args:
-            try:
-                args_dict = dict(args.fields)
-                # Create compact args display (first arg only for brevity)
-                if args_dict:
-                    first_key = next(iter(args_dict))
-                    first_value = args_dict[first_key]
-                    # Get string value from protobuf Value
-                    if hasattr(first_value, 'string_value') and first_value.string_value:
-                        value_str = first_value.string_value
-                        # Truncate long values
-                        if len(value_str) > 40:
-                            value_str = value_str[:37] + "..."
-                        args_summary = f"{first_key}='{value_str}'"
-                    elif hasattr(first_value, 'number_value'):
-                        args_summary = f"{first_key}={first_value.number_value}"
-                    elif hasattr(first_value, 'bool_value'):
-                        args_summary = f"{first_key}={first_value.bool_value}"
-                    
-                    if len(args_dict) > 1:
-                        args_summary += f", +{len(args_dict) - 1} more"
-            except Exception:
-                # Fall back to empty args if parsing fails
-                pass
-        
-        # Format result summary
-        result_summary = ""
-        if result:
-            # Truncate long results
-            if len(result) > 100:
-                result_summary = f"{len(result)} chars"
-            else:
-                # Show short results directly
-                result_summary = result.replace('\n', ' ')[:80]
-        
-        # Build final message
-        if args_summary:
-            call_str = f"{tool_name}({args_summary})"
-        else:
-            call_str = f"{tool_name}()"
-        
-        if result_summary:
-            return f"{call_str} -> {result_summary}"
-        else:
-            return call_str
-    
-    @staticmethod
-    def _block_attr(block: Any, key: str, default: str = "") -> str:
-        """Read *key* from a content block regardless of whether it is a
-        ``dict`` or an object with attributes (e.g. a LangChain dataclass)."""
-        if isinstance(block, dict):
-            return block.get(key, default)
-        return getattr(block, key, default)
-
-    def _extract_string_content(self, content_blocks: list) -> str:
-        """Extract text from multimodal content blocks.
-
-        Handles both dict blocks (``{"type": "text", "text": "..."}``}) and
-        attribute-based objects (``block.type == "text"``).
-        """
-        text_parts: list[str] = []
-        for block in content_blocks:
-            if self._block_attr(block, "type") == "text":
-                text_parts.append(self._block_attr(block, "text"))
-        return "".join(text_parts)
-
-    def _extract_thinking_content(self, content_blocks: list) -> str:
-        """Extract thinking text from Anthropic extended-thinking content blocks.
-
-        Returns the concatenated thinking text from all blocks with
-        ``type: "thinking"``.  Returns an empty string when no thinking
-        blocks are present (non-Anthropic models, or text/tool_use chunks).
-
-        Handles both dict blocks and attribute-based objects.
-        """
-        parts: list[str] = []
-        for block in content_blocks:
-            if self._block_attr(block, "type") == "thinking":
-                parts.append(self._block_attr(block, "thinking"))
-        return "".join(parts)
-    
-    def _create_early_tool_call(
-        self,
-        tool_name: str,
-        tool_use_id: str,
-        ns_key: str,
-        namespace: str,
-        llm_run_id: str = "",
-    ) -> None:
-        """Create a ToolCall as soon as a ``tool_use`` block appears in the stream.
-
-        The CLI shows an idle "Thinking…" indicator when no events arrive
-        for ≥ 2 s.  While the LLM generates tool arguments (``input_json_delta``
-        chunks) the status builder has nothing to report, so the CLI falls
-        back to the idle indicator even though the model has already decided
-        to call a tool.
-
-        By creating the ToolCall here — before ``on_tool_start`` fires — the
-        CLI immediately displays the tool name with a running badge.  When
-        ``on_tool_start`` arrives, ``_handle_tool_start_event`` reconciles
-        the early ToolCall (populates args, registers the real run-ID alias)
-        instead of creating a duplicate.
-        """
-        if self.state.thinking.buffers.get(ns_key):
-            self._flush_thinking_buffer(ns_key, namespace)
-
-        temp_id = tool_use_id or f"early-{uuid4()}"
-
-        # On resume, LangGraph replays the AI message from the checkpoint.
-        # The replayed tool_use blocks carry the same tool_use_id, so the
-        # derived temp_id matches an existing ToolCall from the previous
-        # cycle.  Skip creation to avoid duplicate messages and tool calls.
-        #
-        # However, we MUST still enqueue the existing TC for reconciliation.
-        # When on_tool_start fires later, _reconcile_early_tool_call needs
-        # to find this entry so it can create a run_id alias to the correct
-        # Anthropic tool_call_id.  Without this, the task handler falls
-        # through to the run_id fallback, producing UUID-format IDs that
-        # diverge from the InjectedToolCallId in the interrupt payload.
-        if self._find_tool_call_by_id(temp_id) is not None:
-            _, sub_agent = self._get_execution_context(namespace)
-            sa_id = sub_agent.id if sub_agent else None
-            self.state.early_tool_call_queue.append((temp_id, sa_id))
-            self.logger.info(
-                "[RESUME_DEDUP] execution=%s skipping early tool call "
-                "creation for %s (id=%s already exists from prior cycle, "
-                "re-queued for reconciliation)",
-                self.execution_id, tool_name, temp_id,
-            )
-            return
-
-        mcp_server_slug = ""
-        if self._approval_config is not None:
-            mcp_server_slug = self._approval_config.get_mcp_server_for_tool(tool_name)
-
-        now = datetime.utcnow()
-        tool_call = ToolCall(
-            id=temp_id,
-            name=tool_name,
-            result="",
-            status=ToolCallStatus.TOOL_CALL_RUNNING,
-            is_streaming=True,
-            component_metadata=ComponentMetadata(
-                component_type=infer_component_type(tool_name),
-                component_group="main-agent-tools",
-            ),
-            started_at=_utc_timestamp(now),
-            mcp_server_slug=mcp_server_slug,
+    def _create_early_tool_call(self, tool_name: str, tool_use_id: str,
+                               ns_key: str, namespace: str,
+                               llm_run_id: str = "") -> None:
+        """Delegate to :func:`streaming_buffers.create_early_tool_call`."""
+        streaming_buffers.create_early_tool_call(
+            self, tool_name, tool_use_id, ns_key, namespace, llm_run_id,
         )
 
-        parent_ai = self._ensure_parent_ai_message(
-            ns_key, namespace, llm_run_id=llm_run_id,
+    def _reconcile_early_tool_call(self, tool_name: str, run_id: str,
+                                   tool_args: dict[str, Any],
+                                   namespace: str) -> ToolCall | None:
+        """Delegate to :func:`streaming_buffers.reconcile_early_tool_call`."""
+        return streaming_buffers.reconcile_early_tool_call(
+            self, tool_name, run_id, tool_args, namespace,
         )
-        parent_ai.tool_calls.append(tool_call)
-        self.state.tool_calls[temp_id] = parent_ai.tool_calls[-1]
-
-        _, sub_agent = self._get_execution_context(namespace)
-        sa_id = sub_agent.id if sub_agent else None
-        self.state.early_tool_call_queue.append((temp_id, sa_id))
-        self.state.tool_start_times[temp_id] = now
-
-        self.state.tool_input.active_tc[ns_key] = temp_id
-        self.state.tool_input.buffers[temp_id] = ""
-
-        self.force_next_update = True
-
-    def _reconcile_early_tool_call(
-        self,
-        tool_name: str,
-        run_id: str,
-        tool_args: dict[str, Any],
-        namespace: str,
-    ) -> ToolCall | None:
-        """Match an ``on_tool_start`` event to an early-created ToolCall.
-
-        Pops the first queued entry whose ToolCall name matches *tool_name*
-        and whose sub-agent context matches the current namespace.  This
-        prevents cross-contamination when concurrent sub-agents invoke the
-        same tool (e.g., two sub-agents both calling ``read_file``).
-
-        If found, the existing ToolCall is updated in place (args populated,
-        ``is_streaming`` cleared) and the real *run_id* is registered as an
-        alias so that downstream handlers (``on_tool_end``, ``tool_progress``)
-        resolve to the same proto.
-
-        On the **resume path**, a TC from the prior cycle may be re-queued
-        by ``_create_early_tool_call``.  In that case only the run_id alias
-        is registered — existing state is preserved to avoid overwriting
-        approval decisions already recorded.
-
-        Returns the reconciled ToolCall, or ``None`` if no match exists.
-        """
-        _, sub_agent = self._get_execution_context(namespace)
-        sa_id = sub_agent.id if sub_agent else None
-
-        for idx, (temp_id, queued_sa_id) in enumerate(self.state.early_tool_call_queue):
-            existing = self.get_tool_call(temp_id)
-            if existing is None or existing.name != tool_name:
-                continue
-            if queued_sa_id != sa_id:
-                continue
-
-            self.state.early_tool_call_queue.pop(idx)
-
-            # Resume path: TC from a prior cycle was re-queued by
-            # _create_early_tool_call's resume dedup.  The TC is fully
-            # populated (not streaming) and may already have an approval
-            # decision recorded.  Only register the run_id alias so
-            # downstream handlers route correctly.
-            is_resume_requeue = not existing.is_streaming
-            if is_resume_requeue:
-                self._tool_call_id_capture.register_alias(run_id, temp_id)
-                self.logger.info(
-                    "[RECONCILE] execution=%s resume-path reconciliation: "
-                    "tool=%s run_id=%s -> existing_tc=%s "
-                    "(alias only, preserving prior-cycle state)",
-                    self.execution_id, tool_name, run_id, temp_id,
-                )
-                return existing
-
-            self._flush_tool_input_buffer(temp_id)
-
-            existing.result = ""
-
-            if tool_args:
-                display_args = self._humanize_args_for_display(tool_args)
-                args_struct = Struct()
-                args_struct.update(display_args)
-                existing.args.CopyFrom(args_struct)
-                existing.args_preview = self._create_args_preview(tool_args)
-
-            existing.is_streaming = False
-
-            if self._approval_config is not None:
-                slug = self._approval_config.get_mcp_server_for_tool(tool_name)
-                if slug and not existing.mcp_server_slug:
-                    existing.mcp_server_slug = slug
-
-            approval = self._check_tool_approval_requirement(tool_name, tool_args)
-            if approval.requires_approval:
-                existing.status = ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-                existing.requires_approval = True
-                existing.approval_message = render_approval_message(
-                    template=approval.message,
-                    tool_name=tool_name,
-                    tool_args=tool_args,
-                )
-                existing.approval_requested_at = _utc_timestamp(datetime.utcnow())
-
-            self._tool_call_id_capture.register_alias(run_id, temp_id)
-            self.state.tool_start_times[run_id] = self.state.tool_start_times.pop(
-                temp_id, datetime.utcnow()
-            )
-
-            if approval.requires_approval:
-                self._set_waiting_for_approval_phase(tool_name, run_id)
-
-            return existing
-
-        return None
-
-    def _start_thinking_stream(
-        self,
-        ns_key: str,
-        namespace: str,
-        initial_text: str,
-        llm_run_id: str = "",
-    ) -> None:
-        """Create a RUNNING ToolCall for native thinking and begin streaming.
-
-        Called when the first thinking content block arrives for a namespace.
-        The ToolCall starts with ``is_streaming=True`` and the initial thinking
-        text in ``result``.  Subsequent blocks update ``result`` via
-        ``_update_thinking_stream``, and ``_flush_thinking_buffer`` transitions
-        the ToolCall to COMPLETED when thinking ends.
-
-        During streaming the CLI renders ``result`` via ``renderStreamingTool``
-        (last N lines with a cursor indicator).  After completion the CLI reads
-        ``args.thought`` via ``resolveDisplayContent`` (the ``toolDisplayMap``
-        entry uses ``contentSourceInput``).
-        """
-        now = datetime.utcnow()
-        tc_id = f"think-native-{uuid4()}"
-
-        tool_call = ToolCall(
-            id=tc_id,
-            name="think",
-            args=Struct(),
-            result=initial_text,
-            status=ToolCallStatus.TOOL_CALL_RUNNING,
-            is_streaming=True,
-            component_metadata=ComponentMetadata(
-                component_type=infer_component_type("think"),
-                component_group="main-agent-tools",
-            ),
-            started_at=_utc_timestamp(now),
-        )
-
-        parent_ai = self._ensure_parent_ai_message(
-            ns_key, namespace, llm_run_id=llm_run_id,
-        )
-        parent_ai.tool_calls.append(tool_call)
-        self.state.tool_calls[tc_id] = parent_ai.tool_calls[-1]
-
-        self.state.thinking.tool_call_ids[ns_key] = tc_id
-        self.state.thinking.started_at[ns_key] = now
-
-        self.force_next_update = True
-
-        self.logger.debug(
-            "[THINK] execution=%s streaming_started id=%s namespace=%s",
-            self.execution_id,
-            tc_id,
-            namespace or "main",
-        )
-
-    def _update_thinking_stream(self, ns_key: str) -> None:
-        """Update the streaming think ToolCall with the latest accumulated content."""
-        tc_id = self.state.thinking.tool_call_ids.get(ns_key)
-        if not tc_id:
-            return
-
-        buf = self.state.thinking.buffers.get(ns_key, "")
-
-        tool_call = self.get_tool_call(tc_id)
-        if tool_call is not None:
-            tool_call.result = buf
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Tool Input Streaming Helpers
-    # ─────────────────────────────────────────────────────────────────────────
-
-    def _accumulate_tool_input(self, ns_key: str, partial_json: str) -> None:
-        """Accumulate an ``input_json_delta`` fragment and update the early ToolCall.
-
-        Appends *partial_json* to the buffer for the early ToolCall currently
-        active in this namespace.  If the accumulated JSON already contains the
-        tool's content field (e.g. ``"contents": "…``), the extracted value is
-        written to ``tool_call.result`` so the CLI can stream it progressively.
-
-        Follows the same pattern as ``_update_thinking_stream``: mutate
-        ``tool_call.result`` in place; the gRPC scheduler pushes the change
-        within ~500 ms and the CLI detects it via
-        ``tc.IsStreaming && tc.Result != prevResults``.
-        """
-        temp_id = self.state.tool_input.active_tc.get(ns_key)
-        if not temp_id:
-            return
-
-        buf = self.state.tool_input.buffers.get(temp_id)
-        if buf is None:
-            return
-
-        self.state.tool_input.buffers[temp_id] = buf + partial_json
-
-        tool_call = self.get_tool_call(temp_id)
-        if tool_call is None:
-            return
-
-        content = self._extract_content_from_partial_json(
-            tool_call.name, self.state.tool_input.buffers[temp_id],
-        )
-        if content:
-            tool_call.result = content
-
-    @staticmethod
-    def _extract_content_from_partial_json(
-        tool_name: str, partial_json: str,
-    ) -> str:
-        """Extract the displayable content value from an in-progress args JSON.
-
-        For tools listed in ``_TOOL_CONTENT_FIELDS`` (write, edit, think) the
-        method locates the content field's opening quote and JSON-unescapes
-        everything that has arrived so far.  Trailing incomplete escape
-        sequences are silently dropped to avoid garbled output.
-
-        Returns an empty string when the content field has not yet appeared in
-        the accumulated JSON (e.g. the LLM is still generating the ``path``
-        argument).
-        """
-        fields = _TOOL_CONTENT_FIELDS.get(tool_name)
-        if not fields:
-            return ""
-
-        for field in fields:
-            start = _find_json_string_value_start(partial_json, field)
-            if start >= 0:
-                return _json_unescape_partial(partial_json[start:])
-
-        return ""
-
-    def _flush_tool_input_buffer(self, temp_id: str) -> None:
-        """Clean up input-streaming state for a reconciled early ToolCall."""
-        self.state.tool_input.buffers.pop(temp_id, None)
-        for ns_key, tid in list(self.state.tool_input.active_tc.items()):
-            if tid == temp_id:
-                del self.state.tool_input.active_tc[ns_key]
-                break
-
-    def _flush_thinking_buffer(self, ns_key: str, namespace: str) -> None:
-        """Finalize the streaming think ToolCall or create a completed one.
-
-        If a streaming ToolCall exists (created by ``_start_thinking_stream``),
-        transitions it from RUNNING to COMPLETED in place: populates
-        ``args.thought`` with the full thinking text, sets ``result`` to
-        ``"ok"``, and clears the streaming flag.
-
-        Falls back to creating a new COMPLETED ToolCall from scratch if no
-        streaming ToolCall exists (defensive — should not happen in normal flow
-        since ``_start_thinking_stream`` is called on the first thinking block).
-        """
-        thinking_text = self.state.thinking.buffers.pop(ns_key, "")
-        started_at = self.state.thinking.started_at.pop(ns_key, None)
-        tc_id = self.state.thinking.tool_call_ids.pop(ns_key, None)
-        if not thinking_text:
-            return
-
-        now = datetime.utcnow()
-
-        args_struct = Struct()
-        args_struct.update({"thought": thinking_text})
-
-        _, sub_agent = self._get_execution_context(namespace)
-        completed_ts = _utc_timestamp(now)
-
-        if tc_id:
-            tool_call = self.get_tool_call(tc_id)
-            if tool_call is not None:
-                tool_call.args.CopyFrom(args_struct)
-                tool_call.result = "ok"
-                tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                tool_call.is_streaming = False
-                tool_call.completed_at = completed_ts
-
-                self.logger.info(
-                    "[THINK] execution=%s streaming_completed id=%s "
-                    "chars=%d namespace=%s",
-                    self.execution_id,
-                    tc_id,
-                    len(thinking_text),
-                    namespace or "main",
-                )
-                return
-
-        # Defensive fallback: no streaming ToolCall exists.  Create a
-        # completed one from scratch so thinking content is never lost.
-        fallback_tc = ToolCall(
-            id=f"think-native-{uuid4()}",
-            name="think",
-            args=args_struct,
-            result="ok",
-            status=ToolCallStatus.TOOL_CALL_COMPLETED,
-            component_metadata=ComponentMetadata(
-                component_type=infer_component_type("think"),
-                component_group="main-agent-tools",
-            ),
-            started_at=_utc_timestamp(started_at or now),
-            completed_at=completed_ts,
-        )
-
-        parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
-        parent_ai.tool_calls.append(fallback_tc)
-        self.state.tool_calls[fallback_tc.id] = parent_ai.tool_calls[-1]
-
-        self.logger.info(
-            "[THINK] execution=%s synthetic_think_tool_call "
-            "chars=%d namespace=%s (fallback)",
-            self.execution_id,
-            len(thinking_text),
-            namespace or "main",
-        )
-    
-    def _extract_command_content(self, update: dict[str, Any]) -> str:
-        """Extract displayable content from a LangGraph Command.update dict.
-
-        When a tool goes through the interrupt()/resume approval cycle,
-        LangGraph may wrap the result in a Command object whose .update dict
-        contains state channel mutations. The "messages" channel typically holds
-        ToolMessage objects with the human-readable tool result.
-
-        Extraction strategy:
-        1. Look in update["messages"] for ToolMessage-like objects with .content
-        2. Fall back to JSON-serializing the non-messages portion of the update
-
-        Returns an empty string if no meaningful content can be extracted.
-        """
-        messages = update.get("messages", [])
-        if isinstance(messages, list):
-            for msg in messages:
-                # Duck-type: ToolMessage has .content (str or list)
-                if hasattr(msg, "content"):
-                    content = msg.content
-                    if isinstance(content, str) and content:
-                        return content
-                    if isinstance(content, list):
-                        extracted = self._extract_string_content(content)
-                        if extracted:
-                            return extracted
-
-        # Fallback: serialize the update dict (excluding messages to avoid
-        # dumping ToolMessage repr objects back into the output).
-        fallback = {k: v for k, v in update.items() if k != "messages"}
-        if fallback:
-            try:
-                return json.dumps(fallback, indent=2, default=str)
-            except (TypeError, ValueError):
-                pass
-
-        return ""
     
     def _update_todos(self, todos_data: list) -> None:
         """Replace the todo snapshot in the local execution status.
@@ -2421,217 +1343,21 @@ class StatusBuilder:
             list(self.state.completed_sub_agents.keys()),
         )
     
-    async def _handle_sub_agent_start(
-        self,
-        event: dict[str, Any],
-        tool_args: dict[str, Any],
-        run_id: str,
-        *,
-        tool_call_id: str | None = None,
-    ) -> None:
-        """Handle task tool invocation — creates SubAgentExecution.
-
-        In deepagents' task tool, ``description`` is the full task prompt (the
-        only text parameter alongside ``subagent_type``).  We map it to
-        ``input`` and generate a concise ``subject`` via an economy-tier LLM.
-
-        The SubAgentExecution.id is set to *tool_call_id* (the Anthropic
-        ``tool_use`` id, e.g. ``toolu_XXXXX``) so the frontend can match it
-        against the ToolCall.id on the parent AI message.  The LangGraph
-        *run_id* is stored separately in ``_active_sub_agents`` for namespace
-        registration (which operates on run_ids from LangGraph events).
-
-        Args:
-            event: The on_tool_start event dictionary.
-            tool_args: Unwrapped tool arguments.
-            run_id: The LangGraph run_id for this tool invocation.
-            tool_call_id: The Anthropic tool_use id from the early ToolCall.
-                Falls back to *run_id* when unavailable.
-        """
-        sa_id = tool_call_id or run_id
-
-        # ── Resume deduplication ──────────────────────────────────────────
-        # On resume, LangGraph replays from checkpoint and re-fires
-        # on_tool_start for task tools.  Avoid creating duplicate
-        # SubAgentExecution entries.
-        for existing_sa in self.current_status.sub_agent_executions:
-            if existing_sa.id == sa_id:
-                self.state.active_sub_agents[run_id] = existing_sa
-                self.state.run_id_to_tool_call_id[run_id] = sa_id
-                self.logger.info(
-                    "[SUBAGENT] execution=%s resume reactivation: "
-                    "sa_id=%s run_id=%s (skipping duplicate creation)",
-                    self.execution_id, sa_id, run_id,
-                )
-                return
-
-        sub_agent_name = tool_args.get("subagent_type", "") or tool_args.get("agent_type", "") or "unknown"
-        sub_agent_input = (
-            tool_args.get("description", "")
-            or tool_args.get("input", "")
-            or tool_args.get("task", "")
-            or tool_args.get("prompt", "")
-        )
-        existing = list(self.state.subject_counts.keys())
-        subject = await _generate_sub_agent_subject(
-            sub_agent_input, sub_agent_name, existing_subjects=existing,
+    async def _handle_sub_agent_start(self, event: dict[str, Any],
+                                     tool_args: dict[str, Any], run_id: str,
+                                     *, tool_call_id: str | None = None) -> None:
+        """Delegate to :func:`sub_agent_handlers.handle_sub_agent_start`."""
+        await sub_agent_handlers.handle_sub_agent_start(
+            self, event, tool_args, run_id, tool_call_id=tool_call_id,
         )
 
-        if subject:
-            count = self.state.subject_counts.get(subject, 0) + 1
-            self.state.subject_counts[subject] = count
-            if count > 1:
-                suffix = f" ({count})"
-                max_base = _MAX_SUBJECT_LENGTH - len(suffix)
-                base = subject[:max_base] if len(subject) > max_base else subject
-                subject = base + suffix
+    def _flush_pending_completions(self) -> list[str]:
+        """Delegate to :func:`sub_agent_handlers.flush_pending_completions`."""
+        return sub_agent_handlers.flush_pending_completions(self)
 
-        now = datetime.utcnow()
-        sub_agent = SubAgentExecution(
-            id=sa_id,
-            name=sub_agent_name,
-            input=sub_agent_input,
-            subject=subject,
-            status=SubAgentStatus.SUB_AGENT_IN_PROGRESS,
-            started_at=_utc_timestamp(now),
-        )
-
-        # Append first, then store the proto-managed reference.
-        # Protobuf repeated-message append copies the value; the original
-        # object is disconnected from the proto.  By storing the element
-        # returned by the repeated field we ensure all later mutations
-        # (messages, tool_calls, usage) write to the actual status proto.
-        self.current_status.sub_agent_executions.append(sub_agent)
-        self.state.active_sub_agents[run_id] = self.current_status.sub_agent_executions[-1]
-        self.state.run_id_to_tool_call_id[run_id] = sa_id
-
-        self.force_next_update = True
-
-        self.logger.info(
-            f"[SUBAGENT] execution={self.execution_id} "
-            f"sub_agent={sub_agent_name} sa_id={sa_id} run_id={run_id} "
-            f"subject={subject!r} status=IN_PROGRESS"
-        )
-    
     def _handle_sub_agent_end(self, event: dict[str, Any], run_id: str) -> None:
-        """Handle task tool completion — finalize SubAgentExecution.
-
-        Uses ``_active_sub_agents[run_id]`` for a direct proto reference when
-        available, falling back to a linear scan by ``tool_call_id`` (the
-        SubAgentExecution.id) when the dict entry is missing.
-
-        Also marks the corresponding ToolCall on the parent AI message as
-        COMPLETED so the frontend shows the sub-agent as finished.
-
-        Args:
-            event: The on_tool_end event dictionary.
-            run_id: The LangGraph run_id for this task tool invocation.
-        """
-        output_raw = event.get("data", {}).get("output", "")
-        output = self._extract_tool_result_content(output_raw)
-        now = datetime.utcnow()
-
-        is_error = False
-        error_message = ""
-        if isinstance(output_raw, dict):
-            if output_raw.get("error") or output_raw.get("status") == "failed":
-                is_error = True
-                error_message = (
-                    output_raw.get("error", "")
-                    or output_raw.get("message", "Sub-agent failed")
-                )
-
-        # Prefer the direct proto reference from _active_sub_agents.
-        sub_agent_ref = self.state.active_sub_agents.get(run_id)
-        if sub_agent_ref is None:
-            # Fallback: scan by tool_call_id (SubAgentExecution.id)
-            sa_id = self.state.run_id_to_tool_call_id.get(run_id, run_id)
-            for sa in self.current_status.sub_agent_executions:
-                if sa.id == sa_id:
-                    sub_agent_ref = sa
-                    break
-
-        if sub_agent_ref is not None:
-            sub_agent_ref.output = output
-            sub_agent_ref.completed_at = _utc_timestamp(now)
-            if is_error:
-                sub_agent_ref.status = SubAgentStatus.SUB_AGENT_FAILED
-                sub_agent_ref.error = error_message
-            else:
-                sub_agent_ref.status = SubAgentStatus.SUB_AGENT_COMPLETED
-
-            self._finalize_orphaned_tool_calls(sub_agent_ref, now)
-
-            self.logger.debug(
-                "[SUBAGENT] execution=%s sa_id=%s run_id=%s status=%s",
-                self.execution_id, sub_agent_ref.id, run_id,
-                "FAILED" if is_error else "COMPLETED",
-            )
-        else:
-            self.logger.warning(
-                "[SUBAGENT] execution=%s _handle_sub_agent_end: "
-                "no SubAgentExecution found for run_id=%s "
-                "known_ids=%s",
-                self.execution_id, run_id,
-                [sa.id for sa in self.current_status.sub_agent_executions],
-            )
-
-        # Mark the parent ToolCall as COMPLETED so the frontend reflects
-        # the sub-agent's finished state.
-        tc_id = self.state.run_id_to_tool_call_id.get(run_id)
-        if tc_id:
-            parent_tc = self.get_tool_call(tc_id)
-            if parent_tc is not None:
-                parent_tc.status = ToolCallStatus.TOOL_CALL_COMPLETED
-                parent_tc.completed_at = _utc_timestamp(now)
-                parent_tc.result = output[:_MAX_STATUS_RESULT_CHARS] if output else ""
-
-        # Move from active to completed (preserving reference for late events).
-        # Namespace mappings are NOT deleted — late-arriving events from
-        # LangGraph can still route to the correct SubAgentExecution.
-        if run_id in self.state.active_sub_agents:
-            self.state.completed_sub_agents[run_id] = self.state.active_sub_agents.pop(run_id)
-
-        # Defer the gRPC flush instead of forcing it immediately.  Late
-        # LangGraph events (on_chat_model_end, on_tool_end for nested tools)
-        # arrive shortly after on_tool_end for "task".  The drain window
-        # lets them be batched into the same update that carries the
-        # COMPLETED status, preventing the UI from showing "Completed"
-        # while messages still stream in.
-        self.state.pending_completion_flush[run_id] = time.monotonic()
-
-    def _finalize_orphaned_tool_calls(
-        self, sub_agent: SubAgentExecution, now: datetime,
-    ) -> None:
-        """Transition orphaned WAITING_APPROVAL tool calls to SKIPPED.
-
-        When a sub-agent completes or fails, any tool calls still stuck in
-        WAITING_APPROVAL (with no recorded decision) are artifacts of the
-        InterruptProxy thread-restart mechanism — the sub-agent resumed on a
-        fresh LangGraph thread while the old thread's tool calls were never
-        resolved.  Leaving them in WAITING_APPROVAL causes ghost entries in
-        ``pending_approvals`` that can never be fulfilled.
-        """
-        timestamp = _utc_timestamp(now)
-        skipped = 0
-        for msg in sub_agent.messages:
-            for tc in msg.tool_calls:
-                if (
-                    tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
-                    and tc.requires_approval
-                    and tc.approval_action == ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
-                ):
-                    tc.status = ToolCallStatus.TOOL_CALL_SKIPPED
-                    tc.approval_action = ApprovalAction.APPROVAL_ACTION_SKIP
-                    tc.approval_decided_at = timestamp
-                    tc.result = "Auto-skipped: parent sub-agent finished"
-                    skipped += 1
-        if skipped:
-            self.logger.info(
-                "[SUBAGENT] execution=%s sa_id=%s "
-                "finalized %d orphaned WAITING_APPROVAL tool call(s)",
-                self.execution_id, sub_agent.id, skipped,
-            )
+        """Delegate to :func:`sub_agent_handlers.handle_sub_agent_end`."""
+        sub_agent_handlers.handle_sub_agent_end(self, event, run_id)
 
     @property
     def has_orphaned_sub_agents(self) -> bool:
@@ -2639,308 +1365,25 @@ class StatusBuilder:
         return bool(self.state.active_sub_agents)
 
     def get_orphaned_sub_agents_diagnostic(self) -> dict:
-        """Return structured info about orphaned (still-active) sub-agents.
-
-        Useful for logging and error messages when the graph terminates
-        abnormally while sub-agents are in progress.
-
-        Returns:
-            Dict with ``total``, ``zero_message`` (spawned but never
-            executed), ``mid_execution`` (have messages/tool calls),
-            and per-sub-agent ``details``.
-        """
-        zero_message: list[dict] = []
-        mid_execution: list[dict] = []
-
-        for run_id, sub_agent in self.state.active_sub_agents.items():
-            tc_count = sum(len(m.tool_calls) for m in sub_agent.messages)
-            has_activity = len(sub_agent.messages) > 0
-            entry = {
-                "run_id": run_id,
-                "subject": sub_agent.subject,
-                "message_count": len(sub_agent.messages),
-                "tool_call_count": tc_count,
-            }
-            if has_activity:
-                mid_execution.append(entry)
-            else:
-                zero_message.append(entry)
-
-        return {
-            "total": len(self.state.active_sub_agents),
-            "zero_message_count": len(zero_message),
-            "mid_execution_count": len(mid_execution),
-            "zero_message": zero_message,
-            "mid_execution": mid_execution,
-        }
-
-    def _flush_pending_completions(self) -> list[str]:
-        """Immediately drain all pending completion flushes.
-
-        Sub-agents whose ``on_tool_end`` fired (and were moved to
-        ``_completed_sub_agents`` with COMPLETED status) may still be
-        sitting in the deferred flush queue.  Draining them before crash
-        finalization ensures their COMPLETED status is included in the
-        next gRPC update rather than being silently dropped.
-
-        Returns:
-            List of run_ids that were flushed.
-        """
-        if not self.state.pending_completion_flush:
-            return []
-
-        flushed = list(self.state.pending_completion_flush.keys())
-        self.state.pending_completion_flush.clear()
-        if flushed:
-            self.force_next_update = True
-        return flushed
+        """Delegate to :func:`sub_agent_handlers.get_orphaned_diagnostic`."""
+        return sub_agent_handlers.get_orphaned_diagnostic(self)
 
     def finalize_active_sub_agents(self, status: SubAgentStatus, error: str) -> None:
-        """Transition active sub-agents to a terminal state.
-
-        Called when the parent execution terminates abnormally (error or stall)
-        to ensure no sub-agent remains stuck in IN_PROGRESS.
-
-        Sub-agents that already reached a terminal status (COMPLETED, FAILED,
-        or CANCELLED) — for example because their ``on_tool_end`` fired but
-        the deferred completion flush hadn't drained yet — are preserved.
-        Only genuinely in-progress sub-agents receive the forced status.
-
-        Args:
-            status: Terminal status to assign (typically SUB_AGENT_FAILED or
-                    SUB_AGENT_CANCELLED).
-            error: Explanation of why the sub-agent was terminated.
-        """
-        flushed = self._flush_pending_completions()
-        if flushed:
-            self.logger.info(
-                f"[SUBAGENT] execution={self.execution_id} "
-                f"flushed {len(flushed)} pending completion(s) before "
-                f"finalization: {flushed}"
-            )
-
-        if not self.state.active_sub_agents:
-            return
-
-        now = _utc_timestamp()
-        finalized_ids: list[str] = []
-        preserved_ids: list[str] = []
-
-        terminal_statuses = {
-            SubAgentStatus.SUB_AGENT_COMPLETED,
-            SubAgentStatus.SUB_AGENT_FAILED,
-            SubAgentStatus.SUB_AGENT_CANCELLED,
-        }
-
-        for run_id, sub_agent in list(self.state.active_sub_agents.items()):
-            if sub_agent.status in terminal_statuses or sub_agent.output:
-                preserved_ids.append(run_id)
-            else:
-                sub_agent.status = status
-                sub_agent.error = error
-                sub_agent.completed_at = now
-                finalized_ids.append(run_id)
-
-            self.state.completed_sub_agents[run_id] = sub_agent
-
-        self.state.active_sub_agents.clear()
-
-        self.logger.info(
-            f"[SUBAGENT] execution={self.execution_id} "
-            f"finalized {len(finalized_ids)} active sub-agent(s) "
-            f"-> {SubAgentStatus.Name(status)}: {finalized_ids}"
-        )
-        if preserved_ids:
-            self.logger.info(
-                f"[SUBAGENT] execution={self.execution_id} "
-                f"preserved {len(preserved_ids)} sub-agent(s) with "
-                f"existing terminal status or output: {preserved_ids}"
-            )
+        """Delegate to :func:`sub_agent_handlers.finalize_active`."""
+        sub_agent_handlers.finalize_active(self, status, error)
 
     def finalize_active_sub_agents_differentiated(self, error_context: str) -> int:
-        """Transition active sub-agents using differentiated statuses.
-
-        Zero-message sub-agents (spawned but never executed) receive
-        ``SUB_AGENT_CANCELLED``; sub-agents with messages or tool calls
-        (mid-execution) receive ``SUB_AGENT_FAILED``.
-
-        Sub-agents that already reached a terminal status or have produced
-        output are preserved — their existing status is not overwritten.
-
-        Args:
-            error_context: High-level description of why termination occurred
-                (e.g. "Parent execution terminated abnormally").
-
-        Returns:
-            Number of sub-agents finalized.
-        """
-        flushed = self._flush_pending_completions()
-        if flushed:
-            self.logger.info(
-                f"[SUBAGENT] execution={self.execution_id} "
-                f"flushed {len(flushed)} pending completion(s) before "
-                f"differentiated finalization: {flushed}"
-            )
-
-        if not self.state.active_sub_agents:
-            return 0
-
-        now = _utc_timestamp()
-        cancelled_ids: list[str] = []
-        failed_ids: list[str] = []
-        preserved_ids: list[str] = []
-
-        terminal_statuses = {
-            SubAgentStatus.SUB_AGENT_COMPLETED,
-            SubAgentStatus.SUB_AGENT_FAILED,
-            SubAgentStatus.SUB_AGENT_CANCELLED,
-        }
-
-        for run_id, sub_agent in list(self.state.active_sub_agents.items()):
-            if sub_agent.status in terminal_statuses or sub_agent.output:
-                preserved_ids.append(run_id)
-            else:
-                tc_count = sum(len(m.tool_calls) for m in sub_agent.messages)
-                has_activity = len(sub_agent.messages) > 0
-                if has_activity:
-                    sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
-                    sub_agent.error = (
-                        f"{error_context}: sub-agent was running "
-                        f"({len(sub_agent.messages)} messages, "
-                        f"{tc_count} tool calls)"
-                    )
-                    failed_ids.append(run_id)
-                else:
-                    sub_agent.status = SubAgentStatus.SUB_AGENT_CANCELLED
-                    sub_agent.error = (
-                        f"{error_context}: sub-agent was spawned but never began execution"
-                    )
-                    cancelled_ids.append(run_id)
-
-                sub_agent.completed_at = now
-
-            self.state.completed_sub_agents[run_id] = sub_agent
-
-        total = len(self.state.active_sub_agents)
-        self.state.active_sub_agents.clear()
-
-        finalized = len(cancelled_ids) + len(failed_ids)
-        self.logger.info(
-            f"[SUBAGENT] execution={self.execution_id} "
-            f"finalized {finalized}/{total} orphaned sub-agent(s) — "
-            f"CANCELLED (zero-message): {cancelled_ids}, "
-            f"FAILED (mid-execution): {failed_ids}"
-        )
-        if preserved_ids:
-            self.logger.info(
-                f"[SUBAGENT] execution={self.execution_id} "
-                f"preserved {len(preserved_ids)} sub-agent(s) with "
-                f"existing terminal status or output: {preserved_ids}"
-            )
-        return total
+        """Delegate to :func:`sub_agent_handlers.finalize_active_differentiated`."""
+        return sub_agent_handlers.finalize_active_differentiated(self, error_context)
 
     def finalize_sub_agents_from_checkpoint_validation(
-        self,
-        missed_event_count: int,
-        confirmed_orphan_count: int,
+        self, missed_event_count: int, confirmed_orphan_count: int,
         error_context: str,
     ) -> int:
-        """Finalize active sub-agents using checkpoint validation results.
-
-        Unlike ``finalize_active_sub_agents_differentiated`` which treats all
-        active sub-agents as failed/cancelled, this method leverages the
-        checkpoint's ground truth to give correct terminal statuses:
-
-        - When the checkpoint confirms ALL task tools completed but
-          StatusBuilder missed the events (``missed_event_count > 0``,
-          ``confirmed_orphan_count == 0``): marks all active sub-agents
-          as ``SUB_AGENT_COMPLETED``.
-        - When ALL active sub-agents are confirmed orphans
-          (``confirmed_orphan_count > 0``, ``missed_event_count == 0``):
-          differentiates as FAILED (mid-execution) or CANCELLED
-          (zero-message), same as ``finalize_active_sub_agents_differentiated``.
-        - Mixed case (both > 0): uses conservative differentiation
-          since we cannot determine which specific sub-agents completed
-          without ID-level mapping between checkpoint tool_call_ids and
-          StatusBuilder run_ids.
-
-        Args:
-            missed_event_count: Sub-agents that completed in the checkpoint
-                but StatusBuilder still considers active.
-            confirmed_orphan_count: Sub-agents incomplete in both checkpoint
-                and StatusBuilder.
-            error_context: High-level description for error messages.
-
-        Returns:
-            Number of sub-agents finalized.
-        """
-        self._flush_pending_completions()
-
-        if not self.state.active_sub_agents:
-            return 0
-
-        now = _utc_timestamp()
-        total = len(self.state.active_sub_agents)
-
-        if missed_event_count > 0 and confirmed_orphan_count == 0:
-            completed_ids: list[str] = []
-            for run_id, sub_agent in list(self.state.active_sub_agents.items()):
-                sub_agent.status = SubAgentStatus.SUB_AGENT_COMPLETED
-                sub_agent.completed_at = now
-                self.state.completed_sub_agents[run_id] = sub_agent
-                completed_ids.append(run_id)
-
-            self.state.active_sub_agents.clear()
-            self.logger.info(
-                f"[SUBAGENT] execution={self.execution_id} "
-                f"checkpoint confirms {total} sub-agent(s) completed "
-                f"(StatusBuilder missed on_tool_end events): "
-                f"{completed_ids}"
-            )
-        else:
-            cancelled_ids: list[str] = []
-            failed_ids: list[str] = []
-
-            for run_id, sub_agent in list(self.state.active_sub_agents.items()):
-                tc_count = sum(len(m.tool_calls) for m in sub_agent.messages)
-                has_activity = (
-                    len(sub_agent.messages) > 0
-                    or tc_count > 0
-                )
-                if has_activity:
-                    sub_agent.status = SubAgentStatus.SUB_AGENT_FAILED
-                    sub_agent.error = (
-                        f"{error_context}: sub-agent was running "
-                        f"({len(sub_agent.messages)} messages, "
-                        f"{tc_count} tool calls)"
-                    )
-                    failed_ids.append(run_id)
-                else:
-                    sub_agent.status = SubAgentStatus.SUB_AGENT_CANCELLED
-                    sub_agent.error = (
-                        f"{error_context}: sub-agent was spawned but "
-                        f"never began execution"
-                    )
-                    cancelled_ids.append(run_id)
-
-                sub_agent.completed_at = now
-                self.state.completed_sub_agents[run_id] = sub_agent
-
-            self.state.active_sub_agents.clear()
-
-            qualifier = (
-                "confirmed orphaned"
-                if missed_event_count == 0
-                else "mixed (some may have completed per checkpoint)"
-            )
-            self.logger.info(
-                f"[SUBAGENT] execution={self.execution_id} "
-                f"finalized {total} {qualifier} sub-agent(s) — "
-                f"CANCELLED (zero-message): {cancelled_ids}, "
-                f"FAILED (mid-execution): {failed_ids}"
-            )
-
-        return total
+        """Delegate to :func:`sub_agent_handlers.finalize_from_checkpoint_validation`."""
+        return sub_agent_handlers.finalize_from_checkpoint_validation(
+            self, missed_event_count, confirmed_orphan_count, error_context,
+        )
 
     # ─────────────────────────────────────────────────────────────────────────────
     # Usage Metrics (Phase 3 — delegated to UsageTracker)
@@ -2953,337 +1396,65 @@ class StatusBuilder:
     # This is set once after all resources are resolved, before streaming begins.
     # ─────────────────────────────────────────────────────────────────────────────
     
-    def set_resolved_context(
-        self,
-        environment_keys: list[str],
-        mcp_servers: dict[str, tuple[bool, str, int]],
-        skill_names: list[str],
-        excluded_skill_names: list[str] | None = None,
-    ) -> None:
+    def build_pending_approvals_snapshot(self) -> list[PendingApproval]:
+        """Build pending_approvals snapshot for the Temporal slim status.
+
+        This is a point-in-time coordination signal for the Temporal workflow,
+        NOT a DB-persisted projection.  The DB projection is computed
+        server-side by Go/Java ``ComputePendingApprovals`` on every
+        ``UpdateStatus`` write (DD-001).
+
+        The Temporal workflow uses this snapshot to determine how many
+        approval signals to collect before re-invoking the Python activity.
+        Reading from the DB is unsafe because the ``SubmitApproval`` handler
+        may have already recorded decisions (mutating the DB projection)
+        before the workflow reads it.
         """
-        Set the resolved execution context.
-        
-        Called once after all resources are resolved, before streaming begins.
-        This captures the "snapshot" of what the agent has access to, enabling:
-        - Debugging: Understanding what was available when investigating failures
-        - Auditing: Tracking what resources each execution consumed
-        - Security review: Verifying which secrets (by key name only) were exposed
-        - UX transparency: Showing users what their agent can access
-        
-        Args:
-            environment_keys: Environment variable keys (NOT values) available to agent.
-                              Represents the merged result of template, instance, and runtime env.
-            mcp_servers: Dict mapping server slug to (resolved, message, enabled_tool_count).
-                         resolved=True means server was found and configured successfully.
-                         resolved=False means resolution failed (server not found, missing env var).
-            skill_names: Names of skills included in the system prompt.
-            excluded_skill_names: Names of skills that were available but excluded
-                                  by relevance filtering.  ``None`` means no
-                                  filtering was applied.
-        
-        Note:
-            Environment values are intentionally NOT captured for security reasons.
-            Only keys are stored to enable debugging without exposing secrets.
-        """
-        # Build ResolvedExecutionContext proto
-        resolved_context = ResolvedExecutionContext(
-            environment_keys=sorted(environment_keys),  # Sorted for consistent ordering
-            skill_names=sorted(skill_names),            # Sorted for consistent ordering
-            excluded_skill_names=sorted(excluded_skill_names or []),
+        result: list[PendingApproval] = []
+        for tc in self.iter_all_tool_calls():
+            if (
+                tc.status == ToolCallStatus.TOOL_CALL_WAITING_APPROVAL
+                and tc.requires_approval
+                and tc.approval_action
+                == ApprovalAction.APPROVAL_ACTION_UNSPECIFIED
+            ):
+                result.append(PendingApproval(tool_call_id=tc.id))
+        return result
+
+    def set_resolved_context(self, environment_keys: list[str],
+                             mcp_servers: dict[str, tuple[bool, str, int]],
+                             skill_names: list[str],
+                             excluded_skill_names: list[str] | None = None) -> None:
+        """Delegate to :func:`context_handlers.set_resolved_context`."""
+        context_handlers.set_resolved_context(
+            self, environment_keys, mcp_servers, skill_names, excluded_skill_names,
         )
-        
-        # Build MCP server status map
-        for slug, (resolved, message, tool_count) in mcp_servers.items():
-            resolved_context.mcp_servers[slug].CopyFrom(
-                McpServerResolutionStatus(
-                    resolved=resolved,
-                    message=message,
-                    enabled_tool_count=tool_count,
-                )
-            )
-        
-        # Assign to status proto
-        self.current_status.resolved_context.CopyFrom(resolved_context)
-        
-        # Structured logging for observability
-        resolved_count = sum(1 for r, _, _ in mcp_servers.values() if r)
-        failed_count = len(mcp_servers) - resolved_count
-        
-        excluded_count = len(excluded_skill_names) if excluded_skill_names else 0
-        self.logger.info(
-            f"[CONTEXT] execution={self.execution_id} "
-            f"env_keys={len(environment_keys)} "
-            f"mcp_servers={len(mcp_servers)} (resolved={resolved_count}, failed={failed_count}) "
-            f"skills={len(skill_names)} "
-            f"excluded_skills={excluded_count}"
+
+    def initialize_context_info(self, context_window_limit: int,
+                                trigger_threshold: int, target_tokens: int,
+                                enabled: bool) -> None:
+        """Delegate to :func:`context_handlers.initialize_context_info`."""
+        context_handlers.initialize_context_info(
+            self, context_window_limit, trigger_threshold, target_tokens, enabled,
         )
-        
-        # Log details at debug level for troubleshooting
-        if environment_keys:
-            self.logger.debug(f"[CONTEXT] Environment keys: {sorted(environment_keys)}")
-        if mcp_servers:
-            for slug, (resolved, message, tool_count) in mcp_servers.items():
-                status = "OK" if resolved else "FAILED"
-                self.logger.debug(
-                    f"[CONTEXT] MCP server '{slug}': {status} - {message} "
-                    f"(tools={tool_count})"
-                )
-        if skill_names:
-            self.logger.debug(f"[CONTEXT] Skills: {sorted(skill_names)}")
-    
-    # ─────────────────────────────────────────────────────────────────────────────
-    # Context Management (Phase 3)
-    #
-    # These methods implement the SummarizationCallback protocol for integration
-    # with the SummarizationMiddleware in graphton. They track context window
-    # utilization and record summarization events.
-    # ─────────────────────────────────────────────────────────────────────────────
-    
-    def initialize_context_info(
-        self,
-        context_window_limit: int,
-        trigger_threshold: int,
-        target_tokens: int,
-        enabled: bool,
-    ) -> None:
-        """
-        Initialize context info from model registry data.
-        
-        Called once at the start of execution to set up context tracking.
-        This captures the configuration that will be used for summarization.
-        
-        Args:
-            context_window_limit: Model's maximum context window size in tokens.
-            trigger_threshold: Token threshold that triggers summarization.
-            target_tokens: Target token count after summarization.
-            enabled: Whether summarization is enabled for this execution.
-        """
-        self.state.context_info = ContextInfo(
-            context_window_limit=context_window_limit,
-            summarization_trigger_threshold=trigger_threshold,
-            summarization_target_tokens=target_tokens,
-            summarization_enabled=enabled,
-            current_token_count=0,
-            utilization_percent=0.0,
-        )
-        
-        self.logger.info(
-            f"[CONTEXT] execution={self.execution_id} "
-            f"context_management initialized: "
-            f"window={context_window_limit}, "
-            f"trigger={trigger_threshold}, "
-            f"target={target_tokens}, "
-            f"enabled={enabled}"
-        )
-    
+
     def on_summarization_complete(self, event: SummarizationEventData) -> None:
-        """
-        Callback from SummarizationMiddleware when summarization completes.
-        
-        Records the summarization event, syncs context info to the status
-        proto for immediate gRPC delivery, and sets force_next_update so
-        the event loop pushes the update without waiting for the scheduler.
-        
-        Args:
-            event: Immutable data object containing summarization metrics.
-        """
-        if self.state.context_info is None:
-            self.logger.warning(
-                f"[CONTEXT] execution={self.execution_id} "
-                "on_summarization_complete called but context_info not initialized"
-            )
-            return
-        
-        try:
-            proto_source = SummarizationSource.Value(event.source)
-        except ValueError:
-            proto_source = SummarizationSource.SUMMARIZATION_SOURCE_UNSPECIFIED
+        """Delegate to :func:`context_handlers.on_summarization_complete`."""
+        context_handlers.on_summarization_complete(self, event)
 
-        timestamp = _utc_timestamp()
-        proto_event = SummarizationEvent(
-            timestamp=timestamp,
-            tokens_before=event.tokens_before,
-            tokens_after=event.tokens_after,
-            compression_ratio=event.compression_ratio,
-            duration_ms=event.duration_ms,
-            summarization_model=event.summarization_model,
-            messages_before=event.messages_before,
-            messages_after=event.messages_after,
-            source=proto_source,  # type: ignore[arg-type]
-            summarization_input_tokens=event.summarization_input_tokens,
-            summarization_output_tokens=event.summarization_output_tokens,
-            summarization_cost_usd=event.summarization_cost_usd,
-        )
-        self.state.context_info.summarization_events.append(proto_event)
-        
-        self.state.context_info.current_token_count = event.tokens_after
-        self._update_utilization()
-        self._sync_context_info()
-        self.force_next_update = True
-        
-        self.logger.info(
-            f"[CONTEXT] execution={self.execution_id} "
-            f"summarization completed (source={event.source}): "
-            f"{event.tokens_before} -> {event.tokens_after} tokens "
-            f"({event.compression_ratio * 100:.1f}% reduction), "
-            f"duration={event.duration_ms}ms, "
-            f"model={event.summarization_model}, "
-            f"summarization_cost=${event.summarization_cost_usd:.6f}"
-        )
-    
     def on_token_count_updated(self, token_count: int) -> None:
-        """
-        Callback from SummarizationMiddleware when token count changes.
-        
-        Updates the current token count and recalculates utilization.
-        This is part of the SummarizationCallback protocol.
-        
-        Args:
-            token_count: Current token count in the context window.
-        """
-        if self.state.context_info is None:
-            # Not an error - context tracking may be disabled
-            return
-        
-        self.state.context_info.current_token_count = token_count
-        self._update_utilization()
-        
-        self.logger.debug(
-            f"[CONTEXT] execution={self.execution_id} "
-            f"token_count={token_count} "
-            f"utilization={self.state.context_info.utilization_percent:.1f}%"
-        )
-    
-    def _update_utilization(self) -> None:
-        """Recalculate utilization percentage based on current token count."""
-        if self.state.context_info is None:
-            return
-        
-        if self.state.context_info.context_window_limit > 0:
-            self.state.context_info.utilization_percent = (
-                self.state.context_info.current_token_count
-                / self.state.context_info.context_window_limit
-                * 100
-            )
-        else:
-            self.state.context_info.utilization_percent = 0.0
-    
-    def _sync_context_info(self) -> None:
-        """Copy the working ``_context_info`` to ``current_status``.
-
-        Safe to call at any time — ``_context_info.summarization_events``
-        is the single source of truth, so repeated calls never duplicate.
-        """
-        if self.state.context_info is not None:
-            self.current_status.context_info.CopyFrom(self.state.context_info)
+        """Delegate to :func:`context_handlers.on_token_count_updated`."""
+        context_handlers.on_token_count_updated(self, token_count)
 
     def finalize_context_info(self) -> None:
-        """
-        Finalize context info and copy to status proto.
-        
-        Called at the end of execution to copy accumulated context info,
-        summarization events, and execution outputs to the status proto.
-        """
-        if self.state.context_info is not None:
-            self._sync_context_info()
-            
-            summarization_count = len(
-                self.state.context_info.summarization_events,
-            )
-            self.logger.info(
-                f"[CONTEXT] execution={self.execution_id} "
-                f"context_info finalized: "
-                f"final_tokens={self.state.context_info.current_token_count}, "
-                f"utilization={self.state.context_info.utilization_percent:.1f}%, "
-                f"summarizations={summarization_count}"
-            )
-        
-        # Reconcile artifacts: inline publishing already syncs each artifact
-        # to current_status.artifacts via add_artifact().  Only append any
-        # that were missed (e.g. added by the post-stream safety net after
-        # inline publish but before this finalizer ran).
-        already_synced = {a.sandbox_path for a in self.current_status.artifacts}
-        newly_synced = 0
-        for artifact in self.state.artifacts:
-            if artifact.sandbox_path not in already_synced:
-                self.current_status.artifacts.append(artifact)
-                newly_synced += 1
+        """Delegate to :func:`context_handlers.finalize_context_info`."""
+        context_handlers.finalize_context_info(self)
 
-        if self.state.artifacts:
-            self.logger.info(
-                f"[ARTIFACTS] execution={self.execution_id} "
-                f"finalized {len(self.state.artifacts)} artifact(s) "
-                f"({newly_synced} newly synced, "
-                f"{len(self.state.artifacts) - newly_synced} already live)"
-            )
-    
-    # ─────────────────────────────────────────────────────────────────────────────
-    # Execution Artifacts (Artifact Lifecycle)
-    #
-    # These methods track artifacts published by the agent via the publish_artifact tool.
-    # Artifacts are accumulated during execution and added to the final status.
-    # ─────────────────────────────────────────────────────────────────────────────
-    
     def add_artifact(self, artifact: ExecutionArtifact) -> None:
-        """Add a published artifact and make it immediately visible in
-        ``current_status`` so the next progressive gRPC update carries it
-        to the UI.
-
-        Deduplicates by ``sandbox_path``: if an artifact with the same
-        path already exists (e.g. the agent overwrote a file), the older
-        entry is replaced in both the internal tracking list and the live
-        status proto.
-        """
-        existing_paths = {a.sandbox_path for a in self.state.artifacts}
-        if artifact.sandbox_path in existing_paths:
-            self.state.artifacts = [
-                a for a in self.state.artifacts
-                if a.sandbox_path != artifact.sandbox_path
-            ]
-        self.state.artifacts.append(artifact)
-
-        self._sync_artifact_to_status(artifact)
-        self.force_next_update = True
-
-        self.logger.info(
-            f"[ARTIFACT] execution={self.execution_id} "
-            f"name={artifact.name} "
-            f"size={artifact.size_bytes} bytes "
-            f"path={artifact.sandbox_path}"
-        )
-
-    def _sync_artifact_to_status(self, artifact: ExecutionArtifact) -> None:
-        """Upsert *artifact* into ``current_status.artifacts`` by
-        ``sandbox_path``, preserving insertion order."""
-        status_artifacts = self.current_status.artifacts
-        for idx, existing in enumerate(status_artifacts):
-            if existing.sandbox_path == artifact.sandbox_path:
-                status_artifacts[idx].CopyFrom(artifact)
-                return
-        status_artifacts.append(artifact)
-
-    # ─────────────────────────────────────────────────────────────────────────────
-    # Workspace Write-Backs (Platform-Owned Git Workflow)
-    # ─────────────────────────────────────────────────────────────────────────────
+        """Delegate to :func:`context_handlers.add_artifact`."""
+        context_handlers.add_artifact(self, artifact)
 
     def add_workspace_write_back(self, wb) -> None:
-        """Register a write-back outcome on the execution status.
-
-        Deduplicates by ``workspace_entry_name``: if a write-back for the
-        same entry already exists, it is replaced.
-        """
-        wbs = self.current_status.workspace_write_backs
-        for idx, existing in enumerate(wbs):
-            if existing.workspace_entry_name == wb.workspace_entry_name:
-                wbs[idx].CopyFrom(wb)
-                self.force_next_update = True
-                return
-        wbs.append(wb)
-        self.force_next_update = True
-
-        self.logger.info(
-            f"[WRITE_BACK] execution={self.execution_id} "
-            f"entry={wb.workspace_entry_name} "
-            f"phase={wb.phase}"
-        )
+        """Delegate to :func:`context_handlers.add_workspace_write_back`."""
+        context_handlers.add_workspace_write_back(self, wb)
     

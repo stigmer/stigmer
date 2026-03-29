@@ -47,8 +47,7 @@ func ComputePendingApprovals(
 
 // isTerminalSubAgent returns true for sub-agents that have reached a final
 // lifecycle state.  Any WAITING_APPROVAL tool calls left inside a terminal
-// sub-agent are orphans from the InterruptProxy thread-restart mechanism and
-// must not appear in pending_approvals.
+// sub-agent are orphans and must not appear in pending_approvals.
 func isTerminalSubAgent(status agentexecutionv1.SubAgentStatus) bool {
 	switch status {
 	case agentexecutionv1.SubAgentStatus_SUB_AGENT_COMPLETED,

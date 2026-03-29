@@ -1,21 +1,19 @@
 """
 Human-in-the-Loop (HITL) approval flow logic.
 
-Simplified in T03: ``messages[].tool_calls`` is the single source of truth.
-``pending_approvals`` is computed server-side.  The LangGraph checkpoint is
-queried directly at resume time.
+``messages[].tool_calls`` is the single source of truth.
+``pending_approvals`` is computed server-side by Go/Java
+``ComputePendingApprovals``.  The LangGraph checkpoint is queried
+directly at resume time.
 
 Public helpers:
 
   extract_interrupt_tool_call_ids — extracts the set of tool_call_ids from
-      LangGraph checkpoint interrupts (both direct and proxy shapes).
+      LangGraph checkpoint interrupts.
 
-  build_snapshot_from_interrupts — builds the Temporal-coordination
-      ``pending_approvals`` list from checkpoint interrupts.
-
-  extract_approval_decisions_from_execution — builds the same
+  extract_approval_decisions_from_execution — builds a
       ``list[SubmitApprovalInput]`` from a DB-loaded execution's tool calls
-      (T03 DB-driven resume path).
+      (DB-driven resume path).
 
 Classes:
 
@@ -28,7 +26,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ApprovalAction,
     ToolCallStatus,
@@ -56,19 +53,6 @@ def extract_interrupt_tool_call_ids(interrupts: Any) -> set[str]:
         if tc_id:
             tc_ids.add(tc_id)
     return tc_ids
-
-
-def build_snapshot_from_interrupts(interrupts: Any) -> list[PendingApproval]:
-    """Build ``pending_approvals`` snapshot from checkpoint interrupts.
-
-    Returns one :class:`PendingApproval` per tool_call_id found in the
-    interrupts.  This is the Temporal-coordination signal that tells the Go
-    workflow how many approval signals to collect.
-    """
-    return [
-        PendingApproval(tool_call_id=tc_id)
-        for tc_id in sorted(extract_interrupt_tool_call_ids(interrupts))
-    ]
 
 
 def extract_approval_decisions_from_execution(

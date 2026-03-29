@@ -1074,7 +1074,7 @@ class TestSubAgentInternals:
     def _patch_subject_gen(self):
         """Patch LLM-based subject generation for all tests in this class."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -1619,7 +1619,7 @@ class TestSubAgentInternals:
     async def test_task_tool_description_mapped_to_input(self, status_builder):
         """description arg (deepagents' full prompt) is mapped to input field."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Scan workflow dependencies",
         ):
@@ -1644,7 +1644,7 @@ class TestSubAgentInternals:
     async def test_task_tool_subject_generated_via_llm(self, status_builder):
         """subject is generated from description via economy-tier LLM."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Scan workflow dependencies",
         ) as mock_gen:
@@ -2186,7 +2186,7 @@ class TestSubAgentScenarios:
     def _patch_subject_gen(self):
         """Patch LLM-based subject generation for all tests in this class."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -2391,7 +2391,7 @@ class TestParentIdsNamespaceRouting:
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -2562,7 +2562,7 @@ class TestConcurrentSubAgentNamespaceRegistration:
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -5908,7 +5908,7 @@ class TestSubAgentSubjectDeduplication:
     async def test_first_subject_unchanged(self, status_builder):
         """First sub-agent with a given subject keeps it as-is."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Research protobuf defs",
         ):
@@ -5923,7 +5923,7 @@ class TestSubAgentSubjectDeduplication:
     async def test_duplicate_subject_gets_suffix(self, status_builder):
         """Second sub-agent with the same subject gets ' (2)' appended."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Research protobuf defs",
         ):
@@ -5947,7 +5947,7 @@ class TestSubAgentSubjectDeduplication:
     async def test_triple_duplicate_increments(self, status_builder):
         """Third duplicate gets ' (3)'."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Find YAML examples",
         ):
@@ -5971,7 +5971,7 @@ class TestSubAgentSubjectDeduplication:
         """Distinct subjects are stored without any suffix."""
         subjects_to_return = iter(["Analyze CLI code", "Review backend tests"])
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             side_effect=lambda *_args, **_kw: next(subjects_to_return),
         ):
@@ -5995,7 +5995,7 @@ class TestSubAgentSubjectDeduplication:
 
         long_subject = "A" * _MAX_SUBJECT_LENGTH
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value=long_subject,
         ):
@@ -6014,7 +6014,7 @@ class TestSubAgentSubjectDeduplication:
     async def test_empty_subject_skips_dedup(self, status_builder):
         """Empty subjects (generation failures) are not deduplicated."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -6048,7 +6048,7 @@ class TestOrphanedSubAgentDetection:
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -6718,7 +6718,7 @@ class TestUniversalNamespaceRegistration:
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -6834,7 +6834,7 @@ class TestFinalizationPreservesTerminalStatus:
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):

@@ -13,15 +13,14 @@ subgraph mode).  This means:
 - ``Command(resume=...)`` on the parent graph correctly resumes the
   sub-agent from its checkpoint.
 - Concurrent sub-agent invocations get distinct ``checkpoint_ns`` values,
-  preventing the deadlock that the old ``InterruptProxyRunnable`` caused
-  with its shared ``MemorySaver`` and ``_thread_counter``.
+  eliminating checkpoint contention.
 
 See ``tests/core/test_native_subgraph_interrupt.py`` for the verification
 tests that confirm this contract.
 
 Usage (inside ``agent.py``)::
 
-    from graphton.core.interrupt_proxy import compile_subagent
+    from graphton.core.subagent import compile_subagent
 
     compiled = compile_subagent(
         model=model_instance,
