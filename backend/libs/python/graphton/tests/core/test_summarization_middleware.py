@@ -516,7 +516,7 @@ class TestSubAgentSummarizationPropagation:
         ]
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_hitl_path_injects_summarization_middleware(
         self,
@@ -563,7 +563,7 @@ class TestSubAgentSummarizationPropagation:
             assert summarization_mws[0]._callback is None
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_hitl_path_distinct_middleware_instances(
         self,
@@ -608,7 +608,7 @@ class TestSubAgentSummarizationPropagation:
         assert len(set(id(i) for i in instances)) == 3
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_hitl_path_skips_precompiled_subagents(
         self,
@@ -648,7 +648,7 @@ class TestSubAgentSummarizationPropagation:
         assert gp_call.kwargs["name"] == "general-purpose"
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_hitl_path_no_injection_when_disabled(
         self,

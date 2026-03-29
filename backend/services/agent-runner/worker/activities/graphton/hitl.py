@@ -45,25 +45,16 @@ from worker.activities.graphton.status_builder import StatusBuilder, _utc_timest
 def extract_interrupt_tool_call_ids(interrupts: Any) -> set[str]:
     """Extract all tool_call_ids from LangGraph checkpoint interrupts.
 
-    Handles both shapes:
-    - **Direct**: ``intr.value["tool_call_id"]`` (root-agent HITL)
-    - **Proxy**: Nested dicts with ``_proxy_interrupt_id``, each containing
-      ``tool_call_id`` (sub-agent HITL via InterruptProxyRunnable)
+    All interrupts use the direct shape: ``intr.value["tool_call_id"]``.
+    Both root-agent and sub-agent interrupts propagate with this same
+    shape thanks to LangGraph's native per-invocation subgraph mode.
     """
     tc_ids: set[str] = set()
     for intr in interrupts:
         intr_value = intr.value if isinstance(intr.value, dict) else {}
-        direct_tc_id = intr_value.get("tool_call_id", "")
-        if direct_tc_id:
-            tc_ids.add(direct_tc_id)
-        for _sub_id, sub_value in intr_value.items():
-            if not isinstance(sub_value, dict):
-                continue
-            if "_proxy_interrupt_id" not in sub_value:
-                continue
-            sub_tc_id = sub_value.get("tool_call_id", "")
-            if sub_tc_id:
-                tc_ids.add(sub_tc_id)
+        tc_id = intr_value.get("tool_call_id", "")
+        if tc_id:
+            tc_ids.add(tc_id)
     return tc_ids
 
 

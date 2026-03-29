@@ -541,12 +541,12 @@ class TestGatedGeneralPurposeSubAgent:
 
     When a checkpointer AND approval_checker are both present (HITL path),
     graphton injects an explicit CompiledSubAgent named "general-purpose"
-    compiled through compile_subagent_with_proxy and wrapped with
+    compiled through compile_subagent and wrapped with
     SubAgentGate.  This overrides deepagents' automatic ungated clone.
     """
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_hitl_no_explicit_subagents_injects_general_purpose(
         self, mock_parse, mock_compile, mock_create
@@ -590,7 +590,7 @@ class TestGatedGeneralPurposeSubAgent:
         assert subagents_passed[0]["runnable"] is not mock_runnable
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_hitl_with_explicit_subagents_appends_general_purpose(
         self, mock_parse, mock_compile, mock_create
@@ -665,7 +665,7 @@ class TestGatedGeneralPurposeSubAgent:
         assert subagents_passed == test_subagents
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_general_purpose_agent_false_skips_injection(
         self, mock_parse, mock_compile, mock_create
@@ -697,7 +697,7 @@ class TestGatedGeneralPurposeSubAgent:
         assert len(subagents_passed) == 0
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_general_purpose_uses_main_agent_model_and_prompt(
         self, mock_parse, mock_compile, mock_create
@@ -733,7 +733,7 @@ class TestGatedGeneralPurposeSubAgent:
         assert compile_kwargs["name"] == "general-purpose"
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_general_purpose_shares_gate_with_explicit_subagents(
         self, mock_parse, mock_compile, mock_create
@@ -787,7 +787,7 @@ class TestGatedGeneralPurposeSubAgent:
         )
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     @patch("graphton.core.tool_wrappers.create_platform_tool_wrappers")
     @patch("graphton.core.sandbox_factory.create_sandbox_backend")
@@ -843,7 +843,7 @@ class TestGatedGeneralPurposeSubAgent:
         assert mock_write_tool in gp_tools
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     @patch("graphton.core.tool_wrappers.create_platform_tool_wrappers")
     @patch("graphton.core.sandbox_factory.create_sandbox_backend")
@@ -898,7 +898,7 @@ class TestGatedGeneralPurposeSubAgent:
         assert gp_call.kwargs.get("approval_checker") is mock_checker
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_gp_subagent_skipped_when_no_tools_available(
         self, mock_parse, mock_compile, mock_create

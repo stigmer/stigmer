@@ -1,14 +1,14 @@
 """Tests for per-sub-agent model routing in the HITL compilation path.
 
 The HITL path in ``create_deep_agent`` compiles each sub-agent via
-``compile_subagent_with_proxy``.  When a sub-agent dict carries a
-``"model"`` key, the HITL path must resolve it (via ``parse_model_string``
-for strings) and pass the resolved instance — not the parent's model —
-to ``compile_subagent_with_proxy``.
+``compile_subagent``.  When a sub-agent dict carries a ``"model"`` key,
+the HITL path must resolve it (via ``parse_model_string`` for strings)
+and pass the resolved instance — not the parent's model — to
+``compile_subagent``.
 
 Tests:
 - Sub-agent with ``"model"`` string: resolved via ``parse_model_string``,
-  override instance passed to ``compile_subagent_with_proxy``.
+  override instance passed to ``compile_subagent``.
 - Sub-agent with ``"model"`` as a ``BaseChatModel`` instance: used directly.
 - Sub-agent without ``"model"``: parent model used (regression guard).
 - Mixed list: each sub-agent gets the correct model.
@@ -60,7 +60,7 @@ class TestSubagentModelRouting:
     """HITL path: per-sub-agent model override in create_deep_agent."""
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_string_model_override_resolved_via_parse_model_string(
         self,
@@ -70,7 +70,7 @@ class TestSubagentModelRouting:
     ):
         """A sub-agent with model='claude-haiku-4.5' triggers a second
         parse_model_string call, and the result is passed to
-        compile_subagent_with_proxy instead of the parent model."""
+        compile_subagent instead of the parent model."""
         from graphton.core.agent import create_deep_agent
 
         mock_parent = MagicMock(name="parent-model")
@@ -105,7 +105,7 @@ class TestSubagentModelRouting:
         assert explicit_call.kwargs["model"] is mock_override
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_model_instance_used_directly(
         self,
@@ -138,7 +138,7 @@ class TestSubagentModelRouting:
         assert explicit_call.kwargs["model"] is pre_built
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_no_model_key_uses_parent_model(
         self,
@@ -169,7 +169,7 @@ class TestSubagentModelRouting:
         assert explicit_call.kwargs["model"] is mock_parent
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
-    @patch("graphton.core.interrupt_proxy.compile_subagent_with_proxy")
+    @patch("graphton.core.interrupt_proxy.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
     def test_mixed_subagents_each_get_correct_model(
         self,
