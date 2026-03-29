@@ -129,8 +129,8 @@ class TestChatModelStreamEvent:
         await status_builder.process_event(event)
         
         # Should have recorded start time at index 0
-        assert 0 in status_builder._message_start_times
-        assert isinstance(status_builder._message_start_times[0], datetime)
+        assert 0 in status_builder.state.message_start_times
+        assert isinstance(status_builder.state.message_start_times[0], datetime)
 
     @pytest.mark.asyncio
     async def test_handles_list_content(self, status_builder):
@@ -239,7 +239,7 @@ class TestChatModelEndEvent:
         
         # Manually set a known start time for testing
         known_start = datetime.utcnow() - timedelta(milliseconds=500)
-        status_builder._message_start_times[0] = known_start
+        status_builder.state.message_start_times[0] = known_start
         
         # Process end event
         output = MagicMock()
@@ -254,7 +254,7 @@ class TestChatModelEndEvent:
         await status_builder.process_event(end_event)
         
         # Start time should be cleaned up
-        assert 0 not in status_builder._message_start_times
+        assert 0 not in status_builder.state.message_start_times
 
     @pytest.mark.asyncio
     async def test_accumulates_tokens_across_multiple_calls(self, status_builder):
@@ -731,12 +731,12 @@ class TestToolCallStatus:
         })
         
         # Verify start time is tracked
-        assert run_id in status_builder._tool_start_times
-        assert isinstance(status_builder._tool_start_times[run_id], datetime)
+        assert run_id in status_builder.state.tool_start_times
+        assert isinstance(status_builder.state.tool_start_times[run_id], datetime)
         
         # Set a known start time to control duration calculation
         known_start = datetime.utcnow() - timedelta(milliseconds=1500)
-        status_builder._tool_start_times[run_id] = known_start
+        status_builder.state.tool_start_times[run_id] = known_start
         
         # End the tool
         await status_builder.process_event({
@@ -748,7 +748,7 @@ class TestToolCallStatus:
         })
         
         # Verify start time was cleaned up
-        assert run_id not in status_builder._tool_start_times
+        assert run_id not in status_builder.state.tool_start_times
 
 
 # =============================================================================
@@ -1074,7 +1074,7 @@ class TestSubAgentInternals:
     def _patch_subject_gen(self):
         """Patch LLM-based subject generation for all tests in this class."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -1112,7 +1112,7 @@ class TestSubAgentInternals:
         assert sub_agent.started_at != ""
         
         # Verify sub-agent is tracked for namespace routing
-        assert run_id in status_builder._active_sub_agents
+        assert run_id in status_builder.state.active_sub_agents
 
     @pytest.mark.asyncio
     async def test_task_tool_creates_parent_tool_call(self, status_builder):
@@ -1192,7 +1192,7 @@ class TestSubAgentInternals:
         assert sub_agent.completed_at != ""
         
         # Verify cleanup
-        assert run_id not in status_builder._active_sub_agents
+        assert run_id not in status_builder.state.active_sub_agents
 
     @pytest.mark.asyncio
     async def test_sub_agent_failure_captures_error(self, status_builder):
@@ -1240,7 +1240,7 @@ class TestSubAgentInternals:
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ToolCallStatus
         
         sub_agent_run_id = "task-run-ns-test"
-        namespace = f"agent_node:{sub_agent_run_id}"
+        namespace = f"tools:{sub_agent_run_id}|agent_node:inner"
         
         # Start sub-agent
         await status_builder.process_event({
@@ -1256,12 +1256,13 @@ class TestSubAgentInternals:
             "metadata": {}
         })
         
-        # Tool call from sub-agent (with namespace)
+        # Tool call from sub-agent (with namespace + parent_ids)
         tool_run_id = "tool-in-subagent"
         await status_builder.process_event({
             "event": "on_tool_start",
             "name": "write_file",
             "run_id": tool_run_id,
+            "parent_ids": [sub_agent_run_id],
             "data": {"input": {"path": "/tmp/test.py", "content": "print('hello')"}},
             "metadata": {"langgraph_checkpoint_ns": namespace}
         })
@@ -1283,7 +1284,7 @@ class TestSubAgentInternals:
     async def test_namespace_routing_messages_to_sub_agent(self, status_builder):
         """Test that AI messages with sub-agent namespace route to SubAgentExecution."""
         sub_agent_run_id = "task-run-msg-test"
-        namespace = f"agent_node:{sub_agent_run_id}"
+        namespace = f"tools:{sub_agent_run_id}|agent_node:inner"
         
         # Start sub-agent
         await status_builder.process_event({
@@ -1299,12 +1300,13 @@ class TestSubAgentInternals:
             "metadata": {}
         })
         
-        # AI message from sub-agent (with namespace)
+        # AI message from sub-agent (with namespace + parent_ids)
         chunk = MagicMock()
         chunk.content = "I'll help you with that."
         
         await status_builder.process_event({
             "event": "on_chat_model_stream",
+            "parent_ids": [sub_agent_run_id],
             "data": {"chunk": chunk},
             "metadata": {"langgraph_checkpoint_ns": namespace}
         })
@@ -1323,7 +1325,7 @@ class TestSubAgentInternals:
     async def test_sub_agent_tool_end_updates_correct_context(self, status_builder):
         """Test that tool end events update the correct sub-agent context."""
         sub_agent_run_id = "task-run-end-test"
-        namespace = f"agent_node:{sub_agent_run_id}"
+        namespace = f"tools:{sub_agent_run_id}|agent_node:inner"
         tool_run_id = "tool-end-test"
         
         # Start sub-agent
@@ -1345,6 +1347,7 @@ class TestSubAgentInternals:
             "event": "on_tool_start",
             "name": "read_file",
             "run_id": tool_run_id,
+            "parent_ids": [sub_agent_run_id],
             "data": {"input": {"path": "/tmp/file.txt"}},
             "metadata": {"langgraph_checkpoint_ns": namespace}
         })
@@ -1354,6 +1357,7 @@ class TestSubAgentInternals:
             "event": "on_tool_end",
             "name": "read_file",
             "run_id": tool_run_id,
+            "parent_ids": [sub_agent_run_id],
             "data": {"output": "file contents"},
             "metadata": {"langgraph_checkpoint_ns": namespace}
         })
@@ -1398,21 +1402,23 @@ class TestSubAgentInternals:
         })
         
         # Tool call for sub-agent-1
-        namespace1 = "node:sub-agent-1"
+        namespace1 = "tools:task1|node:sub-agent-1"
         await status_builder.process_event({
             "event": "on_tool_start",
             "name": "search",
             "run_id": "tool-1",
+            "parent_ids": ["sub-agent-1"],
             "data": {"input": {"query": "topic A"}},
             "metadata": {"langgraph_checkpoint_ns": namespace1}
         })
         
         # Tool call for sub-agent-2
-        namespace2 = "node:sub-agent-2"
+        namespace2 = "tools:task2|node:sub-agent-2"
         await status_builder.process_event({
             "event": "on_tool_start",
             "name": "write_file",
             "run_id": "tool-2",
+            "parent_ids": ["sub-agent-2"],
             "data": {"input": {"path": "/tmp/b.txt"}},
             "metadata": {"langgraph_checkpoint_ns": namespace2}
         })
@@ -1471,7 +1477,7 @@ class TestSubAgentInternals:
     async def test_sub_agent_message_finalization(self, status_builder):
         """Test that AI message finalization works for sub-agent messages."""
         sub_agent_run_id = "task-run-finalize"
-        namespace = f"agent_node:{sub_agent_run_id}"
+        namespace = f"tools:{sub_agent_run_id}|agent_node:inner"
         
         # Start sub-agent
         await status_builder.process_event({
@@ -1493,6 +1499,7 @@ class TestSubAgentInternals:
         
         await status_builder.process_event({
             "event": "on_chat_model_stream",
+            "parent_ids": [sub_agent_run_id],
             "data": {"chunk": chunk},
             "metadata": {"langgraph_checkpoint_ns": namespace}
         })
@@ -1513,6 +1520,7 @@ class TestSubAgentInternals:
         
         await status_builder.process_event({
             "event": "on_chat_model_end",
+            "parent_ids": [sub_agent_run_id],
             "data": {"output": output},
             "metadata": {"langgraph_checkpoint_ns": namespace}
         })
@@ -1524,7 +1532,7 @@ class TestSubAgentInternals:
     async def test_namespace_cleanup_on_sub_agent_end(self, status_builder):
         """Completed sub-agents move to _completed; namespace mappings are preserved for late events."""
         sub_agent_run_id = "task-run-cleanup"
-        namespace = f"agent_node:{sub_agent_run_id}"
+        namespace = f"tools:{sub_agent_run_id}|agent_node:inner"
 
         # Start sub-agent
         await status_builder.process_event({
@@ -1545,13 +1553,14 @@ class TestSubAgentInternals:
             "event": "on_tool_start",
             "name": "echo",
             "run_id": "child-tool",
+            "parent_ids": [sub_agent_run_id],
             "data": {"input": {"text": "hello"}},
             "metadata": {"langgraph_checkpoint_ns": namespace}
         })
 
         # Verify namespace is registered and sub-agent is active
-        assert namespace in status_builder._namespace_to_sub_agent_id
-        assert sub_agent_run_id in status_builder._active_sub_agents
+        assert namespace in status_builder.state.namespace_to_sub_agent
+        assert sub_agent_run_id in status_builder.state.active_sub_agents
 
         # End sub-agent
         await status_builder.process_event({
@@ -1563,11 +1572,11 @@ class TestSubAgentInternals:
         })
 
         # Sub-agent moved from active to completed
-        assert sub_agent_run_id not in status_builder._active_sub_agents
-        assert sub_agent_run_id in status_builder._completed_sub_agents
+        assert sub_agent_run_id not in status_builder.state.active_sub_agents
+        assert sub_agent_run_id in status_builder.state.completed_sub_agents
 
         # Namespace mappings preserved for late-arriving event routing
-        assert namespace in status_builder._namespace_to_sub_agent_id
+        assert namespace in status_builder.state.namespace_to_sub_agent
 
     @pytest.mark.asyncio
     async def test_sub_agent_extracts_alternative_arg_names(self, status_builder):
@@ -1610,7 +1619,7 @@ class TestSubAgentInternals:
     async def test_task_tool_description_mapped_to_input(self, status_builder):
         """description arg (deepagents' full prompt) is mapped to input field."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Scan workflow dependencies",
         ):
@@ -1635,7 +1644,7 @@ class TestSubAgentInternals:
     async def test_task_tool_subject_generated_via_llm(self, status_builder):
         """subject is generated from description via economy-tier LLM."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Scan workflow dependencies",
         ) as mock_gen:
@@ -1720,8 +1729,8 @@ class TestSubAgentInternals:
         )
 
     @pytest.mark.asyncio
-    async def test_sub_agent_end_forces_status_update(self, status_builder):
-        """Sub-agent completion sets force_next_update so the status push is immediate."""
+    async def test_sub_agent_end_defers_flush_via_pending_completion(self, status_builder):
+        """Sub-agent completion records a deferred flush instead of setting force_next_update."""
         run_id = "task-force-update"
 
         await status_builder.process_event({
@@ -1742,7 +1751,8 @@ class TestSubAgentInternals:
             "metadata": {},
         })
 
-        assert status_builder.force_next_update is True
+        assert status_builder.force_next_update is False
+        assert run_id in status_builder.state.pending_completion_flush
 
     # ── Gap 9: Late event routing ───────────────────────────────────────────
 
@@ -1752,7 +1762,7 @@ class TestSubAgentInternals:
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
 
         run_id = "task-late-event"
-        namespace = f"agent_node:{run_id}"
+        namespace = f"tools:{run_id}|agent_node:inner"
 
         # Start sub-agent
         await status_builder.process_event({
@@ -1764,7 +1774,9 @@ class TestSubAgentInternals:
         })
 
         # Register a namespace while it's active
-        status_builder._register_sub_agent_namespace(f"{namespace}|tools")
+        status_builder._register_sub_agent_namespace(
+            namespace, {"parent_ids": [run_id]},
+        )
 
         # Complete the sub-agent
         await status_builder.process_event({
@@ -1775,11 +1787,11 @@ class TestSubAgentInternals:
             "metadata": {},
         })
 
-        assert run_id not in status_builder._active_sub_agents
-        assert run_id in status_builder._completed_sub_agents
+        assert run_id not in status_builder.state.active_sub_agents
+        assert run_id in status_builder.state.completed_sub_agents
 
-        # Late event with the same namespace root
-        context, sub_agent = status_builder._get_execution_context(f"{namespace}|tools")
+        # Late event with the same namespace
+        context, sub_agent = status_builder._get_execution_context(namespace)
 
         assert sub_agent is not None
         assert sub_agent.id == run_id
@@ -1802,15 +1814,15 @@ class TestSubAgentInternals:
                 "metadata": {},
             })
 
-        assert len(status_builder._active_sub_agents) == 2
+        assert len(status_builder.state.active_sub_agents) == 2
 
         status_builder.finalize_active_sub_agents(
             SubAgentStatus.SUB_AGENT_FAILED,
             "Parent execution failed: test error",
         )
 
-        assert len(status_builder._active_sub_agents) == 0
-        assert len(status_builder._completed_sub_agents) == 2
+        assert len(status_builder.state.active_sub_agents) == 0
+        assert len(status_builder.state.completed_sub_agents) == 2
 
         for sa in status_builder.current_status.sub_agent_executions:
             assert sa.status == SubAgentStatus.SUB_AGENT_FAILED
@@ -1822,14 +1834,14 @@ class TestSubAgentInternals:
         """finalize_active_sub_agents is a safe no-op when no sub-agents are active."""
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
 
-        assert len(status_builder._active_sub_agents) == 0
+        assert len(status_builder.state.active_sub_agents) == 0
 
         status_builder.finalize_active_sub_agents(
             SubAgentStatus.SUB_AGENT_FAILED,
             "should not matter",
         )
 
-        assert len(status_builder._completed_sub_agents) == 0
+        assert len(status_builder.state.completed_sub_agents) == 0
         assert len(status_builder.current_status.sub_agent_executions) == 0
 
     # ── write_todos namespace isolation ──────────────────────────────────────
@@ -1843,7 +1855,7 @@ class TestSubAgentInternals:
         namespace and route to _update_sub_agent_todos(), not _update_todos().
         """
         sub_agent_run_id = "task-run-todo-isolation"
-        namespace = f"agent_node:{sub_agent_run_id}"
+        namespace = f"tools:{sub_agent_run_id}|agent_node:inner"
 
         # Create sub-agent via task tool
         await status_builder.process_event({
@@ -1866,6 +1878,7 @@ class TestSubAgentInternals:
             "event": "on_tool_start",
             "name": "read_file",
             "run_id": "sub-tool-pre-todo",
+            "parent_ids": [sub_agent_run_id],
             "data": {"input": {"path": "/tmp/test.txt"}},
             "metadata": {"langgraph_checkpoint_ns": namespace},
         })
@@ -1877,6 +1890,7 @@ class TestSubAgentInternals:
                 "event": "on_tool_start",
                 "name": "write_todos",
                 "run_id": "write-todos-sub-1",
+                "parent_ids": [sub_agent_run_id],
                 "data": {
                     "input": {
                         "todos": [
@@ -1894,7 +1908,7 @@ class TestSubAgentInternals:
     async def test_sub_agent_write_todos_populates_sub_agent_todos(self, status_builder):
         """Sub-agent write_todos must populate the SubAgentExecution.todos map."""
         sub_agent_run_id = "task-run-todo-populate"
-        namespace = f"agent_node:{sub_agent_run_id}"
+        namespace = f"tools:{sub_agent_run_id}|agent_node:inner"
 
         await status_builder.process_event({
             "event": "on_tool_start",
@@ -1913,6 +1927,7 @@ class TestSubAgentInternals:
             "event": "on_tool_start",
             "name": "write_todos",
             "run_id": "write-todos-sub-populate",
+            "parent_ids": [sub_agent_run_id],
             "data": {
                 "input": {
                     "todos": [
@@ -1973,7 +1988,7 @@ class TestSubAgentInternals:
         _get_execution_context can resolve it.
         """
         sub_agent_run_id = "task-run-todo-first"
-        namespace = f"agent_node:{sub_agent_run_id}"
+        namespace = f"tools:{sub_agent_run_id}|agent_node:inner"
 
         await status_builder.process_event({
             "event": "on_tool_start",
@@ -1996,6 +2011,7 @@ class TestSubAgentInternals:
                 "event": "on_tool_start",
                 "name": "write_todos",
                 "run_id": "write-todos-first-event",
+                "parent_ids": [sub_agent_run_id],
                 "data": {
                     "input": {
                         "todos": [
@@ -2009,7 +2025,7 @@ class TestSubAgentInternals:
             mock_sub.assert_called_once()
 
         # Verify the namespace was registered as a side effect
-        assert namespace in status_builder._namespace_to_sub_agent_id
+        assert namespace in status_builder.state.namespace_to_sub_agent
 
     # ── Early ToolCall reconciliation for task tool ──────────────────────
 
@@ -2056,7 +2072,7 @@ class TestSubAgentInternals:
         assert sa.name == "researcher"
 
         # run_id -> tool_call_id mapping is registered
-        assert status_builder._run_id_to_tool_call_id[run_id] == tool_use_id
+        assert status_builder.state.run_id_to_tool_call_id[run_id] == tool_use_id
 
     # ── Resume deduplication ─────────────────────────────────────────────
 
@@ -2109,7 +2125,7 @@ class TestSubAgentInternals:
         assert status_builder.current_status.sub_agent_executions[0].id == original_sa_id
 
         # New run_id maps to the existing sub-agent
-        assert run_id_2 in status_builder._active_sub_agents
+        assert run_id_2 in status_builder.state.active_sub_agents
 
     # ── Sub-agent completion marks parent ToolCall as COMPLETED ──────────
 
@@ -2170,7 +2186,7 @@ class TestSubAgentScenarios:
     def _patch_subject_gen(self):
         """Patch LLM-based subject generation for all tests in this class."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -2182,7 +2198,7 @@ class TestSubAgentScenarios:
         from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import SubAgentStatus
 
         sa_run_id = "sa-approval-lifecycle"
-        namespace = f"agent_node:{sa_run_id}"
+        namespace = f"tools:{sa_run_id}|agent_node:inner"
         tool_run_id = "write-tool-lifecycle"
 
         # 1. Start sub-agent
@@ -2205,11 +2221,12 @@ class TestSubAgentScenarios:
         assert sa.subject == ""
         assert sa.input == "Apply hotfix"
 
-        # 2. Sub-agent's tool call (routed via namespace)
+        # 2. Sub-agent's tool call (routed via parent_ids)
         await status_builder.process_event({
             "event": "on_tool_start",
             "name": "write_file",
             "run_id": tool_run_id,
+            "parent_ids": [sa_run_id],
             "data": {"input": {"path": "/app/auth.py", "content": "patched"}},
             "metadata": {"langgraph_checkpoint_ns": namespace},
         })
@@ -2222,6 +2239,7 @@ class TestSubAgentScenarios:
             "event": "on_tool_end",
             "name": "write_file",
             "run_id": tool_run_id,
+            "parent_ids": [sa_run_id],
             "data": {"output": "File written successfully"},
             "metadata": {"langgraph_checkpoint_ns": namespace},
         })
@@ -2238,8 +2256,8 @@ class TestSubAgentScenarios:
         assert sa.status == SubAgentStatus.SUB_AGENT_COMPLETED
         assert sa.output == "Hotfix applied to auth.py"
         assert sa.completed_at != ""
-        assert sa_run_id not in status_builder._active_sub_agents
-        assert sa_run_id in status_builder._completed_sub_agents
+        assert sa_run_id not in status_builder.state.active_sub_agents
+        assert sa_run_id in status_builder.state.completed_sub_agents
 
     @pytest.mark.asyncio
     async def test_concurrent_sub_agents_interleaved_events(self, status_builder):
@@ -2248,8 +2266,8 @@ class TestSubAgentScenarios:
 
         sa_a_id = "sa-concurrent-a"
         sa_b_id = "sa-concurrent-b"
-        ns_a = f"agent_node:{sa_a_id}"
-        ns_b = f"agent_node:{sa_b_id}"
+        ns_a = f"tools:{sa_a_id}|agent_node:inner_a"
+        ns_b = f"tools:{sa_b_id}|agent_node:inner_b"
 
         # Start both sub-agents
         for sa_id, desc in [(sa_a_id, "review code"), (sa_b_id, "run tests")]:
@@ -2267,13 +2285,14 @@ class TestSubAgentScenarios:
                 "metadata": {},
             })
 
-        assert len(status_builder._active_sub_agents) == 2
+        assert len(status_builder.state.active_sub_agents) == 2
 
-        # Interleaved tool events
+        # Interleaved tool events with parent_ids for routing
         await status_builder.process_event({
             "event": "on_tool_start",
             "name": "grep",
             "run_id": "tool-a-1",
+            "parent_ids": [sa_a_id],
             "data": {"input": {"pattern": "TODO"}},
             "metadata": {"langgraph_checkpoint_ns": ns_a},
         })
@@ -2281,6 +2300,7 @@ class TestSubAgentScenarios:
             "event": "on_tool_start",
             "name": "pytest",
             "run_id": "tool-b-1",
+            "parent_ids": [sa_b_id],
             "data": {"input": {"path": "tests/"}},
             "metadata": {"langgraph_checkpoint_ns": ns_b},
         })
@@ -2288,6 +2308,7 @@ class TestSubAgentScenarios:
             "event": "on_tool_end",
             "name": "grep",
             "run_id": "tool-a-1",
+            "parent_ids": [sa_a_id],
             "data": {"output": "3 TODOs found"},
             "metadata": {"langgraph_checkpoint_ns": ns_a},
         })
@@ -2295,12 +2316,13 @@ class TestSubAgentScenarios:
             "event": "on_tool_end",
             "name": "pytest",
             "run_id": "tool-b-1",
+            "parent_ids": [sa_b_id],
             "data": {"output": "12 passed"},
             "metadata": {"langgraph_checkpoint_ns": ns_b},
         })
 
-        sa_a = status_builder._active_sub_agents[sa_a_id]
-        sa_b = status_builder._active_sub_agents[sa_b_id]
+        sa_a = status_builder.state.active_sub_agents[sa_a_id]
+        sa_b = status_builder.state.active_sub_agents[sa_b_id]
 
         sa_a_tcs = [tc for m in sa_a.messages for tc in m.tool_calls]
         assert len(sa_a_tcs) == 1
@@ -2323,9 +2345,9 @@ class TestSubAgentScenarios:
             "metadata": {},
         })
 
-        assert sa_b_id not in status_builder._active_sub_agents
-        assert sa_b_id in status_builder._completed_sub_agents
-        assert sa_a_id in status_builder._active_sub_agents
+        assert sa_b_id not in status_builder.state.active_sub_agents
+        assert sa_b_id in status_builder.state.completed_sub_agents
+        assert sa_a_id in status_builder.state.active_sub_agents
 
         # Late event for SA-B routes to completed sub-agent (same namespace
         # that was registered when SA-B's tool events arrived)
@@ -2352,245 +2374,204 @@ class TestSubAgentScenarios:
 
 
 # =============================================================================
-# Tests for Namespace Registration Strategies (Strategy 4 + diagnostics)
+# Tests for parent_ids-Based Namespace Routing
 # =============================================================================
 
 
-class TestNamespaceRegistrationStrategies:
-    """Tests for _register_sub_agent_namespace Strategy 4 and diagnostic logging.
+class TestParentIdsNamespaceRouting:
+    """Tests for _register_sub_agent_namespace using parent_ids.
 
-    Strategy 4 (sole-active-agent fallback) resolves the case where a single
-    sub-agent produces events from multiple distinct namespace roots.  When
-    exactly one sub-agent is active, all multi-segment namespaces are mapped
-    to it without ambiguity.
+    v2 astream_events carry a parent_ids list tracing the callback chain from
+    sub-agent events back to the parent invocation context.  At least one entry
+    in parent_ids is the task tool's run_id (the key in _active_sub_agents).
+    This provides deterministic namespace -> sub-agent mapping without
+    heuristics.
     """
 
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
-        """Patch LLM-based subject generation for all tests in this class."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
             yield
 
     @pytest.mark.asyncio
-    async def test_sole_active_agent_fallback_registers_different_root(self, status_builder):
-        """Strategy 4 maps a different-root namespace to the sole active sub-agent."""
-        run_id = "sa-sole-001"
+    async def test_parent_ids_matches_active_sub_agent(self, status_builder):
+        """parent_ids containing the task tool run_id registers the namespace."""
+        run_id = "sa-pid-001"
 
-        # Start sub-agent (enqueues in _pending_sub_agent_ids)
         await status_builder.process_event({
             "event": "on_tool_start",
             "name": "task",
             "run_id": run_id,
             "data": {"input": {"subagent_type": "editor", "input": "edit file"}},
-            "metadata": {}
+            "metadata": {},
         })
 
-        # First multi-segment namespace — consumed by causal correlation (Strategy 3)
-        first_ns = "root-alpha:aaa|child-1"
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "read_file",
-            "run_id": "tool-causal",
-            "data": {"input": {"path": "/tmp/a.py"}},
-            "metadata": {"langgraph_checkpoint_ns": first_ns}
-        })
-        assert first_ns in status_builder._namespace_to_sub_agent_id
-        assert status_builder._pending_sub_agent_ids == []  # consumed
+        ns = "tools:abc123|work_node:def456"
+        status_builder._register_sub_agent_namespace(
+            ns, {"parent_ids": ["sub-graph-root", run_id, "tools-node-run"]},
+        )
 
-        # Second namespace with a DIFFERENT root — Strategy 4 should handle it
-        second_ns = "root-beta:bbb|child-2"
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "write_file",
-            "run_id": "tool-fallback",
-            "data": {"input": {"path": "/tmp/b.py", "content": "x"}},
-            "metadata": {"langgraph_checkpoint_ns": second_ns}
-        })
-
-        assert second_ns in status_builder._namespace_to_sub_agent_id
-        assert status_builder._namespace_to_sub_agent_id[second_ns] == run_id
+        assert ns in status_builder.state.namespace_to_sub_agent
+        assert status_builder.state.namespace_to_sub_agent[ns] == run_id
 
     @pytest.mark.asyncio
-    async def test_sole_active_agent_routes_events_to_sub_agent(self, status_builder):
-        """Events matched by Strategy 4 route to the sub-agent context, not main."""
-        run_id = "sa-route-001"
+    async def test_parent_ids_matches_completed_sub_agent(self, status_builder):
+        """Late events route via parent_ids to completed sub-agents."""
+        run_id = "sa-late-001"
 
-        # Start sub-agent
         await status_builder.process_event({
             "event": "on_tool_start",
             "name": "task",
             "run_id": run_id,
             "data": {"input": {"subagent_type": "coder", "input": "code"}},
-            "metadata": {}
-        })
-
-        # Consume causal correlation via first multi-segment namespace
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "echo",
-            "run_id": "consume-causal",
-            "data": {"input": {"text": "hi"}},
-            "metadata": {"langgraph_checkpoint_ns": "root-one:x|node-a"}
-        })
-
-        # Different-root namespace — Strategy 4 fallback
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "list_files",
-            "run_id": "routed-tool",
-            "data": {"input": {"dir": "/tmp"}},
-            "metadata": {"langgraph_checkpoint_ns": "root-two:y|node-b"}
-        })
-
-        # Main agent has 1 "task" ToolCall; sub-agent internal tools go to sub-agent
-        main_tcs = [tc for m in status_builder.current_status.messages for tc in m.tool_calls]
-        assert len(main_tcs) == 1
-        assert main_tcs[0].name == "task"
-
-        sub_agent = status_builder.current_status.sub_agent_executions[0]
-        tool_names = [tc.name for m in sub_agent.messages for tc in m.tool_calls]
-        assert "list_files" in tool_names
-
-    @pytest.mark.asyncio
-    async def test_fallback_does_not_apply_with_multiple_sub_agents(self, status_builder):
-        """Strategy 4 must NOT apply when 2+ sub-agents are active."""
-        # Start first sub-agent
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": "sa-multi-1",
-            "data": {"input": {"subagent_type": "a", "input": "x"}},
-            "metadata": {}
-        })
-        # Start second sub-agent (appends to _pending_sub_agent_ids queue)
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": "sa-multi-2",
-            "data": {"input": {"subagent_type": "b", "input": "y"}},
-            "metadata": {}
-        })
-
-        # Consume both pending sub-agents via FIFO causal correlation
-        status_builder._register_sub_agent_namespace("consume-root-1:ccc|node-c")
-        status_builder._register_sub_agent_namespace("consume-root-2:ddd|node-d")
-        assert status_builder._pending_sub_agent_ids == []
-
-        assert len(status_builder._active_sub_agents) == 2
-
-        # Ambiguous namespace — cannot be resolved with 2 active sub-agents
-        # (both pending sub-agents already consumed, and root doesn't match)
-        ambiguous_ns = "unknown-root:zzz|node-x"
-        status_builder._register_sub_agent_namespace(ambiguous_ns)
-
-        assert ambiguous_ns not in status_builder._namespace_to_sub_agent_id
-
-    @pytest.mark.asyncio
-    async def test_diagnostic_warning_deduplicated(self, status_builder):
-        """[NS_DIAG] warning is added to _warned_namespaces once, preventing log flood."""
-        # Start two sub-agents to bypass Strategy 4
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": "sa-dedup-1",
-            "data": {"input": {"subagent_type": "a", "input": "x"}},
-            "metadata": {}
-        })
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": "sa-dedup-2",
-            "data": {"input": {"subagent_type": "b", "input": "y"}},
-            "metadata": {}
-        })
-
-        # Consume both pending sub-agents via FIFO causal correlation
-        status_builder._register_sub_agent_namespace("consume-root-1:root|node")
-        status_builder._register_sub_agent_namespace("consume-root-2:root2|node")
-        assert status_builder._pending_sub_agent_ids == []
-
-        ns = "dedup-root:qqq|child"
-
-        # First attempt — enters _warned_namespaces
-        status_builder._register_sub_agent_namespace(ns)
-        assert ns in status_builder._warned_namespaces
-        assert ns not in status_builder._namespace_to_sub_agent_id
-
-        # Subsequent attempts — no additional warning (set is idempotent)
-        status_builder._register_sub_agent_namespace(ns)
-        status_builder._register_sub_agent_namespace(ns)
-
-        # Still not registered, but _warned_namespaces only has it once
-        assert ns not in status_builder._namespace_to_sub_agent_id
-
-    # ── Gap 7: Concurrent sub-agent namespace failure ───────────────────────
-
-    @pytest.mark.asyncio
-    async def test_concurrent_sub_agents_unresolvable_namespace_falls_to_main(self, status_builder):
-        """With 2+ active sub-agents, an unresolvable namespace falls through to main agent context."""
-        # Start two sub-agents
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": "sa-concurrent-1",
-            "data": {"input": {"subagent_type": "a", "input": "x"}},
-            "metadata": {},
-        })
-        await status_builder.process_event({
-            "event": "on_tool_start",
-            "name": "task",
-            "run_id": "sa-concurrent-2",
-            "data": {"input": {"subagent_type": "b", "input": "y"}},
             "metadata": {},
         })
 
-        # Consume both pending sub-agents via FIFO causal correlation
-        status_builder._register_sub_agent_namespace("consume-root-1:root|node")
-        status_builder._register_sub_agent_namespace("consume-root-2:root2|node")
-        assert status_builder._pending_sub_agent_ids == []
-        assert len(status_builder._active_sub_agents) == 2
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": "done"},
+            "metadata": {},
+        })
 
-        # An ambiguous namespace that no strategy can resolve
-        ambiguous_ns = "alien-root:zzz|deep|nested"
-        context, sub_agent = status_builder._get_execution_context(ambiguous_ns)
+        assert run_id in status_builder.state.completed_sub_agents
 
-        # Falls through to main agent — known limitation with concurrent sub-agents
+        ns = "tools:abc|late_node:xyz"
+        status_builder._register_sub_agent_namespace(
+            ns, {"parent_ids": [run_id]},
+        )
+
+        assert ns in status_builder.state.namespace_to_sub_agent
+        assert status_builder.state.namespace_to_sub_agent[ns] == run_id
+
+    @pytest.mark.asyncio
+    async def test_empty_parent_ids_does_not_register(self, status_builder):
+        """Multi-segment namespace with empty parent_ids is not registered."""
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "sa-empty-pid",
+            "data": {"input": {"subagent_type": "a", "input": "x"}},
+            "metadata": {},
+        })
+
+        ns = "tools:aaa|child:bbb"
+        status_builder._register_sub_agent_namespace(ns, {"parent_ids": []})
+
+        assert ns not in status_builder.state.namespace_to_sub_agent
+
+    @pytest.mark.asyncio
+    async def test_no_matching_parent_ids_falls_to_main(self, status_builder):
+        """Namespace whose parent_ids match no known sub-agent falls to main context."""
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": "sa-nomatch-1",
+            "data": {"input": {"subagent_type": "a", "input": "x"}},
+            "metadata": {},
+        })
+
+        ns = "tools:zzz|deep|nested"
+        status_builder._register_sub_agent_namespace(
+            ns, {"parent_ids": ["unknown-id-1", "unknown-id-2"]},
+        )
+
+        assert ns not in status_builder.state.namespace_to_sub_agent
+
+        context, sub_agent = status_builder._get_execution_context(ns)
         assert context is status_builder.current_status
         assert sub_agent is None
 
+    @pytest.mark.asyncio
+    async def test_concurrent_sub_agents_shared_root_route_correctly(self, status_builder):
+        """Two sub-agents sharing a namespace root are disambiguated by parent_ids."""
+        sa_a = "sa-shared-root-a"
+        sa_b = "sa-shared-root-b"
+
+        for sa_id in [sa_a, sa_b]:
+            await status_builder.process_event({
+                "event": "on_tool_start",
+                "name": "task",
+                "run_id": sa_id,
+                "data": {"input": {"subagent_type": "worker", "description": f"do {sa_id}"}},
+                "metadata": {},
+            })
+
+        ns_a = "tools:same_task_id|work_a:aaa"
+        ns_b = "tools:same_task_id|1|work_b:bbb"
+
+        status_builder._register_sub_agent_namespace(
+            ns_a, {"parent_ids": ["sub-a-graph-root", sa_a, "tools-node"]},
+        )
+        status_builder._register_sub_agent_namespace(
+            ns_b, {"parent_ids": ["sub-b-graph-root", sa_b, "tools-node"]},
+        )
+
+        assert status_builder.state.namespace_to_sub_agent[ns_a] == sa_a
+        assert status_builder.state.namespace_to_sub_agent[ns_b] == sa_b
+
+    @pytest.mark.asyncio
+    async def test_single_segment_namespace_ignored(self, status_builder):
+        """Single-segment namespaces (main-agent nodes) are not registered."""
+        status_builder._register_sub_agent_namespace(
+            "tools", {"parent_ids": ["some-id"]},
+        )
+        assert "tools" not in status_builder.state.namespace_to_sub_agent
+
+    @pytest.mark.asyncio
+    async def test_already_registered_namespace_is_idempotent(self, status_builder):
+        """Re-registering the same namespace does not overwrite the mapping."""
+        run_id = "sa-idem-001"
+
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"input": {"subagent_type": "a", "input": "x"}},
+            "metadata": {},
+        })
+
+        ns = "tools:aaa|child:bbb"
+        event = {"parent_ids": [run_id]}
+
+        status_builder._register_sub_agent_namespace(ns, event)
+        assert status_builder.state.namespace_to_sub_agent[ns] == run_id
+
+        status_builder._register_sub_agent_namespace(ns, event)
+        assert status_builder.state.namespace_to_sub_agent[ns] == run_id
+
 
 # =============================================================================
-# Tests for Concurrent Sub-Agent Namespace Registration (FIFO Queue)
+# Tests for Concurrent Sub-Agent Namespace Registration (parent_ids)
 # =============================================================================
 
 
 class TestConcurrentSubAgentNamespaceRegistration:
-    """Tests for FIFO queue-based causal correlation with concurrent sub-agents.
+    """Tests for concurrent sub-agent namespace routing via parent_ids.
 
-    When multiple sub-agents launch in parallel, _pending_sub_agent_ids holds
-    them in FIFO order.  Strategy 3 pops from the front, mapping each first
-    namespace to the earliest pending sub-agent.  Strategy 1 (root-prefix)
-    handles subsequent namespaces from the same sub-agent.
+    When multiple sub-agents launch in parallel, each sub-agent's events carry
+    distinct parent_ids chains that include the respective task tool's run_id.
+    This provides deterministic routing regardless of event arrival order.
     """
 
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
-        """Patch LLM-based subject generation for all tests in this class."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
             yield
 
     @pytest.mark.asyncio
-    async def test_fifo_causal_correlation_maps_all_four(self, status_builder):
-        """Start 4 sub-agents, send 4 distinct namespaces — all map via Strategy 3 FIFO."""
-        sa_ids = ["sa-fifo-1", "sa-fifo-2", "sa-fifo-3", "sa-fifo-4"]
+    async def test_four_concurrent_sub_agents_all_map_via_parent_ids(self, status_builder):
+        """4 sub-agents, 4 namespaces — each maps to correct sub-agent via parent_ids."""
+        sa_ids = ["sa-pid-1", "sa-pid-2", "sa-pid-3", "sa-pid-4"]
 
         for sa_id in sa_ids:
             await status_builder.process_event({
@@ -2601,28 +2582,26 @@ class TestConcurrentSubAgentNamespaceRegistration:
                 "metadata": {},
             })
 
-        assert len(status_builder._active_sub_agents) == 4
-        assert status_builder._pending_sub_agent_ids == sa_ids
+        assert len(status_builder.state.active_sub_agents) == 4
 
         namespaces = [
-            "root-a:aaa|child",
-            "root-b:bbb|child",
-            "root-c:ccc|child",
-            "root-d:ddd|child",
+            "tools:aaa|child-a",
+            "tools:bbb|child-b",
+            "tools:ccc|child-c",
+            "tools:ddd|child-d",
         ]
-        for ns in namespaces:
-            status_builder._register_sub_agent_namespace(ns)
-
-        assert status_builder._pending_sub_agent_ids == []
+        for ns, sa_id in zip(namespaces, sa_ids):
+            status_builder._register_sub_agent_namespace(
+                ns, {"parent_ids": [f"sub-graph-{sa_id}", sa_id, "tools-node"]},
+            )
 
         for ns, sa_id in zip(namespaces, sa_ids):
-            assert status_builder._namespace_to_sub_agent_id[ns] == sa_id
+            assert status_builder.state.namespace_to_sub_agent[ns] == sa_id
 
     @pytest.mark.asyncio
-    async def test_fifo_tool_calls_routed_to_correct_sub_agents(self, status_builder):
-        """4 concurrent sub-agents: tool calls with distinct namespaces route correctly."""
+    async def test_tool_calls_routed_to_correct_sub_agents_via_parent_ids(self, status_builder):
+        """4 concurrent sub-agents: tool calls with parent_ids route correctly."""
         sa_ids = ["sa-route-1", "sa-route-2", "sa-route-3", "sa-route-4"]
-        ns_roots = ["root-1:aaa", "root-2:bbb", "root-3:ccc", "root-4:ddd"]
 
         for sa_id in sa_ids:
             await status_builder.process_event({
@@ -2633,29 +2612,30 @@ class TestConcurrentSubAgentNamespaceRegistration:
                 "metadata": {},
             })
 
-        for i, (sa_id, ns_root) in enumerate(zip(sa_ids, ns_roots)):
+        for i, sa_id in enumerate(sa_ids):
+            ns = f"tools:{sa_id}-task|child-{i}"
             await status_builder.process_event({
                 "event": "on_tool_start",
                 "name": "read_file",
                 "run_id": f"tool-{i}",
+                "parent_ids": [f"sub-graph-{sa_id}", sa_id, "tools-node"],
                 "data": {"input": {"path": f"/tmp/{i}.py"}},
-                "metadata": {"langgraph_checkpoint_ns": f"{ns_root}|child"},
+                "metadata": {"langgraph_checkpoint_ns": ns},
             })
 
-        # Main agent has 4 "task" ToolCalls (one per sub-agent)
         main_tcs = [tc for m in status_builder.current_status.messages for tc in m.tool_calls]
         assert len(main_tcs) == 4
         assert all(tc.name == "task" for tc in main_tcs)
 
         for sa_id in sa_ids:
-            sa = status_builder._active_sub_agents[sa_id]
+            sa = status_builder.state.active_sub_agents[sa_id]
             sa_tcs = [tc for m in sa.messages for tc in m.tool_calls]
             assert len(sa_tcs) == 1
             assert sa_tcs[0].name == "read_file"
 
     @pytest.mark.asyncio
-    async def test_root_prefix_cascading_after_fifo(self, status_builder):
-        """After FIFO maps first namespace, subsequent same-root namespaces use Strategy 1."""
+    async def test_subsequent_namespace_variants_register_via_parent_ids(self, status_builder):
+        """Different namespace paths from the same sub-agent each register via parent_ids."""
         sa_ids = ["sa-cascade-1", "sa-cascade-2"]
 
         for sa_id in sa_ids:
@@ -2667,22 +2647,33 @@ class TestConcurrentSubAgentNamespaceRegistration:
                 "metadata": {},
             })
 
-        status_builder._register_sub_agent_namespace("root-x:aaa|first-child")
-        status_builder._register_sub_agent_namespace("root-y:bbb|first-child")
-        assert status_builder._pending_sub_agent_ids == []
+        status_builder._register_sub_agent_namespace(
+            "tools:aaa|first-child",
+            {"parent_ids": ["sa-cascade-1"]},
+        )
+        status_builder._register_sub_agent_namespace(
+            "tools:bbb|first-child",
+            {"parent_ids": ["sa-cascade-2"]},
+        )
 
-        assert status_builder._namespace_to_sub_agent_id["root-x:aaa|first-child"] == "sa-cascade-1"
-        assert status_builder._namespace_to_sub_agent_id["root-y:bbb|first-child"] == "sa-cascade-2"
+        assert status_builder.state.namespace_to_sub_agent["tools:aaa|first-child"] == "sa-cascade-1"
+        assert status_builder.state.namespace_to_sub_agent["tools:bbb|first-child"] == "sa-cascade-2"
 
-        status_builder._register_sub_agent_namespace("root-x:aaa|second-child|deeper")
-        status_builder._register_sub_agent_namespace("root-y:bbb|second-child|deeper")
+        status_builder._register_sub_agent_namespace(
+            "tools:aaa|second-child|deeper",
+            {"parent_ids": ["sa-cascade-1"]},
+        )
+        status_builder._register_sub_agent_namespace(
+            "tools:bbb|second-child|deeper",
+            {"parent_ids": ["sa-cascade-2"]},
+        )
 
-        assert status_builder._namespace_to_sub_agent_id["root-x:aaa|second-child|deeper"] == "sa-cascade-1"
-        assert status_builder._namespace_to_sub_agent_id["root-y:bbb|second-child|deeper"] == "sa-cascade-2"
+        assert status_builder.state.namespace_to_sub_agent["tools:aaa|second-child|deeper"] == "sa-cascade-1"
+        assert status_builder.state.namespace_to_sub_agent["tools:bbb|second-child|deeper"] == "sa-cascade-2"
 
     @pytest.mark.asyncio
-    async def test_handle_sub_agent_end_removes_from_pending_queue(self, status_builder):
-        """Sub-agent that ends before namespace registration is removed from the queue."""
+    async def test_sub_agent_end_does_not_break_remaining_routing(self, status_builder):
+        """Completing one sub-agent does not break namespace routing for others."""
         sa_ids = ["sa-end-1", "sa-end-2", "sa-end-3"]
 
         for sa_id in sa_ids:
@@ -2694,8 +2685,6 @@ class TestConcurrentSubAgentNamespaceRegistration:
                 "metadata": {},
             })
 
-        assert status_builder._pending_sub_agent_ids == sa_ids
-
         await status_builder.process_event({
             "event": "on_tool_end",
             "name": "task",
@@ -2704,7 +2693,22 @@ class TestConcurrentSubAgentNamespaceRegistration:
             "metadata": {},
         })
 
-        assert status_builder._pending_sub_agent_ids == ["sa-end-1", "sa-end-3"]
+        assert "sa-end-2" not in status_builder.state.active_sub_agents
+        assert "sa-end-2" in status_builder.state.completed_sub_agents
+        assert "sa-end-1" in status_builder.state.active_sub_agents
+        assert "sa-end-3" in status_builder.state.active_sub_agents
+
+        ns_1 = "tools:x|child-1"
+        status_builder._register_sub_agent_namespace(
+            ns_1, {"parent_ids": ["sa-end-1"]},
+        )
+        assert status_builder.state.namespace_to_sub_agent[ns_1] == "sa-end-1"
+
+        ns_3 = "tools:y|child-3"
+        status_builder._register_sub_agent_namespace(
+            ns_3, {"parent_ids": ["sa-end-3"]},
+        )
+        assert status_builder.state.namespace_to_sub_agent[ns_3] == "sa-end-3"
 
     @pytest.mark.asyncio
     async def test_early_reconciliation_no_cross_contamination(self, status_builder):
@@ -2722,10 +2726,12 @@ class TestConcurrentSubAgentNamespaceRegistration:
             })
 
         for sa_id, ns in ns_map.items():
-            status_builder._register_sub_agent_namespace(ns)
+            status_builder._register_sub_agent_namespace(
+                ns, {"parent_ids": [sa_id]},
+            )
 
-        sa1 = status_builder._active_sub_agents["sa-recon-1"]
-        sa2 = status_builder._active_sub_agents["sa-recon-2"]
+        sa1 = status_builder.state.active_sub_agents["sa-recon-1"]
+        sa2 = status_builder.state.active_sub_agents["sa-recon-2"]
 
         status_builder._create_early_tool_call(
             "read_file", "use-1", "ns-1", ns_map["sa-recon-1"],
@@ -2749,7 +2755,7 @@ class TestConcurrentSubAgentNamespaceRegistration:
         )
         assert reconciled is not None
 
-        assert len(status_builder._early_tool_call_queue) == 0
+        assert len(status_builder.state.early_tool_call_queue) == 0
 
 
 # =============================================================================
@@ -3720,8 +3726,8 @@ class TestPhase54ApprovalClearing:
         mock_initial_status.tool_calls.append(tool_call)
         
         # Set up full pending approval state (simulating approval request)
-        builder._pending_tool_approvals = ["tool-run-phase54"]
-        builder._saved_phase_before_approval = ExecutionPhase.EXECUTION_IN_PROGRESS
+        builder.state.approval.pending = ["tool-run-phase54"]
+        builder.state.approval.saved_phase = ExecutionPhase.EXECUTION_IN_PROGRESS
         builder.current_status.pending_approvals.append(PendingApproval(
             tool_call_id="tool-run-phase54",
             tool_name="dangerous_operation",
@@ -3739,7 +3745,7 @@ class TestPhase54ApprovalClearing:
         """Phase 5.4: Verify clear_pending_approval restores the saved phase."""
         # Verify starting state
         assert status_builder_with_pending_approval.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
-        assert status_builder_with_pending_approval._saved_phase_before_approval == ExecutionPhase.EXECUTION_IN_PROGRESS
+        assert status_builder_with_pending_approval.state.approval.saved_phase == ExecutionPhase.EXECUTION_IN_PROGRESS
         
         # Call clear_pending_approval directly
         status_builder_with_pending_approval.clear_pending_approval()
@@ -3748,7 +3754,7 @@ class TestPhase54ApprovalClearing:
         assert status_builder_with_pending_approval.current_status.phase == ExecutionPhase.EXECUTION_IN_PROGRESS
         
         # Verify saved phase is reset to None after restoration
-        assert status_builder_with_pending_approval._saved_phase_before_approval is None
+        assert status_builder_with_pending_approval.state.approval.saved_phase is None
 
 
 # =============================================================================
@@ -3811,7 +3817,7 @@ class TestToolStartApprovalIntegration:
         assert status_builder_with_approval_config.current_status.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
         
         # Pending approval should be tracked internally
-        assert "tool-run-approval-001" in status_builder_with_approval_config._pending_tool_approvals
+        assert "tool-run-approval-001" in status_builder_with_approval_config.state.approval.pending
     
     @pytest.mark.asyncio
     async def test_tool_start_proceeds_to_running_when_no_approval_required(self, status_builder_with_approval_config):
@@ -3926,7 +3932,7 @@ class TestToolStartApprovalIntegration:
         assert "production-db" in tool_call.approval_message
         
         # Pending approval should be tracked
-        assert "tool-run-render-test" in status_builder_with_approval_config._pending_tool_approvals
+        assert "tool-run-render-test" in status_builder_with_approval_config.state.approval.pending
 
 
 # =============================================================================
@@ -4534,13 +4540,13 @@ class TestContextManagementTracking:
             enabled=True,
         )
         
-        assert status_builder._context_info is not None
-        assert status_builder._context_info.context_window_limit == 200000
-        assert status_builder._context_info.summarization_trigger_threshold == 180000
-        assert status_builder._context_info.summarization_target_tokens == 160000
-        assert status_builder._context_info.summarization_enabled is True
-        assert status_builder._context_info.current_token_count == 0
-        assert status_builder._context_info.utilization_percent == 0.0
+        assert status_builder.state.context_info is not None
+        assert status_builder.state.context_info.context_window_limit == 200000
+        assert status_builder.state.context_info.summarization_trigger_threshold == 180000
+        assert status_builder.state.context_info.summarization_target_tokens == 160000
+        assert status_builder.state.context_info.summarization_enabled is True
+        assert status_builder.state.context_info.current_token_count == 0
+        assert status_builder.state.context_info.utilization_percent == 0.0
     
     def test_initialize_context_info_disabled(self, status_builder):
         """Test that initialize_context_info works when disabled."""
@@ -4551,8 +4557,8 @@ class TestContextManagementTracking:
             enabled=False,
         )
         
-        assert status_builder._context_info is not None
-        assert status_builder._context_info.summarization_enabled is False
+        assert status_builder.state.context_info is not None
+        assert status_builder.state.context_info.summarization_enabled is False
     
     def test_on_token_count_updated_updates_count(self, status_builder):
         """Test that on_token_count_updated updates the current token count."""
@@ -4565,7 +4571,7 @@ class TestContextManagementTracking:
         
         status_builder.on_token_count_updated(50000)
         
-        assert status_builder._context_info.current_token_count == 50000
+        assert status_builder.state.context_info.current_token_count == 50000
     
     def test_on_token_count_updated_calculates_utilization(self, status_builder):
         """Test that on_token_count_updated calculates utilization percentage."""
@@ -4578,7 +4584,7 @@ class TestContextManagementTracking:
         
         status_builder.on_token_count_updated(100000)  # 50% of 200000
         
-        assert status_builder._context_info.utilization_percent == 50.0
+        assert status_builder.state.context_info.utilization_percent == 50.0
     
     def test_on_token_count_updated_without_init_is_noop(self, status_builder):
         """Test that on_token_count_updated is a no-op without initialization."""
@@ -4586,7 +4592,7 @@ class TestContextManagementTracking:
         status_builder.on_token_count_updated(50000)
         
         # Context info should still be None
-        assert status_builder._context_info is None
+        assert status_builder.state.context_info is None
     
     def test_on_summarization_complete_adds_event(self, status_builder):
         """Test that on_summarization_complete records a summarization event."""
@@ -4612,7 +4618,7 @@ class TestContextManagementTracking:
         
         status_builder.on_summarization_complete(event)
         
-        events = status_builder._context_info.summarization_events
+        events = status_builder.state.context_info.summarization_events
         assert len(events) == 1
         recorded = events[0]
         assert recorded.tokens_before == 185000
@@ -4648,8 +4654,8 @@ class TestContextManagementTracking:
         
         status_builder.on_summarization_complete(event)
         
-        assert status_builder._context_info.current_token_count == 80000
-        assert status_builder._context_info.utilization_percent == 40.0
+        assert status_builder.state.context_info.current_token_count == 80000
+        assert status_builder.state.context_info.utilization_percent == 40.0
     
     def test_on_summarization_complete_without_init_is_noop(self, status_builder):
         """Test that on_summarization_complete is a no-op without initialization."""
@@ -4668,7 +4674,7 @@ class TestContextManagementTracking:
         
         status_builder.on_summarization_complete(event)
         
-        assert status_builder._context_info is None
+        assert status_builder.state.context_info is None
     
     def test_finalize_context_info_copies_to_status(self, status_builder):
         """Test that finalize_context_info copies context info to status proto."""
@@ -4777,7 +4783,7 @@ class TestContextManagementTracking:
         status_builder.on_summarization_complete(graph_start_event)
         status_builder.on_summarization_complete(mid_execution_event)
         
-        events = status_builder._context_info.summarization_events
+        events = status_builder.state.context_info.summarization_events
         assert events[0].source == SummarizationSource.graph_start
         assert events[1].source == SummarizationSource.mid_execution
     
@@ -4806,7 +4812,7 @@ class TestContextManagementTracking:
         
         status_builder.on_summarization_complete(event)
         
-        recorded = status_builder._context_info.summarization_events[0]
+        recorded = status_builder.state.context_info.summarization_events[0]
         assert recorded.source == SummarizationSource.SUMMARIZATION_SOURCE_UNSPECIFIED
     
     def test_on_summarization_complete_syncs_to_current_status_immediately(self, status_builder):
@@ -4879,14 +4885,14 @@ class TestContextManagementTracking:
         
         # Simulate growing context
         status_builder.on_token_count_updated(50000)
-        assert status_builder._context_info.current_token_count == 50000
+        assert status_builder.state.context_info.current_token_count == 50000
         
         status_builder.on_token_count_updated(100000)
-        assert status_builder._context_info.current_token_count == 100000
+        assert status_builder.state.context_info.current_token_count == 100000
         
         status_builder.on_token_count_updated(150000)
-        assert status_builder._context_info.current_token_count == 150000
-        assert status_builder._context_info.utilization_percent == 75.0
+        assert status_builder.state.context_info.current_token_count == 150000
+        assert status_builder.state.context_info.utilization_percent == 75.0
     
     def test_utilization_with_zero_limit(self, status_builder):
         """Test that utilization handles zero limit gracefully."""
@@ -4900,7 +4906,7 @@ class TestContextManagementTracking:
         status_builder.on_token_count_updated(1000)
         
         # Should not divide by zero
-        assert status_builder._context_info.utilization_percent == 0.0
+        assert status_builder.state.context_info.utilization_percent == 0.0
 
 
 # =============================================================================
@@ -4913,26 +4919,28 @@ class TestRunIdAliasResolution:
     transition to COMPLETED on the resume-after-approval path.
 
     When a tool call is interrupted for approval and then resumed, LangGraph
-    generates a new run_id for the resumed execution.  The fingerprint
-    deduplication in _handle_tool_start_event records an alias from the new
-    run_id to the original tool_call.id so that _handle_tool_end_event can
-    find and update the correct ToolCall.
+    generates a new run_id for the resumed execution.  The identity-based
+    dedup in _handle_tool_start_event registers an alias on ToolCallIdCapture
+    from the new run_id to the original tool_call.id so that
+    _handle_tool_end_event can find and update the correct ToolCall.
     """
 
     @pytest.mark.asyncio
-    async def test_alias_recorded_on_duplicate_fingerprint(self, mock_initial_status):
-        """When a duplicate fingerprint is detected after
-        populate_fingerprints_from_existing_tool_calls, the new run_id is
-        recorded as an alias for the original tool call id."""
+    async def test_alias_recorded_on_identity_dedup(self, mock_initial_status):
+        """When a resumed on_tool_start fires with a new run_id, the
+        ToolCallIdCapture mapping resolves it to the existing tool_call_id.
+        The new run_id is recorded as an alias."""
         from google.protobuf.struct_pb2 import Struct
 
-        original_run_id = "original-run-001"
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
+        original_tc_id = "toolu_original_001"
         new_run_id = "resumed-run-002"
 
         args = Struct()
         args.update({"path": "/bin/skills/agent-drafter/SKILL.md", "content": "..."})
         existing_tc = ToolCall(
-            id=original_run_id,
+            id=original_tc_id,
             name="write",
             args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
@@ -4941,8 +4949,12 @@ class TestRunIdAliasResolution:
         ai_msg.tool_calls.append(existing_tc)
         mock_initial_status.messages.append(ai_msg)
 
-        builder = StatusBuilder("exec-alias-1", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        capture = ToolCallIdCapture()
+        capture._run_id_to_tool_call_id[new_run_id] = original_tc_id
+
+        builder = StatusBuilder("exec-alias-1", mock_initial_status,
+                                tool_call_id_capture=capture)
+        builder.rebuild_index_from_persisted_status()
 
         event = {
             "event": "on_tool_start",
@@ -4952,7 +4964,7 @@ class TestRunIdAliasResolution:
         }
         await builder.process_event(event)
 
-        assert builder._run_id_aliases.get(new_run_id) == original_run_id
+        assert builder.resolve_run_id(new_run_id) == original_tc_id
         assert builder.tool_call_count() == 1
 
     @pytest.mark.asyncio
@@ -4961,7 +4973,9 @@ class TestRunIdAliasResolution:
         original tool call from RUNNING to COMPLETED."""
         from google.protobuf.struct_pb2 import Struct
 
-        original_run_id = "orig-run-100"
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
+        original_tc_id = "toolu_orig_100"
         new_run_id = "new-run-200"
 
         args = Struct()
@@ -4969,15 +4983,19 @@ class TestRunIdAliasResolution:
 
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
         ai_msg.tool_calls.append(ToolCall(
-            id=original_run_id,
+            id=original_tc_id,
             name="write",
             args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
         ))
         mock_initial_status.messages.append(ai_msg)
 
-        builder = StatusBuilder("exec-alias-2", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        capture = ToolCallIdCapture()
+        capture._run_id_to_tool_call_id[new_run_id] = original_tc_id
+
+        builder = StatusBuilder("exec-alias-2", mock_initial_status,
+                                tool_call_id_capture=capture)
+        builder.rebuild_index_from_persisted_status()
 
         start_event = {
             "event": "on_tool_start",
@@ -4995,7 +5013,7 @@ class TestRunIdAliasResolution:
         }
         await builder.process_event(end_event)
 
-        tc = builder.get_tool_call(original_run_id)
+        tc = builder.get_tool_call(original_tc_id)
         assert tc.status == ToolCallStatus.TOOL_CALL_COMPLETED
         assert tc.result == "File written successfully"
 
@@ -5007,10 +5025,12 @@ class TestRunIdAliasResolution:
         to COMPLETED when their resumed on_tool_end events carry new run_ids."""
         from google.protobuf.struct_pb2 import Struct
 
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
         files = [
-            ("orig-A", "new-A", "/skill/SKILL.md"),
-            ("orig-B", "new-B", "/skill/references/proto.md"),
-            ("orig-C", "new-C", "/skill/references/cli.md"),
+            ("toolu_A", "new-A", "/skill/SKILL.md"),
+            ("toolu_B", "new-B", "/skill/references/proto.md"),
+            ("toolu_C", "new-C", "/skill/references/cli.md"),
         ]
 
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
@@ -5023,8 +5043,13 @@ class TestRunIdAliasResolution:
             ))
         mock_initial_status.messages.append(ai_msg)
 
-        builder = StatusBuilder("exec-alias-3", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        capture = ToolCallIdCapture()
+        for orig_id, new_id, _ in files:
+            capture._run_id_to_tool_call_id[new_id] = orig_id
+
+        builder = StatusBuilder("exec-alias-3", mock_initial_status,
+                                tool_call_id_capture=capture)
+        builder.rebuild_index_from_persisted_status()
 
         for orig_id, new_id, path in files:
             await builder.process_event({
@@ -5051,14 +5076,14 @@ class TestRunIdAliasResolution:
 
     @pytest.mark.asyncio
     async def test_resolve_run_id_returns_original_when_no_alias(self, status_builder):
-        """_resolve_run_id returns the input unchanged when no alias exists."""
-        assert status_builder._resolve_run_id("some-id") == "some-id"
+        """resolve_run_id returns the input unchanged when no alias exists."""
+        assert status_builder.resolve_run_id("some-id") == "some-id"
 
     @pytest.mark.asyncio
     async def test_resolve_run_id_returns_alias_when_present(self, status_builder):
-        """_resolve_run_id returns the mapped original id when alias exists."""
-        status_builder._run_id_aliases["new-123"] = "orig-456"
-        assert status_builder._resolve_run_id("new-123") == "orig-456"
+        """resolve_run_id returns the mapped original id when alias exists."""
+        status_builder._tool_call_id_capture.register_alias("new-123", "orig-456")
+        assert status_builder.resolve_run_id("new-123") == "orig-456"
 
     @pytest.mark.asyncio
     async def test_tool_progress_resolves_alias(self, mock_initial_status):
@@ -5066,22 +5091,28 @@ class TestRunIdAliasResolution:
         tool call's result."""
         from google.protobuf.struct_pb2 import Struct
 
-        original_run_id = "orig-progress-1"
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
+        original_tc_id = "toolu_progress_1"
         new_run_id = "new-progress-1"
 
         args = Struct()
         args.update({"command": "ls -la"})
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
         ai_msg.tool_calls.append(ToolCall(
-            id=original_run_id,
+            id=original_tc_id,
             name="execute",
             args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
         ))
         mock_initial_status.messages.append(ai_msg)
 
-        builder = StatusBuilder("exec-alias-4", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        capture = ToolCallIdCapture()
+        capture._run_id_to_tool_call_id[new_run_id] = original_tc_id
+
+        builder = StatusBuilder("exec-alias-4", mock_initial_status,
+                                tool_call_id_capture=capture)
+        builder.rebuild_index_from_persisted_status()
 
         await builder.process_event({
             "event": "on_tool_start",
@@ -5089,7 +5120,7 @@ class TestRunIdAliasResolution:
             "run_id": new_run_id,
             "data": {"input": {"command": "ls -la"}},
         })
-        assert builder._run_id_aliases.get(new_run_id) == original_run_id
+        assert builder.resolve_run_id(new_run_id) == original_tc_id
 
         await builder.process_event({
             "event": "on_custom_event",
@@ -5098,7 +5129,7 @@ class TestRunIdAliasResolution:
             "data": {"chunk": "total 42\n"},
         })
 
-        tc = builder.get_tool_call(original_run_id)
+        tc = builder.get_tool_call(original_tc_id)
         assert tc.result == "total 42\n"
         assert tc.is_streaming is True
 
@@ -5120,7 +5151,7 @@ class TestRunIdAliasResolution:
         mock_initial_status.messages.append(ai_msg)
 
         builder = StatusBuilder("exec-force-1", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        builder.rebuild_index_from_persisted_status()
         builder.force_next_update = False
 
         await builder.process_event({
@@ -5150,7 +5181,7 @@ class TestRunIdAliasResolution:
         mock_initial_status.messages.append(ai_msg)
 
         builder = StatusBuilder("exec-force-2", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        builder.rebuild_index_from_persisted_status()
 
         await builder.process_event({
             "event": "on_custom_event",
@@ -5175,32 +5206,37 @@ class TestRunIdAliasResolution:
 
     @pytest.mark.asyncio
     async def test_no_alias_when_run_id_matches_existing(self, mock_initial_status):
-        """No alias is recorded when the new run_id happens to match the
-        existing tool call id (edge case: same run_id across invocations)."""
+        """No alias is recorded when the capture resolves run_id to itself
+        (edge case: tool_call_id matches the run_id)."""
         from google.protobuf.struct_pb2 import Struct
 
-        same_run_id = "same-run-999"
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
+        same_id = "toolu_same_999"
         args = Struct()
         args.update({"path": "/file.txt", "content": "data"})
         ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
         ai_msg.tool_calls.append(ToolCall(
-            id=same_run_id, name="write", args=args,
+            id=same_id, name="write", args=args,
             status=ToolCallStatus.TOOL_CALL_RUNNING,
         ))
         mock_initial_status.messages.append(ai_msg)
 
-        builder = StatusBuilder("exec-alias-5", mock_initial_status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        capture = ToolCallIdCapture()
+        capture._run_id_to_tool_call_id[same_id] = same_id
 
-        # on_tool_start with the SAME run_id — no alias needed.
+        builder = StatusBuilder("exec-alias-5", mock_initial_status,
+                                tool_call_id_capture=capture)
+        builder.rebuild_index_from_persisted_status()
+
         await builder.process_event({
             "event": "on_tool_start",
             "name": "write",
-            "run_id": same_run_id,
+            "run_id": same_id,
             "data": {"input": {"path": "/file.txt", "content": "data"}},
         })
 
-        assert same_run_id not in builder._run_id_aliases
+        assert builder.resolve_run_id(same_id) == same_id
 
 
 # =============================================================================
@@ -5234,7 +5270,7 @@ class TestNativeThinkingTranslation:
         assert len(parent_ai.tool_calls) == 1
         assert parent_ai.tool_calls[0].name == "think"
 
-        assert status_builder._thinking_buffers.get("") == "Let me analyze this..."
+        assert status_builder.state.thinking.buffers.get("") == "Let me analyze this..."
 
         # A streaming ToolCall should exist in the flat list
         assert status_builder.tool_call_count() == 1
@@ -5256,7 +5292,7 @@ class TestNativeThinkingTranslation:
                 "metadata": {},
             })
 
-        assert status_builder._thinking_buffers[""] == (
+        assert status_builder.state.thinking.buffers[""] == (
             "Step 1: analyse inputs. Step 2: decide."
         )
 
@@ -5344,7 +5380,7 @@ class TestNativeThinkingTranslation:
                 is_streaming=True,
             )
         )
-        status_builder._message_start_times[0] = datetime.utcnow()
+        status_builder.state.message_start_times[0] = datetime.utcnow()
 
         await status_builder.process_event({
             "event": "on_chat_model_end",
@@ -5375,7 +5411,7 @@ class TestNativeThinkingTranslation:
         assert status_builder.tool_call_count() == 0
         assert len(status_builder.current_status.messages) == 1
         assert status_builder.current_status.messages[0].content == "Regular text"
-        assert not status_builder._thinking_buffers
+        assert not status_builder.state.thinking.buffers
 
     @pytest.mark.asyncio
     async def test_empty_thinking_block_ignored(self, status_builder):
@@ -5498,9 +5534,9 @@ class TestNativeThinkingTranslation:
         })
 
         # Tracking state should exist
-        assert "" in status_builder._thinking_buffers
-        assert "" in status_builder._thinking_tool_call_ids
-        assert "" in status_builder._thinking_started_at
+        assert "" in status_builder.state.thinking.buffers
+        assert "" in status_builder.state.thinking.tool_call_ids
+        assert "" in status_builder.state.thinking.started_at
 
         # Flush via text
         text_chunk = MagicMock()
@@ -5512,9 +5548,9 @@ class TestNativeThinkingTranslation:
         })
 
         # All tracking state should be cleared
-        assert "" not in status_builder._thinking_buffers
-        assert "" not in status_builder._thinking_tool_call_ids
-        assert "" not in status_builder._thinking_started_at
+        assert "" not in status_builder.state.thinking.buffers
+        assert "" not in status_builder.state.thinking.tool_call_ids
+        assert "" not in status_builder.state.thinking.started_at
 
 
 # =============================================================================
@@ -5602,10 +5638,10 @@ class TestLLMStreamIsolation:
     async def test_run_id_map_cleaned_after_finalization(self, status_builder):
         """run_id entry is removed from the map after on_chat_model_end."""
         await status_builder.process_event(self._stream_event("Hello", run_id="R1"))
-        assert "R1" in status_builder._llm_run_id_to_message
+        assert "R1" in status_builder.state.messages_by_run
 
         await status_builder.process_event(self._end_event(run_id="R1"))
-        assert "R1" not in status_builder._llm_run_id_to_message
+        assert "R1" not in status_builder.state.messages_by_run
 
     @pytest.mark.asyncio
     async def test_legacy_no_run_id_uses_backwards_scan(self, status_builder):
@@ -5872,7 +5908,7 @@ class TestSubAgentSubjectDeduplication:
     async def test_first_subject_unchanged(self, status_builder):
         """First sub-agent with a given subject keeps it as-is."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Research protobuf defs",
         ):
@@ -5887,7 +5923,7 @@ class TestSubAgentSubjectDeduplication:
     async def test_duplicate_subject_gets_suffix(self, status_builder):
         """Second sub-agent with the same subject gets ' (2)' appended."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Research protobuf defs",
         ):
@@ -5911,7 +5947,7 @@ class TestSubAgentSubjectDeduplication:
     async def test_triple_duplicate_increments(self, status_builder):
         """Third duplicate gets ' (3)'."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="Find YAML examples",
         ):
@@ -5935,7 +5971,7 @@ class TestSubAgentSubjectDeduplication:
         """Distinct subjects are stored without any suffix."""
         subjects_to_return = iter(["Analyze CLI code", "Review backend tests"])
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             side_effect=lambda *_args, **_kw: next(subjects_to_return),
         ):
@@ -5959,7 +5995,7 @@ class TestSubAgentSubjectDeduplication:
 
         long_subject = "A" * _MAX_SUBJECT_LENGTH
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value=long_subject,
         ):
@@ -5978,7 +6014,7 @@ class TestSubAgentSubjectDeduplication:
     async def test_empty_subject_skips_dedup(self, status_builder):
         """Empty subjects (generation failures) are not deduplicated."""
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -6012,7 +6048,7 @@ class TestOrphanedSubAgentDetection:
     @pytest.fixture(autouse=True)
     def _patch_subject_gen(self):
         with patch(
-            "worker.activities.graphton.status_builder._generate_sub_agent_subject",
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
             new_callable=AsyncMock,
             return_value="",
         ):
@@ -6089,7 +6125,7 @@ class TestOrphanedSubAgentDetection:
     async def test_diagnostic_mid_execution_sub_agent(self, status_builder):
         """Sub-agent with messages is classified as mid-execution."""
         await status_builder.process_event(self._make_task_start_event("sa-1"))
-        sub_agent = status_builder._active_sub_agents["sa-1"]
+        sub_agent = status_builder.state.active_sub_agents["sa-1"]
         sub_agent.messages.append(AgentMessage(content="working..."))
 
         diag = status_builder.get_orphaned_sub_agents_diagnostic()
@@ -6105,7 +6141,7 @@ class TestOrphanedSubAgentDetection:
         await status_builder.process_event(self._make_task_start_event("sa-zero", "task alpha"))
         await status_builder.process_event(self._make_task_start_event("sa-mid", "task beta"))
 
-        mid_agent = status_builder._active_sub_agents["sa-mid"]
+        mid_agent = status_builder.state.active_sub_agents["sa-mid"]
         mid_agent.messages.append(AgentMessage(content="reading file"))
 
         diag = status_builder.get_orphaned_sub_agents_diagnostic()
@@ -6127,7 +6163,7 @@ class TestOrphanedSubAgentDetection:
         )
 
         assert count == 1
-        sa = status_builder._completed_sub_agents["sa-1"]
+        sa = status_builder.state.completed_sub_agents["sa-1"]
         assert sa.status == SubAgentStatus.SUB_AGENT_CANCELLED
         assert "never began execution" in sa.error
         assert status_builder.has_orphaned_sub_agents is False
@@ -6136,7 +6172,7 @@ class TestOrphanedSubAgentDetection:
     async def test_differentiated_finalize_mid_execution_gets_failed(self, status_builder):
         """Mid-execution sub-agents receive SUB_AGENT_FAILED."""
         await status_builder.process_event(self._make_task_start_event("sa-1"))
-        status_builder._active_sub_agents["sa-1"].messages.append(
+        status_builder.state.active_sub_agents["sa-1"].messages.append(
             AgentMessage(content="I found the issue")
         )
 
@@ -6145,7 +6181,7 @@ class TestOrphanedSubAgentDetection:
         )
 
         assert count == 1
-        sa = status_builder._completed_sub_agents["sa-1"]
+        sa = status_builder.state.completed_sub_agents["sa-1"]
         assert sa.status == SubAgentStatus.SUB_AGENT_FAILED
         assert "was running" in sa.error
         assert status_builder.has_orphaned_sub_agents is False
@@ -6155,7 +6191,7 @@ class TestOrphanedSubAgentDetection:
         """Mixed finalization: zero-message → CANCELLED, mid-execution → FAILED."""
         await status_builder.process_event(self._make_task_start_event("sa-zero", "task alpha"))
         await status_builder.process_event(self._make_task_start_event("sa-mid", "task beta"))
-        status_builder._active_sub_agents["sa-mid"].messages.append(
+        status_builder.state.active_sub_agents["sa-mid"].messages.append(
             AgentMessage(content="working")
         )
 
@@ -6164,8 +6200,8 @@ class TestOrphanedSubAgentDetection:
         )
 
         assert count == 2
-        assert status_builder._completed_sub_agents["sa-zero"].status == SubAgentStatus.SUB_AGENT_CANCELLED
-        assert status_builder._completed_sub_agents["sa-mid"].status == SubAgentStatus.SUB_AGENT_FAILED
+        assert status_builder.state.completed_sub_agents["sa-zero"].status == SubAgentStatus.SUB_AGENT_CANCELLED
+        assert status_builder.state.completed_sub_agents["sa-mid"].status == SubAgentStatus.SUB_AGENT_FAILED
         assert status_builder.has_orphaned_sub_agents is False
 
     @pytest.mark.asyncio
@@ -6185,7 +6221,7 @@ class TestOrphanedSubAgentDetection:
             error_context="test"
         )
 
-        sa = status_builder._completed_sub_agents["sa-1"]
+        sa = status_builder.state.completed_sub_agents["sa-1"]
         assert sa.completed_at != ""
 
     # ── Regression: original finalize_active_sub_agents still works ──────────
@@ -6203,8 +6239,8 @@ class TestOrphanedSubAgentDetection:
             "stall detected"
         )
 
-        assert status_builder._completed_sub_agents["sa-1"].status == SubAgentStatus.SUB_AGENT_FAILED
-        assert status_builder._completed_sub_agents["sa-2"].status == SubAgentStatus.SUB_AGENT_FAILED
+        assert status_builder.state.completed_sub_agents["sa-1"].status == SubAgentStatus.SUB_AGENT_FAILED
+        assert status_builder.state.completed_sub_agents["sa-2"].status == SubAgentStatus.SUB_AGENT_FAILED
         assert status_builder.has_orphaned_sub_agents is False
 
 
@@ -6322,7 +6358,7 @@ class TestTurnBoundaryAndUsageTracking:
         assert len(parent_ai.tool_calls) == 2  # think + read
 
         # The empty parent must be registered in _llm_run_id_to_message
-        assert llm_run_id in status_builder._llm_run_id_to_message
+        assert llm_run_id in status_builder.state.messages_by_run
 
         # Simulate on_chat_model_end with usage metadata
         output = MagicMock()
@@ -6553,3 +6589,559 @@ class TestTurnBoundaryAndUsageTracking:
         assert len(status_builder.current_status.messages) == 2
         assert status_builder.current_status.messages[0].content == ""
         assert status_builder.current_status.messages[1].content == "Answer"
+
+
+# =============================================================================
+# Deferred Completion Flush (Drain Delay)
+# =============================================================================
+
+
+class TestDeferredCompletionFlush:
+    """Tests for the deferred sub-agent completion flush mechanism.
+
+    When a sub-agent completes, the status builder records a pending flush
+    timestamp instead of immediately setting force_next_update.  This allows
+    late LangGraph events to be batched into the same gRPC update.
+    """
+
+    @pytest.fixture
+    def status_builder(self, mock_initial_status):
+        return StatusBuilder(
+            execution_id="test-drain-delay",
+            initial_status=mock_initial_status,
+        )
+
+    @pytest.fixture
+    def mock_initial_status(self):
+        status = MagicMock()
+        status.messages = []
+        status.sub_agent_executions = []
+        status.todos = {}
+        status.artifacts = []
+        status.resolved_context = ResolvedExecutionContext()
+        status.context_info = ContextInfo()
+        return status
+
+    def test_should_flush_empty(self, status_builder):
+        """No pending completions means no flush."""
+        import time
+
+        assert status_builder.should_flush_completions(time.monotonic()) is False
+        assert status_builder.force_next_update is False
+
+    def test_should_flush_before_drain_window(self, status_builder):
+        """Flush returns False when still within the drain window."""
+        import time
+
+        now = time.monotonic()
+        status_builder.state.pending_completion_flush["sa-1"] = now
+
+        assert status_builder.should_flush_completions(now + 0.1) is False
+        assert status_builder.force_next_update is False
+        assert "sa-1" in status_builder.state.pending_completion_flush
+
+    def test_should_flush_after_drain_window(self, status_builder):
+        """Flush returns True and sets force_next_update after the drain window elapses."""
+        import time
+
+        now = time.monotonic()
+        status_builder.state.pending_completion_flush["sa-1"] = now
+
+        result = status_builder.should_flush_completions(
+            now + (StatusBuilder._COMPLETION_DRAIN_MS / 1000.0) + 0.001,
+        )
+
+        assert result is True
+        assert status_builder.force_next_update is True
+        assert "sa-1" not in status_builder.state.pending_completion_flush
+
+    def test_should_flush_partial_drain(self, status_builder):
+        """Only entries past the drain window are flushed; others remain."""
+        import time
+
+        now = time.monotonic()
+        status_builder.state.pending_completion_flush["sa-old"] = now
+        status_builder.state.pending_completion_flush["sa-new"] = now + 1.0
+
+        result = status_builder.should_flush_completions(
+            now + (StatusBuilder._COMPLETION_DRAIN_MS / 1000.0) + 0.001,
+        )
+
+        assert result is True
+        assert "sa-old" not in status_builder.state.pending_completion_flush
+        assert "sa-new" in status_builder.state.pending_completion_flush
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_end_populates_pending_flush(self, status_builder):
+        """Sub-agent on_tool_end for 'task' populates _pending_completion_flush."""
+        run_id = "task-drain-test"
+
+        await status_builder.process_event({
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"input": {"subagent_type": "helper", "input": "test"}},
+            "metadata": {},
+        })
+
+        status_builder.force_next_update = False
+
+        await status_builder.process_event({
+            "event": "on_tool_end",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"output": "completed"},
+            "metadata": {},
+        })
+
+        assert status_builder.force_next_update is False
+        assert run_id in status_builder.state.pending_completion_flush
+
+
+# =============================================================================
+# Tests for universal namespace registration in process_event (Issue 2 fix)
+# =============================================================================
+
+
+class TestUniversalNamespaceRegistration:
+    """Verify that _register_sub_agent_namespace is called for every event type.
+
+    Before this fix, _register_sub_agent_namespace was only called from
+    _handle_tool_start_event, causing namespace variants arriving via
+    on_chat_model_stream or on_tool_end to fail the exact lookup in
+    _get_execution_context and fall back to the main agent context.
+
+    The fix moves the call into process_event itself, so it runs for
+    ALL event types before dispatching to the type-specific handler.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _patch_subject_gen(self):
+        with patch(
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="",
+        ):
+            yield
+
+    def _make_task_start_event(self, run_id: str) -> dict:
+        return {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"input": {"subagent_type": "helper", "description": "test"}},
+            "metadata": {},
+        }
+
+    def _make_chat_model_stream_event(
+        self, namespace: str, *, parent_ids: list[str] | None = None,
+    ) -> dict:
+        return {
+            "event": "on_chat_model_stream",
+            "name": "ChatModel",
+            "run_id": "stream-run-1",
+            "parent_ids": parent_ids or [],
+            "data": {"chunk": {"content": "hello"}},
+            "metadata": {"langgraph_checkpoint_ns": namespace},
+        }
+
+    def _make_tool_end_event(
+        self, run_id: str, namespace: str, *, parent_ids: list[str] | None = None,
+    ) -> dict:
+        return {
+            "event": "on_tool_end",
+            "name": "read",
+            "run_id": run_id,
+            "parent_ids": parent_ids or [],
+            "data": {"output": "file content"},
+            "metadata": {"langgraph_checkpoint_ns": namespace},
+        }
+
+    @pytest.mark.asyncio
+    async def test_chat_model_stream_registers_namespace(self, status_builder):
+        """on_chat_model_stream events trigger namespace registration."""
+        sa_id = "sa-root-1"
+        child_ns = f"tools:{sa_id}|tools:inner-1"
+
+        await status_builder.process_event(self._make_task_start_event(sa_id))
+
+        await status_builder.process_event(
+            self._make_chat_model_stream_event(child_ns, parent_ids=[sa_id])
+        )
+
+        assert child_ns in status_builder.state.namespace_to_sub_agent
+
+    @pytest.mark.asyncio
+    async def test_tool_end_registers_namespace(self, status_builder):
+        """on_tool_end events trigger namespace registration."""
+        sa_id = "sa-root-2"
+        child_ns = f"tools:{sa_id}|tools:nested-2"
+
+        await status_builder.process_event(self._make_task_start_event(sa_id))
+
+        await status_builder.process_event(
+            self._make_tool_end_event(
+                "nested-tool-run", child_ns, parent_ids=[sa_id],
+            )
+        )
+
+        assert child_ns in status_builder.state.namespace_to_sub_agent
+
+    @pytest.mark.asyncio
+    async def test_single_segment_namespace_ignored(self, status_builder):
+        """Single-segment namespaces are not registered (they're main agent)."""
+        await status_builder.process_event({
+            "event": "on_chat_model_stream",
+            "name": "ChatModel",
+            "run_id": "main-run",
+            "data": {"chunk": {"content": "hi"}},
+            "metadata": {"langgraph_checkpoint_ns": "main"},
+        })
+
+        assert "main" not in status_builder.state.namespace_to_sub_agent
+
+    @pytest.mark.asyncio
+    async def test_registration_is_idempotent(self, status_builder):
+        """Calling registration multiple times for same namespace is safe."""
+        sa_id = "sa-idem"
+        child_ns = f"tools:{sa_id}|inner:node"
+
+        await status_builder.process_event(self._make_task_start_event(sa_id))
+
+        for _ in range(5):
+            await status_builder.process_event(
+                self._make_chat_model_stream_event(child_ns, parent_ids=[sa_id])
+            )
+
+        assert child_ns in status_builder.state.namespace_to_sub_agent
+
+
+# =============================================================================
+# Tests for finalization preserving terminal status (Issue 3 fix)
+# =============================================================================
+
+
+class TestFinalizationPreservesTerminalStatus:
+    """Verify that finalize_active_sub_agents and
+    finalize_active_sub_agents_differentiated preserve sub-agents that
+    already have a terminal status (COMPLETED, FAILED, CANCELLED) or
+    have produced output.
+
+    Before this fix, the crash handler blindly overwrote all active
+    sub-agents to FAILED, even if some had logically completed.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _patch_subject_gen(self):
+        with patch(
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="",
+        ):
+            yield
+
+    def _make_task_start_event(self, run_id: str, description: str = "do work") -> dict:
+        return {
+            "event": "on_tool_start",
+            "name": "task",
+            "run_id": run_id,
+            "data": {"input": {"subagent_type": "helper", "description": description}},
+            "metadata": {},
+        }
+
+    @pytest.mark.asyncio
+    async def test_completed_sub_agent_preserved_by_uniform_finalize(self, status_builder):
+        """Sub-agent with COMPLETED status is not overwritten to FAILED."""
+        await status_builder.process_event(
+            self._make_task_start_event("sa-done", "finished task")
+        )
+        sa = status_builder.state.active_sub_agents["sa-done"]
+        sa.status = SubAgentStatus.SUB_AGENT_COMPLETED
+        sa.output = "result data"
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "Parent execution error: BadRequestError",
+        )
+
+        finalized = status_builder.state.completed_sub_agents["sa-done"]
+        assert finalized.status == SubAgentStatus.SUB_AGENT_COMPLETED
+        assert finalized.output == "result data"
+
+    @pytest.mark.asyncio
+    async def test_in_progress_sub_agent_gets_forced_status(self, status_builder):
+        """Sub-agent still IN_PROGRESS is correctly marked FAILED."""
+        await status_builder.process_event(
+            self._make_task_start_event("sa-wip", "working")
+        )
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "Parent execution error: BadRequestError",
+        )
+
+        finalized = status_builder.state.completed_sub_agents["sa-wip"]
+        assert finalized.status == SubAgentStatus.SUB_AGENT_FAILED
+
+    @pytest.mark.asyncio
+    async def test_sub_agent_with_output_preserved(self, status_builder):
+        """Sub-agent with non-empty output is preserved even without terminal status."""
+        await status_builder.process_event(
+            self._make_task_start_event("sa-out", "has output")
+        )
+        sa = status_builder.state.active_sub_agents["sa-out"]
+        sa.output = "partial result"
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "Parent execution error",
+        )
+
+        finalized = status_builder.state.completed_sub_agents["sa-out"]
+        assert finalized.output == "partial result"
+        assert finalized.status != SubAgentStatus.SUB_AGENT_FAILED
+
+    @pytest.mark.asyncio
+    async def test_mixed_finalization_preserves_and_finalizes(self, status_builder):
+        """Mix of completed and in-progress sub-agents handled correctly."""
+        await status_builder.process_event(
+            self._make_task_start_event("sa-completed", "done")
+        )
+        await status_builder.process_event(
+            self._make_task_start_event("sa-running", "still going")
+        )
+
+        completed_sa = status_builder.state.active_sub_agents["sa-completed"]
+        completed_sa.status = SubAgentStatus.SUB_AGENT_COMPLETED
+        completed_sa.output = "finished"
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "stall detected",
+        )
+
+        assert status_builder.state.completed_sub_agents["sa-completed"].status == SubAgentStatus.SUB_AGENT_COMPLETED
+        assert status_builder.state.completed_sub_agents["sa-running"].status == SubAgentStatus.SUB_AGENT_FAILED
+        assert len(status_builder.state.active_sub_agents) == 0
+
+    @pytest.mark.asyncio
+    async def test_differentiated_finalize_preserves_completed(self, status_builder):
+        """finalize_active_sub_agents_differentiated also preserves terminal status."""
+        await status_builder.process_event(
+            self._make_task_start_event("sa-ok", "completed task")
+        )
+        await status_builder.process_event(
+            self._make_task_start_event("sa-wip", "mid execution")
+        )
+
+        ok_sa = status_builder.state.active_sub_agents["sa-ok"]
+        ok_sa.status = SubAgentStatus.SUB_AGENT_COMPLETED
+        ok_sa.output = "success"
+
+        wip_sa = status_builder.state.active_sub_agents["sa-wip"]
+        wip_sa.messages.append(AgentMessage(content="working on it"))
+
+        count = status_builder.finalize_active_sub_agents_differentiated(
+            error_context="Parent terminated abnormally"
+        )
+
+        assert count == 2
+        assert status_builder.state.completed_sub_agents["sa-ok"].status == SubAgentStatus.SUB_AGENT_COMPLETED
+        assert status_builder.state.completed_sub_agents["sa-wip"].status == SubAgentStatus.SUB_AGENT_FAILED
+
+    @pytest.mark.asyncio
+    async def test_pending_completion_flushed_before_finalization(self, status_builder):
+        """Pending completion flush entries are drained before crash finalization."""
+        import time
+
+        await status_builder.process_event(
+            self._make_task_start_event("sa-flush", "completed recently")
+        )
+
+        sa = status_builder.state.active_sub_agents.pop("sa-flush")
+        sa.status = SubAgentStatus.SUB_AGENT_COMPLETED
+        sa.output = "done"
+        status_builder.state.completed_sub_agents["sa-flush"] = sa
+        status_builder.state.pending_completion_flush["sa-flush"] = time.monotonic()
+
+        status_builder.finalize_active_sub_agents(
+            SubAgentStatus.SUB_AGENT_FAILED,
+            "Parent crashed",
+        )
+
+        assert len(status_builder.state.pending_completion_flush) == 0
+        assert status_builder.force_next_update is True
+
+    @pytest.mark.asyncio
+    async def test_flush_pending_completions_on_empty_is_noop(self, status_builder):
+        """_flush_pending_completions on empty dict is a safe no-op."""
+        flushed = status_builder._flush_pending_completions()
+        assert flushed == []
+        assert status_builder.force_next_update is False
+
+
+# =============================================================================
+# Tests for ExecutionState.rebuild_from_proto
+# =============================================================================
+
+
+class TestRebuildFromProto:
+    """Tests for ExecutionState.rebuild_from_proto classmethod.
+
+    Verifies that proto-derivable indexes are correctly reconstructed
+    from a persisted AgentExecutionStatus, and that ephemeral runtime
+    state starts fresh.
+    """
+
+    def test_indexes_main_agent_tool_calls(self, mock_initial_status):
+        """Tool calls inside main-agent AI messages are indexed."""
+        from worker.activities.graphton.execution_state import ExecutionState
+
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.add(
+            id="toolu_A", name="write",
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+        )
+        ai_msg.tool_calls.add(
+            id="toolu_B", name="read",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        mock_initial_status.messages.append(ai_msg)
+
+        state = ExecutionState.rebuild_from_proto(mock_initial_status)
+
+        assert len(state.tool_calls) == 2
+        assert state.tool_calls["toolu_A"].name == "write"
+        assert state.tool_calls["toolu_B"].name == "read"
+        assert state.tool_calls["toolu_A"] is mock_initial_status.messages[0].tool_calls[0]
+
+    def test_indexes_sub_agent_tool_calls(self, mock_initial_status):
+        """Tool calls inside sub-agent messages are also indexed."""
+        from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
+
+        from worker.activities.graphton.execution_state import ExecutionState
+
+        sa = SubAgentExecution(
+            id="toolu_SA1", name="generalPurpose",
+            status=SubAgentStatus.SUB_AGENT_COMPLETED,
+        )
+        sa_msg = sa.messages.add(type=MessageType.MESSAGE_AI)
+        sa_msg.tool_calls.add(
+            id="toolu_nested", name="execute",
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+        )
+        mock_initial_status.sub_agent_executions.append(sa)
+
+        state = ExecutionState.rebuild_from_proto(mock_initial_status)
+
+        assert "toolu_nested" in state.tool_calls
+        assert state.tool_calls["toolu_nested"].name == "execute"
+
+    def test_indexes_completed_sub_agents(self, mock_initial_status):
+        """Completed/failed/cancelled sub-agents populate completed_sub_agents."""
+        from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
+
+        from worker.activities.graphton.execution_state import ExecutionState
+
+        sa_done = SubAgentExecution(
+            id="sa-1", name="generalPurpose",
+            status=SubAgentStatus.SUB_AGENT_COMPLETED,
+        )
+        sa_failed = SubAgentExecution(
+            id="sa-2", name="generalPurpose",
+            status=SubAgentStatus.SUB_AGENT_FAILED,
+        )
+        sa_running = SubAgentExecution(
+            id="sa-3", name="generalPurpose",
+            status=SubAgentStatus.SUB_AGENT_IN_PROGRESS,
+        )
+        mock_initial_status.sub_agent_executions.extend([sa_done, sa_failed, sa_running])
+
+        state = ExecutionState.rebuild_from_proto(mock_initial_status)
+
+        assert "sa-1" in state.completed_sub_agents
+        assert "sa-2" in state.completed_sub_agents
+        assert "sa-3" not in state.completed_sub_agents
+
+    def test_copies_artifacts(self):
+        """Proto artifacts are copied into state.artifacts."""
+        from worker.activities.graphton.execution_state import ExecutionState
+
+        proto = AgentExecutionStatus()
+        proto.artifacts.add(name="output.txt", sandbox_path="project/output.txt")
+        proto.artifacts.add(name="log.txt", sandbox_path="project/log.txt")
+
+        state = ExecutionState.rebuild_from_proto(proto)
+
+        assert len(state.artifacts) == 2
+        assert state.artifacts[0].name == "output.txt"
+        assert state.artifacts[1].name == "log.txt"
+
+    def test_ephemeral_state_starts_fresh(self, mock_initial_status):
+        """Ephemeral fields (timing, buffers, approval) are empty after rebuild."""
+        from worker.activities.graphton.execution_state import ExecutionState
+
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.add(
+            id="toolu_X", name="write",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        mock_initial_status.messages.append(ai_msg)
+
+        state = ExecutionState.rebuild_from_proto(mock_initial_status)
+
+        assert len(state.tool_start_times) == 0
+        assert len(state.message_start_times) == 0
+        assert len(state.messages_by_run) == 0
+        assert len(state.current_ai_message) == 0
+        assert len(state.active_sub_agents) == 0
+        assert len(state.thinking.buffers) == 0
+        assert len(state.tool_input.buffers) == 0
+        assert len(state.approval.pending) == 0
+        assert len(state.early_tool_call_queue) == 0
+
+    def test_skips_tool_calls_without_id(self, mock_initial_status):
+        """Tool calls with empty id are not indexed (edge case)."""
+        from worker.activities.graphton.execution_state import ExecutionState
+
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.add(id="", name="write")
+        ai_msg.tool_calls.add(id="toolu_real", name="read")
+        mock_initial_status.messages.append(ai_msg)
+
+        state = ExecutionState.rebuild_from_proto(mock_initial_status)
+
+        assert len(state.tool_calls) == 1
+        assert "toolu_real" in state.tool_calls
+
+    def test_skips_non_ai_messages(self, mock_initial_status):
+        """Human messages are ignored during tool call indexing."""
+        from worker.activities.graphton.execution_state import ExecutionState
+
+        human_msg = AgentMessage(type=MessageType.MESSAGE_HUMAN)
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.add(id="toolu_only", name="execute")
+        mock_initial_status.messages.extend([human_msg, ai_msg])
+
+        state = ExecutionState.rebuild_from_proto(mock_initial_status)
+
+        assert len(state.tool_calls) == 1
+        assert "toolu_only" in state.tool_calls
+
+    def test_status_builder_delegates_to_rebuild(self, mock_initial_status):
+        """StatusBuilder.rebuild_index_from_persisted_status uses
+        ExecutionState.rebuild_from_proto and replaces self.state."""
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.add(
+            id="toolu_delegated", name="write",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        mock_initial_status.messages.append(ai_msg)
+
+        builder = StatusBuilder("exec-rebuild", mock_initial_status)
+        assert len(builder.state.tool_calls) == 0
+
+        builder.rebuild_index_from_persisted_status()
+
+        assert "toolu_delegated" in builder.state.tool_calls
+        assert builder.state.proto is mock_initial_status

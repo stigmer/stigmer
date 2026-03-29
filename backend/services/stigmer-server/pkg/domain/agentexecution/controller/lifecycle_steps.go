@@ -367,7 +367,7 @@ func (s *SignalPauseToTemporalStep[T]) Execute(ctx *pipeline.RequestContext[T]) 
 		Msg("Sending pause signal to Temporal workflow")
 
 	// Send pause signal to workflow
-	err := s.temporalClient.SignalWorkflow(ctx.Context(), workflowID, "", "pause", reason)
+	err := s.temporalClient.SignalWorkflow(ctx.Context(), workflowID, "", workflows.SignalPause, reason)
 	if err != nil {
 		// Handle workflow not found (already completed/terminated)
 		if _, ok := err.(*serviceerror.NotFound); ok {
@@ -434,7 +434,7 @@ func (s *SignalResumeToTemporalStep[T]) Execute(ctx *pipeline.RequestContext[T])
 		Msg("Sending resume signal to Temporal workflow")
 
 	// Send resume signal to workflow (empty payload)
-	err := s.temporalClient.SignalWorkflow(ctx.Context(), workflowID, "", "resume", nil)
+	err := s.temporalClient.SignalWorkflow(ctx.Context(), workflowID, "", workflows.SignalResume, nil)
 	if err != nil {
 		// Handle workflow not found (already completed/terminated)
 		if _, ok := err.(*serviceerror.NotFound); ok {

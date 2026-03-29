@@ -1,20 +1,15 @@
-"""Contract tests for the HITL approval flow (post-T03 simplification).
+"""Contract tests for the HITL approval flow.
 
 Tests cover:
   - ResumeReconciler: tool call transitions, auto-skip, stale completed_at
-  - Fingerprint dedup: via messages (not flat lists)
-  - Index rebuild on resume: populate_fingerprints_from_existing_tool_calls
-  - Pending approvals snapshot: Temporal coordination signal
-  - slim_status_for_temporal: snapshot preserved through slim copy
-  - FIFO queue drain: stale entries removed when fingerprint dedup matches
+  - Index rebuild on resume: rebuild_index_from_persisted_status
+  - slim_status_for_temporal: phase-only slim copy
   - Task tool early-TC reconciliation on resume path
   - Bidirectional ID lookup: defense-in-depth for ID mismatches
-  - Interrupt-based snapshot: build_snapshot_from_interrupts
   - Checkpoint orphan reconciliation: reconcile_orphans_against_checkpoint
 """
 
 import logging
-from collections import deque
 from typing import Any
 
 import pytest
@@ -34,7 +29,6 @@ from google.protobuf.struct_pb2 import Struct
 
 from worker.activities.graphton.hitl import (
     ResumeReconciler,
-    build_snapshot_from_interrupts,
     extract_approval_decisions_from_execution,
     extract_interrupt_tool_call_ids,
 )
@@ -75,7 +69,7 @@ def _make_builder_with_decisions(
         for sa in sub_agents:
             status.sub_agent_executions.append(sa)
     builder = StatusBuilder("test_exec", status)
-    builder.populate_fingerprints_from_existing_tool_calls()
+    builder.rebuild_index_from_persisted_status()
     return builder
 
 
@@ -243,60 +237,6 @@ class TestClearStaleCompletedAt:
 
 
 # =============================================================================
-# Fingerprint dedup via messages
-# =============================================================================
-
-
-class TestFingerprintDedup:
-    def test_fingerprint_dedup_from_messages(self):
-        args = Struct()
-        args.update({"key": "value"})
-        tc = ToolCall(
-            id="call_original",
-            name="apply_mcp_server",
-            args=args,
-            status=ToolCallStatus.TOOL_CALL_RUNNING,
-        )
-
-        status = _status_with_tool_calls(tc)
-        builder = StatusBuilder("exec-fp-1", status)
-        builder.populate_fingerprints_from_existing_tool_calls()
-
-        fingerprint = builder._get_tool_fingerprint(
-            "apply_mcp_server", {"key": "value"},
-        )
-        assert fingerprint in builder.tool_call_fingerprints
-        assert builder._fingerprint_to_tool_call_id.get(fingerprint) == "call_original"
-
-    def test_sub_agent_tool_call_fingerprint(self):
-        args = Struct()
-        args.update({"path": "/tmp/output.txt"})
-        sa_tc = ToolCall(
-            id="sa-tc-001",
-            name="write_file",
-            args=args,
-            status=ToolCallStatus.TOOL_CALL_RUNNING,
-        )
-
-        sa = SubAgentExecution(id="sub-agent-run-1", name="code_editor")
-        msg = sa.messages.add()
-        msg.type = MessageType.MESSAGE_AI
-        msg.tool_calls.append(sa_tc)
-
-        status = AgentExecutionStatus()
-        status.sub_agent_executions.append(sa)
-
-        builder = StatusBuilder("exec-fp-sub-1", status)
-        builder.populate_fingerprints_from_existing_tool_calls()
-
-        fingerprint = builder._get_tool_fingerprint(
-            "write_file", {"path": "/tmp/output.txt"},
-        )
-        assert fingerprint in builder.tool_call_fingerprints
-        assert builder._fingerprint_to_tool_call_id.get(fingerprint) == "sa-tc-001"
-
-
-# =============================================================================
 # Index rebuild on resume
 # =============================================================================
 
@@ -311,7 +251,7 @@ class TestIndexRebuildOnResume:
 
         status = _status_with_tool_calls(tc)
         builder = StatusBuilder("exec-idx-1", status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        builder.rebuild_index_from_persisted_status()
 
         assert builder.get_tool_call("call_existing") is not None
         assert builder.get_tool_call("call_existing").name == "read_file"
@@ -326,7 +266,7 @@ class TestIndexRebuildOnResume:
 
         status = _status_with_tool_calls(tc)
         builder = StatusBuilder("exec-mut-1", status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        builder.rebuild_index_from_persisted_status()
 
         ref = builder.get_tool_call("call_mut")
         ref.status = ToolCallStatus.TOOL_CALL_RUNNING
@@ -338,264 +278,43 @@ class TestIndexRebuildOnResume:
 
 
 # =============================================================================
-# Pending approvals snapshot for Temporal coordination
+# slim_status_for_temporal: phase-only slim copy
 # =============================================================================
 
 
-class TestBuildPendingApprovalsSnapshot:
-    """Verify the point-in-time snapshot used for Temporal signal counting.
-
-    This snapshot is populated in post_stream.py and returned via the slim
-    status to the Go workflow.  It must match the same filter criteria as
-    Go's ComputePendingApprovals: WAITING_APPROVAL + requires_approval +
-    approval_action == UNSPECIFIED.
+class TestSlimStatusPhaseOnly:
+    """Verify that slim_status_for_temporal carries only workflow-critical
+    fields (phase, error, timestamps).  pending_approvals is intentionally
+    omitted — the Go/Java workflow reads it from the DB via loadExecution().
     """
 
-    def test_snapshot_includes_waiting_approval_tools(self):
-        tc = ToolCall(
-            id="call_1",
-            name="delete_file",
-            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-            requires_approval=True,
+    def test_slim_status_carries_phase_and_timestamps(self):
+        from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import ExecutionPhase
+
+        status = AgentExecutionStatus(
+            phase=ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,
+            started_at="2026-03-29T00:00:00Z",
         )
-        builder = _make_builder_with_decisions([tc])
+        slim = slim_status_for_temporal(status)
 
-        snapshot = builder.build_pending_approvals_snapshot()
+        assert slim.phase == ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
+        assert slim.started_at == "2026-03-29T00:00:00Z"
 
-        assert len(snapshot) == 1
-        assert snapshot[0].tool_call_id == "call_1"
+    def test_slim_status_omits_pending_approvals(self):
+        from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 
-    def test_snapshot_excludes_tools_with_decision_recorded(self):
-        tc = ToolCall(
-            id="call_1",
-            name="delete_file",
-            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-            requires_approval=True,
-            approval_action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-        )
-        builder = _make_builder_with_decisions([tc])
-
-        snapshot = builder.build_pending_approvals_snapshot()
-
-        assert len(snapshot) == 0
-
-    def test_snapshot_excludes_completed_tools(self):
-        tc = ToolCall(
-            id="call_1",
-            name="read_file",
-            status=ToolCallStatus.TOOL_CALL_COMPLETED,
-            requires_approval=False,
-        )
-        builder = _make_builder_with_decisions([tc])
-
-        snapshot = builder.build_pending_approvals_snapshot()
-
-        assert len(snapshot) == 0
-
-    def test_snapshot_excludes_tools_not_requiring_approval(self):
-        tc = ToolCall(
-            id="call_1",
-            name="read_file",
-            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-            requires_approval=False,
-        )
-        builder = _make_builder_with_decisions([tc])
-
-        snapshot = builder.build_pending_approvals_snapshot()
-
-        assert len(snapshot) == 0
-
-    def test_snapshot_batch_returns_all_pending(self):
-        tc1 = ToolCall(
-            id="call_1",
-            name="delete_file",
-            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-            requires_approval=True,
-        )
-        tc2 = ToolCall(
-            id="call_2",
-            name="write_file",
-            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-            requires_approval=True,
-        )
-        tc3 = ToolCall(
-            id="call_3",
-            name="read_file",
-            status=ToolCallStatus.TOOL_CALL_COMPLETED,
-            requires_approval=False,
-        )
-        builder = _make_builder_with_decisions([tc1, tc2, tc3])
-
-        snapshot = builder.build_pending_approvals_snapshot()
-
-        assert len(snapshot) == 2
-        ids = {pa.tool_call_id for pa in snapshot}
-        assert ids == {"call_1", "call_2"}
-
-    def test_snapshot_empty_when_no_tool_calls(self):
         status = AgentExecutionStatus()
-        builder = StatusBuilder("test_exec", status)
-
-        snapshot = builder.build_pending_approvals_snapshot()
-
-        assert len(snapshot) == 0
-
-
-# =============================================================================
-# slim_status_for_temporal: snapshot preservation
-# =============================================================================
-
-
-class TestSlimStatusPreservesSnapshot:
-    """Verify that slim_status_for_temporal copies pending_approvals
-    from the full status, ensuring the Temporal workflow receives the
-    snapshot built by build_pending_approvals_snapshot().
-    """
-
-    def test_slim_status_carries_pending_approvals(self):
-        tc1 = ToolCall(
-            id="call_1",
-            name="delete_file",
-            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-            requires_approval=True,
+        status.pending_approvals.append(
+            PendingApproval(tool_call_id="call_1"),
         )
-        tc2 = ToolCall(
-            id="call_2",
-            name="write_file",
-            status=ToolCallStatus.TOOL_CALL_WAITING_APPROVAL,
-            requires_approval=True,
-        )
-        builder = _make_builder_with_decisions([tc1, tc2])
 
-        snapshot = builder.build_pending_approvals_snapshot()
-        del builder.current_status.pending_approvals[:]
-        builder.current_status.pending_approvals.extend(snapshot)
-
-        slim = slim_status_for_temporal(builder.current_status)
-
-        assert len(slim.pending_approvals) == 2
-        ids = {pa.tool_call_id for pa in slim.pending_approvals}
-        assert ids == {"call_1", "call_2"}
-
-    def test_slim_status_empty_when_no_pending(self):
-        status = AgentExecutionStatus()
         slim = slim_status_for_temporal(status)
 
         assert len(slim.pending_approvals) == 0
 
 
 # =============================================================================
-# FIFO queue drain: stale entries after fingerprint dedup
-# =============================================================================
-
-
-class TestFifoQueueDrainOnFingerprintDedup:
-    """Verify that the FIFO fallback queue (_reconciled_resume_tool_calls)
-    is drained when fingerprint dedup handles a resumed tool call.
-
-    Without the drain, stale FIFO entries capture genuinely new tool calls
-    with the same tool name, preventing the StatusBuilder from creating a
-    new ToolCall entry and from transitioning the phase to
-    WAITING_FOR_APPROVAL.
-    """
-
-    @pytest.mark.asyncio
-    async def test_fifo_drained_when_fingerprint_dedup_matches(self):
-        """Fingerprint dedup for resumed tools should remove the matched
-        entry from the FIFO queue so it can't capture new tool calls."""
-        args = Struct()
-        args.update({"command": "find /workspace -name '*.yaml'"})
-        tc = ToolCall(
-            id="tc_1",
-            name="execute",
-            args=args,
-            status=ToolCallStatus.TOOL_CALL_RUNNING,
-            requires_approval=True,
-            approval_action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-        )
-
-        status = _status_with_tool_calls(tc)
-        builder = StatusBuilder("test_exec", status)
-        builder.populate_fingerprints_from_existing_tool_calls()
-
-        builder._reconciled_resume_tool_calls["execute"] = deque(["tc_1"])
-
-        event = {
-            "event": "on_tool_start",
-            "name": "execute",
-            "run_id": "new-run-001",
-            "data": {"input": {"command": "find /workspace -name '*.yaml'"}},
-        }
-        await builder.process_event(event)
-
-        assert builder._run_id_aliases.get("new-run-001") == "tc_1"
-        queue = builder._reconciled_resume_tool_calls.get("execute")
-        assert queue is not None
-        assert len(queue) == 0
-
-    @pytest.mark.asyncio
-    async def test_new_tool_not_captured_by_stale_fifo_after_resume(self):
-        """After 3 resumed tools are deduped by fingerprint, a genuinely new
-        tool call with the same name must NOT be aliased to an old entry."""
-        tc_ids = ["tc_1", "tc_2", "tc_3"]
-        commands = [
-            "find /workspace -name '*.yaml'",
-            "find /workspace -name '*.py'",
-            "find /workspace -type f | head -40",
-        ]
-
-        status = AgentExecutionStatus()
-        msg = status.messages.add()
-        msg.type = MessageType.MESSAGE_AI
-        for tc_id, cmd in zip(tc_ids, commands):
-            args = Struct()
-            args.update({"command": cmd})
-            msg.tool_calls.append(ToolCall(
-                id=tc_id,
-                name="execute",
-                args=args,
-                status=ToolCallStatus.TOOL_CALL_RUNNING,
-                requires_approval=True,
-                approval_action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            ))
-
-        builder = StatusBuilder("test_exec", status)
-        builder.populate_fingerprints_from_existing_tool_calls()
-
-        builder._reconciled_resume_tool_calls["execute"] = deque(tc_ids)
-
-        for tc_id, cmd in zip(tc_ids, commands):
-            event = {
-                "event": "on_tool_start",
-                "name": "execute",
-                "run_id": f"resumed-{tc_id}",
-                "data": {"input": {"command": cmd}},
-            }
-            await builder.process_event(event)
-
-        queue = builder._reconciled_resume_tool_calls.get("execute")
-        assert len(queue) == 0, (
-            f"FIFO queue should be empty after fingerprint dedup, "
-            f"but has {len(queue)} entries: {list(queue)}"
-        )
-
-        new_run_id = "brand-new-run-999"
-        new_event = {
-            "event": "on_tool_start",
-            "name": "execute",
-            "run_id": new_run_id,
-            "data": {"input": {"command": "ls /home/workspace/new-dir"}},
-        }
-        await builder.process_event(new_event)
-
-        assert new_run_id not in builder._run_id_aliases, (
-            f"New tool call should NOT be aliased to an old entry, "
-            f"but was aliased to {builder._run_id_aliases.get(new_run_id)}"
-        )
-
-
-# =============================================================================
-# Proxy interrupt round-trip: InterruptProxy -> resume matching
+# Direct interrupt round-trip: resume matching
 # =============================================================================
 
 
@@ -607,14 +326,13 @@ class _MockInterrupt:
         self.value = value
 
 
-class TestProxyInterruptResume:
-    """Contract tests between InterruptProxyRunnable._build_proxy_payload
-    and the resume matching loop in execute_graphton.py.
+class TestDirectInterruptResume:
+    """Contract tests for the direct interrupt shape used by both root-agent
+    and sub-agent tools (via LangGraph native per-invocation mode).
 
-    The proxy wraps sub-agent interrupts into a nested dict.  The resume
-    loop must detect the proxy shape and build a nested resume dict that
-    InterruptProxyRunnable passes through as Command(resume=decisions)
-    to the sub-agent graph.
+    All interrupts have the same shape:
+        intr.value = {"tool_call_id": "tc_abc", "message": "..."}
+        resume_dict[intr.id] = {"action": "approve"}
     """
 
     @staticmethod
@@ -633,43 +351,24 @@ class TestProxyInterruptResume:
         """Replicate the matching loop from execute_graphton.py."""
         from worker.activities.execute_graphton import _build_decision_value
 
-        action_map = TestProxyInterruptResume._action_map()
+        action_map = TestDirectInterruptResume._action_map()
         decisions_by_tc = {d.tool_call_id: d for d in decisions}
         resume_dict: dict = {}
 
         for intr in interrupts:
             intr_value = intr.value if isinstance(intr.value, dict) else {}
-
-            direct_tc_id = intr_value.get("tool_call_id", "")
-            if direct_tc_id:
-                decision = decisions_by_tc.get(direct_tc_id)
+            tc_id = intr_value.get("tool_call_id", "")
+            if tc_id:
+                decision = decisions_by_tc.get(tc_id)
                 if decision:
                     resume_dict[intr.id] = _build_decision_value(
                         decision, action_map,
                     )
-                continue
-
-            sub_decisions: dict = {}
-            for sub_id, sub_value in intr_value.items():
-                if not isinstance(sub_value, dict):
-                    continue
-                if "_proxy_interrupt_id" not in sub_value:
-                    continue
-                sub_tc_id = sub_value.get("tool_call_id", "")
-                if not sub_tc_id:
-                    continue
-                decision = decisions_by_tc.get(sub_tc_id)
-                if decision:
-                    sub_decisions[sub_id] = _build_decision_value(
-                        decision, action_map,
-                    )
-            if sub_decisions:
-                resume_dict[intr.id] = sub_decisions
 
         return resume_dict
 
     def test_direct_interrupt_matches(self):
-        """Direct interrupt (main-agent tool) matches on top-level tool_call_id."""
+        """Direct interrupt matches on top-level tool_call_id."""
         interrupts = [
             _MockInterrupt(
                 id="intr-1",
@@ -687,95 +386,18 @@ class TestProxyInterruptResume:
 
         assert result == {"intr-1": {"action": "approve"}}
 
-    def test_proxy_interrupt_matches(self):
-        """Proxied sub-agent interrupts match on nested tool_call_id."""
-        from graphton.core.interrupt_proxy import InterruptProxyRunnable
-
-        sub_interrupts = [
+    def test_multiple_interrupts_match(self):
+        """Multiple direct interrupts (root + sub-agent) all match correctly."""
+        interrupts = [
             _MockInterrupt(
-                id="sub-intr-a",
-                value={"tool_call_id": "tc_xyz", "message": "git clone?"},
+                id="intr-root",
+                value={"tool_call_id": "tc_main", "message": "main tool"},
             ),
             _MockInterrupt(
-                id="sub-intr-b",
-                value={"tool_call_id": "tc_123", "message": "rm -rf?"},
-            ),
-        ]
-        proxy_payload = InterruptProxyRunnable._build_proxy_payload(
-            sub_interrupts,
-        )
-
-        parent_interrupt = _MockInterrupt(id="parent-intr-1", value=proxy_payload)
-
-        decisions = [
-            SubmitApprovalInput(
-                tool_call_id="tc_xyz",
-                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            ),
-            SubmitApprovalInput(
-                tool_call_id="tc_123",
-                action=ApprovalAction.APPROVAL_ACTION_SKIP,
-            ),
-        ]
-
-        result = self._run_matching([parent_interrupt], decisions)
-
-        assert "parent-intr-1" in result
-        nested = result["parent-intr-1"]
-        assert isinstance(nested, dict)
-        assert nested["sub-intr-a"] == {"action": "approve"}
-        assert nested["sub-intr-b"] == {"action": "skip"}
-
-    def test_proxy_partial_decisions(self):
-        """Only sub-interrupts with matching decisions appear in the resume dict."""
-        from graphton.core.interrupt_proxy import InterruptProxyRunnable
-
-        sub_interrupts = [
-            _MockInterrupt(
-                id="sub-a",
-                value={"tool_call_id": "tc_1", "message": "cmd 1"},
-            ),
-            _MockInterrupt(
-                id="sub-b",
-                value={"tool_call_id": "tc_2", "message": "cmd 2"},
-            ),
-        ]
-        proxy_payload = InterruptProxyRunnable._build_proxy_payload(sub_interrupts)
-        parent = _MockInterrupt(id="p-1", value=proxy_payload)
-
-        decisions = [
-            SubmitApprovalInput(
-                tool_call_id="tc_1",
-                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            ),
-        ]
-
-        result = self._run_matching([parent], decisions)
-
-        nested = result["p-1"]
-        assert "sub-a" in nested
-        assert "sub-b" not in nested
-
-    def test_mixed_direct_and_proxy(self):
-        """Both direct and proxy interrupts in the same checkpoint are handled."""
-        from graphton.core.interrupt_proxy import InterruptProxyRunnable
-
-        sub_interrupts = [
-            _MockInterrupt(
-                id="sub-x",
+                id="intr-sub",
                 value={"tool_call_id": "tc_sub", "message": "sub tool"},
             ),
         ]
-        proxy_payload = InterruptProxyRunnable._build_proxy_payload(sub_interrupts)
-
-        interrupts = [
-            _MockInterrupt(
-                id="direct-1",
-                value={"tool_call_id": "tc_main", "message": "main tool"},
-            ),
-            _MockInterrupt(id="proxy-1", value=proxy_payload),
-        ]
-
         decisions = [
             SubmitApprovalInput(
                 tool_call_id="tc_main",
@@ -789,8 +411,8 @@ class TestProxyInterruptResume:
 
         result = self._run_matching(interrupts, decisions)
 
-        assert result["direct-1"] == {"action": "reject"}
-        assert result["proxy-1"]["sub-x"] == {"action": "approve"}
+        assert result["intr-root"] == {"action": "reject"}
+        assert result["intr-sub"] == {"action": "approve"}
 
     def test_no_match_returns_empty(self):
         """When no interrupt matches any decision, resume_dict is empty."""
@@ -811,23 +433,29 @@ class TestProxyInterruptResume:
 
         assert result == {}
 
-    def test_proxy_payload_structure(self):
-        """_build_proxy_payload preserves tool_call_id and adds _proxy_interrupt_id."""
-        from graphton.core.interrupt_proxy import InterruptProxyRunnable
-
-        sub_interrupts = [
+    def test_partial_decisions(self):
+        """Only interrupts with matching decisions appear in the resume dict."""
+        interrupts = [
             _MockInterrupt(
-                id="si-1",
-                value={"tool_call_id": "tc_hello", "message": "hello"},
+                id="intr-1",
+                value={"tool_call_id": "tc_1", "message": "cmd 1"},
+            ),
+            _MockInterrupt(
+                id="intr-2",
+                value={"tool_call_id": "tc_2", "message": "cmd 2"},
             ),
         ]
-        payload = InterruptProxyRunnable._build_proxy_payload(sub_interrupts)
+        decisions = [
+            SubmitApprovalInput(
+                tool_call_id="tc_1",
+                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
+            ),
+        ]
 
-        assert "si-1" in payload
-        entry = payload["si-1"]
-        assert entry["tool_call_id"] == "tc_hello"
-        assert entry["message"] == "hello"
-        assert entry["_proxy_interrupt_id"] == "si-1"
+        result = self._run_matching(interrupts, decisions)
+
+        assert "intr-1" in result
+        assert "intr-2" not in result
 
     def test_summarize_direct(self):
         """_summarize_resume_entry formats direct decisions correctly."""
@@ -835,17 +463,6 @@ class TestProxyInterruptResume:
 
         result = _summarize_resume_entry("abcd1234efgh5678", {"action": "approve"})
         assert "action=approve" in result
-
-    def test_summarize_proxy(self):
-        """_summarize_resume_entry formats proxy payloads correctly."""
-        from worker.activities.execute_graphton import _summarize_resume_entry
-
-        result = _summarize_resume_entry(
-            "parent-id-123456",
-            {"sub-a": {"action": "approve"}, "sub-b": {"action": "skip"}},
-        )
-        assert "proxy" in result
-        assert "2 sub-decision" in result
 
 
 # =============================================================================
@@ -881,12 +498,12 @@ class TestTaskToolResumeReconciliation:
         sa = SubAgentExecution(id="toolu_AAA", name="generalPurpose")
         builder = _make_builder_with_decisions([tc], sub_agents=[sa])
 
-        assert len(builder._early_tool_call_queue) == 0
+        assert len(builder.state.early_tool_call_queue) == 0
 
         _simulate_tool_use_stream(builder, "task", "toolu_AAA")
 
-        assert len(builder._early_tool_call_queue) == 1
-        temp_id, sa_id = builder._early_tool_call_queue[0]
+        assert len(builder.state.early_tool_call_queue) == 1
+        temp_id, sa_id = builder.state.early_tool_call_queue[0]
         assert temp_id == "toolu_AAA"
 
     @pytest.mark.asyncio
@@ -915,8 +532,8 @@ class TestTaskToolResumeReconciliation:
         }
         await builder.process_event(event)
 
-        assert builder._run_id_aliases.get("019d-uuid-new-run") == "toolu_BBB"
-        assert len(builder._early_tool_call_queue) == 0
+        assert builder.resolve_run_id("019d-uuid-new-run") == "toolu_BBB"
+        assert len(builder.state.early_tool_call_queue) == 0
 
     @pytest.mark.asyncio
     async def test_parallel_task_tools_reconcile_independently(self):
@@ -937,7 +554,7 @@ class TestTaskToolResumeReconciliation:
         _simulate_tool_use_stream(builder, "task", "toolu_CCC")
         _simulate_tool_use_stream(builder, "task", "toolu_DDD")
 
-        assert len(builder._early_tool_call_queue) == 2
+        assert len(builder.state.early_tool_call_queue) == 2
 
         event_a = {
             "event": "on_tool_start",
@@ -955,14 +572,16 @@ class TestTaskToolResumeReconciliation:
         await builder.process_event(event_a)
         await builder.process_event(event_b)
 
-        assert builder._run_id_aliases.get("run-uuid-1") == "toolu_CCC"
-        assert builder._run_id_aliases.get("run-uuid-2") == "toolu_DDD"
-        assert len(builder._early_tool_call_queue) == 0
+        assert builder.resolve_run_id("run-uuid-1") == "toolu_CCC"
+        assert builder.resolve_run_id("run-uuid-2") == "toolu_DDD"
+        assert len(builder.state.early_tool_call_queue) == 0
 
     @pytest.mark.asyncio
-    async def test_fingerprint_dedup_does_not_block_task_handler(self):
-        """Even if the fingerprint matches a prior-cycle task tool, the task
+    async def test_identity_dedup_does_not_block_task_handler(self):
+        """Even if identity dedup detects a prior-cycle task tool, the task
         handler must still run so sub-agent lifecycle is managed."""
+        from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+
         args = Struct()
         args.update({"description": "deploy service", "subagent_type": "generalPurpose"})
         tc = ToolCall(
@@ -975,6 +594,10 @@ class TestTaskToolResumeReconciliation:
         sa = SubAgentExecution(id="toolu_EEE", name="generalPurpose")
         builder = _make_builder_with_decisions([tc], sub_agents=[sa])
 
+        capture = ToolCallIdCapture()
+        capture._run_id_to_tool_call_id["new-task-run-id"] = "toolu_EEE"
+        builder._tool_call_id_capture = capture
+
         _simulate_tool_use_stream(builder, "task", "toolu_EEE")
 
         event = {
@@ -985,8 +608,8 @@ class TestTaskToolResumeReconciliation:
         }
         await builder.process_event(event)
 
-        assert builder._run_id_aliases.get("new-task-run-id") == "toolu_EEE"
-        assert "new-task-run-id" in builder._run_id_to_tool_call_id
+        assert builder.resolve_run_id("new-task-run-id") == "toolu_EEE"
+        assert "new-task-run-id" in builder.state.run_id_to_tool_call_id
 
     # ─────────────────────────────────────────────────────────────────────────
     # No-AI-replay resume: prepare_task_tool_resume_queue
@@ -1013,14 +636,14 @@ class TestTaskToolResumeReconciliation:
         sa_b = SubAgentExecution(id="toolu_RQ2", name="explore")
         builder = _make_builder_with_decisions([tc_a, tc_b], sub_agents=[sa_a, sa_b])
 
-        assert len(builder._early_tool_call_queue) == 0
+        assert len(builder.state.early_tool_call_queue) == 0
 
         queued = builder.prepare_task_tool_resume_queue()
 
         assert queued == 2
-        assert len(builder._early_tool_call_queue) == 2
-        assert builder._early_tool_call_queue[0] == ("toolu_RQ1", None)
-        assert builder._early_tool_call_queue[1] == ("toolu_RQ2", None)
+        assert len(builder.state.early_tool_call_queue) == 2
+        assert builder.state.early_tool_call_queue[0] == ("toolu_RQ1", None)
+        assert builder.state.early_tool_call_queue[1] == ("toolu_RQ2", None)
 
     @pytest.mark.asyncio
     async def test_task_on_tool_start_without_ai_replay_reactivates_subagent(self):
@@ -1062,10 +685,10 @@ class TestTaskToolResumeReconciliation:
         assert len(builder.current_status.sub_agent_executions) == 3
 
         for i, tc_id in enumerate(["toolu_SA1", "toolu_SA2", "toolu_SA3"]):
-            assert builder._run_id_aliases.get(f"new-run-uuid-{i}") == tc_id
-            assert f"new-run-uuid-{i}" in builder._active_sub_agents
+            assert builder.resolve_run_id(f"new-run-uuid-{i}") == tc_id
+            assert f"new-run-uuid-{i}" in builder.state.active_sub_agents
 
-        assert len(builder._early_tool_call_queue) == 0
+        assert len(builder.state.early_tool_call_queue) == 0
 
     def test_prepare_skips_task_tools_without_subagent(self):
         """Task tool calls without a corresponding SubAgentExecution are NOT
@@ -1084,8 +707,8 @@ class TestTaskToolResumeReconciliation:
         queued = builder.prepare_task_tool_resume_queue()
 
         assert queued == 1
-        assert len(builder._early_tool_call_queue) == 1
-        assert builder._early_tool_call_queue[0] == ("toolu_HAS", None)
+        assert len(builder.state.early_tool_call_queue) == 1
+        assert builder.state.early_tool_call_queue[0] == ("toolu_HAS", None)
 
     @pytest.mark.asyncio
     async def test_prepare_is_idempotent_with_ai_replay(self):
@@ -1103,7 +726,7 @@ class TestTaskToolResumeReconciliation:
 
         _simulate_tool_use_stream(builder, "task", "toolu_IDEM")
 
-        assert len(builder._early_tool_call_queue) == 2
+        assert len(builder.state.early_tool_call_queue) == 2
 
         event = {
             "event": "on_tool_start",
@@ -1113,9 +736,9 @@ class TestTaskToolResumeReconciliation:
         }
         await builder.process_event(event)
 
-        assert builder._run_id_aliases.get("run-idem-uuid") == "toolu_IDEM"
+        assert builder.resolve_run_id("run-idem-uuid") == "toolu_IDEM"
         assert len(builder.current_status.sub_agent_executions) == 1
-        assert len(builder._early_tool_call_queue) == 1
+        assert len(builder.state.early_tool_call_queue) == 1
 
 
 # =============================================================================
@@ -1129,7 +752,7 @@ class TestBidirectionalIdLookup:
 
     When the status ToolCall carries a UUID-format ID (from the run_id
     fallback) but the interrupt payload carries the Anthropic toolu_* ID,
-    the primary ``decisions_by_tc.get(sub_tc_id)`` lookup fails.  The
+    the primary ``decisions_by_tc.get(tc_id)`` lookup fails.  The
     bidirectional fallback pairs unmatched decisions with unmatched
     interrupts.
     """
@@ -1153,66 +776,34 @@ class TestBidirectionalIdLookup:
 
         for intr in interrupts:
             intr_value = intr.value if isinstance(intr.value, dict) else {}
-            direct_tc_id = intr_value.get("tool_call_id", "")
-            if direct_tc_id:
-                decision = decisions_by_tc.get(direct_tc_id)
+            tc_id = intr_value.get("tool_call_id", "")
+            if tc_id:
+                decision = decisions_by_tc.get(tc_id)
                 if decision:
                     resume_dict[intr.id] = _build_decision_value(decision, action_map)
-                    matched.add(direct_tc_id)
-                continue
-            sub_decisions: dict = {}
-            for sub_id, sub_value in intr_value.items():
-                if not isinstance(sub_value, dict):
-                    continue
-                if "_proxy_interrupt_id" not in sub_value:
-                    continue
-                sub_tc_id = sub_value.get("tool_call_id", "")
-                if not sub_tc_id:
-                    continue
-                decision = decisions_by_tc.get(sub_tc_id)
-                if decision:
-                    sub_decisions[sub_id] = _build_decision_value(decision, action_map)
-                    matched.add(sub_tc_id)
-            if sub_decisions:
-                resume_dict[intr.id] = sub_decisions
+                    matched.add(tc_id)
 
         # Bidirectional fallback
         unmatched = set(decisions_by_tc) - matched
         if unmatched:
-            intr_tc_to_parent: dict[str, tuple[Any, str, str]] = {}
+            intr_tc_to_parent: dict[str, Any] = {}
             for intr in interrupts:
                 if intr.id in resume_dict:
                     continue
                 intr_value = intr.value if isinstance(intr.value, dict) else {}
-                direct_tc_id = intr_value.get("tool_call_id", "")
-                if direct_tc_id and direct_tc_id not in matched:
-                    intr_tc_to_parent[direct_tc_id] = (intr, "direct", "")
-                for sub_id, sub_value in intr_value.items():
-                    if not isinstance(sub_value, dict):
-                        continue
-                    if "_proxy_interrupt_id" not in sub_value:
-                        continue
-                    sub_tc_id = sub_value.get("tool_call_id", "")
-                    if sub_tc_id and sub_tc_id not in matched:
-                        intr_tc_to_parent[sub_tc_id] = (intr, "proxy", sub_id)
+                tc_id = intr_value.get("tool_call_id", "")
+                if tc_id and tc_id not in matched:
+                    intr_tc_to_parent[tc_id] = intr
 
             for um_tc_id in list(unmatched):
                 decision = decisions_by_tc[um_tc_id]
-                for intr_tc_id, (intr, shape, sub_id) in intr_tc_to_parent.items():
-                    if intr.id in resume_dict and shape == "direct":
+                for intr_tc_id, intr in intr_tc_to_parent.items():
+                    if intr.id in resume_dict:
                         continue
-                    if shape == "direct":
-                        resume_dict[intr.id] = _build_decision_value(decision, action_map)
-                        matched.add(um_tc_id)
-                        del intr_tc_to_parent[intr_tc_id]
-                        break
-                    if shape == "proxy":
-                        existing = resume_dict.get(intr.id, {})
-                        existing[sub_id] = _build_decision_value(decision, action_map)
-                        resume_dict[intr.id] = existing
-                        matched.add(um_tc_id)
-                        del intr_tc_to_parent[intr_tc_id]
-                        break
+                    resume_dict[intr.id] = _build_decision_value(decision, action_map)
+                    matched.add(um_tc_id)
+                    del intr_tc_to_parent[intr_tc_id]
+                    break
 
         return resume_dict, matched
 
@@ -1236,32 +827,6 @@ class TestBidirectionalIdLookup:
         assert "intr-1" in result
         assert result["intr-1"] == {"action": "approve"}
         assert "019d-uuid-from-status" in matched
-
-    def test_proxy_mismatch_resolved_by_fallback(self):
-        """Proxy sub-interrupt with UUID decision ID matched to toolu_* interrupt."""
-        from graphton.core.interrupt_proxy import InterruptProxyRunnable
-
-        sub_interrupts = [
-            _MockInterrupt(
-                id="sub-1",
-                value={"tool_call_id": "toolu_sub_real", "message": "Run cmd?"},
-            ),
-        ]
-        proxy_payload = InterruptProxyRunnable._build_proxy_payload(sub_interrupts)
-        parent = _MockInterrupt(id="p-1", value=proxy_payload)
-
-        decisions = [
-            SubmitApprovalInput(
-                tool_call_id="019d-uuid-sub",
-                action=ApprovalAction.APPROVAL_ACTION_APPROVE,
-            ),
-        ]
-
-        result, matched = self._run_matching_with_fallback([parent], decisions)
-
-        assert "p-1" in result
-        assert result["p-1"]["sub-1"] == {"action": "approve"}
-        assert "019d-uuid-sub" in matched
 
     def test_no_fallback_needed_when_ids_match(self):
         """When IDs match normally, fallback is not triggered."""
@@ -1299,123 +864,6 @@ class TestBidirectionalIdLookup:
 
 
 # =============================================================================
-# InterruptProxy Thread Management
-# =============================================================================
-
-
-class _FakeState:
-    """Minimal stand-in for LangGraph StateSnapshot."""
-
-    def __init__(
-        self,
-        values: dict | None = None,
-        interrupts: list | None = None,
-    ):
-        self.values = values or {}
-        self.interrupts = interrupts or []
-        self.next = () if not interrupts else ("tools",)
-
-
-class _FakeGraph:
-    """Minimal async graph stub for InterruptProxyRunnable tests."""
-
-    def __init__(self):
-        self._state: _FakeState | None = None
-        self.invoke_count = 0
-        self.last_input: Any = None
-        self.last_config: Any = None
-
-    def set_state(self, state: _FakeState | None) -> None:
-        self._state = state
-
-    async def aget_state(self, config: Any) -> _FakeState | None:
-        return self._state
-
-    async def ainvoke(self, input: Any, config: Any = None, **kwargs: Any) -> Any:
-        self.invoke_count += 1
-        self.last_input = input
-        self.last_config = config
-        return {"result": f"run-{self.invoke_count}"}
-
-
-class TestInterruptProxyThreadManagement:
-    """Verify InterruptProxyRunnable reuses the same thread on parent replay.
-
-    The root cause of orphaned WAITING_APPROVAL tool calls was the thread
-    counter incrementing on every ainvoke(), causing resumed sub-agents to
-    start fresh on a new MemorySaver thread while the old thread's tool calls
-    remained stuck.
-    """
-
-    @staticmethod
-    def _make_proxy(graph: _FakeGraph) -> "InterruptProxyRunnable":  # noqa: F821
-        from graphton.core.interrupt_proxy import InterruptProxyRunnable
-        return InterruptProxyRunnable(inner_graph=graph, name="test-agent")
-
-    @pytest.mark.asyncio
-    async def test_fresh_invocation_uses_thread_zero(self):
-        """First ainvoke() uses thread 0 and does not advance the counter."""
-        graph = _FakeGraph()
-        proxy = self._make_proxy(graph)
-
-        await proxy.ainvoke("hello")
-
-        assert proxy._thread_counter == 0
-        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-0"
-
-    @pytest.mark.asyncio
-    async def test_replay_after_interrupt_reuses_same_thread(self):
-        """When checkpoint has interrupts, ainvoke() resumes on the same thread."""
-        from unittest.mock import patch
-
-        graph = _FakeGraph()
-        graph.set_state(
-            _FakeState(
-                values={"messages": ["prior"]},
-                interrupts=[_MockInterrupt(id="intr-1", value={"tool_call_id": "tc1", "message": "Run?"})],
-            )
-        )
-        proxy = self._make_proxy(graph)
-
-        with patch("graphton.core.interrupt_proxy.interrupt", return_value={"intr-1": {"action": "approve"}}):
-            await proxy.ainvoke("hello")
-
-        assert proxy._thread_counter == 0
-        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-0"
-
-    @pytest.mark.asyncio
-    async def test_completed_thread_advances_counter(self):
-        """When checkpoint shows completion (values but no interrupts), counter advances."""
-        graph = _FakeGraph()
-        graph.set_state(_FakeState(values={"messages": ["done"]}))
-        proxy = self._make_proxy(graph)
-
-        await proxy.ainvoke("new-task")
-
-        assert proxy._thread_counter == 1
-        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-1"
-
-    @pytest.mark.asyncio
-    async def test_two_sequential_invocations_get_different_threads(self):
-        """Sequential completed invocations get incrementing thread IDs."""
-        graph = _FakeGraph()
-        proxy = self._make_proxy(graph)
-
-        # First invocation: no state → fresh on thread 0
-        graph.set_state(None)
-        await proxy.ainvoke("task-1")
-        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-0"
-
-        # Simulate first invocation completed
-        graph.set_state(_FakeState(values={"messages": ["done-1"]}))
-
-        # Second invocation: completed state → advance to thread 1
-        await proxy.ainvoke("task-2")
-        assert proxy._thread_counter == 1
-        assert graph.last_config["configurable"]["thread_id"] == "sa-test-agent-1"
-
-
-# =============================================================================
 # Sub-Agent Completion Cleanup
 # =============================================================================
 
@@ -1423,10 +871,10 @@ class TestInterruptProxyThreadManagement:
 class TestSubAgentCompletionCleanup:
     """Verify _handle_sub_agent_end sweeps orphaned WAITING_APPROVAL tool calls.
 
-    When the InterruptProxy restarts a sub-agent on a fresh LangGraph thread,
-    tool calls from the abandoned thread remain WAITING_APPROVAL in the
-    StatusBuilder.  _handle_sub_agent_end must transition these to SKIPPED
-    so they do not leak into pending_approvals.
+    When a sub-agent completes, tool calls that were WAITING_APPROVAL but
+    never received a decision remain in the StatusBuilder.
+    _handle_sub_agent_end must transition these to SKIPPED so they do not
+    leak into pending_approvals.
     """
 
     @staticmethod
@@ -1465,12 +913,12 @@ class TestSubAgentCompletionCleanup:
         status.sub_agent_executions.append(sa)
 
         builder = StatusBuilder("test_exec", status)
-        builder.populate_fingerprints_from_existing_tool_calls()
+        builder.rebuild_index_from_persisted_status()
 
         run_id = "task-run-abc"
         sa_ref = builder.current_status.sub_agent_executions[0]
-        builder._active_sub_agents[run_id] = sa_ref
-        builder._run_id_to_tool_call_id[run_id] = "toolu_task_1"
+        builder.state.active_sub_agents[run_id] = sa_ref
+        builder.state.run_id_to_tool_call_id[run_id] = "toolu_task_1"
 
         return builder, run_id
 
@@ -1592,34 +1040,23 @@ class TestExtractInterruptToolCallIds:
         result = extract_interrupt_tool_call_ids(interrupts)
         assert result == {"tc_direct_1", "tc_direct_2"}
 
-    def test_proxy_interrupt(self):
+    def test_sub_agent_interrupt_same_shape(self):
+        """Sub-agent interrupts use the same direct shape as root-agent tools."""
         interrupts = [
-            _FakeInterrupt("intr-1", {
-                "sub-a": {
-                    "tool_call_id": "tc_proxy_1",
-                    "_proxy_interrupt_id": "pid-1",
-                },
-                "sub-b": {
-                    "tool_call_id": "tc_proxy_2",
-                    "_proxy_interrupt_id": "pid-2",
-                },
-            }),
+            _FakeInterrupt("intr-sub-1", {"tool_call_id": "tc_sub_1", "message": "sub tool 1"}),
+            _FakeInterrupt("intr-sub-2", {"tool_call_id": "tc_sub_2", "message": "sub tool 2"}),
         ]
         result = extract_interrupt_tool_call_ids(interrupts)
-        assert result == {"tc_proxy_1", "tc_proxy_2"}
+        assert result == {"tc_sub_1", "tc_sub_2"}
 
-    def test_mixed_direct_and_proxy(self):
+    def test_mixed_root_and_sub_agent(self):
+        """Root and sub-agent interrupts are both direct shape."""
         interrupts = [
             _FakeInterrupt("intr-1", {"tool_call_id": "tc_direct"}),
-            _FakeInterrupt("intr-2", {
-                "sub-a": {
-                    "tool_call_id": "tc_proxy",
-                    "_proxy_interrupt_id": "pid-1",
-                },
-            }),
+            _FakeInterrupt("intr-2", {"tool_call_id": "tc_sub"}),
         ]
         result = extract_interrupt_tool_call_ids(interrupts)
-        assert result == {"tc_direct", "tc_proxy"}
+        assert result == {"tc_direct", "tc_sub"}
 
     def test_empty_interrupts(self):
         assert extract_interrupt_tool_call_ids([]) == set()
@@ -1631,36 +1068,6 @@ class TestExtractInterruptToolCallIds:
     def test_missing_tool_call_id_skipped(self):
         interrupts = [_FakeInterrupt("intr-1", {"message": "no tc id"})]
         assert extract_interrupt_tool_call_ids(interrupts) == set()
-
-
-class TestBuildSnapshotFromInterrupts:
-    """Verify build_snapshot_from_interrupts returns sorted PendingApproval list."""
-
-    def test_returns_pending_approvals_for_each_tc_id(self):
-        interrupts = [
-            _FakeInterrupt("intr-1", {"tool_call_id": "tc_b"}),
-            _FakeInterrupt("intr-2", {"tool_call_id": "tc_a"}),
-        ]
-        snapshot = build_snapshot_from_interrupts(interrupts)
-        assert len(snapshot) == 2
-        assert snapshot[0].tool_call_id == "tc_a"
-        assert snapshot[1].tool_call_id == "tc_b"
-
-    def test_empty_interrupts_returns_empty(self):
-        assert build_snapshot_from_interrupts([]) == []
-
-    def test_proxy_interrupts_included(self):
-        interrupts = [
-            _FakeInterrupt("intr-1", {
-                "sub-a": {
-                    "tool_call_id": "tc_proxy",
-                    "_proxy_interrupt_id": "pid-1",
-                },
-            }),
-        ]
-        snapshot = build_snapshot_from_interrupts(interrupts)
-        assert len(snapshot) == 1
-        assert snapshot[0].tool_call_id == "tc_proxy"
 
 
 # =============================================================================

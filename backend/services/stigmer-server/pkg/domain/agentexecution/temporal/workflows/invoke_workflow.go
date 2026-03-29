@@ -20,3 +20,11 @@ type InvokeAgentExecutionWorkflow interface {
 // InvokeAgentExecutionWorkflowName is the workflow name used for registration.
 // This MUST match the workflow name in the Java implementation for consistency.
 const InvokeAgentExecutionWorkflowName = "stigmer/agent-execution/invoke"
+
+// Signal names for pause/resume lifecycle. These MUST match the signal names
+// used by the Java workflow's @SignalMethod declarations and the Go/Java
+// RPC handlers that send them (lifecycle_steps.go / AgentExecutionPauseHandler).
+const (
+	SignalPause  = "pause"
+	SignalResume = "resume"
+)
