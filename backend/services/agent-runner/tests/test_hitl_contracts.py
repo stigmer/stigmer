@@ -612,12 +612,12 @@ class TestTaskToolResumeReconciliation:
         sa = SubAgentExecution(id="toolu_AAA", name="generalPurpose")
         builder = _make_builder_with_decisions([tc], sub_agents=[sa])
 
-        assert len(builder._early_tool_call_queue) == 0
+        assert len(builder.state.early_tool_call_queue) == 0
 
         _simulate_tool_use_stream(builder, "task", "toolu_AAA")
 
-        assert len(builder._early_tool_call_queue) == 1
-        temp_id, sa_id = builder._early_tool_call_queue[0]
+        assert len(builder.state.early_tool_call_queue) == 1
+        temp_id, sa_id = builder.state.early_tool_call_queue[0]
         assert temp_id == "toolu_AAA"
 
     @pytest.mark.asyncio
@@ -646,8 +646,8 @@ class TestTaskToolResumeReconciliation:
         }
         await builder.process_event(event)
 
-        assert builder._run_id_aliases.get("019d-uuid-new-run") == "toolu_BBB"
-        assert len(builder._early_tool_call_queue) == 0
+        assert builder.resolve_run_id("019d-uuid-new-run") == "toolu_BBB"
+        assert len(builder.state.early_tool_call_queue) == 0
 
     @pytest.mark.asyncio
     async def test_parallel_task_tools_reconcile_independently(self):
@@ -668,7 +668,7 @@ class TestTaskToolResumeReconciliation:
         _simulate_tool_use_stream(builder, "task", "toolu_CCC")
         _simulate_tool_use_stream(builder, "task", "toolu_DDD")
 
-        assert len(builder._early_tool_call_queue) == 2
+        assert len(builder.state.early_tool_call_queue) == 2
 
         event_a = {
             "event": "on_tool_start",
@@ -686,9 +686,9 @@ class TestTaskToolResumeReconciliation:
         await builder.process_event(event_a)
         await builder.process_event(event_b)
 
-        assert builder._run_id_aliases.get("run-uuid-1") == "toolu_CCC"
-        assert builder._run_id_aliases.get("run-uuid-2") == "toolu_DDD"
-        assert len(builder._early_tool_call_queue) == 0
+        assert builder.resolve_run_id("run-uuid-1") == "toolu_CCC"
+        assert builder.resolve_run_id("run-uuid-2") == "toolu_DDD"
+        assert len(builder.state.early_tool_call_queue) == 0
 
     @pytest.mark.asyncio
     async def test_identity_dedup_does_not_block_task_handler(self):
@@ -722,8 +722,8 @@ class TestTaskToolResumeReconciliation:
         }
         await builder.process_event(event)
 
-        assert builder._run_id_aliases.get("new-task-run-id") == "toolu_EEE"
-        assert "new-task-run-id" in builder._run_id_to_tool_call_id
+        assert builder.resolve_run_id("new-task-run-id") == "toolu_EEE"
+        assert "new-task-run-id" in builder.state.run_id_to_tool_call_id
 
     # ─────────────────────────────────────────────────────────────────────────
     # No-AI-replay resume: prepare_task_tool_resume_queue
@@ -750,14 +750,14 @@ class TestTaskToolResumeReconciliation:
         sa_b = SubAgentExecution(id="toolu_RQ2", name="explore")
         builder = _make_builder_with_decisions([tc_a, tc_b], sub_agents=[sa_a, sa_b])
 
-        assert len(builder._early_tool_call_queue) == 0
+        assert len(builder.state.early_tool_call_queue) == 0
 
         queued = builder.prepare_task_tool_resume_queue()
 
         assert queued == 2
-        assert len(builder._early_tool_call_queue) == 2
-        assert builder._early_tool_call_queue[0] == ("toolu_RQ1", None)
-        assert builder._early_tool_call_queue[1] == ("toolu_RQ2", None)
+        assert len(builder.state.early_tool_call_queue) == 2
+        assert builder.state.early_tool_call_queue[0] == ("toolu_RQ1", None)
+        assert builder.state.early_tool_call_queue[1] == ("toolu_RQ2", None)
 
     @pytest.mark.asyncio
     async def test_task_on_tool_start_without_ai_replay_reactivates_subagent(self):
@@ -799,10 +799,10 @@ class TestTaskToolResumeReconciliation:
         assert len(builder.current_status.sub_agent_executions) == 3
 
         for i, tc_id in enumerate(["toolu_SA1", "toolu_SA2", "toolu_SA3"]):
-            assert builder._run_id_aliases.get(f"new-run-uuid-{i}") == tc_id
-            assert f"new-run-uuid-{i}" in builder._active_sub_agents
+            assert builder.resolve_run_id(f"new-run-uuid-{i}") == tc_id
+            assert f"new-run-uuid-{i}" in builder.state.active_sub_agents
 
-        assert len(builder._early_tool_call_queue) == 0
+        assert len(builder.state.early_tool_call_queue) == 0
 
     def test_prepare_skips_task_tools_without_subagent(self):
         """Task tool calls without a corresponding SubAgentExecution are NOT
@@ -821,8 +821,8 @@ class TestTaskToolResumeReconciliation:
         queued = builder.prepare_task_tool_resume_queue()
 
         assert queued == 1
-        assert len(builder._early_tool_call_queue) == 1
-        assert builder._early_tool_call_queue[0] == ("toolu_HAS", None)
+        assert len(builder.state.early_tool_call_queue) == 1
+        assert builder.state.early_tool_call_queue[0] == ("toolu_HAS", None)
 
     @pytest.mark.asyncio
     async def test_prepare_is_idempotent_with_ai_replay(self):
@@ -840,7 +840,7 @@ class TestTaskToolResumeReconciliation:
 
         _simulate_tool_use_stream(builder, "task", "toolu_IDEM")
 
-        assert len(builder._early_tool_call_queue) == 2
+        assert len(builder.state.early_tool_call_queue) == 2
 
         event = {
             "event": "on_tool_start",
@@ -850,9 +850,9 @@ class TestTaskToolResumeReconciliation:
         }
         await builder.process_event(event)
 
-        assert builder._run_id_aliases.get("run-idem-uuid") == "toolu_IDEM"
+        assert builder.resolve_run_id("run-idem-uuid") == "toolu_IDEM"
         assert len(builder.current_status.sub_agent_executions) == 1
-        assert len(builder._early_tool_call_queue) == 1
+        assert len(builder.state.early_tool_call_queue) == 1
 
 
 # =============================================================================
@@ -1031,8 +1031,8 @@ class TestSubAgentCompletionCleanup:
 
         run_id = "task-run-abc"
         sa_ref = builder.current_status.sub_agent_executions[0]
-        builder._active_sub_agents[run_id] = sa_ref
-        builder._run_id_to_tool_call_id[run_id] = "toolu_task_1"
+        builder.state.active_sub_agents[run_id] = sa_ref
+        builder.state.run_id_to_tool_call_id[run_id] = "toolu_task_1"
 
         return builder, run_id
 

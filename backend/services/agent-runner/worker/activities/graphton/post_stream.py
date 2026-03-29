@@ -195,7 +195,7 @@ async def process_post_stream(
 
     validation = validate_against_checkpoint(
         graph_state=graph_state,
-        active_sub_agent_count=len(status_builder._active_sub_agents),
+        active_sub_agent_count=status_builder.active_sub_agent_count,
         status_ai_message_count=status_ai_message_count,
         execution_phase=status_builder.current_status.phase,
         waiting_for_approval_phase=ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL,

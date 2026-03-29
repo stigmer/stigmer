@@ -12,11 +12,11 @@ import logging
 import time
 from collections.abc import Callable, Coroutine, Iterator
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import uuid4
 
-if TYPE_CHECKING:
-    from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
+from worker.activities.graphton.execution_state import ExecutionState
+from worker.activities.graphton.tool_call_id_capture import ToolCallIdCapture
 
 from ai.stigmer.agentic.agentexecution.v1.approval_pb2 import PendingApproval
 from ai.stigmer.agentic.agentexecution.v1.artifact_pb2 import ExecutionArtifact
@@ -317,7 +317,7 @@ class StatusBuilder:
         execution_id: str,
         initial_status: Any,
         approval_config: ApprovalConfig | None = None,
-        tool_call_id_capture: "ToolCallIdCapture | None" = None,
+        tool_call_id_capture: ToolCallIdCapture | None = None,
     ):
         """
         Initialize status builder.
@@ -330,249 +330,39 @@ class StatusBuilder:
                            WAITING_APPROVAL status instead of RUNNING.
             tool_call_id_capture: Callback handler that captures {run_id → tool_call_id}
                 from the LangChain callback API. Used for identity-based dedup on the
-                resume path.
+                resume path. A bare instance is created when not provided.
         """
         self.execution_id = execution_id
-        self.current_status = initial_status
         self.logger = logging.getLogger(__name__)
-        
-        # Approval policy configuration (HITL Phase 2)
-        # When set, tool calls are checked against policies before execution
+
+        # -- Execution state (all mutable tracking data) -------------------
+        self.state = ExecutionState(proto=initial_status)
+
+        # -- Configuration (immutable after init) --------------------------
         self._approval_config = approval_config
 
-        # Callback handler that maps LangGraph tool run_id → model tool_call_id.
-        # Used for identity-based resume dedup in _handle_tool_start_event.
-        self._tool_call_id_capture = tool_call_id_capture
-        
-        # In-memory index from tool_call_id to the ToolCall proto reference
-        # inside a message's repeated field.  Mutations via these references
-        # propagate directly to the message-embedded copy — no sync needed.
-        # Replaces the removed flat ``tool_calls`` list on the proto.
-        self._tool_call_index: dict[str, ToolCall] = {}
-        
-        # Track AI message generation timing for duration calculation
-        # Key: message index in messages list, Value: start timestamp
-        self._message_start_times: dict[int, datetime] = {}
-        
-        # ─────────────────────────────────────────────────────────────────────────
-        # LLM Stream Isolation (run_id-based message tracking)
-        #
-        # Maps each LLM invocation's run_id to the AgentMessage it owns.
-        # This prevents token interleaving when multiple LLM streams are
-        # active (e.g., concurrent sub-agents whose namespace routing fell
-        # through to the main agent).  Each run_id always writes to its own
-        # dedicated message — no two LLM invocations can share a message.
-        # ─────────────────────────────────────────────────────────────────────────
-        self._llm_run_id_to_message: dict[str, AgentMessage] = {}
-        
-        # ─────────────────────────────────────────────────────────────────────────
-        # AI Message Ownership Tracking (Tool Call → Parent AI Message)
-        #
-        # Tracks the most recently created AI message per execution context
-        # (keyed by namespace).  When a tool call fires (on_tool_start or
-        # early tool_use detection), the ToolCall proto is appended to this
-        # message's tool_calls repeated field — establishing the standard
-        # "AI message owns its tool calls" relationship used by OpenAI,
-        # Anthropic, and LangChain.
-        #
-        # Stores proto-managed references (the element inside the repeated
-        # field, not the original) so mutations are visible in the status.
-        # ─────────────────────────────────────────────────────────────────────────
-        self._last_ai_message: dict[str, AgentMessage] = {}
-        
-        # Track tool execution timing for duration calculation (Phase 2.2)
-        # Key: run_id, Value: start timestamp
-        self._tool_start_times: dict[str, datetime] = {}
-        
-        # NOTE: Token accumulators (_total_prompt_tokens, etc.) removed in
-        # Phase 3; all usage tracking now lives in self._usage_tracker.
-        
-        # ─────────────────────────────────────────────────────────────────────────
-        # Sub-Agent Tracking (Phase 2.3)
-        #
-        # These structures enable namespace-based event routing to capture
-        # tool calls and messages within sub-agent executions.
-        # ─────────────────────────────────────────────────────────────────────────
-        
-        # Track active sub-agent executions by their run_id
-        # Key: run_id (from task tool), Value: SubAgentExecution proto
-        self._active_sub_agents: dict[str, SubAgentExecution] = {}
+        # Single authority for run_id → tool_call_id resolution.
+        self._tool_call_id_capture = tool_call_id_capture or ToolCallIdCapture()
 
-        # Completed sub-agent executions, moved here from _active_sub_agents
-        # on completion.  Namespace mappings are preserved so late-arriving
-        # events from LangGraph still route to the correct proto.
-        self._completed_sub_agents: dict[str, SubAgentExecution] = {}
-
-        # Bridge between LangGraph run_ids and Anthropic tool_call_ids.
-        # SubAgentExecution.id uses the tool_call_id (for frontend matching),
-        # while _active_sub_agents and namespace registration use the run_id.
-        # Key: LangGraph run_id, Value: tool_call_id (= SubAgentExecution.id)
-        self._run_id_to_tool_call_id: dict[str, str] = {}
-
-        # Map namespace to sub-agent run_id for event routing
-        # Key: namespace string, Value: sub-agent run_id
-        self._namespace_to_sub_agent_id: dict[str, str] = {}
-        
-        # Subject deduplication: tracks how many times each subject has been
-        # assigned so duplicate subjects get a numeric suffix (e.g., "(2)").
-        self._subject_counts: dict[str, int] = {}
-        
-        # Namespaces already warned about (deduplication — log once per namespace)
-        self._warned_namespaces: set[str] = set()
-        
-        # Track AI message generation timing within sub-agents (separate from main)
-        # Key: (sub_agent_id, message_index), Value: start timestamp
-        self._sub_agent_message_start_times: dict[tuple[str, int], datetime] = {}
-        
+        # Token/cost accounting for LLM calls.
         self._usage_tracker = UsageTracker(execution_id)
-        
-        # ─────────────────────────────────────────────────────────────────────────
-        # Approval State Tracking (HITL — Batch Approval)
-        #
-        # Tracks which tool calls are currently pending approval.  When the LLM
-        # issues multiple tool calls that each require approval in a single
-        # response, LangGraph creates one interrupt per tool.  We track ALL of
-        # them so the post-stream interrupt-capture logic can match each
-        # interrupt to its tool call.
-        # ─────────────────────────────────────────────────────────────────────────
-        
-        # Ordered list of ALL run_ids currently pending approval.
-        self._pending_tool_approvals: list[str] = []
-        
-        # Saved execution phase to restore after approval decision
-        # (preserves IN_PROGRESS state when transitioning to WAITING_FOR_APPROVAL)
-        self._saved_phase_before_approval: int | None = None
-        
-        # Tracks when the execution entered WAITING_FOR_APPROVAL so we can
-        # compute approval_wait_duration_ms on exit.
-        self._approval_wait_started_at: datetime | None = None
-        
-        # ─────────────────────────────────────────────────────────────────────────
-        # Context Management Tracking (Phase 3)
-        #
-        # Tracks context window utilization and summarization events.
-        # This class implements the SummarizationCallback protocol for integration
-        # with the SummarizationMiddleware in graphton.
-        # ─────────────────────────────────────────────────────────────────────────
-        
-        # Context info initialized via initialize_context_info()
-        self._context_info: ContextInfo | None = None
-        
-        # Context info is the single source of truth for summarization events.
-        # Events are appended directly to _context_info.summarization_events
-        # (once initialized) and synced to current_status via _sync_context_info().
-        
-        # ─────────────────────────────────────────────────────────────────────────
-        # Run-ID Alias Map (Resume-After-Approval Fix)
-        #
-        # On the resume path, LangGraph generates fresh run_ids for resumed
-        # tools, but the StatusBuilder already holds the original tool call
-        # (with the original tool_call_id) from the previous invocation.
-        # Identity-based dedup in _handle_tool_start_event detects the
-        # duplicate via ToolCallIdCapture, but the new run_id must still
-        # reach the existing ToolCall on on_tool_end / on_tool_progress.
-        #
-        # _run_id_aliases maps {new_run_id -> original_tool_call_id} so that
-        # _resolve_run_id() can bridge the gap.
-        # ─────────────────────────────────────────────────────────────────────────
-        self._run_id_aliases: dict[str, str] = {}
 
-        # ─────────────────────────────────────────────────────────────────────────
-        # Execution Artifacts Tracking (Artifact Lifecycle)
-        #
-        # Tracks artifacts published by the agent via the publish_artifact tool.
-        # Artifacts are accumulated during execution and added to the final status.
-        # ─────────────────────────────────────────────────────────────────────────
-        self._artifacts: list[ExecutionArtifact] = []
-        
-        # ─────────────────────────────────────────────────────────────────────────
-        # Native Thinking Translation (Extended Thinking → Synthetic Think Tool)
-        #
-        # When Anthropic models have extended thinking enabled, thinking content
-        # blocks arrive via on_chat_model_stream before the text/tool_use
-        # response.  We accumulate them here and flush a synthetic "think"
-        # ToolCall when the first non-thinking content arrives (or at
-        # on_chat_model_end if no text follows).  This lets the entire
-        # downstream pipeline (gRPC, CLI) treat native thinking identically
-        # to the explicit think tool.
-        #
-        # Keyed by namespace (empty string for main agent).
-        # ─────────────────────────────────────────────────────────────────────────
-        self._thinking_buffers: dict[str, str] = {}
-        self._thinking_started_at: dict[str, datetime] = {}
-        self._thinking_tool_call_ids: dict[str, str] = {}
-        
-        # ─────────────────────────────────────────────────────────────────────────
-        # LLM Turn-Boundary Tracking
-        #
-        # Tracks the most recent LLM run_id per namespace so we can detect
-        # when a new LLM invocation starts.  Without this, thinking-only
-        # turns (thinking + tool_use, no text) leave _last_ai_message
-        # pointing at the previous turn's empty parent AI, causing the
-        # next turn's thinking/tool_use blocks to pile up on the wrong
-        # message.  When the run_id changes we clear _last_ai_message
-        # for that namespace so a fresh parent is created.
-        # ─────────────────────────────────────────────────────────────────────────
-        self._last_llm_run_id: dict[str, str] = {}
-        
-        # ─────────────────────────────────────────────────────────────────────────
-        # Early Tool Call Creation (Live Write Streaming UX)
-        #
-        # When the LLM stream produces a tool_use block, we create the ToolCall
-        # immediately — before on_tool_start fires — so the CLI shows the tool
-        # name instead of the "Thinking…" idle indicator.  The queue holds temp
-        # IDs in FIFO order; on_tool_start pops the first match and reconciles
-        # (updating args, registering the real run_id as an alias).
-        # Each entry is (temp_id, sub_agent_id_or_None) so reconciliation
-        # matches within the correct execution context and avoids
-        # cross-contamination between concurrent sub-agents.
-        # ─────────────────────────────────────────────────────────────────────────
-        self._early_tool_call_queue: list[tuple[str, str | None]] = []
-        
-        # ─────────────────────────────────────────────────────────────────────
-        # Tool Input Streaming (Live Argument Generation)
-        #
-        # While the LLM generates tool arguments, Anthropic emits
-        # input_json_delta blocks whose partial_json fragments concatenate
-        # into the full args JSON.  We accumulate them per early ToolCall and
-        # extract displayable content (e.g. the file body for write tools)
-        # into tool_call.result so the CLI streams it progressively.
-        #
-        # _tool_input_active_tc: namespace key → temp_id of the early ToolCall
-        #     currently receiving input_json_delta blocks.
-        # _tool_input_buffers: temp_id → accumulated partial JSON string.
-        # ─────────────────────────────────────────────────────────────────────
-        self._tool_input_active_tc: dict[str, str] = {}
-        self._tool_input_buffers: dict[str, str] = {}
-
-        # When True, the main event loop should send a gRPC status update
-        # immediately after process_event() returns, bypassing the scheduler's
-        # time/burst thresholds.  Set by _create_early_tool_call and
-        # _start_thinking_stream so the CLI sees new tool calls without
-        # waiting for the next scheduled update (which may be 500ms–30s away
-        # if no further LangGraph events arrive).
+        # gRPC scheduling signal (not execution state).
         self.force_next_update: bool = False
 
-        # Deferred completion flush for sub-agents.  When a sub-agent
-        # completes (on_tool_end for "task"), we record the monotonic
-        # timestamp here instead of setting force_next_update.  This allows
-        # a short drain window for late LangGraph events (on_chat_model_end,
-        # on_tool_end for nested tools) to be processed and batched into
-        # the same gRPC update that carries the COMPLETED status — preventing
-        # the UI from showing "Completed" while messages still stream in.
-        self._pending_completion_flush: dict[str, float] = {}
-
-        # Resolved agent env vars used by _create_args_preview to expand
-        # $VAR references in display strings.  Set via set_display_env_vars()
-        # once the merged environment is available.
+        # Display humanization config (set after workspace provisioning).
         self._display_env_vars: dict[str, str] | None = None
         self._secret_keys: set[str] | None = None
-
-        # Sandbox workspace root for display humanization.  Set via
-        # set_workspace_root() once the workspace is provisioned.
-        # humanize_sandbox_paths() uses this to strip absolute sandbox
-        # paths from display strings (tool args, results, previews).
         self._workspace_root: str = ""
+
+    @property
+    def current_status(self) -> Any:
+        """The protobuf projection being built."""
+        return self.state.proto
+
+    @current_status.setter
+    def current_status(self, value: Any) -> None:
+        self.state.proto = value
     
     def set_display_env_vars(
         self,
@@ -617,15 +407,20 @@ class StatusBuilder:
         field, so mutations to the returned object propagate to the proto
         status automatically.
         """
-        return self._tool_call_index.get(tc_id)
+        return self.state.tool_calls.get(tc_id)
 
     def iter_all_tool_calls(self) -> Iterator[ToolCall]:
         """Iterate over every tracked ToolCall (main agent + sub-agents)."""
-        return iter(self._tool_call_index.values())
+        return iter(self.state.tool_calls.values())
 
     def tool_call_count(self) -> int:
         """Return the total number of tracked tool calls."""
-        return len(self._tool_call_index)
+        return len(self.state.tool_calls)
+
+    @property
+    def active_sub_agent_count(self) -> int:
+        """Return the number of currently active (in-progress) sub-agents."""
+        return len(self.state.active_sub_agents)
 
     _COMPLETION_DRAIN_MS: float = 300.0
 
@@ -638,16 +433,16 @@ class StatusBuilder:
         events to be batched into the same gRPC update that carries the
         COMPLETED status.
         """
-        if not self._pending_completion_flush:
+        if not self.state.pending_completion_flush:
             return False
         threshold = self._COMPLETION_DRAIN_MS / 1000.0
         flushed: list[str] = []
-        for run_id, recorded_at in self._pending_completion_flush.items():
+        for run_id, recorded_at in self.state.pending_completion_flush.items():
             if (now_monotonic - recorded_at) >= threshold:
                 flushed.append(run_id)
         if flushed:
             for run_id in flushed:
-                del self._pending_completion_flush[run_id]
+                del self.state.pending_completion_flush[run_id]
             self.force_next_update = True
             return True
         return False
@@ -753,16 +548,12 @@ class StatusBuilder:
         # is already indexed from the prior cycle (via rebuild_index_from_persisted_status).
         # We register a run-ID alias so on_tool_end / on_tool_progress can find
         # the existing ToolCall, then return early (dedup).
-        tool_call_id = (
-            self._tool_call_id_capture.get(run_id)
-            if self._tool_call_id_capture is not None
-            else None
-        )
+        tool_call_id = self._tool_call_id_capture.get(run_id)
         if tool_call_id:
-            existing = self._tool_call_index.get(tool_call_id)
+            existing = self.state.tool_calls.get(tool_call_id)
             if existing is not None and not existing.is_streaming:
                 if run_id != tool_call_id:
-                    self._run_id_aliases[run_id] = tool_call_id
+                    self._tool_call_id_capture.register_alias(run_id, tool_call_id)
                 self.logger.info(
                     "[IDENTITY_DEDUP] execution=%s tool=%s run_id=%s -> "
                     "existing_tc=%s (resume path, alias only)",
@@ -824,7 +615,7 @@ class StatusBuilder:
                 )
                 parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
                 parent_ai.tool_calls.append(tool_call)
-                self._tool_call_index[run_id] = parent_ai.tool_calls[-1]
+                self.state.tool_calls[run_id] = parent_ai.tool_calls[-1]
                 tool_call_id = run_id
 
             await self._handle_sub_agent_start(event, tool_args, run_id, tool_call_id=tool_call_id)
@@ -898,7 +689,7 @@ class StatusBuilder:
             tool_call.approval_requested_at = _utc_timestamp(now)
         
         # Track start time for duration calculation (even for approval-pending tools)
-        self._tool_start_times[run_id] = now
+        self.state.tool_start_times[run_id] = now
         
         # ─────────────────────────────────────────────────────────────────────
         # Namespace-Based Routing (Phase 2.3): Route to correct execution context
@@ -913,7 +704,7 @@ class StatusBuilder:
         # truth.  The in-memory _tool_call_index provides O(1) lookup by ID.
         parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
         parent_ai.tool_calls.append(tool_call)
-        self._tool_call_index[run_id] = parent_ai.tool_calls[-1]
+        self.state.tool_calls[run_id] = parent_ai.tool_calls[-1]
         
         context_desc = f"sub_agent={sub_agent.id}" if sub_agent else "main_agent"
         self.logger.debug(
@@ -953,7 +744,7 @@ class StatusBuilder:
                 the tool-execution path (``on_tool_start``) must omit this
                 to avoid polluting the LLM run-id map with tool run-ids.
         """
-        existing = self._last_ai_message.get(ns_key)
+        existing = self.state.current_ai_message.get(ns_key)
         if existing is not None:
             return existing
 
@@ -969,10 +760,10 @@ class StatusBuilder:
         )
         messages_list.append(ai_message)
         managed = messages_list[-1]
-        self._last_ai_message[ns_key] = managed
+        self.state.current_ai_message[ns_key] = managed
 
         if llm_run_id:
-            self._llm_run_id_to_message[llm_run_id] = managed
+            self.state.messages_by_run[llm_run_id] = managed
 
         self.logger.debug(
             "[AI_MSG] execution=%s created empty parent AI message "
@@ -1012,7 +803,7 @@ class StatusBuilder:
         chunk = humanize_sandbox_paths(chunk, self._workspace_root)
 
         # Resolve run-ID alias (resume-after-approval path)
-        resolved_id = self._resolve_run_id(run_id)
+        resolved_id = self._tool_call_id_capture.resolve(run_id)
         
         tool_call = self.get_tool_call(resolved_id)
         if tool_call is None:
@@ -1067,7 +858,7 @@ class StatusBuilder:
         # recorded an alias when identity-based dedup fired; resolve it
         # here so we can find and update the correct ToolCall.
         # ─────────────────────────────────────────────────────────────────────
-        resolved_id = self._resolve_run_id(run_id)
+        resolved_id = self._tool_call_id_capture.resolve(run_id)
         
         tool_result_content = self._extract_tool_result_content(tool_result_raw)
 
@@ -1089,8 +880,8 @@ class StatusBuilder:
         
         # Calculate execution duration if we tracked the start time
         duration_ms = None
-        if run_id in self._tool_start_times:
-            start_time = self._tool_start_times.pop(run_id)
+        if run_id in self.state.tool_start_times:
+            start_time = self.state.tool_start_times.pop(run_id)
             duration_ms = int((now - start_time).total_seconds() * 1000)
         
         # ─────────────────────────────────────────────────────────────────────
@@ -1141,9 +932,9 @@ class StatusBuilder:
         # ─────────────────────────────────────────────────────────────────────
         run_id = event.get("run_id", "")
         ns_key = namespace or ""
-        if run_id and run_id != self._last_llm_run_id.get(ns_key):
-            self._last_ai_message.pop(ns_key, None)
-            self._last_llm_run_id[ns_key] = run_id
+        if run_id and run_id != self.state.last_llm_run_id.get(ns_key):
+            self.state.current_ai_message.pop(ns_key, None)
+            self.state.last_llm_run_id[ns_key] = run_id
         
         # ─────────────────────────────────────────────────────────────────────
         # Native Thinking Detection
@@ -1235,12 +1026,12 @@ class StatusBuilder:
                     )
             
             if thinking_text:
-                self._thinking_buffers[ns_key] = (
-                    self._thinking_buffers.get(ns_key, "") + thinking_text
+                self.state.thinking.buffers[ns_key] = (
+                    self.state.thinking.buffers.get(ns_key, "") + thinking_text
                 )
-                if ns_key not in self._thinking_tool_call_ids:
+                if ns_key not in self.state.thinking.tool_call_ids:
                     self._start_thinking_stream(
-                        ns_key, namespace, self._thinking_buffers[ns_key],
+                        ns_key, namespace, self.state.thinking.buffers[ns_key],
                         llm_run_id=run_id,
                     )
                 else:
@@ -1267,7 +1058,7 @@ class StatusBuilder:
         # This ensures the synthetic think ToolCall appears in the status
         # timeline before the AI message that follows it.
         ns_key = namespace or ""
-        if self._thinking_buffers.get(ns_key):
+        if self.state.thinking.buffers.get(ns_key):
             self._flush_thinking_buffer(ns_key, namespace)
         
         # ─────────────────────────────────────────────────────────────────────
@@ -1287,7 +1078,7 @@ class StatusBuilder:
         
         # Fast path: run_id already mapped to a message from an earlier token.
         if run_id:
-            ai_message = self._llm_run_id_to_message.get(run_id)
+            ai_message = self.state.messages_by_run.get(run_id)
             if ai_message is not None:
                 # Empty parent AI messages created by _ensure_parent_ai_message
                 # for thinking/tool_use blocks must NOT receive text content.
@@ -1297,7 +1088,7 @@ class StatusBuilder:
                 # registration so the "first token" path below creates a
                 # proper text AI message and re-registers the run_id.
                 if not ai_message.content and len(ai_message.tool_calls) > 0:
-                    del self._llm_run_id_to_message[run_id]
+                    del self.state.messages_by_run[run_id]
                 else:
                     ai_message.content += token
                     return
@@ -1327,21 +1118,21 @@ class StatusBuilder:
         managed_ai_message = messages_list[-1]
         
         if run_id:
-            self._llm_run_id_to_message[run_id] = managed_ai_message
+            self.state.messages_by_run[run_id] = managed_ai_message
         
         # Track as the most recent AI message for this namespace so that
         # subsequent tool calls (on_tool_start, early tool_use) are attached
         # to the correct parent AI message.
         ns_key = namespace or ""
-        self._last_ai_message[ns_key] = managed_ai_message
+        self.state.current_ai_message[ns_key] = managed_ai_message
         
         # Track start time for duration calculation
         new_message_index = len(messages_list) - 1
         if sub_agent:
-            self._sub_agent_message_start_times[(sub_agent.id, new_message_index)] = now
+            self.state.sub_agent_message_start_times[(sub_agent.id, new_message_index)] = now
             self.logger.debug(f"Started new AI message in sub_agent={sub_agent.id} at index {new_message_index} run_id={run_id}")
         else:
-            self._message_start_times[new_message_index] = now
+            self.state.message_start_times[new_message_index] = now
             self.logger.debug(f"Started new AI message at index {new_message_index} run_id={run_id}")
     
     def _handle_chat_model_end_event(self, event: dict[str, Any], namespace: str = "") -> None:
@@ -1365,7 +1156,7 @@ class StatusBuilder:
         # Flush any remaining thinking content that wasn't followed by text
         # (e.g. the model only produced thinking + tool_use, no text block).
         ns_key = namespace or ""
-        if self._thinking_buffers.get(ns_key):
+        if self.state.thinking.buffers.get(ns_key):
             self._flush_thinking_buffer(ns_key, namespace)
         
         # ─────────────────────────────────────────────────────────────────────
@@ -1378,7 +1169,7 @@ class StatusBuilder:
         ai_message_index = None
         
         # Primary path: resolve via run_id map (matches stream handler)
-        tracked_message = self._llm_run_id_to_message.pop(run_id, None) if run_id else None
+        tracked_message = self.state.messages_by_run.pop(run_id, None) if run_id else None
         if tracked_message is not None:
             for idx in range(len(messages_list) - 1, -1, -1):
                 if messages_list[idx] is tracked_message:
@@ -1406,18 +1197,18 @@ class StatusBuilder:
         if sub_agent:
             # Check sub-agent timing dict
             timing_key = (sub_agent.id, ai_message_index)
-            if timing_key in self._sub_agent_message_start_times:
-                start_time = self._sub_agent_message_start_times[timing_key]
+            if timing_key in self.state.sub_agent_message_start_times:
+                start_time = self.state.sub_agent_message_start_times[timing_key]
                 duration = datetime.utcnow() - start_time
                 generation_duration_ms = int(duration.total_seconds() * 1000)
-                del self._sub_agent_message_start_times[timing_key]
+                del self.state.sub_agent_message_start_times[timing_key]
         else:
             # Check main agent timing dict
-            if ai_message_index in self._message_start_times:
-                start_time = self._message_start_times[ai_message_index]
+            if ai_message_index in self.state.message_start_times:
+                start_time = self.state.message_start_times[ai_message_index]
                 duration = datetime.utcnow() - start_time
                 generation_duration_ms = int(duration.total_seconds() * 1000)
-                del self._message_start_times[ai_message_index]
+                del self.state.message_start_times[ai_message_index]
         
         # ─────────────────────────────────────────────────────────────────────────
         # Diagnostic: capture output_data shape for zero-usage debugging.
@@ -1576,17 +1367,14 @@ class StatusBuilder:
         )
     
     # Helper methods
-    def _resolve_run_id(self, run_id: str) -> str:
-        """Resolve a run_id through the alias map.
-        
-        On the resume-after-approval path, LangGraph generates a new run_id
-        for the resumed tool, but the StatusBuilder already holds the original
-        ToolCall with a different id.  ``_run_id_aliases`` bridges the gap.
-        
-        Returns the original tool call id if an alias exists, otherwise
-        returns the input run_id unchanged.
+    def resolve_run_id(self, run_id: str) -> str:
+        """Resolve a run_id to its canonical tool_call_id.
+
+        Delegates to :class:`ToolCallIdCapture` which checks resume-path
+        aliases first, then the callback-captured mapping, and falls back
+        to *run_id* unchanged.
         """
-        return self._run_id_aliases.get(run_id, run_id)
+        return self._tool_call_id_capture.resolve(run_id)
     
     def _unwrap_tool_args(self, args: dict[str, Any]) -> dict[str, Any]:
         """Unwrap LangGraph arg wrappers."""
@@ -1597,26 +1385,15 @@ class StatusBuilder:
         return args
     
     def rebuild_index_from_persisted_status(self) -> None:
-        """Rebuild ``_tool_call_index`` from persisted messages.
+        """Reconstruct proto-derivable indexes from the persisted status.
 
         On the resume-after-approval path, the StatusBuilder is initialized
         with the DB-persisted status that already contains tool calls embedded
-        in messages.  This method walks those messages and re-populates the
-        in-memory index so that ``get_tool_call`` and ``iter_all_tool_calls``
-        resolve correctly for the subsequent stream cycle.
+        in messages.  This method delegates to ``ExecutionState.rebuild_from_proto``
+        to re-populate tool call indexes, completed sub-agents, and artifacts
+        so the subsequent stream cycle resolves correctly.
         """
-        def _index_tool_calls(messages: Any) -> None:
-            for message in messages:
-                if message.type != MessageType.MESSAGE_AI:
-                    continue
-                for i, tc in enumerate(message.tool_calls):
-                    if tc.id:
-                        self._tool_call_index[tc.id] = message.tool_calls[i]
-
-        _index_tool_calls(self.current_status.messages)
-
-        for sub_agent in self.current_status.sub_agent_executions:
-            _index_tool_calls(sub_agent.messages)
+        self.state = ExecutionState.rebuild_from_proto(self.state.proto)
 
     def prepare_task_tool_resume_queue(self) -> int:
         """Pre-populate the early tool call queue for task tools on resume.
@@ -1659,12 +1436,12 @@ class StatusBuilder:
                 if tc.id not in sa_ids:
                     continue
                 already_queued = any(
-                    tid == tc.id for tid, _ in self._early_tool_call_queue
+                    tid == tc.id for tid, _ in self.state.early_tool_call_queue
                 )
                 if already_queued:
                     continue
 
-                self._early_tool_call_queue.append((tc.id, None))
+                self.state.early_tool_call_queue.append((tc.id, None))
                 queued += 1
                 self.logger.info(
                     "[RESUME_PREP] execution=%s pre-queued task TC %s "
@@ -1848,7 +1625,7 @@ class StatusBuilder:
         the early ToolCall (populates args, registers the real run-ID alias)
         instead of creating a duplicate.
         """
-        if self._thinking_buffers.get(ns_key):
+        if self.state.thinking.buffers.get(ns_key):
             self._flush_thinking_buffer(ns_key, namespace)
 
         temp_id = tool_use_id or f"early-{uuid4()}"
@@ -1867,7 +1644,7 @@ class StatusBuilder:
         if self._find_tool_call_by_id(temp_id) is not None:
             _, sub_agent = self._get_execution_context(namespace)
             sa_id = sub_agent.id if sub_agent else None
-            self._early_tool_call_queue.append((temp_id, sa_id))
+            self.state.early_tool_call_queue.append((temp_id, sa_id))
             self.logger.info(
                 "[RESUME_DEDUP] execution=%s skipping early tool call "
                 "creation for %s (id=%s already exists from prior cycle, "
@@ -1899,15 +1676,15 @@ class StatusBuilder:
             ns_key, namespace, llm_run_id=llm_run_id,
         )
         parent_ai.tool_calls.append(tool_call)
-        self._tool_call_index[temp_id] = parent_ai.tool_calls[-1]
+        self.state.tool_calls[temp_id] = parent_ai.tool_calls[-1]
 
         _, sub_agent = self._get_execution_context(namespace)
         sa_id = sub_agent.id if sub_agent else None
-        self._early_tool_call_queue.append((temp_id, sa_id))
-        self._tool_start_times[temp_id] = now
+        self.state.early_tool_call_queue.append((temp_id, sa_id))
+        self.state.tool_start_times[temp_id] = now
 
-        self._tool_input_active_tc[ns_key] = temp_id
-        self._tool_input_buffers[temp_id] = ""
+        self.state.tool_input.active_tc[ns_key] = temp_id
+        self.state.tool_input.buffers[temp_id] = ""
 
         self.force_next_update = True
 
@@ -1940,14 +1717,14 @@ class StatusBuilder:
         _, sub_agent = self._get_execution_context(namespace)
         sa_id = sub_agent.id if sub_agent else None
 
-        for idx, (temp_id, queued_sa_id) in enumerate(self._early_tool_call_queue):
+        for idx, (temp_id, queued_sa_id) in enumerate(self.state.early_tool_call_queue):
             existing = self.get_tool_call(temp_id)
             if existing is None or existing.name != tool_name:
                 continue
             if queued_sa_id != sa_id:
                 continue
 
-            self._early_tool_call_queue.pop(idx)
+            self.state.early_tool_call_queue.pop(idx)
 
             # Resume path: TC from a prior cycle was re-queued by
             # _create_early_tool_call's resume dedup.  The TC is fully
@@ -1956,7 +1733,7 @@ class StatusBuilder:
             # downstream handlers route correctly.
             is_resume_requeue = not existing.is_streaming
             if is_resume_requeue:
-                self._run_id_aliases[run_id] = temp_id
+                self._tool_call_id_capture.register_alias(run_id, temp_id)
                 self.logger.info(
                     "[RECONCILE] execution=%s resume-path reconciliation: "
                     "tool=%s run_id=%s -> existing_tc=%s "
@@ -1994,8 +1771,8 @@ class StatusBuilder:
                 )
                 existing.approval_requested_at = _utc_timestamp(datetime.utcnow())
 
-            self._run_id_aliases[run_id] = temp_id
-            self._tool_start_times[run_id] = self._tool_start_times.pop(
+            self._tool_call_id_capture.register_alias(run_id, temp_id)
+            self.state.tool_start_times[run_id] = self.state.tool_start_times.pop(
                 temp_id, datetime.utcnow()
             )
 
@@ -2047,10 +1824,10 @@ class StatusBuilder:
             ns_key, namespace, llm_run_id=llm_run_id,
         )
         parent_ai.tool_calls.append(tool_call)
-        self._tool_call_index[tc_id] = parent_ai.tool_calls[-1]
+        self.state.tool_calls[tc_id] = parent_ai.tool_calls[-1]
 
-        self._thinking_tool_call_ids[ns_key] = tc_id
-        self._thinking_started_at[ns_key] = now
+        self.state.thinking.tool_call_ids[ns_key] = tc_id
+        self.state.thinking.started_at[ns_key] = now
 
         self.force_next_update = True
 
@@ -2063,11 +1840,11 @@ class StatusBuilder:
 
     def _update_thinking_stream(self, ns_key: str) -> None:
         """Update the streaming think ToolCall with the latest accumulated content."""
-        tc_id = self._thinking_tool_call_ids.get(ns_key)
+        tc_id = self.state.thinking.tool_call_ids.get(ns_key)
         if not tc_id:
             return
 
-        buf = self._thinking_buffers.get(ns_key, "")
+        buf = self.state.thinking.buffers.get(ns_key, "")
 
         tool_call = self.get_tool_call(tc_id)
         if tool_call is not None:
@@ -2090,22 +1867,22 @@ class StatusBuilder:
         within ~500 ms and the CLI detects it via
         ``tc.IsStreaming && tc.Result != prevResults``.
         """
-        temp_id = self._tool_input_active_tc.get(ns_key)
+        temp_id = self.state.tool_input.active_tc.get(ns_key)
         if not temp_id:
             return
 
-        buf = self._tool_input_buffers.get(temp_id)
+        buf = self.state.tool_input.buffers.get(temp_id)
         if buf is None:
             return
 
-        self._tool_input_buffers[temp_id] = buf + partial_json
+        self.state.tool_input.buffers[temp_id] = buf + partial_json
 
         tool_call = self.get_tool_call(temp_id)
         if tool_call is None:
             return
 
         content = self._extract_content_from_partial_json(
-            tool_call.name, self._tool_input_buffers[temp_id],
+            tool_call.name, self.state.tool_input.buffers[temp_id],
         )
         if content:
             tool_call.result = content
@@ -2138,10 +1915,10 @@ class StatusBuilder:
 
     def _flush_tool_input_buffer(self, temp_id: str) -> None:
         """Clean up input-streaming state for a reconciled early ToolCall."""
-        self._tool_input_buffers.pop(temp_id, None)
-        for ns_key, tid in list(self._tool_input_active_tc.items()):
+        self.state.tool_input.buffers.pop(temp_id, None)
+        for ns_key, tid in list(self.state.tool_input.active_tc.items()):
             if tid == temp_id:
-                del self._tool_input_active_tc[ns_key]
+                del self.state.tool_input.active_tc[ns_key]
                 break
 
     def _flush_thinking_buffer(self, ns_key: str, namespace: str) -> None:
@@ -2156,9 +1933,9 @@ class StatusBuilder:
         streaming ToolCall exists (defensive — should not happen in normal flow
         since ``_start_thinking_stream`` is called on the first thinking block).
         """
-        thinking_text = self._thinking_buffers.pop(ns_key, "")
-        started_at = self._thinking_started_at.pop(ns_key, None)
-        tc_id = self._thinking_tool_call_ids.pop(ns_key, None)
+        thinking_text = self.state.thinking.buffers.pop(ns_key, "")
+        started_at = self.state.thinking.started_at.pop(ns_key, None)
+        tc_id = self.state.thinking.tool_call_ids.pop(ns_key, None)
         if not thinking_text:
             return
 
@@ -2207,7 +1984,7 @@ class StatusBuilder:
 
         parent_ai = self._ensure_parent_ai_message(ns_key, namespace)
         parent_ai.tool_calls.append(fallback_tc)
-        self._tool_call_index[fallback_tc.id] = parent_ai.tool_calls[-1]
+        self.state.tool_calls[fallback_tc.id] = parent_ai.tool_calls[-1]
 
         self.logger.info(
             "[THINK] execution=%s synthetic_think_tool_call "
@@ -2357,14 +2134,14 @@ class StatusBuilder:
         Restores the execution phase to what it was before entering
         WAITING_FOR_APPROVAL (typically IN_PROGRESS).
         """
-        self._pending_tool_approvals.clear()
+        self.state.approval.pending.clear()
 
-        if self._approval_wait_started_at is not None:
-            self._approval_wait_started_at = None
+        if self.state.approval.wait_started_at is not None:
+            self.state.approval.wait_started_at = None
 
-        if self._saved_phase_before_approval is not None:
-            self.current_status.phase = self._saved_phase_before_approval
-            self._saved_phase_before_approval = None
+        if self.state.approval.saved_phase is not None:
+            self.current_status.phase = self.state.approval.saved_phase
+            self.state.approval.saved_phase = None
         else:
             self.current_status.phase = ExecutionPhase.EXECUTION_IN_PROGRESS
 
@@ -2421,7 +2198,7 @@ class StatusBuilder:
             ToolCallStatus.TOOL_CALL_FAILED,
             ToolCallStatus.TOOL_CALL_SKIPPED,
         })
-        tc_id = self._run_id_aliases.get(run_id, run_id)
+        tc_id = self._tool_call_id_capture.resolve(run_id)
         existing_tc = self.get_tool_call(tc_id)
         if existing_tc is not None and existing_tc.status in post_approval_statuses:
             self.logger.warning(
@@ -2433,19 +2210,19 @@ class StatusBuilder:
             )
             return
 
-        if self._saved_phase_before_approval is None:
-            self._saved_phase_before_approval = self.current_status.phase
-            self._approval_wait_started_at = datetime.utcnow()
+        if self.state.approval.saved_phase is None:
+            self.state.approval.saved_phase = self.current_status.phase
+            self.state.approval.wait_started_at = datetime.utcnow()
         self.current_status.phase = ExecutionPhase.EXECUTION_WAITING_FOR_APPROVAL
 
-        self._pending_tool_approvals.append(run_id)
+        self.state.approval.pending.append(run_id)
         self.force_next_update = True
 
         self.logger.info(
             f"[APPROVAL] execution={self.execution_id} "
             f"tool={tool_name} run_id={run_id} tc_id={tc_id} "
             f"status=WAITING_APPROVAL "
-            f"pending_count={len(self._pending_tool_approvals)}"
+            f"pending_count={len(self.state.approval.pending)}"
         )
     
     def _find_tool_call_by_id(self, run_id: str) -> ToolCall | None:
@@ -2453,7 +2230,7 @@ class StatusBuilder:
 
         Alias for :meth:`get_tool_call` retained for internal callers.
         """
-        return self._tool_call_index.get(run_id)
+        return self.state.tool_calls.get(run_id)
     
     def _humanize_args_for_display(self, tool_args: dict[str, Any]) -> dict[str, Any]:
         """Return a shallow copy of *tool_args* with string values humanized.
@@ -2562,29 +2339,29 @@ class StatusBuilder:
             return self.current_status, None
         
         # Try to find matching sub-agent by namespace
-        sub_agent_id = self._namespace_to_sub_agent_id.get(namespace)
+        sub_agent_id = self.state.namespace_to_sub_agent.get(namespace)
         if sub_agent_id:
-            if sub_agent_id in self._active_sub_agents:
-                return self._active_sub_agents[sub_agent_id], self._active_sub_agents[sub_agent_id]
+            if sub_agent_id in self.state.active_sub_agents:
+                return self.state.active_sub_agents[sub_agent_id], self.state.active_sub_agents[sub_agent_id]
 
             # Late-arriving event: the sub-agent already completed but
             # LangGraph emitted one more event (e.g. on_chat_model_end
             # finalizing a message that was streamed before completion).
-            if sub_agent_id in self._completed_sub_agents:
+            if sub_agent_id in self.state.completed_sub_agents:
                 self.logger.debug(
                     f"[SUBAGENT] execution={self.execution_id} "
                     f"late event routed to completed sub-agent={sub_agent_id} "
                     f"namespace={namespace}"
                 )
-                return self._completed_sub_agents[sub_agent_id], self._completed_sub_agents[sub_agent_id]
+                return self.state.completed_sub_agents[sub_agent_id], self.state.completed_sub_agents[sub_agent_id]
 
         # Namespace not yet registered — fall back to main agent.
         # Single-segment namespaces (no "|") are normal main-agent graph
         # activity (e.g., the tools node).  Only warn for multi-segment
         # namespaces, which indicate sub-agent events that should have
         # been routed.  Deduplicate: warn once per unique namespace.
-        if "|" in namespace and namespace not in self._warned_namespaces:
-            self._warned_namespaces.add(namespace)
+        if "|" in namespace and namespace not in self.state.warned_namespaces:
+            self.state.warned_namespaces.add(namespace)
             self.logger.warning(
                 f"[NAMESPACE] execution={self.execution_id} "
                 f"namespace={namespace} has no registered sub-agent — "
@@ -2612,7 +2389,7 @@ class StatusBuilder:
             event: The full v2 astream_events event dict (carries
                 ``parent_ids`` at the top level).
         """
-        if not namespace or namespace in self._namespace_to_sub_agent_id:
+        if not namespace or namespace in self.state.namespace_to_sub_agent:
             return
 
         if "|" not in namespace:
@@ -2620,15 +2397,15 @@ class StatusBuilder:
 
         parent_ids: list[str] = event.get("parent_ids", [])
         for pid in parent_ids:
-            if pid in self._active_sub_agents:
-                self._namespace_to_sub_agent_id[namespace] = pid
+            if pid in self.state.active_sub_agents:
+                self.state.namespace_to_sub_agent[namespace] = pid
                 self.logger.debug(
                     "[SUBAGENT] namespace=%s -> sub_agent=%s (via parent_ids)",
                     namespace, pid,
                 )
                 return
-            if pid in self._completed_sub_agents:
-                self._namespace_to_sub_agent_id[namespace] = pid
+            if pid in self.state.completed_sub_agents:
+                self.state.namespace_to_sub_agent[namespace] = pid
                 self.logger.debug(
                     "[SUBAGENT] namespace=%s -> completed sub_agent=%s "
                     "(via parent_ids)",
@@ -2640,8 +2417,8 @@ class StatusBuilder:
             "[SUBAGENT] execution=%s namespace=%s not resolved: "
             "parent_ids=%s matched neither active=%s nor completed=%s",
             self.execution_id, namespace, parent_ids,
-            list(self._active_sub_agents.keys()),
-            list(self._completed_sub_agents.keys()),
+            list(self.state.active_sub_agents.keys()),
+            list(self.state.completed_sub_agents.keys()),
         )
     
     async def _handle_sub_agent_start(
@@ -2679,8 +2456,8 @@ class StatusBuilder:
         # SubAgentExecution entries.
         for existing_sa in self.current_status.sub_agent_executions:
             if existing_sa.id == sa_id:
-                self._active_sub_agents[run_id] = existing_sa
-                self._run_id_to_tool_call_id[run_id] = sa_id
+                self.state.active_sub_agents[run_id] = existing_sa
+                self.state.run_id_to_tool_call_id[run_id] = sa_id
                 self.logger.info(
                     "[SUBAGENT] execution=%s resume reactivation: "
                     "sa_id=%s run_id=%s (skipping duplicate creation)",
@@ -2695,14 +2472,14 @@ class StatusBuilder:
             or tool_args.get("task", "")
             or tool_args.get("prompt", "")
         )
-        existing = list(self._subject_counts.keys())
+        existing = list(self.state.subject_counts.keys())
         subject = await _generate_sub_agent_subject(
             sub_agent_input, sub_agent_name, existing_subjects=existing,
         )
 
         if subject:
-            count = self._subject_counts.get(subject, 0) + 1
-            self._subject_counts[subject] = count
+            count = self.state.subject_counts.get(subject, 0) + 1
+            self.state.subject_counts[subject] = count
             if count > 1:
                 suffix = f" ({count})"
                 max_base = _MAX_SUBJECT_LENGTH - len(suffix)
@@ -2725,8 +2502,8 @@ class StatusBuilder:
         # returned by the repeated field we ensure all later mutations
         # (messages, tool_calls, usage) write to the actual status proto.
         self.current_status.sub_agent_executions.append(sub_agent)
-        self._active_sub_agents[run_id] = self.current_status.sub_agent_executions[-1]
-        self._run_id_to_tool_call_id[run_id] = sa_id
+        self.state.active_sub_agents[run_id] = self.current_status.sub_agent_executions[-1]
+        self.state.run_id_to_tool_call_id[run_id] = sa_id
 
         self.force_next_update = True
 
@@ -2765,10 +2542,10 @@ class StatusBuilder:
                 )
 
         # Prefer the direct proto reference from _active_sub_agents.
-        sub_agent_ref = self._active_sub_agents.get(run_id)
+        sub_agent_ref = self.state.active_sub_agents.get(run_id)
         if sub_agent_ref is None:
             # Fallback: scan by tool_call_id (SubAgentExecution.id)
-            sa_id = self._run_id_to_tool_call_id.get(run_id, run_id)
+            sa_id = self.state.run_id_to_tool_call_id.get(run_id, run_id)
             for sa in self.current_status.sub_agent_executions:
                 if sa.id == sa_id:
                     sub_agent_ref = sa
@@ -2801,7 +2578,7 @@ class StatusBuilder:
 
         # Mark the parent ToolCall as COMPLETED so the frontend reflects
         # the sub-agent's finished state.
-        tc_id = self._run_id_to_tool_call_id.get(run_id)
+        tc_id = self.state.run_id_to_tool_call_id.get(run_id)
         if tc_id:
             parent_tc = self.get_tool_call(tc_id)
             if parent_tc is not None:
@@ -2812,8 +2589,8 @@ class StatusBuilder:
         # Move from active to completed (preserving reference for late events).
         # Namespace mappings are NOT deleted — late-arriving events from
         # LangGraph can still route to the correct SubAgentExecution.
-        if run_id in self._active_sub_agents:
-            self._completed_sub_agents[run_id] = self._active_sub_agents.pop(run_id)
+        if run_id in self.state.active_sub_agents:
+            self.state.completed_sub_agents[run_id] = self.state.active_sub_agents.pop(run_id)
 
         # Defer the gRPC flush instead of forcing it immediately.  Late
         # LangGraph events (on_chat_model_end, on_tool_end for nested tools)
@@ -2821,7 +2598,7 @@ class StatusBuilder:
         # lets them be batched into the same update that carries the
         # COMPLETED status, preventing the UI from showing "Completed"
         # while messages still stream in.
-        self._pending_completion_flush[run_id] = time.monotonic()
+        self.state.pending_completion_flush[run_id] = time.monotonic()
 
     def _finalize_orphaned_tool_calls(
         self, sub_agent: SubAgentExecution, now: datetime,
@@ -2859,7 +2636,7 @@ class StatusBuilder:
     @property
     def has_orphaned_sub_agents(self) -> bool:
         """True when sub-agents remain active after the event stream ended."""
-        return bool(self._active_sub_agents)
+        return bool(self.state.active_sub_agents)
 
     def get_orphaned_sub_agents_diagnostic(self) -> dict:
         """Return structured info about orphaned (still-active) sub-agents.
@@ -2875,7 +2652,7 @@ class StatusBuilder:
         zero_message: list[dict] = []
         mid_execution: list[dict] = []
 
-        for run_id, sub_agent in self._active_sub_agents.items():
+        for run_id, sub_agent in self.state.active_sub_agents.items():
             tc_count = sum(len(m.tool_calls) for m in sub_agent.messages)
             has_activity = len(sub_agent.messages) > 0
             entry = {
@@ -2890,7 +2667,7 @@ class StatusBuilder:
                 zero_message.append(entry)
 
         return {
-            "total": len(self._active_sub_agents),
+            "total": len(self.state.active_sub_agents),
             "zero_message_count": len(zero_message),
             "mid_execution_count": len(mid_execution),
             "zero_message": zero_message,
@@ -2909,11 +2686,11 @@ class StatusBuilder:
         Returns:
             List of run_ids that were flushed.
         """
-        if not self._pending_completion_flush:
+        if not self.state.pending_completion_flush:
             return []
 
-        flushed = list(self._pending_completion_flush.keys())
-        self._pending_completion_flush.clear()
+        flushed = list(self.state.pending_completion_flush.keys())
+        self.state.pending_completion_flush.clear()
         if flushed:
             self.force_next_update = True
         return flushed
@@ -2942,7 +2719,7 @@ class StatusBuilder:
                 f"finalization: {flushed}"
             )
 
-        if not self._active_sub_agents:
+        if not self.state.active_sub_agents:
             return
 
         now = _utc_timestamp()
@@ -2955,7 +2732,7 @@ class StatusBuilder:
             SubAgentStatus.SUB_AGENT_CANCELLED,
         }
 
-        for run_id, sub_agent in list(self._active_sub_agents.items()):
+        for run_id, sub_agent in list(self.state.active_sub_agents.items()):
             if sub_agent.status in terminal_statuses or sub_agent.output:
                 preserved_ids.append(run_id)
             else:
@@ -2964,9 +2741,9 @@ class StatusBuilder:
                 sub_agent.completed_at = now
                 finalized_ids.append(run_id)
 
-            self._completed_sub_agents[run_id] = sub_agent
+            self.state.completed_sub_agents[run_id] = sub_agent
 
-        self._active_sub_agents.clear()
+        self.state.active_sub_agents.clear()
 
         self.logger.info(
             f"[SUBAGENT] execution={self.execution_id} "
@@ -3005,7 +2782,7 @@ class StatusBuilder:
                 f"differentiated finalization: {flushed}"
             )
 
-        if not self._active_sub_agents:
+        if not self.state.active_sub_agents:
             return 0
 
         now = _utc_timestamp()
@@ -3019,7 +2796,7 @@ class StatusBuilder:
             SubAgentStatus.SUB_AGENT_CANCELLED,
         }
 
-        for run_id, sub_agent in list(self._active_sub_agents.items()):
+        for run_id, sub_agent in list(self.state.active_sub_agents.items()):
             if sub_agent.status in terminal_statuses or sub_agent.output:
                 preserved_ids.append(run_id)
             else:
@@ -3042,10 +2819,10 @@ class StatusBuilder:
 
                 sub_agent.completed_at = now
 
-            self._completed_sub_agents[run_id] = sub_agent
+            self.state.completed_sub_agents[run_id] = sub_agent
 
-        total = len(self._active_sub_agents)
-        self._active_sub_agents.clear()
+        total = len(self.state.active_sub_agents)
+        self.state.active_sub_agents.clear()
 
         finalized = len(cancelled_ids) + len(failed_ids)
         self.logger.info(
@@ -3099,21 +2876,21 @@ class StatusBuilder:
         """
         self._flush_pending_completions()
 
-        if not self._active_sub_agents:
+        if not self.state.active_sub_agents:
             return 0
 
         now = _utc_timestamp()
-        total = len(self._active_sub_agents)
+        total = len(self.state.active_sub_agents)
 
         if missed_event_count > 0 and confirmed_orphan_count == 0:
             completed_ids: list[str] = []
-            for run_id, sub_agent in list(self._active_sub_agents.items()):
+            for run_id, sub_agent in list(self.state.active_sub_agents.items()):
                 sub_agent.status = SubAgentStatus.SUB_AGENT_COMPLETED
                 sub_agent.completed_at = now
-                self._completed_sub_agents[run_id] = sub_agent
+                self.state.completed_sub_agents[run_id] = sub_agent
                 completed_ids.append(run_id)
 
-            self._active_sub_agents.clear()
+            self.state.active_sub_agents.clear()
             self.logger.info(
                 f"[SUBAGENT] execution={self.execution_id} "
                 f"checkpoint confirms {total} sub-agent(s) completed "
@@ -3124,7 +2901,7 @@ class StatusBuilder:
             cancelled_ids: list[str] = []
             failed_ids: list[str] = []
 
-            for run_id, sub_agent in list(self._active_sub_agents.items()):
+            for run_id, sub_agent in list(self.state.active_sub_agents.items()):
                 tc_count = sum(len(m.tool_calls) for m in sub_agent.messages)
                 has_activity = (
                     len(sub_agent.messages) > 0
@@ -3147,9 +2924,9 @@ class StatusBuilder:
                     cancelled_ids.append(run_id)
 
                 sub_agent.completed_at = now
-                self._completed_sub_agents[run_id] = sub_agent
+                self.state.completed_sub_agents[run_id] = sub_agent
 
-            self._active_sub_agents.clear()
+            self.state.active_sub_agents.clear()
 
             qualifier = (
                 "confirmed orphaned"
@@ -3281,7 +3058,7 @@ class StatusBuilder:
             target_tokens: Target token count after summarization.
             enabled: Whether summarization is enabled for this execution.
         """
-        self._context_info = ContextInfo(
+        self.state.context_info = ContextInfo(
             context_window_limit=context_window_limit,
             summarization_trigger_threshold=trigger_threshold,
             summarization_target_tokens=target_tokens,
@@ -3310,7 +3087,7 @@ class StatusBuilder:
         Args:
             event: Immutable data object containing summarization metrics.
         """
-        if self._context_info is None:
+        if self.state.context_info is None:
             self.logger.warning(
                 f"[CONTEXT] execution={self.execution_id} "
                 "on_summarization_complete called but context_info not initialized"
@@ -3337,9 +3114,9 @@ class StatusBuilder:
             summarization_output_tokens=event.summarization_output_tokens,
             summarization_cost_usd=event.summarization_cost_usd,
         )
-        self._context_info.summarization_events.append(proto_event)
+        self.state.context_info.summarization_events.append(proto_event)
         
-        self._context_info.current_token_count = event.tokens_after
+        self.state.context_info.current_token_count = event.tokens_after
         self._update_utilization()
         self._sync_context_info()
         self.force_next_update = True
@@ -3364,32 +3141,32 @@ class StatusBuilder:
         Args:
             token_count: Current token count in the context window.
         """
-        if self._context_info is None:
+        if self.state.context_info is None:
             # Not an error - context tracking may be disabled
             return
         
-        self._context_info.current_token_count = token_count
+        self.state.context_info.current_token_count = token_count
         self._update_utilization()
         
         self.logger.debug(
             f"[CONTEXT] execution={self.execution_id} "
             f"token_count={token_count} "
-            f"utilization={self._context_info.utilization_percent:.1f}%"
+            f"utilization={self.state.context_info.utilization_percent:.1f}%"
         )
     
     def _update_utilization(self) -> None:
         """Recalculate utilization percentage based on current token count."""
-        if self._context_info is None:
+        if self.state.context_info is None:
             return
         
-        if self._context_info.context_window_limit > 0:
-            self._context_info.utilization_percent = (
-                self._context_info.current_token_count
-                / self._context_info.context_window_limit
+        if self.state.context_info.context_window_limit > 0:
+            self.state.context_info.utilization_percent = (
+                self.state.context_info.current_token_count
+                / self.state.context_info.context_window_limit
                 * 100
             )
         else:
-            self._context_info.utilization_percent = 0.0
+            self.state.context_info.utilization_percent = 0.0
     
     def _sync_context_info(self) -> None:
         """Copy the working ``_context_info`` to ``current_status``.
@@ -3397,8 +3174,8 @@ class StatusBuilder:
         Safe to call at any time — ``_context_info.summarization_events``
         is the single source of truth, so repeated calls never duplicate.
         """
-        if self._context_info is not None:
-            self.current_status.context_info.CopyFrom(self._context_info)
+        if self.state.context_info is not None:
+            self.current_status.context_info.CopyFrom(self.state.context_info)
 
     def finalize_context_info(self) -> None:
         """
@@ -3407,17 +3184,17 @@ class StatusBuilder:
         Called at the end of execution to copy accumulated context info,
         summarization events, and execution outputs to the status proto.
         """
-        if self._context_info is not None:
+        if self.state.context_info is not None:
             self._sync_context_info()
             
             summarization_count = len(
-                self._context_info.summarization_events,
+                self.state.context_info.summarization_events,
             )
             self.logger.info(
                 f"[CONTEXT] execution={self.execution_id} "
                 f"context_info finalized: "
-                f"final_tokens={self._context_info.current_token_count}, "
-                f"utilization={self._context_info.utilization_percent:.1f}%, "
+                f"final_tokens={self.state.context_info.current_token_count}, "
+                f"utilization={self.state.context_info.utilization_percent:.1f}%, "
                 f"summarizations={summarization_count}"
             )
         
@@ -3427,17 +3204,17 @@ class StatusBuilder:
         # inline publish but before this finalizer ran).
         already_synced = {a.sandbox_path for a in self.current_status.artifacts}
         newly_synced = 0
-        for artifact in self._artifacts:
+        for artifact in self.state.artifacts:
             if artifact.sandbox_path not in already_synced:
                 self.current_status.artifacts.append(artifact)
                 newly_synced += 1
 
-        if self._artifacts:
+        if self.state.artifacts:
             self.logger.info(
                 f"[ARTIFACTS] execution={self.execution_id} "
-                f"finalized {len(self._artifacts)} artifact(s) "
+                f"finalized {len(self.state.artifacts)} artifact(s) "
                 f"({newly_synced} newly synced, "
-                f"{len(self._artifacts) - newly_synced} already live)"
+                f"{len(self.state.artifacts) - newly_synced} already live)"
             )
     
     # ─────────────────────────────────────────────────────────────────────────────
@@ -3457,13 +3234,13 @@ class StatusBuilder:
         entry is replaced in both the internal tracking list and the live
         status proto.
         """
-        existing_paths = {a.sandbox_path for a in self._artifacts}
+        existing_paths = {a.sandbox_path for a in self.state.artifacts}
         if artifact.sandbox_path in existing_paths:
-            self._artifacts = [
-                a for a in self._artifacts
+            self.state.artifacts = [
+                a for a in self.state.artifacts
                 if a.sandbox_path != artifact.sandbox_path
             ]
-        self._artifacts.append(artifact)
+        self.state.artifacts.append(artifact)
 
         self._sync_artifact_to_status(artifact)
         self.force_next_update = True

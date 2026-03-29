@@ -74,9 +74,10 @@ When starting a new session:
 **T03 Completed**: 2026-03-29 (namespace routing via parent_ids confirmed — Approach B)
 **T05 Completed**: 2026-03-29 (namespace heuristics replaced with parent_ids-based deterministic routing)
 **T06 Completed**: 2026-03-29 (end-to-end pause/resume fix across Go, Java, Python)
-**Current Task**: T07 (ExecutionState reducer refactor)
-**Next Code Task**: T07 (ExecutionState reducer refactor)
-**Status**: Active — T02+T03+T04+T05+T06 complete, T07 unblocked
+**T07 Completed**: 2026-03-29 (ExecutionState reducer refactor — explicit typed state model)
+**Current Task**: T08 (handler extraction — shrink StatusBuilder below 500 lines)
+**Next Code Task**: T08 (handler extraction)
+**Status**: Active — T02+T03+T04+T05+T06+T07 complete, T08 unblocked
 
 ### T02 Key Finding
 v2 events do NOT carry `tool_call_id`. Solution: a ~10-line `ToolCallIdCapture`
@@ -176,43 +177,46 @@ Files changed: 13 (6 modified stigmer + 2 new stigmer + 3 modified stigmer-cloud
 - `ToolCallIdCapture` placed in its own module per "StatusBuilder Is NOT a Dumping Ground"
 - Used `TYPE_CHECKING` guard for the import, string annotation for the constructor param
 
+## Session Progress (2026-03-29, session 5)
+
+### What was accomplished
+- **Completed T07: ExecutionState Reducer Refactor** — the largest structural refactor in the project
+- All 6 plan steps executed: alias fold, API leakage fix, ExecutionState dataclass, mechanical migration (164+178 renames), rebuild_from_proto, test updates
+- New file: `execution_state.py` — 221-line typed dataclass with 21 top-level fields and 3 sub-groups
+- StatusBuilder `__init__` shrunk from ~225 lines to ~15 lines
+- Unified run_id resolution into `ToolCallIdCapture` (eliminated `_run_id_aliases`)
+- Fixed 3 private API leakage sites (streaming.py, hitl.py, post_stream.py)
+- Added `rebuild_from_proto()` classmethod for proto-based index reconstruction
+- 1,382 tests pass (8 new, 0 regressions)
+
+### Key decisions
+- Sub-grouped dataclass (ThinkingStreamState, ToolInputStreamState, ApprovalTrackingState) — shared lifecycle fields grouped for conceptual clarity and T08 handler extraction readiness
+- `force_next_update` stays on StatusBuilder — gRPC scheduling signal, not execution state
+- Config/collaborators stay on StatusBuilder — only mutable execution state lives in `ExecutionState`
+
 ## Session Progress (2026-03-29, session 4)
 
 ### What was accomplished
 - Completed T06: End-to-end pause/resume fix across Go, Java, and Python
-- **Go workflow**: Refactored `executeGraphtonFlow` with outer pause/resume loop using `workflow.Go()` + `workflow.WithCancel()`, extracted `executeGraphtonWithHitl()` for clarity
-- **Go constants**: Added `SignalPause`/`SignalResume` to `workflow_types.go` and `invoke_workflow.go`, updated `lifecycle_steps.go` to use them
-- **Java constants**: Added `SIGNAL_PAUSE`/`SIGNAL_RESUME` to `AgentExecutionTemporalWorkflowTypes`, explicit `@SignalMethod(name=...)` on workflow interface
-- **Java RPC handlers**: Created `AgentExecutionPauseHandler` and `AgentExecutionResumeHandler` with full pipeline (validate, signal, update phase, persist, publish)
-- **Python persistence**: Removed unreliable `create_task` from `_handle_pause`, added `retry_executor` persistence to terminal_status early-return path in `execute_graphton.py`
-- **Tests**: 5 Go workflow tests, 2 Java signal tests, 5 Python pause flow tests — all passing
-- **Cross-platform verification**: Confirmed that Go receives `CancelledError` on workflow context cancellation regardless of whether Python activity returns normally, ensuring the workflow logic is robust
-
-### Key decisions
-- Modeled Go workflow after proven Java `CancellationScope` + `Async.procedure` pattern
-- `MaxPauseCycles = 50` safety limit to prevent infinite pause/resume loops
-- Defense-in-depth: workflow persists PAUSED status even though Python activity also persists
-- Terminal status persistence (pause, stall, recursion limit) unified through `retry_executor` in `execute_graphton.py`
-- Java handlers follow exact same pipeline pattern as existing handlers (LoadExisting → Authorize → Validate → Signal → UpdatePhase → Persist → Publish)
-
-### Key finding
-The original "Python-side persistence bug" was actually a much deeper architectural gap: the Go Temporal workflow was not consuming pause signals at all, so activity cancellation never happened. The Java workflow had the right structure but lacked RPC handlers to send the signals. The fix required coordinated changes across all three languages.
+- Go workflow refactored with outer pause/resume loop, Java got Pause/Resume RPC handlers
+- Python persistence unified through `retry_executor` in terminal_status path
 
 ## Next Steps (when you return)
-1. T07 — ExecutionState reducer refactor (fold `_run_id_aliases` into capture or eliminate)
-2. T08+ — Continue reducer pattern simplification per plan
+1. T08 — Extract event handlers into focused collaborator modules (shrink StatusBuilder below 500 lines)
+2. The sub-grouped `ExecutionState` serves as natural parameter boundaries for handler extraction
 3. Note: InterruptProxyRunnable elimination (separate project) further simplifies the codebase
 
 ## Context for Resume
-- T06 changes span two repos: `stigmer` (Go + Python) and `stigmer-cloud` (Java)
-- Both repos need to be committed separately — stigmer-cloud changes are on `main` branch
-- The Java workflow implementation (`InvokeAgentExecutionWorkflowImpl.java`) already had pause/resume logic; only constants, interface annotations, and RPC handlers were added
-- The Go workflow implementation was the most significant change — `invoke_workflow_impl.go` gained ~120 net lines
+- T07 is fully committed (see below) — all state is now in `self.state.*` instead of `self._*`
+- `execution_state.py` defines the typed state model — read it first to understand field layout
+- `current_status` is now a property delegating to `self.state.proto`
+- `ToolCallIdCapture` is the single authority for run_id resolution (callback + alias layers)
+- T08 should focus on extracting the 2,500+ lines of event handlers into focused modules
 
 ## Quick Commands
 
 After loading context:
-- "Start T07 implementation" - ExecutionState reducer refactor
+- "Start T08 planning" - Handler extraction to shrink StatusBuilder
 - "Show project status" - Get overview of progress
 - "Review the plan" - Read the v2 task plan
 
