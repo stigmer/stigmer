@@ -12,10 +12,18 @@ Drop this file into your conversation to quickly resume work on this project.
 **Components**: stigmer-server (Go), stigmer-service (Java), agent-runner (Python/StatusBuilder), proto definitions, frontend read path
 
 ## Current State
-- **Status**: in-progress
-- **Last Session**: March 29, 2026 (Session 4) — Removed 8-second optimistic dismiss grace from frontend
-- **Active Task**: T04 (Phase Gate Relaxation) in progress in a separate conversation
+- **Status**: code-complete
+- **Last Session**: March 29, 2026 (Session 5) — T04 Phase Gate Relaxation implemented
+- **Active Task**: All tasks (T01–T04) code-complete. Ready for push and PR.
 - **Plan Approved**: Yes
+
+## Session Progress (2026-03-29, Session 5)
+- Implemented T04: Phase Gate Relaxation in Go and Java
+- Go: Relaxed phase gate in `submit_approval.go`, added 3 contract tests + `makeExecutionWithPhase` helper
+- Java: Relaxed phase gate + tool-call-centric fallback for stale `pending_approvals`, added 7 new tests in 2 nested classes
+- Python: Verified no changes needed — `extract_approval_decisions_from_execution` is phase-agnostic
+- Design decision: "always signal" on gate resolution regardless of phase (accepts rare spurious wake-up)
+- All T04 plan items completed
 
 ## Session Progress (2026-03-29, Session 4)
 - Analyzed the `DISMISS_GRACE_MS` (8s) optimistic dismissal pattern in the frontend HITL approval flow
@@ -51,7 +59,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - Java: Conditional `approvalGateResolved` signal, `Workflow.await()` on boolean flag, `submitApproval` handler kept as no-op
 - Python: `extract_approval_decisions_from_execution()` in `hitl.py`, LangGraph interrupt-based resume detection in `execute_graphton.py`
 - Tests: Go (3), Java (6), Python (8)
-- Committed: stigmer `pending`, stigmer-cloud `pending`
+- Committed: stigmer `a8f81107`, stigmer-cloud `a70b87fc`
 
 ### Frontend: Remove Optimistic Dismiss Grace (Session 4)
 - Removed `DISMISS_GRACE_MS` (8s) workaround from `useSessionConversation`
@@ -59,18 +67,27 @@ Drop this file into your conversation to quickly resume work on this project.
 - Simplified `pendingApprovals` to stream-driven (single source of truth)
 - Committed: stigmer `3ba85a74`
 
+### T04: Phase Gate Relaxation (Session 5)
+- Go: Relaxed phase gate in `submit_approval.go` to allow `EXECUTION_IN_PROGRESS`, added 3 contract test functions
+- Java: Relaxed phase gate in `ValidateApprovalStep`, added tool-call-centric fallback in `handleNotInPendingApprovals`, added 7 tests in 2 nested classes
+- Python: No changes needed — DB-driven resume is phase-agnostic
+- Committed: stigmer `pending`, stigmer-cloud `pending`
+
 ## Next Steps
-1. **T04**: Phase Gate Relaxation — relax phase constraints so approvals can be submitted even after the workflow resumes (in progress in separate conversation)
+1. Commit T04 changes in both repos
+2. Push all T01–T04 changes to remote
+3. Create PRs for both repos
 
 ## Context for Resume
-- T01 and T02 are **code-complete and committed** in both repos but **not yet pushed**
-- T03 is **code-complete and committed** in both repos but **not yet pushed**
-- Frontend dismiss grace removal is **committed** in stigmer but **not yet pushed**
+- **All tasks (T01–T04) are code-complete** in both repos
+- T01, T02, T03, frontend dismiss grace: committed but **not yet pushed**
+- T04: uncommitted changes pending commit (Go tests + Java handler and tests)
 - The field-ownership model is enforced: `SubmitApproval` owns `approval_action`, `approval_decided_at`, `approved_by`; `update_status` owns everything else
 - The workflow now waits for a single `approvalGateResolved` signal per HITL cycle instead of counting N individual signals
 - Python activity detects resume via LangGraph checkpoint interrupts and reads decisions from the DB-loaded execution object
 - Java `submitApproval()` signal handler is kept as a no-op for Temporal interface compatibility
 - Deployment is "big bang" — in-flight HITL workflows will fail with non-determinism errors on restart
+- Phase gate now allows `EXECUTION_IN_PROGRESS` alongside `EXECUTION_WAITING_FOR_APPROVAL` for approval submissions
 
 ## Design Decisions
 - **T01 scope narrowed**: Signal behavior unchanged in T01. Signal refactoring deferred to T03.
@@ -81,6 +98,8 @@ Drop this file into your conversation to quickly resume work on this project.
 - **Signal name `approvalGateResolved`**: Signals that the approval gate has resolved (all decided or rejected), not that workflow should resume.
 - **Python backward compat (T03)**: Both Temporal-args and DB-driven decision paths are supported. Old workflows sending decisions still work.
 - **Dismiss grace removal**: The 8s `DISMISS_GRACE_MS` was a pre-T01 workaround. With T01+T02+T03, `submitApproval` publishes the updated execution (with recomputed `pending_approvals`) to the stream, so the frontend gets the update within milliseconds. `submittingApprovalIds` covers the in-flight RPC window.
+- **Phase gate relaxation (T04)**: Validation is now tool-call-centric, not phase-centric. The tool call's own `TOOL_CALL_WAITING_APPROVAL` status is authoritative. Execution phase is a secondary guard that only excludes terminal and pre-start states.
+- **Always signal on gate resolution (T04)**: `approvalGateResolved` signal is sent on REJECT or all-decided regardless of execution phase. Temporal buffers signals; rare spurious wake-up causes one no-op Python invocation — correctness unaffected.
 
 ## Essential Files to Review
 
@@ -128,12 +147,12 @@ When starting a new session:
 3. [ ] Review design decisions in `design-decisions/`
 4. [ ] Check coding guidelines in `coding-guidelines/`
 5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with T04
+6. [ ] Commit T04 changes, push all commits, create PRs
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T04" - Start the next task
+- "Commit and push" - Commit remaining T04 changes, push, create PRs
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 
