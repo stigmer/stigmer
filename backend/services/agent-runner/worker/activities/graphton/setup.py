@@ -40,7 +40,6 @@ from worker.activities.graphton.session_context_merge import (
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.status_builder import StatusBuilder
 from worker.activities.graphton.subagent_transformer import (
-    BUILTIN_SUBAGENT_TYPES,
     create_builtin_subagents,
     transform_sub_agents,
 )
