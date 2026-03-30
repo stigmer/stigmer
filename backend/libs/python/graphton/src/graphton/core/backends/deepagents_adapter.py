@@ -147,6 +147,11 @@ class DeepAgentsBackendAdapter(SandboxBackendProtocol):
     # ------------------------------------------------------------------
 
     def ls_info(self, path: str) -> list[FileInfo]:
+        if callable(getattr(self._inner, "execute", None)):
+            fast = self._ls_info_via_execute(path)
+            if fast is not None:
+                return fast
+
         entries = self._inner.list_files(path)
         result: list[FileInfo] = []
         for name in entries:
@@ -159,6 +164,51 @@ class DeepAgentsBackendAdapter(SandboxBackendProtocol):
                     pass
             result.append(FileInfo(path=child_path, is_dir=is_dir))
         return result
+
+    def _ls_info_via_execute(self, path: str) -> list[FileInfo] | None:
+        """List directory with type info in a single shell command.
+
+        Returns ``None`` if the fast path is unavailable, in which case
+        the caller falls back to per-entry ``is_directory`` calls.
+        """
+        import shlex
+
+        sp = shlex.quote(path)
+        cmd = (
+            f"("
+            f"find {sp} -maxdepth 1 -mindepth 1 -type d 2>/dev/null"
+            f" | sed 's/^/d /' ; "
+            f"find {sp} -maxdepth 1 -mindepth 1 -not -type d 2>/dev/null"
+            f" | sed 's/^/f /'"
+            f") | sort -k2"
+        )
+        try:
+            result = self._inner.execute(cmd)
+        except Exception:
+            return None
+
+        stdout = result.stdout if hasattr(result, "stdout") else ""
+
+        if not stdout or not stdout.strip():
+            return None
+
+        items: list[FileInfo] = []
+        prefix = path.rstrip("/") + "/" if path not in (".", "/", "") else ""
+        for line in stdout.strip().splitlines():
+            parts = line.strip().split(" ", 1)
+            if len(parts) != 2:
+                continue
+            file_type, full_path = parts
+            name = full_path
+            if prefix and full_path.startswith(prefix):
+                name = full_path[len(prefix):]
+            elif full_path.startswith("./"):
+                name = full_path[2:]
+            child_path = (
+                os.path.join(path, name) if path not in (".", "/", "") else name
+            )
+            items.append(FileInfo(path=child_path, is_dir=(file_type == "d")))
+        return items
 
     # ------------------------------------------------------------------
     # BackendProtocol — read
@@ -246,64 +296,200 @@ class DeepAgentsBackendAdapter(SandboxBackendProtocol):
         glob: str | None = None,
     ) -> list[GrepMatch] | str:
         try:
-            regex = re.compile(pattern)
+            re.compile(pattern)
         except re.error as exc:
             return f"Invalid regex pattern: {exc}"
 
+        if callable(getattr(self._inner, "execute", None)):
+            return self._grep_raw_via_execute(pattern, path, glob)
+        return self._grep_raw_via_walk(pattern, path, glob)
+
+    def _grep_raw_via_execute(
+        self,
+        pattern: str,
+        path: str | None,
+        glob_pattern: str | None,
+    ) -> list[GrepMatch]:
+        import shlex
+
+        search_root = path or "."
+        max_matches = 500
+
+        include_flag = (
+            f" --include={shlex.quote(glob_pattern)}"
+            if glob_pattern
+            else ""
+        )
+        cmd = (
+            f"grep -rn{include_flag}"
+            f" --exclude-dir=.git"
+            f" -E {shlex.quote(pattern)}"
+            f" {shlex.quote(search_root)}"
+            f" 2>/dev/null | head -n {max_matches}"
+        )
+        result = self._inner.execute(cmd)
+        stdout = result.stdout if hasattr(result, "stdout") else ""
+
+        if not stdout or not stdout.strip():
+            return []
+
+        matches: list[GrepMatch] = []
+        for raw_line in stdout.strip().splitlines():
+            colon1 = raw_line.find(":")
+            if colon1 < 0:
+                continue
+            colon2 = raw_line.find(":", colon1 + 1)
+            if colon2 < 0:
+                continue
+
+            file_path = raw_line[:colon1]
+            if file_path.startswith("./"):
+                file_path = file_path[2:]
+
+            try:
+                line_num = int(raw_line[colon1 + 1 : colon2])
+            except ValueError:
+                continue
+
+            text = raw_line[colon2 + 1 :]
+            matches.append(GrepMatch(path=file_path, line=line_num, text=text))
+
+        return matches
+
+    def _grep_raw_via_walk(
+        self,
+        pattern: str,
+        path: str | None,
+        glob_pattern: str | None,
+    ) -> list[GrepMatch]:
+        regex = re.compile(pattern)
         search_root = path or "."
         matches: list[GrepMatch] = []
         max_matches = 500
 
-        self._grep_walk(search_root, regex, glob, matches, max_matches, depth=0)
-        return matches
-
-    def _grep_walk(
-        self,
-        dir_path: str,
-        regex: re.Pattern[str],
-        glob_pattern: str | None,
-        matches: list[GrepMatch],
-        max_matches: int,
-        depth: int,
-    ) -> None:
-        if depth > 10 or len(matches) >= max_matches:
-            return
-        try:
-            entries = self._inner.list_files(dir_path)
-        except Exception:
-            return
-        for name in entries:
-            if len(matches) >= max_matches:
+        def walk(dir_path: str, depth: int) -> None:
+            if depth > 10 or len(matches) >= max_matches:
                 return
-            child = os.path.join(dir_path, name) if dir_path not in (".", "/") else name
-            is_dir = False
-            if hasattr(self._inner, "is_directory"):
-                try:
-                    is_dir = self._inner.is_directory(child)
-                except Exception:
-                    pass
-            if is_dir:
-                self._grep_walk(child, regex, glob_pattern, matches, max_matches, depth + 1)
-            else:
-                if glob_pattern and not fnmatch.fnmatch(name, glob_pattern):
-                    continue
-                try:
-                    content = self._inner.read(child)
-                except Exception:
-                    continue
-                for line_num, line in enumerate(content.splitlines(), 1):
-                    if len(matches) >= max_matches:
-                        return
-                    if regex.search(line):
-                        matches.append(GrepMatch(path=child, line=line_num, text=line))
+            try:
+                entries = self._inner.list_files(dir_path)
+            except Exception:
+                return
+            for name in entries:
+                if len(matches) >= max_matches:
+                    return
+                child = (
+                    os.path.join(dir_path, name)
+                    if dir_path not in (".", "/")
+                    else name
+                )
+                is_dir = False
+                if hasattr(self._inner, "is_directory"):
+                    try:
+                        is_dir = self._inner.is_directory(child)
+                    except Exception:
+                        pass
+                if is_dir:
+                    walk(child, depth + 1)
+                else:
+                    if glob_pattern and not fnmatch.fnmatch(name, glob_pattern):
+                        continue
+                    try:
+                        content = self._inner.read(child)
+                    except Exception:
+                        continue
+                    for line_num, line in enumerate(content.splitlines(), 1):
+                        if len(matches) >= max_matches:
+                            return
+                        if regex.search(line):
+                            matches.append(
+                                GrepMatch(path=child, line=line_num, text=line)
+                            )
+
+        walk(search_root, depth=0)
+        return matches
 
     # ------------------------------------------------------------------
     # BackendProtocol — glob
     # ------------------------------------------------------------------
 
     def glob_info(self, pattern: str, path: str = "/") -> list[FileInfo]:
+        if callable(getattr(self._inner, "execute", None)):
+            return self._glob_info_via_execute(pattern, path)
+        return self._glob_info_via_walk(pattern, path)
+
+    def _glob_info_via_execute(
+        self, pattern: str, path: str,
+    ) -> list[FileInfo]:
+        import shlex
+
+        search_path = "." if path in ("/", "") else path
+        has_path_component = "/" in pattern or "**" in pattern
+        name_part = pattern.rsplit("/", 1)[-1] if "/" in pattern else pattern
+
+        sp = shlex.quote(search_path)
+        np = shlex.quote(name_part)
+        cmd = (
+            f"("
+            f"find {sp} -maxdepth 10 -name {np}"
+            f" -not -path '*/.git/*' -type d 2>/dev/null | sed 's/^/d /' ; "
+            f"find {sp} -maxdepth 10 -name {np}"
+            f" -not -path '*/.git/*' -type f 2>/dev/null | sed 's/^/f /'"
+            f") | sort -k2 | head -n 5000"
+        )
+        result = self._inner.execute(cmd)
+        stdout = result.stdout if hasattr(result, "stdout") else ""
+
+        if not stdout or not stdout.strip():
+            return []
+
+        matched: list[FileInfo] = []
+        for line in stdout.strip().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split(" ", 1)
+            if len(parts) != 2:
+                continue
+            file_type, file_path = parts
+            if file_path.startswith("./"):
+                file_path = file_path[2:]
+
+            if has_path_component and not fnmatch.fnmatch(file_path, pattern):
+                continue
+
+            matched.append(FileInfo(path=file_path, is_dir=(file_type == "d")))
+
+        return matched
+
+    def _glob_info_via_walk(
+        self, pattern: str, path: str,
+    ) -> list[FileInfo]:
         all_files: list[FileInfo] = []
-        self._glob_walk(path, all_files, depth=0)
+
+        def walk(dir_path: str, depth: int) -> None:
+            if depth > 10 or len(all_files) > 5000:
+                return
+            try:
+                entries = self._inner.list_files(dir_path)
+            except Exception:
+                return
+            for name in entries:
+                child = (
+                    os.path.join(dir_path, name)
+                    if dir_path not in (".", "/")
+                    else name
+                )
+                is_dir = False
+                if hasattr(self._inner, "is_directory"):
+                    try:
+                        is_dir = self._inner.is_directory(child)
+                    except Exception:
+                        pass
+                all_files.append(FileInfo(path=child, is_dir=is_dir))
+                if is_dir:
+                    walk(child, depth + 1)
+
+        walk(path, depth=0)
 
         matched: list[FileInfo] = []
         for fi in all_files:
@@ -316,30 +502,6 @@ class DeepAgentsBackendAdapter(SandboxBackendProtocol):
                 if fnmatch.fnmatch(basename, pattern):
                     matched.append(fi)
         return matched
-
-    def _glob_walk(
-        self,
-        dir_path: str,
-        results: list[FileInfo],
-        depth: int,
-    ) -> None:
-        if depth > 10 or len(results) > 5000:
-            return
-        try:
-            entries = self._inner.list_files(dir_path)
-        except Exception:
-            return
-        for name in entries:
-            child = os.path.join(dir_path, name) if dir_path not in (".", "/") else name
-            is_dir = False
-            if hasattr(self._inner, "is_directory"):
-                try:
-                    is_dir = self._inner.is_directory(child)
-                except Exception:
-                    pass
-            results.append(FileInfo(path=child, is_dir=is_dir))
-            if is_dir:
-                self._glob_walk(child, results, depth + 1)
 
     # ------------------------------------------------------------------
     # BackendProtocol — upload / download

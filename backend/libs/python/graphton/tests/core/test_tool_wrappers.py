@@ -1537,6 +1537,7 @@ class TestGlobToolWrapper:
     @pytest.fixture
     def mock_backend(self):
         backend = MagicMock()
+        backend.execute = None
         _dirs = {".", "subdir"}
         def list_files_side_effect(path):
             if path == ".":
@@ -1576,6 +1577,7 @@ class TestGlobToolPathPatterns:
     def deep_backend(self):
         """Backend with a realistic nested directory tree."""
         backend = MagicMock()
+        backend.execute = None
         _dirs = {
             ".", "docs", "docs/product", "src", "src/utils",
             ".stigmer", ".stigmer/skills", ".stigmer/skills/my-skill",
@@ -1718,6 +1720,7 @@ class TestGrepToolWrapper:
     @pytest.fixture
     def mock_backend(self):
         backend = MagicMock()
+        backend.execute = None
         _dirs = {"."}
         
         def list_files_side_effect(path):

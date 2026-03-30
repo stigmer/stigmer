@@ -1499,79 +1499,101 @@ def _create_glob_tool(
     backend: Any,  # noqa: ANN401
 ) -> Callable[..., Any]:
     """Create glob (pattern matching) tool wrapper.
-    
-    This is a SAFE read-only operation that does not require approval.
-    Uses Python's glob module for pattern matching.
-    
-    Args:
-        backend: Backend instance (used to get workspace root if available)
-        
-    Returns:
-        @tool decorated function for finding files by pattern
+
+    Uses shell ``find`` when the backend supports ``execute()`` for O(1)
+    network calls instead of recursive Python walks.  Falls back to
+    Python ``fnmatch`` for backends without shell access.
     """
     import fnmatch
     import os
+    import shlex
 
     _glob_max_depth = 15
-    
+    _has_execute = callable(getattr(backend, "execute", None))
+
+    async def _glob_via_execute(pattern: str, path: str) -> list[str]:
+        has_path_component = "/" in pattern
+        name_part = pattern.rsplit("/", 1)[-1] if has_path_component else pattern
+
+        cmd = (
+            f"find {shlex.quote(path)} -maxdepth {_glob_max_depth}"
+            f" -name {shlex.quote(name_part)}"
+            f" -not -path '*/.git/*'"
+            f" -type f 2>/dev/null | head -n 5000 | sort"
+        )
+        result = await asyncio.to_thread(backend.execute, cmd)
+        stdout = result.stdout if hasattr(result, "stdout") else ""
+        if not stdout or not stdout.strip():
+            return []
+
+        matches = [line for line in stdout.strip().splitlines() if line.strip()]
+        matches = [m[2:] if m.startswith("./") else m for m in matches]
+
+        if has_path_component:
+            matches = [m for m in matches if fnmatch.fnmatch(m, pattern)]
+
+        return matches
+
+    async def _glob_via_walk(pattern: str, path: str) -> list[str]:
+        all_files: list[str] = []
+        _has_is_dir = hasattr(backend, "is_directory")
+
+        def collect_files(dir_path: str, depth: int = 0) -> None:
+            if depth > _glob_max_depth:
+                return
+            try:
+                items = backend.list_files(dir_path)
+            except Exception:
+                return
+            for item in items:
+                item_path = os.path.join(dir_path, item) if dir_path != "." else item
+                item_path = item_path.replace("\\", "/")
+                all_files.append(item_path)
+                if _has_is_dir:
+                    if backend.is_directory(item_path):
+                        collect_files(item_path, depth + 1)
+                else:
+                    try:
+                        collect_files(item_path, depth + 1)
+                    except NotADirectoryError:
+                        pass
+
+        def _do_glob() -> list[str]:
+            collect_files(path)
+            if "/" in pattern:
+                return [f for f in all_files if fnmatch.fnmatch(f, pattern)]
+            return [f for f in all_files if fnmatch.fnmatch(os.path.basename(f), pattern)]
+
+        return await asyncio.to_thread(_do_glob)
+
     @tool
     async def glob(pattern: str, path: str = ".") -> str:
         """Find files matching a glob pattern.
-        
+
         Recursively searches for files matching the pattern.
         Supports standard glob patterns: *, ?, [seq], [!seq], **
-        
+
         Args:
             pattern: Glob pattern to match (e.g., "*.py", "**/*.txt")
             path: Starting directory for the search (default: current directory)
-            
+
         Returns:
             Newline-separated list of matching file paths
         """
         try:
-            logger.debug(f"🔍 Searching for pattern '{pattern}' in '{path}'")
-            
-            all_files: list[str] = []
-            _has_is_dir = hasattr(backend, "is_directory")
-            
-            def collect_files(dir_path: str, depth: int = 0) -> None:
-                if depth > _glob_max_depth:
-                    return
-                try:
-                    items = backend.list_files(dir_path)
-                except Exception:
-                    return
-                for item in items:
-                    item_path = os.path.join(dir_path, item) if dir_path != "." else item
-                    item_path = item_path.replace("\\", "/")
-                    all_files.append(item_path)
-                    if _has_is_dir:
-                        if backend.is_directory(item_path):
-                            collect_files(item_path, depth + 1)
-                    else:
-                        try:
-                            collect_files(item_path, depth + 1)
-                        except NotADirectoryError:
-                            pass
-            
-            def _glob_sync() -> list[str]:
-                collect_files(path)
-                if "/" in pattern:
-                    return [f for f in all_files if fnmatch.fnmatch(f, pattern)]
-                return [f for f in all_files if fnmatch.fnmatch(os.path.basename(f), pattern)]
+            if _has_execute:
+                matches = await _glob_via_execute(pattern, path)
+            else:
+                matches = await _glob_via_walk(pattern, path)
 
-            matches = await asyncio.to_thread(_glob_sync)
-            
             if not matches:
-                logger.debug(f"No files matching '{pattern}'")
                 return f"No files matching pattern '{pattern}'"
-            
-            logger.debug(f"✅ Found {len(matches)} files matching '{pattern}'")
+
             return truncate_tool_output("\n".join(sorted(matches)), "glob")
         except Exception as e:
-            logger.warning(f"⚠️  glob tool failed for pattern '{pattern}': {e}")
+            logger.warning("glob tool failed for pattern '%s': %s", pattern, e)
             return enrich_error_message("glob", str(e))
-    
+
     glob.name = "glob"  # type: ignore[attr-defined]
     return glob  # type: ignore[return-value]
 
@@ -1580,108 +1602,134 @@ def _create_grep_tool(
     backend: Any,  # noqa: ANN401
 ) -> Callable[..., Any]:
     """Create grep (search content) tool wrapper.
-    
-    This is a SAFE read-only operation that does not require approval.
-    Searches file contents for a pattern using regular expressions.
-    
-    Args:
-        backend: Backend instance with read() and list_files() methods
-        
-    Returns:
-        @tool decorated function for searching file contents
+
+    Uses shell ``grep`` when the backend supports ``execute()`` for O(1)
+    network calls instead of recursive Python walks.  Falls back to
+    Python ``re`` for backends without shell access.
     """
     import os
     import re
+    import shlex
 
     _grep_max_depth = 15
-    
+    _has_execute = callable(getattr(backend, "execute", None))
+
+    async def _grep_via_execute(pattern: str, path: str, include: str) -> str:
+        max_results = 1000
+
+        include_flag = (
+            f" --include={shlex.quote(include)}" if include and include != "*" else ""
+        )
+        cmd = (
+            f"grep -rn{include_flag}"
+            f" --exclude-dir=.git"
+            f" -E {shlex.quote(pattern)}"
+            f" {shlex.quote(path)}"
+            f" 2>/dev/null | head -n {max_results}"
+        )
+        result = await asyncio.to_thread(backend.execute, cmd)
+        stdout = result.stdout if hasattr(result, "stdout") else ""
+
+        if not stdout or not stdout.strip():
+            return f"No matches for pattern '{pattern}'"
+
+        lines = [ln for ln in stdout.strip().splitlines() if ln.strip()]
+        lines = [ln[2:] if ln.startswith("./") else ln for ln in lines]
+
+        truncated = len(lines) >= max_results
+        summary = (
+            f"Found {len(lines)}{'+ (truncated)' if truncated else ''} matches:"
+        )
+        return truncate_tool_output(f"{summary}\n\n" + "\n".join(lines), "grep")
+
+    async def _grep_via_walk(pattern: str, path: str, include: str) -> str:
+        import fnmatch
+
+        regex = re.compile(pattern)
+        results: list[str] = []
+        files_searched = 0
+        max_results = 1000
+        _has_is_dir = hasattr(backend, "is_directory")
+
+        def search_file(file_path: str) -> None:
+            nonlocal files_searched
+            if not fnmatch.fnmatch(os.path.basename(file_path), include):
+                return
+            try:
+                content = backend.read(file_path)
+                files_searched += 1
+                for line_num, line in enumerate(content.splitlines(), 1):
+                    if len(results) >= max_results:
+                        return
+                    if regex.search(line):
+                        results.append(f"{file_path}:{line_num}:{line.rstrip()}")
+            except Exception:
+                pass
+
+        def collect_and_search(dir_path: str, depth: int = 0) -> None:
+            if depth > _grep_max_depth:
+                return
+            try:
+                items = backend.list_files(dir_path)
+            except Exception:
+                return
+            for item in items:
+                if len(results) >= max_results:
+                    return
+                item_path = os.path.join(dir_path, item) if dir_path != "." else item
+                item_path = item_path.replace("\\", "/")
+
+                if _has_is_dir and backend.is_directory(item_path):
+                    collect_and_search(item_path, depth + 1)
+                elif not _has_is_dir:
+                    search_file(item_path)
+                    try:
+                        collect_and_search(item_path, depth + 1)
+                    except NotADirectoryError:
+                        pass
+                else:
+                    search_file(item_path)
+
+        await asyncio.to_thread(collect_and_search, path)
+
+        if not results:
+            return f"No matches for pattern '{pattern}' in {files_searched} files searched"
+
+        truncated = len(results) >= max_results
+        summary = (
+            f"Found {len(results)}{'+ (truncated)' if truncated else ''} matches "
+            f"in {files_searched} files:"
+        )
+        return truncate_tool_output(f"{summary}\n\n" + "\n".join(results), "grep")
+
     @tool
     async def grep(pattern: str, path: str = ".", include: str = "*") -> str:
         """Search for a pattern in file contents.
-        
+
         Recursively searches files for lines matching the pattern.
         Returns matching lines with file paths and line numbers.
-        
+
         Args:
             pattern: Regular expression pattern to search for
             path: Starting directory for the search (default: current directory)
             include: Glob pattern to filter which files to search (default: all files)
-            
+
         Returns:
             Matching lines in format: "filepath:line_number:line_content"
         """
-        import fnmatch
-        
         try:
-            logger.debug(f"🔎 Searching for '{pattern}' in '{path}' (include={include})")
-            
             try:
-                regex = re.compile(pattern)
+                re.compile(pattern)
             except re.error as e:
                 return f"Invalid regex pattern '{pattern}': {e}"
-            
-            results: list[str] = []
-            files_searched = 0
-            max_results = 1000
-            _has_is_dir = hasattr(backend, "is_directory")
-            
-            def search_file(file_path: str) -> None:
-                nonlocal files_searched
-                if not fnmatch.fnmatch(os.path.basename(file_path), include):
-                    return
-                try:
-                    content = backend.read(file_path)
-                    files_searched += 1
-                    for line_num, line in enumerate(content.splitlines(), 1):
-                        if len(results) >= max_results:
-                            return
-                        if regex.search(line):
-                            results.append(f"{file_path}:{line_num}:{line.rstrip()}")
-                except Exception:
-                    pass
-            
-            def collect_and_search(dir_path: str, depth: int = 0) -> None:
-                if depth > _grep_max_depth:
-                    return
-                try:
-                    items = backend.list_files(dir_path)
-                except Exception:
-                    return
-                for item in items:
-                    if len(results) >= max_results:
-                        return
-                    item_path = os.path.join(dir_path, item) if dir_path != "." else item
-                    item_path = item_path.replace("\\", "/")
 
-                    if _has_is_dir and backend.is_directory(item_path):
-                        collect_and_search(item_path, depth + 1)
-                    elif not _has_is_dir:
-                        search_file(item_path)
-                        try:
-                            collect_and_search(item_path, depth + 1)
-                        except NotADirectoryError:
-                            pass
-                    else:
-                        search_file(item_path)
-            
-            await asyncio.to_thread(collect_and_search, path)
-            
-            if not results:
-                logger.debug(f"No matches for '{pattern}' in {files_searched} files")
-                return f"No matches for pattern '{pattern}' in {files_searched} files searched"
-            
-            truncated = len(results) >= max_results
-            summary = (
-                f"Found {len(results)}{'+ (truncated)' if truncated else ''} matches "
-                f"in {files_searched} files:"
-            )
-            logger.debug(f"✅ {summary}")
-            
-            return truncate_tool_output(f"{summary}\n\n" + "\n".join(results), "grep")
+            if _has_execute:
+                return await _grep_via_execute(pattern, path, include)
+            return await _grep_via_walk(pattern, path, include)
         except Exception as e:
-            logger.warning(f"⚠️  grep tool failed for pattern '{pattern}': {e}")
+            logger.warning("grep tool failed for pattern '%s': %s", pattern, e)
             return enrich_error_message("grep", str(e))
-    
+
     grep.name = "grep"  # type: ignore[attr-defined]
     return grep  # type: ignore[return-value]
 
@@ -1691,27 +1739,27 @@ def _create_search_tool(
 ) -> Callable[..., Any]:
     """Create search (structural symbol lookup) tool wrapper.
 
-    This is a SAFE read-only operation that does not require approval.
-    On first invocation the tool lazily builds a structural symbol index
-    by walking workspace source files.  The index is cached in the
-    closure for the lifetime of the execution.
-
-    Args:
-        backend: Backend instance with read(), list_files(), and
-            is_directory() methods.
-
-    Returns:
-        @tool decorated function for structural code search.
+    On first invocation the tool lazily builds a structural symbol index.
+    Uses shell ``grep`` when the backend supports ``execute()`` for O(1)
+    network calls instead of reading every file individually.  The index
+    is cached in the closure for the lifetime of the execution.
     """
     from graphton.core.workspace_index import (
         WorkspaceIndex,
         build_workspace_index,
+        build_workspace_index_via_grep,
         format_search_results,
     )
 
     _cached_index: list[WorkspaceIndex | None] = [None]
+    _has_execute = callable(getattr(backend, "execute", None))
 
     def _build_index_sync() -> WorkspaceIndex:
+        if _has_execute:
+            logger.info(
+                "Building workspace symbol index via grep (first search call)…"
+            )
+            return build_workspace_index_via_grep(backend)
         logger.info("Building workspace symbol index (first search call)…")
         return build_workspace_index(backend)
 

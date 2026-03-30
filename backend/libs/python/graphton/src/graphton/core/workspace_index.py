@@ -674,6 +674,141 @@ def build_workspace_index(
 
 
 # ---------------------------------------------------------------------------
+# Execute-based index builder (O(1) HTTP calls)
+# ---------------------------------------------------------------------------
+
+
+def build_workspace_index_via_grep(
+    backend: Any,  # noqa: ANN401
+    *,
+    max_files: int = MAX_FILES,
+) -> WorkspaceIndex:
+    """Build symbol index via a single shell ``grep`` command.
+
+    Instead of walking the filesystem entry-by-entry over HTTP
+    (O(N) API calls), runs one ``grep -rn`` in the sandbox to extract
+    candidate structural-definition lines, then applies the precise
+    language-specific regexes from ``LANGUAGE_SPECS`` as a post-filter.
+
+    This reduces index-build time from minutes to seconds for large
+    repositories hosted in cloud sandboxes (Daytona).
+
+    Falls back to :func:`build_workspace_index` if the grep command
+    fails unexpectedly.
+    """
+    import shlex
+
+    include_flags = " ".join(
+        f"--include={shlex.quote(f'*{ext}')}"
+        for ext in sorted(_INDEXABLE_EXTENSIONS)
+    )
+
+    keywords = (
+        "class|def|defp|defmodule|func|function|fn|fun"
+        "|struct|enum|interface|trait|type|impl|module|object"
+    )
+    keyword_pattern = (
+        f"(^|[^a-zA-Z_0-9])({keywords})[[:space:]]+[A-Za-z_]"
+    )
+
+    cmd = (
+        f"grep -rn -E {shlex.quote(keyword_pattern)}"
+        f" {include_flags}"
+        f" --exclude-dir=.git"
+        f" . 2>/dev/null"
+        f" | head -n 100000"
+    )
+
+    try:
+        result = backend.execute(cmd)
+        stdout = result.stdout if hasattr(result, "stdout") else ""
+    except Exception:
+        logger.warning(
+            "grep-based index build failed; falling back to walk-based build",
+            exc_info=True,
+        )
+        return build_workspace_index(backend, max_files=max_files)
+
+    if not stdout or not stdout.strip():
+        logger.info(
+            "Workspace index built (via grep): 0 symbol(s) from 0 file(s)"
+        )
+        return WorkspaceIndex([], files_indexed=0, truncated=False)
+
+    all_symbols: list[Symbol] = []
+    files_seen: set[str] = set()
+
+    for raw_line in stdout.splitlines():
+        raw_line = raw_line.strip()
+        if not raw_line:
+            continue
+
+        colon1 = raw_line.find(":")
+        if colon1 < 0:
+            continue
+        colon2 = raw_line.find(":", colon1 + 1)
+        if colon2 < 0:
+            continue
+
+        file_path = raw_line[:colon1]
+        if file_path.startswith("./"):
+            file_path = file_path[2:]
+
+        try:
+            line_number = int(raw_line[colon1 + 1 : colon2])
+        except ValueError:
+            continue
+
+        content = raw_line[colon2 + 1 :]
+        files_seen.add(file_path)
+
+        _, ext = os.path.splitext(file_path)
+        spec = spec_for_extension(ext)
+        if spec is None:
+            continue
+
+        stripped = content.rstrip()
+        if not stripped:
+            continue
+
+        for pattern in spec.patterns:
+            m = pattern.match(stripped)
+            if m is None:
+                continue
+
+            raw_kind = m.group("kind")
+            name = m.group("name")
+            kind = _resolve_kind(raw_kind)
+
+            if kind == SymbolKind.FUNCTION and raw_kind.lower() == "func":
+                if re.match(r"^\s*func\s+\(", stripped):
+                    kind = SymbolKind.METHOD
+
+            all_symbols.append(Symbol(
+                name=name,
+                kind=kind,
+                file_path=file_path,
+                line_number=line_number,
+                signature=stripped,
+            ))
+            break
+
+    truncated = len(files_seen) >= max_files
+    logger.info(
+        "Workspace index built (via grep): %d symbol(s) from %d file(s)%s",
+        len(all_symbols),
+        len(files_seen),
+        " (truncated)" if truncated else "",
+    )
+
+    return WorkspaceIndex(
+        all_symbols,
+        files_indexed=len(files_seen),
+        truncated=truncated,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Output formatting
 # ---------------------------------------------------------------------------
 
