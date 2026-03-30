@@ -5,6 +5,7 @@ This package contains utilities for graphton agent execution:
 - attachments: Attachment handling and artifact auto-publish
 - checkpoint_validator: Post-stream checkpoint validation
 - environment: Environment variable resolution
+- inline_publisher: Fire-and-forget artifact publish callback
 - hitl: Human-in-the-loop approval lifecycle
 - post_stream: Post-stream validation and phase decision
 - prompt_builder: System-prompt construction
@@ -25,6 +26,7 @@ from worker.activities.graphton.checkpoint_validator import (
     CheckpointValidationResult,
     validate_against_checkpoint,
 )
+from worker.activities.graphton.inline_publisher import InlinePublisher
 from worker.activities.graphton.session_context_merge import (
     merge_mcp_server_usages,
     merge_skill_refs,
@@ -38,6 +40,7 @@ __all__ = [
     "build_approval_config",
     "CheckpointValidationResult",
     "create_approval_checker",
+    "InlinePublisher",
     "merge_mcp_server_usages",
     "merge_skill_refs",
     "SkillWriter",
