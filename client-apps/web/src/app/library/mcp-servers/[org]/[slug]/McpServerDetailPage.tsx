@@ -4,13 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { McpServerDetailView, useUpdateVisibility } from "@stigmer/react";
 import { useStaticRouteParam } from "@/hooks/useStaticRouteParam";
 import { useBreadcrumbOverride } from "../../../LibraryBreadcrumbContext";
-import { navigateTo } from "@/utils/navigation";
+import { useSessionNavigation } from "@/contexts/session-navigation";
 
 export function McpServerDetailPage() {
   const org = useStaticRouteParam("org", 2);
   const slug = useStaticRouteParam("slug");
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
+  const { navigateToSession } = useSessionNavigation();
 
   const { updateVisibility, isPending } = useUpdateVisibility(
     "mcpServer",
@@ -29,9 +30,9 @@ export function McpServerDetailPage() {
 
   const handlePolicySessionCreated = useCallback(
     ({ sessionId }: { sessionId: string }) => {
-      navigateTo(`/sessions/${sessionId}`);
+      navigateToSession(sessionId);
     },
-    [],
+    [navigateToSession],
   );
 
   if (!org || !slug) return null;

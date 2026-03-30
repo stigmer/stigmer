@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter, Nunito, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Providers } from "@/components/auth/Providers";
 import { AppShell } from "@/components/layout/AppShell";
+import { SessionNavigationProvider } from "@/contexts/session-navigation";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -72,9 +73,11 @@ export default function RootLayout({
           }}
         />
         <Providers>
-          <AppShell>
-            {children}
-          </AppShell>
+          <SessionNavigationProvider>
+            <AppShell>
+              {children}
+            </AppShell>
+          </SessionNavigationProvider>
         </Providers>
       </body>
     </html>
