@@ -18,9 +18,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from worker.activities.graphton.subagent_transformer import (
+    BUILTIN_SUBAGENT_TYPES,
     _build_usage_slug_map,
     _collect_all_skill_refs,
     _filter_mcp_for_subagent,
+    create_builtin_subagents,
     transform_sub_agents,
 )
 
@@ -863,3 +865,178 @@ class TestModelOverride:
         assert result is not None
         assert len(result) == 1
         assert result[0]["model"] == "claude-haiku-4-5-20251001"
+
+
+# =============================================================================
+# Tests for BUILTIN_SUBAGENT_TYPES constant
+# =============================================================================
+
+
+class TestBuiltinSubagentTypes:
+    """Tests for the BUILTIN_SUBAGENT_TYPES constant."""
+
+    def test_contains_explore_and_shell(self):
+        """Built-in types include exactly explore and shell."""
+        assert BUILTIN_SUBAGENT_TYPES == {"explore", "shell"}
+
+    def test_is_frozenset(self):
+        """Built-in types set is immutable."""
+        assert isinstance(BUILTIN_SUBAGENT_TYPES, frozenset)
+
+
+# =============================================================================
+# Tests for create_builtin_subagents
+# =============================================================================
+
+
+class TestCreateBuiltinSubagents:
+    """Tests for create_builtin_subagents function."""
+
+    def test_returns_empty_without_sandbox_config(self):
+        """Returns empty list when no sandbox config is provided."""
+        result = create_builtin_subagents(sandbox_config=None)
+        assert result == []
+
+    @patch("graphton.core.sandbox_factory.create_sandbox_backend")
+    @patch("graphton.core.tool_wrappers.create_filtered_platform_tools")
+    def test_creates_both_types(self, mock_filtered_tools, mock_sandbox):
+        """Creates both explore and shell subagents."""
+        mock_sandbox.return_value = MagicMock()
+        mock_filtered_tools.return_value = [MagicMock()]
+
+        result = create_builtin_subagents(
+            sandbox_config={"type": "filesystem", "root_dir": "/workspace"},
+        )
+
+        assert len(result) == 2
+        names = {sa["name"] for sa in result}
+        assert names == {"explore", "shell"}
+
+    @patch("graphton.core.sandbox_factory.create_sandbox_backend")
+    @patch("graphton.core.tool_wrappers.create_filtered_platform_tools")
+    def test_explore_has_restricted_prompt(self, mock_filtered_tools, mock_sandbox):
+        """Explore subagent has prompt with scope boundaries."""
+        mock_sandbox.return_value = MagicMock()
+        mock_filtered_tools.return_value = [MagicMock()]
+
+        result = create_builtin_subagents(
+            sandbox_config={"type": "filesystem", "root_dir": "/workspace"},
+        )
+
+        explore = next(sa for sa in result if sa["name"] == "explore")
+        assert "exploration specialist" in explore["system_prompt"].lower()
+        assert "Do NOT write files" in explore["system_prompt"]
+        assert "Do NOT execute shell commands" in explore["system_prompt"]
+
+    @patch("graphton.core.sandbox_factory.create_sandbox_backend")
+    @patch("graphton.core.tool_wrappers.create_filtered_platform_tools")
+    def test_shell_has_restricted_prompt(self, mock_filtered_tools, mock_sandbox):
+        """Shell subagent has prompt with scope boundaries."""
+        mock_sandbox.return_value = MagicMock()
+        mock_filtered_tools.return_value = [MagicMock()]
+
+        result = create_builtin_subagents(
+            sandbox_config={"type": "filesystem", "root_dir": "/workspace"},
+        )
+
+        shell = next(sa for sa in result if sa["name"] == "shell")
+        assert "command execution specialist" in shell["system_prompt"].lower()
+        assert "Do NOT follow skill activation instructions" in shell["system_prompt"]
+
+    @patch("graphton.core.sandbox_factory.create_sandbox_backend")
+    @patch("graphton.core.tool_wrappers.create_filtered_platform_tools")
+    def test_explore_uses_explore_tool_set(self, mock_filtered_tools, mock_sandbox):
+        """Explore subagent requests EXPLORE_TOOL_SET from the filter."""
+        mock_sandbox.return_value = MagicMock()
+        mock_filtered_tools.return_value = [MagicMock()]
+
+        create_builtin_subagents(
+            sandbox_config={"type": "filesystem", "root_dir": "/workspace"},
+        )
+
+        from graphton.core.tool_wrappers import EXPLORE_TOOL_SET
+
+        calls = mock_filtered_tools.call_args_list
+        explore_call = next(
+            c for c in calls if c.kwargs.get("sub_agent_name") == "explore"
+        )
+        assert explore_call.kwargs["allowed_tools"] == EXPLORE_TOOL_SET
+
+    @patch("graphton.core.sandbox_factory.create_sandbox_backend")
+    @patch("graphton.core.tool_wrappers.create_filtered_platform_tools")
+    def test_shell_uses_shell_tool_set(self, mock_filtered_tools, mock_sandbox):
+        """Shell subagent requests SHELL_TOOL_SET from the filter."""
+        mock_sandbox.return_value = MagicMock()
+        mock_filtered_tools.return_value = [MagicMock()]
+
+        create_builtin_subagents(
+            sandbox_config={"type": "filesystem", "root_dir": "/workspace"},
+        )
+
+        from graphton.core.tool_wrappers import SHELL_TOOL_SET
+
+        calls = mock_filtered_tools.call_args_list
+        shell_call = next(
+            c for c in calls if c.kwargs.get("sub_agent_name") == "shell"
+        )
+        assert shell_call.kwargs["allowed_tools"] == SHELL_TOOL_SET
+
+    @patch("graphton.core.sandbox_factory.create_sandbox_backend")
+    @patch("graphton.core.tool_wrappers.create_filtered_platform_tools")
+    def test_subagent_dicts_have_required_keys(self, mock_filtered_tools, mock_sandbox):
+        """Each subagent dict has name, description, system_prompt, tools."""
+        mock_sandbox.return_value = MagicMock()
+        mock_filtered_tools.return_value = [MagicMock()]
+
+        result = create_builtin_subagents(
+            sandbox_config={"type": "filesystem", "root_dir": "/workspace"},
+        )
+
+        for sa in result:
+            assert "name" in sa
+            assert "description" in sa
+            assert "system_prompt" in sa
+            assert "tools" in sa
+
+    @patch("graphton.core.sandbox_factory.create_sandbox_backend")
+    @patch("graphton.core.tool_wrappers.create_filtered_platform_tools")
+    def test_response_rules_appended(self, mock_filtered_tools, mock_sandbox):
+        """Response rules are appended to system prompts."""
+        mock_sandbox.return_value = MagicMock()
+        mock_filtered_tools.return_value = [MagicMock()]
+
+        result = create_builtin_subagents(
+            sandbox_config={"type": "filesystem", "root_dir": "/workspace"},
+        )
+
+        for sa in result:
+            assert "Response rules" in sa["system_prompt"]
+            assert "NEVER reprint" in sa["system_prompt"]
+
+    @patch("graphton.core.sandbox_factory.create_sandbox_backend")
+    def test_graceful_on_sandbox_creation_failure(self, mock_sandbox):
+        """Returns empty list on sandbox backend creation failure."""
+        mock_sandbox.side_effect = RuntimeError("Sandbox init failed")
+
+        result = create_builtin_subagents(
+            sandbox_config={"type": "filesystem", "root_dir": "/workspace"},
+            activity_logger=logging.getLogger("test"),
+        )
+
+        assert result == []
+
+    @patch("graphton.core.sandbox_factory.create_sandbox_backend")
+    @patch("graphton.core.tool_wrappers.create_filtered_platform_tools")
+    def test_approval_checker_passed_through(self, mock_filtered_tools, mock_sandbox):
+        """Approval checker is forwarded to create_filtered_platform_tools."""
+        mock_sandbox.return_value = MagicMock()
+        mock_filtered_tools.return_value = [MagicMock()]
+        checker = MagicMock()
+
+        create_builtin_subagents(
+            sandbox_config={"type": "filesystem", "root_dir": "/workspace"},
+            approval_checker=checker,
+        )
+
+        for call in mock_filtered_tools.call_args_list:
+            assert call.kwargs["approval_checker"] is checker

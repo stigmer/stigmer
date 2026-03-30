@@ -39,7 +39,11 @@ from worker.activities.graphton.session_context_merge import (
 )
 from worker.activities.graphton.skill_writer import SkillWriter
 from worker.activities.graphton.status_builder import StatusBuilder
-from worker.activities.graphton.subagent_transformer import transform_sub_agents
+from worker.activities.graphton.subagent_transformer import (
+    BUILTIN_SUBAGENT_TYPES,
+    create_builtin_subagents,
+    transform_sub_agents,
+)
 from worker.activities.graphton.temporal_helpers import (
     SetupTimer,
     heartbeat_during_setup,
@@ -1148,6 +1152,44 @@ async def _perform_setup_core(
                 "delegate tasks"
             )
             transformed_subagents = None
+
+    # Built-in subagent types (explore, shell)
+    #
+    # Always injected when a sandbox is available, regardless of whether
+    # proto-defined subagents exist.  These provide specialized,
+    # tool-restricted subagent types that prevent scope violations.
+    try:
+        builtin_subagents = create_builtin_subagents(
+            sandbox_config=sandbox_config_for_agent,
+            approval_checker=approval_checker,
+            activity_logger=logger,
+        )
+        if builtin_subagents:
+            existing_names = (
+                {sa["name"] for sa in transformed_subagents}
+                if transformed_subagents
+                else set()
+            )
+            added = []
+            for builtin in builtin_subagents:
+                if builtin["name"] not in existing_names:
+                    if transformed_subagents is None:
+                        transformed_subagents = []
+                    transformed_subagents.append(builtin)
+                    added.append(builtin["name"])
+                else:
+                    logger.info(
+                        "Skipping built-in '%s' subagent — name "
+                        "already used by proto-defined subagent",
+                        builtin["name"],
+                    )
+            if added:
+                logger.info(
+                    "Injected %d built-in subagent type(s): %s",
+                    len(added), added,
+                )
+    except Exception as e:
+        logger.error("Failed to create built-in subagents: %s", e)
 
     # Artifact storage & inline publisher
     artifact_storage = create_artifact_storage(
