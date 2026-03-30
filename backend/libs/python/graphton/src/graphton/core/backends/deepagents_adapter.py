@@ -22,6 +22,7 @@ that deepagents expects.  Passing an adapter instance as ``backend`` to
 
 from __future__ import annotations
 
+import asyncio
 import fnmatch
 import logging
 import os
@@ -86,6 +87,44 @@ class DeepAgentsBackendAdapter(SandboxBackendProtocol):
 
     def execute(self, command: str) -> ExecuteResponse:
         result = self._inner.execute(command)
+        output_parts: list[str] = []
+        if hasattr(result, "stdout") and result.stdout:
+            output_parts.append(result.stdout)
+        if hasattr(result, "stderr") and result.stderr:
+            output_parts.append(result.stderr)
+        if hasattr(result, "output"):
+            output_parts.append(result.output)
+
+        exit_code = getattr(result, "exit_code", None)
+        truncated = getattr(result, "truncated", False)
+
+        return ExecuteResponse(
+            output="\n".join(output_parts) if output_parts else "(no output)",
+            exit_code=exit_code,
+            truncated=truncated,
+        )
+
+    async def aexecute(
+        self, command: str, *, timeout: int | None = None,
+    ) -> ExecuteResponse:
+        """Async execute that prefers the inner backend's streaming path.
+
+        When the inner backend provides ``execute_streaming`` (native
+        ``asyncio.create_subprocess_shell``), use it directly instead of
+        offloading the sync ``subprocess.run`` to a thread.  This avoids
+        occupying a thread-pool slot for the duration of the command and
+        preserves true async I/O.
+        """
+        effective_timeout = timeout if timeout is not None else 120
+        if callable(getattr(self._inner, "execute_streaming", None)):
+            result = await self._inner.execute_streaming(
+                command, timeout=effective_timeout,
+            )
+        else:
+            result = await asyncio.to_thread(
+                self._inner.execute, command, timeout=effective_timeout,
+            )
+
         output_parts: list[str] = []
         if hasattr(result, "stdout") and result.stdout:
             output_parts.append(result.stdout)
