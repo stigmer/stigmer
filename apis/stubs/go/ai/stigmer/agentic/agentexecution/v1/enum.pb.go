@@ -598,6 +598,84 @@ func (SummarizationSource) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{6}
 }
 
+// ToolCallStreamingSource identifies what is currently being streamed on a
+// tool call.
+//
+// Input streaming and output streaming are independent, universal capabilities
+// of any tool — not categories of tools:
+//
+//   - INPUT: The LLM is generating the tool's arguments. For tools where the
+//     argument content is interesting to the user (file content being written,
+//     thought text), tokens stream to the UI as they are produced.
+//
+//   - OUTPUT: The tool is executing and producing output progressively. For
+//     tools where the output is interesting (shell commands, long-running
+//     processes), output chunks stream to the UI as they arrive.
+//
+// Any tool can have either, both, or neither. This enum tells consumers
+// which streaming phase is active so they render correctly without
+// client-side heuristics.
+//
+// Lifecycle:
+//
+//	Early tool call creation → streaming_source = INPUT
+//	on_tool_start (reconcile) → streaming_source = UNSPECIFIED
+//	tool_progress event      → streaming_source = OUTPUT
+//	on_tool_end              → streaming_source = UNSPECIFIED
+type ToolCallStreamingSource int32
+
+const (
+	ToolCallStreamingSource_TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED ToolCallStreamingSource = 0
+	// The LLM is generating the tool's arguments. result contains partial
+	// content extracted from the in-progress argument JSON (e.g., file content
+	// for a write tool, thought text for a think tool).
+	ToolCallStreamingSource_TOOL_CALL_STREAMING_SOURCE_INPUT ToolCallStreamingSource = 1
+	// The tool is executing and producing output progressively. result
+	// contains accumulated output chunks (e.g., shell command stdout).
+	ToolCallStreamingSource_TOOL_CALL_STREAMING_SOURCE_OUTPUT ToolCallStreamingSource = 2
+)
+
+// Enum value maps for ToolCallStreamingSource.
+var (
+	ToolCallStreamingSource_name = map[int32]string{
+		0: "TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED",
+		1: "TOOL_CALL_STREAMING_SOURCE_INPUT",
+		2: "TOOL_CALL_STREAMING_SOURCE_OUTPUT",
+	}
+	ToolCallStreamingSource_value = map[string]int32{
+		"TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED": 0,
+		"TOOL_CALL_STREAMING_SOURCE_INPUT":       1,
+		"TOOL_CALL_STREAMING_SOURCE_OUTPUT":      2,
+	}
+)
+
+func (x ToolCallStreamingSource) Enum() *ToolCallStreamingSource {
+	p := new(ToolCallStreamingSource)
+	*p = x
+	return p
+}
+
+func (x ToolCallStreamingSource) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ToolCallStreamingSource) Descriptor() protoreflect.EnumDescriptor {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[7].Descriptor()
+}
+
+func (ToolCallStreamingSource) Type() protoreflect.EnumType {
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[7]
+}
+
+func (x ToolCallStreamingSource) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ToolCallStreamingSource.Descriptor instead.
+func (ToolCallStreamingSource) EnumDescriptor() ([]byte, []int) {
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{7}
+}
+
 // ApprovalAction represents the user's decision on an approval request.
 //
 // ## Action Semantics
@@ -665,11 +743,11 @@ func (x ApprovalAction) String() string {
 }
 
 func (ApprovalAction) Descriptor() protoreflect.EnumDescriptor {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[7].Descriptor()
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[8].Descriptor()
 }
 
 func (ApprovalAction) Type() protoreflect.EnumType {
-	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[7]
+	return &file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes[8]
 }
 
 func (x ApprovalAction) Number() protoreflect.EnumNumber {
@@ -678,7 +756,7 @@ func (x ApprovalAction) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ApprovalAction.Descriptor instead.
 func (ApprovalAction) EnumDescriptor() ([]byte, []int) {
-	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{7}
+	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP(), []int{8}
 }
 
 var File_ai_stigmer_agentic_agentexecution_v1_enum_proto protoreflect.FileDescriptor
@@ -732,7 +810,11 @@ const file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc = "" +
 	"\x13SummarizationSource\x12$\n" +
 	" SUMMARIZATION_SOURCE_UNSPECIFIED\x10\x00\x12\x0f\n" +
 	"\vgraph_start\x10\x01\x12\x11\n" +
-	"\rmid_execution\x10\x02*\x84\x01\n" +
+	"\rmid_execution\x10\x02*\x92\x01\n" +
+	"\x17ToolCallStreamingSource\x12*\n" +
+	"&TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED\x10\x00\x12$\n" +
+	" TOOL_CALL_STREAMING_SOURCE_INPUT\x10\x01\x12%\n" +
+	"!TOOL_CALL_STREAMING_SOURCE_OUTPUT\x10\x02*\x84\x01\n" +
 	"\x0eApprovalAction\x12\x1f\n" +
 	"\x1bAPPROVAL_ACTION_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17APPROVAL_ACTION_APPROVE\x10\x01\x12\x18\n" +
@@ -752,16 +834,17 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescGZIP() []byte {
 	return file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDescData
 }
 
-var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
+var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_goTypes = []any{
-	(ExecutionPhase)(0),        // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
-	(MessageType)(0),           // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
-	(ToolCallStatus)(0),        // 2: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
-	(TodoStatus)(0),            // 3: ai.stigmer.agentic.agentexecution.v1.TodoStatus
-	(SubAgentStatus)(0),        // 4: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
-	(ExecutionArtifactKind)(0), // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
-	(SummarizationSource)(0),   // 6: ai.stigmer.agentic.agentexecution.v1.SummarizationSource
-	(ApprovalAction)(0),        // 7: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
+	(ExecutionPhase)(0),          // 0: ai.stigmer.agentic.agentexecution.v1.ExecutionPhase
+	(MessageType)(0),             // 1: ai.stigmer.agentic.agentexecution.v1.MessageType
+	(ToolCallStatus)(0),          // 2: ai.stigmer.agentic.agentexecution.v1.ToolCallStatus
+	(TodoStatus)(0),              // 3: ai.stigmer.agentic.agentexecution.v1.TodoStatus
+	(SubAgentStatus)(0),          // 4: ai.stigmer.agentic.agentexecution.v1.SubAgentStatus
+	(ExecutionArtifactKind)(0),   // 5: ai.stigmer.agentic.agentexecution.v1.ExecutionArtifactKind
+	(SummarizationSource)(0),     // 6: ai.stigmer.agentic.agentexecution.v1.SummarizationSource
+	(ToolCallStreamingSource)(0), // 7: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
+	(ApprovalAction)(0),          // 8: ai.stigmer.agentic.agentexecution.v1.ApprovalAction
 }
 var file_ai_stigmer_agentic_agentexecution_v1_enum_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -781,7 +864,7 @@ func file_ai_stigmer_agentic_agentexecution_v1_enum_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc), len(file_ai_stigmer_agentic_agentexecution_v1_enum_proto_rawDesc)),
-			NumEnums:      8,
+			NumEnums:      9,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

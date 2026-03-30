@@ -501,10 +501,11 @@ func TestHandleEvent_InitiatesPreApprovalStreamingForWriteTool(t *testing.T) {
 	done, _, _ := r.handleEvent(context.Background(), executiontui.ToolRunningEvent{
 		ToolCallID: "tc-wr1",
 		ToolCall: toolrender.ToolCallInfo{
-			Name:        "write_file",
-			Args:        map[string]interface{}{"path": "x.go", "contents": "pkg x"},
-			Status:      "running",
-			IsStreaming: true,
+			Name:            "write_file",
+			Args:            map[string]interface{}{"path": "x.go", "contents": "pkg x"},
+			Status:          "running",
+			IsStreaming:     true,
+			StreamingSource: "input",
 		},
 	})
 
@@ -552,7 +553,47 @@ func TestHandleEvent_InitiatesStreamingForAnyStreamingTool(t *testing.T) {
 	})
 
 	if r.activeStreamToolID != "tc-sh1" {
-		t.Errorf("any tool with IsStreaming=true should initiate pre-approval streaming, got %q", r.activeStreamToolID)
+		t.Errorf("backward-compat: IsStreaming=true without StreamingSource should initiate streaming, got %q", r.activeStreamToolID)
+	}
+}
+
+func TestHandleEvent_OutputStreamingDoesNotInitiatePreApproval(t *testing.T) {
+	r, _, _, _ := newApprovalTestRenderer(&mockPrompter{}, approval.ActionUnspecified)
+
+	r.handleEvent(context.Background(), executiontui.ToolRunningEvent{
+		ToolCallID: "tc-out1",
+		ToolCall: toolrender.ToolCallInfo{
+			Name:            "shell",
+			Args:            map[string]interface{}{"command": "ls"},
+			Status:          "running",
+			IsStreaming:     true,
+			StreamingSource: "output",
+		},
+	})
+
+	if r.activeStreamToolID == "tc-out1" {
+		t.Error("streaming_source=output should NOT initiate pre-approval streaming")
+	}
+}
+
+func TestIsInputStreaming_DataDriven(t *testing.T) {
+	tests := []struct {
+		name     string
+		tc       toolrender.ToolCallInfo
+		expected bool
+	}{
+		{"input source", toolrender.ToolCallInfo{IsStreaming: true, StreamingSource: "input"}, true},
+		{"output source", toolrender.ToolCallInfo{IsStreaming: true, StreamingSource: "output"}, false},
+		{"empty source with streaming", toolrender.ToolCallInfo{IsStreaming: true, StreamingSource: ""}, true},
+		{"empty source not streaming", toolrender.ToolCallInfo{IsStreaming: false, StreamingSource: ""}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isInputStreaming(tt.tc)
+			if got != tt.expected {
+				t.Errorf("isInputStreaming(%+v) = %v, want %v", tt.tc, got, tt.expected)
+			}
+		})
 	}
 }
 

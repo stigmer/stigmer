@@ -4,7 +4,7 @@
 
 import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv1";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv1";
-import type { ApprovalAction, MessageType, ToolCallStatus } from "./enum_pb";
+import type { ApprovalAction, MessageType, ToolCallStatus, ToolCallStreamingSource } from "./enum_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_enum } from "./enum_pb";
 import type { LlmCallMetrics } from "./usage_pb";
 import { file_ai_stigmer_agentic_agentexecution_v1_usage } from "./usage_pb";
@@ -16,7 +16,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/message.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_message: GenFile = /*@__PURE__*/
-  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvbWVzc2FnZS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIs0CCgxBZ2VudE1lc3NhZ2USSQoEdHlwZRgBIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5NZXNzYWdlVHlwZUIIukgFggECEAESDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSQgoKdG9vbF9jYWxscxgEIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbBIpCghtZXRhZGF0YRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMaXNfc3RyZWFtaW5nGAYgASgIEkkKC2xsbV9tZXRyaWNzGAcgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkxsbUNhbGxNZXRyaWNzItMECghUb29sQ2FsbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKBGFyZ3MYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Eg4KBnJlc3VsdBgEIAEoCRJOCgZzdGF0dXMYBSABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxTdGF0dXNCCLpIBYIBAhABElMKEmNvbXBvbmVudF9tZXRhZGF0YRgGIAEoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db21wb25lbnRNZXRhZGF0YRISCgpzdGFydGVkX2F0GAcgASgJEhQKDGNvbXBsZXRlZF9hdBgIIAEoCRINCgVlcnJvchgJIAEoCRIZChFyZXF1aXJlc19hcHByb3ZhbBgKIAEoCBIYChBhcHByb3ZhbF9tZXNzYWdlGAsgASgJEh0KFWFwcHJvdmFsX3JlcXVlc3RlZF9hdBgMIAEoCRIbChNhcHByb3ZhbF9kZWNpZGVkX2F0GA0gASgJEhMKC2FwcHJvdmVkX2J5GA4gASgJEk0KD2FwcHJvdmFsX2FjdGlvbhgPIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEFjdGlvbhIUCgxpc19zdHJlYW1pbmcYECABKAgSFwoPbWNwX3NlcnZlcl9zbHVnGBEgASgJEhQKDGFyZ3NfcHJldmlldxgSIAEoCSKEAQoRQ29tcG9uZW50TWV0YWRhdGESFgoOY29tcG9uZW50X3R5cGUYASABKAkSFwoPY29tcG9uZW50X2dyb3VwGAIgASgJEhMKC2xheW91dF9oaW50GAMgASgJEikKCG1ldGFkYXRhGAQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdGIGcHJvdG8z", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_usage, file_buf_validate_validate, file_google_protobuf_struct]);
+  fileDesc("CjJhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvbWVzc2FnZS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxIs0CCgxBZ2VudE1lc3NhZ2USSQoEdHlwZRgBIAEoDjIxLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5NZXNzYWdlVHlwZUIIukgFggECEAESDwoHY29udGVudBgCIAEoCRIRCgl0aW1lc3RhbXAYAyABKAkSQgoKdG9vbF9jYWxscxgEIAMoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbBIpCghtZXRhZGF0YRgFIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFAoMaXNfc3RyZWFtaW5nGAYgASgIEkkKC2xsbV9tZXRyaWNzGAcgASgLMjQuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxLkxsbUNhbGxNZXRyaWNzIqwFCghUb29sQ2FsbBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEiUKBGFyZ3MYAyABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Eg4KBnJlc3VsdBgEIAEoCRJOCgZzdGF0dXMYBSABKA4yNC5haS5zdGlnbWVyLmFnZW50aWMuYWdlbnRleGVjdXRpb24udjEuVG9vbENhbGxTdGF0dXNCCLpIBYIBAhABElMKEmNvbXBvbmVudF9tZXRhZGF0YRgGIAEoCzI3LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Db21wb25lbnRNZXRhZGF0YRISCgpzdGFydGVkX2F0GAcgASgJEhQKDGNvbXBsZXRlZF9hdBgIIAEoCRINCgVlcnJvchgJIAEoCRIZChFyZXF1aXJlc19hcHByb3ZhbBgKIAEoCBIYChBhcHByb3ZhbF9tZXNzYWdlGAsgASgJEh0KFWFwcHJvdmFsX3JlcXVlc3RlZF9hdBgMIAEoCRIbChNhcHByb3ZhbF9kZWNpZGVkX2F0GA0gASgJEhMKC2FwcHJvdmVkX2J5GA4gASgJEk0KD2FwcHJvdmFsX2FjdGlvbhgPIAEoDjI0LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5BcHByb3ZhbEFjdGlvbhIUCgxpc19zdHJlYW1pbmcYECABKAgSVwoQc3RyZWFtaW5nX3NvdXJjZRgTIAEoDjI9LmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGV4ZWN1dGlvbi52MS5Ub29sQ2FsbFN0cmVhbWluZ1NvdXJjZRIXCg9tY3Bfc2VydmVyX3NsdWcYESABKAkSFAoMYXJnc19wcmV2aWV3GBIgASgJIoQBChFDb21wb25lbnRNZXRhZGF0YRIWCg5jb21wb25lbnRfdHlwZRgBIAEoCRIXCg9jb21wb25lbnRfZ3JvdXAYAiABKAkSEwoLbGF5b3V0X2hpbnQYAyABKAkSKQoIbWV0YWRhdGEYBCABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0YgZwcm90bzM", [file_ai_stigmer_agentic_agentexecution_v1_enum, file_ai_stigmer_agentic_agentexecution_v1_usage, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
  * Represents a single message in the agent conversation.
@@ -230,11 +230,11 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentexecution.v1.ToolCall"> 
   approvalAction: ApprovalAction;
 
   /**
-   * True while the tool is actively producing output, false when complete.
-   * Mirrors AgentMessage.is_streaming for consistency.
-   * Enables UI to show live output during long-running tool executions.
+   * True while the tool is actively producing content, false when complete.
+   * Enables UI to show live output during long-running tool executions or
+   * a typewriter effect during input generation.
    *
-   * When true, `result` contains partial output accumulated so far.
+   * When true, `result` contains partial content accumulated so far.
    * When false (default), `result` contains the final complete output.
    * Consumers always read `result` — this flag only signals whether
    * more content is expected.
@@ -242,6 +242,23 @@ export type ToolCall = Message<"ai.stigmer.agentic.agentexecution.v1.ToolCall"> 
    * @generated from field: bool is_streaming = 16;
    */
   isStreaming: boolean;
+
+  /**
+   * Identifies what is currently being streamed.
+   * Only meaningful when is_streaming is true; reset to UNSPECIFIED when
+   * streaming ends.
+   *
+   * INPUT:  result contains partial content extracted from the in-progress
+   *         argument JSON (e.g., file content for a write tool).
+   * OUTPUT: result contains accumulated output chunks from tool execution
+   *         (e.g., shell command stdout).
+   *
+   * Consumers use this to choose the correct rendering mode — typewriter
+   * for input streaming, live terminal output for output streaming.
+   *
+   * @generated from field: ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource streaming_source = 19;
+   */
+  streamingSource: ToolCallStreamingSource;
 
   /**
    * Slug of the MCP server that provides this tool.

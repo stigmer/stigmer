@@ -13,6 +13,7 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ExecutionPhase,
     TodoStatus,
     ToolCallStatus,
+    ToolCallStreamingSource,
 )
 from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
     ComponentMetadata,
@@ -231,6 +232,7 @@ def handle_tool_progress(sb: StatusBuilder, event: dict[str, Any], namespace: st
         if len(chunk) > remaining:
             tool_call.result += "\n[output truncated for display]"
     tool_call.is_streaming = True
+    tool_call.streaming_source = ToolCallStreamingSource.TOOL_CALL_STREAMING_SOURCE_OUTPUT
 
     if not was_streaming:
         sb.force_next_update = True
@@ -290,6 +292,7 @@ def handle_tool_end(sb: StatusBuilder, event: dict[str, Any], namespace: str = "
         tool_call.status = ToolCallStatus.TOOL_CALL_COMPLETED
         tool_call.completed_at = completed_at
         tool_call.is_streaming = False
+        tool_call.streaming_source = ToolCallStreamingSource.TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED
 
     context_desc = f"sub_agent={sub_agent.id}" if sub_agent else "main_agent"
     sb.logger.debug(

@@ -249,6 +249,42 @@ enum SummarizationSource {
   mid_execution = 2; // Triggered mid-execution before a model call (awrap_model_call)
 }
 
+// ToolCallStreamingSource identifies what is currently being streamed on a
+// tool call.
+//
+// Input streaming and output streaming are independent, universal capabilities
+// of any tool — not categories of tools:
+//
+// - INPUT: The LLM is generating the tool's arguments. For tools where the
+//   argument content is interesting to the user (file content being written,
+//   thought text), tokens stream to the UI as they are produced.
+//
+// - OUTPUT: The tool is executing and producing output progressively. For
+//   tools where the output is interesting (shell commands, long-running
+//   processes), output chunks stream to the UI as they arrive.
+//
+// Any tool can have either, both, or neither. This enum tells consumers
+// which streaming phase is active so they render correctly without
+// client-side heuristics.
+//
+// Lifecycle:
+//   Early tool call creation → streaming_source = INPUT
+//   on_tool_start (reconcile) → streaming_source = UNSPECIFIED
+//   tool_progress event      → streaming_source = OUTPUT
+//   on_tool_end              → streaming_source = UNSPECIFIED
+enum ToolCallStreamingSource {
+  TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED = 0;
+
+  // The LLM is generating the tool's arguments. result contains partial
+  // content extracted from the in-progress argument JSON (e.g., file content
+  // for a write tool, thought text for a think tool).
+  TOOL_CALL_STREAMING_SOURCE_INPUT = 1;
+
+  // The tool is executing and producing output progressively. result
+  // contains accumulated output chunks (e.g., shell command stdout).
+  TOOL_CALL_STREAMING_SOURCE_OUTPUT = 2;
+}
+
 // ApprovalAction represents the user's decision on an approval request.
 //
 // ## Action Semantics

@@ -65,15 +65,19 @@ public final class EnumProto extends com.google.protobuf.GeneratedFile {
       "IFACT_KIND_DIRECTORY\020\002*_\n\023SummarizationS" +
       "ource\022$\n SUMMARIZATION_SOURCE_UNSPECIFIE" +
       "D\020\000\022\017\n\013graph_start\020\001\022\021\n\rmid_execution\020\002*" +
-      "\204\001\n\016ApprovalAction\022\037\n\033APPROVAL_ACTION_UN" +
-      "SPECIFIED\020\000\022\033\n\027APPROVAL_ACTION_APPROVE\020\001" +
-      "\022\030\n\024APPROVAL_ACTION_SKIP\020\002\022\032\n\026APPROVAL_A" +
-      "CTION_REJECT\020\003B\300\001B\tEnumProtoP\001\242\002\004ASAA\252\002$" +
-      "Ai.Stigmer.Agentic.Agentexecution.V1\312\002$A" +
-      "i\\Stigmer\\Agentic\\Agentexecution\\V1\342\0020Ai" +
-      "\\Stigmer\\Agentic\\Agentexecution\\V1\\GPBMe" +
-      "tadata\352\002(Ai::Stigmer::Agentic::Agentexec" +
-      "ution::V1b\006proto3"
+      "\222\001\n\027ToolCallStreamingSource\022*\n&TOOL_CALL" +
+      "_STREAMING_SOURCE_UNSPECIFIED\020\000\022$\n TOOL_" +
+      "CALL_STREAMING_SOURCE_INPUT\020\001\022%\n!TOOL_CA" +
+      "LL_STREAMING_SOURCE_OUTPUT\020\002*\204\001\n\016Approva" +
+      "lAction\022\037\n\033APPROVAL_ACTION_UNSPECIFIED\020\000" +
+      "\022\033\n\027APPROVAL_ACTION_APPROVE\020\001\022\030\n\024APPROVA" +
+      "L_ACTION_SKIP\020\002\022\032\n\026APPROVAL_ACTION_REJEC" +
+      "T\020\003B\300\001B\tEnumProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer." +
+      "Agentic.Agentexecution.V1\312\002$Ai\\Stigmer\\A" +
+      "gentic\\Agentexecution\\V1\342\0020Ai\\Stigmer\\Ag" +
+      "entic\\Agentexecution\\V1\\GPBMetadata\352\002(Ai" +
+      "::Stigmer::Agentic::Agentexecution::V1b\006" +
+      "proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,

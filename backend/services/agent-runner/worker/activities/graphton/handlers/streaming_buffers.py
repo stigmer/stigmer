@@ -15,7 +15,11 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import MessageType, ToolCallStatus
+from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
+    MessageType,
+    ToolCallStatus,
+    ToolCallStreamingSource,
+)
 from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
     AgentMessage,
     ComponentMetadata,
@@ -173,6 +177,7 @@ def create_early_tool_call(
         result="",
         status=ToolCallStatus.TOOL_CALL_RUNNING,
         is_streaming=True,
+        streaming_source=ToolCallStreamingSource.TOOL_CALL_STREAMING_SOURCE_INPUT,
         component_metadata=ComponentMetadata(
             component_type=infer_component_type(tool_name),
             component_group="main-agent-tools",
@@ -247,9 +252,11 @@ def reconcile_early_tool_call(
             )
             return existing
 
+        had_input_content = bool(sb.state.tool_input.buffers.get(temp_id))
         flush_tool_input_buffer(sb, temp_id)
 
-        existing.result = ""
+        if not had_input_content:
+            existing.result = ""
 
         if tool_args:
             display_args = sb._humanize_args_for_display(tool_args)
@@ -259,6 +266,7 @@ def reconcile_early_tool_call(
             existing.args_preview = sb._create_args_preview(tool_args)
 
         existing.is_streaming = False
+        existing.streaming_source = ToolCallStreamingSource.TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED
 
         if sb._approval_config is not None:
             slug = sb._approval_config.get_mcp_server_for_tool(tool_name)

@@ -34,13 +34,14 @@ func displayToolCalls(toolCalls []*agentexecutionv1.ToolCall) {
 // the proto status enum to a human-readable string.
 func convertToolCall(tc *agentexecutionv1.ToolCall) toolrender.ToolCallInfo {
 	info := toolrender.ToolCallInfo{
-		ID:          tc.Id,
-		Name:        tc.Name,
-		Status:      mapToolCallStatus(tc.Status),
-		Result:      tc.Result,
-		Error:       tc.Error,
-		IsStreaming: tc.IsStreaming,
-		ServerName:  extractMcpServerSlug(tc),
+		ID:              tc.Id,
+		Name:            tc.Name,
+		Status:          mapToolCallStatus(tc.Status),
+		Result:          tc.Result,
+		Error:           tc.Error,
+		IsStreaming:     tc.IsStreaming,
+		StreamingSource: mapStreamingSource(tc.StreamingSource),
+		ServerName:      extractMcpServerSlug(tc),
 	}
 
 	// Convert proto Struct args to map
@@ -52,6 +53,19 @@ func convertToolCall(tc *agentexecutionv1.ToolCall) toolrender.ToolCallInfo {
 	info.Duration = computeToolCallDuration(tc.StartedAt, tc.CompletedAt)
 
 	return info
+}
+
+// mapStreamingSource converts a proto ToolCallStreamingSource to a display string.
+// Returns "input", "output", or "" (for UNSPECIFIED / unknown).
+func mapStreamingSource(src agentexecutionv1.ToolCallStreamingSource) string {
+	switch src {
+	case agentexecutionv1.ToolCallStreamingSource_TOOL_CALL_STREAMING_SOURCE_INPUT:
+		return "input"
+	case agentexecutionv1.ToolCallStreamingSource_TOOL_CALL_STREAMING_SOURCE_OUTPUT:
+		return "output"
+	default:
+		return ""
+	}
 }
 
 // extractMcpServerSlug returns the MCP server slug from a ToolCall proto.

@@ -369,11 +369,11 @@ public interface ToolCallOrBuilder extends
 
   /**
    * <pre>
-   * True while the tool is actively producing output, false when complete.
-   * Mirrors AgentMessage.is_streaming for consistency.
-   * Enables UI to show live output during long-running tool executions.
+   * True while the tool is actively producing content, false when complete.
+   * Enables UI to show live output during long-running tool executions or
+   * a typewriter effect during input generation.
    *
-   * When true, `result` contains partial output accumulated so far.
+   * When true, `result` contains partial content accumulated so far.
    * When false (default), `result` contains the final complete output.
    * Consumers always read `result` — this flag only signals whether
    * more content is expected.
@@ -383,6 +383,45 @@ public interface ToolCallOrBuilder extends
    * @return The isStreaming.
    */
   boolean getIsStreaming();
+
+  /**
+   * <pre>
+   * Identifies what is currently being streamed.
+   * Only meaningful when is_streaming is true; reset to UNSPECIFIED when
+   * streaming ends.
+   *
+   * INPUT:  result contains partial content extracted from the in-progress
+   * argument JSON (e.g., file content for a write tool).
+   * OUTPUT: result contains accumulated output chunks from tool execution
+   * (e.g., shell command stdout).
+   *
+   * Consumers use this to choose the correct rendering mode — typewriter
+   * for input streaming, live terminal output for output streaming.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource streaming_source = 19 [json_name = "streamingSource"];</code>
+   * @return The enum numeric value on the wire for streamingSource.
+   */
+  int getStreamingSourceValue();
+  /**
+   * <pre>
+   * Identifies what is currently being streamed.
+   * Only meaningful when is_streaming is true; reset to UNSPECIFIED when
+   * streaming ends.
+   *
+   * INPUT:  result contains partial content extracted from the in-progress
+   * argument JSON (e.g., file content for a write tool).
+   * OUTPUT: result contains accumulated output chunks from tool execution
+   * (e.g., shell command stdout).
+   *
+   * Consumers use this to choose the correct rendering mode — typewriter
+   * for input streaming, live terminal output for output streaming.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource streaming_source = 19 [json_name = "streamingSource"];</code>
+   * @return The streamingSource.
+   */
+  ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource getStreamingSource();
 
   /**
    * <pre>

@@ -125,19 +125,40 @@ message ToolCall {
   // ─────────────────────────────────────────────────────────────────────────────
   // Streaming State Fields
   //
-  // These fields track tool output generation progress.
-  // Mirrors AgentMessage.is_streaming for consistency.
+  // These two fields together describe what is streaming and whether more
+  // content is expected:
+  //
+  //   is_streaming = true  + streaming_source = INPUT  → LLM generating args
+  //   is_streaming = true  + streaming_source = OUTPUT → tool producing output
+  //   is_streaming = false + streaming_source = *      → not streaming
+  //
+  // Consumers always read `result` for the current content. `is_streaming`
+  // signals whether more content is expected; `streaming_source` tells
+  // consumers what kind of content it is so they render correctly.
   // ─────────────────────────────────────────────────────────────────────────────
 
-  // True while the tool is actively producing output, false when complete.
-  // Mirrors AgentMessage.is_streaming for consistency.
-  // Enables UI to show live output during long-running tool executions.
+  // True while the tool is actively producing content, false when complete.
+  // Enables UI to show live output during long-running tool executions or
+  // a typewriter effect during input generation.
   //
-  // When true, `result` contains partial output accumulated so far.
+  // When true, `result` contains partial content accumulated so far.
   // When false (default), `result` contains the final complete output.
   // Consumers always read `result` — this flag only signals whether
   // more content is expected.
   bool is_streaming = 16;
+
+  // Identifies what is currently being streamed.
+  // Only meaningful when is_streaming is true; reset to UNSPECIFIED when
+  // streaming ends.
+  //
+  // INPUT:  result contains partial content extracted from the in-progress
+  //         argument JSON (e.g., file content for a write tool).
+  // OUTPUT: result contains accumulated output chunks from tool execution
+  //         (e.g., shell command stdout).
+  //
+  // Consumers use this to choose the correct rendering mode — typewriter
+  // for input streaming, live terminal output for output streaming.
+  ToolCallStreamingSource streaming_source = 19;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // MCP Server Origin

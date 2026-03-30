@@ -9,7 +9,7 @@ import { enumDesc, fileDesc } from "@bufbuild/protobuf/codegenv1";
  * Describes the file ai/stigmer/agentic/agentexecution/v1/enum.proto.
  */
 export const file_ai_stigmer_agentic_agentexecution_v1_enum: GenFile = /*@__PURE__*/
-  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZW51bS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxKv8BCg5FeGVjdXRpb25QaGFzZRIfChtFWEVDVVRJT05fUEhBU0VfVU5TUEVDSUZJRUQQABIVChFFWEVDVVRJT05fUEVORElORxABEhkKFUVYRUNVVElPTl9JTl9QUk9HUkVTUxACEhcKE0VYRUNVVElPTl9DT01QTEVURUQQAxIUChBFWEVDVVRJT05fRkFJTEVEEAQSFwoTRVhFQ1VUSU9OX0NBTkNFTExFRBAFEhgKFEVYRUNVVElPTl9URVJNSU5BVEVEEAgSIgoeRVhFQ1VUSU9OX1dBSVRJTkdfRk9SX0FQUFJPVkFMEAYSFAoQRVhFQ1VUSU9OX1BBVVNFRBAHKnQKC01lc3NhZ2VUeXBlEhwKGE1FU1NBR0VfVFlQRV9VTlNQRUNJRklFRBAAEhEKDU1FU1NBR0VfSFVNQU4QARIOCgpNRVNTQUdFX0FJEAISEAoMTUVTU0FHRV9UT09MEAMSEgoOTUVTU0FHRV9TWVNURU0QBCrGAQoOVG9vbENhbGxTdGF0dXMSIAocVE9PTF9DQUxMX1NUQVRVU19VTlNQRUNJRklFRBAAEhUKEVRPT0xfQ0FMTF9QRU5ESU5HEAESFQoRVE9PTF9DQUxMX1JVTk5JTkcQAhIXChNUT09MX0NBTExfQ09NUExFVEVEEAMSFAoQVE9PTF9DQUxMX0ZBSUxFRBAEEh4KGlRPT0xfQ0FMTF9XQUlUSU5HX0FQUFJPVkFMEAUSFQoRVE9PTF9DQUxMX1NLSVBQRUQQBip5CgpUb2RvU3RhdHVzEhsKF1RPRE9fU1RBVFVTX1VOU1BFQ0lGSUVEEAASEAoMVE9ET19QRU5ESU5HEAESFAoQVE9ET19JTl9QUk9HUkVTUxACEhIKDlRPRE9fQ09NUExFVEVEEAMSEgoOVE9ET19DQU5DRUxMRUQQBCqsAQoOU3ViQWdlbnRTdGF0dXMSIAocU1VCX0FHRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEhUKEVNVQl9BR0VOVF9QRU5ESU5HEAESGQoVU1VCX0FHRU5UX0lOX1BST0dSRVNTEAISFwoTU1VCX0FHRU5UX0NPTVBMRVRFRBADEhQKEFNVQl9BR0VOVF9GQUlMRUQQBBIXChNTVUJfQUdFTlRfQ0FOQ0VMTEVEEAUqiQEKFUV4ZWN1dGlvbkFydGlmYWN0S2luZBInCiNFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9VTlNQRUNJRklFRBAAEiAKHEVYRUNVVElPTl9BUlRJRkFDVF9LSU5EX0ZJTEUQARIlCiFFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9ESVJFQ1RPUlkQAipfChNTdW1tYXJpemF0aW9uU291cmNlEiQKIFNVTU1BUklaQVRJT05fU09VUkNFX1VOU1BFQ0lGSUVEEAASDwoLZ3JhcGhfc3RhcnQQARIRCg1taWRfZXhlY3V0aW9uEAIqhAEKDkFwcHJvdmFsQWN0aW9uEh8KG0FQUFJPVkFMX0FDVElPTl9VTlNQRUNJRklFRBAAEhsKF0FQUFJPVkFMX0FDVElPTl9BUFBST1ZFEAESGAoUQVBQUk9WQUxfQUNUSU9OX1NLSVAQAhIaChZBUFBST1ZBTF9BQ1RJT05fUkVKRUNUEANiBnByb3RvMw");
+  fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRleGVjdXRpb24vdjEvZW51bS5wcm90bxIkYWkuc3RpZ21lci5hZ2VudGljLmFnZW50ZXhlY3V0aW9uLnYxKv8BCg5FeGVjdXRpb25QaGFzZRIfChtFWEVDVVRJT05fUEhBU0VfVU5TUEVDSUZJRUQQABIVChFFWEVDVVRJT05fUEVORElORxABEhkKFUVYRUNVVElPTl9JTl9QUk9HUkVTUxACEhcKE0VYRUNVVElPTl9DT01QTEVURUQQAxIUChBFWEVDVVRJT05fRkFJTEVEEAQSFwoTRVhFQ1VUSU9OX0NBTkNFTExFRBAFEhgKFEVYRUNVVElPTl9URVJNSU5BVEVEEAgSIgoeRVhFQ1VUSU9OX1dBSVRJTkdfRk9SX0FQUFJPVkFMEAYSFAoQRVhFQ1VUSU9OX1BBVVNFRBAHKnQKC01lc3NhZ2VUeXBlEhwKGE1FU1NBR0VfVFlQRV9VTlNQRUNJRklFRBAAEhEKDU1FU1NBR0VfSFVNQU4QARIOCgpNRVNTQUdFX0FJEAISEAoMTUVTU0FHRV9UT09MEAMSEgoOTUVTU0FHRV9TWVNURU0QBCrGAQoOVG9vbENhbGxTdGF0dXMSIAocVE9PTF9DQUxMX1NUQVRVU19VTlNQRUNJRklFRBAAEhUKEVRPT0xfQ0FMTF9QRU5ESU5HEAESFQoRVE9PTF9DQUxMX1JVTk5JTkcQAhIXChNUT09MX0NBTExfQ09NUExFVEVEEAMSFAoQVE9PTF9DQUxMX0ZBSUxFRBAEEh4KGlRPT0xfQ0FMTF9XQUlUSU5HX0FQUFJPVkFMEAUSFQoRVE9PTF9DQUxMX1NLSVBQRUQQBip5CgpUb2RvU3RhdHVzEhsKF1RPRE9fU1RBVFVTX1VOU1BFQ0lGSUVEEAASEAoMVE9ET19QRU5ESU5HEAESFAoQVE9ET19JTl9QUk9HUkVTUxACEhIKDlRPRE9fQ09NUExFVEVEEAMSEgoOVE9ET19DQU5DRUxMRUQQBCqsAQoOU3ViQWdlbnRTdGF0dXMSIAocU1VCX0FHRU5UX1NUQVRVU19VTlNQRUNJRklFRBAAEhUKEVNVQl9BR0VOVF9QRU5ESU5HEAESGQoVU1VCX0FHRU5UX0lOX1BST0dSRVNTEAISFwoTU1VCX0FHRU5UX0NPTVBMRVRFRBADEhQKEFNVQl9BR0VOVF9GQUlMRUQQBBIXChNTVUJfQUdFTlRfQ0FOQ0VMTEVEEAUqiQEKFUV4ZWN1dGlvbkFydGlmYWN0S2luZBInCiNFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9VTlNQRUNJRklFRBAAEiAKHEVYRUNVVElPTl9BUlRJRkFDVF9LSU5EX0ZJTEUQARIlCiFFWEVDVVRJT05fQVJUSUZBQ1RfS0lORF9ESVJFQ1RPUlkQAipfChNTdW1tYXJpemF0aW9uU291cmNlEiQKIFNVTU1BUklaQVRJT05fU09VUkNFX1VOU1BFQ0lGSUVEEAASDwoLZ3JhcGhfc3RhcnQQARIRCg1taWRfZXhlY3V0aW9uEAIqkgEKF1Rvb2xDYWxsU3RyZWFtaW5nU291cmNlEioKJlRPT0xfQ0FMTF9TVFJFQU1JTkdfU09VUkNFX1VOU1BFQ0lGSUVEEAASJAogVE9PTF9DQUxMX1NUUkVBTUlOR19TT1VSQ0VfSU5QVVQQARIlCiFUT09MX0NBTExfU1RSRUFNSU5HX1NPVVJDRV9PVVRQVVQQAiqEAQoOQXBwcm92YWxBY3Rpb24SHwobQVBQUk9WQUxfQUNUSU9OX1VOU1BFQ0lGSUVEEAASGwoXQVBQUk9WQUxfQUNUSU9OX0FQUFJPVkUQARIYChRBUFBST1ZBTF9BQ1RJT05fU0tJUBACEhoKFkFQUFJPVkFMX0FDVElPTl9SRUpFQ1QQA2IGcHJvdG8z");
 
 /**
  * ExecutionPhase defines the lifecycle phase of an agent execution.
@@ -524,6 +524,63 @@ export const SummarizationSourceSchema: GenEnum<SummarizationSource> = /*@__PURE
   enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 6);
 
 /**
+ * ToolCallStreamingSource identifies what is currently being streamed on a
+ * tool call.
+ *
+ * Input streaming and output streaming are independent, universal capabilities
+ * of any tool — not categories of tools:
+ *
+ * - INPUT: The LLM is generating the tool's arguments. For tools where the
+ *   argument content is interesting to the user (file content being written,
+ *   thought text), tokens stream to the UI as they are produced.
+ *
+ * - OUTPUT: The tool is executing and producing output progressively. For
+ *   tools where the output is interesting (shell commands, long-running
+ *   processes), output chunks stream to the UI as they arrive.
+ *
+ * Any tool can have either, both, or neither. This enum tells consumers
+ * which streaming phase is active so they render correctly without
+ * client-side heuristics.
+ *
+ * Lifecycle:
+ *   Early tool call creation → streaming_source = INPUT
+ *   on_tool_start (reconcile) → streaming_source = UNSPECIFIED
+ *   tool_progress event      → streaming_source = OUTPUT
+ *   on_tool_end              → streaming_source = UNSPECIFIED
+ *
+ * @generated from enum ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource
+ */
+export enum ToolCallStreamingSource {
+  /**
+   * @generated from enum value: TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * The LLM is generating the tool's arguments. result contains partial
+   * content extracted from the in-progress argument JSON (e.g., file content
+   * for a write tool, thought text for a think tool).
+   *
+   * @generated from enum value: TOOL_CALL_STREAMING_SOURCE_INPUT = 1;
+   */
+  INPUT = 1,
+
+  /**
+   * The tool is executing and producing output progressively. result
+   * contains accumulated output chunks (e.g., shell command stdout).
+   *
+   * @generated from enum value: TOOL_CALL_STREAMING_SOURCE_OUTPUT = 2;
+   */
+  OUTPUT = 2,
+}
+
+/**
+ * Describes the enum ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource.
+ */
+export const ToolCallStreamingSourceSchema: GenEnum<ToolCallStreamingSource> = /*@__PURE__*/
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 7);
+
+/**
  * ApprovalAction represents the user's decision on an approval request.
  *
  * ## Action Semantics
@@ -588,5 +645,5 @@ export enum ApprovalAction {
  * Describes the enum ai.stigmer.agentic.agentexecution.v1.ApprovalAction.
  */
 export const ApprovalActionSchema: GenEnum<ApprovalAction> = /*@__PURE__*/
-  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 7);
+  enumDesc(file_ai_stigmer_agentic_agentexecution_v1_enum, 8);
 
