@@ -11,7 +11,6 @@ go_library(
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/temporal",
     visibility = ["//visibility:public"],
     deps = [
-        "//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution",
         "//backend/libs/go/store",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal/activities",
         "//backend/services/stigmer-server/pkg/domain/agentexecution/temporal/workflows",
