@@ -127,7 +127,7 @@ See [checkpoints/](checkpoints/) for the most recent project state.
 - [x] Project initialized
 - [x] Initial analysis complete
 - [x] T01: Quick wins (error dedup, InlinePublisher, recursion limit)
-- [ ] T02: Research (LangGraph v2 tool_call_id)
+- [x] T02: Research (LangGraph v2 tool_call_id) -- confirmed ToolCallIdCapture still necessary
 - [ ] T03: HITL bidirectional fallback elimination
 - [ ] T04: SetupOrchestrator extraction
 - [ ] Testing and validation

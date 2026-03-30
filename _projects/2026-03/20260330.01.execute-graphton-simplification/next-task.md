@@ -68,38 +68,51 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-30 09:32
-**Current Task**: T02 (Research — LangGraph v2 tool_call_id availability)
-**Status**: T01 complete, ready for T02
+**Current Task**: T03 (Eliminate HITL bidirectional fallback)
+**Status**: T01 and T02 complete, ready for T03
 
 ## Session Progress (2026-03-30)
 
-### T01 Completed — Quick Wins
+### Session 1: T01 Completed — Quick Wins
 - **S5**: Added `_LANGGRAPH_UNLIMITED_RECURSION` named constant, replaced magic number
 - **S3**: Extracted `_persist_and_return_failed_status()` helper, deduplicated two error handlers
 - **S4**: Extracted `InlinePublisher` class from 64-line closure into `graphton/inline_publisher.py`
 - **Tests**: 9 new unit tests for InlinePublisher; all 1,382 tests pass
 - **Impact**: execute_graphton.py 2,184 → 2,127 lines (-57 net, ~110 lines of logic extracted/deduplicated)
 
-### Surprise Discovered & Resolved
+### Session 1 Surprise Discovered & Resolved
 - Original plan said to stop passing `recursion_limit` to `create_deep_agent()`, but graphton uses it for `ExecutionBudgetMiddleware` configuration (threshold mode vs periodic mode). Removing it would have been a behavioral change. Kept the pass-through unchanged; S5 became a smaller named-constant-only change.
+
+### Session 2: T02 Completed — LangGraph v2 tool_call_id Research
+- **12 tests written** in `graphton/tests/core/test_tool_call_id_on_events.py` (10 deterministic + 2 real Anthropic LLM)
+- **All pass** against langgraph==1.0.8, langchain-core==1.2.12
+- **Findings confirmed**:
+  1. v2 `astream_events` do NOT carry `tool_call_id` on `on_tool_start` / `on_tool_end` events
+  2. LangChain callback API (`BaseCallbackHandler.on_tool_start`) DOES receive `tool_call_id` as a kwarg
+  3. Sync callbacks fire BEFORE the corresponding v2 event (critical for ToolCallIdCapture timing)
+  4. Multiple tool calls each get correct `tool_call_id` via callback
+  5. Resume after interrupt preserves `tool_call_id` in callback
+  6. Real Anthropic model (`claude-sonnet-4-20250514`) confirms same behavior
+- **Conclusion**: `ToolCallIdCapture` is still necessary. The primary identity path works. Bidirectional fallback is compensating complexity, not a safety net for a broken mechanism.
 
 ## Next Steps
 
-1. **T02**: Research whether current LangGraph version exposes `tool_call_id` on `astream_events` tool start/end events (determines if ToolCallIdCapture can be simplified)
-2. **T03**: If T02 confirms availability, eliminate HITL bidirectional fallback matching
-3. **T04**: Extract SetupOrchestrator with parallelized gRPC fetches (depends on T01 + T03)
+1. **T03**: Eliminate HITL bidirectional fallback matching (T02 research confirms the primary path works)
+2. **T04**: Extract SetupOrchestrator with parallelized gRPC fetches (depends on T01 + T03)
 
 ## Context for Resume
 
-- T01 changes are committed and all tests pass
+- T01 changes are committed on branch `feat/execute-graphton-hardening`
+- T02 test file and execution log need to be committed (new files, not yet staged)
 - The `_persist_and_return_failed_status` helper is already used by both error handlers — good foundation for T04
 - The `InlinePublisher` class established the pattern for extracting closures to classes with explicit dependencies
-- Knowledge folders (design-decisions, coding-guidelines, wrong-assumptions, dont-dos) are still empty — no project-specific patterns established yet beyond what's in the task plan
+- T02 empirically validated that ToolCallIdCapture's architecture is correct — T03 can proceed with confidence
+- Knowledge folders (design-decisions, coding-guidelines, wrong-assumptions, dont-dos) are still empty
 
 ## Quick Commands
 
 After loading context:
-- "Start T02" - Begin LangGraph v2 tool_call_id research
+- "Start T03" - Begin HITL bidirectional fallback elimination
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
