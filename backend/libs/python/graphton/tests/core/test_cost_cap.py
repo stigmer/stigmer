@@ -358,3 +358,109 @@ class TestMultiInvocation:
         result = await mw.aafter_model(_make_state(ai), runtime={})
         assert result is None
         assert abs(mw.running_cost - 0.04) < 1e-9
+
+
+# =============================================================================
+# Sub-agent view (_CostCapSubAgentView)
+# =============================================================================
+
+
+class TestSubAgentView:
+    async def test_for_sub_agent_returns_view(self):
+        parent = CostCapMiddleware(max_cost_usd=5.0, **_PRICING)
+        view = parent.for_sub_agent()
+        assert view._parent is parent
+
+    async def test_view_abefore_agent_does_not_reset(self):
+        """Sub-agent abefore_agent must NOT reset parent cost state."""
+        parent = CostCapMiddleware(max_cost_usd=5.0, **_PRICING)
+        ai = _make_ai_message(input_tokens=1000, output_tokens=1000)
+        await parent.aafter_model(_make_state(ai), runtime={})
+        cost_before = parent.running_cost
+        assert cost_before > 0
+
+        view = parent.for_sub_agent()
+        result = await view.abefore_agent(_make_state(), runtime={})
+        assert result is None
+        assert parent.running_cost == cost_before
+
+    async def test_view_accumulates_into_parent(self):
+        """Sub-agent model calls accumulate against the parent's budget."""
+        parent = CostCapMiddleware(max_cost_usd=10.0, **_PRICING)
+        view = parent.for_sub_agent()
+
+        ai = _make_ai_message(input_tokens=1000, output_tokens=1000)
+        await view.aafter_model(_make_state(ai), runtime={})
+
+        # cost = (1000 * 10 + 1000 * 30) / 1_000_000 = 0.04
+        assert abs(parent.running_cost - 0.04) < 1e-9
+
+    async def test_view_triggers_parent_warning(self):
+        """Sub-agent cost pushes parent past warning threshold."""
+        parent = CostCapMiddleware(max_cost_usd=1.0, **_PRICING)
+        view = parent.for_sub_agent()
+        ai = _make_ai_message(input_tokens=1000, output_tokens=1000)
+
+        for _ in range(19):
+            await view.aafter_model(_make_state(ai), runtime={})
+        assert not parent._warned
+
+        result = await view.aafter_model(_make_state(ai), runtime={})
+        assert result is not None
+        assert "Budget warning" in result["messages"][0].content
+        assert parent._warned is True
+
+    async def test_view_blocks_tools_when_parent_exceeded(self):
+        """Sub-agent tools blocked when parent budget exhausted."""
+        parent = CostCapMiddleware(max_cost_usd=1.0, **_PRICING)
+        view = parent.for_sub_agent()
+        ai = _make_ai_message(input_tokens=1000, output_tokens=1000)
+
+        for _ in range(25):
+            await view.aafter_model(_make_state(ai), runtime={})
+        assert parent.exceeded is True
+
+        request = _make_request()
+        handler = _make_handler()
+        result = await view.awrap_tool_call(request, handler)
+        assert "Budget exceeded" in result.content
+        handler.assert_not_awaited()
+
+    async def test_parent_and_view_share_budget(self):
+        """Both parent and view contribute to the same running cost."""
+        parent = CostCapMiddleware(max_cost_usd=10.0, **_PRICING)
+        view = parent.for_sub_agent()
+        ai = _make_ai_message(input_tokens=1000, output_tokens=1000)
+
+        await parent.aafter_model(_make_state(ai), runtime={})
+        await view.aafter_model(_make_state(ai), runtime={})
+
+        assert abs(parent.running_cost - 0.08) < 1e-9
+
+    async def test_view_aafter_agent_returns_none(self):
+        parent = CostCapMiddleware(max_cost_usd=5.0, **_PRICING)
+        view = parent.for_sub_agent()
+        result = await view.aafter_agent(_make_state(), runtime={})
+        assert result is None
+
+    async def test_sub_agent_start_does_not_erase_parent_cost(self):
+        """Full scenario: parent accumulates cost, sub-agent starts,
+        parent cost is preserved, both continue accumulating."""
+        parent = CostCapMiddleware(max_cost_usd=10.0, **_PRICING)
+        view = parent.for_sub_agent()
+        ai = _make_ai_message(input_tokens=1000, output_tokens=1000)
+
+        # Parent makes 5 calls
+        for _ in range(5):
+            await parent.aafter_model(_make_state(ai), runtime={})
+        parent_cost_before = parent.running_cost
+        assert abs(parent_cost_before - 0.20) < 1e-9
+
+        # Sub-agent starts (abefore_agent fires)
+        await view.abefore_agent(_make_state(), runtime={})
+        assert parent.running_cost == parent_cost_before
+
+        # Sub-agent makes 3 calls
+        for _ in range(3):
+            await view.aafter_model(_make_state(ai), runtime={})
+        assert abs(parent.running_cost - 0.32) < 1e-9

@@ -516,6 +516,11 @@ def create_deep_agent(
     # Only injected when a positive cost cap is set.  Warns at 80% of the
     # budget, blocks tools at 100%, and gives the model one final round to
     # summarise before the graph terminates naturally.
+    #
+    # The instance is stored in _cost_cap so sub-agents can share the same
+    # budget via cost_cap.for_sub_agent() — a lightweight view that
+    # delegates cost tracking without resetting on abefore_agent.
+    _cost_cap: CostCapMiddleware | None = None
     if max_cost_usd > 0.0:
         if not cost_pricing:
             logger.warning(
@@ -525,7 +530,7 @@ def create_deep_agent(
                 max_cost_usd,
             )
         else:
-            cost_cap = CostCapMiddleware(
+            _cost_cap = CostCapMiddleware(
                 max_cost_usd=max_cost_usd,
                 input_price_per_million=cost_pricing["input_price_per_million"],
                 output_price_per_million=cost_pricing["output_price_per_million"],
@@ -533,7 +538,7 @@ def create_deep_agent(
                     "cache_read_price_per_million", 0.0,
                 ),
             )
-            middleware_list.append(cost_cap)
+            middleware_list.append(_cost_cap)
             logger.info(
                 "Cost cap middleware enabled: max_cost=$%.2f",
                 max_cost_usd,
@@ -648,14 +653,15 @@ def create_deep_agent(
                     )
                     sa_middleware.insert(0, ContextSummarizationMiddleware(
                         config=summarization_config,
-                        callback=None,
+                        callback=summarization_callback,
                     ))
                     logger.info(
                         "Injected summarization middleware into sub-agent '%s' "
-                        "(trigger=%d, target=%d)",
+                        "(trigger=%d, target=%d, callback=%s)",
                         sa_name,
                         summarization_config.trigger_threshold,
                         summarization_config.target_tokens,
+                        "present" if summarization_callback is not None else "none",
                     )
 
                 compiled_sa = compile_subagent(
@@ -666,6 +672,7 @@ def create_deep_agent(
                     description=sa_desc,
                     middleware=sa_middleware,
                     recursion_limit=recursion_limit,
+                    cost_cap=_cost_cap.for_sub_agent() if _cost_cap is not None else None,
                 )
                 compiled_sa["runnable"] = gate.wrap(compiled_sa["runnable"], name=sa_name)
                 compiled_subagents.append(compiled_sa)
@@ -698,7 +705,7 @@ def create_deep_agent(
                 )
                 gp_middleware.insert(0, ContextSummarizationMiddleware(
                     config=summarization_config,
-                    callback=None,
+                    callback=summarization_callback,
                 ))
 
             _pending_gp_config = {
@@ -706,6 +713,7 @@ def create_deep_agent(
                 "system_prompt": _build_gp_system_prompt(system_prompt),
                 "middleware": gp_middleware,
                 "recursion_limit": recursion_limit,
+                "cost_cap": _cost_cap.for_sub_agent() if _cost_cap is not None else None,
             }
 
         transformed_subagents = compiled_subagents
@@ -716,9 +724,12 @@ def create_deep_agent(
             gate._max,
         )
     elif subagents is not None:
-        if summarization_config is not None and summarization_config.enabled:
-            from graphton.core.summarization_middleware import ContextSummarizationMiddleware
+        needs_summarization = (
+            summarization_config is not None and summarization_config.enabled
+        )
+        needs_cost_cap = _cost_cap is not None
 
+        if needs_summarization or needs_cost_cap:
             augmented_subagents = []
             for sa in subagents:
                 if "runnable" in sa:
@@ -726,19 +737,25 @@ def create_deep_agent(
                     continue
                 sa_copy = dict(sa)
                 sa_mw = list(sa_copy.get("middleware", []))
-                sa_mw.insert(0, ContextSummarizationMiddleware(
-                    config=summarization_config,
-                    callback=None,
-                ))
+                if needs_summarization:
+                    from graphton.core.summarization_middleware import (
+                        ContextSummarizationMiddleware,
+                    )
+                    sa_mw.insert(0, ContextSummarizationMiddleware(
+                        config=summarization_config,
+                        callback=summarization_callback,
+                    ))
+                if needs_cost_cap:
+                    sa_mw.append(_cost_cap.for_sub_agent())
                 sa_copy["middleware"] = sa_mw
                 augmented_subagents.append(sa_copy)
             transformed_subagents = augmented_subagents
             logger.info(
-                "Injected summarization middleware into %d sub-agent(s) "
-                "(non-HITL path, trigger=%d, target=%d)",
+                "Injected middleware into %d sub-agent(s) "
+                "(non-HITL path, summarization=%s, cost_cap=%s)",
                 len(augmented_subagents),
-                summarization_config.trigger_threshold,
-                summarization_config.target_tokens,
+                needs_summarization,
+                needs_cost_cap,
             )
         else:
             transformed_subagents = subagents
@@ -975,6 +992,7 @@ def create_deep_agent(
                 ),
                 middleware=_pending_gp_config["middleware"],
                 recursion_limit=_pending_gp_config.get("recursion_limit"),
+                cost_cap=_pending_gp_config.get("cost_cap"),
             )
             gp_sa["runnable"] = _hitl_gate.wrap(
                 gp_sa["runnable"], name="general-purpose",
@@ -996,43 +1014,11 @@ def create_deep_agent(
             )
 
     # ── Tool count observability ────────────────────────────────────────
-    # Model tool-selection accuracy degrades with many tools (research
-    # shows notable decline above ~20-25).  Log a warning when the
-    # count is high so operators can tune MCP enabled_tools lists.
-    tool_count_warning_threshold = 25
-    tool_desc_max_chars = 500
+    # Shared with compile_subagent via audit_tool_set: warns when tool
+    # count is high (>25) and truncates overly verbose descriptions.
+    from graphton.core.subagent import audit_tool_set
 
-    total_tool_count = len(tools_list)
-    if total_tool_count > tool_count_warning_threshold:
-        logger.warning(
-            "[TOOL-COUNT] %d tools bound (threshold=%d). "
-            "High tool counts degrade model selection accuracy. "
-            "Consider reducing MCP enabled_tools.",
-            total_tool_count,
-            tool_count_warning_threshold,
-        )
-    logger.info(
-        "[TOOL-COUNT] total=%d (threshold=%d)",
-        total_tool_count,
-        tool_count_warning_threshold,
-    )
-
-    # Cap overly verbose MCP tool descriptions so they don't bloat
-    # the tool-calling payload.  The description remains useful for
-    # the model but stops consuming excessive tokens.
-    truncated_count = 0
-    for tool in tools_list:
-        desc = getattr(tool, "description", None)
-        if desc and len(desc) > tool_desc_max_chars:
-            tool.description = desc[:tool_desc_max_chars] + "..."  # type: ignore[union-attr]
-            truncated_count += 1
-    if truncated_count:
-        logger.info(
-            "[TOOL-COUNT] Truncated descriptions on %d tool(s) "
-            "exceeding %d chars",
-            truncated_count,
-            tool_desc_max_chars,
-        )
+    audit_tool_set(tools_list, context_label="main-agent")
 
     # Create the Deep Agent using deepagents library.
     #
