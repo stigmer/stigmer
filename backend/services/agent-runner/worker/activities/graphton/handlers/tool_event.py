@@ -96,6 +96,7 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
         if early_tc is not None:
             tool_call_id_val = early_tc.id
         else:
+            resolved_id = sb._tool_call_id_capture.resolve(run_id)
             ns_key = namespace or ""
             display_args = humanize_args_for_display(sb, tool_args) if tool_args else {}
             args_struct = Struct()
@@ -103,7 +104,7 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
                 args_struct.update(display_args)
             now = datetime.utcnow()
             tool_call = ToolCall(
-                id=run_id,
+                id=resolved_id,
                 name=tool_name,
                 args=args_struct,
                 args_preview=create_args_preview(sb, tool_args),
@@ -117,8 +118,10 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
             )
             parent_ai = sb._ensure_parent_ai_message(ns_key, namespace)
             parent_ai.tool_calls.append(tool_call)
-            sb.state.tool_calls[run_id] = parent_ai.tool_calls[-1]
-            tool_call_id_val = run_id
+            sb.state.tool_calls[resolved_id] = parent_ai.tool_calls[-1]
+            if resolved_id != run_id:
+                sb._tool_call_id_capture.register_alias(run_id, resolved_id)
+            tool_call_id_val = resolved_id
 
         await sb._handle_sub_agent_start(event, tool_args, run_id, tool_call_id=tool_call_id_val)
         return
@@ -126,6 +129,8 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
     early_tc = sb._reconcile_early_tool_call(tool_name, run_id, tool_args, namespace)
     if early_tc is not None:
         return
+
+    resolved_id = sb._tool_call_id_capture.resolve(run_id)
 
     component_type = infer_component_type(tool_name)
     component_metadata = ComponentMetadata(
@@ -152,7 +157,7 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
         mcp_server_slug = sb._approval_config.get_mcp_server_for_tool(tool_name)
 
     tool_call = ToolCall(
-        id=run_id,
+        id=resolved_id,
         name=tool_name,
         args=args_struct,
         args_preview=create_args_preview(sb, tool_args),
@@ -182,12 +187,14 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
 
     parent_ai = sb._ensure_parent_ai_message(ns_key, namespace)
     parent_ai.tool_calls.append(tool_call)
-    sb.state.tool_calls[run_id] = parent_ai.tool_calls[-1]
+    sb.state.tool_calls[resolved_id] = parent_ai.tool_calls[-1]
+    if resolved_id != run_id:
+        sb._tool_call_id_capture.register_alias(run_id, resolved_id)
 
     context_desc = f"sub_agent={sub_agent.id}" if sub_agent else "main_agent"
     sb.logger.debug(
         f"[TOOL] execution={sb.execution_id} {context_desc} "
-        f"tool={tool_name} run_id={run_id} status={status_name}"
+        f"tool={tool_name} run_id={run_id} resolved_id={resolved_id} status={status_name}"
     )
 
     if approval_requirement.requires_approval:

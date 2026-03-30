@@ -220,6 +220,18 @@ func (s *BuildNewStateWithStatusStep) Execute(ctx *pipeline.RequestContext[*agen
 		updated.Status.CompletedAt = requestStatus.CompletedAt
 	}
 
+	// Defense-in-depth: completed_at must not be set for non-terminal phases.
+	// The Python agent-runner clears completed_at on resume via ResumeReconciler,
+	// but the empty-string merge above cannot propagate the clear because the
+	// condition guards against empty values.  This explicit guard prevents the
+	// contradictory state (completed_at set + phase=WAITING_FOR_APPROVAL) that
+	// was observed in production.
+	if updated.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_IN_PROGRESS ||
+		updated.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_WAITING_FOR_APPROVAL ||
+		updated.Status.Phase == agentexecutionv1.ExecutionPhase_EXECUTION_PENDING {
+		updated.Status.CompletedAt = ""
+	}
+
 	// Compute pending_approvals from tool call state in messages
 	updated.Status.PendingApprovals = approval.ComputePendingApprovals(
 		updated.Status.GetMessages(),
