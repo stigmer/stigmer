@@ -24,7 +24,6 @@ from graphton.core.loop_detection import LoopDetectionMiddleware
 from graphton.core.subagent import (
     _SUB_AGENT_ADVISORY_INTERVAL,
     _SUB_AGENT_MAX_ADVISORIES,
-    _TOOL_COUNT_WARNING_THRESHOLD,
     _TOOL_DESC_MAX_CHARS,
     _UNLIMITED_RECURSION,
     audit_tool_set,

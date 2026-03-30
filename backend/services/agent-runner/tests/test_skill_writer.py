@@ -268,17 +268,14 @@ class TestGeneratePromptSection:
         assert "### Working with Skill Files" in result, (
             "Prompt must include a dedicated subsection for skill file access"
         )
-        assert "**Reading**" in result and "Location" in result, (
+        assert "**Location**" in result, (
             "Prompt must explain how to read skill files via Location path"
         )
-        assert "**Executing scripts**" in result, (
-            "Prompt must explain how to execute skill scripts"
+        assert "`read {location}/" in result, (
+            "Prompt must show a read example using {location}"
         )
-        assert "$STIGMER_PLATFORM_DIR" in result, (
-            "Prompt must reference the $STIGMER_PLATFORM_DIR env var"
-        )
-        assert "execute" in result.lower(), (
-            "Prompt must mention the execute tool"
+        assert "`execute(" in result, (
+            "Prompt must show an execute example"
         )
 
     def test_progressive_disclosure_format(self, mock_skill):
