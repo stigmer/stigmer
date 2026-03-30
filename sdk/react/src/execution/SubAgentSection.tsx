@@ -217,6 +217,7 @@ function CollapsibleCard({
               <SubAgentThreadContent
                 threadItems={threadItems}
                 todos={sub.todos}
+                input={sub.input}
                 isFailed={isFailed}
                 error={sub.error}
               />
@@ -284,6 +285,7 @@ function FlatContent({
       <SubAgentThreadContent
         threadItems={threadItems}
         todos={sub.todos}
+        input={sub.input}
         isFailed={isFailed}
         error={sub.error}
       />
@@ -298,6 +300,7 @@ function FlatContent({
 interface SubAgentThreadContentProps {
   readonly threadItems: SubAgentThreadItem[];
   readonly todos?: { readonly [key: string]: TodoItem };
+  readonly input?: string;
   readonly isFailed: boolean;
   readonly error: string;
 }
@@ -305,6 +308,7 @@ interface SubAgentThreadContentProps {
 function SubAgentThreadContent({
   threadItems,
   todos,
+  input,
   isFailed,
   error,
 }: SubAgentThreadContentProps) {
@@ -313,6 +317,14 @@ function SubAgentThreadContent({
   return (
     <>
       {hasTodos && <TodoList todos={todos!} className="pb-1" />}
+
+      {input && (
+        <div
+          className="border-l-2 border-muted-foreground/25 pl-2.5 text-xs text-muted-foreground whitespace-pre-wrap mb-1"
+        >
+          {input}
+        </div>
+      )}
 
       {threadItems.length > 0 && (
         <div className="flex flex-col gap-1 pb-1">
