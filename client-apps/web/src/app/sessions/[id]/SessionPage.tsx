@@ -66,7 +66,7 @@ export default function SessionPage() {
   return <SessionPageInner id={id} />;
 }
 
-function SessionPageInner({ id }: { id: string }) {
+export function SessionPageInner({ id }: { id: string }) {
   const org = useActiveOrgSlug();
   const stigmer = useStigmer();
   const conv = useSessionConversation(id, org);
@@ -272,10 +272,10 @@ function SessionPageInner({ id }: { id: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Local sub-components — Console-specific, not exported
+// Local sub-components
 // ---------------------------------------------------------------------------
 
-function SessionSkeleton() {
+export function SessionSkeleton() {
   return (
     <div className="flex h-full flex-col gap-4 p-4" aria-busy="true">
       <div className="animate-pulse space-y-4">

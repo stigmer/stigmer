@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { type MouseEvent, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Plus, Library, MessageSquare, PanelLeft } from "lucide-react";
@@ -16,18 +16,24 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import { useSessionNavigation } from "@/contexts/session-navigation";
 import { OrgSwitcher } from "./OrgSwitcher";
 import { UserMenu } from "./UserMenu";
 import { useSidebarOpen } from "./use-layout-state";
+
+/** Allow modifier-clicks (Cmd/Ctrl, middle-click) to open in a new tab. */
+function isPlainClick(e: MouseEvent): boolean {
+  return !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && e.button === 0;
+}
 
 export function Sidebar() {
   const sidebar = useSidebarOpen();
   const pathname = usePathname();
   const { sessions, isLoading, error, refetch } = useSessionList();
+  const { activeSessionId, isSessionZone, navigateToSession, navigateToHome } =
+    useSessionNavigation();
 
-  const activeSessionId =
-    pathname.match(/^\/sessions\/(.+)/)?.[1] ?? null;
-  const isLibraryActive = pathname.startsWith("/library");
+  const isLibraryActive = !isSessionZone && pathname.startsWith("/library");
 
   useEffect(() => {
     refetch();
@@ -43,11 +49,21 @@ export function Sidebar() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [pathname, activeSessionId, refetch]);
+  }, [activeSessionId, refetch]);
 
   const groups = useMemo(
     () => groupSessionsByTime(sessions),
     [sessions],
+  );
+
+  const handleNewSession = useCallback(
+    (e: MouseEvent) => {
+      if (isPlainClick(e)) {
+        e.preventDefault();
+        navigateToHome();
+      }
+    },
+    [navigateToHome],
   );
 
   return (
@@ -76,13 +92,14 @@ export function Sidebar() {
 
       {/* New Session */}
       <div className="flex-none px-3 py-1">
-        <Link
+        <a
           href="/"
+          onClick={handleNewSession}
           className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors"
         >
           <Plus className="size-4 shrink-0" />
           New Session
-        </Link>
+        </a>
       </div>
 
       {/* Library */}
@@ -122,6 +139,7 @@ export function Sidebar() {
             <SessionGroupList
               groups={groups}
               activeSessionId={activeSessionId}
+              onNavigate={navigateToSession}
             />
           )}
         </div>
@@ -138,9 +156,11 @@ export function Sidebar() {
 function SessionGroupList({
   groups,
   activeSessionId,
+  onNavigate,
 }: {
   groups: readonly SessionGroup[];
   activeSessionId: string | null;
+  onNavigate: (id: string) => void;
 }) {
   return (
     <TooltipProvider>
@@ -164,6 +184,12 @@ function SessionGroupList({
                         render={
                           <a
                             href={`/sessions/${id}`}
+                            onClick={(e: MouseEvent) => {
+                              if (isPlainClick(e)) {
+                                e.preventDefault();
+                                onNavigate(id);
+                              }
+                            }}
                             aria-current={
                               isActive ? "page" : undefined
                             }
