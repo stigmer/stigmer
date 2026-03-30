@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "approval",
-    srcs = ["compute.go"],
+    srcs = [
+        "compute.go",
+        "preserve.go",
+    ],
     importpath = "github.com/stigmer/stigmer/backend/services/stigmer-server/pkg/domain/agentexecution/approval",
     visibility = ["//visibility:public"],
     deps = [
@@ -12,7 +15,10 @@ go_library(
 
 go_test(
     name = "approval_test",
-    srcs = ["compute_test.go"],
+    srcs = [
+        "compute_test.go",
+        "preserve_test.go",
+    ],
     embed = [":approval"],
     deps = ["//apis/stubs/go/ai/stigmer/agentic/agentexecution/v1:agentexecution"],
 )
