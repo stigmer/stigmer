@@ -4,7 +4,7 @@ import contextlib
 import logging
 import os
 import traceback
-from typing import Any
+from typing import cast
 
 from ai.stigmer.agentic.agentexecution.v1.api_pb2 import AgentExecutionStatus
 from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
@@ -21,29 +21,6 @@ from temporalio import activity
 
 from grpc_client.agent_execution_client import AgentExecutionClient
 from grpc_client.channel import ChannelProvider
-from worker.activities.graphton.hitl import (
-    ResumeReconciler,  # noqa: F401 — re-exported for tests
-    ResumeResult,
-    _build_decision_value,  # noqa: F401 — re-exported for tests
-    _summarize_resume_entry,  # noqa: F401 — re-exported for tests
-    extract_interrupt_tool_call_ids,  # noqa: F401 — re-exported for tests
-    resolve_resume_input,
-)
-from worker.activities.graphton.setup import SetupResult, perform_setup
-from worker.activities.graphton.status_builder import (
-    StatusBuilder,  # noqa: F401 — re-exported for backward compat
-    _utc_timestamp,
-)
-from worker.activities.graphton.temporal_helpers import (
-    slim_status_for_temporal as _slim_status_for_temporal,
-)
-from worker.resilience import (
-    GrpcNonRetryableError,
-    GrpcRetryExecutor,
-    GrpcRetryExhaustedError,
-    RetryConfig,
-)
-from worker.token_manager import get_api_key
 
 # ─── Re-exports for backward compatibility with test imports ─────────────
 from worker.activities.graphton.attachments import (
@@ -55,11 +32,29 @@ from worker.activities.graphton.attachments import (
 from worker.activities.graphton.attachments import (
     auto_publish_written_files as _auto_publish_written_files,  # noqa: F401
 )
+from worker.activities.graphton.hitl import (
+    ResumeReconciler,  # noqa: F401 — re-exported for tests
+    _build_decision_value,  # noqa: F401 — re-exported for tests
+    _summarize_resume_entry,  # noqa: F401 — re-exported for tests
+    extract_interrupt_tool_call_ids,  # noqa: F401 — re-exported for tests
+    resolve_resume_input,
+)
 from worker.activities.graphton.prompt_builder import (
     _format_entry_description,  # noqa: F401 — re-exported for tests
     build_referenced_files_prompt_section,  # noqa: F401 — re-exported for tests
     build_workspace_prompt_section,  # noqa: F401 — re-exported for tests
     enhance_system_prompt,  # noqa: F401 — re-exported for tests
+)
+
+# Sentinel re-exported from setup.py for any code that references it here.
+from worker.activities.graphton.setup import (  # noqa: F401
+    _LANGGRAPH_UNLIMITED_RECURSION,
+    SetupResult,
+    perform_setup,
+)
+from worker.activities.graphton.status_builder import (
+    StatusBuilder,  # noqa: F401 — re-exported for backward compat
+    _utc_timestamp,
 )
 from worker.activities.graphton.temporal_helpers import (  # noqa: F401
     SetupTimer,
@@ -69,6 +64,15 @@ from worker.activities.graphton.temporal_helpers import (  # noqa: F401
 from worker.activities.graphton.temporal_helpers import (
     run_sync_with_heartbeat as _run_sync_with_heartbeat,  # noqa: F401
 )
+from worker.activities.graphton.temporal_helpers import (
+    slim_status_for_temporal as _slim_status_for_temporal,
+)
+from worker.resilience import (
+    GrpcNonRetryableError,
+    GrpcRetryExecutor,
+    GrpcRetryExhaustedError,
+    RetryConfig,
+)
 from worker.storage import (  # noqa: F401 — ArtifactStorage re-exported for tests
     ArtifactStorage,
     create_artifact_storage,
@@ -77,13 +81,9 @@ from worker.streaming import (  # noqa: F401 — StreamingUpdateScheduler re-exp
     StreamingConfig,
     StreamingUpdateScheduler,
 )
+from worker.token_manager import get_api_key
 from worker.workspace import (
     WorkspaceBackend,  # noqa: F401 — re-exported for tests
-)
-
-# Sentinel re-exported from setup.py for any code that references it here.
-from worker.activities.graphton.setup import (  # noqa: F401
-    _LANGGRAPH_UNLIMITED_RECURSION,
 )
 
 
@@ -177,7 +177,7 @@ async def execute_graphton(
     Returns:
         AgentExecutionStatus: Final status with messages, tool_calls, phase
     """
-    activity_logger = activity.logger
+    activity_logger = cast(logging.Logger, activity.logger)
     activity_logger.info(f"ExecuteGraphton started for execution: {execution_id}")
 
     # Unwrap ApprovalDecisionList → list[SubmitApprovalInput].
@@ -444,14 +444,15 @@ async def _execute_graphton_impl(
                 )
             return stream_result.terminal_status
 
-        from worker.activities.graphton.post_stream import process_post_stream
-        from worker.activities.graphton.approval_policy import (
-            resolve_platform_tool_name,
-        )
         from graphton.core.backends.platform_mount import (
             humanize_platform_refs,
             resolve_display_env_vars,
         )
+
+        from worker.activities.graphton.approval_policy import (
+            resolve_platform_tool_name,
+        )
+        from worker.activities.graphton.post_stream import process_post_stream
 
         post_result = await process_post_stream(
             status_builder=setup.status_builder,

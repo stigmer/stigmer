@@ -13,9 +13,7 @@ while a concurrent probe task measures event-loop drift.
 from __future__ import annotations
 
 import asyncio
-import time
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 

@@ -44,10 +44,8 @@ if TYPE_CHECKING:
     from ai.stigmer.agentic.agentexecution.v1.api_pb2 import (
         AgentExecutionStatus,
     )
+
     from grpc_client.agent_execution_client import AgentExecutionClient
-    from worker.activities.graphton.temporal_helpers import (
-        slim_status_for_temporal as _slim_status_for_temporal,
-    )
 
 # Proto enum → action string for interrupt resume values
 _ACTION_MAP: dict[ApprovalAction, str] = {
@@ -317,7 +315,7 @@ async def resolve_resume_input(
     # Build graph input
     from langgraph.types import Command
 
-    graph_input = Command(resume=resume_dict)
+    graph_input: Command = Command(resume=resume_dict)
     summary = ", ".join(
         _summarize_resume_entry(iid, val)
         for iid, val in resume_dict.items()
