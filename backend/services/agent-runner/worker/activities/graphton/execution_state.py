@@ -143,6 +143,11 @@ class ExecutionState:
     # checkpoint namespace root -> sub-agent task run_id for event routing.
     namespace_to_sub_agent: dict[str, str] = field(default_factory=dict)
 
+    # sa_ids of IN_PROGRESS sub-agents pre-registered before the resume stream
+    # starts.  Consumed by handle_sub_agent_start (on real on_tool_start) or
+    # by deferred-binding in _register_sub_agent_namespace.
+    pending_resume_sa_ids: set[str] = field(default_factory=set)
+
     # Tracks how many times each subject has been assigned for dedup suffixes.
     subject_counts: dict[str, int] = field(default_factory=dict)
 

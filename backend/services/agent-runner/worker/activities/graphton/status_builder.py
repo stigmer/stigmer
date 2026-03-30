@@ -289,6 +289,9 @@ class StatusBuilder:
     def prepare_task_tool_resume_queue(self) -> int:
         return sub_agent_handlers.prepare_task_tool_resume_queue(self)
 
+    def pre_register_in_progress_sub_agents(self) -> int:
+        return sub_agent_handlers.pre_register_in_progress_sub_agents(self)
+
     # ── Sub-Agent Delegations ─────────────────────────────────────────────
 
     async def _handle_sub_agent_start(self, event: dict[str, Any],
@@ -390,13 +393,24 @@ class StatusBuilder:
     def _register_sub_agent_namespace(
         self, namespace: str, event: dict[str, Any],
     ) -> None:
-        """Register namespace -> sub-agent mapping via ``parent_ids``."""
+        """Register namespace -> sub-agent mapping via ``parent_ids``.
+
+        Resolution priority:
+          1. Active sub-agents (by parent_id match)
+          2. Deferred binding: if a single unattached IN_PROGRESS sub-agent
+             exists (pre-registered but never claimed by handle_sub_agent_start),
+             bind it to the first unknown parent_id
+          3. Completed sub-agents — only when NO active sub-agents exist
+             (prevents misrouting events to a finished sub-agent)
+        """
         if not namespace or namespace in self.state.namespace_to_sub_agent:
             return
         if "|" not in namespace:
             return
 
         parent_ids: list[str] = event.get("parent_ids", [])
+
+        # Priority 1: match against active sub-agents
         for pid in parent_ids:
             if pid in self.state.active_sub_agents:
                 self.state.namespace_to_sub_agent[namespace] = pid
@@ -405,14 +419,64 @@ class StatusBuilder:
                     namespace, pid,
                 )
                 return
-            if pid in self.state.completed_sub_agents:
-                self.state.namespace_to_sub_agent[namespace] = pid
-                self.logger.debug(
-                    "[SUBAGENT] namespace=%s -> completed sub_agent=%s "
-                    "(via parent_ids)",
-                    namespace, pid,
+
+        # Priority 2: deferred binding for pre-registered sub-agents whose
+        # on_tool_start was never replayed by LangGraph on resume.
+        if self.state.pending_resume_sa_ids:
+            if len(self.state.pending_resume_sa_ids) == 1:
+                sa_id = next(iter(self.state.pending_resume_sa_ids))
+                sa_proto = self.state.active_sub_agents.get(sa_id)
+                if sa_proto is not None:
+                    for pid in parent_ids:
+                        if (
+                            pid not in self.state.active_sub_agents
+                            and pid not in self.state.completed_sub_agents
+                        ):
+                            del self.state.active_sub_agents[sa_id]
+                            self.state.active_sub_agents[pid] = sa_proto
+                            self.state.run_id_to_tool_call_id[pid] = sa_id
+                            self.state.pending_resume_sa_ids.discard(sa_id)
+                            self.state.namespace_to_sub_agent[namespace] = pid
+                            self.logger.info(
+                                "[SUBAGENT] execution=%s deferred binding: "
+                                "namespace=%s -> parent_id=%s -> sa_id=%s "
+                                "(on_tool_start not replayed for this sub-agent)",
+                                self.execution_id, namespace, pid, sa_id,
+                            )
+                            return
+            else:
+                self.logger.warning(
+                    "[SUBAGENT] execution=%s namespace=%s: %d unattached "
+                    "sub-agents pending — cannot determine binding "
+                    "(pending_sa_ids=%s, parent_ids=%s)",
+                    self.execution_id, namespace,
+                    len(self.state.pending_resume_sa_ids),
+                    sorted(self.state.pending_resume_sa_ids),
+                    parent_ids,
                 )
-                return
+
+        # Priority 3: completed sub-agents — only when no active sub-agents
+        # exist, to prevent misrouting live events to a finished sub-agent.
+        if not self.state.active_sub_agents:
+            for pid in parent_ids:
+                if pid in self.state.completed_sub_agents:
+                    self.state.namespace_to_sub_agent[namespace] = pid
+                    self.logger.debug(
+                        "[SUBAGENT] namespace=%s -> completed sub_agent=%s "
+                        "(via parent_ids, no active sub-agents)",
+                        namespace, pid,
+                    )
+                    return
+        else:
+            for pid in parent_ids:
+                if pid in self.state.completed_sub_agents:
+                    self.logger.warning(
+                        "[SUBAGENT] execution=%s namespace=%s would map to "
+                        "completed sub_agent=%s via parent_ids but active "
+                        "sub-agents exist — suppressing to prevent misrouting",
+                        self.execution_id, namespace, pid,
+                    )
+                    break
 
         self.logger.debug(
             "[SUBAGENT] execution=%s namespace=%s not resolved: "
