@@ -794,3 +794,70 @@ class TestAutoPublishWrittenFiles:
 
         assert count == 0
         mock_publish.assert_not_called()
+
+    # =========================================================================
+    # Directory-level dedup (skill directory published inline)
+    # =========================================================================
+
+    @pytest.mark.asyncio
+    async def test_files_under_published_directory_are_skipped(self):
+        """When a directory artifact was published inline (e.g. a skill
+        package), individual files under it are skipped by auto_publish."""
+        tool_calls = [
+            _make_tool_call("write", path="my-skill/SKILL.md"),
+            _make_tool_call("write", path="my-skill/references/guide.md"),
+            _make_tool_call("write", path="my-skill/scripts/run.sh"),
+        ]
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        with patch(
+            "worker.activities.graphton.attachments.publish_artifact",
+            new_callable=AsyncMock,
+        ) as mock_publish:
+            count = await _auto_publish_written_files(
+                tool_calls=tool_calls,
+                sandbox=None,
+                storage=MagicMock(),
+                execution_id="exec-dir-dedup-1",
+                status_builder=status_builder,
+                local_root="/workspace",
+                logger=logger,
+                already_published_paths={"my-skill"},
+            )
+
+        assert count == 0
+        mock_publish.assert_not_called()
+        status_builder.add_artifact.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_mixed_skill_and_non_skill_files(self):
+        """Files inside a published skill directory are skipped but
+        files outside it are still published."""
+        tool_calls = [
+            _make_tool_call("write", path="my-skill/SKILL.md"),
+            _make_tool_call("write", path="standalone.yaml"),
+        ]
+        mock_artifact = _make_artifact("standalone.yaml")
+        status_builder = MagicMock()
+        logger = logging.getLogger("test")
+
+        with patch(
+            "worker.activities.graphton.attachments.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=mock_artifact,
+        ) as mock_publish:
+            count = await _auto_publish_written_files(
+                tool_calls=tool_calls,
+                sandbox=None,
+                storage=MagicMock(),
+                execution_id="exec-dir-dedup-2",
+                status_builder=status_builder,
+                local_root="/workspace",
+                logger=logger,
+                already_published_paths={"my-skill"},
+            )
+
+        assert count == 1
+        call_kwargs = mock_publish.call_args
+        assert call_kwargs.kwargs["path"] == "standalone.yaml"

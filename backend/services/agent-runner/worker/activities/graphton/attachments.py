@@ -39,6 +39,21 @@ _MAX_ZIP_FILES = 1000
 _MAX_ZIP_EXTRACTED_SIZE = 100 * 1024 * 1024  # 100 MB
 
 
+def _is_already_published(path: str, published: set[str]) -> bool:
+    """Check if *path* (or any ancestor directory) is in *published*.
+
+    Handles both exact matches (individual file published inline) and
+    ancestor matches (file belongs to a directory artifact published
+    inline, e.g. a skill package).
+    """
+    if path in published:
+        return True
+    for pub in published:
+        if path.startswith(pub + "/"):
+            return True
+    return False
+
+
 def _validate_zip_for_extraction(
     zip_data: bytes,
     attachment_filename: str,
@@ -313,7 +328,10 @@ async def auto_publish_written_files(
 
     if _already_published:
         before = len(normalised)
-        normalised = [p for p in normalised if p not in _already_published]
+        normalised = [
+            p for p in normalised
+            if not _is_already_published(p, _already_published)
+        ]
         skipped = before - len(normalised)
         if skipped:
             logger.info(

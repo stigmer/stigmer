@@ -1,13 +1,24 @@
 """Inline artifact publisher for streaming execution.
 
-Extracts the fire-and-forget publish callback from execute_graphton so
-that captured variables become explicit constructor parameters and the
-logic is independently testable.
+Publishes artifacts as they are written during the LangGraph event stream,
+so the UI can display them in real time without waiting for the post-stream
+safety net.
+
+**Skill-aware directory publishing**: When a file write lands inside a
+directory that contains ``SKILL.md``, the publisher packages the entire
+skill root directory as a single ``DIRECTORY`` artifact (ZIP) instead of
+publishing the individual file.  This enables the frontend's skill
+package detection (``useDetectSkillPackage``) to fire immediately during
+streaming — not only after post-stream ``auto_publish_written_files``.
+
+Designed as a fire-and-forget callback: exceptions are logged and
+swallowed so the streaming loop is never interrupted.
 """
 
 from __future__ import annotations
 
 import logging
+import posixpath
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any
 
@@ -18,10 +29,18 @@ if TYPE_CHECKING:
     from worker.storage.base import ArtifactStorage
     from worker.workspace import WorkspaceBackend
 
+_SKILL_MARKER = "SKILL.md"
+
 
 class InlinePublisher:
-    """Publishes a single sandbox file to artifact storage on each
-    write/edit tool completion.
+    """Publishes workspace files to artifact storage on each write/edit
+    tool completion.
+
+    For files inside a skill directory (one containing ``SKILL.md``),
+    the entire directory is published as a ``DIRECTORY`` artifact so
+    the frontend can detect the skill package in real time.  For all
+    other files the individual file is published as a ``FILE`` artifact
+    (original behaviour).
 
     Designed as a fire-and-forget callback: exceptions are logged and
     swallowed so the streaming loop is never interrupted.
@@ -44,58 +63,59 @@ class InlinePublisher:
         self._execution_id = execution_id
         self._log = logger
 
+        self._skill_roots: set[str] = set()
+
+    @property
+    def published_skill_roots(self) -> frozenset[str]:
+        """Normalised paths of skill root directories published so far.
+
+        Exposed for the post-stream safety net so it can include these
+        in ``already_published_paths`` and avoid redundant re-uploads.
+        """
+        return frozenset(self._skill_roots)
+
+    # ------------------------------------------------------------------
+    # Public entry point
+    # ------------------------------------------------------------------
+
     async def publish(self, path: str) -> None:
         """Upload *path* from the sandbox to artifact storage and register
         it on the status builder so the next progressive gRPC update
         carries it to the UI.
+
+        If *path* is inside a skill directory (a directory that contains
+        ``SKILL.md``), the entire skill root directory is published as a
+        ``DIRECTORY`` artifact instead of the individual file.
         """
         try:
-            normalizer = (
-                self._workspace_backend._normalize
-                if hasattr(self._workspace_backend, "_normalize")
-                else None
-            )
-            rel_path = normalizer(path) if normalizer else path.lstrip("/")
-            file_name = PurePosixPath(rel_path).name
+            rel_path = self._normalize(path)
 
             self._log.info(
                 "[INLINE_PUBLISH] execution=%s — path resolution: "
-                "tool_path=%r -> normalized=%r (file_name=%r, "
+                "tool_path=%r -> normalized=%r ("
                 "sandbox=%s, has_normalizer=%s)",
-                self._execution_id, path, rel_path, file_name,
+                self._execution_id, path, rel_path,
                 "cloud" if self._sandbox is not None else "local",
-                normalizer is not None,
+                hasattr(self._workspace_backend, "_normalize"),
             )
 
-            artifact = await publish_artifact(
-                sandbox=self._sandbox,
-                storage=self._artifact_storage,
-                execution_id=self._execution_id,
-                path=rel_path,
-                name=file_name,
-                local_root=(
-                    self._workspace_backend.root_dir
-                    if self._sandbox is None else None
-                ),
-            )
+            if PurePosixPath(rel_path).name == _SKILL_MARKER:
+                parent = str(PurePosixPath(rel_path).parent)
+                if parent != ".":
+                    self._skill_roots.add(parent)
+                    self._log.info(
+                        "[INLINE_PUBLISH] execution=%s — "
+                        "registered skill root: %r (via SKILL.md write)",
+                        self._execution_id, parent,
+                    )
 
-            self._log.info(
-                "[INLINE_PUBLISH] execution=%s — content read from "
-                "sandbox: path=%r, size=%d bytes, hash=%s, "
-                "first_200=%r",
-                self._execution_id, rel_path,
-                artifact.size_bytes, artifact.content_hash,
-                artifact.name,
-            )
+            skill_root = self._find_skill_root(rel_path)
 
-            self._status_builder.add_artifact(artifact)
-            self._log.info(
-                "[INLINE_PUBLISH] execution=%s — "
-                "published '%s' as artifact '%s' "
-                "(size=%d, hash=%s)",
-                self._execution_id, rel_path, file_name,
-                artifact.size_bytes, artifact.content_hash,
-            )
+            if skill_root is not None:
+                await self._publish_skill_directory(skill_root)
+            else:
+                await self._publish_single_file(rel_path)
+
         except Exception as exc:
             self._log.warning(
                 "[INLINE_PUBLISH] execution=%s — "
@@ -103,3 +123,106 @@ class InlinePublisher:
                 "safety net will attempt): %s",
                 self._execution_id, path, exc,
             )
+
+    # ------------------------------------------------------------------
+    # Skill root detection
+    # ------------------------------------------------------------------
+
+    def _find_skill_root(self, rel_path: str) -> str | None:
+        """Return the skill root directory for *rel_path*, or ``None``.
+
+        A skill root is a directory that contains ``SKILL.md``.  The
+        search walks from the immediate parent of *rel_path* up toward
+        the workspace root, checking the in-memory cache first and
+        falling back to ``workspace_backend.file_exists``.
+        """
+        parts = PurePosixPath(rel_path).parts
+        if len(parts) < 2:
+            return None
+
+        for depth in range(len(parts) - 1, 0, -1):
+            candidate = posixpath.join(*parts[:depth])
+            if candidate in self._skill_roots:
+                return candidate
+            marker = posixpath.join(candidate, _SKILL_MARKER)
+            try:
+                if self._workspace_backend.file_exists(marker):
+                    self._skill_roots.add(candidate)
+                    self._log.info(
+                        "[INLINE_PUBLISH] execution=%s — "
+                        "discovered skill root: %r (via file_exists)",
+                        self._execution_id, candidate,
+                    )
+                    return candidate
+            except Exception:
+                pass
+
+        return None
+
+    # ------------------------------------------------------------------
+    # Publishing strategies
+    # ------------------------------------------------------------------
+
+    async def _publish_skill_directory(self, skill_root: str) -> None:
+        """Publish an entire skill directory as a ``DIRECTORY`` artifact."""
+        dir_name = PurePosixPath(skill_root).name or skill_root
+
+        artifact = await publish_artifact(
+            sandbox=self._sandbox,
+            storage=self._artifact_storage,
+            execution_id=self._execution_id,
+            path=skill_root,
+            name=dir_name,
+            local_root=(
+                self._workspace_backend.root_dir
+                if self._sandbox is None else None
+            ),
+        )
+
+        self._status_builder.add_artifact(artifact)
+        self._log.info(
+            "[INLINE_PUBLISH] execution=%s — "
+            "published skill directory '%s' as artifact '%s' "
+            "(size=%d, hash=%s, entries=%d)",
+            self._execution_id, skill_root, dir_name,
+            artifact.size_bytes, artifact.content_hash,
+            len(artifact.entries),
+        )
+
+    async def _publish_single_file(self, rel_path: str) -> None:
+        """Publish a single file as a ``FILE`` artifact (original behaviour)."""
+        file_name = PurePosixPath(rel_path).name
+
+        artifact = await publish_artifact(
+            sandbox=self._sandbox,
+            storage=self._artifact_storage,
+            execution_id=self._execution_id,
+            path=rel_path,
+            name=file_name,
+            local_root=(
+                self._workspace_backend.root_dir
+                if self._sandbox is None else None
+            ),
+        )
+
+        self._status_builder.add_artifact(artifact)
+        self._log.info(
+            "[INLINE_PUBLISH] execution=%s — "
+            "published '%s' as artifact '%s' "
+            "(size=%d, hash=%s)",
+            self._execution_id, rel_path, file_name,
+            artifact.size_bytes, artifact.content_hash,
+        )
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _normalize(self, path: str) -> str:
+        """Normalize a tool-reported path to a workspace-relative path."""
+        normalizer = (
+            self._workspace_backend._normalize
+            if hasattr(self._workspace_backend, "_normalize")
+            else None
+        )
+        return normalizer(path) if normalizer else path.lstrip("/")
