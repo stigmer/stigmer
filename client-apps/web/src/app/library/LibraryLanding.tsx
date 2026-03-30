@@ -6,7 +6,6 @@ import { Bot, Plus, Sparkles, Server } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
 import { getDraftSessionUrl } from "@/utils/draft-session";
-import { navigateTo } from "@/utils/navigation";
 import type { DraftResourceType } from "@/utils/draft-session";
 import {
   useAgentCount,
@@ -90,10 +89,6 @@ export function LibraryLanding() {
               count={count}
               isLoading={isLoading}
               href={card.href}
-              onClick={(e) => {
-                e.preventDefault();
-                navigateTo(card.href);
-              }}
             />
           );
         })}

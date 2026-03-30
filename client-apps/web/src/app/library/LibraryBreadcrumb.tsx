@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useLibraryNavigation } from "@/contexts/library-navigation";
 import { useBreadcrumbLabel } from "./LibraryBreadcrumbContext";
 
 const SEGMENT_LABELS: Record<string, string> = {
@@ -11,9 +11,9 @@ const SEGMENT_LABELS: Record<string, string> = {
 };
 
 export function LibraryBreadcrumb() {
-  const pathname = usePathname();
+  const { currentLibraryPath } = useLibraryNavigation();
   const overrideLabel = useBreadcrumbLabel();
-  const segments = pathname.replace(/^\/library\/?/, "").split("/").filter(Boolean);
+  const segments = currentLibraryPath.replace(/^\/library\/?/, "").split("/").filter(Boolean);
 
   if (segments.length === 0) return null;
 

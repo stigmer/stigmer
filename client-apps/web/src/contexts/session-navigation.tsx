@@ -79,6 +79,8 @@ export function SessionNavigationProvider({
   // Track Next.js router navigations (e.g. <Link> to /library) that
   // bypass pushState. When the Next.js pathname leaves the session
   // zone we clear the session state so AppShell renders {children}.
+  // When it re-enters (e.g. <Link href="/"> from error/not-found)
+  // we restore the session zone so AppShell renders SessionZoneContent.
   // Adjusting state during render avoids cascading effect re-renders.
   const nextPathname = usePathname();
   const [prevPathname, setPrevPathname] = useState(nextPathname);
@@ -87,6 +89,9 @@ export function SessionNavigationProvider({
     if (!isSessionZonePath(nextPathname)) {
       setIsSessionZone(false);
       setActiveSessionId(null);
+    } else if (!isSessionZone) {
+      setIsSessionZone(true);
+      setActiveSessionId(sessionIdFromPath(nextPathname));
     }
   }
 

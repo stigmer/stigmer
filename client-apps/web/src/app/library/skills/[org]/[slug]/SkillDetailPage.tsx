@@ -5,9 +5,12 @@ import { SkillDetailView, useUpdateVisibility } from "@stigmer/react";
 import { useStaticRouteParam } from "@/hooks/useStaticRouteParam";
 import { useBreadcrumbOverride } from "../../../LibraryBreadcrumbContext";
 
-export function SkillDetailPage() {
-  const org = useStaticRouteParam("org", 2);
-  const slug = useStaticRouteParam("slug");
+interface SkillDetailPageInnerProps {
+  readonly org: string;
+  readonly slug: string;
+}
+
+export function SkillDetailPageInner({ org, slug }: SkillDetailPageInnerProps) {
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
 
@@ -26,8 +29,6 @@ export function SkillDetailPage() {
     [setLabel],
   );
 
-  if (!org || !slug) return null;
-
   return (
     <SkillDetailView
       org={org}
@@ -37,4 +38,13 @@ export function SkillDetailPage() {
       isVisibilityPending={isPending}
     />
   );
+}
+
+export function SkillDetailPage() {
+  const org = useStaticRouteParam("org", 2);
+  const slug = useStaticRouteParam("slug");
+
+  if (!org || !slug) return null;
+
+  return <SkillDetailPageInner org={org} slug={slug} />;
 }
