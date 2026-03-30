@@ -132,7 +132,7 @@ async def _publish_from_sandbox(
         # Create zip in sandbox
         result = sandbox.process.exec(f"cd {path} && zip -r {zip_path} .", timeout=60)
         if result.exit_code != 0:
-            raise OSError(f"Failed to zip directory: {result.stderr}")
+            raise OSError(f"Failed to zip directory: {result.result}")
         
         # Collect file entries from the archive for the proto entries field
         entries = _list_zip_entries_sandbox(sandbox, zip_path)
@@ -217,7 +217,7 @@ def _list_zip_entries_sandbox(sandbox, zip_path: str) -> list[str]:
         return []
     
     return [
-        line for line in result.stdout.strip().splitlines()
+        line for line in result.result.strip().splitlines()
         if line and not line.endswith("/")
     ]
 

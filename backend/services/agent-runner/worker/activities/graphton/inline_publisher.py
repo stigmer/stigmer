@@ -124,18 +124,32 @@ class InlinePublisher:
             skill_root = self._find_skill_root(ws_path)
 
             if skill_root is not None:
+                self._log.info(
+                    "[INLINE_PUBLISH] execution=%s — "
+                    "skill root found: %r -> publishing directory "
+                    "(sandbox_path=%r)",
+                    self._execution_id, skill_root,
+                    self._to_sandbox_path(skill_root),
+                )
                 await self._publish_skill_directory(
                     self._to_sandbox_path(skill_root),
                 )
             else:
+                self._log.info(
+                    "[INLINE_PUBLISH] execution=%s — "
+                    "no skill root for %r -> publishing single file "
+                    "(sandbox_path=%r)",
+                    self._execution_id, ws_path, sandbox_path,
+                )
                 await self._publish_single_file(sandbox_path)
 
-        except Exception as exc:
+        except Exception:
             self._log.warning(
                 "[INLINE_PUBLISH] execution=%s — "
                 "failed to publish '%s' (non-fatal, post-stream "
-                "safety net will attempt): %s",
-                self._execution_id, path, exc,
+                "safety net will attempt)",
+                self._execution_id, path,
+                exc_info=True,
             )
 
     # ------------------------------------------------------------------
@@ -169,7 +183,12 @@ class InlinePublisher:
                     )
                     return candidate
             except Exception:
-                pass
+                self._log.debug(
+                    "[INLINE_PUBLISH] execution=%s — "
+                    "file_exists(%r) failed, skipping candidate %r",
+                    self._execution_id, marker, candidate,
+                    exc_info=True,
+                )
 
         return None
 
