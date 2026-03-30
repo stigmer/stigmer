@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-30 09:32
-**Current Task**: T03 (Eliminate HITL bidirectional fallback)
-**Status**: T01 and T02 complete, ready for T03
+**Current Task**: T04 (Extract SetupOrchestrator with parallelized gRPC fetches)
+**Status**: T01, T02, and T03 complete, ready for T04
 
 ## Session Progress (2026-03-30)
 
@@ -95,24 +95,32 @@ When starting a new session:
   6. Real Anthropic model (`claude-sonnet-4-20250514`) confirms same behavior
 - **Conclusion**: `ToolCallIdCapture` is still necessary. The primary identity path works. Bidirectional fallback is compensating complexity, not a safety net for a broken mechanism.
 
+### Session 3: T03 Completed — HITL Bidirectional Fallback Elimination
+- **Deleted 40 lines** of bidirectional fallback matching from execute_graphton.py (lines 1722-1761)
+- **Replaced with 6-line observability warning** that logs `[RESUME_UNMATCHED]` at ERROR level when decisions fail to match interrupts, surfacing identity chain failures instead of masking them
+- **Deleted `TestBidirectionalIdLookup`** test class (3 tests, ~120 lines) from test_hitl_contracts.py
+- **Updated module docstring** to remove bidirectional ID lookup reference
+- **All 1,379 tests pass** (1,382 - 3 deleted tests for deleted behavior)
+- **Impact**: execute_graphton.py 2,127 → 2,097 lines (-30 net). test_hitl_contracts.py -123 lines. Total: -154 lines.
+- **What stayed the same**: ToolCallIdCapture aliases, ResumeReconciler, tool_event.py identity dedup, primary matching loop, zero-match error handling
+
 ## Next Steps
 
-1. **T03**: Eliminate HITL bidirectional fallback matching (T02 research confirms the primary path works)
-2. **T04**: Extract SetupOrchestrator with parallelized gRPC fetches (depends on T01 + T03)
+1. **T04**: Extract SetupOrchestrator with parallelized gRPC fetches (depends on T01 + T03, both complete)
 
 ## Context for Resume
 
-- T01 changes are committed on branch `feat/execute-graphton-hardening`
-- T02 test file and execution log need to be committed (new files, not yet staged)
+- T01, T02, T03 changes are committed on branch `feat/execute-graphton-hardening`
 - The `_persist_and_return_failed_status` helper is already used by both error handlers — good foundation for T04
 - The `InlinePublisher` class established the pattern for extracting closures to classes with explicit dependencies
-- T02 empirically validated that ToolCallIdCapture's architecture is correct — T03 can proceed with confidence
+- T02 empirically validated that ToolCallIdCapture's architecture is correct
+- T03 deleted the bidirectional fallback — the identity chain now fails loud instead of silent
 - Knowledge folders (design-decisions, coding-guidelines, wrong-assumptions, dont-dos) are still empty
 
 ## Quick Commands
 
 After loading context:
-- "Start T03" - Begin HITL bidirectional fallback elimination
+- "Start T04" - Begin SetupOrchestrator extraction
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
