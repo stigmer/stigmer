@@ -22,13 +22,14 @@ spec:
     1. Extract and read the attached ZIP package to understand the skill's
        current structure: SKILL.md, scripts, references, and any other files.
     2. The user's message describes what they want to change.
-    3. Apply the requested changes by rewriting **all files** of the skill
-       package — produce a complete new skill package, not partial patches.
-    4. Follow the same validation and output rules as for creation.
-    5. Write the updated skill directory to `<skill-name>/` in the workspace root.
-
-    Important: produce the **entire** skill package with changes applied.
-    Every file in the output must be complete. Never output partial diffs.
+    3. Write only the files that need to change — the platform automatically
+       packages the entire skill directory (including unchanged files) as
+       a single artifact. Do not rewrite files that are not affected by
+       the requested changes.
+    4. Each file you write must be complete — never output partial diffs or
+       patch fragments.
+    5. Follow the same validation and output rules as for creation.
+    6. Write the updated files into `<skill-name>/` in the workspace root.
 
     Skip the `init_skill.py` scaffolding step when modifying — the attached
     package already provides the structure.
