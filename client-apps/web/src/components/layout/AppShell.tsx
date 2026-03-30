@@ -4,11 +4,15 @@ import { useEffect } from "react";
 import { PanelLeft } from "lucide-react";
 import { cn } from "@stigmer/theme";
 import { Button } from "@/components/ui/button";
+import { useSessionNavigation } from "@/contexts/session-navigation";
+import { SessionLauncher } from "@/components/session/SessionLauncher";
+import { SessionPageInner } from "@/app/sessions/[id]/SessionPage";
 import { Sidebar } from "./Sidebar";
 import { useSidebarOpen } from "./use-layout-state";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const sidebar = useSidebarOpen();
+  const { activeSessionId, isSessionZone } = useSessionNavigation();
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -63,8 +67,40 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <main className="min-w-0 flex-1 overflow-y-auto">
-        {children}
+        {isSessionZone ? (
+          <SessionZoneContent activeSessionId={activeSessionId} />
+        ) : (
+          children
+        )}
       </main>
     </div>
+  );
+}
+
+/**
+ * Renders the session zone: either the new-session launcher or an
+ * existing session view.
+ *
+ * The `SessionLauncher` stays mounted (but hidden) while a session is
+ * active so that draft text typed in the composer survives round-trip
+ * navigation — matching the ChatGPT pattern.
+ */
+function SessionZoneContent({
+  activeSessionId,
+}: {
+  activeSessionId: string | null;
+}) {
+  return (
+    <>
+      <div
+        className={cn("h-full", activeSessionId != null && "hidden")}
+        aria-hidden={activeSessionId != null}
+      >
+        <SessionLauncher />
+      </div>
+      {activeSessionId != null && (
+        <SessionPageInner id={activeSessionId} key={activeSessionId} />
+      )}
+    </>
   );
 }

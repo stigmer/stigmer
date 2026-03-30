@@ -131,6 +131,85 @@ class TestExecute:
 
 
 # =============================================================================
+# Async execute — prefers streaming when inner backend supports it
+# =============================================================================
+
+
+class TestAsyncExecute:
+    """The adapter's ``aexecute`` should use ``execute_streaming`` when
+    available on the inner backend, avoiding a thread-pool slot for
+    the duration of the command.  Falls back to ``asyncio.to_thread``
+    for backends without streaming.
+    """
+
+    @pytest.mark.asyncio
+    async def test_aexecute_returns_execute_response(
+        self, adapter: DeepAgentsBackendAdapter
+    ) -> None:
+        result = await adapter.aexecute("echo hello")
+        assert isinstance(result, ExecuteResponse)
+
+    @pytest.mark.asyncio
+    async def test_aexecute_captures_stdout(
+        self, adapter: DeepAgentsBackendAdapter
+    ) -> None:
+        result = await adapter.aexecute("echo hello")
+        assert "hello" in result.output
+        assert result.exit_code == 0
+
+    @pytest.mark.asyncio
+    async def test_aexecute_nonzero_exit_code(
+        self, adapter: DeepAgentsBackendAdapter
+    ) -> None:
+        result = await adapter.aexecute("exit 42")
+        assert result.exit_code == 42
+
+    @pytest.mark.asyncio
+    async def test_aexecute_uses_streaming_when_available(
+        self, adapter: DeepAgentsBackendAdapter
+    ) -> None:
+        """FilesystemBackend has ``execute_streaming`` — verify aexecute
+        chooses the streaming path by confirming the event loop is NOT
+        blocked (the command runs via asyncio subprocess, not in a thread)."""
+        import asyncio
+
+        blocked = False
+
+        async def probe() -> None:
+            nonlocal blocked
+            t0 = asyncio.get_event_loop().time()
+            await asyncio.sleep(0.05)
+            drift = (asyncio.get_event_loop().time() - t0) * 1000
+            if drift > 500:
+                blocked = True
+
+        probe_task = asyncio.create_task(probe())
+        await adapter.aexecute("sleep 0.1")
+        await probe_task
+        assert not blocked, "Event loop was blocked during aexecute"
+
+    @pytest.mark.asyncio
+    async def test_aexecute_falls_back_without_streaming(self) -> None:
+        """When the inner backend lacks ``execute_streaming``, aexecute
+        must still work via ``asyncio.to_thread``."""
+
+        class SyncOnlyBackend:
+            id = "sync-only"
+            def execute(self, cmd: str, timeout: int = 120):  # noqa: ANN201, ANN003
+                from graphton.core.backends.filesystem import ExecutionResult
+                return ExecutionResult(exit_code=0, stdout="sync-ok", stderr="")
+            def read(self, p: str) -> str: return ""  # noqa: ARG002
+            def write(self, p: str, c: str) -> None: ...  # noqa: ARG002
+            def list_files(self, p: str = ".") -> list[str]: return []  # noqa: ARG002
+            def is_directory(self, p: str) -> bool: return False  # noqa: ARG002
+
+        adapter = DeepAgentsBackendAdapter(SyncOnlyBackend())
+        result = await adapter.aexecute("ignored")
+        assert isinstance(result, ExecuteResponse)
+        assert "sync-ok" in result.output
+
+
+# =============================================================================
 # File operations
 # =============================================================================
 

@@ -91,7 +91,13 @@ tidy: ## Run go mod tidy on all Go modules
 
 # ─── Lint & Check ────────────────────────────
 
-.PHONY: lint lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build check
+.PHONY: fix lint lint-docs lint-docs-audit format-docs format-docs-check check-links libs-build web-build check
+fix: ## Auto-fix linting and formatting issues
+	@gofmt -s -w .
+	@cd backend/libs/python/graphton && poetry run ruff check --fix .
+	@cd $(AGENT_RUNNER_DIR) && poetry run ruff check --fix .
+	-npm run lint -w client-apps/web -- --fix
+
 lint: ## Run all linters and type checks
 	@for mod in $(GO_MODULES); do \
 		(cd $$mod && go vet ./...) || exit 1; \
@@ -111,7 +117,7 @@ libs-build:
 web-build:
 	npm run build -w client-apps/web
 
-check: tidy lint lint-docs format-docs-check libs-build web-build build test ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check libs-build web-build build test ## Run full CI gate locally
 
 # ─── Docs Linting ─────────────────────────────
 
