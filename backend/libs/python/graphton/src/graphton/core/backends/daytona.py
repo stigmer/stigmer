@@ -80,9 +80,14 @@ class WorkspaceNormalizingBackend:
     rebase prefix is empty and behaviour is identical to the original
     strip-only normalisation -- fully backward-compatible.
 
-    Any method not explicitly overridden is forwarded transparently via
-    ``__getattr__``, so the wrapper is fully compatible with
-    ``BackendProtocol`` without hard-coding every method signature.
+    **Sealed attribute access** — ``__getattr__`` raises ``AttributeError``
+    for any attribute not explicitly defined on this class.  The inner
+    ``DaytonaBackend`` inherits many methods from ``BaseSandbox``
+    (``ls_info``, ``edit``, ``grep_raw``, ``glob_info``, ``aexecute``, etc.)
+    that call ``self.execute()`` internally on the *inner* backend, bypassing
+    the wrapper's ``cd`` preamble and env-var injection.  Transparent
+    forwarding would silently break path normalization for any such method.
+    If a new method is needed, add an explicit override here.
     """
 
     def __init__(
@@ -135,6 +140,13 @@ class WorkspaceNormalizingBackend:
                 self._workspace_root,
                 self._sandbox_root,
             )
+
+    # -- identity -----------------------------------------------------------
+
+    @property
+    def id(self) -> str:  # noqa: A003
+        """Sandbox identifier, forwarded from the inner backend."""
+        return self._inner.id  # type: ignore[no-any-return]
 
     # -- cache management ---------------------------------------------------
 
@@ -439,11 +451,28 @@ class WorkspaceNormalizingBackend:
         )
         return to_execution_result(raw)
 
-    # -- transparent delegation for everything else -------------------------
+    # -- sealed attribute access ---------------------------------------------
 
     def __getattr__(self, name: str) -> Any:  # noqa: ANN401
-        """Forward any attribute not explicitly defined to the inner backend."""
-        return getattr(self._inner, name)
+        """Raise ``AttributeError`` for any attribute not explicitly defined.
+
+        Previous versions forwarded unknown attributes to the inner backend
+        via ``getattr(self._inner, name)``.  This was an escape hatch that
+        silently bypassed path normalization and the ``cd`` preamble for
+        methods inherited by the inner ``DaytonaBackend`` from
+        ``BaseSandbox`` (``ls_info``, ``edit``, ``grep_raw``, ``glob_info``,
+        ``aexecute``, etc.) — all of which call ``self.execute()`` on the
+        *inner* backend, not the wrapper.
+
+        If a new method on the inner backend needs to be accessible, add an
+        explicit override here with appropriate path normalization / ``cd``
+        preamble rather than reopening the forwarding escape hatch.
+        """
+        raise AttributeError(
+            f"'{type(self).__name__}' has no attribute '{name}'. "
+            f"If '{name}' is a method on the inner backend that should be "
+            f"accessible, add an explicit override with path normalization."
+        )
 
 
 # ---------------------------------------------------------------------------

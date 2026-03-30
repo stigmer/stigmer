@@ -271,24 +271,69 @@ class TestDelegationRebase:
 
 
 # ---------------------------------------------------------------------------
-# Transparent __getattr__ delegation
+# Sealed __getattr__ — no transparent forwarding
 # ---------------------------------------------------------------------------
 
-class TestGetattr:
-    """Tests that unknown attributes are forwarded to the inner backend."""
+class TestGetAttrSealed:
+    """Verify that __getattr__ raises instead of forwarding to the inner backend.
 
-    def test_unknown_attribute_delegated(
-        self, wrapper: WorkspaceNormalizingBackend, inner_backend: MagicMock
+    Previous versions forwarded any unknown attribute to the inner
+    ``DaytonaBackend``.  This silently bypassed path normalization and the
+    ``cd`` preamble for methods inherited from ``BaseSandbox`` (``ls_info``,
+    ``edit``, ``grep_raw``, ``glob_info``, ``aexecute``, etc.).
+    """
+
+    def test_unknown_attribute_raises(
+        self, wrapper: WorkspaceNormalizingBackend, inner_backend: MagicMock,
     ) -> None:
         inner_backend.some_custom_method.return_value = 42
-        assert wrapper.some_custom_method() == 42
-        inner_backend.some_custom_method.assert_called_once()
+        with pytest.raises(AttributeError, match="has no attribute 'some_custom_method'"):
+            wrapper.some_custom_method()
 
-    def test_property_delegated(
-        self, wrapper: WorkspaceNormalizingBackend, inner_backend: MagicMock
+    def test_unknown_property_raises(
+        self, wrapper: WorkspaceNormalizingBackend, inner_backend: MagicMock,
     ) -> None:
         inner_backend.sandbox_id = "sandbox-123"
-        assert wrapper.sandbox_id == "sandbox-123"
+        with pytest.raises(AttributeError, match="has no attribute 'sandbox_id'"):
+            _ = wrapper.sandbox_id
+
+    def test_id_property_forwarded(
+        self, wrapper: WorkspaceNormalizingBackend, inner_backend: MagicMock,
+    ) -> None:
+        inner_backend.id = "sandbox-abc"
+        assert wrapper.id == "sandbox-abc"
+
+    @pytest.mark.parametrize("method_name", [
+        "ls_info",
+        "edit",
+        "grep_raw",
+        "glob_info",
+        "aexecute",
+        "aread",
+        "awrite",
+    ])
+    def test_dangerous_inner_methods_not_forwarded(
+        self,
+        wrapper: WorkspaceNormalizingBackend,
+        inner_backend: MagicMock,
+        method_name: str,
+    ) -> None:
+        """Methods that call self.execute() on the inner backend must not
+        be reachable via __getattr__ — they would bypass the cd preamble."""
+        setattr(inner_backend, method_name, lambda *a, **kw: None)
+        with pytest.raises(AttributeError, match="has no attribute"):
+            getattr(wrapper, method_name)
+
+    def test_overridden_methods_still_accessible(
+        self, wrapper: WorkspaceNormalizingBackend,
+    ) -> None:
+        """All explicitly overridden methods must remain reachable."""
+        for name in (
+            "id", "read", "read_file", "write", "write_file",
+            "list_files", "is_directory", "delete",
+            "execute", "execute_streaming",
+        ):
+            assert hasattr(wrapper, name), f"Overridden method '{name}' not found"
 
 
 # ---------------------------------------------------------------------------
