@@ -26,6 +26,7 @@ from worker.workspace.backend import ExecuteResult
 from worker.workspace.platform_mount import (
     STIGMER_PLATFORM_DIR_ENV,
     classify_platform_path,
+    resolve_platform_command,
 )
 
 logger = logging.getLogger(__name__)
@@ -111,6 +112,9 @@ class LocalWorkspaceBackend:
         timeout: int = 30,
     ) -> ExecuteResult:
         work_dir = self._root if cwd is None else self._resolve(cwd)
+
+        if self._platform_root is not None:
+            command = resolve_platform_command(command)
 
         env = {**os.environ, "PYTHONUNBUFFERED": "1"}
         if self._platform_root is not None:
