@@ -3891,6 +3891,155 @@ class TestArgsPreviewEnvVarResolution:
 
 
 # =============================================================================
+# Tests for _create_args_preview sandbox path humanization
+# =============================================================================
+
+
+class TestArgsPreviewSandboxPathHumanization:
+    """_create_args_preview replaces absolute sandbox paths with relative ones."""
+
+    def test_absolute_workspace_path_becomes_relative(self, status_builder):
+        status_builder.set_workspace_root("/home/daytona/workspace")
+        preview = status_builder._create_args_preview({
+            "path": "/home/daytona/workspace/src/main.py",
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["path"] == "src/main.py"
+
+    def test_workspace_root_becomes_dot(self, status_builder):
+        status_builder.set_workspace_root("/home/daytona/workspace")
+        preview = status_builder._create_args_preview({
+            "command": "cd /home/daytona/workspace",
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["command"] == "cd ."
+
+    def test_sandbox_home_becomes_tilde(self, status_builder):
+        status_builder.set_workspace_root("/home/daytona/workspace")
+        preview = status_builder._create_args_preview({
+            "path": "/home/daytona/.git-credentials",
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["path"] == "~/.git-credentials"
+
+    def test_nested_values_also_humanized(self, status_builder):
+        status_builder.set_workspace_root("/home/daytona/workspace")
+        preview = status_builder._create_args_preview({
+            "config": {"output_dir": "/home/daytona/workspace/out"},
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["config"]["output_dir"] == "out"
+
+    def test_no_workspace_root_unchanged(self, status_builder):
+        preview = status_builder._create_args_preview({
+            "path": "/home/daytona/workspace/src/main.py",
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["path"] == "/home/daytona/workspace/src/main.py"
+
+    def test_combined_platform_and_sandbox_humanization(self, status_builder):
+        status_builder.set_workspace_root("/home/daytona/workspace")
+        preview = status_builder._create_args_preview({
+            "command": "python3 $STIGMER_PLATFORM_DIR/run.py --out /home/daytona/workspace/results",
+        })
+        import json
+        parsed = json.loads(preview)
+        assert parsed["command"] == "python3 .stigmer/run.py --out results"
+
+
+# =============================================================================
+# Tests for humanize_args_for_display nested value recursion
+# =============================================================================
+
+
+class TestArgsDisplayNestedHumanization:
+    """humanize_args_for_display recurses into nested dicts and lists."""
+
+    def test_nested_dict_string_humanized(self, status_builder):
+        result = status_builder._humanize_args_for_display({
+            "config": {"path": "$STIGMER_PLATFORM_DIR/data"},
+        })
+        assert result["config"]["path"] == ".stigmer/data"
+
+    def test_nested_list_string_humanized(self, status_builder):
+        result = status_builder._humanize_args_for_display({
+            "paths": ["$STIGMER_PLATFORM_DIR/a", "$STIGMER_PLATFORM_DIR/b"],
+        })
+        assert result["paths"] == [".stigmer/a", ".stigmer/b"]
+
+    def test_deeply_nested_string_humanized(self, status_builder):
+        result = status_builder._humanize_args_for_display({
+            "outer": {"inner": {"path": "$STIGMER_PLATFORM_DIR/deep"}},
+        })
+        assert result["outer"]["inner"]["path"] == ".stigmer/deep"
+
+    def test_nested_sandbox_paths_humanized(self, status_builder):
+        status_builder.set_workspace_root("/home/daytona/workspace")
+        result = status_builder._humanize_args_for_display({
+            "files": ["/home/daytona/workspace/a.py", "/home/daytona/workspace/b.py"],
+        })
+        assert result["files"] == ["a.py", "b.py"]
+
+    def test_non_string_values_preserved(self, status_builder):
+        result = status_builder._humanize_args_for_display({
+            "count": 42,
+            "enabled": True,
+            "config": {"timeout": 30, "name": "$STIGMER_PLATFORM_DIR/x"},
+        })
+        assert result["count"] == 42
+        assert result["enabled"] is True
+        assert result["config"]["timeout"] == 30
+        assert result["config"]["name"] == ".stigmer/x"
+
+    def test_empty_args_returns_as_is(self, status_builder):
+        assert status_builder._humanize_args_for_display({}) == {}
+        assert status_builder._humanize_args_for_display(None) is None
+
+
+# =============================================================================
+# Tests for args preview and display consistency
+# =============================================================================
+
+
+class TestArgsPreviewAndDisplayConsistency:
+    """Both humanization paths apply the same pipeline to string values."""
+
+    def test_platform_refs_consistent(self, status_builder):
+        args = {"command": "python3 $STIGMER_PLATFORM_DIR/skills/s/run.py"}
+        display = status_builder._humanize_args_for_display(args)
+        import json
+        preview = json.loads(status_builder._create_args_preview(args))
+        assert display["command"] == preview["command"]
+
+    def test_sandbox_paths_consistent(self, status_builder):
+        status_builder.set_workspace_root("/home/daytona/workspace")
+        args = {"path": "/home/daytona/workspace/src/main.py"}
+        display = status_builder._humanize_args_for_display(args)
+        import json
+        preview = json.loads(status_builder._create_args_preview(args))
+        assert display["path"] == preview["path"] == "src/main.py"
+
+    def test_nested_values_consistent(self, status_builder):
+        status_builder.set_workspace_root("/home/daytona/workspace")
+        args = {
+            "config": {
+                "path": "/home/daytona/workspace/out",
+                "script": "$STIGMER_PLATFORM_DIR/run.py",
+            },
+        }
+        display = status_builder._humanize_args_for_display(args)
+        import json
+        preview = json.loads(status_builder._create_args_preview(args))
+        assert display["config"]["path"] == preview["config"]["path"] == "out"
+        assert display["config"]["script"] == preview["config"]["script"] == ".stigmer/run.py"
+
+
+# =============================================================================
 # Tests for ToolCall.args humanization via on_tool_start (fresh creation path)
 # =============================================================================
 
@@ -6064,9 +6213,10 @@ class TestToolInputStreaming:
         assert tc.result == ""
 
     @pytest.mark.asyncio
-    async def test_reconcile_clears_result(self, status_builder):
-        """When on_tool_start fires, the early ToolCall's result should be
-        cleared and args populated from the complete data."""
+    async def test_reconcile_preserves_result_when_input_was_streamed(self, status_builder):
+        """When on_tool_start fires after input was already streamed, the
+        early ToolCall's result is preserved (not cleared) and args are
+        populated from the complete data."""
         await status_builder.process_event(self._tool_use_chunk("write"))
         await status_builder.process_event(
             self._input_delta_chunk('{"path": "f.py", "contents": "hello"}')
@@ -6084,7 +6234,7 @@ class TestToolInputStreaming:
         await status_builder.process_event(tool_start_event)
 
         tc = next(status_builder.iter_all_tool_calls())
-        assert tc.result == ""
+        assert tc.result == "hello"
         assert tc.is_streaming is False
         assert tc.args["path"] == "f.py"
         assert tc.args["contents"] == "hello"
