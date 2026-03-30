@@ -31,6 +31,10 @@ from typing import Any
 from deepagents.backends.protocol import BackendProtocol  # type: ignore[import-untyped]
 
 from graphton.core.backends.gitignore_filter import GitIgnoreFilter
+from graphton.core.backends.platform_mount import (
+    STIGMER_PLATFORM_DIR_ENV,
+    resolve_platform_command,
+)
 from graphton.core.backends.types import (
     ExecutionResult,
     to_execution_result,
@@ -252,14 +256,34 @@ class WorkspaceNormalizingBackend:
         return self._inner.read_file(self._normalize(path))
 
     def write(self, path: str, content: str) -> None:
-        """Write content to file with path normalisation."""
+        """Write content to file with path normalisation.
+
+        The inner ``DaytonaBackend.write`` has **create-only** semantics:
+        it returns ``WriteResult(error="... already exists")`` instead of
+        raising when the file exists.  This wrapper detects that error,
+        deletes the file, and retries — giving the ``write`` tool the
+        overwrite behaviour that agents (and ``FilesystemBackend``) expect.
+        """
         self._invalidate_cache()
-        return self._inner.write(self._normalize(path), content)
+        norm = self._normalize(path)
+        result = self._inner.write(norm, content)
+        error = getattr(result, "error", None)
+        if error and "already exists" in str(error):
+            logger.debug(
+                "Inner write returned 'already exists' for '%s'; "
+                "deleting and retrying",
+                norm,
+            )
+            safe = shlex.quote(norm)
+            self._inner.execute(f"rm -f {safe}")
+            result = self._inner.write(norm, content)
+            error = getattr(result, "error", None)
+        if error:
+            raise RuntimeError(f"Failed to write '{path}': {error}")
 
     def write_file(self, path: str, content: str) -> None:
         """Write content to file with path normalisation (alias)."""
-        self._invalidate_cache()
-        return self._inner.write_file(self._normalize(path), content)
+        self.write(path, content)
 
     def list_files(self, path: str = ".") -> list[str]:
         """List directory contents with path normalisation and gitignore filtering.
@@ -343,6 +367,10 @@ class WorkspaceNormalizingBackend:
         exported before the user command so it is available in the remote
         sandbox shell.
 
+        ``.stigmer/`` virtual-mount references are resolved to
+        ``$STIGMER_PLATFORM_DIR`` when platform files have been deployed
+        (parity with :meth:`FilesystemBackend.execute`).
+
         The inner backend may return different result types depending on
         its implementation (e.g. ``ExecutionResult`` from
         ``FilesystemBackend``, ``ExecuteResponse`` from deepagents'
@@ -351,6 +379,8 @@ class WorkspaceNormalizingBackend:
         always see ``.stdout``, ``.stderr``, and ``.exit_code``.
         """
         self._invalidate_cache()
+        if self._env_vars and STIGMER_PLATFORM_DIR_ENV in self._env_vars:
+            command = resolve_platform_command(command)
         if self._env_vars:
             exports = "; ".join(
                 f"export {k}={shlex.quote(v)}"
