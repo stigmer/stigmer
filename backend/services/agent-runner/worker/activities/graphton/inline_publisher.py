@@ -86,21 +86,33 @@ class InlinePublisher:
         If *path* is inside a skill directory (a directory that contains
         ``SKILL.md``), the entire skill root directory is published as a
         ``DIRECTORY`` artifact instead of the individual file.
+
+        Internally two path coordinate systems are used:
+
+        - **workspace-relative** (``ws_path``) — for ``file_exists``
+          calls and the ``_skill_roots`` cache, since the workspace
+          backend's ``file_exists`` resolves paths relative to
+          ``workspace_root``.
+        - **sandbox-relative** (``sandbox_path``) — for
+          ``publish_artifact`` / ``sandbox.fs.get_file_info``, which
+          resolve paths relative to the sandbox root and may need a
+          rebase prefix (e.g. ``workspace/``).
         """
         try:
-            rel_path = self._normalize(path)
+            ws_path = self._to_workspace_relative(path)
+            sandbox_path = self._to_sandbox_path(path)
 
             self._log.info(
                 "[INLINE_PUBLISH] execution=%s — path resolution: "
-                "tool_path=%r -> normalized=%r ("
+                "tool_path=%r -> ws_path=%r, sandbox_path=%r ("
                 "sandbox=%s, has_normalizer=%s)",
-                self._execution_id, path, rel_path,
+                self._execution_id, path, ws_path, sandbox_path,
                 "cloud" if self._sandbox is not None else "local",
                 hasattr(self._workspace_backend, "_normalize"),
             )
 
-            if PurePosixPath(rel_path).name == _SKILL_MARKER:
-                parent = str(PurePosixPath(rel_path).parent)
+            if PurePosixPath(ws_path).name == _SKILL_MARKER:
+                parent = str(PurePosixPath(ws_path).parent)
                 if parent != ".":
                     self._skill_roots.add(parent)
                     self._log.info(
@@ -109,12 +121,14 @@ class InlinePublisher:
                         self._execution_id, parent,
                     )
 
-            skill_root = self._find_skill_root(rel_path)
+            skill_root = self._find_skill_root(ws_path)
 
             if skill_root is not None:
-                await self._publish_skill_directory(skill_root)
+                await self._publish_skill_directory(
+                    self._to_sandbox_path(skill_root),
+                )
             else:
-                await self._publish_single_file(rel_path)
+                await self._publish_single_file(sandbox_path)
 
         except Exception as exc:
             self._log.warning(
@@ -218,8 +232,28 @@ class InlinePublisher:
     # Helpers
     # ------------------------------------------------------------------
 
-    def _normalize(self, path: str) -> str:
-        """Normalize a tool-reported path to a workspace-relative path."""
+    @staticmethod
+    def _to_workspace_relative(path: str) -> str:
+        """Convert a tool-reported path to workspace-relative form.
+
+        ``file_exists`` and the skill-root cache operate in
+        workspace-relative coordinates (the workspace backend's ``_abs``
+        prepends the workspace root).  Tool paths are already
+        workspace-relative — only a leading ``/`` needs stripping.
+        """
+        return path.lstrip("/")
+
+    def _to_sandbox_path(self, path: str) -> str:
+        """Convert a tool-reported (or workspace-relative) path to
+        sandbox-relative form.
+
+        ``publish_artifact`` and ``sandbox.fs.get_file_info`` resolve
+        relative to the **sandbox root**, which may differ from the
+        workspace root (e.g. volume-mount scenario).  When the workspace
+        backend exposes ``_normalize`` it applies the necessary rebase
+        prefix; otherwise a plain ``lstrip("/")`` is sufficient (local
+        mode, or no rebase).
+        """
         normalizer = (
             self._workspace_backend._normalize
             if hasattr(self._workspace_backend, "_normalize")

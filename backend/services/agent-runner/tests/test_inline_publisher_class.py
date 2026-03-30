@@ -400,3 +400,170 @@ class TestSkillDirectoryDetection:
             await publisher.publish("/my-skill/SKILL.md")
 
         status_builder.add_artifact.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# InlinePublisher with Daytona-style paths (rebase prefix)
+# ---------------------------------------------------------------------------
+
+
+def _make_daytona_publisher(
+    *,
+    rebase_prefix: str = "workspace",
+) -> tuple[InlinePublisher, MagicMock, MagicMock]:
+    """Create an InlinePublisher with a Daytona-style workspace backend
+    that rebases paths (e.g. ``workspace/`` prefix).
+
+    The ``_normalize`` mock applies the rebase prefix, simulating
+    ``DaytonaWorkspaceBackend._normalize``.  Meanwhile ``file_exists``
+    expects workspace-relative paths (no rebase prefix) since it
+    internally calls ``_abs()`` which prepends the workspace root.
+    """
+    workspace_backend = MagicMock()
+
+    def _normalize(path: str) -> str:
+        clean = path.lstrip("/")
+        return f"{rebase_prefix}/{clean}" if rebase_prefix else clean
+
+    workspace_backend._normalize = MagicMock(side_effect=_normalize)
+    workspace_backend.root_dir = "/home/daytona/workspace"
+    workspace_backend.file_exists = MagicMock(return_value=False)
+
+    status_builder = MagicMock()
+
+    publisher = InlinePublisher(
+        workspace_backend=workspace_backend,
+        sandbox=MagicMock(),
+        artifact_storage=MagicMock(),
+        status_builder=status_builder,
+        execution_id="exec-daytona-456",
+        logger=logging.getLogger("test"),
+    )
+    return publisher, workspace_backend, status_builder
+
+
+class TestDaytonaPathSeparation:
+    """Verify that file_exists uses workspace-relative paths while
+    publish_artifact uses sandbox-relative paths (with rebase prefix).
+
+    This is the regression test for Bug 2: the double-prefix issue
+    where file_exists received ``workspace/infra-chart-composer/SKILL.md``
+    and _abs() produced ``/home/daytona/workspace/workspace/...``.
+    """
+
+    @pytest.mark.asyncio
+    async def test_file_exists_gets_workspace_relative_path(self):
+        """file_exists should receive paths WITHOUT the rebase prefix."""
+        publisher, backend, _ = _make_daytona_publisher()
+
+        dir_artifact = _fake_dir_artifact(
+            name="my-skill",
+            sandbox_path="workspace/my-skill",
+        )
+
+        with patch(
+            "worker.activities.graphton.inline_publisher.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=dir_artifact,
+        ):
+            await publisher.publish("my-skill/scripts/run.sh")
+
+        for call in backend.file_exists.call_args_list:
+            path_arg = call[0][0]
+            assert not path_arg.startswith("workspace/"), (
+                f"file_exists received sandbox-relative path: {path_arg!r} "
+                f"(should be workspace-relative, no rebase prefix)"
+            )
+
+    @pytest.mark.asyncio
+    async def test_publish_artifact_gets_sandbox_relative_path(self):
+        """publish_artifact should receive paths WITH the rebase prefix."""
+        publisher, backend, _ = _make_daytona_publisher()
+
+        dir_artifact = _fake_dir_artifact(
+            name="my-skill",
+            sandbox_path="workspace/my-skill",
+        )
+
+        with patch(
+            "worker.activities.graphton.inline_publisher.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=dir_artifact,
+        ) as mock_publish:
+            await publisher.publish("my-skill/SKILL.md")
+
+        publish_path = mock_publish.call_args.kwargs["path"]
+        assert publish_path.startswith("workspace/"), (
+            f"publish_artifact should receive sandbox-relative path "
+            f"with rebase prefix, got: {publish_path!r}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_skill_root_via_file_exists_with_rebase(self):
+        """Skill root should be discovered via file_exists with
+        workspace-relative path, then published with sandbox-relative path."""
+        publisher, backend, status_builder = _make_daytona_publisher()
+
+        def _file_exists(path: str) -> bool:
+            return path == "infra-chart-composer/SKILL.md"
+
+        backend.file_exists = MagicMock(side_effect=_file_exists)
+
+        dir_artifact = _fake_dir_artifact(
+            name="infra-chart-composer",
+            sandbox_path="workspace/infra-chart-composer",
+            entries=["SKILL.md", "chart.yaml"],
+        )
+
+        with patch(
+            "worker.activities.graphton.inline_publisher.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=dir_artifact,
+        ) as mock_publish:
+            await publisher.publish("infra-chart-composer/chart.yaml")
+
+        assert mock_publish.call_args.kwargs["path"] == "workspace/infra-chart-composer"
+        status_builder.add_artifact.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_skill_md_write_with_rebase_publishes_correctly(self):
+        """Writing SKILL.md with rebase normalizer should publish the
+        directory with the sandbox-relative path."""
+        publisher, _, status_builder = _make_daytona_publisher()
+
+        dir_artifact = _fake_dir_artifact(
+            name="infra-chart-composer",
+            sandbox_path="workspace/infra-chart-composer",
+        )
+
+        with patch(
+            "worker.activities.graphton.inline_publisher.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=dir_artifact,
+        ) as mock_publish:
+            await publisher.publish("infra-chart-composer/SKILL.md")
+
+        assert mock_publish.call_args.kwargs["path"] == "workspace/infra-chart-composer"
+        assert mock_publish.call_args.kwargs["name"] == "infra-chart-composer"
+        status_builder.add_artifact.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_no_double_prefix_regression(self):
+        """Regression: file_exists must NOT receive
+        ``workspace/workspace/...`` style paths."""
+        publisher, backend, _ = _make_daytona_publisher()
+
+        artifact = _fake_artifact("chart.yaml")
+
+        with patch(
+            "worker.activities.graphton.inline_publisher.publish_artifact",
+            new_callable=AsyncMock,
+            return_value=artifact,
+        ):
+            await publisher.publish("infra-chart-composer/chart.yaml")
+
+        for call in backend.file_exists.call_args_list:
+            path_arg = call[0][0]
+            assert "workspace/workspace" not in path_arg, (
+                f"Double-prefix detected in file_exists call: {path_arg!r}"
+            )

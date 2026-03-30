@@ -214,8 +214,9 @@ class TestDelegation:
     def test_write_file_normalises(
         self, wrapper: WorkspaceNormalizingBackend, inner_backend: MagicMock
     ) -> None:
+        """write_file delegates to write (which handles overwrite semantics)."""
         wrapper.write_file("/workspace/output/result.txt", "hello")
-        inner_backend.write_file.assert_called_once_with("output/result.txt", "hello")
+        inner_backend.write.assert_called_once_with("output/result.txt", "hello")
 
     def test_list_files_normalises(
         self, wrapper: WorkspaceNormalizingBackend, inner_backend: MagicMock
@@ -607,6 +608,151 @@ class TestExecuteResultTranslation:
         result = w.execute("echo $TOKEN")
         assert isinstance(result, ExecutionResult)
         call_args = inner_backend.execute.call_args[0][0]
+        assert "export TOKEN=" in call_args
+
+
+# ---------------------------------------------------------------------------
+# Write overwrite semantics (Bug 1 fix)
+# ---------------------------------------------------------------------------
+
+
+class TestWriteOverwrite:
+    """Verify that write() handles inner backends that return WriteResult
+    with error fields (create-only semantics like DaytonaBackend)."""
+
+    def test_write_succeeds_when_no_error(self, inner_backend: MagicMock) -> None:
+        inner_backend.write.return_value = None
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+        w.write("file.txt", "content")
+        inner_backend.write.assert_called_once_with("file.txt", "content")
+
+    def test_write_retries_on_already_exists(self, inner_backend: MagicMock) -> None:
+        """When the inner backend returns 'already exists', write should
+        delete the file and retry."""
+        write_result_error = MagicMock()
+        write_result_error.error = "Error: File 'file.txt' already exists"
+        write_result_ok = MagicMock()
+        write_result_ok.error = None
+
+        inner_backend.write.side_effect = [write_result_error, write_result_ok]
+        inner_backend.execute.return_value = MagicMock(exit_code=0)
+
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+        w.write("file.txt", "new content")
+
+        assert inner_backend.write.call_count == 2
+        inner_backend.execute.assert_called_once()
+        rm_cmd = inner_backend.execute.call_args[0][0]
+        assert "rm -f" in rm_cmd
+        assert "file.txt" in rm_cmd
+
+    def test_write_raises_on_persistent_error(self, inner_backend: MagicMock) -> None:
+        """When the retry also fails, write should raise RuntimeError."""
+        write_result = MagicMock()
+        write_result.error = "Error: File 'file.txt' already exists"
+
+        inner_backend.write.return_value = write_result
+        inner_backend.execute.return_value = MagicMock(exit_code=0)
+
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+        with pytest.raises(RuntimeError, match="Failed to write"):
+            w.write("file.txt", "content")
+
+    def test_write_raises_on_non_exists_error(self, inner_backend: MagicMock) -> None:
+        """Non 'already exists' errors should raise immediately."""
+        write_result = MagicMock()
+        write_result.error = "Permission denied"
+
+        inner_backend.write.return_value = write_result
+
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+        with pytest.raises(RuntimeError, match="Permission denied"):
+            w.write("file.txt", "content")
+
+    def test_write_file_delegates_to_write(self, inner_backend: MagicMock) -> None:
+        """write_file should use write() to get overwrite semantics."""
+        inner_backend.write.return_value = None
+        w = WorkspaceNormalizingBackend(inner_backend, workspace_root="/workspace")
+        w.write_file("file.txt", "content")
+        inner_backend.write.assert_called_once_with("file.txt", "content")
+
+
+# ---------------------------------------------------------------------------
+# .stigmer/ resolution in execute (Bug 3 fix)
+# ---------------------------------------------------------------------------
+
+
+class TestResolvePlatformCommand:
+    """Verify that .stigmer/ paths are resolved to $STIGMER_PLATFORM_DIR
+    in execute() when the env var is configured."""
+
+    def test_stigmer_path_resolved_when_env_present(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        inner_backend.execute.return_value = _FakeExecuteResponse(
+            output="ok", exit_code=0,
+        )
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/workspace",
+            env_vars={"STIGMER_PLATFORM_DIR": "/opt/platform"},
+        )
+        w.execute("python3 .stigmer/skills/init_skill.py")
+        call_args = inner_backend.execute.call_args[0][0]
+        assert ".stigmer" not in call_args
+        assert "$STIGMER_PLATFORM_DIR" in call_args
+
+    def test_stigmer_path_not_resolved_without_env(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        """When STIGMER_PLATFORM_DIR is not in env_vars, .stigmer/
+        should pass through unchanged."""
+        inner_backend.execute.return_value = _FakeExecuteResponse(
+            output="ok", exit_code=0,
+        )
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/workspace",
+            env_vars={"OTHER_VAR": "value"},
+        )
+        w.execute("cat .stigmer/config.yaml")
+        call_args = inner_backend.execute.call_args[0][0]
+        assert ".stigmer" in call_args
+
+    def test_stigmer_path_not_resolved_without_any_env(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        """When no env_vars at all, .stigmer/ should pass through."""
+        inner_backend.execute.return_value = _FakeExecuteResponse(
+            output="ok", exit_code=0,
+        )
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/workspace",
+        )
+        w.execute("cat .stigmer/config.yaml")
+        call_args = inner_backend.execute.call_args[0][0]
+        assert ".stigmer" in call_args
+
+    def test_resolution_and_env_export_combined(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        """Both resolution and env var export should work together."""
+        inner_backend.execute.return_value = _FakeExecuteResponse(
+            output="ok", exit_code=0,
+        )
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/workspace",
+            env_vars={
+                "STIGMER_PLATFORM_DIR": "/opt/platform",
+                "TOKEN": "secret",
+            },
+        )
+        w.execute("python3 .stigmer/skills/init_skill.py")
+        call_args = inner_backend.execute.call_args[0][0]
+        assert "$STIGMER_PLATFORM_DIR" in call_args
+        assert "export STIGMER_PLATFORM_DIR=" in call_args
         assert "export TOKEN=" in call_args
 
 

@@ -343,3 +343,85 @@ class TestAdapterOnDaytona:
 
         src_entry = next(e for e in entries if "src" in e["path"])
         assert src_entry["is_dir"] is True
+
+
+# =============================================================================
+# Write overwrite semantics — confirm DaytonaBackend.write behaviour
+# =============================================================================
+
+
+@pytest.mark.skipif(_SKIP_DAYTONA, reason=_skip_reason())
+class TestDaytonaWriteOverwrite:
+    """Confirm whether DaytonaBackend.write can overwrite pre-existing files.
+
+    The upstream ``BaseSandbox.write`` documents create-only semantics
+    ("error if file exists").  These tests verify the actual behaviour of
+    ``deepagents-cli`` 0.0.x against a live sandbox so fixes can be
+    grounded in observed reality rather than documentation assumptions.
+    """
+
+    def test_write_new_file_succeeds(self, daytona_sandbox, daytona_backend) -> None:
+        """Baseline: writing a brand-new file should always work."""
+        result = daytona_backend.write("_test_write_new.txt", "fresh content")
+        logger.info("write(new file) returned: %r (type=%s)", result, type(result))
+
+        readback = daytona_sandbox.process.exec("cat _test_write_new.txt", timeout=5)
+        assert readback.exit_code == 0
+        assert "fresh content" in readback.result
+
+    def test_write_overwrite_existing_file(self, daytona_sandbox, daytona_backend) -> None:
+        """Regression: WorkspaceNormalizingBackend.write MUST overwrite
+        existing files (delete+retry).
+
+        Seeds a file via shell (simulating init_skill.py's Path.write_text),
+        then overwrites via backend.write() — which should succeed after
+        the Bug 1 fix.
+        """
+        seed = daytona_sandbox.process.exec(
+            "echo 'original scaffold content' > _test_overwrite.txt", timeout=5,
+        )
+        assert seed.exit_code == 0
+
+        daytona_backend.write("_test_overwrite.txt", "overwritten content")
+
+        readback = daytona_sandbox.process.exec("cat _test_overwrite.txt", timeout=5)
+        assert readback.exit_code == 0
+        assert "overwritten content" in readback.result.strip(), (
+            f"Write overwrite failed — file still has old content: "
+            f"{readback.result.strip()!r}"
+        )
+
+    def test_inner_backend_write_return_value(self, daytona_sandbox) -> None:
+        """Inspect the raw return value from the inner DaytonaBackend.write
+        (without the WorkspaceNormalizingBackend wrapper) to see if it
+        returns a WriteResult with an error field."""
+        try:
+            from deepagents_cli.integrations.daytona import DaytonaBackend
+        except ImportError:
+            pytest.skip("deepagents_cli not installed")
+
+        inner = DaytonaBackend(daytona_sandbox)
+
+        seed = daytona_sandbox.process.exec(
+            "echo 'inner original' > _test_inner_overwrite.txt", timeout=5,
+        )
+        assert seed.exit_code == 0
+
+        result = inner.write("_test_inner_overwrite.txt", "inner overwritten")
+        logger.info(
+            "Inner DaytonaBackend.write returned: %r (type=%s, "
+            "has error=%s, error=%r)",
+            result,
+            type(result).__name__,
+            hasattr(result, "error"),
+            getattr(result, "error", "N/A"),
+        )
+
+        readback = daytona_sandbox.process.exec(
+            "cat _test_inner_overwrite.txt", timeout=5,
+        )
+        actual = readback.result.strip()
+        logger.info("Inner backend content after overwrite: %r", actual)
+
+        overwrite_worked = "inner overwritten" in actual
+        logger.info("Inner backend overwrite succeeded: %s", overwrite_worked)
