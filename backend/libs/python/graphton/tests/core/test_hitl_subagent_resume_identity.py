@@ -29,7 +29,7 @@ See also:
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Annotated, Any
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
@@ -38,7 +38,6 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.types import Command, interrupt
-from typing_extensions import Annotated
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -522,7 +521,7 @@ class TestInterruptIdVsToolCallId:
         # Try resuming with tool_call_id instead of intr.id
         wrong_resume = {tool_call_id: {"action": "approve"}}
 
-        result = await parent.ainvoke(
+        await parent.ainvoke(
             Command(resume=wrong_resume),
             config=config,
         )
