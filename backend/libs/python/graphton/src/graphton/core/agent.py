@@ -5,6 +5,7 @@ using Graphton's declarative API.
 """
 
 import logging
+import re
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
@@ -32,6 +33,54 @@ if TYPE_CHECKING:
     from graphton.core.summarization_config import SummarizationConfig
 
 logger = logging.getLogger(__name__)
+
+# Regex patterns for prompt sections that must be stripped from the GP
+# sub-agent's system prompt.  Each pattern matches a ``## <Heading>``
+# block through the next ``## `` heading or end-of-string.
+_SKILLS_SECTION_RE = re.compile(
+    r"\n\n## Available Skills\n.*?(?=\n\n## |\Z)",
+    re.DOTALL,
+)
+_SUBAGENT_RULES_SECTION_RE = re.compile(
+    r"\n\n## Sub-agent delegation rules\n.*?(?=\n\n## |\Z)",
+    re.DOTALL,
+)
+
+_GP_SCOPE_PREAMBLE = """\
+You are a delegated sub-agent. Your ONLY responsibility is to complete \
+the specific task described in the user message below. Stay strictly \
+within the scope of that task. Do NOT:
+- Follow skill activation instructions from the system context
+- Perform work that was not explicitly requested in your task
+- Create, scaffold, or write deliverables unless the task specifically asks for it
+- Initiate workflows or run scripts that go beyond the delegated task
+
+If you discover information relevant to the broader project but outside \
+your task scope, include it in your report -- do NOT act on it.
+
+"""
+
+
+def _build_gp_system_prompt(parent_prompt: str) -> str:
+    """Build a scoped system prompt for the general-purpose sub-agent.
+
+    Strips sections from the parent's system prompt that could cause
+    the GP sub-agent to exceed its delegated task scope:
+
+    - ``## Available Skills`` -- skills are activated by the main agent,
+      not sub-agents.  Leaving activation breadcrumbs in the GP prompt
+      caused a production scope violation where a sub-agent followed
+      skill instructions instead of completing its exploration task.
+    - ``## Sub-agent delegation rules`` -- the GP sub-agent is compiled
+      via ``create_agent`` (not ``create_deep_agent``), so it has no
+      ``task`` tool and cannot spawn sub-sub-agents.
+
+    Prepends a scope-boundary preamble that explicitly constrains the
+    sub-agent to its delegated task.
+    """
+    stripped = _SKILLS_SECTION_RE.sub("", parent_prompt)
+    stripped = _SUBAGENT_RULES_SECTION_RE.sub("", stripped)
+    return _GP_SCOPE_PREAMBLE + stripped
 
 
 def create_deep_agent(
@@ -650,7 +699,7 @@ def create_deep_agent(
 
             _pending_gp_config = {
                 "model": model_instance,
-                "system_prompt": system_prompt,
+                "system_prompt": _build_gp_system_prompt(system_prompt),
                 "middleware": gp_middleware,
                 "recursion_limit": recursion_limit,
             }
