@@ -2759,6 +2759,293 @@ class TestConcurrentSubAgentNamespaceRegistration:
 
 
 # =============================================================================
+# Tests for Concurrent Sub-Agent Resume Event Routing
+# =============================================================================
+
+
+class TestConcurrentSubAgentResumeRouting:
+    """Tests for event routing correctness after HITL resume with concurrent
+    sub-agents.
+
+    Reproduces the production bug where 3 sub-agents are launched concurrently,
+    SA1 completes, SA2 and SA3 interrupt for approval.  After all-or-nothing
+    gate resolves:
+      - Fix 1: completed SA1 must NOT be reactivated into active_sub_agents
+      - Fix 2: SA3 must route correctly even if on_tool_start is not replayed
+      - Fix 3: namespaces must not map to completed sub-agents when active exist
+    """
+
+    @pytest.fixture(autouse=True)
+    def _patch_subject_gen(self):
+        with patch(
+            "worker.activities.graphton.handlers.sub_agent._generate_sub_agent_subject",
+            new_callable=AsyncMock,
+            return_value="",
+        ):
+            yield
+
+    @pytest.fixture
+    def resumed_builder(self, mock_initial_status):
+        """StatusBuilder initialized with persisted state from the first cycle.
+
+        Simulates the state after rebuild_from_proto: SA1 completed, SA2 and
+        SA3 in-progress.  All proto messages and sub-agent executions are
+        pre-populated as they would be from the DB.
+        """
+        from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
+
+        sa1 = SubAgentExecution(
+            id="toolu_SA1", name="generalPurpose",
+            status=SubAgentStatus.SUB_AGENT_COMPLETED,
+            subject="Find docs", completed_at="2026-03-30T07:07:58Z",
+        )
+        sa2 = SubAgentExecution(
+            id="toolu_SA2", name="generalPurpose",
+            status=SubAgentStatus.SUB_AGENT_IN_PROGRESS,
+            subject="Infra charts",
+        )
+        sa3 = SubAgentExecution(
+            id="toolu_SA3", name="generalPurpose",
+            status=SubAgentStatus.SUB_AGENT_IN_PROGRESS,
+            subject="Changelog entries",
+        )
+        mock_initial_status.sub_agent_executions.extend([sa1, sa2, sa3])
+
+        ai_msg = AgentMessage(type=MessageType.MESSAGE_AI)
+        ai_msg.tool_calls.add(
+            id="toolu_SA1", name="task",
+            status=ToolCallStatus.TOOL_CALL_COMPLETED,
+        )
+        ai_msg.tool_calls.add(
+            id="toolu_SA2", name="task",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        ai_msg.tool_calls.add(
+            id="toolu_SA3", name="task",
+            status=ToolCallStatus.TOOL_CALL_RUNNING,
+        )
+        mock_initial_status.messages.append(ai_msg)
+
+        builder = StatusBuilder("exec-resume-test", mock_initial_status)
+        builder.rebuild_index_from_persisted_status()
+        return builder
+
+    # -- Fix 1: completed sub-agents must NOT be reactivated -----------------
+
+    @pytest.mark.asyncio
+    async def test_completed_sub_agent_not_reactivated(self, resumed_builder):
+        """handle_sub_agent_start for a COMPLETED sub-agent routes to
+        completed_sub_agents, not active_sub_agents."""
+        new_run_id = "resume-run-sa1"
+        await resumed_builder._handle_sub_agent_start(
+            event={"event": "on_tool_start", "name": "task", "run_id": new_run_id},
+            tool_args={"subagent_type": "generalPurpose", "description": "Find docs"},
+            run_id=new_run_id,
+            tool_call_id="toolu_SA1",
+        )
+
+        assert new_run_id not in resumed_builder.state.active_sub_agents
+        assert new_run_id in resumed_builder.state.completed_sub_agents
+        sa = resumed_builder.state.completed_sub_agents[new_run_id]
+        assert sa.id == "toolu_SA1"
+        assert sa.status == SubAgentStatus.SUB_AGENT_COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_in_progress_sub_agent_reactivated_normally(self, resumed_builder):
+        """handle_sub_agent_start for an IN_PROGRESS sub-agent activates it."""
+        new_run_id = "resume-run-sa2"
+        await resumed_builder._handle_sub_agent_start(
+            event={"event": "on_tool_start", "name": "task", "run_id": new_run_id},
+            tool_args={"subagent_type": "generalPurpose", "description": "Infra charts"},
+            run_id=new_run_id,
+            tool_call_id="toolu_SA2",
+        )
+
+        assert new_run_id in resumed_builder.state.active_sub_agents
+        sa = resumed_builder.state.active_sub_agents[new_run_id]
+        assert sa.id == "toolu_SA2"
+        assert sa.status == SubAgentStatus.SUB_AGENT_IN_PROGRESS
+
+    # -- Fix 2: proactive pre-registration -----------------------------------
+
+    def test_pre_register_in_progress_sub_agents(self, resumed_builder):
+        """pre_register_in_progress_sub_agents adds IN_PROGRESS sub-agents
+        to active_sub_agents as placeholders (keyed by sa_id)."""
+        count = resumed_builder.pre_register_in_progress_sub_agents()
+
+        assert count == 2
+        assert "toolu_SA2" in resumed_builder.state.active_sub_agents
+        assert "toolu_SA3" in resumed_builder.state.active_sub_agents
+        assert "toolu_SA1" not in resumed_builder.state.active_sub_agents
+        assert resumed_builder.state.pending_resume_sa_ids == {"toolu_SA2", "toolu_SA3"}
+
+    @pytest.mark.asyncio
+    async def test_handle_sub_agent_start_rekeys_placeholder(self, resumed_builder):
+        """When handle_sub_agent_start fires after pre-registration, it
+        re-keys the entry from sa_id to the real LangGraph run_id."""
+        resumed_builder.pre_register_in_progress_sub_agents()
+        assert "toolu_SA2" in resumed_builder.state.active_sub_agents
+
+        new_run_id = "resume-run-sa2"
+        await resumed_builder._handle_sub_agent_start(
+            event={"event": "on_tool_start", "name": "task", "run_id": new_run_id},
+            tool_args={"subagent_type": "generalPurpose", "description": "Infra charts"},
+            run_id=new_run_id,
+            tool_call_id="toolu_SA2",
+        )
+
+        assert "toolu_SA2" not in resumed_builder.state.active_sub_agents
+        assert new_run_id in resumed_builder.state.active_sub_agents
+        assert "toolu_SA2" not in resumed_builder.state.pending_resume_sa_ids
+        assert "toolu_SA3" in resumed_builder.state.pending_resume_sa_ids
+
+    # -- Fix 2 + Fix 3: deferred binding for unreplayed sub-agents ----------
+
+    @pytest.mark.asyncio
+    async def test_deferred_binding_single_pending(self, resumed_builder):
+        """When on_tool_start fires for SA2 but NOT SA3, deferred binding in
+        _register_sub_agent_namespace maps SA3's events to the correct
+        sub-agent via the sole remaining pending sa_id."""
+        resumed_builder.pre_register_in_progress_sub_agents()
+
+        sa2_run = "resume-run-sa2"
+        await resumed_builder._handle_sub_agent_start(
+            event={"event": "on_tool_start", "name": "task", "run_id": sa2_run},
+            tool_args={"subagent_type": "generalPurpose", "description": "Infra charts"},
+            run_id=sa2_run,
+            tool_call_id="toolu_SA2",
+        )
+
+        assert len(resumed_builder.state.pending_resume_sa_ids) == 1
+        assert "toolu_SA3" in resumed_builder.state.pending_resume_sa_ids
+
+        sa3_new_run = "resume-run-sa3"
+        sa3_namespace = "tools:checkpoint_sa3|child-ns"
+        resumed_builder._register_sub_agent_namespace(
+            sa3_namespace,
+            {"parent_ids": ["sa3-subgraph", sa3_new_run, "tools-node", "graph"]},
+        )
+
+        assert sa3_namespace in resumed_builder.state.namespace_to_sub_agent
+        bound_pid = resumed_builder.state.namespace_to_sub_agent[sa3_namespace]
+        assert bound_pid in resumed_builder.state.active_sub_agents
+        sa3_proto = resumed_builder.state.active_sub_agents[bound_pid]
+        assert sa3_proto.id == "toolu_SA3"
+        assert len(resumed_builder.state.pending_resume_sa_ids) == 0
+
+    # -- Fix 3: namespace does not map to completed when active exist --------
+
+    @pytest.mark.asyncio
+    async def test_namespace_does_not_map_to_completed_when_active_exist(
+        self, resumed_builder,
+    ):
+        """When active sub-agents exist, _register_sub_agent_namespace must
+        NOT fall back to completed_sub_agents for routing."""
+        sa2_run = "resume-run-sa2"
+        resumed_builder.state.active_sub_agents[sa2_run] = (
+            resumed_builder.current_status.sub_agent_executions[1]
+        )
+
+        sa1_completed_run = "resume-run-sa1"
+        resumed_builder.state.completed_sub_agents[sa1_completed_run] = (
+            resumed_builder.current_status.sub_agent_executions[0]
+        )
+
+        ns = "tools:some|child"
+        resumed_builder._register_sub_agent_namespace(
+            ns,
+            {"parent_ids": [sa1_completed_run, "tools-node"]},
+        )
+
+        assert ns not in resumed_builder.state.namespace_to_sub_agent
+
+    @pytest.mark.asyncio
+    async def test_namespace_maps_to_completed_when_no_active_exist(
+        self, resumed_builder,
+    ):
+        """When no active sub-agents exist, completed sub-agents CAN be
+        used for namespace routing (late events for finished sub-agents)."""
+        sa1_completed_run = "resume-run-sa1"
+        resumed_builder.state.completed_sub_agents[sa1_completed_run] = (
+            resumed_builder.current_status.sub_agent_executions[0]
+        )
+
+        ns = "tools:late|event"
+        resumed_builder._register_sub_agent_namespace(
+            ns,
+            {"parent_ids": [sa1_completed_run]},
+        )
+
+        assert ns in resumed_builder.state.namespace_to_sub_agent
+        assert resumed_builder.state.namespace_to_sub_agent[ns] == sa1_completed_run
+
+    # -- Full scenario: 3 sub-agents, 1 completes, 2 interrupt, resume ------
+
+    @pytest.mark.asyncio
+    async def test_full_resume_scenario_correct_event_routing(self, resumed_builder):
+        """End-to-end: after all-or-nothing resume, tool calls from SA2 and
+        SA3 route to their correct sub-agents, not to completed SA1."""
+        resumed_builder.pre_register_in_progress_sub_agents()
+
+        sa1_run = "resume-run-sa1"
+        await resumed_builder._handle_sub_agent_start(
+            event={"event": "on_tool_start", "name": "task", "run_id": sa1_run},
+            tool_args={"subagent_type": "generalPurpose", "description": "Find docs"},
+            run_id=sa1_run,
+            tool_call_id="toolu_SA1",
+        )
+        assert sa1_run not in resumed_builder.state.active_sub_agents
+        assert sa1_run in resumed_builder.state.completed_sub_agents
+
+        sa2_run = "resume-run-sa2"
+        await resumed_builder._handle_sub_agent_start(
+            event={"event": "on_tool_start", "name": "task", "run_id": sa2_run},
+            tool_args={"subagent_type": "generalPurpose", "description": "Infra charts"},
+            run_id=sa2_run,
+            tool_call_id="toolu_SA2",
+        )
+        assert sa2_run in resumed_builder.state.active_sub_agents
+
+        sa2_ns = "tools:sa2_ckpt|child"
+        await resumed_builder.process_event({
+            "event": "on_tool_start",
+            "name": "read_file",
+            "run_id": "tool-sa2-1",
+            "parent_ids": ["sa2-inner", sa2_run, "tools-node"],
+            "data": {"input": {"path": "/charts/Chart.yaml"}},
+            "metadata": {"langgraph_checkpoint_ns": sa2_ns},
+        })
+
+        sa2_proto = resumed_builder.state.active_sub_agents[sa2_run]
+        sa2_tcs = [tc for m in sa2_proto.messages for tc in m.tool_calls]
+        assert len(sa2_tcs) == 1
+        assert sa2_tcs[0].name == "read_file"
+
+        sa3_new_run = "resume-run-sa3"
+        sa3_ns = "tools:sa3_ckpt|child"
+        await resumed_builder.process_event({
+            "event": "on_tool_start",
+            "name": "find_file",
+            "run_id": "tool-sa3-1",
+            "parent_ids": ["sa3-inner", sa3_new_run, "tools-node"],
+            "data": {"input": {"pattern": "_changelog/*.md"}},
+            "metadata": {"langgraph_checkpoint_ns": sa3_ns},
+        })
+
+        bound_pid = resumed_builder.state.namespace_to_sub_agent.get(sa3_ns)
+        assert bound_pid is not None
+        sa3_proto = resumed_builder.state.active_sub_agents[bound_pid]
+        assert sa3_proto.id == "toolu_SA3"
+        sa3_tcs = [tc for m in sa3_proto.messages for tc in m.tool_calls]
+        assert len(sa3_tcs) == 1
+        assert sa3_tcs[0].name == "find_file"
+
+        sa1_proto = resumed_builder.state.completed_sub_agents[sa1_run]
+        sa1_tcs = [tc for m in sa1_proto.messages for tc in m.tool_calls]
+        assert len(sa1_tcs) == 0
+
+
+# =============================================================================
 # Tests for ResolvedExecutionContext (Phase 2.5)
 # =============================================================================
 

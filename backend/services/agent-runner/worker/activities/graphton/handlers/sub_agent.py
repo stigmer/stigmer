@@ -178,6 +178,26 @@ async def handle_sub_agent_start(
 
     for existing_sa in sb.current_status.sub_agent_executions:
         if existing_sa.id == sa_id:
+            if existing_sa.status in (
+                SubAgentStatus.SUB_AGENT_COMPLETED,
+                SubAgentStatus.SUB_AGENT_FAILED,
+                SubAgentStatus.SUB_AGENT_CANCELLED,
+            ):
+                sb.state.completed_sub_agents[run_id] = existing_sa
+                sb.state.run_id_to_tool_call_id[run_id] = sa_id
+                sb.logger.info(
+                    "[SUBAGENT] execution=%s resume reactivation: "
+                    "sa_id=%s run_id=%s routed to completed_sub_agents "
+                    "(status=%s — not reactivating into active)",
+                    sb.execution_id, sa_id, run_id,
+                    SubAgentStatus.Name(existing_sa.status),
+                )
+                return
+
+            if sa_id in sb.state.active_sub_agents and sa_id != run_id:
+                del sb.state.active_sub_agents[sa_id]
+            sb.state.pending_resume_sa_ids.discard(sa_id)
+
             sb.state.active_sub_agents[run_id] = existing_sa
             sb.state.run_id_to_tool_call_id[run_id] = sa_id
             sb.logger.info(
@@ -559,6 +579,46 @@ def finalize_from_checkpoint_validation(
         )
 
     return total
+
+
+def pre_register_in_progress_sub_agents(sb: StatusBuilder) -> int:
+    """Pre-register IN_PROGRESS sub-agents in active_sub_agents for resume.
+
+    On resume, LangGraph may not replay ``on_tool_start`` for all concurrent
+    task tools.  This leaves some sub-agents absent from ``active_sub_agents``,
+    causing their events to fail namespace routing and be misrouted.
+
+    This function ensures every IN_PROGRESS sub-agent is present in
+    ``active_sub_agents`` (keyed by its own ``id``) before the stream starts.
+    When ``handle_sub_agent_start`` fires later with the real LangGraph
+    run_id, it re-keys the entry and removes the placeholder.  For sub-agents
+    whose ``on_tool_start`` never fires, the deferred-binding path in
+    ``_register_sub_agent_namespace`` claims the placeholder.
+
+    Must be called after ``rebuild_index_from_persisted_status`` and
+    ``prepare_task_tool_resume_queue``, before the stream starts.
+    """
+    registered = 0
+    for sa in sb.current_status.sub_agent_executions:
+        if sa.status != SubAgentStatus.SUB_AGENT_IN_PROGRESS:
+            continue
+        already_active = (
+            sa.id in sb.state.active_sub_agents
+            or any(ref is sa for ref in sb.state.active_sub_agents.values())
+        )
+        if already_active:
+            continue
+
+        sb.state.active_sub_agents[sa.id] = sa
+        sb.state.pending_resume_sa_ids.add(sa.id)
+        registered += 1
+        sb.logger.info(
+            "[RESUME_PREP] execution=%s pre-registered IN_PROGRESS "
+            "sub-agent sa_id=%s in active_sub_agents (placeholder key)",
+            sb.execution_id, sa.id,
+        )
+
+    return registered
 
 
 def prepare_task_tool_resume_queue(sb: StatusBuilder) -> int:

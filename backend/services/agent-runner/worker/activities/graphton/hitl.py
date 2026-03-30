@@ -312,6 +312,14 @@ async def resolve_resume_input(
             execution_id, task_tc_count,
         )
 
+    pre_reg_count = status_builder.pre_register_in_progress_sub_agents()
+    if pre_reg_count:
+        logger.info(
+            "[RESUME] execution=%s — pre-registered %d IN_PROGRESS "
+            "sub-agent(s) for resume event routing",
+            execution_id, pre_reg_count,
+        )
+
     # Build graph input
     from langgraph.types import Command
 
