@@ -13,6 +13,7 @@ Tests that the normalising wrapper correctly:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -230,13 +231,14 @@ class TestDelegation:
         wrapper.list_files()
         inner_backend.list_files.assert_called_once_with(".")
 
-    def test_execute_not_normalised(
+    def test_execute_prepends_cd_to_workspace_root(
         self, wrapper: WorkspaceNormalizingBackend, inner_backend: MagicMock
     ) -> None:
-        """execute() passes the command string through unchanged."""
+        """execute() prepends ``cd <workspace_root> &&`` so commands run
+        from the workspace root, not the sandbox root."""
         wrapper.execute("ls -la /workspace/bin/skills", timeout=10)
         inner_backend.execute.assert_called_once_with(
-            "ls -la /workspace/bin/skills", timeout=10
+            "cd /workspace && ls -la /workspace/bin/skills", timeout=10
         )
 
     def test_relative_path_passed_through(
@@ -609,6 +611,186 @@ class TestExecuteResultTranslation:
         assert isinstance(result, ExecutionResult)
         call_args = inner_backend.execute.call_args[0][0]
         assert "export TOKEN=" in call_args
+
+
+# ---------------------------------------------------------------------------
+# execute() cd-preamble behaviour
+# ---------------------------------------------------------------------------
+
+
+class TestExecuteCwd:
+    """Verify that execute() prepends ``cd <workspace_root> &&``."""
+
+    def test_cd_targets_workspace_root_with_rebase(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        """With rebase (sandbox_root != workspace_root), the cd must
+        target the *workspace* root, not the sandbox root."""
+        inner_backend.execute.return_value = _FakeExecuteResponse(
+            output="/home/daytona/workspace", exit_code=0,
+        )
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/home/daytona/workspace",
+            sandbox_root="/home/daytona",
+        )
+        w.execute("pwd")
+        call_args = inner_backend.execute.call_args[0][0]
+        assert call_args == "cd /home/daytona/workspace && pwd"
+
+    def test_cd_before_user_command_after_exports(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        """Shell shape must be: ``export ...; cd ... && <command>``."""
+        inner_backend.execute.return_value = _FakeExecuteResponse(
+            output="ok", exit_code=0,
+        )
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/home/daytona/workspace",
+            sandbox_root="/home/daytona",
+            env_vars={"TOKEN": "secret"},
+        )
+        w.execute("echo $TOKEN")
+        call_args = inner_backend.execute.call_args[0][0]
+        assert call_args == (
+            "export TOKEN=secret; "
+            "cd /home/daytona/workspace && echo $TOKEN"
+        )
+
+    def test_platform_resolution_before_cd_wrapping(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        """resolve_platform_command() must run on the raw user command
+        before the cd preamble wraps it."""
+        inner_backend.execute.return_value = _FakeExecuteResponse(
+            output="ok", exit_code=0,
+        )
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/workspace",
+            env_vars={"STIGMER_PLATFORM_DIR": "/opt/platform"},
+        )
+        w.execute("python3 .stigmer/skills/init_skill.py")
+        call_args = inner_backend.execute.call_args[0][0]
+        assert ".stigmer" not in call_args
+        assert "$STIGMER_PLATFORM_DIR/skills/init_skill.py" in call_args
+        assert "cd /workspace &&" in call_args
+
+    def test_cd_without_env_vars(self, inner_backend: MagicMock) -> None:
+        """Without env_vars, the command is just ``cd ... && <command>``."""
+        inner_backend.execute.return_value = _FakeExecuteResponse(
+            output="ok", exit_code=0,
+        )
+        w = WorkspaceNormalizingBackend(
+            inner_backend, workspace_root="/workspace",
+        )
+        w.execute("ls -la")
+        call_args = inner_backend.execute.call_args[0][0]
+        assert call_args == "cd /workspace && ls -la"
+
+    def test_kwargs_forwarded(self, inner_backend: MagicMock) -> None:
+        """Extra kwargs (e.g. timeout) must be forwarded to the inner."""
+        inner_backend.execute.return_value = _FakeExecuteResponse(
+            output="ok", exit_code=0,
+        )
+        w = WorkspaceNormalizingBackend(
+            inner_backend, workspace_root="/workspace",
+        )
+        w.execute("sleep 5", timeout=60)
+        inner_backend.execute.assert_called_once_with(
+            "cd /workspace && sleep 5", timeout=60,
+        )
+
+
+# ---------------------------------------------------------------------------
+# execute_streaming() cd-preamble behaviour
+# ---------------------------------------------------------------------------
+
+
+class TestExecuteStreamingCwd:
+    """Verify that execute_streaming() applies the same cd preamble as
+    execute(), preventing the __getattr__ bypass."""
+
+    @pytest.mark.asyncio
+    async def test_streaming_applies_cd_preamble(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        """execute_streaming() must prepend cd to workspace root."""
+        async def fake_streaming(cmd: str, **kwargs: Any) -> _FakeExecuteResponse:
+            return _FakeExecuteResponse(output="ok", exit_code=0)
+
+        inner_backend.execute_streaming = fake_streaming
+        w = WorkspaceNormalizingBackend(
+            inner_backend, workspace_root="/workspace",
+        )
+        chunks: list[str] = []
+        result = await w.execute_streaming(
+            "pwd", timeout=30, on_chunk=chunks.append,
+        )
+        assert isinstance(result, ExecutionResult)
+
+    @pytest.mark.asyncio
+    async def test_streaming_cd_with_rebase_and_env(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        """Streaming must apply cd, env exports, and platform resolution."""
+        captured_cmd: list[str] = []
+
+        async def fake_streaming(cmd: str, **kwargs: Any) -> _FakeExecuteResponse:
+            captured_cmd.append(cmd)
+            return _FakeExecuteResponse(output="ok", exit_code=0)
+
+        inner_backend.execute_streaming = fake_streaming
+        w = WorkspaceNormalizingBackend(
+            inner_backend,
+            workspace_root="/home/daytona/workspace",
+            sandbox_root="/home/daytona",
+            env_vars={"TOKEN": "abc"},
+        )
+        await w.execute_streaming("echo hi")
+        assert captured_cmd
+        assert captured_cmd[0] == (
+            "export TOKEN=abc; "
+            "cd /home/daytona/workspace && echo hi"
+        )
+
+    @pytest.mark.asyncio
+    async def test_streaming_falls_back_to_sync_execute(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        """When the inner backend has no execute_streaming, fall back to
+        the sync execute() path via asyncio.to_thread."""
+        inner_backend.execute.return_value = _FakeExecuteResponse(
+            output="sync fallback", exit_code=0,
+        )
+        # Ensure no execute_streaming on inner
+        if hasattr(inner_backend, "execute_streaming"):
+            del inner_backend.execute_streaming
+        w = WorkspaceNormalizingBackend(
+            inner_backend, workspace_root="/workspace",
+        )
+        result = await w.execute_streaming("pwd")
+        assert isinstance(result, ExecutionResult)
+        assert result.stdout == "sync fallback"
+
+    def test_execute_streaming_not_leaked_via_getattr(
+        self, inner_backend: MagicMock,
+    ) -> None:
+        """The wrapper's own execute_streaming must shadow the inner's,
+        so __getattr__ never exposes the inner's raw method."""
+        async def raw_inner_streaming(cmd: str, **kwargs: Any) -> None:
+            pass
+
+        inner_backend.execute_streaming = raw_inner_streaming
+        w = WorkspaceNormalizingBackend(
+            inner_backend, workspace_root="/workspace",
+        )
+        method = getattr(w, "execute_streaming", None)
+        assert method is not None
+        # Must be the wrapper's method, not the inner backend's
+        assert method != raw_inner_streaming
+        assert hasattr(method, "__self__") and method.__self__ is w
 
 
 # ---------------------------------------------------------------------------
