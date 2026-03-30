@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-03-30 09:32
-**Current Task**: T04 (Extract SetupOrchestrator with parallelized gRPC fetches)
-**Status**: T01, T02, and T03 complete, ready for T04
+**Current Task**: All tasks complete + environment cleanup
+**Status**: T01, T02, T03, T04 complete; environment legacy paths removed
 
 ## Session Progress (2026-03-30)
 
@@ -104,23 +104,53 @@ When starting a new session:
 - **Impact**: execute_graphton.py 2,127 → 2,097 lines (-30 net). test_hitl_contracts.py -123 lines. Total: -154 lines.
 - **What stayed the same**: ToolCallIdCapture aliases, ResumeReconciler, tool_event.py identity dedup, primary matching loop, zero-match error handling
 
+### Session 4: T04 Completed — Extract Setup Phase & Parallelize gRPC Fetches
+- **Created `graphton/setup.py`** (1,348 lines): `SetupResult` frozen dataclass + `perform_setup()` async function containing the entire setup pipeline extracted from `_execute_graphton_impl`
+- **Extended `graphton/hitl.py`** (263 → 505 lines, +242): Added `ResumeResult` dataclass + `resolve_resume_input()` function encapsulating HITL resume detection, interrupt matching, ResumeReconciler, orphan reconciliation, and task tool resume queue. Moved `_build_decision_value`, `_summarize_resume_entry`, `_ACTION_MAP` from execute_graphton.py
+- **Rewrote `_execute_graphton_impl`** as thin orchestrator: crash recovery → `perform_setup()` → `resolve_resume_input()` → `StreamExecutor` → `process_post_stream()` → final status
+- **Parallelized gRPC fetches** using `asyncio.gather`: environment resolution, skill fetch, and MCP server fetch now run concurrently after chain resolution, saving ~2 gRPC round-trips of latency. MCP fetch is non-fatal (continues with empty config on error)
+- **Partial-resource cleanup**: `perform_setup()` wraps `_perform_setup_core()` with try/except to clean up workspace_backend and MCP middleware if setup fails partway
+- **All 1,379 tests pass**
+- **Impact**:
+
+| Metric | Before T04 | After T04 |
+|---|---|---|
+| `execute_graphton.py` total | 2,097 | 621 (70% reduction) |
+| `_execute_graphton_impl` body | ~1,783 | 386 (78% reduction) |
+| New `setup.py` | 0 | 1,348 |
+| `hitl.py` | 263 | 505 (+242) |
+| Net lines across all files | -- | ~0 (reshuffled) |
+| Setup latency | serial | ~2 RTT saved |
+
+- **Design decisions**:
+  - Used function + frozen dataclass pattern (not class) for setup extraction, matching project patterns (`resolve_environment()` + `EnvironmentResult`, `process_post_stream()` + `PostStreamResult`)
+  - HITL resume extracted separately from setup because its early-return failure path would add accidental complexity to setup
+  - Re-exports in execute_graphton.py preserve backward compat for tests importing `_build_decision_value`, `_summarize_resume_entry`, etc.
+  - `grpc_provider`, `exit_stack`, `execution_client`, `retry_executor` created in orchestrator (not in setup) so the error handler and finally block always have access regardless of setup success
+
+### Session 4 Follow-up: Environment Resolution Cleanup
+- **Simplified `graphton/environment.py`** (141 → 78 lines): Removed legacy 3-layer fallback (agent `env_spec` + `environment_refs` + `runtime_env`). ExecutionContext is now the only path — absent ExecutionContext raises `ValueError` instead of silently falling back
+- **Deleted `grpc_client/environment_client.py`** (197 lines): The `EnvironmentClient` gRPC client that directly queried `Environment` resources is no longer needed. Agent runner no longer interacts with the `Environment` resource directly
+- **Simplified `setup.py`**: Removed `_get_environment_client_class()` helper, simplified `_fetch_environment()` signature (dropped `agent`, `agent_instance`, `execution` params), removed `EnvironmentClient` TYPE_CHECKING import
+- **Removed `EnvironmentResult.used_legacy_merge`** field and heartbeat payload reference
+- **All 1,379 tests pass**
+- **Rationale**: ExecutionContext is always created by the workflow with pre-merged env vars before the activity starts. It persists until execution termination. The legacy paths were dead code — the agent runner should never directly query `Environment` resources
+
 ## Next Steps
 
-1. **T04**: Extract SetupOrchestrator with parallelized gRPC fetches (depends on T01 + T03, both complete)
+All planned tasks (T01–T04) are complete. Possible follow-ups:
+- Consider further decomposition of the 386-line `_execute_graphton_impl` (streaming + post-stream + error handler account for most of it, but they're already delegated to extracted modules)
+- Profile the parallel fetch in production to measure actual RTT savings
 
 ## Context for Resume
 
 - T01, T02, T03 changes are committed on branch `feat/execute-graphton-hardening`
-- The `_persist_and_return_failed_status` helper is already used by both error handlers — good foundation for T04
-- The `InlinePublisher` class established the pattern for extracting closures to classes with explicit dependencies
-- T02 empirically validated that ToolCallIdCapture's architecture is correct
-- T03 deleted the bidirectional fallback — the identity chain now fails loud instead of silent
+- T04 + environment cleanup changes are uncommitted on the same branch
 - Knowledge folders (design-decisions, coding-guidelines, wrong-assumptions, dont-dos) are still empty
 
 ## Quick Commands
 
 After loading context:
-- "Start T04" - Begin SetupOrchestrator extraction
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
