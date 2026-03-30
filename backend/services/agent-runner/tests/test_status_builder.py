@@ -6213,9 +6213,10 @@ class TestToolInputStreaming:
         assert tc.result == ""
 
     @pytest.mark.asyncio
-    async def test_reconcile_clears_result(self, status_builder):
-        """When on_tool_start fires, the early ToolCall's result should be
-        cleared and args populated from the complete data."""
+    async def test_reconcile_preserves_result_when_input_was_streamed(self, status_builder):
+        """When on_tool_start fires after input was already streamed, the
+        early ToolCall's result is preserved (not cleared) and args are
+        populated from the complete data."""
         await status_builder.process_event(self._tool_use_chunk("write"))
         await status_builder.process_event(
             self._input_delta_chunk('{"path": "f.py", "contents": "hello"}')
@@ -6233,7 +6234,7 @@ class TestToolInputStreaming:
         await status_builder.process_event(tool_start_event)
 
         tc = next(status_builder.iter_all_tool_calls())
-        assert tc.result == ""
+        assert tc.result == "hello"
         assert tc.is_streaming is False
         assert tc.args["path"] == "f.py"
         assert tc.args["contents"] == "hello"
