@@ -21,7 +21,6 @@ import pytest
 from graphton.core.backends.deepagents_adapter import DeepAgentsBackendAdapter
 from graphton.core.backends.filesystem import FilesystemBackend
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
