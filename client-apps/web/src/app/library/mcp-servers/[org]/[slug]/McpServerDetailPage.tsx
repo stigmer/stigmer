@@ -6,9 +6,15 @@ import { useStaticRouteParam } from "@/hooks/useStaticRouteParam";
 import { useBreadcrumbOverride } from "../../../LibraryBreadcrumbContext";
 import { useSessionNavigation } from "@/contexts/session-navigation";
 
-export function McpServerDetailPage() {
-  const org = useStaticRouteParam("org", 2);
-  const slug = useStaticRouteParam("slug");
+interface McpServerDetailPageInnerProps {
+  readonly org: string;
+  readonly slug: string;
+}
+
+export function McpServerDetailPageInner({
+  org,
+  slug,
+}: McpServerDetailPageInnerProps) {
   const { setLabel } = useBreadcrumbOverride();
   const [resourceId, setResourceId] = useState<string | null>(null);
   const { navigateToSession } = useSessionNavigation();
@@ -35,8 +41,6 @@ export function McpServerDetailPage() {
     [navigateToSession],
   );
 
-  if (!org || !slug) return null;
-
   return (
     <McpServerDetailView
       org={org}
@@ -47,4 +51,13 @@ export function McpServerDetailPage() {
       onPolicySessionCreated={handlePolicySessionCreated}
     />
   );
+}
+
+export function McpServerDetailPage() {
+  const org = useStaticRouteParam("org", 2);
+  const slug = useStaticRouteParam("slug");
+
+  if (!org || !slug) return null;
+
+  return <McpServerDetailPageInner org={org} slug={slug} />;
 }

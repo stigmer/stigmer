@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Plus, Sparkles } from "lucide-react";
 import { getDraftSessionUrl } from "@/utils/draft-session";
-import { navigateTo } from "@/utils/navigation";
+import { useLibraryNavigation } from "@/contexts/library-navigation";
 import {
   useSkillList,
   ResourceListView,
@@ -22,6 +22,7 @@ function readPersistedScope(): ResourceListScope {
 
 export function SkillListPage() {
   const org = useActiveOrgSlug();
+  const { navigateToDetail } = useLibraryNavigation();
 
   const [scope, setScope] = useState<ResourceListScope>(readPersistedScope);
   const [query, setQuery] = useState("");
@@ -65,7 +66,7 @@ export function SkillListPage() {
         scope={scope}
         onScopeChange={handleScopeChange}
         onPageChange={setPage}
-        onItemClick={(item) => navigateTo(`/library/skills/${item.org}/${item.slug}`)}
+        onItemClick={(item) => navigateToDetail("skills", item.org, item.slug)}
         emptyIcon={<Sparkles className="size-10" aria-hidden="true" />}
         emptyTitle="No skills found"
         onRetry={refetch}

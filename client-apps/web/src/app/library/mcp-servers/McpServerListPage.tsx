@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Plus, Server } from "lucide-react";
 import { getDraftSessionUrl } from "@/utils/draft-session";
-import { navigateTo } from "@/utils/navigation";
+import { useLibraryNavigation } from "@/contexts/library-navigation";
 import {
   useMcpServerList,
   ResourceListView,
@@ -22,6 +22,7 @@ function readPersistedScope(): ResourceListScope {
 
 export function McpServerListPage() {
   const org = useActiveOrgSlug();
+  const { navigateToDetail } = useLibraryNavigation();
 
   const [scope, setScope] = useState<ResourceListScope>(readPersistedScope);
   const [query, setQuery] = useState("");
@@ -66,7 +67,7 @@ export function McpServerListPage() {
         onScopeChange={handleScopeChange}
         onPageChange={setPage}
         onItemClick={(item) =>
-          navigateTo(`/library/mcp-servers/${item.org}/${item.slug}`)
+          navigateToDetail("mcp-servers", item.org, item.slug)
         }
         emptyIcon={<Server className="size-10" aria-hidden="true" />}
         emptyTitle="No MCP servers found"
