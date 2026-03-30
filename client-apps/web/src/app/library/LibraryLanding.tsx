@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { type MouseEvent, useCallback, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Bot, Plus, Sparkles, Server } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { cn } from "@stigmer/theme";
@@ -14,6 +15,10 @@ import {
   ResourceCountCard,
 } from "@stigmer/react";
 import { useActiveOrgSlug } from "@/contexts/org-context";
+
+function isPlainClick(e: MouseEvent): boolean {
+  return !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && e.button === 0;
+}
 
 const RESOURCE_CARDS = [
   {
@@ -68,7 +73,18 @@ function useResourceCounts(org: string | null) {
 
 export function LibraryLanding() {
   const org = useActiveOrgSlug();
+  const router = useRouter();
   const counts = useResourceCounts(org || null);
+
+  const handleCardClick = useCallback(
+    (href: string) => (e: MouseEvent) => {
+      if (isPlainClick(e)) {
+        e.preventDefault();
+        router.push(href);
+      }
+    },
+    [router],
+  );
 
   return (
     <>
@@ -89,6 +105,7 @@ export function LibraryLanding() {
               count={count}
               isLoading={isLoading}
               href={card.href}
+              onClick={handleCardClick(card.href)}
             />
           );
         })}
