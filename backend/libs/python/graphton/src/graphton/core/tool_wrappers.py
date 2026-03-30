@@ -1432,9 +1432,16 @@ def _create_edit_tool(
                 return enrich_error_message("edit", error_msg)
             
             new_content = content.replace(old_text, new_text, 1)
-            
-            await asyncio.to_thread(backend.write, path, new_content)
-            
+
+            result = await asyncio.to_thread(backend.write, path, new_content)
+            error = getattr(result, "error", None)
+            if error:
+                logger.warning(
+                    "⚠️  edit tool: backend.write returned error for '%s': %s",
+                    path, error,
+                )
+                return enrich_error_message("edit", str(error))
+
             logger.info(f"✅ Edited file '{path}'")
             return (
                 f"Successfully edited '{path}': "
@@ -1497,12 +1504,9 @@ def _create_delete_tool(
 
         try:
             logger.info("Deleting file: %s", path)
-            result = await asyncio.to_thread(backend.delete, path)
+            await asyncio.to_thread(backend.delete, path)
             logger.info("Deleted file '%s'", path)
-            return result
-        except (FileNotFoundError, IsADirectoryError, ValueError) as e:
-            logger.warning("delete tool failed for '%s': %s", path, e)
-            return enrich_error_message("delete", str(e))
+            return f"Deleted '{path}'"
         except Exception as e:
             logger.warning("delete tool failed for '%s': %s", path, e)
             return enrich_error_message("delete", str(e))
@@ -1778,7 +1782,9 @@ def _create_grep_tool(
             try:
                 re.compile(pattern)
             except re.error as e:
-                return f"Invalid regex pattern '{pattern}': {e}"
+                return enrich_error_message(
+                    "grep", f"Invalid regex pattern '{pattern}': {e}",
+                )
 
             if _has_execute:
                 return await _grep_via_execute(pattern, path, include)

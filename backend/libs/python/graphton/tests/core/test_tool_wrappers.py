@@ -28,7 +28,6 @@ from graphton.core.tool_wrappers import (
     _create_write_tool,
     _format_shell_failure,
     _format_shell_success,
-    _stream_write_content,
     create_approval_aware_tool_wrapper,
     create_filtered_platform_tools,
     create_platform_tool_wrappers,
@@ -1024,6 +1023,7 @@ class TestWriteToolWrapper:
         assert "Successfully wrote" in result.content
 
 
+@pytest.mark.skip(reason="_stream_write_content was removed from tool_wrappers")
 class TestStreamWriteContent:
     """Tests for _stream_write_content progressive streaming helper."""
 
@@ -1192,6 +1192,38 @@ class TestEditToolWrapper:
         }))
         
         assert "not found" in result.content.lower()
+
+    @pytest.mark.asyncio
+    async def test_edit_returns_error_when_write_fails(self, mock_backend):
+        """Test that edit detects a backend write error via result.error."""
+        write_result = MagicMock()
+        write_result.error = "disk full"
+        mock_backend.write.return_value = write_result
+
+        tool = _create_edit_tool(mock_backend)
+        result = await tool.ainvoke(_tc("edit", {
+            "path": "test.txt",
+            "old_text": "old",
+            "new_text": "new",
+        }))
+
+        assert "Error:" in result.content
+        assert "disk full" in result.content
+        assert "Recovery suggestions" in result.content
+
+    @pytest.mark.asyncio
+    async def test_edit_succeeds_when_write_returns_none(self, mock_backend):
+        """Test that edit succeeds normally when backend.write returns None."""
+        mock_backend.write.return_value = None
+
+        tool = _create_edit_tool(mock_backend)
+        result = await tool.ainvoke(_tc("edit", {
+            "path": "test.txt",
+            "old_text": "old",
+            "new_text": "new",
+        }))
+
+        assert "Successfully edited" in result.content
 
     @pytest.mark.asyncio
     async def test_edit_requires_approval(self, mock_backend):
@@ -1761,11 +1793,13 @@ class TestGrepToolWrapper:
 
     @pytest.mark.asyncio
     async def test_grep_invalid_regex(self, mock_backend):
-        """Test that grep handles invalid regex."""
+        """Test that grep routes invalid regex through enrich_error_message."""
         tool = _create_grep_tool(mock_backend)
         result = await tool.ainvoke({"pattern": "[invalid"})
-        
+
         assert "Invalid regex" in result
+        assert "Error:" in result
+        assert "Recovery suggestions" in result
 
 
 class TestPlatformToolApprovalIntegration:
