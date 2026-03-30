@@ -30,8 +30,9 @@ async def resolve_environment(
     """Resolve merged environment variables from ExecutionContext.
 
     ExecutionContext is created by the workflow with pre-merged env vars
-    before the activity starts.  If it is absent or the lookup fails,
-    the execution cannot proceed — the error propagates to the caller.
+    before the activity starts.  If no ExecutionContext exists (e.g. the
+    agent has no secrets or environment variables configured), an empty
+    result is returned so the execution can proceed without env setup.
 
     Args:
         execution_context_client: ``ExecutionContextClient`` instance.
@@ -40,20 +41,18 @@ async def resolve_environment(
 
     Returns:
         ``EnvironmentResult`` with merged vars and secret key set.
-
-    Raises:
-        ValueError: If no ExecutionContext exists for the execution.
     """
     exec_ctx = await execution_context_client.try_get_by_execution_id(
         execution_id,
     )
 
     if not exec_ctx:
-        raise ValueError(
-            f"No ExecutionContext found for execution {execution_id}. "
-            "The workflow must create an ExecutionContext with merged "
-            "environment variables before starting the activity."
+        logger.info(
+            "No ExecutionContext found for execution %s — "
+            "proceeding with empty environment.",
+            execution_id,
         )
+        return EnvironmentResult(merged_env_vars={}, secret_keys=set())
 
     merged_env_vars: dict[str, str] = {}
     secret_keys: set[str] = set()
