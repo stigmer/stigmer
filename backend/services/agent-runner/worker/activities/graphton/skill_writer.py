@@ -311,19 +311,11 @@ class SkillWriter:
             "",
             "Skills reference their own files using relative paths "
             "(e.g. `scripts/run.py`, `references/schema.md`). "
-            "How you resolve these depends on the operation:",
+            "Resolve them from the skill's **Location** directory for all "
+            "operations:",
             "",
-            "**Reading** -- resolve from the skill's **Location** directory:",
             "`read {location}/references/schema.md`",
-            "",
-            "**Executing scripts** -- use the `execute` tool with the "
-            "`$STIGMER_PLATFORM_DIR` environment variable:",
-            '`execute("python3 $STIGMER_PLATFORM_DIR/skills/{name}/scripts/run.py")`',
-            "",
-            "The `$STIGMER_PLATFORM_DIR` variable is automatically set in the "
-            "sandbox and points to the platform directory containing skill files. "
-            "Always use it for script execution -- do not construct paths manually "
-            "or use the `.stigmer/` prefix for `execute` commands.",
+            '`execute("python3 {location}/scripts/run.py")`',
             "",
         ]
 

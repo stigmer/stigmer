@@ -230,6 +230,12 @@ When shell commands fail, use these recovery patterns:
 - The tool may not be installed — try installing it first
 - Try the full path (`/usr/bin/command`) or check the PATH
 
+### File or Path Not Found
+- Use `glob` to discover files by pattern — do NOT run `find /` or `find`
+  via `execute`. Searching the entire filesystem is slow and wasteful when
+  `glob` can find files within the workspace instantly.
+- Verify the path is correct by reading the parent directory
+
 ### Permission Denied
 - Use `ls -la` to check permissions; verify working directory
 - The sandbox does not support `sudo`

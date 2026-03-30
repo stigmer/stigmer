@@ -47,17 +47,6 @@ spec:
     or `references/workflows.md`, resolve them from the skill's Location
     directory shown in your Available Skills section.
 
-    ## Runtime Path Conventions
-
-    You interact with your own bundled skill files using two path schemes:
-
-    - **Reading skill files** — use the Location path from Available Skills:
-      `read .stigmer/skills/skill-creator/references/workflows.md`
-
-    - **Executing skill scripts** — use the `execute` tool with
-      `$STIGMER_PLATFORM_DIR`:
-      `python3 $STIGMER_PLATFORM_DIR/skills/skill-creator/scripts/init_skill.py ...`
-
     Write all generated skill files to the workspace root.
 
     ## Workflow
@@ -81,7 +70,7 @@ spec:
 
        You MUST use the `execute` tool to run the scaffolding script:
        ```
-       python3 $STIGMER_PLATFORM_DIR/skills/skill-creator/scripts/init_skill.py <skill-name> --path .
+       python3 .stigmer/skills/skill-creator/scripts/init_skill.py <skill-name> --path .
        ```
 
        This creates the skill directory with a template SKILL.md and example
@@ -105,7 +94,7 @@ spec:
 
        You MUST use the `execute` tool to validate before delivering:
        ```
-       python3 $STIGMER_PLATFORM_DIR/skills/skill-creator/scripts/package_skill.py <skill-name>
+       python3 .stigmer/skills/skill-creator/scripts/package_skill.py <skill-name>
        ```
 
        If validation fails, fix the reported errors and run again until it

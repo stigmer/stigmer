@@ -105,6 +105,48 @@ def humanize_platform_refs(text: str) -> str:
     return _PLATFORM_ENV_RE.sub(PLATFORM_DIR_NAME, text)
 
 
+_STIGMER_DIR_CMD_RE = re.compile(
+    r"(?<!\w)(?<!/)"
+    r"\.stigmer"
+    r"(?![a-zA-Z0-9_])"
+)
+"""Matches ``.stigmer`` in shell commands when it appears as a standalone
+path component (e.g. ``.stigmer/skills/…``), not as part of a longer name
+(``my.stigmer``) or a subdirectory (``foo/.stigmer``)."""
+
+
+def resolve_platform_command(command: str) -> str:
+    """Replace ``.stigmer`` virtual-mount references in a shell command with
+    the ``$STIGMER_PLATFORM_DIR`` environment variable.
+
+    The execute environment already has ``STIGMER_PLATFORM_DIR`` set (via
+    ``_build_execute_env``), so the shell expands the variable at runtime.
+
+    This is the inverse of :func:`humanize_platform_refs`: that function
+    rewrites ``$STIGMER_PLATFORM_DIR`` → ``.stigmer`` for display, while
+    this function rewrites ``.stigmer`` → ``$STIGMER_PLATFORM_DIR`` for
+    execution.
+
+    Callers **must** guard this behind ``if platform_root is not None`` to
+    avoid replacing ``.stigmer`` when it is a real directory (no virtual
+    mount active).
+
+    Examples::
+
+        >>> resolve_platform_command("python3 .stigmer/skills/s/run.py")
+        'python3 $STIGMER_PLATFORM_DIR/skills/s/run.py'
+        >>> resolve_platform_command("ls .stigmer")
+        'ls $STIGMER_PLATFORM_DIR'
+        >>> resolve_platform_command("echo foo/.stigmer/bar")
+        'echo foo/.stigmer/bar'
+        >>> resolve_platform_command("ls -la")
+        'ls -la'
+    """
+    if not command:
+        return command
+    return _STIGMER_DIR_CMD_RE.sub(f"${STIGMER_PLATFORM_DIR_ENV}", command)
+
+
 def humanize_sandbox_paths(text: str, workspace_root: str) -> str:
     """Replace absolute sandbox workspace paths with workspace-relative display
     paths.

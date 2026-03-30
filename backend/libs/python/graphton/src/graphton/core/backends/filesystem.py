@@ -27,6 +27,7 @@ from graphton.core.backends.platform_mount import (
     PLATFORM_DIR_NAME,
     STIGMER_PLATFORM_DIR_ENV,
     classify_platform_path,
+    resolve_platform_command,
 )
 from graphton.core.backends.types import ExecutionResult
 
@@ -337,6 +338,9 @@ class FilesystemBackend:
         """
         self._invalidate_cache()
 
+        if self._platform_root is not None:
+            command = resolve_platform_command(command)
+
         try:
             env = self._build_execute_env()
 
@@ -410,6 +414,9 @@ class FilesystemBackend:
             ExecutionResult with exit code, stdout, and stderr.
         """
         self._invalidate_cache()
+
+        if self._platform_root is not None:
+            command = resolve_platform_command(command)
 
         env = self._build_execute_env()
 
