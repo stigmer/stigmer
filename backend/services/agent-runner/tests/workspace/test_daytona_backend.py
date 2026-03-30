@@ -284,7 +284,10 @@ class TestCwdConformance:
         backend.execute("git diff", cwd="my-repo")
 
         cmd = _last_session_command(sandbox)
-        assert cmd == "cd /home/daytona/workspace/my-repo && git diff"
+        assert cmd == (
+            "export PYTHONUNBUFFERED=1; "
+            "cd /home/daytona/workspace/my-repo && git diff"
+        )
 
     def test_no_cwd_runs_in_root(self):
         """execute(cmd) without cwd runs in the workspace root."""
@@ -295,7 +298,10 @@ class TestCwdConformance:
         backend.execute("ls -la")
 
         cmd = _last_session_command(sandbox)
-        assert cmd == "cd /home/daytona/workspace && ls -la"
+        assert cmd == (
+            "export PYTHONUNBUFFERED=1; "
+            "cd /home/daytona/workspace && ls -la"
+        )
 
     def test_cwd_strips_leading_slash(self):
         """Leading slash is stripped — cwd is always relative to root."""
@@ -306,7 +312,10 @@ class TestCwdConformance:
         backend.execute("find .", cwd="/my-repo")
 
         cmd = _last_session_command(sandbox)
-        assert cmd == "cd /workspace/my-repo && find ."
+        assert cmd == (
+            "export PYTHONUNBUFFERED=1; "
+            "cd /workspace/my-repo && find ."
+        )
 
     def test_cwd_nested_subdirectory(self):
         """cwd can be a nested path within the workspace."""
@@ -317,7 +326,10 @@ class TestCwdConformance:
         backend.execute("cat README.md", cwd="services/api")
 
         cmd = _last_session_command(sandbox)
-        assert cmd == "cd /workspace/services/api && cat README.md"
+        assert cmd == (
+            "export PYTHONUNBUFFERED=1; "
+            "cd /workspace/services/api && cat README.md"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -443,3 +455,105 @@ class TestNormalize:
             sandbox_root="/home/daytona",
         )
         assert hasattr(backend, "_normalize")
+
+
+# ---------------------------------------------------------------------------
+# Execute — env var injection and shlex.quote robustness
+# ---------------------------------------------------------------------------
+
+
+class TestExecuteEnvVars:
+    """execute() exports env vars and quotes the workspace root."""
+
+    def test_exports_pythonunbuffered_always(self):
+        """PYTHONUNBUFFERED=1 is always exported, even without env_vars."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox, workspace_root="/ws",
+        )
+        backend.execute("echo hello")
+        cmd = _last_session_command(sandbox)
+        assert "export PYTHONUNBUFFERED=1" in cmd
+
+    def test_shlex_quotes_workspace_root(self):
+        """Workspace root with spaces is properly quoted in the cd command."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox, workspace_root="/home/user/my workspace",
+        )
+        backend.execute("ls")
+        cmd = _last_session_command(sandbox)
+        assert "cd '/home/user/my workspace'" in cmd
+
+    def test_custom_env_vars_exported(self):
+        """Custom env vars passed at construction are exported."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/ws",
+            env_vars={"MY_VAR": "hello", "OTHER": "world"},
+        )
+        backend.execute("echo test")
+        cmd = _last_session_command(sandbox)
+        assert "export MY_VAR=hello" in cmd
+        assert "export OTHER=world" in cmd
+
+    def test_env_var_values_shlex_quoted(self):
+        """Env var values with special chars are shlex-quoted."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/ws",
+            env_vars={"PATH_VAR": "/path with spaces/bin"},
+        )
+        backend.execute("echo test")
+        cmd = _last_session_command(sandbox)
+        assert "export PATH_VAR='/path with spaces/bin'" in cmd
+
+    def test_stigmer_platform_dir_triggers_resolve(self):
+        """.stigmer/ in commands is rewritten when STIGMER_PLATFORM_DIR is set."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox,
+            workspace_root="/ws",
+            env_vars={"STIGMER_PLATFORM_DIR": "/ws/.stigmer-platform"},
+        )
+        backend.execute("python3 .stigmer/skills/s/run.py")
+        cmd = _last_session_command(sandbox)
+        assert "$STIGMER_PLATFORM_DIR/skills/s/run.py" in cmd
+        assert "export STIGMER_PLATFORM_DIR=/ws/.stigmer-platform" in cmd
+
+    def test_no_resolve_without_stigmer_platform_dir(self):
+        """.stigmer/ is NOT rewritten when STIGMER_PLATFORM_DIR is absent."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox, workspace_root="/ws",
+        )
+        backend.execute("cat .stigmer/skills/s/SKILL.md")
+        cmd = _last_session_command(sandbox)
+        assert ".stigmer/skills/s/SKILL.md" in cmd
+        assert "$STIGMER_PLATFORM_DIR" not in cmd
+
+    def test_without_env_vars_only_pythonunbuffered(self):
+        """With no env_vars, only PYTHONUNBUFFERED is exported."""
+        sandbox = _make_sandbox()
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox, workspace_root="/ws",
+        )
+        backend.execute("pwd")
+        cmd = _last_session_command(sandbox)
+        assert cmd == "export PYTHONUNBUFFERED=1; cd /ws && pwd"
+
+    def test_env_vars_defensive_copy(self):
+        """Mutating the original dict after construction has no effect."""
+        sandbox = _make_sandbox()
+        env = {"MY_VAR": "original"}
+        backend = DaytonaWorkspaceBackend(
+            sandbox=sandbox, workspace_root="/ws", env_vars=env,
+        )
+        env["MY_VAR"] = "mutated"
+        env["NEW_VAR"] = "sneaky"
+        backend.execute("echo test")
+        cmd = _last_session_command(sandbox)
+        assert "export MY_VAR=original" in cmd
+        assert "NEW_VAR" not in cmd
