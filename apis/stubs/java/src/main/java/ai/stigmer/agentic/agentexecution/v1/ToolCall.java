@@ -44,6 +44,7 @@ private static final long serialVersionUID = 0L;
     approvalDecidedAt_ = "";
     approvedBy_ = "";
     approvalAction_ = 0;
+    streamingSource_ = 0;
     mcpServerSlug_ = "";
     argsPreview_ = "";
   }
@@ -739,11 +740,11 @@ private static final long serialVersionUID = 0L;
   private boolean isStreaming_ = false;
   /**
    * <pre>
-   * True while the tool is actively producing output, false when complete.
-   * Mirrors AgentMessage.is_streaming for consistency.
-   * Enables UI to show live output during long-running tool executions.
+   * True while the tool is actively producing content, false when complete.
+   * Enables UI to show live output during long-running tool executions or
+   * a typewriter effect during input generation.
    *
-   * When true, `result` contains partial output accumulated so far.
+   * When true, `result` contains partial content accumulated so far.
    * When false (default), `result` contains the final complete output.
    * Consumers always read `result` — this flag only signals whether
    * more content is expected.
@@ -755,6 +756,52 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public boolean getIsStreaming() {
     return isStreaming_;
+  }
+
+  public static final int STREAMING_SOURCE_FIELD_NUMBER = 19;
+  private int streamingSource_ = 0;
+  /**
+   * <pre>
+   * Identifies what is currently being streamed.
+   * Only meaningful when is_streaming is true; reset to UNSPECIFIED when
+   * streaming ends.
+   *
+   * INPUT:  result contains partial content extracted from the in-progress
+   * argument JSON (e.g., file content for a write tool).
+   * OUTPUT: result contains accumulated output chunks from tool execution
+   * (e.g., shell command stdout).
+   *
+   * Consumers use this to choose the correct rendering mode — typewriter
+   * for input streaming, live terminal output for output streaming.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource streaming_source = 19 [json_name = "streamingSource"];</code>
+   * @return The enum numeric value on the wire for streamingSource.
+   */
+  @java.lang.Override public int getStreamingSourceValue() {
+    return streamingSource_;
+  }
+  /**
+   * <pre>
+   * Identifies what is currently being streamed.
+   * Only meaningful when is_streaming is true; reset to UNSPECIFIED when
+   * streaming ends.
+   *
+   * INPUT:  result contains partial content extracted from the in-progress
+   * argument JSON (e.g., file content for a write tool).
+   * OUTPUT: result contains accumulated output chunks from tool execution
+   * (e.g., shell command stdout).
+   *
+   * Consumers use this to choose the correct rendering mode — typewriter
+   * for input streaming, live terminal output for output streaming.
+   * </pre>
+   *
+   * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource streaming_source = 19 [json_name = "streamingSource"];</code>
+   * @return The streamingSource.
+   */
+  @java.lang.Override public ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource getStreamingSource() {
+    ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource result = ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource.forNumber(streamingSource_);
+    return result == null ? ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource.UNRECOGNIZED : result;
   }
 
   public static final int MCP_SERVER_SLUG_FIELD_NUMBER = 17;
@@ -945,6 +992,9 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(argsPreview_)) {
       com.google.protobuf.GeneratedMessage.writeString(output, 18, argsPreview_);
     }
+    if (streamingSource_ != ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource.TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED.getNumber()) {
+      output.writeEnum(19, streamingSource_);
+    }
     getUnknownFields().writeTo(output);
   }
 
@@ -1014,6 +1064,10 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessage.isStringEmpty(argsPreview_)) {
       size += com.google.protobuf.GeneratedMessage.computeStringSize(18, argsPreview_);
     }
+    if (streamingSource_ != ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource.TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(19, streamingSource_);
+    }
     size += getUnknownFields().getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1065,6 +1119,7 @@ private static final long serialVersionUID = 0L;
     if (approvalAction_ != other.approvalAction_) return false;
     if (getIsStreaming()
         != other.getIsStreaming()) return false;
+    if (streamingSource_ != other.streamingSource_) return false;
     if (!getMcpServerSlug()
         .equals(other.getMcpServerSlug())) return false;
     if (!getArgsPreview()
@@ -1118,6 +1173,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + IS_STREAMING_FIELD_NUMBER;
     hash = (53 * hash) + com.google.protobuf.Internal.hashBoolean(
         getIsStreaming());
+    hash = (37 * hash) + STREAMING_SOURCE_FIELD_NUMBER;
+    hash = (53 * hash) + streamingSource_;
     hash = (37 * hash) + MCP_SERVER_SLUG_FIELD_NUMBER;
     hash = (53 * hash) + getMcpServerSlug().hashCode();
     hash = (37 * hash) + ARGS_PREVIEW_FIELD_NUMBER;
@@ -1288,6 +1345,7 @@ private static final long serialVersionUID = 0L;
       approvedBy_ = "";
       approvalAction_ = 0;
       isStreaming_ = false;
+      streamingSource_ = 0;
       mcpServerSlug_ = "";
       argsPreview_ = "";
       return this;
@@ -1379,9 +1437,12 @@ private static final long serialVersionUID = 0L;
         result.isStreaming_ = isStreaming_;
       }
       if (((from_bitField0_ & 0x00010000) != 0)) {
-        result.mcpServerSlug_ = mcpServerSlug_;
+        result.streamingSource_ = streamingSource_;
       }
       if (((from_bitField0_ & 0x00020000) != 0)) {
+        result.mcpServerSlug_ = mcpServerSlug_;
+      }
+      if (((from_bitField0_ & 0x00040000) != 0)) {
         result.argsPreview_ = argsPreview_;
       }
       result.bitField0_ |= to_bitField0_;
@@ -1467,14 +1528,17 @@ private static final long serialVersionUID = 0L;
       if (other.getIsStreaming() != false) {
         setIsStreaming(other.getIsStreaming());
       }
+      if (other.streamingSource_ != 0) {
+        setStreamingSourceValue(other.getStreamingSourceValue());
+      }
       if (!other.getMcpServerSlug().isEmpty()) {
         mcpServerSlug_ = other.mcpServerSlug_;
-        bitField0_ |= 0x00010000;
+        bitField0_ |= 0x00020000;
         onChanged();
       }
       if (!other.getArgsPreview().isEmpty()) {
         argsPreview_ = other.argsPreview_;
-        bitField0_ |= 0x00020000;
+        bitField0_ |= 0x00040000;
         onChanged();
       }
       this.mergeUnknownFields(other.getUnknownFields());
@@ -1589,14 +1653,19 @@ private static final long serialVersionUID = 0L;
             } // case 128
             case 138: {
               mcpServerSlug_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00010000;
+              bitField0_ |= 0x00020000;
               break;
             } // case 138
             case 146: {
               argsPreview_ = input.readStringRequireUtf8();
-              bitField0_ |= 0x00020000;
+              bitField0_ |= 0x00040000;
               break;
             } // case 146
+            case 152: {
+              streamingSource_ = input.readEnum();
+              bitField0_ |= 0x00010000;
+              break;
+            } // case 152
             default: {
               if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                 done = true; // was an endgroup tag
@@ -3183,11 +3252,11 @@ private static final long serialVersionUID = 0L;
     private boolean isStreaming_ ;
     /**
      * <pre>
-     * True while the tool is actively producing output, false when complete.
-     * Mirrors AgentMessage.is_streaming for consistency.
-     * Enables UI to show live output during long-running tool executions.
+     * True while the tool is actively producing content, false when complete.
+     * Enables UI to show live output during long-running tool executions or
+     * a typewriter effect during input generation.
      *
-     * When true, `result` contains partial output accumulated so far.
+     * When true, `result` contains partial content accumulated so far.
      * When false (default), `result` contains the final complete output.
      * Consumers always read `result` — this flag only signals whether
      * more content is expected.
@@ -3202,11 +3271,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * True while the tool is actively producing output, false when complete.
-     * Mirrors AgentMessage.is_streaming for consistency.
-     * Enables UI to show live output during long-running tool executions.
+     * True while the tool is actively producing content, false when complete.
+     * Enables UI to show live output during long-running tool executions or
+     * a typewriter effect during input generation.
      *
-     * When true, `result` contains partial output accumulated so far.
+     * When true, `result` contains partial content accumulated so far.
      * When false (default), `result` contains the final complete output.
      * Consumers always read `result` — this flag only signals whether
      * more content is expected.
@@ -3225,11 +3294,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * True while the tool is actively producing output, false when complete.
-     * Mirrors AgentMessage.is_streaming for consistency.
-     * Enables UI to show live output during long-running tool executions.
+     * True while the tool is actively producing content, false when complete.
+     * Enables UI to show live output during long-running tool executions or
+     * a typewriter effect during input generation.
      *
-     * When true, `result` contains partial output accumulated so far.
+     * When true, `result` contains partial content accumulated so far.
      * When false (default), `result` contains the final complete output.
      * Consumers always read `result` — this flag only signals whether
      * more content is expected.
@@ -3241,6 +3310,128 @@ private static final long serialVersionUID = 0L;
     public Builder clearIsStreaming() {
       bitField0_ = (bitField0_ & ~0x00008000);
       isStreaming_ = false;
+      onChanged();
+      return this;
+    }
+
+    private int streamingSource_ = 0;
+    /**
+     * <pre>
+     * Identifies what is currently being streamed.
+     * Only meaningful when is_streaming is true; reset to UNSPECIFIED when
+     * streaming ends.
+     *
+     * INPUT:  result contains partial content extracted from the in-progress
+     * argument JSON (e.g., file content for a write tool).
+     * OUTPUT: result contains accumulated output chunks from tool execution
+     * (e.g., shell command stdout).
+     *
+     * Consumers use this to choose the correct rendering mode — typewriter
+     * for input streaming, live terminal output for output streaming.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource streaming_source = 19 [json_name = "streamingSource"];</code>
+     * @return The enum numeric value on the wire for streamingSource.
+     */
+    @java.lang.Override public int getStreamingSourceValue() {
+      return streamingSource_;
+    }
+    /**
+     * <pre>
+     * Identifies what is currently being streamed.
+     * Only meaningful when is_streaming is true; reset to UNSPECIFIED when
+     * streaming ends.
+     *
+     * INPUT:  result contains partial content extracted from the in-progress
+     * argument JSON (e.g., file content for a write tool).
+     * OUTPUT: result contains accumulated output chunks from tool execution
+     * (e.g., shell command stdout).
+     *
+     * Consumers use this to choose the correct rendering mode — typewriter
+     * for input streaming, live terminal output for output streaming.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource streaming_source = 19 [json_name = "streamingSource"];</code>
+     * @param value The enum numeric value on the wire for streamingSource to set.
+     * @throws IllegalArgumentException if UNRECOGNIZED is provided.
+     * @return This builder for chaining.
+     */
+    public Builder setStreamingSourceValue(int value) {
+      streamingSource_ = value;
+      bitField0_ |= 0x00010000;
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Identifies what is currently being streamed.
+     * Only meaningful when is_streaming is true; reset to UNSPECIFIED when
+     * streaming ends.
+     *
+     * INPUT:  result contains partial content extracted from the in-progress
+     * argument JSON (e.g., file content for a write tool).
+     * OUTPUT: result contains accumulated output chunks from tool execution
+     * (e.g., shell command stdout).
+     *
+     * Consumers use this to choose the correct rendering mode — typewriter
+     * for input streaming, live terminal output for output streaming.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource streaming_source = 19 [json_name = "streamingSource"];</code>
+     * @return The streamingSource.
+     */
+    @java.lang.Override
+    public ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource getStreamingSource() {
+      ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource result = ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource.forNumber(streamingSource_);
+      return result == null ? ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * Identifies what is currently being streamed.
+     * Only meaningful when is_streaming is true; reset to UNSPECIFIED when
+     * streaming ends.
+     *
+     * INPUT:  result contains partial content extracted from the in-progress
+     * argument JSON (e.g., file content for a write tool).
+     * OUTPUT: result contains accumulated output chunks from tool execution
+     * (e.g., shell command stdout).
+     *
+     * Consumers use this to choose the correct rendering mode — typewriter
+     * for input streaming, live terminal output for output streaming.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource streaming_source = 19 [json_name = "streamingSource"];</code>
+     * @param value The streamingSource to set.
+     * @return This builder for chaining.
+     */
+    public Builder setStreamingSource(ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource value) {
+      if (value == null) { throw new NullPointerException(); }
+      bitField0_ |= 0x00010000;
+      streamingSource_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <pre>
+     * Identifies what is currently being streamed.
+     * Only meaningful when is_streaming is true; reset to UNSPECIFIED when
+     * streaming ends.
+     *
+     * INPUT:  result contains partial content extracted from the in-progress
+     * argument JSON (e.g., file content for a write tool).
+     * OUTPUT: result contains accumulated output chunks from tool execution
+     * (e.g., shell command stdout).
+     *
+     * Consumers use this to choose the correct rendering mode — typewriter
+     * for input streaming, live terminal output for output streaming.
+     * </pre>
+     *
+     * <code>.ai.stigmer.agentic.agentexecution.v1.ToolCallStreamingSource streaming_source = 19 [json_name = "streamingSource"];</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearStreamingSource() {
+      bitField0_ = (bitField0_ & ~0x00010000);
+      streamingSource_ = 0;
       onChanged();
       return this;
     }
@@ -3321,7 +3512,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       mcpServerSlug_ = value;
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
@@ -3342,7 +3533,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearMcpServerSlug() {
       mcpServerSlug_ = getDefaultInstance().getMcpServerSlug();
-      bitField0_ = (bitField0_ & ~0x00010000);
+      bitField0_ = (bitField0_ & ~0x00020000);
       onChanged();
       return this;
     }
@@ -3367,7 +3558,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       mcpServerSlug_ = value;
-      bitField0_ |= 0x00010000;
+      bitField0_ |= 0x00020000;
       onChanged();
       return this;
     }
@@ -3445,7 +3636,7 @@ private static final long serialVersionUID = 0L;
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
       argsPreview_ = value;
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return this;
     }
@@ -3465,7 +3656,7 @@ private static final long serialVersionUID = 0L;
      */
     public Builder clearArgsPreview() {
       argsPreview_ = getDefaultInstance().getArgsPreview();
-      bitField0_ = (bitField0_ & ~0x00020000);
+      bitField0_ = (bitField0_ & ~0x00040000);
       onChanged();
       return this;
     }
@@ -3489,7 +3680,7 @@ private static final long serialVersionUID = 0L;
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
       argsPreview_ = value;
-      bitField0_ |= 0x00020000;
+      bitField0_ |= 0x00040000;
       onChanged();
       return this;
     }

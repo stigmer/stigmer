@@ -260,6 +260,17 @@ func (r *inlineRenderer) clearStreamingState() {
 	r.streamIsPreApproval = false
 }
 
+// isInputStreaming returns true when a tool call is in the input streaming
+// phase (LLM generating arguments). Uses the data-driven StreamingSource
+// field from the proto, falling back to IsStreaming for backward compat
+// with older backend versions that don't populate streaming_source.
+func isInputStreaming(tc toolrender.ToolCallInfo) bool {
+	if tc.StreamingSource != "" {
+		return tc.StreamingSource == "input"
+	}
+	return tc.IsStreaming
+}
+
 // resolveStreamContent extracts the displayable content from a
 // ToolStreamDeltaEvent. Prefers e.Content (shell output, generic
 // streaming). Falls back to ExpandedApprovalContent for write/edit

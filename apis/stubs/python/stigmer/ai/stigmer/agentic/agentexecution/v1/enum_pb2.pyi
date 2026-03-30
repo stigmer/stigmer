@@ -63,6 +63,12 @@ class SummarizationSource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     graph_start: _ClassVar[SummarizationSource]
     mid_execution: _ClassVar[SummarizationSource]
 
+class ToolCallStreamingSource(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED: _ClassVar[ToolCallStreamingSource]
+    TOOL_CALL_STREAMING_SOURCE_INPUT: _ClassVar[ToolCallStreamingSource]
+    TOOL_CALL_STREAMING_SOURCE_OUTPUT: _ClassVar[ToolCallStreamingSource]
+
 class ApprovalAction(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     APPROVAL_ACTION_UNSPECIFIED: _ClassVar[ApprovalAction]
@@ -107,6 +113,9 @@ EXECUTION_ARTIFACT_KIND_DIRECTORY: ExecutionArtifactKind
 SUMMARIZATION_SOURCE_UNSPECIFIED: SummarizationSource
 graph_start: SummarizationSource
 mid_execution: SummarizationSource
+TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED: ToolCallStreamingSource
+TOOL_CALL_STREAMING_SOURCE_INPUT: ToolCallStreamingSource
+TOOL_CALL_STREAMING_SOURCE_OUTPUT: ToolCallStreamingSource
 APPROVAL_ACTION_UNSPECIFIED: ApprovalAction
 APPROVAL_ACTION_APPROVE: ApprovalAction
 APPROVAL_ACTION_SKIP: ApprovalAction

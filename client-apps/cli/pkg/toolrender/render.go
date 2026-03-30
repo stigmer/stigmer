@@ -52,6 +52,13 @@ type ToolCallInfo struct {
 	// Mirrors the proto ToolCall.is_streaming field.
 	IsStreaming bool
 
+	// StreamingSource identifies what is currently being streamed.
+	// "input" = LLM generating args, "output" = tool producing results.
+	// Empty when not streaming. Derived from proto
+	// ToolCall.streaming_source; consumers use this instead of
+	// client-side heuristics to choose the correct rendering mode.
+	StreamingSource string
+
 	// ServerName is the MCP server slug that provides this tool.
 	// Empty for built-in sandbox tools. When populated, the compact
 	// renderer shows "server/tool" in the header for disambiguation.
