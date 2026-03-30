@@ -82,16 +82,6 @@ spec:
           # MongoDB Checkpointer URI (contains credentials)
           STIGMER_CHECKPOINTER_MONGODB_URI:
             value: $secrets-group/stigmer-mongodb-credentials/prod.checkpointer-uri
-      livenessProbe:
-        exec:
-          command:
-            - /app/.venv/bin/python
-            - -c
-            - "import os,time;f='/tmp/agent-runner-heartbeat';assert os.path.exists(f) and (time.time()-os.path.getmtime(f))<120,'event loop unresponsive'"
-        initialDelaySeconds: 120
-        periodSeconds: 30
-        timeoutSeconds: 10
-        failureThreshold: 3
   availability:
     minReplicas: 1
     # Zero-downtime deployment strategy

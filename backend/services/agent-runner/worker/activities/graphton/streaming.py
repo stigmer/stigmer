@@ -351,33 +351,21 @@ class StreamExecutor:
                 if isinstance(hb_err, (asyncio.CancelledError, KeyboardInterrupt)):
                     raise
 
-    _WATCHDOG_HEARTBEAT_FILE = "/tmp/agent-runner-heartbeat"
     _WATCHDOG_POLL_S = 0.1
     _WATCHDOG_THRESHOLD_MS = 500
 
     async def _event_loop_watchdog(self) -> None:
-        """Detect event loop blockage and touch a heartbeat file.
+        """Detect event loop blockage during streaming.
 
         Runs ``asyncio.sleep`` in a tight loop and measures how long
         the sleep actually took.  If the event loop was blocked by a
         synchronous call the measured duration will far exceed the
         requested sleep — a clear signal of trouble.
-
-        Also touches a heartbeat file on each iteration so that the
-        Kubernetes liveness probe can detect a fully-hung process.
         """
-        import os
-
         while True:
             t0 = asyncio.get_event_loop().time()
             await asyncio.sleep(self._WATCHDOG_POLL_S)
             elapsed_ms = (asyncio.get_event_loop().time() - t0) * 1000
-
-            try:
-                with open(self._WATCHDOG_HEARTBEAT_FILE, "a"):
-                    os.utime(self._WATCHDOG_HEARTBEAT_FILE, None)
-            except OSError:
-                pass
 
             if elapsed_ms > self._WATCHDOG_THRESHOLD_MS:
                 self._log.warning(

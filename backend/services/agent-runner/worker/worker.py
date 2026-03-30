@@ -173,6 +173,7 @@ class AgentRunner:
             ],
             max_concurrent_activities=self.config.max_concurrency,
             max_heartbeat_throttle_interval=timedelta(seconds=10),
+            graceful_shutdown_timeout=timedelta(seconds=30),
         )
         
         self.logger.info(
