@@ -699,10 +699,15 @@ class TestGatedGeneralPurposeSubAgent:
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.subagent.compile_subagent")
     @patch("graphton.core.agent.parse_model_string")
-    def test_general_purpose_uses_main_agent_model_and_prompt(
+    def test_general_purpose_uses_main_agent_model_and_scoped_prompt(
         self, mock_parse, mock_compile, mock_create
     ):
-        """General-purpose sub-agent is compiled with the main agent's model and prompt."""
+        """General-purpose sub-agent uses the main agent's model and a scoped prompt.
+
+        The GP sub-agent's system prompt is derived from the parent's prompt
+        but stripped of skills metadata and sub-agent delegation rules, and
+        prepended with a scope-boundary preamble to prevent scope violations.
+        """
         from graphton import create_deep_agent
 
         mock_model = MagicMock()
@@ -729,8 +734,63 @@ class TestGatedGeneralPurposeSubAgent:
 
         compile_kwargs = mock_compile.call_args.kwargs
         assert compile_kwargs["model"] is mock_model
-        assert compile_kwargs["system_prompt"] == "You are a helpful coding assistant."
+        gp_prompt = compile_kwargs["system_prompt"]
+        assert "You are a delegated sub-agent" in gp_prompt
+        assert "You are a helpful coding assistant." in gp_prompt
         assert compile_kwargs["name"] == "general-purpose"
+
+    @patch("graphton.core.agent.deepagents_create_deep_agent")
+    @patch("graphton.core.subagent.compile_subagent")
+    @patch("graphton.core.agent.parse_model_string")
+    def test_general_purpose_prompt_strips_skills_and_delegation_rules(
+        self, mock_parse, mock_compile, mock_create
+    ):
+        """GP sub-agent prompt excludes skills metadata and delegation rules."""
+        from graphton import create_deep_agent
+
+        mock_model = MagicMock()
+        mock_parse.return_value = mock_model
+        mock_agent = MagicMock()
+        mock_agent.with_config.return_value = mock_agent
+        mock_create.return_value = mock_agent
+        mock_compile.return_value = {
+            "name": "general-purpose",
+            "description": "GP",
+            "runnable": MagicMock(),
+        }
+
+        prompt_with_skills = (
+            "You are a helpful assistant."
+            "\n\n## Workspace\n\nworkspace info"
+            "\n\n## Available Skills\n\n"
+            "The following skills are pre-installed.\n\n"
+            "### skill-creator\n"
+            "**Description**: Creates skills\n"
+            "**Location**: `.stigmer/skills/skill-creator/`\n"
+            "**Activate**: `read .stigmer/skills/skill-creator/SKILL.md`\n"
+            "\n\n## Response rules\n\n- Be concise"
+            "\n\n## Sub-agent delegation rules\n\n"
+            "### Concurrency limit\n\n"
+            "Do NOT spawn more than 3 sub-agents."
+        )
+
+        create_deep_agent(
+            model="gpt-4",
+            system_prompt=prompt_with_skills,
+            subagents=None,
+            checkpointer=MagicMock(),
+            approval_checker=MagicMock(),
+        )
+
+        gp_prompt = mock_compile.call_args.kwargs["system_prompt"]
+        assert "## Available Skills" not in gp_prompt
+        assert "skill-creator" not in gp_prompt
+        assert "Activate" not in gp_prompt
+        assert "## Sub-agent delegation rules" not in gp_prompt
+        assert "Concurrency limit" not in gp_prompt
+        assert "## Workspace" in gp_prompt
+        assert "## Response rules" in gp_prompt
+        assert "You are a delegated sub-agent" in gp_prompt
 
     @patch("graphton.core.agent.deepagents_create_deep_agent")
     @patch("graphton.core.subagent.compile_subagent")
