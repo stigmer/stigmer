@@ -1719,46 +1719,15 @@ async def _execute_graphton_impl(
                             )
                             matched_decision_tc_ids.add(tc_id)
 
-            # ── Defense-in-depth: bidirectional ID lookup ─────────────────
-            #
-            # If some decisions were NOT matched by the primary loop, it
-            # may be because the status ToolCall carries a UUID-format ID
-            # (run_id fallback) while the interrupt payload carries the
-            # Anthropic toolu_* ID.  Build a reverse mapping from interrupt
-            # tool_call_ids to the parent interrupt, then try to pair each
-            # unmatched decision with an unmatched interrupt.
-            unmatched_decision_tc_ids = set(decisions_by_tc) - matched_decision_tc_ids
-            if unmatched_decision_tc_ids and graph_state and graph_state.interrupts:
-                intr_tc_to_parent: dict[str, Any] = {}
-                for intr in graph_state.interrupts:
-                    if intr.id in resume_dict:
-                        continue
-                    intr_value = intr.value if isinstance(intr.value, dict) else {}
-                    tc_id = intr_value.get("tool_call_id", "")
-                    if tc_id and tc_id not in matched_decision_tc_ids:
-                        intr_tc_to_parent[tc_id] = intr
-
-                for um_tc_id in list(unmatched_decision_tc_ids):
-                    decision = decisions_by_tc[um_tc_id]
-                    for intr_tc_id, intr in intr_tc_to_parent.items():
-                        if intr.id in resume_dict:
-                            continue
-                        resume_dict[intr.id] = _build_decision_value(
-                            decision, _action_map,
-                        )
-                        matched_decision_tc_ids.add(um_tc_id)
-                        activity_logger.warning(
-                            "[RESUME_ID_MISMATCH] execution=%s "
-                            "decision.tool_call_id=%s matched to "
-                            "interrupt.tool_call_id=%s (interrupt=%s) "
-                            "via bidirectional fallback. This indicates "
-                            "a StatusBuilder ID mismatch that should be "
-                            "fixed at the source.",
-                            execution_id, um_tc_id,
-                            intr_tc_id, intr.id[:16],
-                        )
-                        del intr_tc_to_parent[intr_tc_id]
-                        break
+            unmatched = set(decisions_by_tc) - matched_decision_tc_ids
+            if unmatched:
+                activity_logger.error(
+                    "[RESUME_UNMATCHED] execution=%s "
+                    "%d decision(s) could not match any interrupt: %s. "
+                    "This indicates a tool_call_id identity chain failure "
+                    "-- investigate ToolCallIdCapture and StatusBuilder.",
+                    execution_id, len(unmatched), sorted(unmatched),
+                )
 
             if resume_dict:
                 is_resume_from_approval = True
