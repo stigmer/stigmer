@@ -1026,7 +1026,7 @@ def _create_read_tool(
 
         try:
             logger.info("GRAPHTON read tool invoked for path: %s", path)
-            result = backend.read(path)
+            result = await asyncio.to_thread(backend.read, path)
             logger.info(
                 "GRAPHTON read tool succeeded for path: %s (%d chars)", path, len(result),
             )
@@ -1164,7 +1164,7 @@ def _create_write_tool(
             # displays the latest lines with a cursor indicator.
             await _stream_write_content(content)
             
-            backend.write(path, content)
+            await asyncio.to_thread(backend.write, path, content)
             logger.info(
                 "Wrote file '%s' (%d chars, first_200=%r)",
                 path, len(content), content[:200],
@@ -1278,7 +1278,9 @@ def _create_execute_tool(
                     ),
                 )
             else:
-                result = backend.execute(command, timeout=timeout)
+                result = await asyncio.to_thread(
+                    backend.execute, command, timeout=timeout,
+                )
 
             stdout = getattr(result, "stdout", "") or ""
             if not stdout:
@@ -1365,20 +1367,16 @@ def _create_edit_tool(
         try:
             logger.info(f"✏️  Editing file: {path}")
             
-            # Read current content
-            content = backend.read(path)
+            content = await asyncio.to_thread(backend.read, path)
             
-            # Verify old_text exists
             if old_text not in content:
                 error_msg = f"Text to replace not found in '{path}'"
                 logger.warning(f"⚠️  {error_msg}")
                 return enrich_error_message("edit", error_msg)
             
-            # Replace first occurrence only
             new_content = content.replace(old_text, new_text, 1)
             
-            # Write back
-            backend.write(path, new_content)
+            await asyncio.to_thread(backend.write, path, new_content)
             
             logger.info(f"✅ Edited file '{path}'")
             return (
@@ -1442,7 +1440,7 @@ def _create_delete_tool(
 
         try:
             logger.info("Deleting file: %s", path)
-            result = backend.delete(path)
+            result = await asyncio.to_thread(backend.delete, path)
             logger.info("Deleted file '%s'", path)
             return result
         except (FileNotFoundError, IsADirectoryError, ValueError) as e:
@@ -1481,7 +1479,7 @@ def _create_ls_tool(
         """
         try:
             logger.debug(f"📂 Listing directory: {path}")
-            files = backend.list_files(path)
+            files = await asyncio.to_thread(backend.list_files, path)
             
             if not files:
                 logger.debug(f"Directory '{path}' is empty")
@@ -1556,12 +1554,13 @@ def _create_glob_tool(
                         except NotADirectoryError:
                             pass
             
-            collect_files(path)
-            
-            if "/" in pattern:
-                matches = [f for f in all_files if fnmatch.fnmatch(f, pattern)]
-            else:
-                matches = [f for f in all_files if fnmatch.fnmatch(os.path.basename(f), pattern)]
+            def _glob_sync() -> list[str]:
+                collect_files(path)
+                if "/" in pattern:
+                    return [f for f in all_files if fnmatch.fnmatch(f, pattern)]
+                return [f for f in all_files if fnmatch.fnmatch(os.path.basename(f), pattern)]
+
+            matches = await asyncio.to_thread(_glob_sync)
             
             if not matches:
                 logger.debug(f"No files matching '{pattern}'")
@@ -1665,7 +1664,7 @@ def _create_grep_tool(
                     else:
                         search_file(item_path)
             
-            collect_and_search(path)
+            await asyncio.to_thread(collect_and_search, path)
             
             if not results:
                 logger.debug(f"No matches for '{pattern}' in {files_searched} files")
@@ -1712,10 +1711,13 @@ def _create_search_tool(
 
     _cached_index: list[WorkspaceIndex | None] = [None]
 
-    def _get_index() -> WorkspaceIndex:
+    def _build_index_sync() -> WorkspaceIndex:
+        logger.info("Building workspace symbol index (first search call)…")
+        return build_workspace_index(backend)
+
+    async def _get_index() -> WorkspaceIndex:
         if _cached_index[0] is None:
-            logger.info("Building workspace symbol index (first search call)…")
-            _cached_index[0] = build_workspace_index(backend)
+            _cached_index[0] = await asyncio.to_thread(_build_index_sync)
         return _cached_index[0]
 
     @tool
@@ -1746,7 +1748,7 @@ def _create_search_tool(
             if not query or not query.strip():
                 return "Please provide a search query."
 
-            index = _get_index()
+            index = await _get_index()
             results = index.search(query)
 
             output = format_search_results(results, query, index=index)

@@ -194,10 +194,12 @@ class StreamExecutor:
         )
 
         hb_task: asyncio.Task[None] | None = None
+        wd_task: asyncio.Task[None] | None = None
         try:
             hb_task = asyncio.create_task(
                 self._background_heartbeat(lambda: events_processed)
             )
+            wd_task = asyncio.create_task(self._event_loop_watchdog())
 
             async with asyncio.timeout(self._stall_timeout) as stall_deadline:
                 async for event in self._graph.astream_events(
@@ -245,6 +247,10 @@ class StreamExecutor:
             )
             raise
         finally:
+            if wd_task is not None:
+                wd_task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await wd_task
             if hb_task is not None:
                 hb_task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
@@ -344,6 +350,41 @@ class StreamExecutor:
                 )
                 if isinstance(hb_err, (asyncio.CancelledError, KeyboardInterrupt)):
                     raise
+
+    _WATCHDOG_HEARTBEAT_FILE = "/tmp/agent-runner-heartbeat"
+    _WATCHDOG_POLL_S = 0.1
+    _WATCHDOG_THRESHOLD_MS = 500
+
+    async def _event_loop_watchdog(self) -> None:
+        """Detect event loop blockage and touch a heartbeat file.
+
+        Runs ``asyncio.sleep`` in a tight loop and measures how long
+        the sleep actually took.  If the event loop was blocked by a
+        synchronous call the measured duration will far exceed the
+        requested sleep — a clear signal of trouble.
+
+        Also touches a heartbeat file on each iteration so that the
+        Kubernetes liveness probe can detect a fully-hung process.
+        """
+        import os
+
+        while True:
+            t0 = asyncio.get_event_loop().time()
+            await asyncio.sleep(self._WATCHDOG_POLL_S)
+            elapsed_ms = (asyncio.get_event_loop().time() - t0) * 1000
+
+            try:
+                with open(self._WATCHDOG_HEARTBEAT_FILE, "a"):
+                    os.utime(self._WATCHDOG_HEARTBEAT_FILE, None)
+            except OSError:
+                pass
+
+            if elapsed_ms > self._WATCHDOG_THRESHOLD_MS:
+                self._log.warning(
+                    "[WATCHDOG] execution=%s event loop blocked for %.0fms "
+                    "(threshold=%dms)",
+                    self._execution_id, elapsed_ms, self._WATCHDOG_THRESHOLD_MS,
+                )
 
     def _send_heartbeat(self, events_processed: int) -> None:
         try:

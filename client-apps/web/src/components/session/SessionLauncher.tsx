@@ -30,7 +30,7 @@ import {
   parseDraftParams,
   type DraftResourceType,
 } from "@/utils/draft-session";
-import { navigateTo } from "@/utils/navigation";
+import { useSessionNavigation } from "@/contexts/session-navigation";
 
 /**
  * Console-specific session launcher — the landing page widget that
@@ -69,6 +69,7 @@ export function SessionLauncher() {
   const deploymentMode = useDeploymentMode();
   const gitHubConnection = useGitHubConnection(org);
   const stigmer = useStigmer();
+  const { navigateToSession } = useSessionNavigation();
 
   const draftType = draftParams?.draftType ?? null;
   const editRef = draftParams?.editRef ?? null;
@@ -291,7 +292,7 @@ export function SessionLauncher() {
 
         await createExecution({ ...executionFields, sessionId });
         sessionVariables.clear();
-        navigateTo(`/sessions/${sessionId}`);
+        navigateToSession(sessionId);
       } catch (err) {
         const detail = getUserMessage(err, "Failed to start session");
         setSubmitError(detail);
@@ -313,6 +314,7 @@ export function SessionLauncher() {
       createSession,
       createExecution,
       sessionVariables,
+      navigateToSession,
     ],
   );
 
