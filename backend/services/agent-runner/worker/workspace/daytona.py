@@ -24,11 +24,16 @@ from __future__ import annotations
 
 import logging
 import os
+import shlex
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from worker.workspace.backend import ExecuteResult
+from worker.workspace.platform_mount import (
+    STIGMER_PLATFORM_DIR_ENV,
+    resolve_platform_command,
+)
 
 if TYPE_CHECKING:
     pass
@@ -59,6 +64,7 @@ class DaytonaWorkspaceBackend:
         sandbox: Any,
         workspace_root: str,
         sandbox_root: str | None = None,
+        env_vars: dict[str, str] | None = None,
     ) -> None:
         if sandbox is None:
             raise ValueError("sandbox must not be None")
@@ -71,6 +77,7 @@ class DaytonaWorkspaceBackend:
         self._sandbox = sandbox
         self._workspace_root = workspace_root.rstrip("/")
         self._sandbox_root = (sandbox_root or workspace_root).rstrip("/")
+        self._env_vars: dict[str, str] = dict(env_vars) if env_vars else {}
 
         # Rebase prefix: the relative path from sandbox root to workspace
         # root.  When the workspace root is a subdirectory of the sandbox
@@ -203,11 +210,18 @@ class DaytonaWorkspaceBackend:
     ) -> ExecuteResult:
         self._ensure_session()
 
-        if cwd is not None:
-            abs_cwd = self._abs(cwd)
-            full_cmd = f"cd {abs_cwd} && {command}"
-        else:
-            full_cmd = f"cd {self._workspace_root} && {command}"
+        if self._env_vars and STIGMER_PLATFORM_DIR_ENV in self._env_vars:
+            command = resolve_platform_command(command)
+
+        abs_target = self._abs(cwd) if cwd is not None else self._workspace_root
+        full_cmd = f"cd {shlex.quote(abs_target)} && {command}"
+
+        all_env: dict[str, str] = {"PYTHONUNBUFFERED": "1"}
+        all_env.update(self._env_vars)
+        exports = "; ".join(
+            f"export {k}={shlex.quote(v)}" for k, v in all_env.items()
+        )
+        full_cmd = f"{exports}; {full_cmd}"
 
         try:
             from daytona import SessionExecuteRequest  # type: ignore[import-untyped]

@@ -22,10 +22,12 @@ backend.  This serves two purposes:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import shlex
 import time
+from collections.abc import Callable
 from typing import Any
 
 from deepagents.backends.protocol import BackendProtocol  # type: ignore[import-untyped]
@@ -78,9 +80,14 @@ class WorkspaceNormalizingBackend:
     rebase prefix is empty and behaviour is identical to the original
     strip-only normalisation -- fully backward-compatible.
 
-    Any method not explicitly overridden is forwarded transparently via
-    ``__getattr__``, so the wrapper is fully compatible with
-    ``BackendProtocol`` without hard-coding every method signature.
+    **Sealed attribute access** — ``__getattr__`` raises ``AttributeError``
+    for any attribute not explicitly defined on this class.  The inner
+    ``DaytonaBackend`` inherits many methods from ``BaseSandbox``
+    (``ls_info``, ``edit``, ``grep_raw``, ``glob_info``, ``aexecute``, etc.)
+    that call ``self.execute()`` internally on the *inner* backend, bypassing
+    the wrapper's ``cd`` preamble and env-var injection.  Transparent
+    forwarding would silently break path normalization for any such method.
+    If a new method is needed, add an explicit override here.
     """
 
     def __init__(
@@ -133,6 +140,13 @@ class WorkspaceNormalizingBackend:
                 self._workspace_root,
                 self._sandbox_root,
             )
+
+    # -- identity -----------------------------------------------------------
+
+    @property
+    def id(self) -> str:  # noqa: A003
+        """Sandbox identifier, forwarded from the inner backend."""
+        return self._inner.id  # type: ignore[no-any-return]
 
     # -- cache management ---------------------------------------------------
 
@@ -361,26 +375,32 @@ class WorkspaceNormalizingBackend:
         return f"Deleted '{path}'"
 
     def execute(self, command: str, **kwargs: Any) -> ExecutionResult:
-        """Execute shell command with injected env vars.
+        """Execute shell command from the workspace root with injected env vars.
 
-        When ``env_vars`` were provided at construction, each variable is
-        exported before the user command so it is available in the remote
-        sandbox shell.
+        The inner ``DaytonaBackend`` runs commands from the *sandbox* root
+        (e.g. ``/home/daytona``), not the *workspace* root (e.g.
+        ``/home/daytona/workspace``).  This method prepends
+        ``cd <workspace_root> &&`` so that user commands, as well as
+        shell-based tools (``glob``, ``grep``, ``search``), resolve
+        relative paths against the workspace — matching the behaviour of
+        :class:`~graphton.core.backends.filesystem.FilesystemBackend`
+        which uses ``subprocess.run(cwd=self.root_dir)``.
 
         ``.stigmer/`` virtual-mount references are resolved to
         ``$STIGMER_PLATFORM_DIR`` when platform files have been deployed
         (parity with :meth:`FilesystemBackend.execute`).
 
-        The inner backend may return different result types depending on
-        its implementation (e.g. ``ExecutionResult`` from
-        ``FilesystemBackend``, ``ExecuteResponse`` from deepagents'
-        ``DaytonaBackend``).  This method normalises the response into
-        graphton's canonical ``ExecutionResult`` so downstream consumers
-        always see ``.stdout``, ``.stderr``, and ``.exit_code``.
+        Final shell shape::
+
+            export FOO='bar'; cd '/home/daytona/workspace' && <user_command>
+
+        Exports run unconditionally (```;```), then ``cd`` gates the user
+        command via ``&&`` — if ``cd`` fails the user command does not run.
         """
         self._invalidate_cache()
         if self._env_vars and STIGMER_PLATFORM_DIR_ENV in self._env_vars:
             command = resolve_platform_command(command)
+        command = f"cd {shlex.quote(self._workspace_root)} && {command}"
         if self._env_vars:
             exports = "; ".join(
                 f"export {k}={shlex.quote(v)}"
@@ -390,11 +410,69 @@ class WorkspaceNormalizingBackend:
         raw = self._inner.execute(command, **kwargs)
         return to_execution_result(raw)
 
-    # -- transparent delegation for everything else -------------------------
+    async def execute_streaming(
+        self,
+        command: str,
+        timeout: int = 120,
+        on_chunk: Callable[[str], None] | None = None,
+    ) -> ExecutionResult:
+        """Execute shell command with live streaming from the workspace root.
+
+        Applies the same ``cd`` preamble and env-var injection as
+        :meth:`execute`, then delegates to the inner backend's
+        ``execute_streaming`` if available.  Falls back to the sync
+        :meth:`execute` via ``asyncio.to_thread`` when the inner backend
+        does not support streaming.
+
+        Without this explicit override, ``__getattr__`` would forward
+        ``execute_streaming`` directly to the inner backend, bypassing
+        the ``cd`` preamble — the same bug that :meth:`execute` fixes.
+        """
+        self._invalidate_cache()
+        if self._env_vars and STIGMER_PLATFORM_DIR_ENV in self._env_vars:
+            command = resolve_platform_command(command)
+        command = f"cd {shlex.quote(self._workspace_root)} && {command}"
+        if self._env_vars:
+            exports = "; ".join(
+                f"export {k}={shlex.quote(v)}"
+                for k, v in self._env_vars.items()
+            )
+            command = f"{exports}; {command}"
+
+        inner_streaming = getattr(self._inner, "execute_streaming", None)
+        if callable(inner_streaming):
+            raw = await inner_streaming(
+                command, timeout=timeout, on_chunk=on_chunk,
+            )
+            return to_execution_result(raw)
+
+        raw = await asyncio.to_thread(
+            self._inner.execute, command, timeout=timeout,
+        )
+        return to_execution_result(raw)
+
+    # -- sealed attribute access ---------------------------------------------
 
     def __getattr__(self, name: str) -> Any:  # noqa: ANN401
-        """Forward any attribute not explicitly defined to the inner backend."""
-        return getattr(self._inner, name)
+        """Raise ``AttributeError`` for any attribute not explicitly defined.
+
+        Previous versions forwarded unknown attributes to the inner backend
+        via ``getattr(self._inner, name)``.  This was an escape hatch that
+        silently bypassed path normalization and the ``cd`` preamble for
+        methods inherited by the inner ``DaytonaBackend`` from
+        ``BaseSandbox`` (``ls_info``, ``edit``, ``grep_raw``, ``glob_info``,
+        ``aexecute``, etc.) — all of which call ``self.execute()`` on the
+        *inner* backend, not the wrapper.
+
+        If a new method on the inner backend needs to be accessible, add an
+        explicit override here with appropriate path normalization / ``cd``
+        preamble rather than reopening the forwarding escape hatch.
+        """
+        raise AttributeError(
+            f"'{type(self).__name__}' has no attribute '{name}'. "
+            f"If '{name}' is a method on the inner backend that should be "
+            f"accessible, add an explicit override with path normalization."
+        )
 
 
 # ---------------------------------------------------------------------------

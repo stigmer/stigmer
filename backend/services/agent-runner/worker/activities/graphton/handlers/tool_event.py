@@ -427,23 +427,34 @@ def update_sub_agent_todos(
     )
 
 
+def _humanize_display_string(text: str, sb: StatusBuilder) -> str:
+    """Apply the full display humanization pipeline to a string value.
+
+    Pipeline order: platform env refs -> agent env vars -> sandbox paths.
+    """
+    text = humanize_platform_refs(text)
+    text = resolve_display_env_vars(text, sb._display_env_vars, sb._secret_keys)
+    text = humanize_sandbox_paths(text, sb._workspace_root)
+    return text
+
+
 def humanize_args_for_display(
     sb: StatusBuilder, tool_args: dict[str, Any],
 ) -> dict[str, Any]:
-    """Return a shallow copy of *tool_args* with string values humanized."""
+    """Return a deep copy of *tool_args* with all string values humanized."""
     if not tool_args:
         return tool_args
 
-    result: dict[str, Any] = {}
-    for key, value in tool_args.items():
+    def _humanize_value(value: Any) -> Any:
         if isinstance(value, str):
-            value = humanize_platform_refs(value)
-            value = resolve_display_env_vars(
-                value, sb._display_env_vars, sb._secret_keys,
-            )
-            value = humanize_sandbox_paths(value, sb._workspace_root)
-        result[key] = value
-    return result
+            return _humanize_display_string(value, sb)
+        if isinstance(value, dict):
+            return {k: _humanize_value(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [_humanize_value(v) for v in value]
+        return value
+
+    return {k: _humanize_value(v) for k, v in tool_args.items()}
 
 
 def create_args_preview(sb: StatusBuilder, tool_args: dict[str, Any]) -> str:
@@ -464,11 +475,7 @@ def create_args_preview(sb: StatusBuilder, tool_args: dict[str, Any]) -> str:
             if pattern in key_lower:
                 return "***REDACTED***"
         if isinstance(value, str):
-            value = humanize_platform_refs(value)
-            value = resolve_display_env_vars(
-                value, sb._display_env_vars, sb._secret_keys,
-            )
-            return value
+            return _humanize_display_string(value, sb)
         if isinstance(value, dict):
             return {k: sanitize_value(k, v) for k, v in value.items()}
         if isinstance(value, list):

@@ -425,3 +425,105 @@ class TestDaytonaWriteOverwrite:
 
         overwrite_worked = "inner overwritten" in actual
         logger.info("Inner backend overwrite succeeded: %s", overwrite_worked)
+
+
+# =============================================================================
+# DaytonaBackend API surface inspection — execute_streaming
+# =============================================================================
+
+
+@pytest.mark.skipif(_SKIP_DAYTONA, reason=_skip_reason())
+class TestDaytonaBackendApiSurface:
+    """Document the third-party DaytonaBackend API surface via assertions.
+
+    These tests inspect the live ``DaytonaBackend`` (from deepagents_cli)
+    to determine which methods exist.  The assertions serve as a canary:
+    if a new deepagents_cli release adds ``execute_streaming``, the test
+    will flag the change so we know to verify our guard is still effective.
+    """
+
+    def test_inner_backend_execute_streaming_presence(self, daytona_sandbox) -> None:
+        """Record whether the inner DaytonaBackend has execute_streaming."""
+        try:
+            from deepagents_cli.integrations.daytona import DaytonaBackend
+        except ImportError:
+            pytest.skip("deepagents_cli not installed")
+
+        inner = DaytonaBackend(daytona_sandbox)
+        has_streaming = callable(getattr(inner, "execute_streaming", None))
+        logger.info(
+            "DaytonaBackend.execute_streaming present: %s", has_streaming,
+        )
+        # As of deepagents_cli 0.0.x, DaytonaBackend does NOT expose
+        # execute_streaming.  If this assertion flips to True in a future
+        # release, verify that WorkspaceNormalizingBackend.execute_streaming
+        # still shadows it correctly.
+        assert has_streaming is False, (
+            "DaytonaBackend now exposes execute_streaming — verify "
+            "WorkspaceNormalizingBackend.execute_streaming still shadows it"
+        )
+
+
+# =============================================================================
+# execute() cwd fix — end-to-end on live sandbox
+# =============================================================================
+
+
+@pytest.mark.skipif(_SKIP_DAYTONA, reason=_skip_reason())
+class TestExecuteCwdOnDaytona:
+    """Verify that execute() runs from the workspace root after the cd fix."""
+
+    def test_execute_pwd_returns_workspace_root(
+        self, daytona_sandbox, daytona_backend,
+    ) -> None:
+        """Primary proof: ``execute("pwd")`` must return the workspace root."""
+        try:
+            workspace_root = daytona_sandbox.get_work_dir().rstrip("/")
+        except Exception:
+            workspace_root = "/home/daytona"
+
+        result = daytona_backend.execute("pwd")
+        assert result.exit_code == 0, f"pwd failed: {result.stderr}"
+        actual_cwd = result.stdout.strip()
+        assert actual_cwd == workspace_root, (
+            f"Expected cwd={workspace_root!r}, got {actual_cwd!r}"
+        )
+
+    def test_execute_ls_stigmer_dir(
+        self, daytona_sandbox, daytona_backend,
+    ) -> None:
+        """Reproduce the exact failure from the gap analysis: seed
+        ``.stigmer/skills/test-skill/SKILL.md`` and list it via execute."""
+        seed = daytona_sandbox.process.exec(
+            "mkdir -p .stigmer/skills/test-skill && "
+            "echo '# Test Skill' > .stigmer/skills/test-skill/SKILL.md",
+            timeout=10,
+        )
+        assert seed.exit_code == 0, f"Seed failed: {seed}"
+
+        result = daytona_backend.execute("ls .stigmer/skills/test-skill/")
+        assert result.exit_code == 0, (
+            f"ls .stigmer/ failed (exit={result.exit_code}): "
+            f"{result.stderr}"
+        )
+        assert "SKILL.md" in result.stdout
+
+    def test_execute_relative_find(
+        self, seeded_backend, daytona_sandbox,
+    ) -> None:
+        """A ``find .`` command must search from the workspace root."""
+        result = seeded_backend.execute(
+            "find . -name '*.py' -not -path '*/.git/*' -type f | sort",
+        )
+        assert result.exit_code == 0
+        assert "main.py" in result.stdout
+
+    def test_execute_relative_grep(
+        self, seeded_backend, daytona_sandbox,
+    ) -> None:
+        """A ``grep`` from ``.`` must search the workspace root."""
+        result = seeded_backend.execute(
+            "grep -rn 'def hello' . 2>/dev/null",
+        )
+        assert result.exit_code == 0
+        assert "def hello" in result.stdout
