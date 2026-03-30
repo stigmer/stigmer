@@ -12,6 +12,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from graphton.core.tool_wrappers import (
+    EXPLORE_TOOL_SET,
+    SHELL_TOOL_SET,
     ApprovalRequirement,
     ToolExecutionRejectedError,
     _apply_line_range,
@@ -28,6 +30,7 @@ from graphton.core.tool_wrappers import (
     _format_shell_success,
     _stream_write_content,
     create_approval_aware_tool_wrapper,
+    create_filtered_platform_tools,
     create_platform_tool_wrappers,
 )
 
@@ -2160,3 +2163,157 @@ class TestDeleteToolWrapper:
 
         assert "Deleted" in result.content
         mock_backend.delete.assert_called_once_with("test.txt")
+
+
+# =============================================================================
+# Tool Set Constants
+# =============================================================================
+
+
+class TestToolSetConstants:
+    """Tests for EXPLORE_TOOL_SET and SHELL_TOOL_SET constants."""
+
+    def test_explore_tool_set_is_read_only(self):
+        """Explore set contains only read-only tools."""
+        assert EXPLORE_TOOL_SET == {"read", "ls", "glob", "grep", "search"}
+        dangerous = {"write", "edit", "delete", "execute"}
+        assert EXPLORE_TOOL_SET.isdisjoint(dangerous)
+
+    def test_shell_tool_set_has_execute(self):
+        """Shell set contains execute plus minimal read tools."""
+        assert SHELL_TOOL_SET == {"read", "ls", "execute"}
+        assert "execute" in SHELL_TOOL_SET
+        assert "write" not in SHELL_TOOL_SET
+        assert "edit" not in SHELL_TOOL_SET
+
+    def test_tool_sets_are_frozen(self):
+        """Tool sets are frozensets (immutable)."""
+        assert isinstance(EXPLORE_TOOL_SET, frozenset)
+        assert isinstance(SHELL_TOOL_SET, frozenset)
+
+
+# =============================================================================
+# Filtered Platform Tools
+# =============================================================================
+
+
+class TestCreateFilteredPlatformTools:
+    """Tests for create_filtered_platform_tools function."""
+
+    @pytest.fixture
+    def mock_backend(self):
+        """Create a mock backend for filtered tool tests."""
+        backend = MagicMock()
+        backend.read.return_value = "file contents"
+        backend.list_files.return_value = ["file1.py", "file2.py"]
+
+        exec_result = MagicMock()
+        exec_result.exit_code = 0
+        exec_result.stdout = "success"
+        exec_result.stderr = ""
+        backend.execute.return_value = exec_result
+
+        backend.delete.return_value = "Deleted file"
+        return backend
+
+    def test_explore_tools_only_safe(self, mock_backend):
+        """Explore filter creates only read-only tools (no aliases)."""
+        tools = create_filtered_platform_tools(
+            backend=mock_backend,
+            allowed_tools=EXPLORE_TOOL_SET,
+            sub_agent_name="explore",
+        )
+        tool_names = {getattr(t, "name", "") for t in tools}
+        assert "read" in tool_names
+        assert "ls" in tool_names
+        assert "glob" in tool_names
+        assert "grep" in tool_names
+        assert "search" in tool_names
+        assert "write" not in tool_names
+        assert "edit" not in tool_names
+        assert "delete" not in tool_names
+        assert "execute" not in tool_names
+
+    def test_shell_tools_have_execute(self, mock_backend):
+        """Shell filter creates execute + read + ls (no aliases)."""
+        tools = create_filtered_platform_tools(
+            backend=mock_backend,
+            allowed_tools=SHELL_TOOL_SET,
+            sub_agent_name="shell",
+        )
+        tool_names = {getattr(t, "name", "") for t in tools}
+        assert "execute" in tool_names
+        assert "read" in tool_names
+        assert "ls" in tool_names
+        assert "write" not in tool_names
+        assert "grep" not in tool_names
+
+    def test_explore_excludes_write_alias(self, mock_backend):
+        """Explore filter does not create write_file alias."""
+        tools = create_filtered_platform_tools(
+            backend=mock_backend,
+            allowed_tools=EXPLORE_TOOL_SET,
+            sub_agent_name="explore",
+        )
+        tool_names = {getattr(t, "name", "") for t in tools}
+        assert "write_file" not in tool_names
+        assert "edit_file" not in tool_names
+        assert "delete_file" not in tool_names
+
+    def test_explore_includes_read_file_alias(self, mock_backend):
+        """Explore filter includes read_file alias since read is allowed."""
+        tools = create_filtered_platform_tools(
+            backend=mock_backend,
+            allowed_tools=EXPLORE_TOOL_SET,
+            sub_agent_name="explore",
+        )
+        tool_names = {getattr(t, "name", "") for t in tools}
+        assert "read_file" in tool_names
+
+    def test_empty_allowed_tools(self, mock_backend):
+        """Empty allowed_tools creates no tools."""
+        tools = create_filtered_platform_tools(
+            backend=mock_backend,
+            allowed_tools=set(),
+            sub_agent_name="empty",
+        )
+        assert tools == []
+
+    def test_unknown_tool_name_skipped(self, mock_backend):
+        """Unknown tool names are skipped with warning."""
+        tools = create_filtered_platform_tools(
+            backend=mock_backend,
+            allowed_tools={"read", "nonexistent_tool"},
+            sub_agent_name="test",
+        )
+        tool_names = {getattr(t, "name", "") for t in tools}
+        assert "read" in tool_names
+        assert "nonexistent_tool" not in tool_names
+
+    def test_approval_checker_threaded_through(self, mock_backend):
+        """Approval checker is passed to tool factories."""
+        def checker(name: str, args: dict) -> ApprovalRequirement:
+            return ApprovalRequirement(requires_approval=False)
+
+        tools = create_filtered_platform_tools(
+            backend=mock_backend,
+            allowed_tools={"read", "execute"},
+            approval_checker=checker,
+            sub_agent_name="test",
+        )
+        assert len(tools) > 0
+
+    def test_single_tool(self, mock_backend):
+        """Filter with a single tool creates only that tool."""
+        tools = create_filtered_platform_tools(
+            backend=mock_backend,
+            allowed_tools={"ls"},
+            sub_agent_name="minimal",
+        )
+        canonical_names = {
+            getattr(t, "name", "") for t in tools
+            if getattr(t, "name", "") not in {
+                "read_file", "write_file", "edit_file", "delete_file",
+            }
+        }
+        assert canonical_names == {"ls"}

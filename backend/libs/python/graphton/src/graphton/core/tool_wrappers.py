@@ -574,6 +574,127 @@ def _register_alias(
     tools.append(alias_tool)
 
 
+# =========================================================================
+# Tool sets for built-in subagent types
+#
+# Each set lists the canonical platform tool names that the subagent type
+# is allowed to use.  Tools not in the set are excluded entirely — the
+# LLM never sees them, preventing accidental scope violations.
+# =========================================================================
+
+EXPLORE_TOOL_SET: frozenset[str] = frozenset({
+    "read", "ls", "glob", "grep", "search",
+})
+"""Read-only tools for the explore subagent type."""
+
+SHELL_TOOL_SET: frozenset[str] = frozenset({
+    "read", "ls", "execute",
+})
+"""Minimal tools for the shell subagent type: execute + basic read."""
+
+# Mapping from canonical tool name to its factory function name suffix.
+# Used by create_filtered_platform_tools to selectively instantiate tools.
+_TOOL_FACTORIES: dict[str, str] = {
+    "read": "read",
+    "ls": "ls",
+    "glob": "glob",
+    "grep": "grep",
+    "search": "search",
+    "write": "write",
+    "edit": "edit",
+    "delete": "delete",
+    "execute": "execute",
+}
+
+# Aliases that should only be registered when their canonical tool is present.
+_ALIAS_MAP: dict[str, tuple[str, str]] = {
+    "read_file": ("read", "_create_read_tool"),
+    "write_file": ("write", "_create_write_tool"),
+    "edit_file": ("edit", "_create_edit_tool"),
+    "delete_file": ("delete", "_create_delete_tool"),
+}
+
+
+def create_filtered_platform_tools(
+    backend: Any,  # noqa: ANN401
+    allowed_tools: frozenset[str] | set[str],
+    approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,
+    sub_agent_name: str = "",
+) -> list[Callable[..., Any]]:
+    """Create platform tools filtered to only allowed tool names.
+
+    This function creates a restricted subset of platform tools for
+    specialized subagent types (e.g. explore, shell). Only tools whose
+    canonical names appear in *allowed_tools* are instantiated.  Aliases
+    (read_file, write_file, etc.) are included only when their canonical
+    tool is in the allowed set.
+
+    Args:
+        backend: Backend instance (FilesystemBackend, DaytonaBackend, etc.)
+        allowed_tools: Set of canonical tool names to create (e.g. {"read", "ls", "grep"})
+        approval_checker: Optional approval checker for HITL flow
+        sub_agent_name: Name of the sub-agent using these tools
+
+    Returns:
+        List of @tool decorated functions for the allowed platform tools
+    """
+    factory_lookup: dict[str, Callable[..., Any]] = {
+        "read": _create_read_tool,
+        "ls": _create_ls_tool,
+        "glob": _create_glob_tool,
+        "grep": _create_grep_tool,
+        "search": _create_search_tool,
+        "write": _create_write_tool,
+        "edit": _create_edit_tool,
+        "delete": _create_delete_tool,
+        "execute": _create_execute_tool,
+    }
+
+    safe_tools = {"read", "ls", "glob", "grep", "search"}
+    dangerous_tools = {"write", "edit", "delete", "execute"}
+
+    tools: list[Callable[..., Any]] = []
+
+    for tool_name in allowed_tools:
+        factory = factory_lookup.get(tool_name)
+        if factory is None:
+            logger.warning(
+                "Unknown tool '%s' in allowed_tools for sub-agent '%s', skipping",
+                tool_name, sub_agent_name,
+            )
+            continue
+
+        if tool_name in safe_tools and tool_name not in {"read"}:
+            tools.append(factory(backend))
+        elif tool_name == "read":
+            tools.append(factory(backend, approval_checker, sub_agent_name=sub_agent_name))
+        elif tool_name in dangerous_tools:
+            tools.append(factory(backend, approval_checker, sub_agent_name=sub_agent_name))
+
+    # Register aliases for allowed canonical tools
+    alias_factory_lookup: dict[str, Callable[..., Any]] = {
+        "read": _create_read_tool,
+        "write": _create_write_tool,
+        "edit": _create_edit_tool,
+        "delete": _create_delete_tool,
+    }
+    for alias_name, (canonical, _) in _ALIAS_MAP.items():
+        if canonical in allowed_tools:
+            _register_alias(
+                alias_factory_lookup[canonical], alias_name, canonical,
+                backend, approval_checker, tools,
+                sub_agent_name=sub_agent_name,
+            )
+
+    tool_names_list = [getattr(t, "name", "unknown") for t in tools]
+    logger.info(
+        "Created %d filtered platform tool(s) for sub-agent '%s': %s",
+        len(tools), sub_agent_name, tool_names_list,
+    )
+
+    return tools
+
+
 def create_platform_tool_wrappers(
     backend: Any,  # noqa: ANN401
     approval_checker: Callable[[str, dict[str, Any]], ApprovalRequirement] | None = None,

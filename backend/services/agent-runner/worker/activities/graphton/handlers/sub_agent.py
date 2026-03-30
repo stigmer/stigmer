@@ -208,6 +208,15 @@ async def handle_sub_agent_start(
             return
 
     sub_agent_name = tool_args.get("subagent_type", "") or tool_args.get("agent_type", "") or "unknown"
+
+    _builtin_types = {"explore", "shell"}
+    if sub_agent_name in _builtin_types:
+        sb.logger.info(
+            "[SUBAGENT] execution=%s starting built-in '%s' subagent "
+            "(tool-restricted, isolated prompt)",
+            sb.execution_id, sub_agent_name,
+        )
+
     sub_agent_input = (
         tool_args.get("description", "")
         or tool_args.get("input", "")
