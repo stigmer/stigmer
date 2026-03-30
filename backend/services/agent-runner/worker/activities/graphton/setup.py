@@ -1132,6 +1132,10 @@ async def _perform_setup_core(
                 sandbox_config=sandbox_config_for_agent,
                 approval_checker=approval_checker,
                 activity_logger=logger,
+                parent_has_native_thinking=(
+                    model_metadata.supports_thinking
+                    or model_metadata.supports_adaptive_thinking
+                ),
             )
             if transformed_subagents:
                 logger.info(

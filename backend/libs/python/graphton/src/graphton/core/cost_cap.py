@@ -393,3 +393,59 @@ class CostCapMiddleware(AgentMiddleware):
             self._exceeded,
         )
         return None
+
+    def for_sub_agent(self) -> "_CostCapSubAgentView":
+        """Create a sub-agent view that shares this instance's cost state.
+
+        The view delegates ``aafter_model`` and ``awrap_tool_call`` to this
+        instance so sub-agent model calls accumulate against the same budget.
+        ``abefore_agent`` is a no-op on the view — the parent instance owns
+        the lifecycle reset.
+
+        Returns a lightweight ``AgentMiddleware`` suitable for inclusion in
+        a sub-agent's middleware list via ``compile_subagent``.
+        """
+        return _CostCapSubAgentView(self)
+
+
+class _CostCapSubAgentView(AgentMiddleware):
+    """Read-through view of a parent ``CostCapMiddleware`` for sub-agents.
+
+    All cost accounting is delegated to the parent instance.  The only
+    behavioural difference: ``abefore_agent`` does **not** reset cost
+    state — the parent graph's ``abefore_agent`` is the single owner of
+    the lifecycle reset.
+    """
+
+    __slots__ = ("_parent",)
+
+    def __init__(self, parent: CostCapMiddleware) -> None:
+        self._parent = parent
+
+    async def abefore_agent(
+        self,
+        state: AgentState[Any],
+        runtime: Runtime[None] | dict[str, Any],
+    ) -> dict[str, Any] | None:
+        return None
+
+    async def aafter_model(
+        self,
+        state: AgentState[Any],
+        runtime: Runtime[None] | dict[str, Any],
+    ) -> dict[str, Any] | None:
+        return await self._parent.aafter_model(state, runtime)
+
+    async def awrap_tool_call(
+        self,
+        request: ToolCallRequest,
+        handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]],
+    ) -> ToolMessage | Command:
+        return await self._parent.awrap_tool_call(request, handler)
+
+    async def aafter_agent(
+        self,
+        state: AgentState[Any],
+        runtime: Runtime[None] | dict[str, Any],
+    ) -> dict[str, Any] | None:
+        return None

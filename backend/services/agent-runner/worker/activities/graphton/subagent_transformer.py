@@ -190,6 +190,7 @@ async def transform_sub_agents(
     sandbox_config: dict[str, Any] | None = None,
     approval_checker: Callable[[str, dict[str, Any]], Any] | None = None,
     activity_logger: logging.Logger | None = None,
+    parent_has_native_thinking: bool = True,
 ) -> list[dict[str, Any]] | None:
     """Transform proto SubAgents to graphton format.
     
@@ -216,6 +217,10 @@ async def transform_sub_agents(
             this sandbox.
         approval_checker: Optional approval checker for HITL tool approval flow
         activity_logger: Logger for activity-level messages
+        parent_has_native_thinking: Whether the parent's model supports native
+            extended thinking.  When False and the sub-agent doesn't override
+            the model, an explicit think tool is injected for structured
+            reasoning.  Defaults to True (most current Anthropic models).
         
     Returns:
         List of subagent dicts compatible with graphton's subagents parameter,
@@ -295,6 +300,7 @@ async def transform_sub_agents(
                 sandbox_backend=sandbox_backend,
                 approval_checker=approval_checker,
                 log=log,
+                parent_has_native_thinking=parent_has_native_thinking,
             )
             
             if subagent_dict:
@@ -433,6 +439,7 @@ async def _transform_single_subagent(
     sandbox_backend: Any,  # noqa: ANN401
     approval_checker: Callable[[str, dict[str, Any]], Any] | None,
     log: logging.Logger,
+    parent_has_native_thinking: bool = True,
 ) -> dict[str, Any] | None:
     """Transform a single SubAgent proto to graphton dict format.
     
@@ -571,6 +578,27 @@ async def _transform_single_subagent(
             return None
         model_override = candidate
         log.info("Sub-agent '%s' will use model override: %s", name, model_override)
+
+    # Inject think tool when the resolved model lacks native extended thinking.
+    # When model_override is set, check ModelRegistry for that model's thinking
+    # capability.  When no override, use the parent's thinking state.
+    sa_has_native_thinking = parent_has_native_thinking
+    if model_override is not None:
+        override_meta = ModelRegistry.get_or_default(model_override)
+        sa_has_native_thinking = (
+            override_meta.supports_thinking
+            or override_meta.supports_adaptive_thinking
+        )
+
+    if not sa_has_native_thinking:
+        from graphton.core.think_tool import create_think_tool
+
+        tools.append(create_think_tool())
+        log.info(
+            "Injected think tool into sub-agent '%s' "
+            "(model lacks native extended thinking)",
+            name,
+        )
 
     # Build the subagent dict in graphton format.
     # Always set ``tools`` so deepagents uses this explicit list rather

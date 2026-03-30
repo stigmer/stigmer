@@ -46,9 +46,62 @@ logger = logging.getLogger(__name__)
 
 _UNLIMITED_RECURSION: int = 10_000_000
 
+_TOOL_COUNT_WARNING_THRESHOLD: int = 25
+_TOOL_DESC_MAX_CHARS: int = 500
 
 _SUB_AGENT_ADVISORY_INTERVAL: int = 30
 _SUB_AGENT_MAX_ADVISORIES: int = 4
+
+
+def audit_tool_set(
+    tools: list[BaseTool],
+    *,
+    context_label: str = "agent",
+) -> None:
+    """Log tool count warnings and truncate verbose descriptions.
+
+    Shared between ``create_deep_agent`` (main agent) and
+    ``compile_subagent`` (sub-agents) so both benefit from the same
+    observability guardrails.
+
+    - Warns when the tool count exceeds the threshold (25) because
+      model tool-selection accuracy degrades above ~20-25 tools.
+    - Truncates descriptions longer than 500 characters to prevent
+      bloated tool-calling payloads that waste tokens.
+
+    Mutates *tools* in place (description truncation only).
+    """
+    total = len(tools)
+    if total > _TOOL_COUNT_WARNING_THRESHOLD:
+        logger.warning(
+            "[TOOL-COUNT] %s: %d tools bound (threshold=%d). "
+            "High tool counts degrade model selection accuracy. "
+            "Consider reducing MCP enabled_tools.",
+            context_label,
+            total,
+            _TOOL_COUNT_WARNING_THRESHOLD,
+        )
+    logger.info(
+        "[TOOL-COUNT] %s: total=%d (threshold=%d)",
+        context_label,
+        total,
+        _TOOL_COUNT_WARNING_THRESHOLD,
+    )
+
+    truncated_count = 0
+    for tool in tools:
+        desc = getattr(tool, "description", None)
+        if desc and len(desc) > _TOOL_DESC_MAX_CHARS:
+            tool.description = desc[:_TOOL_DESC_MAX_CHARS] + "..."  # type: ignore[union-attr]
+            truncated_count += 1
+    if truncated_count:
+        logger.info(
+            "[TOOL-COUNT] %s: truncated descriptions on %d tool(s) "
+            "exceeding %d chars",
+            context_label,
+            truncated_count,
+            _TOOL_DESC_MAX_CHARS,
+        )
 
 
 def compile_subagent(
@@ -60,6 +113,7 @@ def compile_subagent(
     description: str,
     middleware: list[Any] | None = None,
     recursion_limit: int | None = None,
+    cost_cap: Any | None = None,
 ) -> dict[str, Any]:
     """Compile a sub-agent graph using LangGraph native per-invocation mode.
 
@@ -75,6 +129,8 @@ def compile_subagent(
       count to prevent context blowup.
     - **ExecutionBudgetMiddleware** (periodic mode) — nudges the model
       every 30 model rounds with escalating urgency (up to 4 times).
+    - **CostCapMiddleware** sub-agent view (when provided) — accumulates
+      model call costs against the parent's shared budget.
 
     Sub-agents run with effectively unlimited recursion (matching the
     main agent and industry peers like Cursor and Claude Code).  The
@@ -88,6 +144,11 @@ def compile_subagent(
             ``None`` (default) means unlimited — the sub-agent runs
             until loop detection or the task completes.  When set to a
             positive integer, LangGraph enforces that hard limit.
+        cost_cap: A ``_CostCapSubAgentView`` (from
+            ``CostCapMiddleware.for_sub_agent()``) that shares the
+            parent's cost budget.  When provided, sub-agent model calls
+            accumulate against the same cap and tools are blocked when
+            the shared budget is exceeded.
 
     Returns a dict compatible with deepagents' ``CompiledSubAgent`` TypedDict
     (keys: ``name``, ``description``, ``runnable``).
@@ -120,6 +181,11 @@ def compile_subagent(
         max_warnings=_SUB_AGENT_MAX_ADVISORIES,
     ))
 
+    if cost_cap is not None:
+        effective_middleware.append(cost_cap)
+
+    audit_tool_set(tools, context_label=f"sub-agent:{name}")
+
     compiled_graph = create_agent(
         model,
         system_prompt=system_prompt,
@@ -134,7 +200,7 @@ def compile_subagent(
     logger.info(
         "Compiled sub-agent '%s' with native interrupt propagation "
         "(tools=%d, middleware=%d, recursion_limit=%d%s, "
-        "advisory_interval=%d, max_advisories=%d)",
+        "advisory_interval=%d, max_advisories=%d, cost_cap=%s)",
         name,
         len(tools),
         len(effective_middleware),
@@ -142,6 +208,7 @@ def compile_subagent(
         " (unlimited)" if recursion_limit is None else "",
         _SUB_AGENT_ADVISORY_INTERVAL,
         _SUB_AGENT_MAX_ADVISORIES,
+        "shared" if cost_cap is not None else "none",
     )
 
     return {
