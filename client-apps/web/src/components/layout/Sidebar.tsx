@@ -92,14 +92,14 @@ export function Sidebar() {
 
       {/* New Session */}
       <div className="flex-none px-3 py-1">
-        <a
+        <Link
           href="/"
           onClick={handleNewSession}
           className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium transition-colors"
         >
           <Plus className="size-4 shrink-0" />
           New Session
-        </a>
+        </Link>
       </div>
 
       {/* Library */}

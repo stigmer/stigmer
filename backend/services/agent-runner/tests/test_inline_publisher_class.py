@@ -164,7 +164,7 @@ class TestInlinePublisherErrorSwallowing:
         with patch(
             "worker.activities.graphton.inline_publisher.publish_artifact",
             new_callable=AsyncMock,
-            side_effect=IOError("upload failed"),
+            side_effect=OSError("upload failed"),
         ):
             await publisher.publish("/bad-file.txt")
 

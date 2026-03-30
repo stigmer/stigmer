@@ -38,7 +38,6 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.types import Command, interrupt
 
-
 # ---------------------------------------------------------------------------
 # Test tools
 # ---------------------------------------------------------------------------
