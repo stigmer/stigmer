@@ -1,6 +1,7 @@
 """Temporal activity for executing Graphton agents."""
 
 import contextlib
+import logging
 import os
 import traceback
 from typing import Any, cast
@@ -55,6 +56,7 @@ from worker.activities.graphton.hitl import (
     ResumeReconciler,
     extract_interrupt_tool_call_ids,
 )
+from worker.activities.graphton.inline_publisher import InlinePublisher
 from worker.activities.graphton.prompt_builder import (
     _format_entry_description,  # noqa: F401 — re-exported for tests
     build_referenced_files_prompt_section,  # noqa: F401 — re-exported for tests
@@ -102,7 +104,6 @@ from worker.streaming import (  # noqa: F401 — StreamingUpdateScheduler re-exp
     StreamingUpdateScheduler,
 )
 from worker.token_manager import get_api_key
-from worker.tools import publish_artifact as _publish_artifact_to_storage
 from worker.workspace import (
     LocalWorkspaceBackend,
     ProvisionResult,
@@ -115,6 +116,12 @@ from worker.workspace import (
 
 # _TREE_MAX_ENTRIES, _build_directory_tree, _human_size moved to
 # worker.activities.graphton.prompt_builder
+
+# Sentinel value matching the LANGGRAPH_DEFAULT_RECURSION_LIMIT env var
+# set in daemon_process.go.  Used when the user does not configure
+# max_tool_rounds — effectively "unlimited" (loop detection middleware
+# is the primary behavioral safety).
+_LANGGRAPH_UNLIMITED_RECURSION = 10_000_000
 
 
 
@@ -133,6 +140,57 @@ from worker.workspace import (
 # Prompt construction functions (build_workspace_prompt_section, etc.) are
 # imported from worker.activities.graphton.prompt_builder and re-exported
 # at module level for backward compatibility with existing test imports.
+
+
+async def _persist_and_return_failed_status(
+    *,
+    failed_status: AgentExecutionStatus,
+    execution_id: str,
+    execution_client: AgentExecutionClient | None,
+    retry_executor: GrpcRetryExecutor | None,
+    logger: logging.Logger,
+) -> AgentExecutionStatus:
+    """Persist a failed execution status via gRPC (best effort) and return
+    the slim version suitable for Temporal workflow return values.
+
+    When *retry_executor* is provided the update uses exponential-backoff
+    retry; otherwise a single best-effort call is made.  All gRPC errors
+    are logged and swallowed — the caller always receives the slim status
+    so the Temporal workflow can proceed.
+    """
+    if execution_client is not None:
+        try:
+            if retry_executor is not None:
+                await retry_executor.execute(
+                    operation=lambda: execution_client.update_status(
+                        execution_id=execution_id,
+                        status=failed_status,
+                    ),
+                    operation_name="failed_status_update",
+                    context={"execution_id": execution_id, "phase": "FAILED"},
+                )
+            else:
+                await execution_client.update_status(execution_id, failed_status)
+            logger.info(
+                "Failed status update sent successfully for %s", execution_id,
+            )
+        except GrpcRetryExhaustedError as e:
+            logger.error(
+                "[FINAL] All retries exhausted for failed status update: "
+                "%d attempts, %.0fms total. Last error: %s",
+                e.attempts, e.total_duration_ms, e.last_error,
+            )
+        except GrpcNonRetryableError as e:
+            logger.error(
+                "[FINAL] Non-retryable error on failed status update: "
+                "%s - %s",
+                e.status_code.name, e.original_error,
+            )
+        except Exception as e:
+            logger.error(
+                "[FINAL] Unexpected error on failed status update: %s", e,
+            )
+    return _slim_status_for_temporal(failed_status)
 
 
 def _build_decision_value(
@@ -215,46 +273,42 @@ async def execute_graphton(
         )
     except Exception as system_error:
         exc_type = type(system_error).__name__
-        exc_tb = traceback.format_exc()
         activity_logger.error(
-            f"❌ SYSTEM ERROR in ExecuteGraphton for {execution_id}: "
-            f"[{exc_type}] {system_error}\n{exc_tb}"
+            "SYSTEM ERROR in ExecuteGraphton for %s: [%s] %s\n%s",
+            execution_id, exc_type, system_error, traceback.format_exc(),
         )
-        
-        # Create minimal failed status for system errors
-        # This handles cases where status_builder was never initialized
 
-
-        
         failed_status = AgentExecutionStatus(
             phase=ExecutionPhase.EXECUTION_FAILED,
-            error=f"System error: [{exc_type}] {str(system_error)}",
+            error=f"System error: [{exc_type}] {system_error}",
             messages=[
                 AgentMessage(
                     type=MessageType.MESSAGE_SYSTEM,
-                    content="Internal system error occurred. Please contact support if this issue persists.",
+                    content="Internal system error occurred. "
+                    "Please contact support if this issue persists.",
                     timestamp=_utc_timestamp(),
                 ),
                 AgentMessage(
                     type=MessageType.MESSAGE_SYSTEM,
-                    content=f"Error details: [{exc_type}] {str(system_error)}",
+                    content=f"Error details: [{exc_type}] {system_error}",
                     timestamp=_utc_timestamp(),
-                )
-            ]
+                ),
+            ],
         )
-        
-        # Try to update status in database (best effort)
-        try:
+
+        best_effort_client: AgentExecutionClient | None = None
+        with contextlib.suppress(Exception):
             api_key = get_api_key()
             if api_key:
-                execution_client = AgentExecutionClient(api_key)
-                await execution_client.update_status(execution_id, failed_status)
-                activity_logger.info(f"✅ Updated execution {execution_id} to FAILED status")
-        except Exception as update_error:
-            activity_logger.error(f"Failed to update status after system error: {update_error}")
-        
-        # Return slim status to workflow (full status already persisted via gRPC above)
-        return _slim_status_for_temporal(failed_status)
+                best_effort_client = AgentExecutionClient(api_key)
+
+        return await _persist_and_return_failed_status(
+            failed_status=failed_status,
+            execution_id=execution_id,
+            execution_client=best_effort_client,
+            retry_executor=None,
+            logger=activity_logger,
+        )
 
 
 async def _execute_graphton_impl(
@@ -1490,70 +1544,14 @@ async def _execute_graphton_impl(
             "for inline + post-stream artifact publish"
         )
 
-        async def _publish_file_inline(path: str) -> None:
-            """Fire-and-forget callback: upload a single file from the
-            sandbox to artifact storage and register it on the status
-            builder so the next progressive gRPC update carries it to
-            the UI.
-
-            Exceptions are logged and swallowed — this must never crash
-            the streaming loop.
-            """
-            from pathlib import PurePosixPath
-
-            try:
-                normalizer = (
-                    workspace_backend._normalize
-                    if hasattr(workspace_backend, "_normalize")
-                    else None
-                )
-                rel_path = normalizer(path) if normalizer else path.lstrip("/")
-                file_name = PurePosixPath(rel_path).name
-
-                activity_logger.info(
-                    "[INLINE_PUBLISH] execution=%s — path resolution: "
-                    "tool_path=%r -> normalized=%r (file_name=%r, "
-                    "sandbox=%s, has_normalizer=%s)",
-                    execution_id, path, rel_path, file_name,
-                    "cloud" if sandbox is not None else "local",
-                    normalizer is not None,
-                )
-
-                artifact = await _publish_artifact_to_storage(
-                    sandbox=sandbox,
-                    storage=artifact_storage,
-                    execution_id=execution_id,
-                    path=rel_path,
-                    name=file_name,
-                    local_root=(
-                        workspace_backend.root_dir if sandbox is None else None
-                    ),
-                )
-
-                activity_logger.info(
-                    "[INLINE_PUBLISH] execution=%s — content read from "
-                    "sandbox: path=%r, size=%d bytes, hash=%s, "
-                    "first_200=%r",
-                    execution_id, rel_path,
-                    artifact.size_bytes, artifact.content_hash,
-                    artifact.name,
-                )
-
-                status_builder.add_artifact(artifact)
-                activity_logger.info(
-                    "[INLINE_PUBLISH] execution=%s — "
-                    "published '%s' as artifact '%s' "
-                    "(size=%d, hash=%s)",
-                    execution_id, rel_path, file_name,
-                    artifact.size_bytes, artifact.content_hash,
-                )
-            except Exception as exc:
-                activity_logger.warning(
-                    "[INLINE_PUBLISH] execution=%s — "
-                    "failed to publish '%s' (non-fatal, post-stream "
-                    "safety net will attempt): %s",
-                    execution_id, path, exc,
-                )
+        inline_publisher = InlinePublisher(
+            workspace_backend=workspace_backend,
+            sandbox=sandbox,
+            artifact_storage=artifact_storage,
+            status_builder=status_builder,
+            execution_id=execution_id,
+            logger=activity_logger,
+        )
         
         # Create Graphton agent.
         #
@@ -1614,20 +1612,12 @@ async def _execute_graphton_impl(
             "messages": [{"role": "user", "content": message_with_context}]
         }
         
-        # Prepare config with thread_id for state persistence.
-        #
-        # recursion_limit is set HERE in the invoke config — this is the
-        # authoritative override.  The invoke config is the LAST config
-        # processed by LangGraph's merge_configs chain, so it takes priority
-        # over any .with_config() bindings (including deepagents' internal
-        # recursion_limit=1000).
-        #
-        # Additionally, LANGGRAPH_DEFAULT_RECURSION_LIMIT=10000000 is set in
-        # the agent-runner environment (daemon_process.go) as a framework-wide
-        # default that also covers subagent graphs.
-        unlimited_recursion = 10_000_000
+        # Invoke-config recursion_limit is the authoritative override —
+        # it is the LAST config merged by LangGraph, taking priority over
+        # any .with_config() bindings.
         effective_recursion_limit = (
-            recursion_limit if recursion_limit is not None else unlimited_recursion
+            recursion_limit if recursion_limit is not None
+            else _LANGGRAPH_UNLIMITED_RECURSION
         )
         config = {
             "configurable": {
@@ -1949,7 +1939,7 @@ async def _execute_graphton_impl(
             is_cancelled_fn=activity.is_cancelled,
             slim_status_fn=_slim_status_for_temporal,
             logger=activity_logger,
-            on_file_written=_publish_file_inline,
+            on_file_written=inline_publisher.publish,
             on_git_file_modified=(
                 writeback_coordinator.on_file_modified
                 if writeback_coordinator is not None
@@ -2060,52 +2050,35 @@ async def _execute_graphton_impl(
         return _slim_status_for_temporal(status_builder.current_status)
     
     except Exception as e:
-        # Capture the full exception context for diagnostics.  str(e) alone
-        # is often cryptic (e.g. a bare field name like "size_bytes") —
-        # the exception type and traceback are essential for root-cause analysis.
         exc_type = type(e).__name__
-        exc_tb = traceback.format_exc()
         activity_logger.error(
-            f"ExecuteGraphton failed for execution {execution_id}: "
-            f"[{exc_type}] {e}\n{exc_tb}"
+            "ExecuteGraphton failed for execution %s: [%s] %s\n%s",
+            execution_id, exc_type, e, traceback.format_exc(),
         )
-        
-        # Build a human-readable error message that includes the exception type
-        # so cryptic bare-string exceptions are at least classifiable.
-        error_str = str(e)
-        error_message = f"Execution failed: [{exc_type}] {error_str}"
-        
+
+        error_message = f"Execution failed: [{exc_type}] {e}"
         fail_system_msg = AgentMessage(
             type=MessageType.MESSAGE_SYSTEM,
-            content=f"❌ Error: {error_message}",
+            content=f"Error: {error_message}",
             timestamp=_utc_timestamp(),
         )
-        
-        # Check if status_builder was initialized before the error occurred
-        # If not, create a minimal failed status (handles early failures like attachment injection)
+
         if status_builder is not None:
             status_builder.finalize_active_sub_agents(
                 SubAgentStatus.SUB_AGENT_FAILED,
                 f"Parent execution failed: {error_message}",
             )
-
             status_builder.current_status.messages.append(fail_system_msg)
-
-            # Finalize context info before returning (Phase 3)
-            # Even on failure, we want to capture any context tracking data
             status_builder.finalize_context_info()
-            
             status_builder.current_status.phase = ExecutionPhase.EXECUTION_FAILED
             status_builder.current_status.error = error_message
-            
             if not status_builder.current_status.completed_at:
                 status_builder.current_status.completed_at = _utc_timestamp()
-            
             failed_status = status_builder.current_status
         else:
-            # Early failure before status_builder was created
             activity_logger.warning(
-                f"status_builder not initialized - creating minimal failed status for {execution_id}"
+                "status_builder not initialized — creating minimal failed "
+                "status for %s", execution_id,
             )
             failed_status = AgentExecutionStatus(
                 phase=ExecutionPhase.EXECUTION_FAILED,
@@ -2114,49 +2087,20 @@ async def _execute_graphton_impl(
                     fail_system_msg,
                     AgentMessage(
                         type=MessageType.MESSAGE_SYSTEM,
-                        content="Execution failed during initialization before agent could start.",
+                        content="Execution failed during initialization "
+                        "before agent could start.",
                         timestamp=_utc_timestamp(),
-                    )
-                ]
+                    ),
+                ],
             )
-        
-        activity_logger.info(f"Execution {execution_id} phase set to FAILED - returning error status to workflow")
-        
-        # Send failed status update via gRPC with retry
-        # This is critical for data persistence - use retry to handle transient failures
-        try:
-            activity_logger.info("📤 [FINAL] Sending FAILED status update with retry")
-            await retry_executor.execute(
-                operation=lambda: execution_client.update_status(
-                    execution_id=execution_id,
-                    status=failed_status
-                ),
-                operation_name="final_status_update",
-                context={"execution_id": execution_id, "phase": "FAILED"},
-            )
-            activity_logger.info("✅ [FINAL] Failed status update sent successfully")
-        except GrpcRetryExhaustedError as retry_err:
-            activity_logger.error(
-                f"[FINAL] All retries exhausted for failed status update: {retry_err.attempts} attempts, "
-                f"{retry_err.total_duration_ms:.0f}ms total. Last error: {retry_err.last_error}"
-            )
-            # Continue - we'll still return status to workflow as fallback
-        except GrpcNonRetryableError as grpc_err:
-            activity_logger.error(
-                f"[FINAL] Non-retryable error on failed status update: {grpc_err.status_code.name} - {grpc_err.original_error}"
-            )
-            # Continue - we'll still return status to workflow as fallback
-        except Exception as update_error:
-            activity_logger.error(f"[FINAL] Unexpected error on failed status update: {update_error}")
-            # Continue - we'll still return status to workflow as fallback
-        
-        activity_logger.info(
-            f"✅ Returning failed AgentExecutionStatus to workflow: "
-            f"type={type(failed_status).__name__}"
+
+        return await _persist_and_return_failed_status(
+            failed_status=failed_status,
+            execution_id=execution_id,
+            execution_client=execution_client,
+            retry_executor=retry_executor,
+            logger=activity_logger,
         )
-        
-        # Return slim status to workflow (full status already persisted via gRPC above)
-        return _slim_status_for_temporal(failed_status)
     
     finally:
         # Close MCP stdio sessions before general cleanup.  During normal
