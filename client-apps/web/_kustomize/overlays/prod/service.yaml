@@ -31,4 +31,4 @@ spec:
             value: $variables-group/stigmer-web-config/prod.oidc-audience
   ingress:
     enabled: true
-    hostname: stigmer.planton.live
+    hostname: app.stigmer.ai

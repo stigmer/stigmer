@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import {
   FadeInUp,
-  FadeIn,
   StaggerContainer,
   StaggerItem,
   useReducedMotion,
@@ -19,42 +18,7 @@ import {
 
 export type HeroProps = React.HTMLAttributes<HTMLElement>;
 
-/**
- * Hero section with gradient background, headline, CTAs, and install command.
- *
- * Features:
- * - Full viewport height (minus header)
- * - Gradient background effects
- * - Animated badge chips
- * - Primary and secondary CTA buttons
- * - Copy-to-clipboard install command
- *
- * @example
- * <Hero />
- */
 function Hero({ className, ...props }: HeroProps) {
-  const [copied, setCopied] = React.useState(false);
-
-  const installCommand = "brew install stigmer/tap/stigmer";
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(installCommand);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Fallback for older browsers
-      const textArea = document.createElement("textarea");
-      textArea.value = installCommand;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
   return (
     <section
       className={cn(
@@ -69,11 +33,8 @@ function Hero({ className, ...props }: HeroProps) {
     >
       {/* Background Effects */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        {/* Primary radial gradient */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.15),transparent_60%)]" />
-        {/* Secondary accent gradient */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.1),transparent_50%)]" />
-        {/* Subtle grid pattern */}
         <div
           className="absolute inset-0 opacity-[0.06] dark:opacity-[0.02]"
           style={{
@@ -84,18 +45,11 @@ function Hero({ className, ...props }: HeroProps) {
 
       {/* Content */}
       <div className="relative z-10 max-w-4xl mx-auto text-center">
-        {/* Badges - Staggered entrance */}
         <StaggerContainer
           className="flex flex-wrap items-center justify-center gap-2 mb-6"
           staggerDelay={0.05}
           delayChildren={0}
         >
-          <StaggerItem>
-            <Badge variant="cyan" className="gap-1.5">
-              <Icon name="terminal" size="xs" />
-              Local-First
-            </Badge>
-          </StaggerItem>
           <StaggerItem>
             <Badge variant="emerald" className="gap-1.5">
               <Icon name="unlock" size="xs" />
@@ -104,37 +58,34 @@ function Hero({ className, ...props }: HeroProps) {
           </StaggerItem>
           <StaggerItem>
             <Badge variant="purple" className="gap-1.5">
-              <Icon name="network" size="xs" />
-              gRPC APIs
+              <Icon name="shield" size="xs" />
+              Apache 2.0
             </Badge>
           </StaggerItem>
         </StaggerContainer>
 
-        {/* Headline - Fade in after badges */}
         <FadeInUp delay={0.2}>
           <h1
             id="hero-heading"
             className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight mb-6"
           >
             <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
-              Build Agents. Skip the Infrastructure.
+              {SITE_CONFIG.tagline}
             </span>
           </h1>
         </FadeInUp>
 
-        {/* Subheadline - Fade in after headline */}
         <FadeInUp delay={0.35}>
           <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-            We handle sandboxing, orchestration, and MCP security. You write 5 lines of YAML. Your agent runs anywhere.
+            {SITE_CONFIG.description}
           </p>
         </FadeInUp>
 
-        {/* CTAs - Fade in after subheadline */}
         <FadeInUp delay={0.5}>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button asChild size="xl">
-              <Link href="/docs/getting-started">
-                Get Started
+              <Link href="/docs">
+                Documentation
                 <Icon name="chevron-right" size="sm" />
               </Link>
             </Button>
@@ -150,55 +101,17 @@ function Hero({ className, ...props }: HeroProps) {
             </Button>
           </div>
         </FadeInUp>
-
-        {/* Install Command - Fade in last */}
-        <FadeIn delay={0.65}>
-          <div className="max-w-xl mx-auto">
-            <div className="flex items-center gap-2 p-1 rounded-lg bg-muted/50 border border-border">
-              <code className="flex-1 px-4 py-3 text-sm sm:text-base font-mono text-muted-foreground overflow-x-auto scrollbar-thin">
-                <span className="text-primary">$</span>{" "}
-                <span className="text-foreground">{installCommand}</span>
-                <span className="cursor-blink text-primary ml-0.5">|</span>
-              </code>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleCopy}
-                className="shrink-0 mr-1"
-                aria-label={copied ? "Copied!" : "Copy install command"}
-              >
-                <Icon
-                  name={copied ? "check" : "copy"}
-                  size="sm"
-                  className={cn(
-                    "transition-colors",
-                    copied && "text-green-500"
-                  )}
-                />
-              </Button>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Start building: <code className="text-foreground">stigmer server</code>
-            </p>
-          </div>
-        </FadeIn>
       </div>
 
-      {/* Scroll indicator - Enhanced with Framer Motion */}
       <ScrollIndicator />
     </section>
   );
 }
 
-/**
- * Animated scroll indicator with Framer Motion.
- * Respects reduced motion preference.
- */
 function ScrollIndicator() {
   const prefersReducedMotion = useReducedMotion();
 
   if (prefersReducedMotion) {
-    // Static fallback for reduced motion
     return (
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
         <div className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex items-start justify-center p-1">

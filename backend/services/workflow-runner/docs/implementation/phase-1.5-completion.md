@@ -38,13 +38,13 @@ Phase 1.5 successfully transformed the workflow-runner from a **file-based, sing
 - **Production Temporal**: `stigmer-prod-temporal-frontend.planton.live:7233`
 - **Namespace**: `default`
 - **Task Queue**: `stigmer-workflows` (Phase 1.5 fixed queue)
-- **Stigmer Service**: `api.stigmer.planton.live:443`
+- **Stigmer Service**: `api.stigmer.ai:443`
 - **Test Date**: 2026-01-08 19:15 PST
 
 ### 1. gRPC Mode ✅
 ```
 ✓ Process starts successfully
-✓ Connects to Stigmer Service (api.stigmer.planton.live:443 with TLS)
+✓ Connects to Stigmer Service (api.stigmer.ai:443 with TLS)
 ✓ Listens on port 9090
 ✓ Ready to accept workflow execution requests
 ✓ Graceful shutdown works
@@ -201,7 +201,7 @@ TEMPORAL_TASK_QUEUE=stigmer-workflows  # FIXED queue
 TEMPORAL_MAX_CONCURRENCY=10
 
 # Stigmer Service Callbacks (for gRPC/dual modes)
-STIGMER_SERVICE_ENDPOINT=api.stigmer.planton.live:443
+STIGMER_SERVICE_ENDPOINT=api.stigmer.ai:443
 STIGMER_SERVICE_USE_TLS=true
 STIGMER_SERVICE_API_KEY=<secret>
 

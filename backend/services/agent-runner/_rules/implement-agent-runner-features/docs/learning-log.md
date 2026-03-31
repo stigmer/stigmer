@@ -411,7 +411,7 @@ metadata:
 spec:
   entries:
     - name: prod.endpoint
-      value: api.stigmer.planton.live
+      value: api.stigmer.ai
 ```
 
 Update service configuration:

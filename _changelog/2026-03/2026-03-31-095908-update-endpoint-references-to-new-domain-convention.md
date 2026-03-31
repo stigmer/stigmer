@@ -8,7 +8,7 @@ Updated all references to the old Stigmer API and Web endpoint hostnames across 
 
 ## Problem Statement
 
-The production endpoints were migrated from environment-prefixed naming (`stigmer-prod-api.planton.live`, `stigmer-prod-web.planton.live`) to a cleaner subdomain convention (`api.stigmer.planton.live`, `stigmer.planton.live`). Stale references throughout the codebase would cause confusion and could lead to misconfigurations.
+The production endpoints were migrated from environment-prefixed naming (`stigmer-prod-api.planton.live`, `stigmer-prod-web.planton.live`) to a cleaner subdomain convention (`api.stigmer.ai`, `app.stigmer.ai`). Stale references throughout the codebase would cause confusion and could lead to misconfigurations.
 
 ### Pain Points
 
@@ -22,8 +22,8 @@ Global find-and-replace across the `stigmer` repository:
 
 | Old Endpoint | New Endpoint |
 |---|---|
-| `stigmer-prod-api.planton.live` | `api.stigmer.planton.live` |
-| `stigmer-prod-web.planton.live` | `stigmer.planton.live` |
+| `stigmer-prod-api.planton.live` | `api.stigmer.ai` |
+| `stigmer-prod-web.planton.live` | `app.stigmer.ai` |
 
 ## Implementation Details
 

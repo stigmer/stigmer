@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { SkipLink } from "@/components/ui/skip-link";
 import { Hero } from "@/components/sections/Hero";
 import { Features } from "@/components/sections/Features";
-import { Architecture } from "@/components/sections/Architecture";
+
 import { Quickstart } from "@/components/sections/Quickstart";
 
 export type HomePageProps = React.HTMLAttributes<HTMLDivElement>;
@@ -49,9 +49,6 @@ function HomePage({ className, ...props }: HomePageProps) {
 
         {/* Features Section */}
         <Features />
-
-        {/* Architecture Section */}
-        <Architecture />
 
         {/* Quickstart Section */}
         <Quickstart />
