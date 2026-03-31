@@ -162,10 +162,7 @@ function CodePreview() {
           <Keyword>approvals</Keyword>:
         </CodeLine>
         <CodeLine indent={1}>
-          - <Keyword>tool</Keyword>: process-refund
-        </CodeLine>
-        <CodeLine indent={2}>
-          <Keyword>require</Keyword>: merchant
+          - process-refund
         </CodeLine>
       </div>
     </div>
