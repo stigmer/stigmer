@@ -14,29 +14,29 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-03-31 — Phase 0 (Clean Slate) completed
-- **Active Task**: T01 — Phase 0 complete, Phase 1 (Positioning & Messaging) is next
+- **Last Session**: 2026-03-31 — Phase 1 deliverable 1 of 5 completed (Positioning Document)
+- **Active Task**: T01 — Phase 1, next deliverable: Vocabulary Guide
 
-## Session Progress (2026-03-31)
+## Session Progress (2026-03-31, Session 2)
 
-- **Phase 0 completed**: Removed all stale documentation content and infrastructure-engineer-focused sales copy
-- Deleted `docs/_archive/` (116 legacy files)
-- Deleted all active docs content across 10 subdirectories (61 .mdx files + 10 meta.json files)
-- Updated `docs/meta.json` to empty pages, rewrote `docs/index.mdx` to minimal landing
-- Gutted sales website copy: `constants.ts`, `Hero.tsx`, `Features.tsx`, `Quickstart.tsx`
-- Removed Architecture section from homepage rendering (kept file for Phase 2 reference)
-- Updated Footer to remove dead links (Resources column removed)
-- Build verified: `yarn build` passes cleanly
+- **Positioning document completed**: `design-decisions/positioning.md` (343 lines)
+- Resolved 4 strategic decisions:
+  1. Audience: Technical founders (primary, sales site) / Developers (secondary, docs)
+  2. Category: "AI Agent Platform" — validated as analyst-recognized category (Forrester, Gartner, market research firms)
+  3. Cloud-primary positioning with open-source as trust signal
+  4. Business-outcome headline leading, technical benefits supporting (not in hero)
+- Defined 3 messaging pillars + 1 foundation pillar: Knows Your Business / Uses Your Tools / Asks Before Acting / Built for Production
+- Recommended headline: "Build agents that work for your business"
+- Recommended sub-headline: "Teach them your domain. Connect your tools. Set your rules."
+- Established IS vs IS NOT boundaries, competitive framing, tone and voice guidance
 
 ## Next Steps
 
-1. **Phase 1: Positioning & Messaging Foundation** — This is the strategic foundation everything else depends on
-   - Create positioning document (`design-decisions/positioning.md`)
-   - Write demo story narrative (`design-decisions/demo-story.md`)
-   - Build use case library (`design-decisions/use-cases.md`)
-   - Establish vocabulary guide (`coding-guidelines/vocabulary.md`)
-   - Define information architecture (`design-decisions/information-architecture.md`)
-2. After Phase 1 is reviewed and approved, proceed to Phase 2 (Sales Website Content)
+1. **Vocabulary Guide** (`coding-guidelines/vocabulary.md`) — Full mapping of internal terms to user-facing terms, with rules and examples for each context
+2. **Demo Story Narrative** (`design-decisions/demo-story.md`) — Before/after story making the positioning concrete
+3. **Use Case Library** (`design-decisions/use-cases.md`) — 4-5 industry-specific use case summaries
+4. **Information Architecture** (`design-decisions/information-architecture.md`) — Site structure and docs nav tree
+5. After Phase 1 is reviewed and approved, proceed to Phase 2 (Sales Website Content)
 
 ## Context for Resume
 
@@ -46,6 +46,7 @@ Drop this file into your conversation to quickly resume work on this project.
 - `docs/STYLE.md` and `docs/CONTRIBUTING.md` are preserved and still valid
 - The full T01 plan with all 8 phases is in `tasks/T01_0_plan.md`
 - The document writer role (`_roles/002_document_writer.md`) defines the writing standards
+- **The positioning document is now the source of truth for all messaging decisions** — all subsequent Phase 1 deliverables draw from it
 
 ## Essential Files to Review
 
@@ -59,7 +60,12 @@ Drop this file into your conversation to quickly resume work on this project.
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260331.01.content-strategy/tasks/T01_0_plan.md
 ```
 
-### 3. Project Documentation
+### 3. Positioning Document (Phase 1 foundation)
+```
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260331.01.content-strategy/design-decisions/positioning.md
+```
+
+### 4. Project Documentation
 - **README**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260331.01.content-strategy/README.md`
 
 ## Knowledge Folders to Check
@@ -89,16 +95,17 @@ Drop this file into your conversation to quickly resume work on this project.
 When starting a new session:
 
 1. [ ] Read the latest checkpoint from `checkpoints/`
-2. [ ] Check current task status in `tasks/T01_0_plan.md`
-3. [ ] Review any design decisions in `design-decisions/`
-4. [ ] Check coding guidelines in `coding-guidelines/`
-5. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-6. [ ] Continue with Phase 1 (Positioning & Messaging Foundation)
+2. [ ] Read the positioning document at `design-decisions/positioning.md`
+3. [ ] Check current task status in `tasks/T01_0_plan.md`
+4. [ ] Review any other design decisions in `design-decisions/`
+5. [ ] Check coding guidelines in `coding-guidelines/`
+6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
+7. [ ] Continue with next Phase 1 deliverable (Vocabulary Guide)
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 1" - Begin positioning and messaging work
+- "Start vocabulary guide" - Begin next Phase 1 deliverable
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
