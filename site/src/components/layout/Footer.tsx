@@ -31,7 +31,7 @@ function Footer({ className, ...props }: FooterProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main footer content */}
         <div className="py-12 md:py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
             {/* Brand Column */}
             <div className="lg:col-span-1">
               <Link 
@@ -60,9 +60,6 @@ function Footer({ className, ...props }: FooterProps) {
 
             {/* Product Links */}
             <FooterLinkSection title="Product" links={FOOTER_LINKS.product} />
-
-            {/* Resources Links */}
-            <FooterLinkSection title="Resources" links={FOOTER_LINKS.resources} />
 
             {/* Community Links */}
             <FooterLinkSection
