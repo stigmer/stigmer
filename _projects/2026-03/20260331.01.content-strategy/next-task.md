@@ -13,48 +13,51 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: In Progress
-- **Last Session**: 2026-03-31 — Phase 1 deliverables 1, 2, 3, and 4 of 5 completed (Positioning Document + Vocabulary Guide + Demo Story Narrative + Use Case Library)
-- **Active Task**: T01 — Phase 1, next deliverable: Information Architecture
+- **Status**: Phase 1 Complete — Pending Review
+- **Last Session**: 2026-03-31 (Session 6) — Phase 1 deliverable 5 of 5 completed (Information Architecture)
+- **Active Task**: T01 — All Phase 1 deliverables complete. Review all 5 before Phase 2.
 
-## Session Progress (2026-03-31, Session 5)
+## Session Progress (2026-03-31, Session 6)
 
-- **Use Case Library completed**: `design-decisions/use-cases.md` (389 lines)
-- Defined a reusable "fit pattern" — three conditions (per-tenant domain knowledge, system actions, risk-graduated decisions) that identify platforms where Stigmer adds value
-- Wrote 5 industry-specific use cases, each framed as a SaaS founder adding an AI agent feature:
-  - **Healthcare SaaS** — patient intake and triage agent (primary: approval flows for clinical decisions)
-  - **HR / People platform** — employee onboarding assistant (primary: multi-step automation for onboarding workflows)
-  - **FinTech / Banking-as-a-Service** — compliance monitoring agent (primary: per-client regulatory knowledge)
-  - **EdTech** — course tutor and academic assistant (primary: persistent conversations across weeks)
-  - **Legal tech** — contract analysis agent (primary: domain knowledge + approval flows for high-stakes decisions)
-- Each use case follows a consistent structure: builder, challenge, how Stigmer powers it, proof interaction, outcome
-- Created a capability coverage matrix showing pillar distribution across all 5 use cases
-- Included Phase 2 notes with card-ready titles and one-liners for homepage "What You Can Build" section
-- **Key decisions**:
-  - No industry overlap with demo story (which covers e-commerce, property management, logistics)
-  - Platform-builder lens throughout — every use case is a founder shipping agents as a product feature
-  - Added "the pattern" section (not in original T01 spec) to help readers in unlisted industries self-identify
-  - Sales-site vocabulary register enforced throughout; technical terms only in the coverage matrix headers
-- **Quality review passed**: vocabulary compliance, positioning alignment, pillar coverage, cross-check with demo story, pattern generalization
+- **Information Architecture completed**: `design-decisions/information-architecture.md` (771 lines)
+- **Phase 1 is now complete** — all 5 deliverables produced
+- Resolved three structural decisions through collaborative discussion:
+  - **Directory structure**: IA proposes 6 directories replacing CONTRIBUTING.md's 9 (removed `integration/`, `architecture/`, `deployment/`, `contributing/`; added `tutorials/`)
+  - **Sidebar organization**: Journey-then-topic. Diataxis stays as per-page writing quality rule, not navigation structure.
+  - **vocabulary.md visibility**: Stays internal (`.md`, not `.mdx`). `<Term>` tooltips serve docs readers.
+- Defined complete site map (3 marketing pages, 24 docs pages)
+- Defined sales site top nav, 8 homepage sections, 3-column footer
+- Designed docs sidebar with 6 sections: getting-started → concepts → tutorials → sdks → cli → reference
+- Created concrete `meta.json` plans for every directory (Fumadocs separator syntax verified)
+- Mapped 15 homepage CTAs and 5 navigation CTAs to specific target pages
+- Defined 6 progressive learning paths (5-min to full-build)
+- Identified 3 corrections needed for the document writer role
+- **Quality review passed**: vocabulary compliance, positioning alignment, per-page content types, Fumadocs feasibility, internal consistency, T01 plan cross-reference
 
 ## Next Steps
 
-1. **Information Architecture** (`design-decisions/information-architecture.md`) — Site structure and docs nav tree
-2. After Phase 1 is reviewed and approved, proceed to Phase 2 (Sales Website Content)
+1. **Review all Phase 1 deliverables** — positioning, vocabulary, demo story, use cases, information architecture
+2. **Resolve vocabulary inconsistencies** — 6 items in the inconsistency register pending human decision
+3. **Apply document writer role corrections** — 3 changes recommended by the information architecture (pre-Phase 3 task)
+4. **Update CONTRIBUTING.md** — directory table to match new 6-directory structure (Phase 3 prerequisite)
+5. **Resolve YAML shorthand question** — vocabulary inconsistency #5 must be resolved before Phase 3 quickstart content
+6. **Begin Phase 2** — sales website content implementation
 
 ## Context for Resume
 
 - All documentation infrastructure is preserved: Fumadocs config, Vale, MDX components, build pipeline, CI workflows
 - The CLI doc generator (`gen-cli-docs`) can regenerate CLI reference docs at any time
-- `Architecture.tsx` is still in the codebase but not rendered — useful patterns for Phase 2
-- `docs/STYLE.md` and `docs/CONTRIBUTING.md` are preserved and still valid
+- `Architecture.tsx` is still in the codebase but not rendered — useful patterns for Phase 2 "Why It Works" section
+- `docs/STYLE.md` and `docs/CONTRIBUTING.md` are preserved and still valid (CONTRIBUTING.md directory table needs update before Phase 3)
 - The full T01 plan with all 8 phases is in `tasks/T01_0_plan.md`
-- The document writer role (`_roles/002_document_writer.md`) defines the writing standards
-- **The positioning document is the source of truth for all messaging decisions** — all subsequent Phase 1 deliverables draw from it
+- The document writer role (`_roles/002_document_writer.md`) defines the writing standards — **3 corrections recommended by the IA** (writing-context awareness, Diataxis scope, analogy prohibition scoping)
+- **The positioning document is the source of truth for all messaging decisions** — all Phase 1 deliverables draw from it
 - **The vocabulary guide (`docs/vocabulary.md`) is the single source of truth for all terminology** — definitions, user-facing alternatives, context-specific usage rules, capitalization, API field names, and good/bad examples
 - **The demo story narrative (`design-decisions/demo-story.md`) defines the before/after transformation arc** — reusable framework, primary e-commerce story, variant sketches, and Phase 2 integration notes
 - **The use case library (`design-decisions/use-cases.md`) demonstrates Stigmer's breadth** — 5 industries, fit pattern, capability coverage matrix, and Phase 2 card-ready content
+- **The information architecture (`design-decisions/information-architecture.md`) is the structural blueprint** — site map, navigation, docs sidebar, CTA mapping, learning paths, and meta.json plans
 - The vocabulary guide contains an inconsistency register with 6 items pending review — these should be resolved before Phase 2
+- Vocabulary inconsistency #5 (YAML shorthand vs proto field names) must be resolved before Phase 3
 - One technical note from the demo story review: the $200 refund threshold in Act 3 implies parameter-based approval rules — consistent with the positioning document's pattern ($500 threshold) but worth verifying against ToolApprovalPolicy capabilities
 
 ## Essential Files to Review
@@ -89,7 +92,12 @@ Drop this file into your conversation to quickly resume work on this project.
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260331.01.content-strategy/design-decisions/use-cases.md
 ```
 
-### 7. Project Documentation
+### 7. Information Architecture (Phase 1 deliverable 5)
+```
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260331.01.content-strategy/design-decisions/information-architecture.md
+```
+
+### 8. Project Documentation
 - **README**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260331.01.content-strategy/README.md`
 
 ## Knowledge Folders to Check
@@ -123,20 +131,23 @@ When starting a new session:
 3. [ ] Read the vocabulary guide at `docs/vocabulary.md`
 4. [ ] Read the demo story narrative at `design-decisions/demo-story.md`
 5. [ ] Read the use case library at `design-decisions/use-cases.md`
-6. [ ] Check current task status in `tasks/T01_0_plan.md`
-7. [ ] Review any other design decisions in `design-decisions/`
-8. [ ] Check coding guidelines in `coding-guidelines/`
-9. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-10. [ ] Continue with next Phase 1 deliverable (Information Architecture)
+6. [ ] Read the information architecture at `design-decisions/information-architecture.md`
+7. [ ] Check current task status in `tasks/T01_0_plan.md`
+8. [ ] Review any other design decisions in `design-decisions/`
+9. [ ] Check coding guidelines in `coding-guidelines/`
+10. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
+11. [ ] Review Phase 1 deliverables and proceed to Phase 2
 
 ## Quick Commands
 
 After loading context:
-- "Start information architecture" - Begin next Phase 1 deliverable
+- "Review Phase 1" - Review all 5 deliverables before Phase 2
+- "Start Phase 2" - Begin sales website content implementation
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
 - "Review inconsistencies" - Check vocabulary guide inconsistency register
+- "Update document writer role" - Apply the 3 corrections from the IA
 
 ---
 
