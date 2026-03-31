@@ -24,12 +24,13 @@ function DemoStory({ className, ...props }: DemoStoryProps) {
               id="demo-story-heading"
               className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-6"
             >
-              You called the API. It worked for a demo.
+              You added AI. It doesn&apos;t know your business.
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Your chatbot gives generic answers. It doesn&apos;t know your merchants&apos;
-              return policies. It can&apos;t look up orders. It has no guardrails.
-              Customers get wrong answers and call your team anyway.
+              You built a chatbot with an LLM. It gives generic answers&mdash;it
+              doesn&apos;t know your return policies, can&apos;t look up orders,
+              and has no guardrails. Customers get wrong answers and call your
+              team anyway.
             </p>
           </div>
         </FadeInUp>
