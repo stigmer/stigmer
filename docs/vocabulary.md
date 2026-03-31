@@ -1,0 +1,701 @@
+# Stigmer vocabulary guide
+
+This is the single source of truth for all Stigmer terminology. Every
+customer-facing artifact---sales site, documentation, README, tooltips, error
+messages, conference talks---draws its terms and definitions from this document.
+
+**status**: draft, pending review
+**Created**: 2026-03-31
+**Depends on**: [Positioning document](../_projects/2026-03/20260331.01.content-strategy/design-decisions/positioning.md)
+
+## How to use this guide
+
+- **Writing copy?** Check the [quick-reference table](#quick-reference) first.
+  Find the term, read across to your context column, use that phrasing.
+- **Need a definition?** Each term has a one-sentence plain-language definition
+  in its [detailed entry](#tier-1--core-product-concepts).
+- **Updating glossary.ts?** Copy the definition from the detailed entry. This
+  file is the source; `glossary.ts` is a derived artifact.
+- **Found an inconsistency?** Add it to the
+  [inconsistency register](#inconsistency-register) with file paths and a
+  recommended resolution.
+
+### Other files that reference this guide
+
+These files previously contained their own terminology sections. Those sections
+have been replaced with pointers to this document:
+
+- `docs/STYLE.md`---capitalization and formatting rules for terms
+- `_roles/002_document_writer.md`---term definitions for AI writing context
+- `site/src/components/docs/glossary.ts`---runtime tooltip definitions
+  (keeps inline data for performance, but must match this file)
+
+---
+
+## Writing contexts
+
+Five contexts, each with its own register. When the quick-reference table says
+"use X in context Y," this section explains why.
+
+| Context | Audience | Register | Example |
+|---------|----------|----------|---------|
+| **Sales site** | Technical founders choosing infrastructure | Business-outcome language. No jargon. Lead with what they gain. | "Teach your agent your domain." |
+| **Quickstart / tutorials** | Developers following steps | Action-oriented. Introduce Stigmer terms with a plain-language gloss on first use. | "Create a Skill (a piece of domain knowledge your agent can use)." |
+| **Concepts / how-to** | Developers building understanding | Explanatory. Use Stigmer terms as proper nouns. Analogies welcome. | "A Skill is like a training manual for your agent." |
+| **Reference / SDK** | Developers looking up specifics | Precise. Use API field names. Assume familiarity with the platform. | "`spec.skill_refs`---list of Skill IDs attached to this Agent." |
+| **README / GitHub** | Developers evaluating the project | Developer-direct. CLI-first. Technical credibility. | "Versioned knowledge artifacts. A skill is a directory with a `SKILL.md` file." |
+
+**Rule of thumb**: move left in the table for simpler language, move right for
+more precise language. Never use a right-column term in a left-column context.
+
+---
+
+## Quick reference
+
+Scan this table to find the right word for your context. Detailed entries with
+definitions, API names, and examples follow below.
+
+| Term | Sales site | Quickstart / tutorial | Concepts / how-to | Reference / SDK | README |
+|------|-----------|----------------------|-------------------|----------------|--------|
+| **Agent** | agent | Agent | Agent | Agent, `kind: Agent` | Agent |
+| **Skill** | domain knowledge | Skill ("domain knowledge") | Skill | Skill, `skill_refs` | Skill |
+| **MCP Server** | tools | MCP server ("tool connection") | MCP Server | McpServer, `mcp_server_usages` | MCP server |
+| **Session** | conversation | Session ("conversation") | Session | Session, `kind: Session` | Session |
+| **Workflow** | multi-step automation | Workflow | Workflow | Workflow, `kind: Workflow` | Workflow |
+| **Approval flow** | approval flow | approval flow | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval` | HITL, approval |
+| **Organization** | organization | Organization | Organization | Organization, `kind: organization` | Organization |
+| **Project** | project | Project | Project | Project, `kind: project` | Project |
+| **Environment** | environment | Environment | Environment | Environment, `kind: Environment` | Environment |
+| **Agent Instance** |---| Agent Instance | Agent Instance | AgentInstance, `kind: AgentInstance` | Agent Instance |
+| **Agent Execution** |---| run, execution | Agent Execution | AgentExecution, `kind: AgentExecution` | Agent Execution |
+| **Workflow Execution** |---| run, execution | Workflow Execution | WorkflowExecution, `kind: WorkflowExecution` | Workflow Execution |
+| **Sub-Agent** |---|---| Sub-Agent | SubAgent, `sub_agents` | Sub-Agent |
+
+Dash (—) means the term should not appear in that context.
+
+---
+
+## Term entries
+
+### Tier 1---Core product concepts
+
+These are the terms users encounter first. The gap between internal name and
+user-facing language is widest here. Get these right and the rest follows.
+
+---
+
+#### Agent
+
+A reusable definition of what an AI assistant knows and can do.
+
+- **User-facing alternative**: None needed. "Agent" is understood by both
+  founders and developers. The word does not require translation across
+  contexts.
+- **Capitalize**: Yes, when referring to the Stigmer resource. Lowercase when
+  used generically ("AI agents are becoming common").
+- **API surface**: `kind: Agent`, `apiVersion: agentic.stigmer.ai/v1`.
+  proto: `agent/v1/spec.proto`, `agent/v1/api.proto`.
+  CLI: `stigmer apply -f agent.yaml`, `stigmer run <name>`,
+  `stigmer get agent <name>`, `stigmer list agent`.
+- **YAML fields**: `spec.instructions`, `spec.mcpServers` (user-facing
+  shorthand), proto field `spec.mcp_server_usages`.
+
+**Good examples**:
+
+| Context | Copy |
+|---------|------|
+| Sales site | "Build agents that work for your business." |
+| Quickstart | "Create a file called `agent.yaml`. This file defines your Agent---what it knows, which tools it can use, and how it behaves." |
+| Concepts | "An Agent is a reusable definition. You define it once. Any application can call it via API." |
+| Reference | "`Agent`---a managed resource representing an AI agent definition. Applied via `stigmer apply` or the `AgentCommandController.apply` RPC." |
+
+**Bad examples**:
+
+| Context | Copy | Problem |
+|---------|------|---------|
+| Sales site | "Define an Agent resource with YAML." | Technical language in a business context. |
+| Quickstart | "The Agent abstraction encapsulates LLM orchestration." | Jargon. The reader just wants to create their first agent. |
+
+---
+
+#### Skill
+
+A piece of knowledge you attach to an Agent so it has domain expertise.
+
+- **User-facing alternative**: "domain knowledge" on the sales site and in
+  introductory copy. Once the reader knows what a Skill is, use the
+  canonical name.
+- **Capitalize**: Yes, when referring to the Stigmer resource.
+- **API surface**: `kind: Skill`, prefix `skl`.
+  proto: `skill/v1/spec.proto`, `skill/v1/command.proto`.
+  CLI: `stigmer push` (push skill from current directory),
+  `stigmer draft skill --name <name>`.
+- **YAML/file structure**: A Skill is a directory containing a `SKILL.md` file
+  with YAML frontmatter. proto fields: `skill_md`, `name`, `description`,
+  `tag`. Referenced on Agents and Sessions via `skill_refs`.
+
+**Good examples**:
+
+| Context | Copy |
+|---------|------|
+| Sales site | "Teach your agent what generic AI doesn't know---your return policy, your product catalog, your escalation process." |
+| Quickstart | "Create a Skill---a piece of domain knowledge your agent can use. A Skill is a directory with a `SKILL.md` file." |
+| Concepts | "A Skill is like a training manual for your agent. Without it, the agent gives generic answers. With it, the agent gives domain-expert answers." |
+| Reference | "`Skill`---a versioned knowledge artifact attached to Agents via `skill_refs`. Pushed via `stigmer push` or `SkillCommandController.push`." |
+
+**Bad examples**:
+
+| Context | Copy | Problem |
+|---------|------|---------|
+| Sales site | "Create a Skill with YAML frontmatter." | The audience doesn't know what frontmatter is and doesn't need to. |
+| Sales site | "Upload your knowledge artifacts." | "Knowledge artifacts" is internal language. Say "domain knowledge." |
+| Quickstart | "Configure the RAG pipeline for your skill." | Stigmer Skills are not RAG. This is a positioning violation. |
+
+---
+
+#### MCP Server
+
+An external tool connection that lets an Agent interact with other systems.
+
+- **User-facing alternative**: "tools" or "tool access" on the sales site.
+  "Tool connection" in introductory docs. Use "MCP server" (lowercase "s") in
+  tutorials after first mention. Use "MCP Server" (capitalized) in concept
+  pages and reference docs.
+- **Capitalize**: Yes, when referring to the Stigmer resource. "MCP server"
+  (lowercase "server") is acceptable in casual tutorial prose after the
+  concept has been introduced.
+- **API surface**: `kind: McpServer`, prefix `mcp`.
+  proto: `mcpserver/v1/spec.proto`, `mcpserver/v1/command.proto`.
+  CLI: `stigmer mcp-server` (start the Stigmer MCP server),
+  `stigmer apply -f mcpserver.yaml`, `stigmer get mcp-server <name>`.
+- **YAML fields**: `spec.stdio_server_config`, `spec.http_server_config`,
+  `spec.default_enabled_tools`, `spec.default_tool_approvals`.
+  Agent references via: `spec.mcpServers` (user-facing YAML shorthand),
+  proto field `spec.mcp_server_usages` containing `McpServerUsage` entries
+  with `mcp_server_ref` and `enabled_tools`.
+- **Protocol**: MCP stands for Model Context Protocol, an open standard.
+  Spell out on first use in any context. Link to
+  `https://modelcontextprotocol.io` in docs.
+
+**Good examples**:
+
+| Context | Copy |
+|---------|------|
+| Sales site | "Connect your agent to your systems. It checks inventory, creates tickets, updates records---with the same APIs your team already uses." |
+| Quickstart | "Give your agent tools by adding an MCP server---a connection to an external system like GitHub, a database, or a file store." |
+| Concepts | "An MCP Server is a bridge between your agent and an external system. The agent discovers what tools are available, and Stigmer handles input validation and execution sandboxing." |
+| Reference | "`McpServer`---a managed resource defining an MCP server connection. Supports `stdio` and `http` transport. Tools are discovered via the MCP protocol or declared in `default_enabled_tools`." |
+
+**Bad examples**:
+
+| Context | Copy | Problem |
+|---------|------|---------|
+| Sales site | "Configure MCP servers for tool integration." | Technical jargon. Say "connect your tools." |
+| Quickstart | "Set up the McpServerUsage with mcp_server_ref." | proto field names in a tutorial. Use the YAML shorthand `mcpServers`. |
+
+---
+
+#### Session
+
+An ongoing conversation with an Agent across multiple messages.
+
+- **User-facing alternative**: "conversation" on the sales site and in
+  introductory copy. The platform name is "Session"---use it once the reader
+  is past the first encounter.
+- **Capitalize**: Yes, when referring to the Stigmer resource.
+- **API surface**: `kind: Session`, prefix `ses`.
+  proto: `session/v1/api.proto`, `session/v1/spec.proto`.
+- **Key fields**: `thread_id` (persists across executions), `subject`
+  (display title), `workspace_entries`, `sandbox_id`.
+  Sessions can override Agent-level `mcp_server_usages` and `skill_refs`.
+- **Related terms**: A Session contains multiple Agent Executions. Each
+  message exchange within a Session is one execution. The proto also uses
+  `MessageType` (HUMAN, AI, TOOL, SYSTEM) for individual messages.
+
+**Good examples**:
+
+| Context | Copy |
+|---------|------|
+| Sales site | "Your agent remembers the conversation. Ask a follow-up question tomorrow---it picks up where you left off." |
+| Quickstart | "Start a Session---an ongoing conversation where your agent remembers what was said." |
+| Concepts | "A Session is a container for a multi-turn conversation. It holds the message history, attached Skills, and tool connections for that conversation." |
+| Reference | "`Session`---a multi-turn conversation container. Persists message history via `thread_id`. Merges agent-level and session-level `skill_refs` and `mcp_server_usages`." |
+
+**Bad examples**:
+
+| Context | Copy | Problem |
+|---------|------|---------|
+| Sales site | "Create a Session resource to enable multi-turn interaction." | Resource-model language in a business context. |
+| Quickstart | "Configure the `thread_id` for session persistence." | Implementation detail. The quickstart should just say "start a conversation." |
+
+---
+
+#### Workflow
+
+A step-by-step automation that runs tasks in a defined order.
+
+- **User-facing alternative**: "multi-step automation" on the sales site.
+  "Workflow" works across all other contexts---the word is widely understood.
+- **Capitalize**: Yes, when referring to the Stigmer resource.
+- **API surface**: `kind: Workflow`, prefix `wfl`.
+  proto: `workflow/v1/api.proto`, `workflow/v1/spec.proto`.
+  CLI: `stigmer apply -f workflow.yaml`, `stigmer run <name>`.
+- **Key fields**: `spec.document` (contains the workflow DSL definition),
+  `spec.tasks` (the task list). Task kinds include `set_vars`, `http_call`,
+  `agent_call`, `wait`, and control flow via `flow.then`.
+- **Pattern**: Workflows follow the Template → Instance → Execution pattern.
+  A Workflow is the template. A WorkflowInstance is a configured deployment.
+  A WorkflowExecution is one run.
+- **DSL**: Based on CNCF Serverless Workflow specification. Only mention the
+  spec name in reference docs---it adds no value for the general audience.
+
+**Good examples**:
+
+| Context | Copy |
+|---------|------|
+| Sales site | "Automate multi-step processes. Your agent checks, decides, acts, and reports---reliably, every time." |
+| Quickstart | "Create a Workflow---a series of steps that run in order. Workflows keep running even if something crashes." |
+| Concepts | "A Workflow chains tasks together: call an API, run an agent, wait for approval, send a notification. Stigmer runs each step reliably and recovers automatically from failures." |
+| Reference | "`Workflow`---a managed resource defining a multi-step automation. Uses CNCF Serverless Workflow DSL. Tasks support `http_call`, `agent_call`, `set_vars`, and `wait` kinds." |
+
+**Bad examples**:
+
+| Context | Copy | Problem |
+|---------|------|---------|
+| Sales site | "Orchestrate CNCF Serverless Workflows." | The specification name is meaningless to founders. |
+| Quickstart | "The Zigflow engine executes your Temporal workflow." | Internal implementation details. Readers don't need to know about Zigflow or Temporal to use workflows. |
+
+---
+
+#### Approval flow (Human-in-the-Loop)
+
+A mechanism where an agent pauses and waits for a human to approve or reject
+an action before proceeding.
+
+- **User-facing alternative**: "approval flow" everywhere except internal code
+  and reference docs. Never use "HITL" in any customer-facing context---it is
+  an internal acronym.
+- **Capitalize**: No. "Approval flow" is a description of behavior, not a
+  named Stigmer resource kind. Capitalize "Human-in-the-Loop" when used as a
+  feature name in marketing.
+- **API surface**: There is no single `ApprovalFlow` resource. Approvals are
+  configured through two mechanisms:
+  1. **Tool-call approval**---configured via `ToolApprovalPolicy` on McpServer
+     or `tool_approval_overrides` on Agent. Submitted via
+     `AgentExecutionCommandController.submitApproval`. Statuses:
+     `TOOL_CALL_WAITING_APPROVAL`, `TOOL_CALL_SKIPPED`.
+     Actions: `APPROVE`, `SKIP`, `REJECT`.
+  2. **Workflow-task approval**---a dedicated task kind
+     `WORKFLOW_TASK_APPROVAL` within a Workflow definition, with structured
+     input (approvers, message, timeout).
+- **Important**: These are two different mechanisms that share the word
+  "approval." See the [inconsistency register](#6-two-approval-models) for
+  details and recommended resolution.
+
+**Good examples**:
+
+| Context | Copy |
+|---------|------|
+| Sales site | "Your agent handles routine requests on its own. For anything sensitive, it asks a human first. You set the rules." |
+| Quickstart | "Add an approval flow---tell your agent which actions need human approval before it proceeds." |
+| Concepts | "An approval flow is a checkpoint. The agent pauses, presents what it wants to do and why, and waits for a human to approve or reject. The agent's execution is durable---it waits indefinitely without losing state." |
+| Reference | "Tool-call approvals are configured via `ToolApprovalPolicy` on the `McpServer` resource or overridden per-agent via `tool_approval_overrides`. The policy chain is: McpServer defaults → Agent overrides → Execution-level `auto_approve_all`." |
+
+**Bad examples**:
+
+| Context | Copy | Problem |
+|---------|------|---------|
+| Sales site | "Enable HITL for sensitive operations." | "HITL" is internal jargon. |
+| Quickstart | "Configure the ToolApprovalPolicy." | API-level detail in a tutorial. Say "add an approval rule." |
+| Any | "Set up human-in-the-loop." | Hyphenated compound used as an instruction. Prefer "add an approval flow." |
+
+---
+
+### Tier 2---Platform structure
+
+These terms describe how the platform is organized. The user-facing and
+internal names are usually the same---the main concern is consistent
+capitalization and clear definitions.
+
+---
+
+#### Organization
+
+A workspace that groups people, Agents, Workflows, and settings together.
+
+- **Capitalize**: Yes, when referring to the Stigmer concept.
+- **API surface**: `kind: organization`, prefix `org`.
+  proto: `tenancy/organization/v1/spec.proto`.
+  CLI: `--org` flag.
+- **Key fields**: `management_mode`, `identity_provider_ref`,
+  `external_org_id`, `is_personal`.
+- **Note**: Local mode has no Organization concept---it uses an implicit
+  single-user context. Organizations appear in Stigmer Cloud.
+
+---
+
+#### Project
+
+A container within an Organization that groups related Agents, Workflows, and
+resources together.
+
+- **Capitalize**: Yes, when referring to the Stigmer concept.
+- **API surface**: `kind: project`, prefix `prj`.
+  proto: `tenancy/project/v1/spec.proto`.
+- **Key fields**: `entry_point`, `members`.
+
+---
+
+#### Environment
+
+A named space (like "testing" or "production") where the same Agent can run
+with different settings and secrets.
+
+- **Capitalize**: Yes, when referring to the Stigmer concept. Lowercase when
+  used generically ("environment variables").
+- **API surface**: `kind: Environment`, prefix `env`.
+  proto: `environment/v1/spec.proto`.
+  CLI: `stigmer get environment`, `stigmer list environment`.
+- **Key fields**: Environments hold secrets and variables. The
+  `getSecretValue` query retrieves secrets at runtime.
+- **Note**: Do not confuse with "Execution Context" (`kind: execution_context`,
+  prefix `ectx`), which provides ephemeral runtime secrets to a specific
+  execution. See [Execution Context](#execution-context).
+
+---
+
+#### Agent Instance
+
+A deployed copy of an Agent running in a specific Environment with its own
+configuration and secrets.
+
+- **Capitalize**: Yes.
+- **API surface**: `kind: AgentInstance`, prefix `ain`.
+  proto: `agentinstance/v1/spec.proto`.
+- **Key fields**: `agent_id`, `environment_refs`.
+- **Context rule**: Do not use on the sales site or in quickstart. Introduce
+  in concepts docs as part of the Agent lifecycle. Explain in reference docs.
+
+---
+
+#### Agent Execution
+
+One run of an Agent from start to finish.
+
+- **User-facing alternative**: "run" or "execution" in tutorials. Avoid the
+  compound "Agent Execution" until concept or reference pages.
+- **Capitalize**: Yes, as a compound proper noun.
+- **API surface**: `kind: AgentExecution`, prefix `aex`.
+  proto: `agentexecution/v1/api.proto`.
+  CLI: `stigmer run <agent-name> "<prompt>"`.
+- **Message types**: `HUMAN`, `AI`, `TOOL`, `SYSTEM`
+  (from `agentexecution/v1/enum.proto`).
+- **Phases**: `EXECUTION_WAITING_FOR_APPROVAL` is a notable phase---the
+  execution pauses during an approval flow.
+
+---
+
+#### Workflow Execution
+
+One run of a Workflow from start to finish.
+
+- **User-facing alternative**: "run" in tutorials, "Workflow Execution" in
+  concepts and reference.
+- **Capitalize**: Yes, as a compound proper noun.
+- **API surface**: `kind: WorkflowExecution`, prefix `wex`.
+  proto: `workflowexecution/v1/api.proto`.
+- **Pattern**: Follows Workflow → WorkflowInstance → WorkflowExecution. The
+  Instance (`kind: WorkflowInstance`, prefix `win`) sits between the template
+  and the execution, holding deployment configuration.
+
+---
+
+### Tier 3---Technical and internal
+
+These terms appear only in reference documentation, SDK guides, architecture
+pages, and internal discussions. They should never appear on the sales site and
+rarely in tutorials.
+
+---
+
+#### Sub-Agent
+
+A delegated specialist Agent that a parent Agent can call to handle a specific
+subtask.
+
+- **Capitalize**: Yes, hyphenated: "Sub-Agent."
+- **API surface**: `SubAgent` message in `agent/v1/spec.proto`. Fields:
+  `mcp_access`, `skill_refs`, `model_override`.
+  Execution tracking: `agentexecution/v1/subagent.proto`.
+- **Context rule**: Concepts and reference only. Never on the sales site.
+  In tutorials, if needed, describe as "an agent that calls another agent."
+
+---
+
+#### Durable Execution
+
+The ability for agent and workflow executions to survive crashes, restart
+automatically, and resume exactly where they left off.
+
+- **Capitalize**: Yes, as a Stigmer concept.
+- **Implementation**: Powered by Temporal. Do not mention Temporal on the sales
+  site or in quickstart. Name it in architecture docs and reference pages.
+- **Sales-site phrasing**: "Agents that keep running even if something crashes."
+  or "Your workflows resume where they left off---automatically."
+- **Context rule**: "Durable Execution" as a term belongs in concepts and
+  reference. On the sales site and in quickstart, describe the benefit without
+  naming the mechanism.
+
+---
+
+#### Resource model (apiVersion, kind, metadata, spec)
+
+Stigmer resources follow a declarative model inspired by Kubernetes resource
+conventions. Every resource has four top-level fields: `apiVersion`, `kind`,
+`metadata`, and `spec`.
+
+- **apiVersion**: Always `agentic.stigmer.ai/v1` for current resources.
+- **kind**: The resource type (for example, `Agent`, `Workflow`, `Skill`).
+- **metadata**: Contains `name` and optional labels.
+- **spec**: The resource-specific configuration.
+- **Context rule**: Show by example in quickstart (the reader sees the YAML
+  structure). Explain the pattern in concepts. Define the fields in reference.
+  Never mention on the sales site.
+- **Do not say**: "Kubernetes-style resources" or "CRD-like definitions"---the
+  document writer role explicitly prohibits Kubernetes analogies.
+
+---
+
+#### gRPC and protobuf
+
+The wire protocol (gRPC) and interface definition language (Protocol Buffers)
+that define Stigmer's API contracts.
+
+- **Canonical forms**: Always write "gRPC" with a lowercase g. Always write
+  "protobuf" or "Protocol Buffers" in customer-facing copy.
+- **Context rule**: Reference and SDK docs freely. Concepts docs can mention
+  gRPC as the API protocol. Do not mention on the sales site---say "standard
+  API" or "type-safe API clients." In the README, use freely.
+- **Sales-site phrasing**: "Real API contracts---generate type-safe clients in
+  any language."
+- **proto location**: All proto definitions live under
+  `apis/ai/stigmer/` in the Stigmer OSS repo.
+
+---
+
+#### CNCF Serverless Workflow
+
+The open specification that Stigmer's Workflow DSL is based on.
+
+- **Context rule**: Reference docs only. Link to `https://serverlessworkflow.io`
+  when mentioned. In all other contexts, just say "Workflow" and describe the
+  capabilities.
+- **Do not say**: "CNCF Serverless Workflow" on the sales site or in tutorials.
+
+---
+
+#### Graphton
+
+The agent framework used internally by the agent-runner service.
+
+- **Context rule**: Architecture docs and contributor guides only. Never in
+  customer-facing documentation. Customers do not interact with Graphton
+  directly.
+
+---
+
+#### Stigmer Server
+
+The Go gRPC API server that powers the local development experience.
+
+- **Capitalize**: Yes.
+- **CLI**: `stigmer server`, `stigmer server status`, `stigmer server stop`,
+  `stigmer server setup`, `stigmer server reset`.
+- **Context rule**: Quickstart and docs (it's the command they run).
+  Not on the sales site.
+
+---
+
+#### Agent Runner
+
+The Python Temporal worker that executes AI agent tasks.
+
+- **Capitalize**: Yes.
+- **Context rule**: Architecture docs only. Customers do not start or configure
+  the Agent Runner directly---it is embedded in `stigmer server`.
+
+---
+
+#### Workflow Runner
+
+The Go Temporal worker that executes Workflow tasks.
+
+- **Capitalize**: Yes.
+- **Context rule**: Architecture docs only. Same as Agent Runner---embedded
+  in `stigmer server`.
+
+---
+
+#### Execution Context
+
+Ephemeral runtime secrets and variables scoped to a specific execution.
+
+- **API surface**: `kind: execution_context`, prefix `ectx`.
+  proto: `executioncontext/v1/api.proto`.
+- **Context rule**: Reference docs only. Do not confuse with Environment
+  (persistent, named) vs Execution Context (ephemeral, per-execution).
+
+---
+
+#### Seedpack
+
+A pre-built starter package containing agent definitions, skills, and MCP
+server configurations.
+
+- **Capitalize**: Yes.
+- **Context rule**: Mentioned in STYLE.md's capitalization list. Use when the
+  feature is documented. Currently low-priority for customer-facing copy.
+
+---
+
+## Inconsistency register
+
+Known inconsistencies across the codebase. Each entry includes what the
+inconsistency is, where it appears, and a recommended resolution.
+
+These require human decisions. Do not resolve them autonomously.
+
+---
+
+### 1. OSS README tagline contradicts positioning
+
+**What**: The OSS README (`stigmer/stigmer/README.md`, line 3) says
+"open-source agentic automation platform." The positioning document says the
+category is "AI Agent Platform." The word "agentic" was explicitly rejected
+in the positioning document as jargon the target audience doesn't use.
+
+**Where**:
+- `README.md` line 3: "open-source agentic automation platform"
+- `README.md` line 5: "Stigmer is an open-source agentic automation platform."
+- `_projects/.../design-decisions/positioning.md` Section "Decision 2"
+
+**Recommendation**: Update the README tagline to "open-source AI agent
+platform" to match the positioning. The README audience (developers on
+GitHub) is different from the sales site's audience, but the category name
+should be consistent everywhere.
+
+---
+
+### 2. Cloud README tagline contradicts positioning
+
+**What**: The Cloud README (`stigmer/stigmer-cloud/README.md`, line 7) says
+"SDK-first agent orchestration platform." This uses a different category
+name ("agent orchestration platform") and leads with an implementation detail
+("SDK-first").
+
+**Where**:
+- `stigmer-cloud/README.md` line 7: "SDK-first agent orchestration platform"
+- `stigmer-cloud/README.md` line 15: repeats the phrase
+
+**Recommendation**: Update to align with the positioning category "AI agent
+platform." The "SDK-first" aspect can remain as a supporting description,
+not as the category name. Example: "Stigmer Cloud---the cloud-hosted AI agent
+platform. Define agents and workflows as code."
+
+---
+
+### 3. Audience definition conflict between document writer role and STYLE.md
+
+**What**: The document writer role (`_roles/002_document_writer.md`, line 3)
+says "Write for a smart person who is not technical." The style guide
+(`docs/STYLE.md`, line 14) says "Assume readers are comfortable with APIs,
+CLIs, and infrastructure concepts."
+
+Both are correct for their intended audiences (sales site vs. developer
+docs), but the document writer role does not distinguish between contexts.
+A writer following the role literally would avoid all technical language even
+in SDK reference docs.
+
+**Where**:
+- `_roles/002_document_writer.md` lines 3-12
+- `docs/STYLE.md` lines 9-15
+
+**Recommendation**: Update the document writer role to reference the
+[writing contexts](#writing-contexts) in this vocabulary guide. The "smart
+person who is not technical" standard applies to the sales site and
+introductory docs. Developer docs use the technical register defined here.
+
+---
+
+### 4. Cloud README lists "Credential" as a concept
+
+**What**: The Cloud README architecture table includes "Credential" as a
+resource type with the description "Encrypted credentials---AWS keys, GitHub
+tokens." No `Credential` kind exists in `api_resource_kind.proto`. The
+closest resources are `Environment` (holds secrets and variables) and
+`ApiKey` (IAM authentication tokens).
+
+**Where**:
+- `stigmer-cloud/README.md` architecture table (line 45)
+- `apis/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto`
+  (no `Credential` kind)
+
+**Recommendation**: Determine whether "Credential" was a planned resource
+that hasn't been implemented, or whether it's a misnomer for Environment
+secrets. Update the Cloud README accordingly. If credentials are managed
+through Environments, remove the "Credential" row and clarify in the
+Environment description.
+
+---
+
+### 5. YAML shorthand vs proto field names
+
+**What**: The OSS README shows `mcpServers:` as a YAML field on Agent
+definitions. The proto field is `mcp_server_usages` (a repeated
+`McpServerUsage` message containing `mcp_server_ref` and `enabled_tools`).
+It's unclear whether `mcpServers` is a supported YAML serialization alias or
+a documentation simplification.
+
+**Where**:
+- `README.md` lines 95-97: `mcpServers: [github, filesystem]`
+- `apis/ai/stigmer/agent/v1/spec.proto`: `mcp_server_usages` field
+
+**Recommendation**: Clarify whether the CLI/server supports a shorthand YAML
+syntax that expands to the full `mcp_server_usages` structure. If yes,
+document both forms: shorthand for quickstart/tutorials, full form for
+reference. If no, update the README to show the real YAML structure.
+
+---
+
+### 6. Two approval models
+
+**What**: The word "approval" refers to two distinct mechanisms:
+
+1. **Tool-call approval**---an agent pauses before executing a tool and asks
+   a human to approve. Configured via `ToolApprovalPolicy` on McpServer or
+   overridden per-agent. Submitted via
+   `AgentExecutionCommandController.submitApproval`.
+
+2. **Workflow-task approval**---a dedicated workflow task kind
+   (`WORKFLOW_TASK_APPROVAL`) that pauses workflow execution and waits for
+   human input. Has structured parameters: approvers, message, timeout.
+
+These are different mechanisms with different APIs, different configuration
+surfaces, and different runtime behaviors. Using the same word "approval" for
+both creates ambiguity in documentation.
+
+**Where**:
+- `agentexecution/v1/approval.proto`, `agentexecution/v1/command.proto`
+- `workflowexecution/v1/api.proto` (WorkflowTask with WORKFLOW_TASK_APPROVAL)
+- `mcpserver/v1/spec.proto` (ToolApprovalPolicy)
+- `agent/v1/spec.proto` (`tool_approval_overrides`)
+
+**Recommendation**: In customer-facing documentation, distinguish between:
+- "Tool approval"---the agent asks before using a tool (Pillar 3: "Asks
+  Before Acting")
+- "Workflow approval"---a workflow pauses at a checkpoint and asks a human
+  to approve before continuing
+
+Both are approval flows, but they should be documented separately with
+clear names. The sales site can use the umbrella term "approval flows" since
+the distinction doesn't matter at that level.
