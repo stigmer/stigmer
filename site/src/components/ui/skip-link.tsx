@@ -66,7 +66,7 @@ function SkipLink({
         // Focus ring for visual feedback
         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
         // Smooth transition when becoming visible
-        "focus:shadow-lg focus:shadow-primary/20",
+        "focus:shadow-lg",
         className
       )}
     >

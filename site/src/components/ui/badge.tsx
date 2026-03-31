@@ -8,36 +8,20 @@ import { cn } from "@/lib/utils";
  * Badge variants using class-variance-authority.
  */
 const badgeVariants = cva(
-  // Base styles
   [
     "inline-flex items-center",
     "rounded-full px-2.5 py-0.5",
-    "text-xs font-medium",
+    "text-xs font-medium font-mono uppercase tracking-wider",
     "transition-colors",
   ],
   {
     variants: {
       variant: {
-        /** Default filled badge */
         default: "bg-primary text-primary-foreground",
-        /** Secondary/muted badge */
         secondary: "bg-secondary text-secondary-foreground",
-        /** Accent color badge */
-        accent: "bg-accent text-accent-foreground",
-        /** Bordered badge - subtle appearance */
-        outline: "border border-border text-foreground bg-transparent",
-        /** Success indicator */
-        success: "bg-green-500/10 text-green-400 border border-green-500/20",
-        /** Warning indicator */
-        warning: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20",
-        /** Error/destructive indicator */
+        outline: "border border-border text-muted-foreground bg-transparent",
+        muted: "border border-border text-subtle bg-transparent",
         destructive: "bg-destructive/10 text-destructive border border-destructive/20",
-        /** Cyan/teal accent - terminal/local feel */
-        cyan: "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30",
-        /** Purple/violet accent - API/technical feel */
-        purple: "bg-violet-500/15 text-violet-400 border border-violet-500/30",
-        /** Emerald/green accent - open source/community feel */
-        emerald: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30",
       },
     },
     defaultVariants: {

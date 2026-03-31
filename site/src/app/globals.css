@@ -7,76 +7,54 @@
 /*
  * Stigmer Design System
  *
- * Dual-palette color system: light mode (default) and dark mode.
- * Electric blue primary (#3b82f6) and purple accent (#8b5cf6) carry
- * across both palettes — only surface lightness and contrast shift.
+ * Monochromatic palette derived from the Figma design.
+ * Three text levels: foreground (#f5f5f5), muted-foreground (#a3a3a3),
+ * and subtle (#505050). No brand color — purely typographic/editorial.
  *
- * Fumadocs uses --color-fd-* prefixed variables (imported above).
- * We override them below to match Stigmer's brand in both modes.
+ * Marketing pages are dark-only. Docs pages support light/dark via
+ * Fumadocs RootProvider. The light palette below serves docs only.
  */
 
 /* =============================================================================
- * LIGHT PALETTE (default)
+ * LIGHT PALETTE — docs pages only (marketing pages force .dark)
  *
- * Clean, professional surfaces with a subtle blue-gray undertone.
- * High contrast text for readability. Glows and glass effects are
- * softened to suit bright backgrounds.
+ * Neutral gray scale matching the monochromatic brand. Clean surfaces,
+ * high contrast text, no color accents.
  * ============================================================================= */
 
 :root {
-  --background: 220 23% 97%;
-  --foreground: 222 47% 11%;
+  --background: 0 0% 99%;
+  --foreground: 0 0% 9%;
 
-  --primary: 217 91% 50%;
-  --primary-foreground: 0 0% 100%;
+  --primary: 0 0% 9%;
+  --primary-foreground: 0 0% 99%;
 
-  --secondary: 215 20% 93%;
-  --secondary-foreground: 222 47% 11%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 9%;
 
-  --accent: 262 83% 58%;
-  --accent-foreground: 0 0% 100%;
+  --accent: 0 0% 96%;
+  --accent-foreground: 0 0% 9%;
 
-  --muted: 220 14% 93%;
-  --muted-foreground: 215 16% 47%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
 
   --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
+  --destructive-foreground: 0 0% 99%;
 
-  --border: 220 13% 87%;
-  --input: 220 13% 87%;
-  --ring: 217 91% 50%;
+  --border: 0 0% 91%;
+  --input: 0 0% 91%;
+  --ring: 0 0% 9%;
 
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  --card-foreground: 0 0% 9%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
+  --popover-foreground: 0 0% 9%;
 
-  --radius: 0.5rem;
+  --radius: 0.25rem;
 
-  /* Glow sizes (shared between modes) */
-  --glow-sm: 0 0 10px;
-  --glow-md: 0 0 20px;
-  --glow-lg: 0 0 40px;
+  --subtle: 0 0% 55%;
 
-  /* Subdued glow on light backgrounds */
-  --glow-primary: var(--glow-md) hsl(var(--primary) / 0.15);
-  --glow-primary-intense: var(--glow-lg) hsl(var(--primary) / 0.2);
-  --glow-accent: var(--glow-md) hsl(var(--accent) / 0.15);
-  --glow-accent-intense: var(--glow-lg) hsl(var(--accent) / 0.2);
-
-  /* Semi-transparent white glass on light backgrounds */
-  --glass-bg: hsl(var(--card) / 0.7);
-  --glass-bg-strong: hsl(var(--card) / 0.85);
-  --glass-bg-subtle: hsl(var(--card) / 0.5);
-  --glass-border: hsl(var(--primary) / 0.12);
-  --glass-border-hover: hsl(var(--primary) / 0.25);
-  --glass-border-accent: hsl(var(--accent) / 0.12);
-  --glass-blur: 12px;
-  --glass-blur-strong: 20px;
-  --glass-blur-subtle: 8px;
-
-  /* Animation durations (shared between modes) */
   --duration-instant: 100ms;
   --duration-fast: 150ms;
   --duration-normal: 300ms;
@@ -85,101 +63,95 @@
 }
 
 /* =============================================================================
- * DARK PALETTE
+ * DARK PALETTE — marketing pages (forced) + docs dark mode
  *
- * Near-black surfaces with a blue undertone. Terminal-inspired aesthetic.
- * Glows and glass effects are intensified for contrast on dark backgrounds.
+ * Near-black #0a0a0a base. Foreground #f5f5f5 for headings, #a3a3a3
+ * for body, #505050 for labels. Borders at rgba(255,255,255,0.07)
+ * composited to ~#1b1b1b.
  * ============================================================================= */
 
 .dark {
-  --background: 222 47% 4%;
-  --foreground: 210 40% 98%;
+  --background: 0 0% 4%;
+  --foreground: 0 0% 96%;
 
-  --primary: 217 91% 60%;
-  --primary-foreground: 222 47% 4%;
+  --primary: 0 0% 96%;
+  --primary-foreground: 0 0% 4%;
 
-  --secondary: 215 28% 17%;
-  --secondary-foreground: 210 40% 98%;
+  --secondary: 0 0% 11%;
+  --secondary-foreground: 0 0% 96%;
 
-  --accent: 262 83% 58%;
-  --accent-foreground: 210 40% 98%;
+  --accent: 0 0% 11%;
+  --accent-foreground: 0 0% 96%;
 
-  --muted: 217 33% 12%;
-  --muted-foreground: 215 20% 55%;
+  --muted: 0 0% 11%;
+  --muted-foreground: 0 0% 64%;
 
   --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive-foreground: 0 0% 96%;
 
-  --border: 217 33% 17%;
-  --input: 217 33% 17%;
-  --ring: 217 91% 60%;
+  --border: 0 0% 11%;
+  --input: 0 0% 11%;
+  --ring: 0 0% 96%;
 
-  --card: 222 47% 6%;
-  --card-foreground: 210 40% 98%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 96%;
 
-  --popover: 222 47% 6%;
-  --popover-foreground: 210 40% 98%;
+  --popover: 0 0% 7%;
+  --popover-foreground: 0 0% 96%;
 
-  --glow-primary: var(--glow-md) hsl(var(--primary) / 0.3);
-  --glow-primary-intense: var(--glow-lg) hsl(var(--primary) / 0.4);
-  --glow-accent: var(--glow-md) hsl(var(--accent) / 0.3);
-  --glow-accent-intense: var(--glow-lg) hsl(var(--accent) / 0.4);
-
-  --glass-bg: hsl(var(--card) / 0.8);
-  --glass-bg-strong: hsl(var(--card) / 0.9);
-  --glass-bg-subtle: hsl(var(--card) / 0.6);
-  --glass-border: hsl(var(--primary) / 0.2);
-  --glass-border-hover: hsl(var(--primary) / 0.4);
-  --glass-border-accent: hsl(var(--accent) / 0.2);
+  --subtle: 0 0% 31%;
 }
 
 /* =============================================================================
  * FUMADOCS THEME OVERRIDES
  *
- * Map --color-fd-* variables to Stigmer's palette for both modes.
- * Light values live at :root; dark values override under .dark.
+ * Map --color-fd-* to the monochromatic palette for both modes.
  * ============================================================================= */
 
 :root {
-  --color-fd-background: hsl(220 23% 97%);
-  --color-fd-foreground: hsl(222 47% 11%);
-  --color-fd-muted: hsl(220 14% 93%);
-  --color-fd-muted-foreground: hsl(215 16% 47%);
+  --color-fd-background: hsl(0 0% 99%);
+  --color-fd-foreground: hsl(0 0% 9%);
+  --color-fd-muted: hsl(0 0% 96%);
+  --color-fd-muted-foreground: hsl(0 0% 45%);
   --color-fd-popover: hsl(0 0% 100%);
-  --color-fd-popover-foreground: hsl(222 47% 11%);
+  --color-fd-popover-foreground: hsl(0 0% 9%);
   --color-fd-card: hsl(0 0% 100%);
-  --color-fd-card-foreground: hsl(222 47% 11%);
-  --color-fd-border: hsl(220 13% 87%);
-  --color-fd-primary: hsl(217 91% 50%);
-  --color-fd-primary-foreground: hsl(0 0% 100%);
-  --color-fd-secondary: hsl(215 20% 93%);
-  --color-fd-secondary-foreground: hsl(222 47% 11%);
-  --color-fd-accent: hsl(220 14% 93% / 0.7);
-  --color-fd-accent-foreground: hsl(222 47% 11%);
-  --color-fd-ring: hsl(217 91% 50%);
+  --color-fd-card-foreground: hsl(0 0% 9%);
+  --color-fd-border: hsl(0 0% 91%);
+  --color-fd-primary: hsl(0 0% 9%);
+  --color-fd-primary-foreground: hsl(0 0% 99%);
+  --color-fd-secondary: hsl(0 0% 96%);
+  --color-fd-secondary-foreground: hsl(0 0% 9%);
+  --color-fd-accent: hsl(0 0% 96% / 0.7);
+  --color-fd-accent-foreground: hsl(0 0% 9%);
+  --color-fd-ring: hsl(0 0% 9%);
 }
 
 .dark {
-  --color-fd-background: hsl(222 47% 4%);
-  --color-fd-foreground: hsl(210 40% 98%);
-  --color-fd-muted: hsl(217 33% 12%);
-  --color-fd-muted-foreground: hsl(215 20% 55%);
-  --color-fd-popover: hsl(222 47% 6%);
-  --color-fd-popover-foreground: hsl(210 40% 98%);
-  --color-fd-card: hsl(222 47% 6%);
-  --color-fd-card-foreground: hsl(210 40% 98%);
-  --color-fd-border: hsl(217 33% 17%);
-  --color-fd-primary: hsl(217 91% 60%);
-  --color-fd-primary-foreground: hsl(222 47% 4%);
-  --color-fd-secondary: hsl(215 28% 17%);
-  --color-fd-secondary-foreground: hsl(210 40% 98%);
-  --color-fd-accent: hsl(217 33% 17% / 0.5);
-  --color-fd-accent-foreground: hsl(210 40% 98%);
-  --color-fd-ring: hsl(217 91% 60%);
+  --color-fd-background: hsl(0 0% 4%);
+  --color-fd-foreground: hsl(0 0% 96%);
+  --color-fd-muted: hsl(0 0% 11%);
+  --color-fd-muted-foreground: hsl(0 0% 64%);
+  --color-fd-popover: hsl(0 0% 7%);
+  --color-fd-popover-foreground: hsl(0 0% 96%);
+  --color-fd-card: hsl(0 0% 7%);
+  --color-fd-card-foreground: hsl(0 0% 96%);
+  --color-fd-border: hsl(0 0% 11%);
+  --color-fd-primary: hsl(0 0% 96%);
+  --color-fd-primary-foreground: hsl(0 0% 4%);
+  --color-fd-secondary: hsl(0 0% 11%);
+  --color-fd-secondary-foreground: hsl(0 0% 96%);
+  --color-fd-accent: hsl(0 0% 11% / 0.5);
+  --color-fd-accent-foreground: hsl(0 0% 96%);
+  --color-fd-ring: hsl(0 0% 96%);
 }
 
 /* Map semantic tokens to Tailwind v4 */
 @theme inline {
+  --font-family-sans: var(--font-instrument-sans), "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-family-serif: var(--font-instrument-serif), "Instrument Serif", ui-serif, Georgia, serif;
+  --font-family-mono: var(--font-dm-mono), "DM Mono", ui-monospace, monospace;
+
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
@@ -199,6 +171,7 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  --color-subtle: hsl(var(--subtle));
 }
 
 @layer base {
@@ -210,12 +183,10 @@
     @apply bg-background text-foreground antialiased;
   }
   
-  /* Smooth scrolling for anchor links */
   html {
     scroll-behavior: smooth;
   }
   
-  /* Focus visible outline for accessibility */
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-ring;
   }
@@ -223,7 +194,6 @@
 
 /* =============================================================================
  * REDUCED MOTION SUPPORT
- * Respects user's motion preferences for accessibility
  * ============================================================================= */
 
 @media (prefers-reduced-motion: reduce) {
@@ -239,23 +209,8 @@
 
 /* =============================================================================
  * ANIMATIONS
- * Keyframes for CSS animations used throughout the site
  * ============================================================================= */
 
-/* Gradient text animation - used in Hero headline */
-@keyframes gradient {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* Terminal cursor blink - used in Hero install command */
 @keyframes blink {
   0%, 50% {
     opacity: 1;
@@ -265,21 +220,10 @@
   }
 }
 
-/* Custom scrollbar styling */
 @layer utilities {
-  .animate-gradient {
-    animation: gradient 8s ease infinite;
-  }
-  
-  /* Terminal cursor blink animation */
   .cursor-blink {
     animation: blink 1s step-end infinite;
   }
-  
-  /* =========================================================================
-   * NAVIGATION UTILITIES
-   * Animated underline effect for navigation links
-   * ========================================================================= */
   
   .nav-underline {
     position: relative;
@@ -291,8 +235,8 @@
     bottom: 0;
     left: 0;
     width: 0;
-    height: 2px;
-    background: hsl(var(--primary));
+    height: 1px;
+    background: hsl(var(--foreground));
     transition: width var(--duration-normal) ease;
   }
   
@@ -323,80 +267,6 @@
     background-color: hsl(var(--muted-foreground));
   }
   
-  /* =========================================================================
-   * GLASSMORPHISM UTILITIES
-   * Apply glass effect to any element
-   * ========================================================================= */
-  
-  .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border-color: var(--glass-border);
-  }
-  
-  .glass-strong {
-    background: var(--glass-bg-strong);
-    backdrop-filter: blur(var(--glass-blur-strong));
-    -webkit-backdrop-filter: blur(var(--glass-blur-strong));
-  }
-  
-  .glass-subtle {
-    background: var(--glass-bg-subtle);
-    backdrop-filter: blur(var(--glass-blur-subtle));
-    -webkit-backdrop-filter: blur(var(--glass-blur-subtle));
-  }
-  
-  /* =========================================================================
-   * GLOW UTILITIES
-   * Hover glow effects using design tokens
-   * ========================================================================= */
-  
-  .glow-on-hover {
-    transition: box-shadow var(--duration-normal) ease;
-  }
-  
-  .glow-on-hover:hover {
-    box-shadow: var(--glow-primary);
-  }
-  
-  .glow-on-hover-accent {
-    transition: box-shadow var(--duration-normal) ease;
-  }
-  
-  .glow-on-hover-accent:hover {
-    box-shadow: var(--glow-accent);
-  }
-  
-  .glow-on-hover-intense {
-    transition: box-shadow var(--duration-normal) ease;
-  }
-  
-  .glow-on-hover-intense:hover {
-    box-shadow: var(--glow-primary-intense);
-  }
-  
-  /* Static glow (always visible) */
-  .glow-primary {
-    box-shadow: var(--glow-primary);
-  }
-  
-  .glow-accent {
-    box-shadow: var(--glow-accent);
-  }
-  
-  /* =========================================================================
-   * ACCESSIBILITY UTILITIES
-   * Screen reader only content and skip link support
-   * ========================================================================= */
-  
-  /**
-   * Screen reader only - visually hidden but accessible to assistive technology.
-   * Use for content that should be announced but not visible.
-   * 
-   * @example
-   * <span className="sr-only">Opens in new tab</span>
-   */
   .sr-only {
     position: absolute;
     width: 1px;
@@ -409,13 +279,6 @@
     border-width: 0;
   }
   
-  /**
-   * Make sr-only content visible when focused (for skip links).
-   * Combines with sr-only to create accessible skip navigation.
-   * 
-   * @example
-   * <a href="#main" className="sr-only sr-only-focusable">Skip to main content</a>
-   */
   .sr-only-focusable:focus,
   .sr-only-focusable:focus-within {
     position: static;
@@ -428,10 +291,6 @@
     white-space: normal;
   }
   
-  /**
-   * Negation class to make sr-only visible on focus.
-   * Alternative approach using focus:not-sr-only pattern.
-   */
   .focus\:not-sr-only:focus {
     position: static;
     width: auto;

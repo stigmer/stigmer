@@ -1,19 +1,5 @@
 "use client";
 
-/**
- * Mobile Navigation Menu
- *
- * A slide-out drawer pattern with proper accessibility and animations.
- *
- * Features:
- * - Framer Motion AnimatePresence for smooth enter/exit
- * - Backdrop overlay with click-to-close
- * - Body scroll lock when open
- * - Focus trap for accessibility
- * - Escape key to close
- * - Respects reduced motion preference
- */
-
 import * as React from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
@@ -32,46 +18,17 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 
 export interface MobileMenuProps {
-  /**
-   * Whether the menu is currently open.
-   */
   isOpen: boolean;
-  /**
-   * Callback to close the menu.
-   */
   onClose: () => void;
-  /**
-   * Ref to the trigger button for focus return on close.
-   * When the menu closes, focus will be returned to this element.
-   */
   triggerRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
-/**
- * Mobile navigation menu with slide-out drawer pattern.
- *
- * Accessibility features:
- * - Focus trap: Tab cycles within menu while open
- * - Focus management: Focus moves to close button on open
- * - Focus return: Focus returns to trigger button on close
- * - Escape key: Closes the menu
- * - Body scroll lock: Prevents background scrolling
- * - Reduced motion: Respects prefers-reduced-motion
- *
- * @example
- * const [isOpen, setIsOpen] = useState(false);
- * const triggerRef = useRef<HTMLButtonElement>(null);
- * <button ref={triggerRef} onClick={() => setIsOpen(true)}>Open</button>
- * <MobileMenu isOpen={isOpen} onClose={() => setIsOpen(false)} triggerRef={triggerRef} />
- */
 function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
   const menuRef = React.useRef<HTMLDivElement>(null);
   const closeButtonRef = React.useRef<HTMLButtonElement>(null);
   const prefersReducedMotion = useReducedMotion();
-  // Track previous open state for focus return
   const wasOpen = React.useRef(false);
 
-  // Handle escape key
   React.useEffect(() => {
     function handleEscape(e: KeyboardEvent) {
       if (e.key === "Escape" && isOpen) {
@@ -83,7 +40,6 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
-  // Lock body scroll when open
   React.useEffect(() => {
     if (isOpen) {
       const originalOverflow = document.body.style.overflow;
@@ -94,10 +50,8 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
     }
   }, [isOpen]);
 
-  // Focus management - focus close button when opening
   React.useEffect(() => {
     if (isOpen && closeButtonRef.current) {
-      // Small delay to ensure menu is rendered
       const timer = setTimeout(() => {
         closeButtonRef.current?.focus();
       }, 100);
@@ -105,21 +59,16 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
     }
   }, [isOpen]);
 
-  // Focus return - restore focus to trigger button when closing
   React.useEffect(() => {
-    // Only return focus when transitioning from open to closed
     if (wasOpen.current && !isOpen && triggerRef?.current) {
-      // Small delay to ensure menu animation completes
       const timer = setTimeout(() => {
         triggerRef.current?.focus();
       }, 50);
       return () => clearTimeout(timer);
     }
-    // Track open state for next render
     wasOpen.current = isOpen;
   }, [isOpen, triggerRef]);
 
-  // Simple focus trap within the menu
   React.useEffect(() => {
     if (!isOpen || !menuRef.current) return;
 
@@ -152,7 +101,6 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
     return () => document.removeEventListener("keydown", handleTab);
   }, [isOpen]);
 
-  // Determine transition based on motion preference
   const menuTransition = prefersReducedMotion
     ? { duration: 0 }
     : transitions.menu;
@@ -164,7 +112,6 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
     <AnimatePresence mode="wait">
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             key="backdrop"
             initial="hidden"
@@ -180,7 +127,6 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
             aria-hidden="true"
           />
 
-          {/* Menu Panel */}
           <motion.div
             ref={menuRef}
             key="panel"
@@ -244,10 +190,24 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
                     </motion.li>
                   );
                 })}
+
+                {/* Sign In link */}
+                <motion.li
+                  variants={fadeInUp}
+                  transition={transitions.smooth}
+                >
+                  <MobileNavLink
+                    href={SITE_CONFIG.cloudSigninUrl}
+                    external
+                    onClick={onClose}
+                  >
+                    Sign In
+                  </MobileNavLink>
+                </motion.li>
               </motion.ul>
             </nav>
 
-            {/* Footer */}
+            {/* Footer CTA */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -255,13 +215,8 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
               className="p-4 border-t border-border"
             >
               <Button asChild className="w-full" size="lg">
-                <a
-                  href={SITE_CONFIG.githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Icon name="github" />
-                  <span>View on GitHub</span>
+                <a href={SITE_CONFIG.cloudSignupUrl}>
+                  Start Free
                 </a>
               </Button>
             </motion.div>
@@ -272,9 +227,6 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
   );
 }
 
-/**
- * Mobile navigation link component.
- */
 interface MobileNavLinkProps {
   href: string;
   external?: boolean;
