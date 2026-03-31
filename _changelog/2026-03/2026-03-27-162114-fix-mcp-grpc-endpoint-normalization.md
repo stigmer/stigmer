@@ -8,7 +8,7 @@ Fixed a TLS/plaintext protocol mismatch that caused `mcp-server-stigmer` to fail
 
 ## Problem Statement
 
-When users configured `STIGMER_SERVER_ADDRESS` with values like `stigmer-prod-api.planton.live` or `https://stigmer-prod-api.planton.live`, the MCP server's gRPC client silently used plaintext HTTP/2 against a TLS endpoint, producing an opaque "Stigmer server is unavailable" error.
+When users configured `STIGMER_SERVER_ADDRESS` with values like `api.stigmer.planton.live` or `https://api.stigmer.planton.live`, the MCP server's gRPC client silently used plaintext HTTP/2 against a TLS endpoint, producing an opaque "Stigmer server is unavailable" error.
 
 ### Pain Points
 

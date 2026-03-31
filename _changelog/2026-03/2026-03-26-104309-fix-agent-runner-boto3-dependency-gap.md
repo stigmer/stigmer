@@ -8,7 +8,7 @@ Declared boto3 as an explicit dependency for the agent-runner service and remove
 
 ## Problem Statement
 
-Agent sessions on the cloud deployment (`stigmer-prod-web.planton.live`) were failing immediately with:
+Agent sessions on the cloud deployment (`stigmer.planton.live`) were failing immediately with:
 
 > Error: Execution failed. (ImportError) boto3 is required for R2 storage. Install it with: pip install boto3
 

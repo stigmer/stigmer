@@ -12,7 +12,7 @@ Two interrelated issues on the cloud deployment:
 
 1. **Console navigation broken**: Clicking sessions or library items either stayed on the home page or showed "Failed to load session — unauthorized to get session" because `useParams()` returned `__placeholder__` from the pre-rendered HTML.
 
-2. **Agent runner disconnected**: The `generate_session_subject` Temporal activity failed with gRPC `UNAVAILABLE` — the agent runner was trying to reach the Stigmer API through the public ingress (`stigmer-prod-api.planton.live:443`) using native gRPC, which the ingress rejected with "Connection reset by peer."
+2. **Agent runner disconnected**: The `generate_session_subject` Temporal activity failed with gRPC `UNAVAILABLE` — the agent runner was trying to reach the Stigmer API through the public ingress (`api.stigmer.planton.live:443`) using native gRPC, which the ingress rejected with "Connection reset by peer."
 
 ### Pain Points
 
@@ -33,7 +33,7 @@ Two interrelated issues on the cloud deployment:
 
 ### Agent Runner Connectivity
 
-Switched `STIGMER_BACKEND_ENDPOINT` from the public endpoint (`stigmer-prod-api.planton.live:443`) to the internal Kubernetes service (`stigmer-service.stigmer-prod.svc.cluster.local:80`). Direct pod-to-pod communication over plain gRPC, bypassing the ingress entirely.
+Switched `STIGMER_BACKEND_ENDPOINT` from the public endpoint (`api.stigmer.planton.live:443`) to the internal Kubernetes service (`stigmer-service.stigmer-prod.svc.cluster.local:80`). Direct pod-to-pod communication over plain gRPC, bypassing the ingress entirely.
 
 ## Implementation Details
 

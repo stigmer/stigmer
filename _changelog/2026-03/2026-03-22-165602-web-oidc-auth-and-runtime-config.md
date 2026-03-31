@@ -110,7 +110,7 @@ Two complementary systems were introduced:
 ## Prerequisites (Manual)
 
 - Auth0 application type must be changed from "Regular Web Application" to "Single Page Application" in the Auth0 dashboard
-- Callback URLs (`https://stigmer-prod-web.planton.live/auth/callback`), logout URLs, and web origins must be configured in Auth0
+- Callback URLs (`https://stigmer.planton.live/auth/callback`), logout URLs, and web origins must be configured in Auth0
 
 ## Files Changed
 

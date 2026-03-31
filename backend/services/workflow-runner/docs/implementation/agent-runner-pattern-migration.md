@@ -155,7 +155,7 @@ Progressive status updates (gRPC)
 
 **Environment Variables** (already existed):
 ```bash
-STIGMER_SERVICE_ENDPOINT=stigmer-prod-api.planton.live:443
+STIGMER_SERVICE_ENDPOINT=api.stigmer.planton.live:443
 STIGMER_SERVICE_API_KEY=<api-key>
 STIGMER_SERVICE_USE_TLS=true
 ```
