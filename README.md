@@ -2,7 +2,7 @@
 
 **Build AI agents and workflows with zero infrastructure.**
 
-Stigmer is an open-source agentic automation platform. Run it locally with SQLite for development, or connect to Stigmer Cloud for production. Bring your own LLM — Anthropic, OpenAI, or Ollama. Same CLI, same SDK, same resource definitions — your choice of backend.
+Stigmer is an open-source AI agent platform. Run it locally with SQLite for development, or connect to Stigmer Cloud for production. Bring your own LLM — Anthropic, OpenAI, or Ollama. Same CLI, same SDK, same resource definitions — your choice of backend.
 
 ## Quick Start
 
@@ -92,9 +92,13 @@ spec:
     You are a helpful customer support agent.
     Answer questions politely and accurately.
     Check GitHub issues for known problems.
-  mcpServers:
-    - github
-    - filesystem
+  mcp_server_usages:
+    - mcp_server_ref:
+        kind: mcp_server
+        slug: github
+    - mcp_server_ref:
+        kind: mcp_server
+        slug: filesystem
 ```
 
 ```bash

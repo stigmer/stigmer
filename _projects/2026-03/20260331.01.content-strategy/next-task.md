@@ -13,9 +13,25 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: Phase 1 Complete — Pending Review
-- **Last Session**: 2026-03-31 (Session 6) — Phase 1 deliverable 5 of 5 completed (Information Architecture)
-- **Active Task**: T01 — All Phase 1 deliverables complete. Review all 5 before Phase 2.
+- **Status**: Phase 1 Reviewed — Pre-Phase 2 fixes applied
+- **Last Session**: 2026-03-31 (Session 7) — Phase 1 review complete, pre-Phase 2 fixes applied
+- **Active Task**: T01 — Phase 1 review complete. Ready for Phase 2 after remaining pre-Phase 3 housekeeping.
+
+## Session Progress (2026-03-31, Session 7)
+
+- **Phase 1 review completed** — all 5 deliverables reviewed for internal quality, cross-document consistency, and Phase 2 readiness
+- **Verdict: ready for Phase 2** — no blockers found
+- Applied pre-Phase 2 fixes across 6 files:
+  - **OSS README tagline**: "agentic automation platform" → "AI agent platform" (inconsistency #1 resolved)
+  - **YAML shorthand removed**: `mcpServers` replaced with real `mcp_server_usages` structure in README; vocabulary guide references updated (inconsistency #5 resolved)
+  - **Approval framing rewrite**: Removed threshold-based approval language across positioning, demo story, and use cases. Approval is per-tool (action type), not per-parameter (dollar amount). Affects demo story Act 3, positioning Pillar 3 proof point, demo story property management variant, and HR use case.
+- Updated vocabulary guide inconsistency register: #1 and #5 marked RESOLVED
+- Review findings documented (cross-document analysis, gap analysis, per-document observations)
+- Key review observations for Phase 2 awareness:
+  - Sections 6 (Why It Works) and 7 (Open Source) have no draft copy blocks — Phase 2 synthesizes from positioning
+  - Some homepage CTAs point to Phase 6 tutorial pages — need fallback handling in Phase 2
+  - HR use case one-liner may need tightening for homepage card format
+- **Key design decision**: Approval flows are tool-level (binary per tool), not conditional on input parameters. The platform provides the approval checkpoint; the user designs the business logic around it (thresholds, escalation, routing).
 
 ## Session Progress (2026-03-31, Session 6)
 
@@ -36,12 +52,11 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Next Steps
 
-1. **Review all Phase 1 deliverables** — positioning, vocabulary, demo story, use cases, information architecture
-2. **Resolve vocabulary inconsistencies** — 6 items in the inconsistency register pending human decision
+1. ~~**Review all Phase 1 deliverables**~~ — DONE (Session 7). All 5 deliverables reviewed. Verdict: ready for Phase 2.
+2. ~~**Resolve vocabulary inconsistencies**~~ — PARTIALLY DONE. #1 (README tagline) and #5 (YAML shorthand) resolved. #2 and #4 (Cloud README) deferred. #3 (document writer role) deferred to pre-Phase 3. #6 (two approval models) already addressed by IA.
 3. **Apply document writer role corrections** — 3 changes recommended by the information architecture (pre-Phase 3 task)
 4. **Update CONTRIBUTING.md** — directory table to match new 6-directory structure (Phase 3 prerequisite)
-5. **Resolve YAML shorthand question** — vocabulary inconsistency #5 must be resolved before Phase 3 quickstart content
-6. **Begin Phase 2** — sales website content implementation
+5. **Begin Phase 2** — sales website content implementation
 
 ## Context for Resume
 
@@ -56,9 +71,8 @@ Drop this file into your conversation to quickly resume work on this project.
 - **The demo story narrative (`design-decisions/demo-story.md`) defines the before/after transformation arc** — reusable framework, primary e-commerce story, variant sketches, and Phase 2 integration notes
 - **The use case library (`design-decisions/use-cases.md`) demonstrates Stigmer's breadth** — 5 industries, fit pattern, capability coverage matrix, and Phase 2 card-ready content
 - **The information architecture (`design-decisions/information-architecture.md`) is the structural blueprint** — site map, navigation, docs sidebar, CTA mapping, learning paths, and meta.json plans
-- The vocabulary guide contains an inconsistency register with 6 items pending review — these should be resolved before Phase 2
-- Vocabulary inconsistency #5 (YAML shorthand vs proto field names) must be resolved before Phase 3
-- One technical note from the demo story review: the $200 refund threshold in Act 3 implies parameter-based approval rules — consistent with the positioning document's pattern ($500 threshold) but worth verifying against ToolApprovalPolicy capabilities
+- The vocabulary guide's inconsistency register has 6 items: #1 and #5 resolved, #3 deferred to pre-Phase 3, #6 addressed by IA, #2 and #4 deferred (Cloud README, separate repo)
+- The demo story's refund threshold is now $500, consistent with the positioning document's proof point
 
 ## Essential Files to Review
 

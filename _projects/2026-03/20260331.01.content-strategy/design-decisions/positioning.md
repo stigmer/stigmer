@@ -173,9 +173,9 @@ Three primary pillars map to the progressive capability story. One foundation pi
 
 **What this means**: You define which actions require human approval. The agent pauses, presents its reasoning, and waits for a human to approve or reject before proceeding. This is a control mechanism, not a logging feature.
 
-**Product feature**: Human-in-the-loop approval flows. Configurable per action or per risk level. The agent's execution is durable — it waits indefinitely without losing state.
+**Product feature**: Human-in-the-loop approval flows. Configurable per tool — you decide which actions require a human decision. The agent's execution is durable — it waits indefinitely without losing state.
 
-**Proof point**: An agent processing a refund over $500 pauses and asks a human to confirm. The human sees what the agent wants to do and why. If the human rejects, the agent adjusts.
+**Proof point**: An agent processing a refund pauses and asks a human to confirm. The human sees what the agent wants to do and why. If the human rejects, the agent adjusts. Routine questions and lookups are handled automatically — only the actions you designate require approval.
 
 **Copy example**: "Your agent handles routine requests on its own. For anything sensitive, it asks a human first. You set the rules."
 

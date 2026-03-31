@@ -196,23 +196,22 @@ solved.
 
 Some actions should not happen without a human in the loop.
 
-You set an approval rule: refunds over $200 need merchant approval. The agent
-handles everything below that threshold on its own. Above it, it pauses.
+You mark the refund tool as requiring merchant approval. The agent answers
+questions and looks up orders on its own. When it is ready to actually process
+a refund, it pauses.
 
 *"I bought the wrong size on three items. Can I return all of them?"*
 
-Total: $340. The agent checks each item — all eligible under the return policy.
-But the total exceeds the approval threshold.
-
-The agent sends the merchant a notification: *"Customer Sarah Chen is requesting
-a return of 3 items totaling $340. All items meet the return policy. Approve or
-reject?"*
+The agent checks each item — all three are eligible under the return policy.
+Total: $680. Before processing, it pauses and sends the merchant a
+notification: *"Customer Sarah Chen is requesting a return of 3 items totaling
+$680. All items meet the return policy. Approve or reject?"*
 
 The merchant reviews the details, approves, and the agent proceeds with the
 return.
 
-Routine requests: handled automatically. High-value decisions: humans stay in
-control. The merchant decides where the line is.
+Routine questions and order lookups: handled automatically. Refund processing:
+humans stay in control. You decide which actions need approval.
 
 ### After
 
@@ -277,7 +276,7 @@ request.
 |-----|-------------|-------------------|
 | Teach | Each property uploads its rules — pet policies, quiet hours, lease terms, maintenance procedures. Per-building, not generic. | *"Can I have a dog in Building C?"* → *"Building C does not allow pets. Buildings A and D allow cats with a $300 deposit."* |
 | Connect | Agent connects to the maintenance ticketing system and tenant database. | *"My kitchen faucet is leaking."* → Agent creates a maintenance ticket, assigns it to the plumbing contractor on file, and confirms: *"Ticket #1847 created. A plumber is scheduled for Thursday between 9am and 12pm."* |
-| Rules | Maintenance over $1,000 or early lease termination requests need property manager approval. | *"I need to break my lease early."* → Agent calculates the early termination fee per the lease, sends the request to the property manager for review. |
+| Rules | Maintenance work orders and early lease termination requests need property manager approval. Routine questions and status checks are handled automatically. | *"I need to break my lease early."* → Agent calculates the early termination fee per the lease, sends the request to the property manager for review. |
 
 ### After
 

@@ -171,8 +171,8 @@ onboarding advice that does not match any specific company's policies.
 - Onboarding runs as a multi-step automation: day-one tasks, week-one
   checkpoints, 30-day review. The agent guides the new hire through each phase
   and picks up where it left off if anything is interrupted.
-- Equipment requests above a budget threshold need manager approval. Standard
-  requests are handled automatically.
+- Equipment requests need manager approval. Standard access and training
+  tasks are handled automatically.
 
 **Proof interaction**:
 

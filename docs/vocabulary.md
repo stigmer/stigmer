@@ -97,8 +97,8 @@ A reusable definition of what an AI assistant knows and can do.
   proto: `agent/v1/spec.proto`, `agent/v1/api.proto`.
   CLI: `stigmer apply -f agent.yaml`, `stigmer run <name>`,
   `stigmer get agent <name>`, `stigmer list agent`.
-- **YAML fields**: `spec.instructions`, `spec.mcpServers` (user-facing
-  shorthand), proto field `spec.mcp_server_usages`.
+- **YAML fields**: `spec.instructions`, `spec.mcp_server_usages` (repeated
+  `McpServerUsage` entries, each containing `mcp_server_ref`).
 
 **Good examples**:
 
@@ -170,9 +170,8 @@ An external tool connection that lets an Agent interact with other systems.
   `stigmer apply -f mcpserver.yaml`, `stigmer get mcp-server <name>`.
 - **YAML fields**: `spec.stdio_server_config`, `spec.http_server_config`,
   `spec.default_enabled_tools`, `spec.default_tool_approvals`.
-  Agent references via: `spec.mcpServers` (user-facing YAML shorthand),
-  proto field `spec.mcp_server_usages` containing `McpServerUsage` entries
-  with `mcp_server_ref` and `enabled_tools`.
+  Agent references via: `spec.mcp_server_usages` (repeated `McpServerUsage`
+  entries with `mcp_server_ref` and `enabled_tools`).
 - **Protocol**: MCP stands for Model Context Protocol, an open standard.
   Spell out on first use in any context. Link to
   `https://modelcontextprotocol.io` in docs.
@@ -191,7 +190,7 @@ An external tool connection that lets an Agent interact with other systems.
 | Context | Copy | Problem |
 |---------|------|---------|
 | Sales site | "Configure MCP servers for tool integration." | Technical jargon. Say "connect your tools." |
-| Quickstart | "Set up the McpServerUsage with mcp_server_ref." | proto field names in a tutorial. Use the YAML shorthand `mcpServers`. |
+| Quickstart | "Set up the McpServerUsage with mcp_server_ref." | proto message names in a tutorial. Say "add an MCP server to your agent." Show the YAML by example, not by field name. |
 
 ---
 
@@ -567,22 +566,14 @@ These require human decisions. Do not resolve them autonomously.
 
 ---
 
-### 1. OSS README tagline contradicts positioning
+### 1. OSS README tagline contradicts positioning---RESOLVED
 
-**What**: The OSS README (`stigmer/stigmer/README.md`, line 3) says
-"open-source agentic automation platform." The positioning document says the
-category is "AI Agent Platform." The word "agentic" was explicitly rejected
-in the positioning document as jargon the target audience doesn't use.
+**What**: The OSS README previously said "open-source agentic automation
+platform." The positioning document says the category is "AI Agent Platform."
+The word "agentic" was explicitly rejected as jargon.
 
-**Where**:
-- `README.md` line 3: "open-source agentic automation platform"
-- `README.md` line 5: "Stigmer is an open-source agentic automation platform."
-- `_projects/.../design-decisions/positioning.md` Section "Decision 2"
-
-**Recommendation**: Update the README tagline to "open-source AI agent
-platform" to match the positioning. The README audience (developers on
-GitHub) is different from the sales site's audience, but the category name
-should be consistent everywhere.
+**Resolution**: The README has been updated to "open-source AI agent
+platform," matching the positioning document's category name.
 
 ---
 
@@ -648,22 +639,20 @@ Environment description.
 
 ---
 
-### 5. YAML shorthand vs proto field names
+### 5. YAML shorthand vs proto field names---RESOLVED
 
-**What**: The OSS README shows `mcpServers:` as a YAML field on Agent
+**What**: The OSS README showed `mcpServers:` as a YAML field on Agent
 definitions. The proto field is `mcp_server_usages` (a repeated
 `McpServerUsage` message containing `mcp_server_ref` and `enabled_tools`).
-It's unclear whether `mcpServers` is a supported YAML serialization alias or
-a documentation simplification.
 
-**Where**:
-- `README.md` lines 95-97: `mcpServers: [github, filesystem]`
-- `apis/ai/stigmer/agent/v1/spec.proto`: `mcp_server_usages` field
+**Investigation**: The CLI agent loader (`agent/loader.go`) uses strict
+`protojson` `Unmarshal` with `DiscardUnknown: false`. There is no alias or
+remapping for `mcpServers`. The field would be rejected as unknown.
+`mcpServers` was a documentation simplification, not a supported alias.
 
-**Recommendation**: Clarify whether the CLI/server supports a shorthand YAML
-syntax that expands to the full `mcp_server_usages` structure. If yes,
-document both forms: shorthand for quickstart/tutorials, full form for
-reference. If no, update the README to show the real YAML structure.
+**Resolution**: The README and this vocabulary guide have been updated to
+show the real YAML structure (`mcp_server_usages` with `McpServerUsage`
+entries). No shorthand exists or is planned.
 
 ---
 
