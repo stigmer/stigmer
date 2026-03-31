@@ -1,9 +1,10 @@
 /**
  * Stigmer domain term definitions for the <Term> tooltip component.
  *
- * Each entry maps a display term (as it appears in prose) to a plain-language
- * definition. Definitions follow the Document Writer role guidelines: write
- * for a smart person who is not technical.
+ * SOURCE OF TRUTH: docs/vocabulary.md
+ * Definitions in this file must match the vocabulary guide. When updating
+ * a definition here, update docs/vocabulary.md first, then copy the
+ * plain-language definition from the term's detailed entry.
  *
  * Keep definitions to one or two sentences. If a term needs a full
  * explanation, link to the relevant concepts page instead.

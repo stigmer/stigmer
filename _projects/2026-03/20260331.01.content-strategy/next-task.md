@@ -14,29 +14,40 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: In Progress
-- **Last Session**: 2026-03-31 — Phase 1 deliverable 1 of 5 completed (Positioning Document)
-- **Active Task**: T01 — Phase 1, next deliverable: Vocabulary Guide
+- **Last Session**: 2026-03-31 — Phase 1 deliverables 1 and 2 of 5 completed (Positioning Document + Vocabulary Guide)
+- **Active Task**: T01 — Phase 1, next deliverable: Demo Story Narrative
 
-## Session Progress (2026-03-31, Session 2)
+## Session Progress (2026-03-31, Session 3)
 
-- **Positioning document completed**: `design-decisions/positioning.md` (343 lines)
-- Resolved 4 strategic decisions:
-  1. Audience: Technical founders (primary, sales site) / Developers (secondary, docs)
-  2. Category: "AI Agent Platform" — validated as analyst-recognized category (Forrester, Gartner, market research firms)
-  3. Cloud-primary positioning with open-source as trust signal
-  4. Business-outcome headline leading, technical benefits supporting (not in hero)
-- Defined 3 messaging pillars + 1 foundation pillar: Knows Your Business / Uses Your Tools / Asks Before Acting / Built for Production
-- Recommended headline: "Build agents that work for your business"
-- Recommended sub-headline: "Teach them your domain. Connect your tools. Set your rules."
-- Established IS vs IS NOT boundaries, competitive framing, tone and voice guidance
+- **Vocabulary Guide completed**: `docs/vocabulary.md` (702 lines)
+- Created as the single source of truth for all Stigmer terminology
+- Organized in three parts:
+  1. **Writing contexts** — five registers (sales site, quickstart/tutorials, concepts/how-to, reference/SDK, README) with rules for each
+  2. **Term entries** — 19 terms across three tiers:
+     - Tier 1 (core): Agent, Skill, MCP Server, Session, Workflow, Approval Flow
+     - Tier 2 (platform structure): Organization, Project, Environment, Agent Instance, Agent/Workflow Execution
+     - Tier 3 (technical/internal): Sub-Agent, Durable Execution, gRPC/Protobuf, resource model, CNCF Serverless Workflow, Graphton, server components, Execution Context, Seedpack
+  3. **Inconsistency register** — 6 known inconsistencies documented with file paths and recommended resolutions (pending review)
+- **De-duplicated terminology from 4 files**:
+  - `docs/STYLE.md` — replaced inline capitalization list with reference to vocabulary guide
+  - `_roles/002_document_writer.md` — replaced inline 8-term glossary with reference
+  - `site/src/components/docs/glossary.ts` — added source-of-truth header comment
+  - `_projects/.../tasks/T01_0_plan.md` — marked inline vocabulary table as superseded
+- **Key decision**: Vocabulary guide placed at `docs/vocabulary.md` (not inside `_projects/`) so it can be referenced from any documentation artifact
+- **Inconsistencies flagged for review** (not resolved autonomously):
+  1. OSS README tagline ("agentic automation platform") contradicts positioning ("AI Agent Platform")
+  2. Cloud README tagline ("SDK-first agent orchestration platform") also contradicts
+  3. Document writer role audience definition conflicts with STYLE.md audience
+  4. Cloud README lists "Credential" concept that doesn't exist in proto
+  5. YAML shorthand (`mcpServers`) vs proto field name (`mcp_server_usages`)
+  6. Two distinct approval mechanisms share the word "approval"
 
 ## Next Steps
 
-1. **Vocabulary Guide** (`coding-guidelines/vocabulary.md`) — Full mapping of internal terms to user-facing terms, with rules and examples for each context
-2. **Demo Story Narrative** (`design-decisions/demo-story.md`) — Before/after story making the positioning concrete
-3. **Use Case Library** (`design-decisions/use-cases.md`) — 4-5 industry-specific use case summaries
-4. **Information Architecture** (`design-decisions/information-architecture.md`) — Site structure and docs nav tree
-5. After Phase 1 is reviewed and approved, proceed to Phase 2 (Sales Website Content)
+1. **Demo Story Narrative** (`design-decisions/demo-story.md`) — Before/after story making the positioning concrete
+2. **Use Case Library** (`design-decisions/use-cases.md`) — 4-5 industry-specific use case summaries
+3. **Information Architecture** (`design-decisions/information-architecture.md`) — Site structure and docs nav tree
+4. After Phase 1 is reviewed and approved, proceed to Phase 2 (Sales Website Content)
 
 ## Context for Resume
 
@@ -46,7 +57,9 @@ Drop this file into your conversation to quickly resume work on this project.
 - `docs/STYLE.md` and `docs/CONTRIBUTING.md` are preserved and still valid
 - The full T01 plan with all 8 phases is in `tasks/T01_0_plan.md`
 - The document writer role (`_roles/002_document_writer.md`) defines the writing standards
-- **The positioning document is now the source of truth for all messaging decisions** — all subsequent Phase 1 deliverables draw from it
+- **The positioning document is the source of truth for all messaging decisions** — all subsequent Phase 1 deliverables draw from it
+- **The vocabulary guide (`docs/vocabulary.md`) is the single source of truth for all terminology** — definitions, user-facing alternatives, context-specific usage rules, capitalization, API field names, and good/bad examples
+- The vocabulary guide contains an inconsistency register with 6 items pending review — these should be resolved before Phase 2
 
 ## Essential Files to Review
 
@@ -65,7 +78,12 @@ Drop this file into your conversation to quickly resume work on this project.
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260331.01.content-strategy/design-decisions/positioning.md
 ```
 
-### 4. Project Documentation
+### 4. Vocabulary Guide (Phase 1 deliverable 2)
+```
+/Users/suresh/scm/github.com/stigmer/stigmer/docs/vocabulary.md
+```
+
+### 5. Project Documentation
 - **README**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260331.01.content-strategy/README.md`
 
 ## Knowledge Folders to Check
@@ -96,19 +114,21 @@ When starting a new session:
 
 1. [ ] Read the latest checkpoint from `checkpoints/`
 2. [ ] Read the positioning document at `design-decisions/positioning.md`
-3. [ ] Check current task status in `tasks/T01_0_plan.md`
-4. [ ] Review any other design decisions in `design-decisions/`
-5. [ ] Check coding guidelines in `coding-guidelines/`
-6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Continue with next Phase 1 deliverable (Vocabulary Guide)
+3. [ ] Read the vocabulary guide at `docs/vocabulary.md`
+4. [ ] Check current task status in `tasks/T01_0_plan.md`
+5. [ ] Review any other design decisions in `design-decisions/`
+6. [ ] Check coding guidelines in `coding-guidelines/`
+7. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
+8. [ ] Continue with next Phase 1 deliverable (Demo Story Narrative)
 
 ## Quick Commands
 
 After loading context:
-- "Start vocabulary guide" - Begin next Phase 1 deliverable
+- "Start demo story" - Begin next Phase 1 deliverable
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
+- "Review inconsistencies" - Check vocabulary guide inconsistency register
 
 ---
 
