@@ -28,10 +28,8 @@ export const SITE_CONFIG = {
     license: "Apache 2.0",
   },
 
-  // TODO: Phase 3 — update to Stigmer Cloud sign-up URL
-  cloudSignupUrl: "https://cloud.stigmer.ai/signup",
-  // TODO: Phase 3 — update to Stigmer Cloud sign-in URL
-  cloudSigninUrl: "https://cloud.stigmer.ai/signin",
+  cloudSignupUrl: "https://app.stigmer.ai",
+  cloudSigninUrl: "https://app.stigmer.ai",
 } as const;
 
 /**
