@@ -20,7 +20,7 @@ The Workflow Runner is **BOTH**:
   - `resume_execution()` - Resume workflow
 
 ### 2. gRPC **CLIENT** 📞
-- **Connects to**: `api.stigmer.planton.live:443`
+- **Connects to**: `api.stigmer.ai:443`
 - **Calls**: `report_progress()` RPC
 - **Reports**: Progress events TO Stigmer Service
   - Workflow started/completed/failed
@@ -66,7 +66,7 @@ The Workflow Runner is **BOTH**:
 │                             ↓                                    │
 │  ┌────────────────────────────────────────────────────────┐    │
 │  │  Callback Client - gRPC CLIENT                         │    │
-│  │  Connects to: api.stigmer.planton.live:443       │    │
+│  │  Connects to: api.stigmer.ai:443       │    │
 │  │  Calls: report_progress()                              │    │
 │  │  - Sends progress events                               │    │
 │  │  - Automatic retry (3 attempts)                        │    │
@@ -146,7 +146,7 @@ public void reportProgress(WorkflowProgressEvent request,
 GRPC_PORT=9090                                    # Server listens on this port
 
 # === gRPC CLIENT (for sending callbacks) ===
-STIGMER_SERVICE_ENDPOINT=api.stigmer.planton.live:443  # Where to send progress
+STIGMER_SERVICE_ENDPOINT=api.stigmer.ai:443  # Where to send progress
 STIGMER_SERVICE_API_KEY=<from-kubernetes-secret>            # Authentication
 STIGMER_SERVICE_USE_TLS=true                                # Use TLS for callbacks
 

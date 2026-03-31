@@ -81,7 +81,7 @@ export TEMPORAL_SERVICE_ADDRESS=stigmer-prod-temporal-frontend.planton.live:7233
 export TEMPORAL_NAMESPACE=default
 export TEMPORAL_TASK_QUEUE=stigmer-workflows
 export TEMPORAL_MAX_CONCURRENCY=10
-export STIGMER_SERVICE_ENDPOINT=api.stigmer.planton.live:443
+export STIGMER_SERVICE_ENDPOINT=api.stigmer.ai:443
 export STIGMER_SERVICE_USE_TLS=true
 ```
 
@@ -305,7 +305,7 @@ Phase 1.5 focuses on architecture transformation. The following are deferred:
 ### Test Environment
 - **Production Temporal**: `stigmer-prod-temporal-frontend.planton.live:7233`
 - **Task Queue**: `stigmer-workflows` (Phase 1.5 fixed queue)
-- **Stigmer Service**: `api.stigmer.planton.live:443`
+- **Stigmer Service**: `api.stigmer.ai:443`
 - **Test Duration**: 2026-01-08
 
 ### Test Results
