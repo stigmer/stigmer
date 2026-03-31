@@ -356,7 +356,7 @@ func TestValidate_addressWithURLScheme(t *testing.T) {
 func TestValidate_addressWithoutPort(t *testing.T) {
 	c := &Config{
 		Transport:            TransportStdio,
-		StigmerServerAddress: "api.stigmer.planton.live",
+		StigmerServerAddress: "api.stigmer.ai",
 		LogFormat:            LogFormatText,
 	}
 	if err := c.Validate(); err != nil {
