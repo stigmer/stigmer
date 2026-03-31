@@ -296,7 +296,7 @@ action before proceeding.
 | Sales site | "Your agent handles routine requests on its own. For anything sensitive, it asks a human first. You set the rules."                                                                                                                              |
 | Quickstart | "Add an approval flow---tell your Agent which actions need human approval before it proceeds."                                                                                                                                                   |
 | Concepts   | "An approval flow is a checkpoint. The Agent pauses, presents what it wants to do and why, and waits for a human to approve or reject. The Agent's execution is durable---it waits indefinitely without losing state."                           |
-| Reference  | "Tool-call approvals are configured via `ToolApprovalPolicy` on the `McpServer` resource or overridden per-agent via `tool_approval_overrides`. The policy chain is: McpServer defaults → Agent overrides → Execution-level `auto_approve_all`." |
+| Reference  | "Tool-call approvals are configured via `ToolApprovalPolicy` on the `McpServer` resource or overridden per-Agent via `tool_approval_overrides`. The policy chain is: McpServer defaults → Agent overrides → Execution-level `auto_approve_all`." |
 
 **Bad examples**:
 
@@ -468,9 +468,10 @@ that define Stigmer's API contracts.
 
 - **Canonical forms**: Always write "gRPC" with a lowercase g. Always write
   "protobuf" or "Protocol Buffers" in customer-facing copy.
-- **Context rule**: Use in Reference and SDK docs without restriction. Concepts docs can mention
-  gRPC as the API protocol. Do not mention on the sales site---say "standard
-  API" or "type-safe API clients." In the README, use freely.
+- **Context rule**: Use in Reference and SDK docs without restriction. Concepts
+  docs can mention gRPC as the API protocol. Do not mention on the sales
+  site---say "standard API" or "type-safe API clients." In the README, use
+  without restriction.
 - **Sales-site phrasing**: "Real API contracts---generate type-safe clients in
   any language."
 - **proto location**: All proto definitions live under `apis/ai/stigmer/` in the
@@ -491,7 +492,7 @@ The open specification that Stigmer's Workflow DSL is based on.
 
 #### Graphton
 
-The agent framework used internally by the agent-runner service.
+The Agent framework used internally by the agent-runner service.
 
 - **Context rule**: Architecture docs and contributor guides only. Never in
   customer-facing documentation. Customers do not interact with Graphton
@@ -513,7 +514,7 @@ The Go gRPC API server that powers the local development experience.
 
 #### Agent Runner
 
-The Python Temporal worker that executes AI agent tasks.
+The Python Temporal worker that executes AI Agent tasks.
 
 - **Capitalize**: Yes.
 - **Context rule**: Architecture docs only. Customers do not start or configure
@@ -644,7 +645,7 @@ description.
 definitions. The proto field is `mcp_server_usages` (a repeated `McpServerUsage`
 message containing `mcp_server_ref` and `enabled_tools`).
 
-**Investigation**: The CLI agent loader (`agent/loader.go`) uses strict
+**Investigation**: The CLI Agent loader (`agent/loader.go`) uses strict
 `protojson` `Unmarshal` with `DiscardUnknown: false`. There is no alias or
 remapping for `mcpServers`. The field would be rejected as unknown. `mcpServers`
 was a documentation simplification, not a supported alias.
@@ -686,6 +687,6 @@ both creates ambiguity in documentation.
 - "Workflow approval"---a Workflow pauses at a checkpoint and asks a human to
   approve before continuing
 
-Both are approval flows, but they should be documented as distinct topics with clear
-names. The sales site can use the umbrella term "approval flows" since the
+Both are approval flows, but they should be documented as distinct topics with
+clear names. The sales site can use the umbrella term "approval flows" since the
 distinction doesn't matter at that level.

@@ -60,42 +60,80 @@ function FinalCTA({ className, ...props }: FinalCTAProps) {
 }
 
 function SDKSnippets() {
-  const [activeTab, setActiveTab] = React.useState<"ts" | "go" | "python">("ts");
+  const [activeTab, setActiveTab] = React.useState<
+    "ts" | "go" | "python" | "java"
+  >("ts");
 
   const snippets = {
     ts: {
       label: "TypeScript",
+      installPrefix: "$",
       install: "npm install @stigmer/sdk",
       code: `import { Stigmer } from "@stigmer/sdk";
 
-const client = new Stigmer({ apiKey: "sk_..." });
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.ai",
+  apiKey: "sk_...",
+});
 
-const response = await client.agents.run({
-  agent: "support-agent",
+const execution = await stigmer.agentExecution.create({
+  org: "my-org",
+  name: "support-run",
+  agentId: "support-agent",
   message: "Can I return these shoes?",
 });`,
     },
     go: {
       label: "Go",
-      install: "go get github.com/stigmer/stigmer-go",
-      code: `client := stigmer.NewClient("sk_...")
+      installPrefix: "$",
+      install: "go get github.com/stigmer/stigmer/sdk/go",
+      code: `import stigmer "github.com/stigmer/stigmer/sdk/go"
 
-resp, err := client.Agents.Run(ctx, &stigmer.RunRequest{
-    Agent:   "support-agent",
+client, _ := stigmer.NewClient("sk_...")
+defer client.Close()
+
+exec, _ := client.AgentExecution.Create(ctx,
+  &stigmer.AgentExecutionInput{
+    Org:     "my-org",
+    Name:    "support-run",
+    AgentId: "support-agent",
     Message: "Can I return these shoes?",
-})`,
+  },
+)`,
     },
     python: {
       label: "Python",
+      installPrefix: "$",
       install: "pip install stigmer",
-      code: `from stigmer import Stigmer
+      code: `from stigmer import StigmerClient, AgentExecutionInput
 
-client = Stigmer(api_key="sk_...")
+with StigmerClient("sk_...") as client:
+    execution = client.agent_executions.create(
+        AgentExecutionInput(
+            org="my-org",
+            name="support-run",
+            agent_id="support-agent",
+            message="Can I return these shoes?",
+        )
+    )`,
+    },
+    java: {
+      label: "Java",
+      installPrefix: "// Gradle:",
+      install: `implementation("ai.stigmer:stigmer-java:0.1.0")`,
+      code: `import ai.stigmer.sdk.StigmerClient;
+import ai.stigmer.sdk.gen.AgentExecutionInput;
 
-response = client.agents.run(
-    agent="support-agent",
-    message="Can I return these shoes?",
-)`,
+try (var client = StigmerClient.builder("sk_...").build()) {
+    var execution = client.agentExecutions().create(
+        AgentExecutionInput.builder()
+            .org("my-org")
+            .name("support-run")
+            .agentId("support-agent")
+            .message("Can I return these shoes?")
+            .build()
+    );
+}`,
     },
   };
 
@@ -124,7 +162,10 @@ response = client.agents.run(
       {/* Install command */}
       <div className="px-4 sm:px-6 py-3 border-b border-border bg-card/50">
         <code className="text-xs font-mono text-muted-foreground">
-          <span className="text-subtle">$</span> {active.install}
+          {active.installPrefix && (
+            <span className="text-subtle">{active.installPrefix} </span>
+          )}
+          {active.install}
         </code>
       </div>
 
