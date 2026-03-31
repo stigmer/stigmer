@@ -60,13 +60,13 @@ function UseCases({ className, ...props }: UseCasesProps) {
         </FadeInUp>
 
         <StaggerContainer
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border rounded-lg overflow-hidden border border-border"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           staggerDelay={0.08}
           delayChildren={0.1}
         >
           {USE_CASES.map((uc) => (
             <StaggerItem key={uc.industry}>
-              <div className="bg-background p-6 sm:p-8 h-full flex flex-col">
+              <div className="rounded-lg border border-border p-6 sm:p-8 h-full flex flex-col">
                 <h3 className="text-sm font-mono uppercase tracking-wider text-subtle mb-3">
                   {uc.industry}
                 </h3>
