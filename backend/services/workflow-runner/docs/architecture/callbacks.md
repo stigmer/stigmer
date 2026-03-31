@@ -24,7 +24,7 @@ The workflow runner requires three environment variables for Stigmer Service cal
 
 ```bash
 # Stigmer Service endpoint (production)
-STIGMER_SERVICE_ENDPOINT=api.stigmer.planton.live:443
+STIGMER_SERVICE_ENDPOINT=api.stigmer.ai:443
 
 # API key for authentication (stored in secrets)
 STIGMER_SERVICE_API_KEY=<your-api-key>
@@ -267,7 +267,7 @@ If the workflow runner cannot connect to Stigmer Service:
 3. Check network connectivity:
    ```bash
    # Test if endpoint is reachable
-   nc -zv api.stigmer.planton.live 443
+   nc -zv api.stigmer.ai 443
    ```
 
 ### Authentication Errors

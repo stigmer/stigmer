@@ -26,7 +26,7 @@
 GRPC_PORT=9090
 
 # gRPC Client (sends callbacks TO Stigmer Service)
-STIGMER_SERVICE_ENDPOINT=api.stigmer.planton.live:443
+STIGMER_SERVICE_ENDPOINT=api.stigmer.ai:443
 STIGMER_SERVICE_API_KEY=<your-api-key>
 STIGMER_SERVICE_USE_TLS=true
 
@@ -58,7 +58,7 @@ bazel build //backend/services/workflow-runner/cmd/grpc-server
 ```bash
 # Set environment variables first
 export GRPC_PORT=9090
-export STIGMER_SERVICE_ENDPOINT=api.stigmer.planton.live:443
+export STIGMER_SERVICE_ENDPOINT=api.stigmer.ai:443
 export STIGMER_SERVICE_API_KEY=your-key
 export LOG_LEVEL=debug
 
@@ -208,13 +208,13 @@ Frontend UI
 
 **Production**: `_kustomize/overlays/prod/service.yaml`
 ```yaml
-STIGMER_SERVICE_ENDPOINT: api.stigmer.planton.live:443
+STIGMER_SERVICE_ENDPOINT: api.stigmer.ai:443
 STIGMER_SERVICE_API_KEY: $secrets-group/workflow-runner-secrets/stigmer-api-key
 ```
 
 **Local**: `_kustomize/overlays/local/service.yaml`
 ```yaml
-STIGMER_SERVICE_ENDPOINT: api.stigmer.planton.live:443
+STIGMER_SERVICE_ENDPOINT: api.stigmer.ai:443
 STIGMER_SERVICE_API_KEY: $secrets-group/workflow-runner-secrets/stigmer-api-key-local
 ```
 

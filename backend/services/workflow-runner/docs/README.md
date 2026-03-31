@@ -92,7 +92,7 @@ bazel run //backend/services/workflow-runner/cmd/grpc-server
 **Environment Variables:**
 ```bash
 GRPC_PORT=9090                                          # Server port
-STIGMER_SERVICE_ENDPOINT=api.stigmer.planton.live:443  # Callback endpoint
+STIGMER_SERVICE_ENDPOINT=api.stigmer.ai:443  # Callback endpoint
 STIGMER_SERVICE_API_KEY=<secret>                        # Auth token
 TEMPORAL_SERVICE_ADDRESS=temporal:7233                  # Temporal connection
 ```

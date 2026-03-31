@@ -58,7 +58,7 @@ Location: `pkg/config/`
 
 ```go
 type StigmerConfig struct {
-    Endpoint string  // api.stigmer.planton.live:443
+    Endpoint string  // api.stigmer.ai:443
     APIKey   string  // From secrets
     UseTLS   bool    // true for production
 }
@@ -136,7 +136,7 @@ env:
     
     # Stigmer Service Callback Configuration
     STIGMER_SERVICE_ENDPOINT:
-      value: api.stigmer.planton.live:443
+      value: api.stigmer.ai:443
     STIGMER_SERVICE_API_KEY:
       value: $secrets-group/workflow-runner-secrets/stigmer-api-key
     STIGMER_SERVICE_USE_TLS:
@@ -153,7 +153,7 @@ env:
     TEMPORAL_SERVICE_ADDRESS:
       value: $variables-group/stigmer-temporal-config/prod.external-endpoint
     STIGMER_SERVICE_ENDPOINT:
-      value: api.stigmer.planton.live:443
+      value: api.stigmer.ai:443
     STIGMER_SERVICE_API_KEY:
       value: $secrets-group/workflow-runner-secrets/stigmer-api-key-local
     STIGMER_SERVICE_USE_TLS:
