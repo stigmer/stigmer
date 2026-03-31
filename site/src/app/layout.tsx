@@ -1,26 +1,35 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Instrument_Sans, Instrument_Serif, DM_Mono } from "next/font/google";
 import { SITE_CONFIG } from "@/lib/constants";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const instrumentSans = Instrument_Sans({
+  variable: "--font-instrument-sans",
   subsets: ["latin"],
   display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
   subsets: ["latin"],
   display: "swap",
+  weight: "400",
+  style: "italic",
+});
+
+const dmMono = DM_Mono({
+  variable: "--font-dm-mono",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["300", "400", "500"],
 });
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f6f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0f1a" },
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
 };
 
@@ -33,20 +42,20 @@ export const metadata: Metadata = {
   description: SITE_CONFIG.description,
   keywords: [
     "AI agents",
-    "local-first agent platform",
-    "agent sandboxing",
-    "MCP security",
+    "agent platform",
+    "business AI",
+    "domain-aware agents",
+    "tool orchestration",
+    "human-in-the-loop",
+    "durable execution",
     "Temporal orchestration",
+    "MCP security",
     "gRPC agents",
-    "YAML agents",
-    "Go SDK",
-    "agent infrastructure",
     "open source agents",
-    "SQLite database",
-    "agent microservices",
     "Stigmer",
     "agent deployment",
     "multi-language agents",
+    "Apache 2.0",
   ],
   authors: [{ name: "Stigmer Team" }],
   creator: SITE_CONFIG.name,
@@ -104,7 +113,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Structured data for SEO (JSON-LD)
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -153,7 +161,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
@@ -161,7 +169,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans min-h-screen`}
+        className={`${instrumentSans.variable} ${instrumentSerif.variable} ${dmMono.variable} font-sans min-h-screen`}
       >
         {children}
       </body>

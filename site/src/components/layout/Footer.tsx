@@ -2,47 +2,33 @@ import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { FOOTER_LINKS, SITE_CONFIG } from "@/lib/constants";
-import { Icon, type IconName } from "@/components/ui/icon";
+import { Icon } from "@/components/ui/icon";
 
 export type FooterProps = React.HTMLAttributes<HTMLElement>;
 
-/**
- * Site footer with multi-column navigation and copyright.
- *
- * Features:
- * - Responsive grid layout (4 cols desktop, 2 cols tablet, stacked mobile)
- * - Brand column with logo and tagline
- * - Navigation sections from FOOTER_LINKS constant
- * - External link indicators
- * - MIT license and copyright notice
- *
- * @example
- * <Footer />
- */
 function Footer({ className, ...props }: FooterProps) {
   return (
     <footer
       className={cn(
-        "bg-card/50 border-t border-border",
+        "border-t border-border",
         className
       )}
       {...props}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Main footer content */}
         <div className="py-12 md:py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
             {/* Brand Column */}
             <div className="lg:col-span-1">
-              <Link 
-                href="/" 
+              <Link
+                href="/"
                 className="inline-flex items-center gap-2 mb-4 transition-opacity hover:opacity-80"
                 aria-label={`${SITE_CONFIG.name} - Go to homepage`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
-                  src="/logo.svg" 
-                  alt="Stigmer" 
+                <img
+                  src="/logo.svg"
+                  alt="Stigmer"
                   className="w-8 h-8 rounded-lg"
                 />
                 <span className="font-bold text-xl tracking-tight text-foreground">
@@ -52,41 +38,37 @@ function Footer({ className, ...props }: FooterProps) {
               <p className="text-sm text-muted-foreground leading-relaxed mb-4">
                 {SITE_CONFIG.description}
               </p>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Icon name="unlock" size="sm" />
-                <span>Open source under {SITE_CONFIG.copyright.license}</span>
+              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-border">
+                <Icon name="unlock" size="xs" className="text-subtle" />
+                <span className="text-xs font-mono uppercase tracking-wider text-subtle">
+                  {SITE_CONFIG.copyright.license}
+                </span>
               </div>
             </div>
 
             {/* Product Links */}
             <FooterLinkSection title="Product" links={FOOTER_LINKS.product} />
 
-            {/* Community Links */}
-            <FooterLinkSection
-              title="Community"
-              links={FOOTER_LINKS.community}
-              iconMap={{
-                GitHub: "github",
-                Contributing: "code",
-                Issues: "activity",
-              }}
-            />
+            {/* Developers Links */}
+            <FooterLinkSection title="Developers" links={FOOTER_LINKS.developers} />
+
+            {/* Open Source Links */}
+            <FooterLinkSection title="Open Source" links={FOOTER_LINKS.openSource} />
           </div>
         </div>
 
         {/* Bottom bar */}
         <div className="py-6 border-t border-border">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} {SITE_CONFIG.copyright.holder}.
-              All rights reserved.
+            <p className="text-sm text-subtle">
+              &copy; {new Date().getFullYear()} {SITE_CONFIG.copyright.holder}. All rights reserved.
             </p>
             <div className="flex items-center gap-4">
               <a
                 href={SITE_CONFIG.githubUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-subtle hover:text-foreground transition-colors"
                 aria-label="GitHub repository"
               >
                 <Icon name="github" size="md" />
@@ -99,9 +81,6 @@ function Footer({ className, ...props }: FooterProps) {
   );
 }
 
-/**
- * Footer link section with title and list of links.
- */
 interface FooterLinkSectionProps {
   title: string;
   links: ReadonlyArray<{
@@ -109,24 +88,18 @@ interface FooterLinkSectionProps {
     href: string;
     external?: boolean;
   }>;
-  /**
-   * Optional map of link labels to icon names.
-   */
-  iconMap?: Record<string, IconName>;
 }
 
-function FooterLinkSection({ title, links, iconMap }: FooterLinkSectionProps) {
+function FooterLinkSection({ title, links }: FooterLinkSectionProps) {
   return (
     <div>
-      <h3 className="text-sm font-semibold text-foreground mb-4">{title}</h3>
+      <h3 className="text-xs font-mono uppercase tracking-wider text-subtle mb-4">
+        {title}
+      </h3>
       <ul className="space-y-3">
         {links.map((link) => (
-          <li key={link.href}>
-            <FooterLink
-              href={link.href}
-              external={link.external}
-              icon={iconMap?.[link.label]}
-            >
+          <li key={link.href + link.label}>
+            <FooterLink href={link.href} external={link.external}>
               {link.label}
             </FooterLink>
           </li>
@@ -136,32 +109,18 @@ function FooterLinkSection({ title, links, iconMap }: FooterLinkSectionProps) {
   );
 }
 
-/**
- * Individual footer link with optional icon and external indicator.
- */
 interface FooterLinkProps {
   href: string;
   external?: boolean;
-  icon?: IconName;
   children: React.ReactNode;
 }
 
-function FooterLink({ href, external, icon, children }: FooterLinkProps) {
+function FooterLink({ href, external, children }: FooterLinkProps) {
   const baseClasses = cn(
-    "inline-flex items-center gap-2",
+    "inline-flex items-center gap-1.5",
     "text-sm text-muted-foreground",
     "transition-colors",
     "hover:text-foreground"
-  );
-
-  const content = (
-    <>
-      {icon && <Icon name={icon} size="sm" className="opacity-70" />}
-      <span>{children}</span>
-      {external && (
-        <Icon name="external-link" size="xs" className="opacity-50" />
-      )}
-    </>
   );
 
   if (external) {
@@ -172,14 +131,15 @@ function FooterLink({ href, external, icon, children }: FooterLinkProps) {
         rel="noopener noreferrer"
         className={baseClasses}
       >
-        {content}
+        <span>{children}</span>
+        <Icon name="external-link" size="xs" className="opacity-50" />
       </a>
     );
   }
 
   return (
     <Link href={href} className={baseClasses}>
-      {content}
+      {children}
     </Link>
   );
 }

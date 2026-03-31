@@ -76,3 +76,10 @@ autoload
 compinit
 [Tt]ooltip
 [Tt]ooltips
+Graphton
+agentic
+approvers
+sandboxing
+Zigflow
+subtask
+mcp_server_ref
