@@ -4,56 +4,66 @@
  */
 
 export const SITE_CONFIG = {
-  /** Site name */
   name: "Stigmer",
 
-  /** Site tagline — placeholder until Phase 2 messaging is defined */
-  tagline: "AI Agent Platform",
+  tagline: "Build agents that work for your business",
 
-  /** Full site description — placeholder until Phase 2 messaging is defined */
   description:
-    "Open-source platform for building AI agents that work for your business.",
+    "Open-source AI agent platform that lets you turn domain knowledge and tools into agents your applications can call via API.",
 
-  /** Production URL */
   url: "https://stigmer.ai",
 
-  /** GitHub repository URL */
   githubUrl: "https://github.com/stigmer/stigmer",
 
-  /** GitHub organization */
   githubOrg: "stigmer",
 
-  /** GitHub repository name */
   githubRepo: "stigmer",
 
-  /** Social links */
   social: {
     github: "https://github.com/stigmer/stigmer",
   },
 
-  /** Copyright */
   copyright: {
     holder: "Stigmer",
     license: "Apache 2.0",
   },
+
+  // TODO: Phase 3 — update to Stigmer Cloud sign-up URL
+  cloudSignupUrl: "https://cloud.stigmer.ai/signup",
+  // TODO: Phase 3 — update to Stigmer Cloud sign-in URL
+  cloudSigninUrl: "https://cloud.stigmer.ai/signin",
 } as const;
 
 /**
  * Navigation links for the site header.
+ * Per IA Section 2: Logo | Use Cases | Docs | Pricing | GitHub | Sign In | [Start Free]
  */
 export const NAV_LINKS = [
+  { label: "Use Cases", href: "/use-cases" },
   { label: "Docs", href: "/docs" },
+  { label: "Pricing", href: "/pricing" },
   { label: "GitHub", href: SITE_CONFIG.githubUrl, external: true },
 ] as const;
 
 /**
  * Footer navigation sections.
+ * Per IA Section 2: Product | Developers | Open Source
  */
 export const FOOTER_LINKS = {
   product: [
+    { label: "Use Cases", href: "/use-cases" },
+    { label: "Pricing", href: "/pricing" },
     { label: "Documentation", href: "/docs" },
   ],
-  community: [
+  developers: [
+    // TODO: Phase 3 — update to /docs/getting-started/quickstart
+    { label: "Getting Started", href: "/docs" },
+    // TODO: Phase 6 — update to /docs/tutorials/give-your-agent-tools
+    { label: "Tutorials", href: "/docs" },
+    // TODO: Phase 7 — update to /docs/reference/api
+    { label: "API Reference", href: "/docs" },
+  ],
+  openSource: [
     { label: "GitHub", href: SITE_CONFIG.githubUrl, external: true },
     {
       label: "Contributing",
@@ -61,15 +71,9 @@ export const FOOTER_LINKS = {
       external: true,
     },
     {
-      label: "Issues",
-      href: `${SITE_CONFIG.githubUrl}/issues`,
+      label: "Apache 2.0 License",
+      href: `${SITE_CONFIG.githubUrl}/blob/main/LICENSE`,
       external: true,
     },
   ],
 } as const;
-
-/**
- * Feature highlights for the landing page.
- * Empty until Phase 2 defines new positioning.
- */
-export const FEATURES = [] as const;

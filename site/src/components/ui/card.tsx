@@ -7,55 +7,27 @@ import { cn } from "@/lib/utils";
  */
 const cardVariants = cva(
   [
-    "rounded-xl",
-    "transition-all duration-300",
+    "rounded-lg",
+    "transition-colors duration-300",
   ],
   {
     variants: {
       variant: {
-        /** Default card with subtle background */
         default: [
           "bg-card border border-border",
-          "hover:border-border/80",
+          "hover:border-foreground/10",
         ],
-        /** Elevated card with shadow */
         elevated: [
           "bg-card border border-border",
-          "shadow-lg shadow-black/20",
-          "hover:shadow-xl hover:shadow-black/30",
-          "hover:-translate-y-0.5",
+          "hover:border-foreground/10",
         ],
-        /** Bordered card with more prominent border */
         bordered: [
-          "bg-transparent border-2 border-border",
-          "hover:border-primary/50",
+          "bg-transparent border border-border",
+          "hover:border-foreground/20",
         ],
-        /** Ghost card - minimal styling */
         ghost: [
           "bg-transparent",
           "hover:bg-muted/50",
-        ],
-        /** Feature card with glow effect */
-        feature: [
-          "bg-card/50 border border-border",
-          "backdrop-blur-sm",
-          "hover:bg-card/80",
-          "hover:border-primary/30",
-          "hover:shadow-lg hover:shadow-primary/5",
-        ],
-        /** Glass card with glassmorphism and glow on hover */
-        glass: [
-          "glass", // Uses CSS utility from globals.css
-          "border border-[var(--glass-border)]",
-          "hover:border-[var(--glass-border-hover)]",
-          "hover:shadow-[var(--glow-primary)]",
-        ],
-        /** Glass card with accent glow */
-        glassAccent: [
-          "glass",
-          "border border-[var(--glass-border-accent)]",
-          "hover:border-[var(--accent)]/40",
-          "hover:shadow-[var(--glow-accent)]",
         ],
       },
     },

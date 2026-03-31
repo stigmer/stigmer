@@ -24,9 +24,8 @@ const logoMarkVariants = cva(
   [
     "inline-flex items-center justify-center",
     "rounded-lg",
-    "bg-gradient-to-br from-primary to-accent",
-    "shadow-lg shadow-primary/20",
-    "font-bold text-white",
+    "bg-foreground text-background",
+    "font-bold",
     "select-none",
   ],
   {
