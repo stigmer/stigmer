@@ -95,11 +95,16 @@ export function SessionNavigationProvider({
     }
   }
 
-  // Avoid re-creating callbacks when session ID changes.
+  // Avoid re-creating callbacks when state changes.
   const sessionIdRef = useRef(activeSessionId);
   useEffect(() => {
     sessionIdRef.current = activeSessionId;
   }, [activeSessionId]);
+
+  const isSessionZoneRef = useRef(isSessionZone);
+  useEffect(() => {
+    isSessionZoneRef.current = isSessionZone;
+  }, [isSessionZone]);
 
   const navigateToSession = useCallback((id: string) => {
     const path = `/sessions/${id}`;
@@ -111,7 +116,7 @@ export function SessionNavigationProvider({
   }, []);
 
   const navigateToHome = useCallback(() => {
-    if (sessionIdRef.current !== null) {
+    if (sessionIdRef.current !== null || !isSessionZoneRef.current) {
       setActiveSessionId(null);
       setIsSessionZone(true);
       window.history.pushState(null, "", "/");
