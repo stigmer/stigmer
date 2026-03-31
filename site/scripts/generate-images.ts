@@ -29,15 +29,14 @@ import * as path from "path";
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 const LOGO_SVG_PATH = path.join(PUBLIC_DIR, "logo.svg");
 
-// Brand colors from design system
+// Monochromatic palette from Figma design system
 const COLORS = {
-  blue: "#3b82f6",
-  purple: "#8b5cf6",
-  darkBg: "#0a0f1a",
-  darkBgEnd: "#1a1f2e",
-  white: "#ffffff",
-  slate300: "#cbd5e1",
-  slate400: "#94a3b8",
+  darkBg: "#0a0a0a",
+  darkBgEnd: "#111111",
+  foreground: "#f5f5f5",
+  muted: "#a3a3a3",
+  subtle: "#505050",
+  border: "#1c1c1c",
 } as const;
 
 // Icon sizes to generate
@@ -165,33 +164,18 @@ async function generateAllIcons(logoBuffer: Buffer): Promise<void> {
 
 /**
  * Creates a gradient background SVG for the OG image.
- * Matches the design from opengraph-image.tsx
+ * Monochromatic radial vignette matching the marketing site hero.
  */
 function createOgBackground(): Buffer {
   const svg = `
     <svg width="${OG_IMAGE.width}" height="${OG_IMAGE.height}" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <!-- Main background gradient -->
-        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="${COLORS.darkBg}"/>
-          <stop offset="100%" stop-color="${COLORS.darkBgEnd}"/>
-        </linearGradient>
-        
-        <!-- Accent blur gradient -->
-        <radialGradient id="accentGrad" cx="80%" cy="20%" r="50%">
-          <stop offset="0%" stop-color="${COLORS.blue}" stop-opacity="0.15"/>
-          <stop offset="50%" stop-color="${COLORS.purple}" stop-opacity="0.10"/>
-          <stop offset="100%" stop-color="${COLORS.purple}" stop-opacity="0"/>
+        <radialGradient id="vignette" cx="50%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="${COLORS.darkBgEnd}"/>
+          <stop offset="100%" stop-color="${COLORS.darkBg}"/>
         </radialGradient>
       </defs>
-      
-      <!-- Background -->
-      <rect width="100%" height="100%" fill="url(#bgGrad)"/>
-      
-      <!-- Accent blur effect -->
-      <ellipse cx="${OG_IMAGE.width * 0.85}" cy="${OG_IMAGE.height * 0.1}" 
-               rx="${OG_IMAGE.width * 0.35}" ry="${OG_IMAGE.height * 0.5}" 
-               fill="url(#accentGrad)"/>
+      <rect width="100%" height="100%" fill="url(#vignette)"/>
     </svg>
   `;
   return Buffer.from(svg);
@@ -199,37 +183,26 @@ function createOgBackground(): Buffer {
 
 /**
  * Creates an SVG with the brand name and tagline.
- * Positioned below the logo in the OG image.
+ * Uses current positioning: headline A + three-pillar sub-headline.
  */
 function createOgText(): Buffer {
-  const headline = "Build Agents. Skip the Infrastructure.";
-  const subheadline =
-    "We handle sandboxing, orchestration, and MCP security.";
-  const subheadline2 = "You write 5 lines of YAML. Your agent runs anywhere.";
+  const headline = "Build agents that work for your business";
+  const subheadline = "Teach them your domain. Connect your tools. Set your rules.";
 
   const svg = `
     <svg width="${OG_IMAGE.width}" height="${OG_IMAGE.height}" xmlns="http://www.w3.org/2000/svg">
-      <!-- Headline -->
       <text x="50%" y="320" 
             font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-            font-size="52" font-weight="700" 
-            fill="${COLORS.white}" 
+            font-size="48" font-weight="700" 
+            fill="${COLORS.foreground}" 
             text-anchor="middle"
             letter-spacing="-1">${headline}</text>
       
-      <!-- Subheadline line 1 -->
       <text x="50%" y="390" 
             font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-            font-size="28" font-weight="400" 
-            fill="${COLORS.slate300}" 
+            font-size="24" font-weight="400" 
+            fill="${COLORS.muted}" 
             text-anchor="middle">${subheadline}</text>
-      
-      <!-- Subheadline line 2 -->
-      <text x="50%" y="430" 
-            font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-            font-size="28" font-weight="400" 
-            fill="${COLORS.slate300}" 
-            text-anchor="middle">${subheadline2}</text>
     </svg>
   `;
   return Buffer.from(svg);
@@ -237,38 +210,32 @@ function createOgText(): Buffer {
 
 /**
  * Creates the badges row SVG for the OG image.
+ * Monochromatic outline badges matching the hero section.
  */
 function createOgBadges(): Buffer {
-  const badges = [
-    { text: "Local-First", color: COLORS.blue },
-    { text: "Open Source", color: COLORS.purple },
-    { text: "gRPC APIs", color: COLORS.blue },
-  ];
+  const badges = ["Open Source", "Apache 2.0"];
 
-  const badgeWidth = 160;
+  const badgeWidth = 170;
   const badgeHeight = 44;
   const badgeGap = 20;
   const totalWidth = badges.length * badgeWidth + (badges.length - 1) * badgeGap;
   const startX = (OG_IMAGE.width - totalWidth) / 2;
-  const badgeY = 520;
+  const badgeY = 480;
 
   const badgesSvg = badges
-    .map((badge, i) => {
+    .map((text, i) => {
       const x = startX + i * (badgeWidth + badgeGap);
       return `
         <g>
           <rect x="${x}" y="${badgeY}" width="${badgeWidth}" height="${badgeHeight}" 
                 rx="22" ry="22" 
                 fill="none" 
-                stroke="${badge.color}" stroke-width="1.5" stroke-opacity="0.4"/>
-          <rect x="${x}" y="${badgeY}" width="${badgeWidth}" height="${badgeHeight}" 
-                rx="22" ry="22" 
-                fill="${badge.color}" fill-opacity="0.1"/>
+                stroke="${COLORS.subtle}" stroke-width="1"/>
           <text x="${x + badgeWidth / 2}" y="${badgeY + badgeHeight / 2 + 6}" 
-                font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-                font-size="18" font-weight="500" 
-                fill="${badge.color}" 
-                text-anchor="middle">${badge.text}</text>
+                font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace"
+                font-size="16" font-weight="400" 
+                fill="${COLORS.muted}" 
+                text-anchor="middle">${text}</text>
         </g>
       `;
     })
@@ -335,7 +302,7 @@ async function generateOgImage(logoBuffer: Buffer): Promise<void> {
         top: 0,
       },
     ])
-    .png({ quality: 100, compressionLevel: 9 })
+    .png({ quality: 100, compressionLevel: 6 })
     .toFile(path.join(PUBLIC_DIR, "og-image.png"));
 
   console.log(

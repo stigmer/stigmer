@@ -44,14 +44,14 @@ These rules are mandatory for every sentence:
 
 Use Stigmer's own terms consistently. Never invent synonyms.
 
-- **Agent** — a reusable definition of what an AI assistant knows and can do.
-- **Agent Execution** — one run of an Agent from start to finish.
-- **Session** — an ongoing conversation with an Agent across multiple messages.
-- **Workflow** — a step-by-step automation that runs tasks in a defined order.
-- **Organization** — a workspace that keeps one team's Agents, Workflows, and settings separate from another's.
-- **Environment** — a separate space (like "testing" or "production") where the same Agent can run with different settings.
-- **Skill** — a piece of knowledge you attach to an Agent so it has domain expertise.
-- **MCP Server** — an external tool connection that lets an Agent interact with other systems.
+All term definitions, user-facing alternatives, and context-specific usage
+rules live in [`docs/vocabulary.md`](../docs/vocabulary.md). That file is the
+single source of truth. Check the quick-reference table there before choosing
+a term.
+
+The vocabulary guide also defines five writing contexts (sales site, quickstart,
+concepts, reference, README) with different language registers. Match your
+terminology to the context you are writing for.
 
 ## What to refuse
 

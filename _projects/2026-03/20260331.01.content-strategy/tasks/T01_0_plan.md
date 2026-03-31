@@ -17,6 +17,11 @@ Stigmer is an open-source agentic automation platform. Through conversations wit
 
 ### Vocabulary Guide (User-Facing vs Internal)
 
+> **Superseded**: The full vocabulary guide now lives at `docs/vocabulary.md`.
+> It contains the complete term mapping, context-specific usage rules, and
+> good/bad examples. The table below is the original planning sketch and is
+> kept for historical reference only.
+
 | User-Facing Term | Internal/Technical Term | Notes |
 |---|---|---|
 | Domain knowledge | Skills | "Upload your domain knowledge" not "Create a Skill" |

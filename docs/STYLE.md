@@ -15,18 +15,17 @@ CLIs, and infrastructure concepts.
 
 ## Domain terminology
 
-Capitalize Stigmer domain terms when they refer to the platform concept. Vale
-enforces these automatically via `vale/styles/Stigmer/terms.yml`.
+All Stigmer term definitions, capitalization rules, and context-specific usage
+guidance live in [`docs/vocabulary.md`](vocabulary.md). That file is the single
+source of truth.
 
-Always capitalize these terms---Agent, Workflow, Skill, Session, Organization,
-Environment, Project, Workspace, Seedpack, Durable Execution, Stigmer Server,
-Agent Runner, Workflow Runner, MCP Server, Sub-Agent.
+**Short version**: capitalize Stigmer domain terms (Agent, Skill, Workflow,
+Session, etc.) when they refer to the platform concept. Lowercase when used
+generically. Use the canonical forms (gRPC, ID, IDs). Vale enforces these
+automatically via `vale/styles/Stigmer/terms.yml`.
 
-Always use the canonical form---gRPC, ID, IDs.
-
-When the term is used generically (not as a Stigmer concept), lowercase is
-acceptable---for example, "the Agent's OS env vars" versus "the Agent's
-Environment configuration."
+See the vocabulary guide for the full term list, user-facing alternatives per
+writing context, and good/bad examples.
 
 ## Headings
 

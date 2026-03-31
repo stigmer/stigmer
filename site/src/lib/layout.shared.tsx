@@ -19,6 +19,10 @@ export function baseOptions(): BaseLayoutProps {
     },
     links: [
       {
+        text: "Use Cases",
+        url: "/use-cases",
+      },
+      {
         text: "GitHub",
         url: "https://github.com/stigmer/stigmer",
         external: true,

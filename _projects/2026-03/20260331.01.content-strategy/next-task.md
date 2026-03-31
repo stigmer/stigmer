@@ -13,40 +13,77 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: In Progress
-- **Last Session**: 2026-03-31 — Phase 1 deliverable 1 of 5 completed (Positioning Document)
-- **Active Task**: T01 — Phase 1, next deliverable: Vocabulary Guide
+- **Status**: Phase 2 Complete — ready for Phase 3
+- **Last Session**: 2026-03-31 (Session 8) — Phase 2 sales website content fully implemented
+- **Active Task**: T01 — Phase 2 complete. Ready for Phase 3 (Getting Started documentation).
 
-## Session Progress (2026-03-31, Session 2)
+## Session Progress (2026-03-31, Session 8)
 
-- **Positioning document completed**: `design-decisions/positioning.md` (343 lines)
-- Resolved 4 strategic decisions:
-  1. Audience: Technical founders (primary, sales site) / Developers (secondary, docs)
-  2. Category: "AI Agent Platform" — validated as analyst-recognized category (Forrester, Gartner, market research firms)
-  3. Cloud-primary positioning with open-source as trust signal
-  4. Business-outcome headline leading, technical benefits supporting (not in hero)
-- Defined 3 messaging pillars + 1 foundation pillar: Knows Your Business / Uses Your Tools / Asks Before Acting / Built for Production
-- Recommended headline: "Build agents that work for your business"
-- Recommended sub-headline: "Teach them your domain. Connect your tools. Set your rules."
-- Established IS vs IS NOT boundaries, competitive framing, tone and voice guidance
+- **Phase 2 fully implemented** — all 14 tasks completed, build passes, TypeScript passes, zero linter errors
+- **Phase 2A: Theme Foundation**
+  - Replaced Geist/Geist Mono with Instrument Sans, Instrument Serif, DM Mono (from Figma design)
+  - Rewrote CSS palette to monochromatic (#0a0a0a bg, #f5f5f5 headings, #a3a3a3 body, #505050 labels)
+  - Added `--color-subtle` custom token for #505050 label text
+  - Removed all glass/glow tokens and utilities
+  - Forced dark mode for marketing pages via `className="dark"` on `<html>` (Fumadocs RootProvider overrides for docs)
+  - Updated all Fumadocs `--color-fd-*` overrides for both light and dark modes
+- **Phase 2B: Layout Shell**
+  - Updated `constants.ts` with IA-defined nav (Use Cases, Docs, Pricing, GitHub, Sign In, Start Free), 3-column footer (Product, Developers, Open Source), and positioning-sourced tagline/description
+  - Rewrote Header.tsx with `rgba(10,10,10,0.88)` backdrop, monochromatic style, Sign In + Start Free CTAs
+  - Rewrote Footer.tsx with 4-column grid, DM Mono uppercase headings, Apache 2.0 badge
+  - Updated MobileMenu.tsx for new nav links and Start Free CTA
+  - Updated Fumadocs layout.shared.tsx with Use Cases nav link
+- **Phase 2C: Homepage Sections (all 8)**
+  - Section 1 (Hero): Headline A + sub-headline, Open Source/Apache 2.0 badges, code preview window, stats bar, radial gradient background
+  - Section 2 (Demo Story, NEW): Condensed three-act narrative with 01/02/03 numbered acts, proof quotes, before/after
+  - Section 3 (Capabilities): Three pillars (Knows/Uses/Asks) in bordered card grid with italic claims
+  - Section 4 (How It Works): Teach/Connect/Deploy numbered steps
+  - Section 5 (Use Cases): 5 industry cards (Healthcare, HR, FinTech, Education, Legal)
+  - Section 6 (Why It Works): 4 foundation items synthesized from positioning Foundation pillar
+  - Section 7 (Open Source): Apache 2.0 emphasis with signal badges
+  - Section 8 (Final CTA): Start Free + tabbed SDK install snippets (TypeScript/Go/Python)
+- **Phase 2D: Supporting Pages**
+  - Created `/use-cases` page with expanded 5 use case stories (builder, challenge, capabilities, proof interaction, outcome)
+  - Created `/pricing` placeholder with Free/Pro/Enterprise tiers
+- **Phase 2E: Docs Theme Alignment**
+  - Fonts globally applied via root layout (Instrument Sans replaces Geist across entire site)
+  - Updated `docs/index.mdx` with IA-defined 4 routing cards (Getting Started, Core Concepts, Tutorials, SDK Reference)
+  - Added Cards/Card to MDX components
+- **Phase 2F: Validation**
+  - CTA audit: 20+ CTAs verified against IA Section 4 mapping. All fallbacks → `/docs` with TODO comments
+  - Vocabulary compliance: Sales copy uses business-register language throughout
+  - Build verification: `yarn build` passes, `tsc --noEmit` passes
+  - Cleaned up dead code: removed Architecture.tsx, Features.tsx, Quickstart.tsx, StigmerLogo.tsx
+- **Key design decisions executed** (from plan):
+  - Hero background: CSS radial gradient vignette, no images/JS animations
+  - Demo Story: Condensed three-act narrative using Figma numbered-item pattern
+  - CTA fallbacks: All links to unbuilt docs pages → `/docs` with TODO comments noting intended targets
 
 ## Next Steps
 
-1. **Vocabulary Guide** (`coding-guidelines/vocabulary.md`) — Full mapping of internal terms to user-facing terms, with rules and examples for each context
-2. **Demo Story Narrative** (`design-decisions/demo-story.md`) — Before/after story making the positioning concrete
-3. **Use Case Library** (`design-decisions/use-cases.md`) — 4-5 industry-specific use case summaries
-4. **Information Architecture** (`design-decisions/information-architecture.md`) — Site structure and docs nav tree
-5. After Phase 1 is reviewed and approved, proceed to Phase 2 (Sales Website Content)
+1. **Apply document writer role corrections** — 3 changes recommended by the information architecture (pre-Phase 3 task)
+2. **Update CONTRIBUTING.md** — directory table to match new 6-directory structure (Phase 3 prerequisite)
+3. **Begin Phase 3** — Getting Started documentation (quickstart, self-hosted, first-skill)
+4. **Resolve Cloud README vocabulary inconsistencies** — #2 and #4 deferred from Phase 1 (separate repo)
 
 ## Context for Resume
 
-- All documentation infrastructure is preserved: Fumadocs config, Vale, MDX components, build pipeline, CI workflows
-- The CLI doc generator (`gen-cli-docs`) can regenerate CLI reference docs at any time
-- `Architecture.tsx` is still in the codebase but not rendered — useful patterns for Phase 2
-- `docs/STYLE.md` and `docs/CONTRIBUTING.md` are preserved and still valid
-- The full T01 plan with all 8 phases is in `tasks/T01_0_plan.md`
-- The document writer role (`_roles/002_document_writer.md`) defines the writing standards
-- **The positioning document is now the source of truth for all messaging decisions** — all subsequent Phase 1 deliverables draw from it
+- Phase 2 is fully built and passing build. The sales website is complete pending docs content (CTAs fall back to `/docs`).
+- All TODO comments in the codebase mark where links need updating as later phases deliver their content:
+  - Phase 3 TODOs: `/docs/getting-started/quickstart`, `/docs/getting-started/self-hosted`, `/docs/getting-started/first-skill`
+  - Phase 4 TODOs: `/docs/concepts/what-is-stigmer`
+  - Phase 6 TODOs: `/docs/tutorials/give-your-agent-tools`, `/docs/tutorials/add-approval-flows`
+  - Phase 7 TODOs: `/docs/sdks/typescript`, `/docs/reference/api`
+  - Cloud URLs: `cloudSignupUrl`, `cloudSigninUrl` need real Stigmer Cloud URLs
+- The old section components (Architecture.tsx, Features.tsx, Quickstart.tsx) have been deleted — their patterns are no longer needed
+- The Figma design was used for theme extraction only — colors, fonts, visual style. Content and section structure comes from Phase 1 deliverables exclusively.
+- `docs/index.mdx` links to Phase 3-7 pages that don't exist yet — Fumadocs handles 404s gracefully
+- The `FEATURES` export was removed from `constants.ts` — no longer needed
+- Badge component variants were simplified: `emerald`/`purple`/`cyan` removed in favor of monochromatic `outline`/`muted`
+- Card component variants simplified: `glass`/`glassAccent`/`feature` removed in favor of flat `default`/`elevated`/`bordered`/`ghost`
+- **The positioning document is the source of truth for all messaging decisions**
+- **The vocabulary guide (`docs/vocabulary.md`) governs all terminology**
+- **The information architecture is the structural blueprint for all pages**
 
 ## Essential Files to Review
 
@@ -60,13 +97,25 @@ Drop this file into your conversation to quickly resume work on this project.
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260331.01.content-strategy/tasks/T01_0_plan.md
 ```
 
-### 3. Positioning Document (Phase 1 foundation)
+### 3. Phase 2 Plan (reference only)
+```
+/Users/suresh/.cursor/plans/phase_2_sales_website_2b34002b.plan.md
+```
+
+### 4. Positioning Document (Phase 1 foundation)
 ```
 /Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260331.01.content-strategy/design-decisions/positioning.md
 ```
 
-### 4. Project Documentation
-- **README**: `/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260331.01.content-strategy/README.md`
+### 5. Vocabulary Guide (Phase 1 deliverable 2)
+```
+/Users/suresh/scm/github.com/stigmer/stigmer/docs/vocabulary.md
+```
+
+### 6. Information Architecture (Phase 1 deliverable 5)
+```
+/Users/suresh/scm/github.com/stigmer/stigmer/_projects/2026-03/20260331.01.content-strategy/design-decisions/information-architecture.md
+```
 
 ## Knowledge Folders to Check
 
@@ -96,19 +145,22 @@ When starting a new session:
 
 1. [ ] Read the latest checkpoint from `checkpoints/`
 2. [ ] Read the positioning document at `design-decisions/positioning.md`
-3. [ ] Check current task status in `tasks/T01_0_plan.md`
-4. [ ] Review any other design decisions in `design-decisions/`
-5. [ ] Check coding guidelines in `coding-guidelines/`
-6. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
-7. [ ] Continue with next Phase 1 deliverable (Vocabulary Guide)
+3. [ ] Read the vocabulary guide at `docs/vocabulary.md`
+4. [ ] Read the information architecture at `design-decisions/information-architecture.md`
+5. [ ] Check current task status in `tasks/T01_0_plan.md`
+6. [ ] Review TODO comments in site/ for CTA targets that need updating
+7. [ ] Check coding guidelines in `coding-guidelines/`
+8. [ ] Review lessons learned in `wrong-assumptions/` and `dont-dos/`
 
 ## Quick Commands
 
 After loading context:
-- "Start vocabulary guide" - Begin next Phase 1 deliverable
+- "Start Phase 3" - Begin Getting Started documentation
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
+- "Review TODO targets" - Check which CTA links need updating
+- "Update document writer role" - Apply the 3 corrections from the IA
+- "Update CONTRIBUTING.md" - Align directory table with new 6-directory structure
 
 ---
 
