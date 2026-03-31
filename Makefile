@@ -117,7 +117,7 @@ libs-build:
 web-build:
 	npm run build -w client-apps/web
 
-check: tidy fix lint lint-docs format-docs-check libs-build web-build build test ## Run full CI gate locally
+check: tidy fix lint lint-docs format-docs-check libs-build web-build docs-build build test ## Run full CI gate locally
 
 # ─── Docs Linting ─────────────────────────────
 
