@@ -63,14 +63,14 @@ func TestNewConnection_normalizesHTTPS(t *testing.T) {
 }
 
 func TestNewConnection_normalizesBareHostname(t *testing.T) {
-	conn, err := NewConnection("stigmer-prod-api.planton.live", "test-key")
+	conn, err := NewConnection("api.stigmer.planton.live", "test-key")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	defer conn.Close()
 
-	if got := conn.Target(); got != "stigmer-prod-api.planton.live:443" {
-		t.Errorf("Target() = %q, want %q", got, "stigmer-prod-api.planton.live:443")
+	if got := conn.Target(); got != "api.stigmer.planton.live:443" {
+		t.Errorf("Target() = %q, want %q", got, "api.stigmer.planton.live:443")
 	}
 }
 
@@ -125,8 +125,8 @@ func TestNormalizeEndpoint(t *testing.T) {
 		},
 		{
 			name:       "bare remote hostname gets 443",
-			input:      "stigmer-prod-api.planton.live",
-			wantTarget: "stigmer-prod-api.planton.live:443",
+			input:      "api.stigmer.planton.live",
+			wantTarget: "api.stigmer.planton.live:443",
 			wantTLS:    true,
 		},
 		{

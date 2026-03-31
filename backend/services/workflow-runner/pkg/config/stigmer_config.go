@@ -30,7 +30,7 @@ import (
 // - STIGMER_SERVICE_USE_TLS: TLS flag (workflow-runner specific)
 type StigmerConfig struct {
 	// Endpoint is the gRPC endpoint for Stigmer backend service
-	// Example: stigmer-prod-api.planton.live:443
+	// Example: api.stigmer.planton.live:443
 	Endpoint string
 
 	// APIKey is the authentication token for Stigmer backend service

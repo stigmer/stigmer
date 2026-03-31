@@ -76,7 +76,7 @@ The Workflow Runner is **BOTH** a gRPC server AND a gRPC client:
 2. Workflow Runner creates stream, starts execution
 
 3. During execution:
-   Workflow Runner → stigmer-prod-api.planton.live:443
+   Workflow Runner → api.stigmer.planton.live:443
    gRPC: report_progress(WorkflowProgressEvent)
    
 4. Workflow Runner streams progress back to caller
@@ -99,7 +99,7 @@ The Workflow Runner is **BOTH** a gRPC server AND a gRPC client:
 3. Execution continues in background
 
 4. During execution:
-   Workflow Runner → stigmer-prod-api.planton.live:443
+   Workflow Runner → api.stigmer.planton.live:443
    gRPC: report_progress(WorkflowProgressEvent)
    
 5. Stigmer Service stores/publishes progress
@@ -199,7 +199,7 @@ func (c *Client) ReportProgress(ctx context.Context, event *runnerv1.WorkflowPro
 GRPC_PORT=9090
 
 # gRPC Client (reports progress TO Stigmer Service)
-STIGMER_SERVICE_ENDPOINT=stigmer-prod-api.planton.live:443
+STIGMER_SERVICE_ENDPOINT=api.stigmer.planton.live:443
 STIGMER_SERVICE_API_KEY=<api-key>
 STIGMER_SERVICE_USE_TLS=true
 ```
@@ -430,7 +430,7 @@ kubectl get svc workflow-runner-service
 
 ```bash
 # Check Stigmer Service endpoint
-curl -v https://stigmer-prod-api.planton.live:443
+curl -v https://api.stigmer.planton.live:443
 
 # Verify API key is set
 kubectl get secret workflow-runner-secrets -o yaml
