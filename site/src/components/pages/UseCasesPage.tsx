@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
