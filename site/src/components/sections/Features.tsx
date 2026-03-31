@@ -25,6 +25,8 @@ export type FeaturesProps = React.HTMLAttributes<HTMLElement>;
  * <Features />
  */
 function Features({ className, ...props }: FeaturesProps) {
+  if (FEATURES.length === 0) return null;
+
   return (
     <section
       id="features"
@@ -37,7 +39,6 @@ function Features({ className, ...props }: FeaturesProps) {
       {...props}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header - Animated */}
         <FadeInUp>
           <div className="text-center mb-16">
             <h2
@@ -54,7 +55,6 @@ function Features({ className, ...props }: FeaturesProps) {
           </div>
         </FadeInUp>
 
-        {/* Feature Grid - Staggered animation */}
         <StaggerContainer
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           staggerDelay={0.1}
