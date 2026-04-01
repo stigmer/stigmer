@@ -14,7 +14,7 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current State
 
 - **Status**: Pre-Phase 3 prerequisites complete — ready for Phase 3
-- **Last Session**: 2026-04-01 (Session 9) — Pre-Phase 3 corrections applied (document writer role + CONTRIBUTING.md)
+- **Last Session**: 2026-04-01 (Session 10) — Aligned web app tagline with content strategy positioning
 - **Active Task**: T01 — Pre-Phase 3 prerequisites complete. Ready for Phase 3 (Getting Started documentation).
 
 ## Session Progress (2026-03-31, Session 8)
@@ -73,6 +73,14 @@ Drop this file into your conversation to quickly resume work on this project.
   - Added note listing non-rendered files excluded from sidebar
 - **Vocabulary inconsistency #3 resolved** — the audience conflict between document writer role and STYLE.md is now addressed by Correction 1. The inconsistency register entry in `docs/vocabulary.md` should be marked as resolved in a future session.
 - **Verification**: `yarn build` passes, `tsc --noEmit` passes
+
+## Session Progress (2026-04-01, Session 10)
+
+- **Web app tagline aligned with content strategy** — updated `client-apps/web/src/app/layout.tsx` metadata
+  - Title: `"Stigmer — Agents for Your Platform"` → `"Stigmer — Build agents that work for your business"`
+  - Description: Updated to match `SITE_CONFIG.description` from `site/src/lib/constants.ts`
+  - Ensures consistent brand messaging across web app and sales website
+- **Verification**: No linter errors introduced
 
 ## Next Steps
 
