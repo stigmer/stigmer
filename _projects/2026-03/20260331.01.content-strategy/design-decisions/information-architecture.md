@@ -108,7 +108,7 @@ Every URL on stigmer.ai, grouped by area.
 | URL | Purpose | Phase | Content type |
 |-----|---------|-------|-------------|
 | `/docs` | Docs landing — orientation hub routing readers to the right starting point | Phase 3 |  — |
-| `/docs/getting-started/quickstart` | Cloud quickstart: sign up, API key, first agent in 5 minutes | Phase 3 | Tutorial |
+| `/docs/getting-started/quickstart` | Cloud quickstart: sign up, API key, install SDK, create session, send message — 5 minutes. Uses the implicit assistant agent. | Phase 3 | Tutorial |
 | `/docs/getting-started/local` | Local quickstart: brew install, stigmer server, apply, run | Phase 3 | Tutorial |
 | `/docs/getting-started/first-skill` | Upload domain knowledge, see generic vs. expert answers | Phase 3 | Tutorial |
 | `/docs/concepts/what-is-stigmer` | What Stigmer is, who it's for, what makes it different | Phase 4 | Explanation |
@@ -309,7 +309,7 @@ introduce Stigmer, following the positioning's progressive disclosure model.
 
 | Page | Sidebar title | Content type | Description |
 |------|--------------|-------------|-------------|
-| `quickstart.mdx` | Cloud quickstart | Tutorial | Sign up for Stigmer Cloud, get an API key, install the SDK, create an Agent, run it, see the response. Target: 5 minutes, zero prior context. |
+| `quickstart.mdx` | Cloud quickstart | Tutorial | Sign up for Stigmer Cloud, get an API key, install the SDK, create a session, send a message, see the response. Uses the implicit assistant agent — no agent creation needed. Skill creation is deferred to first-skill.mdx. Target: 5 minutes, zero prior context. |
 | `local.mdx` | Local quickstart | Tutorial | Install the CLI, start the server, write an Agent YAML file, apply and run. Target: 5 minutes for developers who prefer local-first. |
 | `first-skill.mdx` | Your first Skill | Tutorial | Create a Skill (domain knowledge), attach it to an Agent, run the same prompt, see the difference between generic and expert responses. Pillar 1 proof. |
 
@@ -564,6 +564,12 @@ until the target page exists.
 
 Named paths through the docs, defined by reader intent and time budget. Each
 path is a sequence of pages with estimated time.
+
+**Path quality requirement**: every page in a learning path must bridge to the
+next. The closing section names the functional gap that motivates the next
+page — what the reader cannot do yet and what the next page will teach them.
+This aligns with the narrative continuity and page bridging principles in the
+[document writer role](../../../../_roles/002_document_writer.md).
 
 ### Entry points
 

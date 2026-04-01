@@ -48,6 +48,84 @@ These rules are mandatory for every sentence:
 6. **Avoid hidden verbs.** "Decide" not "make a decision." "Configure" not "perform configuration."
 7. **Use lists for three or more items.** Never bury a sequence of steps inside a paragraph.
 
+## Tutorial and learning path standards
+
+These rules apply to any content where pages form a sequence — Getting Started
+guides, tutorials, and learning paths. They build on Diátaxis (every tutorial
+page must still pass the tutorial test) and Plain Language (every sentence must
+still follow those rules).
+
+### Narrative continuity
+
+Every page in a sequence opens by referencing what the reader accomplished on
+the previous page. Every page closes by motivating the next page with a
+concrete, functional reason.
+
+**Test**: read only the first paragraph and the last paragraph of each page.
+Can you reconstruct the reading order without checking the sidebar?
+
+### Aha-moment design
+
+Each tutorial identifies one specific moment where the reader sees something
+work. State the payoff in "What you'll build." Deliver it when the reader runs
+the command or sees the result. Reinforce it in "What just happened."
+
+**Test**: can you point to the exact step where the reader's screen changes in
+a way that proves the concept? If the payoff is only intellectual ("now you
+understand X"), the tutorial is an explanation in disguise.
+
+### Progressive concept introduction
+
+Introduce one new concept per page. Do not explain concepts the reader does not
+need yet. If a concept becomes relevant on a later page, defer it.
+
+**Example**: the Cloud Quickstart uses the implicit assistant agent. It does not
+explain what agents are, how to create custom agents, or how agent routing
+works. Those concepts belong on later pages where the reader has a reason to
+care.
+
+### Implicit defaults
+
+When the platform provides a sensible default, use it without requiring the
+reader to configure anything. Introduce configuration when there is a reason to
+customize.
+
+**Example**: the assistant agent handles requests when no agent is specified.
+The quickstart creates a session and sends a message — it does not ask the
+reader to create an agent first. Agent creation appears in a later tutorial
+where the reader needs custom instructions or skills.
+
+### Embedded component standards
+
+Documentation demos use real `@stigmer/react` components backed by demo
+fixtures — never static screenshots or mockups. For multi-step interactions,
+prefer animated playback (ScenarioPlayer) over static final-state renders. The
+reader should see messages appearing and responses arriving, not a completed
+conversation.
+
+**Test**: does the embedded component use the same React components that the
+production web console renders? If it uses a custom illustration or static
+image, replace it.
+
+### Page bridging pattern
+
+Every page in a sequence ends with a "Next step" section that answers two
+questions: (1) what can't the reader do yet? and (2) what will the next page
+teach them? The motivation must be functional — a gap the reader can feel — not
+navigational ("click here to continue").
+
+**Good**: "Your agent gave a generic answer. It doesn't know your return policy
+or your product catalog. Let's fix that. → Your First Skill"
+
+**Bad**: "Continue to the next tutorial. → Your First Skill"
+
+### Structural path decisions
+
+Entry-point ordering (which quickstart appears first), path convergence (where
+parallel paths merge), and prerequisite chains are defined by the information
+architecture document. Follow the IA for these decisions. Individual page
+authors do not decide path structure.
+
 ## Stigmer terminology
 
 Use Stigmer's own terms consistently. Never invent synonyms.
