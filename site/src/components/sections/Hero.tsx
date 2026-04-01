@@ -2,6 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  useReducedMotion,
+} from "framer-motion";
 import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -113,7 +120,86 @@ function Hero({ className, ...props }: HeroProps) {
   );
 }
 
+const TILT_DEGREES = 8;
+const SPRING_CONFIG = { stiffness: 200, damping: 20, mass: 0.5 };
+
 function CodePreview() {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+
+  const mouseX = useMotionValue(0.5);
+  const mouseY = useMotionValue(0.5);
+
+  const rotateX = useSpring(
+    useTransform(mouseY, [0, 1], [TILT_DEGREES, -TILT_DEGREES]),
+    SPRING_CONFIG,
+  );
+  const rotateY = useSpring(
+    useTransform(mouseX, [0, 1], [-TILT_DEGREES, TILT_DEGREES]),
+    SPRING_CONFIG,
+  );
+
+  const glowX = useTransform(mouseX, [0, 1], [0, 100]);
+  const glowY = useTransform(mouseY, [0, 1], [0, 100]);
+  const glowBackground = useTransform(
+    [glowX, glowY],
+    ([x, y]) =>
+      `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,0.06) 0%, transparent 60%)`,
+  );
+
+  const [isHovered, setIsHovered] = React.useState(false);
+
+  const handleMouseMove = React.useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const el = ref.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      mouseX.set((e.clientX - rect.left) / rect.width);
+      mouseY.set((e.clientY - rect.top) / rect.height);
+    },
+    [mouseX, mouseY],
+  );
+
+  const handleMouseEnter = React.useCallback(() => setIsHovered(true), []);
+
+  const handleMouseLeave = React.useCallback(() => {
+    mouseX.set(0.5);
+    mouseY.set(0.5);
+    setIsHovered(false);
+  }, [mouseX, mouseY]);
+
+  if (prefersReducedMotion) {
+    return <CodePreviewCard />;
+  }
+
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        rotateX,
+        rotateY,
+        transformPerspective: 800,
+        transformStyle: "preserve-3d",
+      }}
+      whileHover={{ scale: 1.02 }}
+      transition={{ scale: { duration: 0.25, ease: "easeOut" } }}
+      className="relative will-change-transform"
+    >
+      <motion.div
+        className="absolute -inset-px rounded-lg pointer-events-none"
+        animate={{ opacity: isHovered ? 1 : 0 }}
+        transition={{ duration: 0.3 }}
+        style={{ background: glowBackground }}
+      />
+      <CodePreviewCard />
+    </motion.div>
+  );
+}
+
+function CodePreviewCard() {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
       {/* Terminal title bar */}

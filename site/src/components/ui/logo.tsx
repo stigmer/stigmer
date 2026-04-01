@@ -4,9 +4,6 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { SITE_CONFIG } from "@/lib/constants";
 
-/**
- * Logo size variants using class-variance-authority.
- */
 const logoVariants = cva("inline-flex items-center gap-2", {
   variants: {
     size: {
@@ -20,27 +17,11 @@ const logoVariants = cva("inline-flex items-center gap-2", {
   },
 });
 
-const logoMarkVariants = cva(
-  [
-    "inline-flex items-center justify-center",
-    "rounded-lg",
-    "bg-foreground text-background",
-    "font-bold",
-    "select-none",
-  ],
-  {
-    variants: {
-      size: {
-        sm: "w-7 h-7 text-sm rounded-md",
-        md: "w-9 h-9 text-lg",
-        lg: "w-12 h-12 text-2xl rounded-xl",
-      },
-    },
-    defaultVariants: {
-      size: "md",
-    },
-  }
-);
+const logoMarkSizeMap = {
+  sm: "w-7 h-7",
+  md: "w-9 h-9",
+  lg: "w-12 h-12",
+} as const;
 
 const logoTextVariants = cva("font-bold tracking-tight text-foreground", {
   variants: {
@@ -58,46 +39,22 @@ const logoTextVariants = cva("font-bold tracking-tight text-foreground", {
 export interface LogoProps
   extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href">,
     VariantProps<typeof logoVariants> {
-  /**
-   * Whether to show the wordmark text alongside the logo mark.
-   * @default true
-   */
   showText?: boolean;
-  /**
-   * Whether to wrap the logo in a Link to the homepage.
-   * @default true
-   */
   asLink?: boolean;
 }
 
-/**
- * Stigmer brand logo with mark and optional wordmark.
- *
- * @example
- * // Full logo with text
- * <Logo />
- *
- * @example
- * // Logo mark only (for mobile/compact)
- * <Logo showText={false} />
- *
- * @example
- * // Large logo for footer
- * <Logo size="lg" />
- *
- * @example
- * // As a static element (no link)
- * <Logo asLink={false} />
- */
 const Logo = React.forwardRef<HTMLAnchorElement, LogoProps>(
   ({ className, size, showText = true, asLink = true, ...props }, ref) => {
+    const resolvedSize = size ?? "md";
     const content = (
       <>
-        {/* Logo mark */}
-        <span className={cn(logoMarkVariants({ size }))} aria-hidden="true">
-          S
-        </span>
-        {/* Wordmark */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/Icon-bw.svg"
+          alt=""
+          aria-hidden="true"
+          className={cn(logoMarkSizeMap[resolvedSize])}
+        />
         {showText && (
           <span className={cn(logoTextVariants({ size }))}>
             {SITE_CONFIG.name}
@@ -137,4 +94,4 @@ const Logo = React.forwardRef<HTMLAnchorElement, LogoProps>(
 );
 Logo.displayName = "Logo";
 
-export { Logo, logoVariants, logoMarkVariants, logoTextVariants };
+export { Logo, logoVariants, logoTextVariants };
