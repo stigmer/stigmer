@@ -1,0 +1,117 @@
+---
+title: Local quickstart
+description:
+  Run an AI agent on your machine in 5 minutes—no cloud account needed.
+---
+
+## What you'll build
+
+A running AI agent on your machine. You'll install Stigmer, define an agent in
+YAML, and talk to it from your terminal. Everything stays local—the server uses
+SQLite and connects to your own LLM provider.
+
+**Time**: ~5 minutes **Prerequisites**: macOS or Linux, an LLM API key
+([Anthropic](https://console.anthropic.com/),
+[OpenAI](https://platform.openai.com/), or [Ollama](https://ollama.com/) for
+fully local inference)
+
+<Steps>
+<Step>
+
+## Install Stigmer
+
+<Tabs items={["Homebrew", "Shell script"]}>
+  <Tab value="Homebrew">```bash brew install stigmer/tap/stigmer ```</Tab>
+  <Tab value="Shell script">
+    ```bash curl -fsSL https://stigmer.ai/install.sh | bash ```
+  </Tab>
+</Tabs>
+
+Verify the installation:
+
+```bash
+stigmer version
+```
+
+</Step>
+<Step>
+
+## Start the server
+
+```bash
+stigmer server
+```
+
+On first run, Stigmer prompts you to choose an LLM provider and enter your API
+key. Pick one:
+
+- **Anthropic**: Claude models (recommended)
+- **OpenAI**: GPT models
+- **Ollama**: local models, no API key needed
+
+Once configured, the server starts. You'll see:
+
+```
+Web console available at http://localhost:8234
+```
+
+Leave this terminal running and open a new one for the next steps.
+
+> [!NOTE] Run `stigmer server setup` at any time to change your LLM provider.
+
+</Step>
+<Step>
+
+## Create your agent
+
+Create a file called `agent.yaml`:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: my-first-agent
+spec:
+  instructions: |
+    You are a helpful assistant. Answer questions clearly
+    and concisely. When you don't know something, say so.
+```
+
+Apply it to the server:
+
+```bash
+stigmer apply -f agent.yaml
+```
+
+</Step>
+<Step>
+
+## Run it
+
+```bash
+stigmer run my-first-agent -m "What can you help me with?"
+```
+
+The agent responds in your terminal. You defined an agent as a YAML resource,
+applied it to the local server, and ran it—all from the command line.
+
+</Step>
+</Steps>
+
+## What just happened
+
+Stigmer treats agents as **declarative resources**. You described what the agent
+should do in a YAML file, applied it to the server, and ran it. The same pattern
+works for Skills, MCP Servers, and every other Stigmer resource.
+
+Right now your agent gives generic answers. It doesn't know anything specific to
+your business. The next tutorial fixes that.
+
+## Next step
+
+<Cards>
+  <Card title="Your first Skill" href="/docs/getting-started/first-skill">
+    Teach your agent domain knowledge and see the difference between generic and
+    expert responses.
+  </Card>
+</Cards>

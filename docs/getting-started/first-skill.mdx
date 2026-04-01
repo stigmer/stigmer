@@ -1,0 +1,167 @@
+---
+title: Your first Skill
+description:
+  Create domain knowledge for your agent and see the difference between generic
+  and expert responses.
+---
+
+## What you'll build
+
+An agent that answers questions about **your** business, not just generic
+knowledge. You'll create a Skill—a package of domain knowledge—attach it to your
+agent, and compare the responses before and after.
+
+**Time**: ~10 minutes **Prerequisites**: Completed the
+[Local quickstart](/docs/getting-started/local) (a running server and agent)
+
+<Steps>
+<Step>
+
+## See the problem
+
+Ask your agent a domain-specific question:
+
+```bash
+stigmer run my-first-agent -m "What is your return policy for defective items?"
+```
+
+The agent gives a generic answer. It might say something reasonable, but it
+doesn't know your company's actual policy. It's guessing.
+
+</Step>
+<Step>
+
+## Create a Skill
+
+A Skill is a directory with a `SKILL.md` file. The YAML frontmatter provides
+metadata; the markdown body is the domain knowledge.
+
+Create the directory:
+
+```bash
+mkdir return-policy
+```
+
+Create `return-policy/SKILL.md`:
+
+```markdown
+---
+name: return-policy
+description: Acme Corp's customer return and refund policy.
+---
+
+# Return Policy
+
+## Standard Returns
+
+Customers may return most items within **14 days** of delivery for a full
+refund.
+
+**Requirements:**
+
+- Original receipt or order confirmation email
+- Item in original packaging, unused condition
+- Return shipping label (provided at no cost)
+
+## Exceptions
+
+**Defective items**—accepted for return at any time, regardless of the 14-day
+window. Ship the item back with a brief description of the defect. We cover
+return shipping.
+
+**Final sale items**—marked "Final Sale" at checkout. Not eligible for return or
+exchange.
+
+**Digital products**—non-refundable once the download link has been accessed.
+
+## Refund Timeline
+
+Refunds are processed within **3–5 business days** after we receive the returned
+item. The refund appears on the original payment method.
+```
+
+This is pure domain knowledge—no code, no tool configuration. The agent reads
+this content and uses it to answer questions accurately.
+
+</Step>
+<Step>
+
+## Push the Skill
+
+```bash
+stigmer push skill ./return-policy/
+```
+
+This uploads the Skill to the server, versioned and ready to attach to any
+agent.
+
+</Step>
+<Step>
+
+## Attach the Skill to your agent
+
+Update `agent.yaml` to reference the Skill:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: my-first-agent
+spec:
+  instructions: |
+    You are a helpful assistant. Answer questions clearly
+    and concisely. When you don't know something, say so.
+  skill_refs:
+    - kind: skill
+      slug: return-policy
+```
+
+Apply the change:
+
+```bash
+stigmer apply -f agent.yaml
+```
+
+</Step>
+<Step>
+
+## Ask again
+
+Same question, same agent:
+
+```bash
+stigmer run my-first-agent -m "What is your return policy for defective items?"
+```
+
+This time the agent responds with your actual policy: defective items are
+accepted at any time, return shipping is covered, and refunds take 3–5 business
+days. The answer is grounded in the Skill, not invented.
+
+</Step>
+</Steps>
+
+## The difference
+
+|              | Before Skill               | After Skill                   |
+| ------------ | -------------------------- | ----------------------------- |
+| **Source**   | Generic training data      | Your company's return policy  |
+| **Accuracy** | Plausible but unverifiable | Exact policy details          |
+| **Trust**    | Low—could be wrong         | High—grounded in your content |
+
+## What just happened
+
+A **Skill** is domain knowledge packaged as markdown. It's not code. It's not a
+tool. It's the information your agent needs to answer with expertise.
+
+You can create as many Skills as you need—product documentation, HR policies,
+technical runbooks, sales playbooks. Each one makes your agent more useful for a
+specific domain.
+
+## Next step
+
+<Cards>
+  <Card title="Give your agent tools" href="/docs/tutorials/connect-tools">
+    Your agent knows your domain. Now let it take actions—connect MCP Servers so
+    the agent can interact with your systems.
+  </Card>
+</Cards>
