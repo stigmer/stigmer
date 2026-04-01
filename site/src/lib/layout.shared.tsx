@@ -6,16 +6,5 @@ export function baseOptions(): BaseLayoutProps {
     nav: {
       title: <StigmerIcon size={24} />,
     },
-    links: [
-      {
-        text: "Use Cases",
-        url: "/use-cases",
-      },
-      {
-        text: "GitHub",
-        url: "https://github.com/stigmer/stigmer",
-        external: true,
-      },
-    ],
   };
 }
