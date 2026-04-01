@@ -4,28 +4,12 @@
  * Demonstrates how to compose {@link fixtures} and {@link samples} into a
  * working {@link DemoScenario}. This scenario provides enough fixtures to
  * render a basic session view with a message thread.
- *
- * Use it as-is for quick prototyping, or copy-paste and customize for your
- * own documentation pages.
- *
- * @example
- * ```tsx
- * import { StigmerProvider } from "@stigmer/react";
- * import { createDemoClient, quickstartScenario } from "@stigmer/react/demo";
- *
- * const client = createDemoClient(quickstartScenario);
- *
- * <StigmerProvider client={client}>
- *   <YourComponent />
- * </StigmerProvider>
- * ```
  */
 
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
-import type { DemoScenario } from "../types";
-import { buildScenario, fixtures } from "../fixtures";
-import { samples } from "../samples";
+import type { DemoScenario } from "@stigmer/react/demo";
+import { buildScenario, fixtures, samples } from "@stigmer/react/demo";
 
 const demoSession = samples.session({ subject: "Getting started with Stigmer" });
 const demoAgent = samples.agent({ name: "Quickstart Agent" });
@@ -55,13 +39,11 @@ const demoExecution = samples.agentExecution({
 });
 
 export const quickstartScenario: DemoScenario = buildScenario(
-  // Session hooks
   fixtures.session.get(() => demoSession),
   fixtures.session.list(() => samples.sessionList([demoSession])),
   fixtures.session.create(() => demoSession),
   fixtures.session.update(() => demoSession),
 
-  // Execution hooks
   fixtures.agentExecution.listBySession(() =>
     samples.agentExecutionList([demoExecution]),
   ),
@@ -69,7 +51,6 @@ export const quickstartScenario: DemoScenario = buildScenario(
   fixtures.agentExecution.subscribe(() => [demoExecution]),
   fixtures.agentExecution.submitApproval(() => demoExecution),
 
-  // Agent hooks
   fixtures.agent.get(() => demoAgent),
   fixtures.agent.getByReference(() => demoAgent),
   fixtures.agent.getDefault(() => demoAgent),
@@ -83,7 +64,6 @@ export const quickstartScenario: DemoScenario = buildScenario(
     ]),
   ),
 
-  // Agent instance hooks
   fixtures.agentInstance.get(() => demoInstance),
   fixtures.agentInstance.getByReference(() => demoInstance),
   fixtures.agentInstance.list(() => ({
@@ -92,7 +72,6 @@ export const quickstartScenario: DemoScenario = buildScenario(
   })),
   fixtures.agentInstance.create(() => demoInstance),
 
-  // Environment hooks
   fixtures.environment.list(() => ({
     entries: [samples.environment()],
     totalPages: 1,

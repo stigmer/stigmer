@@ -593,27 +593,19 @@ Define Agents and Workflows as code."
 
 ---
 
-### 3. Audience definition conflict between document writer role and STYLE.md
+### 3. Audience definition conflict between document writer role and STYLE.md---RESOLVED
 
 **What**: The document writer role (`_roles/002_document_writer.md`, line 3)
 says "Write for a smart person who is not technical." The style guide
 (`docs/STYLE.md`, line 14) says "Assume readers are comfortable with APIs, CLIs,
 and infrastructure concepts."
 
-Both are correct for their intended audiences (sales site vs. developer docs),
-but the document writer role does not distinguish between contexts. A writer
-following the role literally would avoid all technical language even in SDK
-reference docs.
-
-**Where**:
-
-- `_roles/002_document_writer.md` lines 3-12
-- `docs/STYLE.md` lines 9-15
-
-**Recommendation**: Update the document writer role to reference the
-[writing contexts](#writing-contexts) in this vocabulary guide. The "smart
-person who is not technical" standard applies to the sales site and introductory
-docs. Developer docs use the technical register defined here.
+**Resolution**: The document writer role has been rewritten with a
+context-sensitive register framework (Session 9). It now references the
+vocabulary guide's five writing contexts. Plain language remains the default for
+sales site and introductory docs; reference and SDK docs use precise technical
+language. See `_roles/002_document_writer.md` "Match your register to the
+context" section.
 
 ---
 

@@ -60,7 +60,7 @@ sidebar does not expose these types to the reader.
 ### 3. Cloud-primary entry
 
 The first path shown to every reader is the cloud path: sign up, get an API
-key, build an agent. The self-hosted path (brew install, stigmer server)
+key, build an agent. The local path (brew install, stigmer server)
 appears second. This follows the positioning document's Decision 3.
 
 ### 4. Progressive disclosure
@@ -109,7 +109,7 @@ Every URL on stigmer.ai, grouped by area.
 |-----|---------|-------|-------------|
 | `/docs` | Docs landing — orientation hub routing readers to the right starting point | Phase 3 |  — |
 | `/docs/getting-started/quickstart` | Cloud quickstart: sign up, API key, first agent in 5 minutes | Phase 3 | Tutorial |
-| `/docs/getting-started/self-hosted` | Self-hosted quickstart: brew install, stigmer server, apply, run | Phase 3 | Tutorial |
+| `/docs/getting-started/local` | Local quickstart: brew install, stigmer server, apply, run | Phase 3 | Tutorial |
 | `/docs/getting-started/first-skill` | Upload domain knowledge, see generic vs. expert answers | Phase 3 | Tutorial |
 | `/docs/concepts/what-is-stigmer` | What Stigmer is, who it's for, what makes it different | Phase 4 | Explanation |
 | `/docs/concepts/agents` | What an Agent is, how to define one, how it runs | Phase 4 | Explanation |
@@ -239,7 +239,7 @@ docs/
 ├── getting-started/
 │   ├── meta.json
 │   ├── quickstart.mdx                     # Cloud quickstart (5 min)
-│   ├── self-hosted.mdx                    # Self-hosted quickstart
+│   ├── local.mdx                          # Local quickstart
 │   └── first-skill.mdx                    # Your first Skill
 ├── concepts/
 │   ├── meta.json
@@ -310,14 +310,14 @@ introduce Stigmer, following the positioning's progressive disclosure model.
 | Page | Sidebar title | Content type | Description |
 |------|--------------|-------------|-------------|
 | `quickstart.mdx` | Cloud quickstart | Tutorial | Sign up for Stigmer Cloud, get an API key, install the SDK, create an Agent, run it, see the response. Target: 5 minutes, zero prior context. |
-| `self-hosted.mdx` | Self-hosted quickstart | Tutorial | Install the CLI, start the server, write an Agent YAML file, apply and run. Target: 5 minutes for developers who prefer local-first. |
+| `local.mdx` | Local quickstart | Tutorial | Install the CLI, start the server, write an Agent YAML file, apply and run. Target: 5 minutes for developers who prefer local-first. |
 | `first-skill.mdx` | Your first Skill | Tutorial | Create a Skill (domain knowledge), attach it to an Agent, run the same prompt, see the difference between generic and expert responses. Pillar 1 proof. |
 
-**Page ordering rationale**: Cloud first (positioning Decision 3), self-hosted
+**Page ordering rationale**: Cloud first (positioning Decision 3), local
 second (trust signal), then first Skill (the "aha moment" from the
 positioning document).
 
-**Prerequisite**: `quickstart.mdx` or `self-hosted.mdx` before
+**Prerequisite**: `quickstart.mdx` or `local.mdx` before
 `first-skill.mdx`. The Skill tutorial assumes a working agent already exists.
 
 #### Concepts
@@ -437,7 +437,7 @@ title is self-explanatory and a separator above it would be redundant.
 ```json
 {
   "title": "Getting started",
-  "pages": ["quickstart", "self-hosted", "first-skill"]
+  "pages": ["quickstart", "local", "first-skill"]
 }
 ```
 
@@ -536,7 +536,7 @@ provides appropriate context.
 | What You Can Build | (per card) "Learn more" | `/use-cases` | Routes to marketing, not docs |
 | Why It Works | "Read the docs" | `/docs/concepts/what-is-stigmer` | Technical-curious readers → concepts |
 | Why It Works | "View on GitHub" | `github.com/stigmer/stigmer` | External |
-| Open Source | "Self-host" | `/docs/getting-started/self-hosted` | Self-hosted quickstart |
+| Open Source | "Run locally" | `/docs/getting-started/local` | Local quickstart |
 | Open Source | "View source" | `github.com/stigmer/stigmer` | External |
 | Final CTA | "Start Free" | Stigmer Cloud sign-up | External |
 | Final CTA | SDK install snippet | `/docs/sdks/typescript` | Language-specific SDK page |
@@ -646,17 +646,17 @@ real integrations.
 
 **Next step prompt**: "Ready to integrate into your app? → TypeScript SDK"
 
-### The self-hosted path
+### The local path
 
 **Reader**: "I want to run everything locally."
 
 ```
-Self-hosted quickstart (5 min)
+Local quickstart (5 min)
 └── Your first Skill (10 min)
     └── (same tutorial sequence as full build path)
 ```
 
-The self-hosted quickstart replaces the cloud quickstart. Everything after
+The local quickstart replaces the cloud quickstart. Everything after
 first-skill is the same — tutorials are path-independent.
 
 ### The "I know what I want" path
@@ -690,7 +690,7 @@ CONTRIBUTING.md should be updated when Phase 3 begins.
 | `sdks/` | **Kept** — unchanged |
 | `integration/` | **Removed** — absorbed into SDKs (per-language integration) and tutorials (connect your systems) |
 | `architecture/` | **Removed** — future expansion; not in T01 scope |
-| `deployment/` | **Removed** — future expansion as "Self-hosting"; self-hosted quickstart covers the basic local setup |
+| `deployment/` | **Removed** — future expansion as "Self-hosting"; local quickstart covers the basic local setup |
 | `cli/` | **Kept** — unchanged |
 | `reference/` | **Kept** — unchanged |
 | `contributing/` | **Removed** — stays as `docs/CONTRIBUTING.md` repo file, not a rendered docs section |

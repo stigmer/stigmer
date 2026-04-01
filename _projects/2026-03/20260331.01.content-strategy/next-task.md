@@ -13,9 +13,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: Pre-Phase 3 prerequisites complete — ready for Phase 3
-- **Last Session**: 2026-04-01 (Session 10) — Aligned web app tagline with content strategy positioning
-- **Active Task**: T01 — Pre-Phase 3 prerequisites complete. Ready for Phase 3 (Getting Started documentation).
+- **Status**: Phase 3 complete — Getting Started documentation delivered
+- **Last Session**: 2026-04-01 (Session 11) — Phase 3: Getting Started documentation (quickstart, local, first-skill)
+- **Active Task**: T01 — Phase 3 complete. Ready for Phase 4 (Core Concepts documentation).
 
 ## Session Progress (2026-03-31, Session 8)
 
@@ -82,20 +82,30 @@ Drop this file into your conversation to quickly resume work on this project.
   - Ensures consistent brand messaging across web app and sales website
 - **Verification**: No linter errors introduced
 
+## Session Progress (2026-04-01, Session 11)
+
+- **Phase 3: Getting Started documentation — fully implemented**
+- Created three tutorial pages: `quickstart.mdx` (Cloud, web console + SDK), `local.mdx` (CLI-based), `first-skill.mdx` (CLI-based Skill creation)
+- Built `skill-creation.ts` demo scenario and `DemoSkillCreation.tsx` wrapper for Cloud quickstart embedded demo
+- Completed all housekeeping: renamed self-hosted → local in IA, resolved vocabulary inconsistency #3, cleaned up docs/scratch/
+- Verified: `tsc --noEmit` passes, `yarn next build` passes (Node 22), all routes render
+- Updated `stigmer run` syntax in docs to use `-m` flag (verified against CLI source)
+- Prerequisites delivered by sub-project `20260401.01.sp.react-demo-mode`: demo transport, fixtures, samples, scenarios infrastructure
+
 ## Next Steps
 
-1. **Begin Phase 3** — Getting Started documentation (quickstart, self-hosted, first-skill)
+1. **Begin Phase 4** — Core Concepts documentation (what-is-stigmer, agents, skills, tools, sessions, approval-flows, memory, workflows, environments)
 2. **Resolve Cloud README vocabulary inconsistencies** — #2 and #4 deferred from Phase 1 (separate repo)
-3. **Mark vocabulary inconsistency #3 as resolved** — in `docs/vocabulary.md` inconsistency register (minor housekeeping)
 
 ## Context for Resume
 
-- Phase 2 is fully built and passing build. The sales website is complete pending docs content (CTAs fall back to `/docs`).
-- All TODO comments in the codebase mark where links need updating as later phases deliver their content:
-  - Phase 3 TODOs: `/docs/getting-started/quickstart`, `/docs/getting-started/self-hosted`, `/docs/getting-started/first-skill`
+- Phase 2 (sales website) and Phase 3 (getting started docs) are fully built and passing build.
+- Phase 3 deliverables: `quickstart.mdx`, `local.mdx`, `first-skill.mdx` with embedded `DemoSkillCreation` component
+- React demo mode infrastructure (`@stigmer/react/demo`) provides `createDemoClient`, `buildScenario`, `fixtures`, `samples` for creating mock-backed components in docs
+- Remaining TODO comments in the codebase mark where links need updating as later phases deliver their content:
   - Phase 4 TODOs: `/docs/concepts/what-is-stigmer`
-  - Phase 6 TODOs: `/docs/tutorials/give-your-agent-tools`, `/docs/tutorials/add-approval-flows`
-  - Phase 7 TODOs: `/docs/sdks/typescript`, `/docs/reference/api`
+  - Phase 6 TODOs: `/docs/tutorials/give-your-agent-tools`, `/docs/tutorials/add-approval-flows`, `/docs/tutorials/connect-tools`
+  - Phase 7 TODOs: `/docs/sdks/typescript`, `/docs/sdks/react`, `/docs/reference/api`
   - Cloud URLs: `cloudSignupUrl`, `cloudSigninUrl` need real Stigmer Cloud URLs
 - The old section components (Architecture.tsx, Features.tsx, Quickstart.tsx) have been deleted — their patterns are no longer needed
 - The Figma design was used for theme extraction only — colors, fonts, visual style. Content and section structure comes from Phase 1 deliverables exclusively.

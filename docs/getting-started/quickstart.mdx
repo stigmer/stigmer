@@ -1,0 +1,135 @@
+---
+title: Cloud quickstart
+description:
+  Create an AI agent with domain expertise and call it from your code—in under
+  10 minutes.
+---
+
+import { DemoSkillCreation } from "@/components/docs";
+
+## What you'll build
+
+You will create an AI agent that knows your company's return policy, then call
+it from a TypeScript application. The agent answers domain-specific questions
+with accurate, grounded responses—not generic guesses.
+
+**Time**: ~10 minutes **Prerequisites**: A browser and
+[Node.js](https://nodejs.org/) 20+
+
+<Steps>
+<Step>
+
+## Sign up and get your API key
+
+1. Go to [`app.stigmer.ai`](https://app.stigmer.ai) and create an account.
+2. Open **Settings → API Keys** and click **Create API Key**.
+3. Copy the key—you'll need it in step 4.
+
+> [!NOTE] Your API key starts with `sk_`. Keep it secret. Never commit it to
+> source control.
+
+</Step>
+<Step>
+
+## Teach your agent
+
+Open the **Library** in the left sidebar, then click **Skills → Create Skill**.
+
+This opens a conversation with the Skill Creator agent. Describe the domain
+knowledge you want to capture, and the agent generates a Skill for you.
+
+Here's what that conversation looks like:
+
+<DemoSkillCreation />
+
+In a few exchanges you described your return policy, and the agent turned it
+into a structured Skill. Click **Push** to save it. Your agent can now reference
+this knowledge when answering questions.
+
+</Step>
+<Step>
+
+## Install the SDK
+
+```bash
+npm install @stigmer/sdk
+```
+
+</Step>
+<Step>
+
+## Call your agent from code
+
+Create a file called `ask-agent.ts`:
+
+```typescript
+import { Stigmer } from "@stigmer/sdk";
+
+const stigmer = new Stigmer({
+  baseUrl: "https://api.stigmer.io",
+  apiKey: process.env.STIGMER_API_KEY!,
+});
+
+async function main() {
+  // Create a session—a conversation with your agent
+  const session = await stigmer.session.create({
+    name: "return-policy-question",
+    org: "my-org",
+    subject: "Customer asking about returns",
+  });
+
+  // Send a message and run the agent
+  const execution = await stigmer.agentExecution.create({
+    name: "ask-return-policy",
+    org: "my-org",
+    sessionId: session.metadata!.id,
+    message: "What is your return policy for defective items?",
+  });
+
+  // Stream the response
+  for await (const snapshot of stigmer.agentExecution.subscribe(
+    execution.metadata!.id,
+  )) {
+    const messages = snapshot.status?.messages ?? [];
+    const last = messages[messages.length - 1];
+    if (last?.content) {
+      console.log(last.content);
+      break;
+    }
+  }
+}
+
+main();
+```
+
+Run it:
+
+```bash
+STIGMER_API_KEY=sk_your_key npx tsx ask-agent.ts
+```
+
+The agent responds with accurate policy details—defective items are accepted at
+any time, with return shipping covered—because it has the Skill you created.
+
+</Step>
+</Steps>
+
+## What just happened
+
+You taught an AI agent domain knowledge through a web conversation, then called
+that agent from your own code. The agent grounded its response in your Skill
+rather than relying on generic training data.
+
+The same components you saw in the web console are available as
+[`@stigmer/react`](/docs/sdks/react) for embedding in your own product.
+
+## Next steps
+
+<Cards>
+  <Card title="Run locally" href="/docs/getting-started/local">
+    Run Stigmer on your machine with no cloud account—CLI, YAML, and SQLite.
+  </Card>
+  <Card title="Your first Skill" href="/docs/getting-started/first-skill">
+    Create a Skill from the command line and see the before/after difference.
+  </Card>
+</Cards>

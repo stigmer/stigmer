@@ -54,12 +54,11 @@ function OpenSource({ className, ...props }: OpenSourceProps) {
               <Icon name="github" size="sm" />
               View source
             </a>
-            {/* TODO: Phase 3 — update to /docs/getting-started/self-hosted */}
             <Link
-              href="/docs"
+              href="/docs/getting-started/local"
               className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Self-host guide
+              Run locally
               <Icon name="arrow-right" size="xs" />
             </Link>
           </div>
