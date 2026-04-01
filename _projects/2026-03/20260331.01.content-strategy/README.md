@@ -97,3 +97,9 @@ Only task logs (T##_1_feedback.md, T##_2_execution.md) can be updated without pe
 ## Notes
 
 _Add any additional notes, links, or context here as the project evolves._
+
+## Sub-Projects
+
+| Sub-Project | Path | Status | Description |
+|-------------|------|--------|-------------|
+| react-demo-mode | [20260401.01.sp.react-demo-mode](../20260401.01.sp.react-demo-mode/) | Active | Build a demo/mock mode for @stigmer/react that allows components to render with realistic sample data without a live Stigmer backend, enabling real product components to be embedded in documentation. |

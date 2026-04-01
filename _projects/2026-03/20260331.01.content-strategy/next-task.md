@@ -185,3 +185,9 @@ After loading context:
 ---
 
 *This file provides direct paths to all project resources for quick context loading.*
+
+## Sub-Projects
+
+Active sub-projects spawned from this project:
+
+- `~/scm/github.com/stigmer/stigmer/_projects/2026-04/20260401.01.sp.react-demo-mode/next-task.md` - Build a demo/mock mode for @stigmer/react that allows components to render with realistic sample data without a live Stigmer backend, enabling real product components to be embedded in documentation.
