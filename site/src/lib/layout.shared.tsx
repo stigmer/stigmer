@@ -1,19 +1,10 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
+import { StigmerIcon } from "@/components/ui/stigmer-icon";
 
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
-      title: (
-        <span className="inline-flex items-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/Icon-bw.svg"
-            alt="Stigmer"
-            width={24}
-            height={24}
-          />
-        </span>
-      ),
+      title: <StigmerIcon size={24} />,
     },
     links: [
       {

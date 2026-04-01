@@ -48,7 +48,7 @@
     "shadcn": "latest",
     "sharp": "^0.33.5",
     "tailwindcss": "^4",
-    "tsx": "^4.19.4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }
