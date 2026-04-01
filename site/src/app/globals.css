@@ -1,8 +1,11 @@
 @import "tailwindcss";
 @import "fumadocs-ui/css/neutral.css";
 @import "fumadocs-ui/css/preset.css";
+@import "@stigmer/theme/tokens.css";
+@import "@stigmer/react/styles.css";
 
 @source "../node_modules/fumadocs-ui/dist/**/*.js";
+@source "../node_modules/@stigmer/react/src/**/*.{ts,tsx}";
 
 /*
  * Stigmer Design System

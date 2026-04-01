@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  transpilePackages: [
+    "@stigmer/react",
+    "@stigmer/sdk",
+    "@stigmer/theme",
+    "@stigmer/protos",
+  ],
 };
 
 const withMDX = createMDX();
