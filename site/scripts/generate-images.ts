@@ -27,7 +27,7 @@ import * as path from "path";
 // ============================================================================
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
-const LOGO_SVG_PATH = path.join(PUBLIC_DIR, "logo.svg");
+const ICON_SVG_PATH = path.join(PUBLIC_DIR, "Icon-bw.svg");
 
 // Monochromatic palette from Figma design system
 const COLORS = {
@@ -59,32 +59,41 @@ const OG_IMAGE = {
 // ============================================================================
 
 /**
- * Loads the logo from the SVG file.
- * Supports both embedded PNG (base64) and vector SVG formats.
- * Returns a high-resolution PNG buffer for further processing.
+ * Renders the icon SVG onto a dark rounded-rect background at 1024x1024.
+ * The icon has white (#FEFEFE) paths on a transparent background, so we
+ * composite it onto the brand dark background for favicon/PWA use.
  */
 async function extractLogoFromSvg(): Promise<Buffer> {
-  const svgContent = await fs.readFile(LOGO_SVG_PATH, "utf-8");
+  const svgContent = await fs.readFile(ICON_SVG_PATH, "utf-8");
 
-  // Try to extract base64 PNG if embedded (legacy format)
-  const base64Match = svgContent.match(
-    /xlink:href="data:image\/png;base64,([^"]+)"/
-  );
+  const baseSize = 1024;
+  const padding = Math.round(baseSize * 0.12);
+  const iconSize = baseSize - padding * 2;
+  const cornerRadius = Math.round(baseSize * 0.18);
 
-  if (base64Match && base64Match[1]) {
-    const base64Data = base64Match[1];
-    return Buffer.from(base64Data, "base64");
-  }
+  const backgroundSvg = Buffer.from(`
+    <svg width="${baseSize}" height="${baseSize}" xmlns="http://www.w3.org/2000/svg">
+      <rect width="${baseSize}" height="${baseSize}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${COLORS.darkBg}"/>
+    </svg>
+  `);
 
-  // For vector SVGs, render to a high-resolution PNG using sharp
-  // Use 1024x1024 as the base resolution for icon generation
-  const logoBuffer = await sharp(Buffer.from(svgContent))
-    .resize(1024, 1024, {
+  const iconPng = await sharp(Buffer.from(svgContent))
+    .resize(iconSize, iconSize, {
       fit: "contain",
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
     .png()
     .toBuffer();
+
+  const logoBuffer = await sharp(backgroundSvg)
+    .png()
+    .toBuffer()
+    .then((bg) =>
+      sharp(bg)
+        .composite([{ input: iconPng, left: padding, top: padding }])
+        .png()
+        .toBuffer()
+    );
 
   return logoBuffer;
 }
@@ -250,52 +259,44 @@ function createOgBadges(): Buffer {
 }
 
 /**
- * Prepares the logo for the OG image.
- * Resizes to the target size for display in the social preview.
+ * Renders the raw icon SVG (no background) at the target size for the OG
+ * image. The white paths sit directly on the dark gradient background.
  */
-async function prepareLogoForOgImage(logoBuffer: Buffer): Promise<Buffer> {
-  const logoSize = 140;
+async function prepareLogoForOgImage(): Promise<Buffer> {
+  const svgContent = await fs.readFile(ICON_SVG_PATH, "utf-8");
+  const logoSize = 120;
 
-  // Resize logo to target size
-  const resizedLogo = await sharp(logoBuffer)
+  return sharp(Buffer.from(svgContent))
     .resize(logoSize, logoSize, {
       fit: "contain",
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
     .png()
     .toBuffer();
-
-  return resizedLogo;
 }
 
 /**
  * Generates the OG image by compositing all layers.
  */
-async function generateOgImage(logoBuffer: Buffer): Promise<void> {
+async function generateOgImage(): Promise<void> {
   console.log("\n🖼️  Generating OG image...");
 
-  // Prepare the logo (resized, no extra container since logo has its own background)
-  const logo = await prepareLogoForOgImage(logoBuffer);
-
-  // Start with background
+  const logoSize = 120;
+  const logo = await prepareLogoForOgImage();
   const background = await sharp(createOgBackground()).png().toBuffer();
 
-  // Composite all layers and write to file
   await sharp(background)
     .composite([
-      // Logo (centered horizontally, positioned above text)
       {
         input: logo,
-        left: Math.round((OG_IMAGE.width - 140) / 2),
-        top: 120,
+        left: Math.round((OG_IMAGE.width - logoSize) / 2),
+        top: 110,
       },
-      // Text layer
       {
         input: await sharp(createOgText()).png().toBuffer(),
         left: 0,
         top: 0,
       },
-      // Badges layer
       {
         input: await sharp(createOgBadges()).png().toBuffer(),
         left: 0,
@@ -319,16 +320,16 @@ async function main(): Promise<void> {
   console.log("===================================");
 
   try {
-    // Load logo from SVG
-    console.log("\n📂 Loading logo from SVG...");
+    // Load icon from SVG and render onto dark background
+    console.log("\n📂 Loading icon from SVG...");
     const logoBuffer = await extractLogoFromSvg();
-    console.log("  ✓ Logo loaded (1024x1024 PNG)");
+    console.log("  ✓ Icon loaded (1024x1024 PNG)");
 
     // Generate all icons
     await generateAllIcons(logoBuffer);
 
     // Generate OG image
-    await generateOgImage(logoBuffer);
+    await generateOgImage();
 
     console.log("\n✅ All images generated successfully!");
     console.log("\nGenerated files:");

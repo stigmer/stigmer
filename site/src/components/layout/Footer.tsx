@@ -22,18 +22,15 @@ function Footer({ className, ...props }: FooterProps) {
             <div className="lg:col-span-1">
               <Link
                 href="/"
-                className="inline-flex items-center gap-2 mb-4 transition-opacity hover:opacity-80"
+                className="inline-flex items-center mb-4 transition-opacity hover:opacity-80"
                 aria-label={`${SITE_CONFIG.name} - Go to homepage`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/logo.svg"
+                  src="/Icon-bw.svg"
                   alt="Stigmer"
-                  className="w-8 h-8 rounded-lg"
+                  className="w-8 h-8"
                 />
-                <span className="font-bold text-xl tracking-tight text-foreground">
-                  {SITE_CONFIG.name}
-                </span>
               </Link>
               <p className="text-sm text-muted-foreground leading-relaxed mb-4">
                 {SITE_CONFIG.description}

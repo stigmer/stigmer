@@ -47,12 +47,16 @@ export const metadata: Metadata = {
     "Embed AI agents into your platform. SDKs, sandboxing, and orchestration — ready to integrate.",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "32x32" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-dark.ico", sizes: "32x32", media: "(prefers-color-scheme: dark)" },
+      { url: "/favicon-dark-16x16.png", sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: dark)" },
+      { url: "/favicon-dark-32x32.png", sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: dark)" },
+      { url: "/favicon-light.ico", sizes: "32x32", media: "(prefers-color-scheme: light)" },
+      { url: "/favicon-light-16x16.png", sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: light)" },
+      { url: "/favicon-light-32x32.png", sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: light)" },
     ],
     apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/apple-touch-icon-dark.png", sizes: "180x180", type: "image/png", media: "(prefers-color-scheme: dark)" },
+      { url: "/apple-touch-icon-light.png", sizes: "180x180", type: "image/png", media: "(prefers-color-scheme: light)" },
     ],
   },
 };

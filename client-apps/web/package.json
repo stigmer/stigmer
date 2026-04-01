@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "generate-images": "tsx scripts/generate-images.ts",
+    "build": "tsx scripts/generate-images.ts && next build",
     "start": "npx serve out",
     "lint": "eslint",
     "format": "prettier --write .",
@@ -41,10 +42,13 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "png-to-ico": "^2.1.8",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "shadcn": "latest",
+    "sharp": "^0.33.5",
     "tailwindcss": "^4",
+    "tsx": "^4.19.4",
     "typescript": "^5"
   }
 }

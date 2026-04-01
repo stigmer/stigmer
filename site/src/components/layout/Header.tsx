@@ -31,18 +31,15 @@ function Header({ className, ...props }: HeaderProps) {
             {/* Logo */}
             <Link
               href="/"
-              className="inline-flex items-center gap-2 transition-opacity hover:opacity-80"
+              className="inline-flex items-center transition-opacity hover:opacity-80"
               aria-label={`${SITE_CONFIG.name} - Go to homepage`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/logo.svg"
+                src="/Icon-bw.svg"
                 alt="Stigmer"
-                className="w-8 h-8 rounded-lg"
+                className="w-8 h-8"
               />
-              <span className="hidden sm:inline-block font-bold text-xl tracking-tight text-foreground">
-                {SITE_CONFIG.name}
-              </span>
             </Link>
 
             {/* Desktop Navigation */}

@@ -4,16 +4,14 @@ export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
       title: (
-        <span className="inline-flex items-center gap-2">
+        <span className="inline-flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo-square.svg"
-            alt=""
+            src="/Icon-bw.svg"
+            alt="Stigmer"
             width={24}
             height={24}
-            className="rounded"
           />
-          <span className="font-bold">Stigmer</span>
         </span>
       ),
     },
