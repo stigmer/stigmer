@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "yarn@4.5.1",
+  "engines": {
+    "node": "^20.11.0 || ^22.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "generate-images": "tsx scripts/generate-images.ts",
@@ -13,8 +16,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "^2.11.0",
+    "@connectrpc/connect": "^2.1.1",
     "@orama/orama": "^3.1.18",
     "@radix-ui/react-slot": "^1.2.3",
+    "@stigmer/protos": "file:../apis/stubs/ts",
+    "@stigmer/react": "file:../sdk/react",
+    "@stigmer/sdk": "file:../sdk/typescript",
+    "@stigmer/theme": "file:../sdk/theme",
     "@types/mdx": "^2.0.13",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -28,7 +37,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-syntax-highlighter": "^16.1.0",
-    "tailwind-merge": "^2.6.0"
+    "tailwind-merge": "^3.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

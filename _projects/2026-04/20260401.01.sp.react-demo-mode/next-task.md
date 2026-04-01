@@ -100,39 +100,50 @@ When starting a new session:
 
 ## Current Status
 
-- **Status**: Phase 2 complete — ready for Phase 3
-- **Last Session**: 2026-04-01 (Session 2) — Implemented Phase 2: Composable fixture infrastructure
-- **Active Task**: T01 — Phase 1 & 2 complete. Phase 3 (Fumadocs integration) is next.
+- **Status**: Phase 3 complete — ready for Phase 4
+- **Last Session**: 2026-04-01 (Session 3) — Implemented Phase 3: Fumadocs integration
+- **Active Task**: T01 — Phase 1, 2 & 3 complete. Phase 4 (Additional scenarios) is next.
 
-## Session Progress (2026-04-01, Session 2)
+## Session Progress (2026-04-01, Session 3)
 
-- **Architectural refinement**: User challenged the original Phase 2 plan (fixed `skillCreationScenario` + 5 components). Redesigned to composable primitives covering all hooks — not just 5 components. Data is defined at the point of use, not pre-packaged.
-- **Discovery: Search RPC multiplexing** — `agent.list()`, `skill.list()`, and `mcpServer.list()` all route through `SearchService/search` with different `kinds` values. This causes key collisions in a raw `Map`. Solved with `buildScenario()` which merges search handlers into a dispatch function.
-- **Phase 2 fully implemented** — fixtures, samples, reference scenario, barrel export, 43 new tests
+- **Phase 3 fully implemented** — `@stigmer/react` components rendering inside Fumadocs MDX pages with demo infrastructure
+- **Key decision: `file:` protocol over npm workspaces** — The site was originally standalone with yarn 4.5.1. Adding it to npm workspaces broke `next build` (webpack client compiler exits prematurely on Node 23). Solution: keep site standalone with `file:` protocol deps (`"@stigmer/react": "file:../sdk/react"`) installed via yarn, using `transpilePackages` in next.config.ts so Next.js compiles the TypeScript source directly.
+- **Build fix: Node.js 23 incompatibility** — Discovered and resolved a pre-existing build failure where `next build` exits with code 0 but never completes client-side webpack compilation. Root cause: Node.js v23.1.0 (non-LTS) has a bug that drains the event loop during webpack client compilation. Fix: pinned `engines` to `^20.11.0 || ^22.0.0` and `.nvmrc` already set to `22`. Build must use `nvm exec 22`.
+- **Peer dep fix** — Bumped `tailwind-merge` from `^2.6.0` to `^3.0.0` to satisfy `@stigmer/theme`'s peer dependency.
 - **Files created**:
-  - `sdk/react/src/demo/fixtures.ts` — 42 fixture entry helpers across 10 domains, `buildScenario()`, `FixtureSpec` type
-  - `sdk/react/src/demo/samples.ts` — 14 sample data factories (7 resources + messages/artifacts + list responses) with flat override interfaces
-  - `sdk/react/src/demo/scenarios/quickstart.ts` — Reference scenario: minimal session conversation demonstrating composition
-  - `sdk/react/src/demo/__tests__/fixtures.test.ts` — 23 tests for fixture helpers, search multiplexing, scenario builder
-  - `sdk/react/src/demo/__tests__/samples.test.ts` — 20 tests for all sample factories
+  - `site/src/components/docs/demos/DemoSessionComposer.tsx` — Client component wrapping SessionComposer in StigmerProvider with empty demo client
+  - `docs/scratch/demo-test.mdx` — Test page embedding `<DemoSessionComposer />`
+  - `docs/scratch/meta.json` — Sidebar entry for Scratch section
 - **Files modified**:
-  - `sdk/react/src/demo/index.ts` — re-exports `fixtures`, `samples`, `buildScenario`, `FixtureSpec`, `quickstartScenario`
-- **Verification**: `tsc --noEmit` passes, 113/113 tests pass (43 new + 70 existing), zero linter errors
+  - `site/package.json` — Added `@stigmer/*` deps via `file:` protocol, `@bufbuild/protobuf`, `@connectrpc/connect`, `engines` field, bumped `tailwind-merge`
+  - `site/next.config.ts` — Added `transpilePackages` for all `@stigmer/*` packages
+  - `site/src/app/globals.css` — Imported `@stigmer/theme/tokens.css`, `@stigmer/react/styles.css`, added `@source` directive for Tailwind
+  - `site/src/components/docs/index.ts` — Barrel export for `DemoSessionComposer`
+  - `site/src/components/mdx.tsx` — Registered `DemoSessionComposer` in `getMDXComponents`
+  - `site/yarn.lock` — Updated with new dependencies
+- **Verification**: `tsc --noEmit` passes, `next build` (Node 22) compiles successfully in 15s, all 11 static pages generated including `/docs/scratch/demo-test`, SSR output contains expected markers (`stgm`, `role="form"`, `Ask anything` placeholder), zero lint errors
 
-## Previous Session Progress (2026-04-01, Session 1)
+## Previous Sessions
 
-- **Phase 1 fully implemented** — DemoTransport, createDemoClient factory, types, barrel export, subpath export, integration tests
-- See checkpoint `checkpoints/2026-04-01-session-1.md` for details
+- **Session 2 (2026-04-01)**: Phase 2 — Composable fixture infrastructure. See `checkpoints/2026-04-01-session-2.md`
+- **Session 1 (2026-04-01)**: Phase 1 — DemoTransport and createDemoClient. See `checkpoints/2026-04-01-session-1.md`
 
 ## Next Steps
 
-1. **Phase 3** — Fumadocs integration: add `@stigmer/react` to docs site, import styles, create MDX wrapper components that use `createDemoClient` + `buildScenario` + fixtures/samples
-2. **Phase 4** — Additional scenarios (agentRunScenario, approvalFlowScenario, etc.) and sample data for remaining domains (org, apiKey, github)
+1. **Phase 4** — Additional scenarios (agentRunScenario, approvalFlowScenario, etc.) and sample data for remaining domains (org, apiKey, github)
+2. **Richer demo wrappers** — Create MDX wrapper components for other SDK components (MessageThread, ArtifactsWidget, SkillDetailView) with proper fixture data using `buildScenario` + fixtures/samples
+3. **Report back to parent project** — Phase 3 of the parent content-strategy project can now proceed with real `@stigmer/react` components in docs
 
 ## Context for Resume
 
 - The demo module lives at `sdk/react/src/demo/` and is exported as `@stigmer/react/demo`
-- **New consumer API (Phase 2)**:
+- **Site integration pattern**:
+  - Site is NOT an npm workspace member — uses yarn 4 standalone with `file:` protocol deps
+  - `transpilePackages` in `next.config.ts` tells Next.js to compile `@stigmer/*` TypeScript source
+  - Build MUST use Node 22 LTS (`nvm exec 22 yarn next build`) — Node 23 has a fatal webpack bug
+  - CSS: `globals.css` imports `@stigmer/theme/tokens.css` and `@stigmer/react/styles.css`; `@source` directive scans `@stigmer/react` for Tailwind classes
+  - MDX components registered in `site/src/components/mdx.tsx`, wrappers live in `site/src/components/docs/demos/`
+- **Consumer API (Phase 2)**:
   ```ts
   import { fixtures, samples, buildScenario, createDemoClient } from "@stigmer/react/demo";
 
@@ -143,19 +154,16 @@ When starting a new session:
   );
   const client = createDemoClient(scenario);
   ```
-- **Why `buildScenario()` exists**: `agent.list()`, `skill.list()`, `mcpServer.list()` all go through `SearchService/search` (same RPC key). `buildScenario` merges them into a dispatch handler that routes by `ApiResourceKind`. Using `new Map([...])` directly with these helpers would cause silent key collisions.
-- **Fixture helpers mirror SDK shape**: `fixtures.session.get` → `client.session.get`, `fixtures.agentExecution.subscribe` → `client.agentExecution.subscribe`, etc. JSDoc on each documents which hooks consume that RPC.
-- **Samples use flat overrides**: `samples.session({ subject: "custom" })` — the factory handles the `metadata`/`spec` nesting internally. Protobuf messages are mutable for deeper customization.
-- **`quickstartScenario`** is a reference example, not a primary deliverable. It demonstrates the composition pattern.
+- **Why `buildScenario()` exists**: `agent.list()`, `skill.list()`, `mcpServer.list()` all go through `SearchService/search` (same RPC key). `buildScenario` merges them into a dispatch handler that routes by `ApiResourceKind`.
 - Phase 1 context remains valid: DemoTransport, `rpcKey`, structural typing, no new dependencies.
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 3" - Begin Fumadocs integration
+- "Start Phase 4" - Begin additional scenarios
+- "Create richer demo wrappers" - Build MDX wrappers for more components
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
 - "Check parent status" - Review parent project state
 
 ---
