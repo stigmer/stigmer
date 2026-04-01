@@ -100,50 +100,59 @@ When starting a new session:
 
 ## Current Status
 
-- **Status**: Phase 1 complete — ready for Phase 2
-- **Last Session**: 2026-04-01 (Session 1) — Planned and implemented Phase 1: DemoTransport and client factory
-- **Active Task**: T01 — Phase 1 complete. Phase 2 (fixture data for Cloud quickstart scenario) is next.
+- **Status**: Phase 2 complete — ready for Phase 3
+- **Last Session**: 2026-04-01 (Session 2) — Implemented Phase 2: Composable fixture infrastructure
+- **Active Task**: T01 — Phase 1 & 2 complete. Phase 3 (Fumadocs integration) is next.
 
-## Session Progress (2026-04-01, Session 1)
+## Session Progress (2026-04-01, Session 2)
 
-- **T01 plan reviewed and approved** — architecture for mock-at-the-transport-layer approach
-- **Phase 1 fully implemented** — DemoTransport, createDemoClient factory, types, barrel export, subpath export, integration tests
-- **Key discoveries during code exploration**:
-  - `@connectrpc/connect` v2.1.1 Transport interface has only 2 methods (`unary`, `stream`) not 4 — simpler mock
-  - `createRouterTransport` exists as official test utility but NOT used — decided against it to avoid runtime dependency on `@connectrpc/connect` in `@stigmer/react`
-  - `Stigmer` class has no transport injection point — used structural typing to create compatible plain object
+- **Architectural refinement**: User challenged the original Phase 2 plan (fixed `skillCreationScenario` + 5 components). Redesigned to composable primitives covering all hooks — not just 5 components. Data is defined at the point of use, not pre-packaged.
+- **Discovery: Search RPC multiplexing** — `agent.list()`, `skill.list()`, and `mcpServer.list()` all route through `SearchService/search` with different `kinds` values. This causes key collisions in a raw `Map`. Solved with `buildScenario()` which merges search handlers into a dispatch function.
+- **Phase 2 fully implemented** — fixtures, samples, reference scenario, barrel export, 43 new tests
 - **Files created**:
-  - `sdk/react/src/demo/types.ts` — FixtureRegistry, FixtureEntry, DemoScenario, rpcKey helper
-  - `sdk/react/src/demo/transport.ts` — DemoTransport class with unary/stream fixture lookup, descriptive errors
-  - `sdk/react/src/demo/client.ts` — createDemoClient factory constructing all 19 clients
-  - `sdk/react/src/demo/index.ts` — barrel export for `@stigmer/react/demo`
-  - `sdk/react/src/demo/__tests__/demo-client.test.tsx` — 9 tests (provider rendering, client completeness, transport unary/stream, error messages, rpcKey)
+  - `sdk/react/src/demo/fixtures.ts` — 42 fixture entry helpers across 10 domains, `buildScenario()`, `FixtureSpec` type
+  - `sdk/react/src/demo/samples.ts` — 14 sample data factories (7 resources + messages/artifacts + list responses) with flat override interfaces
+  - `sdk/react/src/demo/scenarios/quickstart.ts` — Reference scenario: minimal session conversation demonstrating composition
+  - `sdk/react/src/demo/__tests__/fixtures.test.ts` — 23 tests for fixture helpers, search multiplexing, scenario builder
+  - `sdk/react/src/demo/__tests__/samples.test.ts` — 20 tests for all sample factories
 - **Files modified**:
-  - `sdk/react/package.json` — added `"./demo"` subpath to exports and publishConfig
-- **Verification**: `tsc --noEmit` passes, `tsc -p tsconfig.build.json` passes, 70/70 tests pass (9 new + 61 existing), zero linter errors
+  - `sdk/react/src/demo/index.ts` — re-exports `fixtures`, `samples`, `buildScenario`, `FixtureSpec`, `quickstartScenario`
+- **Verification**: `tsc --noEmit` passes, 113/113 tests pass (43 new + 70 existing), zero linter errors
+
+## Previous Session Progress (2026-04-01, Session 1)
+
+- **Phase 1 fully implemented** — DemoTransport, createDemoClient factory, types, barrel export, subpath export, integration tests
+- See checkpoint `checkpoints/2026-04-01-session-1.md` for details
 
 ## Next Steps
 
-1. **Phase 2** — Build fixture data for the Cloud quickstart scenario (`skillCreationScenario`):
-   - Trace which RPCs the 5 target components call (MessageThread, SessionComposer, ArtifactsWidget, ResourceListView, SkillDetailView)
-   - Build protobuf fixture data using `create()` from `@bufbuild/protobuf`
-   - Package as a scenario ready for `createDemoClient()`
-2. **Phase 3** — Fumadocs integration: add `@stigmer/react` to docs site, import styles, create MDX wrapper components
-3. **Phase 4** — Additional scenarios (agentRunScenario, approvalFlowScenario, etc.)
+1. **Phase 3** — Fumadocs integration: add `@stigmer/react` to docs site, import styles, create MDX wrapper components that use `createDemoClient` + `buildScenario` + fixtures/samples
+2. **Phase 4** — Additional scenarios (agentRunScenario, approvalFlowScenario, etc.) and sample data for remaining domains (org, apiKey, github)
 
 ## Context for Resume
 
 - The demo module lives at `sdk/react/src/demo/` and is exported as `@stigmer/react/demo`
-- The DemoTransport keys fixtures by `"<proto service typeName>/<method name>"` — use `rpcKey(ServiceDescriptor, "methodName")` to construct keys
-- No changes were made to `@stigmer/sdk` public API — all 17 resource client classes + SearchClient + GitHubClient are constructed directly with the demo transport
-- The `as unknown as Transport` cast is localized to one line in `createDemoClient` — this follows the same pattern as the existing test in `sdk/typescript/src/__tests__/gen/session-client.test.ts`
-- `@connectrpc/connect` types resolve through the hoisted monorepo `node_modules` — no new dependency was added to `@stigmer/react`
-- For Phase 2, refer to the hook-to-RPC mapping discovered during planning (documented in the plan at `~/.cursor/plans/phase_1_demotransport_e101db0a.plan.md`)
+- **New consumer API (Phase 2)**:
+  ```ts
+  import { fixtures, samples, buildScenario, createDemoClient } from "@stigmer/react/demo";
+
+  const scenario = buildScenario(
+    fixtures.session.get(() => samples.session({ subject: "My topic" })),
+    fixtures.agent.list(() => samples.searchResponse([...])),
+    fixtures.agentExecution.subscribe(() => [samples.agentExecution(...)]),
+  );
+  const client = createDemoClient(scenario);
+  ```
+- **Why `buildScenario()` exists**: `agent.list()`, `skill.list()`, `mcpServer.list()` all go through `SearchService/search` (same RPC key). `buildScenario` merges them into a dispatch handler that routes by `ApiResourceKind`. Using `new Map([...])` directly with these helpers would cause silent key collisions.
+- **Fixture helpers mirror SDK shape**: `fixtures.session.get` → `client.session.get`, `fixtures.agentExecution.subscribe` → `client.agentExecution.subscribe`, etc. JSDoc on each documents which hooks consume that RPC.
+- **Samples use flat overrides**: `samples.session({ subject: "custom" })` — the factory handles the `metadata`/`spec` nesting internally. Protobuf messages are mutable for deeper customization.
+- **`quickstartScenario`** is a reference example, not a primary deliverable. It demonstrates the composition pattern.
+- Phase 1 context remains valid: DemoTransport, `rpcKey`, structural typing, no new dependencies.
 
 ## Quick Commands
 
 After loading context:
-- "Start Phase 2" - Begin fixture data for Cloud quickstart scenario
+- "Start Phase 3" - Begin Fumadocs integration
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
