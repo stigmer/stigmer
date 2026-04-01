@@ -13,9 +13,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: Phase 2 Complete — ready for Phase 3
-- **Last Session**: 2026-03-31 (Session 8) — Phase 2 sales website content fully implemented
-- **Active Task**: T01 — Phase 2 complete. Ready for Phase 3 (Getting Started documentation).
+- **Status**: Pre-Phase 3 prerequisites complete — ready for Phase 3
+- **Last Session**: 2026-04-01 (Session 9) — Pre-Phase 3 corrections applied (document writer role + CONTRIBUTING.md)
+- **Active Task**: T01 — Pre-Phase 3 prerequisites complete. Ready for Phase 3 (Getting Started documentation).
 
 ## Session Progress (2026-03-31, Session 8)
 
@@ -59,12 +59,26 @@ Drop this file into your conversation to quickly resume work on this project.
   - Demo Story: Condensed three-act narrative using Figma numbered-item pattern
   - CTA fallbacks: All links to unbuilt docs pages → `/docs` with TODO comments noting intended targets
 
+## Session Progress (2026-04-01, Session 9)
+
+- **Pre-Phase 3 prerequisites completed** — both tasks from IA Section 6 applied
+- **Document writer role corrections** (`_roles/002_document_writer.md`):
+  - Correction 1: Replaced absolute "write for a non-technical person" rule with context-sensitive register framework referencing the vocabulary guide's five writing contexts. Plain language remains the default; reference/SDK docs acknowledged as using precise technical language.
+  - Correction 2: Added clarifying note that Diataxis content types are a writing-quality rule, not a navigation rule. Sidebar structure is defined by the information architecture.
+  - Correction 3: Scoped infrastructure-analogy prohibition (Kubernetes, Docker) to sales site and introductory docs only. Architecture and contributor docs may use such references.
+- **docs/CONTRIBUTING.md updated**:
+  - Content architecture table: 9 directories replaced with 6 (removed `integration/`, `architecture/`, `deployment/`, `contributing/`; added `tutorials/`)
+  - Removed stale `_archive/` reference (deleted in Phase 0)
+  - Updated `meta.json` example from fictional page names to IA-actual pages (`quickstart`, `self-hosted`, `first-skill`)
+  - Added note listing non-rendered files excluded from sidebar
+- **Vocabulary inconsistency #3 resolved** — the audience conflict between document writer role and STYLE.md is now addressed by Correction 1. The inconsistency register entry in `docs/vocabulary.md` should be marked as resolved in a future session.
+- **Verification**: `yarn build` passes, `tsc --noEmit` passes
+
 ## Next Steps
 
-1. **Apply document writer role corrections** — 3 changes recommended by the information architecture (pre-Phase 3 task)
-2. **Update CONTRIBUTING.md** — directory table to match new 6-directory structure (Phase 3 prerequisite)
-3. **Begin Phase 3** — Getting Started documentation (quickstart, self-hosted, first-skill)
-4. **Resolve Cloud README vocabulary inconsistencies** — #2 and #4 deferred from Phase 1 (separate repo)
+1. **Begin Phase 3** — Getting Started documentation (quickstart, self-hosted, first-skill)
+2. **Resolve Cloud README vocabulary inconsistencies** — #2 and #4 deferred from Phase 1 (separate repo)
+3. **Mark vocabulary inconsistency #3 as resolved** — in `docs/vocabulary.md` inconsistency register (minor housekeeping)
 
 ## Context for Resume
 
@@ -159,8 +173,6 @@ After loading context:
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review TODO targets" - Check which CTA links need updating
-- "Update document writer role" - Apply the 3 corrections from the IA
-- "Update CONTRIBUTING.md" - Align directory table with new 6-directory structure
 
 ---
 

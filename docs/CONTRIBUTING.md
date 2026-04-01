@@ -43,20 +43,17 @@ configures Husky pre-commit hooks.
 Documentation lives in `docs/` at the repo root. Fumadocs renders it at `/docs/`
 on the site. The sections, in sidebar order, are:
 
-| Directory          | Purpose                                     |
-| ------------------ | ------------------------------------------- |
-| `getting-started/` | Installation, first Agent, first Workflow   |
-| `concepts/`        | Core concepts (Agents, Workflows, etc.)     |
-| `sdks/`            | Per-language SDK guides                     |
-| `integration/`     | Embedding Stigmer in your platform          |
-| `architecture/`    | System design, Durable Execution, lifecycle |
-| `deployment/`      | Local mode, production deployment           |
-| `cli/`             | CLI overview and command reference          |
-| `reference/`       | API reference, configuration options        |
-| `contributing/`    | How to contribute (code and docs)           |
+| Directory          | Purpose                                              |
+| ------------------ | ---------------------------------------------------- |
+| `getting-started/` | Cloud quickstart, self-hosted quickstart, first Skill |
+| `concepts/`        | Core concepts (Agents, Skills, Workflows, etc.)       |
+| `tutorials/`       | Progressive tutorials (tools, approvals, Workflows)   |
+| `sdks/`            | Per-language SDK guides                               |
+| `cli/`             | CLI overview and command reference                    |
+| `reference/`       | API reference                                        |
 
-The `_archive/` directory contains legacy files excluded from rendering and
-linting.
+Non-rendered files that remain in `docs/` but are excluded from the sidebar:
+`vocabulary.md`, `STYLE.md`, `CONTRIBUTING.md`, `README.md`.
 
 ## Adding a new page
 
@@ -83,7 +80,7 @@ order:
 ```json
 {
   "title": "Getting started",
-  "pages": ["installation", "first-agent", "first-workflow"]
+  "pages": ["quickstart", "self-hosted", "first-skill"]
 }
 ```
 
