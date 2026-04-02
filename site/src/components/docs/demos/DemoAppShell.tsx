@@ -2,15 +2,15 @@
 
 import { type ReactNode } from "react";
 import { motion } from "framer-motion";
-import { LayoutDashboard, Library, Settings } from "lucide-react";
+import { Building2, Library, Plus, User } from "lucide-react";
 
-const NAV_ITEMS = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "library", label: "Library", icon: Library },
-  { id: "settings", label: "Settings", icon: Settings },
-] as const;
+export type NavId = "new-session" | "library";
 
-type NavId = (typeof NAV_ITEMS)[number]["id"];
+const RECENT_SESSIONS = [
+  "Draft email copy",
+  "Q2 report analysis",
+  "Summarize meeting notes",
+];
 
 interface DemoAppShellProps {
   /** Which nav item is currently selected. */
@@ -22,78 +22,150 @@ interface DemoAppShellProps {
    * a fade transition between views.
    */
   contentKey: string;
+  /** Optional right sidebar (e.g. execution widgets). */
+  aside?: ReactNode;
   children: ReactNode;
 }
 
 /**
  * Schematic web app layout for the guided-tour demo.
  *
- * Renders a compact sidebar with nav items and a content area.
- * This is a docs illustration, not a replica of the real console —
- * it communicates the navigation flow without depending on any
- * internal Console components.
+ * Mirrors the Console's sidebar layout: org indicator, New Session,
+ * Library, recent sessions, and user profile. This is a docs
+ * illustration — it communicates the navigation flow without
+ * depending on any internal Console components.
  */
 export function DemoAppShell({
   activeNav,
   highlightNav,
   contentKey,
+  aside,
   children,
 }: DemoAppShellProps) {
   return (
-    <div className="flex overflow-hidden rounded-lg border border-border bg-card">
-      {/* Sidebar */}
+    <div className="flex h-[380px] overflow-hidden rounded-lg border border-border bg-card">
+      {/* Nav sidebar */}
       <nav
-        className="flex w-36 shrink-0 flex-col gap-0.5 border-r border-border bg-muted p-2"
+        className="flex w-28 shrink-0 flex-col border-r border-border bg-muted"
         aria-label="Demo app navigation"
       >
-        <div className="mb-3 px-2 py-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-          Stigmer
+        {/* Org indicator */}
+        <div className="flex items-center gap-1.5 px-3 py-2">
+          <Building2 className="h-3 w-3 shrink-0 text-muted-foreground" />
+          <span className="truncate text-[10px] font-semibold text-foreground">
+            Acme Corp
+          </span>
         </div>
 
-        {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
-          const isActive = activeNav === id;
-          const isHighlighted = highlightNav === id;
+        {/* Primary nav */}
+        <div className="flex flex-col gap-0.5 px-2">
+          <NavRow
+            id="new-session"
+            label="New Session"
+            icon={Plus}
+            isActive={activeNav === "new-session"}
+            isHighlighted={highlightNav === "new-session"}
+          />
+          <NavRow
+            id="library"
+            label="Library"
+            icon={Library}
+            isActive={activeNav === "library"}
+            isHighlighted={highlightNav === "library"}
+          />
+        </div>
 
-          return (
-            <div
-              key={id}
-              className={`relative flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors ${
-                isActive
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground"
-              }`}
-            >
-              <Icon className="h-3.5 w-3.5 shrink-0" />
-              <span>{label}</span>
+        {/* Separator */}
+        <div className="mx-3 my-1.5 border-t border-border" />
 
-              {isHighlighted && (
-                <motion.span
-                  className="absolute inset-0 rounded-md border border-foreground"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 0.5, 0] }}
-                  transition={{
-                    duration: 1.2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  aria-hidden
-                />
-              )}
-            </div>
-          );
-        })}
+        {/* Recents */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-3">
+          <p className="mb-1 text-[8px] font-semibold tracking-wider text-muted-foreground uppercase">
+            Recents
+          </p>
+          <ul className="flex flex-col gap-0.5">
+            {RECENT_SESSIONS.map((title) => (
+              <li
+                key={title}
+                className="truncate rounded-sm px-1.5 py-0.5 text-[9px] text-muted-foreground"
+              >
+                {title}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* User profile */}
+        <div className="flex items-center gap-1.5 border-t border-border px-3 py-2">
+          <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted-foreground/20">
+            <User className="h-2.5 w-2.5 text-muted-foreground" />
+          </div>
+          <span className="truncate text-[9px] text-muted-foreground">You</span>
+        </div>
       </nav>
 
       {/* Content area */}
       <motion.div
         key={contentKey}
-        className="min-h-[280px] flex-1 overflow-hidden"
+        className="min-w-0 flex-1 overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
       >
         {children}
       </motion.div>
+
+      {/* Widget sidebar */}
+      {aside && (
+        <aside
+          className="w-48 shrink-0 overflow-y-auto border-l border-border"
+          aria-label="Execution details"
+        >
+          {aside}
+        </aside>
+      )}
+    </div>
+  );
+}
+
+function NavRow({
+  id,
+  label,
+  icon: Icon,
+  isActive,
+  isHighlighted,
+}: {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  isActive: boolean;
+  isHighlighted: boolean;
+}) {
+  return (
+    <div
+      key={id}
+      className={`relative flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] transition-colors ${
+        isActive
+          ? "bg-accent text-accent-foreground"
+          : "text-muted-foreground"
+      }`}
+    >
+      <Icon className="h-3 w-3 shrink-0" />
+      <span>{label}</span>
+
+      {isHighlighted && (
+        <motion.span
+          className="absolute inset-0 rounded-md border border-foreground"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 0.5, 0] }}
+          transition={{
+            duration: 1.2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          aria-hidden
+        />
+      )}
     </div>
   );
 }

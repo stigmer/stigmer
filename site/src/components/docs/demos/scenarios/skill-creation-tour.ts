@@ -1,9 +1,10 @@
 /**
  * Guided-tour scenario for "Your first Skill".
  *
- * Defines an 8-step playback that walks the reader through the full
+ * Defines a 12-step playback that walks the reader through the full
  * Stigmer web app navigation: sidebar → Library → Skills list →
- * Create Skill → Session Composer → conversation with Skill Creator.
+ * Create Skill → Session Composer → conversation with Skill Creator →
+ * artifact preview → push → back to Library with the new skill.
  *
  * Each step is a discriminated union (`GuidedTourStep`) so the render
  * prop in `DemoSkillCreationTour` can switch on `step.view` and render
@@ -11,11 +12,13 @@
  */
 
 import {
+  ExecutionArtifactKind,
   ExecutionPhase,
   MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
+import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { samples } from "@stigmer/react/demo";
 import type { ScenarioStep } from "../ScenarioPlayer";
 
@@ -27,8 +30,11 @@ export type GuidedTourStep =
   | { view: "library-click"; activeNav: "library" }
   | { view: "skills-list" }
   | { view: "create-skill-click" }
-  | { view: "composer-ready"; agentName: string }
-  | { view: "conversation"; execution: AgentExecution };
+  | { view: "composer-ready" }
+  | { view: "conversation"; execution: AgentExecution }
+  | { view: "artifact-preview"; execution: AgentExecution; artifactContent: string }
+  | { view: "push-skill"; execution: AgentExecution }
+  | { view: "library-complete" };
 
 // ---------------------------------------------------------------------------
 // Conversation messages (same content as skill-creation.ts)
@@ -62,6 +68,38 @@ const ai2 = samples.aiMessage(
 );
 
 // ---------------------------------------------------------------------------
+// SKILL.md content for the artifact preview
+// ---------------------------------------------------------------------------
+
+export const SKILL_MD_PREVIEW = `---
+name: Return Policy
+description: Acme Corp's customer return and refund policy.
+---
+
+# Return Policy
+
+## Standard Returns
+
+Customers may return most items within **14 days** of delivery for a full refund.
+
+**Requirements:**
+- Original receipt or order confirmation email
+- Item in original packaging, unused condition
+- Return shipping label (provided at no cost)
+
+## Exceptions
+
+**Defective items** — accepted for return at any time, regardless of the 14-day window.
+
+**Final sale items** — marked "Final Sale" at checkout. Not eligible for return or exchange.
+
+**Digital products** — non-refundable once the download link has been accessed.
+
+## Refund Timeline
+
+Refunds are processed within **3–5 business days** after we receive the returned item.`;
+
+// ---------------------------------------------------------------------------
 // Snapshot helper — fixes the duplicate-message bug from skill-creation.ts.
 //
 // MessageThread synthesizes a human bubble from `spec.message`, so the first
@@ -69,7 +107,11 @@ const ai2 = samples.aiMessage(
 // `status.messages` to avoid rendering it twice.
 // ---------------------------------------------------------------------------
 
-function snapshot(...msgs: AgentMessage[]): AgentExecution {
+function snapshot(
+  msgs: AgentMessage[],
+  phase: ExecutionPhase = ExecutionPhase.EXECUTION_IN_PROGRESS,
+  artifacts?: ExecutionArtifact[],
+): AgentExecution {
   const firstHumanIdx = msgs.findIndex(
     (m) => m.type === MessageType.MESSAGE_HUMAN,
   );
@@ -81,24 +123,45 @@ function snapshot(...msgs: AgentMessage[]): AgentExecution {
       : msgs;
 
   const exec = samples.agentExecution({
-    phase: ExecutionPhase.EXECUTION_COMPLETED,
+    phase,
     messages: statusMessages,
+    artifacts,
   });
   exec.spec!.message = specMessage;
   return exec;
 }
+
+const SKILL_ARTIFACT: ExecutionArtifact = (() => {
+  const a = samples.artifact("return-policy", ExecutionArtifactKind.DIRECTORY);
+  (a as { entries: string[] }).entries = ["SKILL.md"];
+  return a;
+})();
+
+const finalExecution = snapshot(
+  [user1, ai1, user2, ai2],
+  ExecutionPhase.EXECUTION_COMPLETED,
+  [SKILL_ARTIFACT],
+);
 
 // ---------------------------------------------------------------------------
 // Step sequence
 // ---------------------------------------------------------------------------
 
 export const skillCreationTourSteps: ScenarioStep<GuidedTourStep>[] = [
+  // Navigation
   { delayMs: 0, data: { view: "library-click", activeNav: "library" } },
   { delayMs: 1500, data: { view: "skills-list" } },
   { delayMs: 2000, data: { view: "create-skill-click" } },
-  { delayMs: 1500, data: { view: "composer-ready", agentName: "Skill Creator" } },
-  { delayMs: 2000, data: { view: "conversation", execution: snapshot(user1) } },
-  { delayMs: 2000, data: { view: "conversation", execution: snapshot(user1, ai1) } },
-  { delayMs: 2500, data: { view: "conversation", execution: snapshot(user1, ai1, user2) } },
-  { delayMs: 2000, data: { view: "conversation", execution: snapshot(user1, ai1, user2, ai2) } },
+  // Composer
+  { delayMs: 1500, data: { view: "composer-ready" } },
+  // Conversation (IN_PROGRESS during interaction, COMPLETED when agent finishes)
+  { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1]) } },
+  { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1, ai1]) } },
+  { delayMs: 2500, data: { view: "conversation", execution: snapshot([user1, ai1, user2]) } },
+  { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1, ai1, user2, ai2], ExecutionPhase.EXECUTION_COMPLETED) } },
+  // Artifact & push (execution carries the artifact for the widget sidebar)
+  { delayMs: 2500, data: { view: "artifact-preview", execution: finalExecution, artifactContent: SKILL_MD_PREVIEW } },
+  { delayMs: 3000, data: { view: "push-skill", execution: finalExecution } },
+  // Back to library
+  { delayMs: 2000, data: { view: "library-complete" } },
 ];

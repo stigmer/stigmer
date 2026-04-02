@@ -1,12 +1,13 @@
 "use client";
 
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { ResourceListView } from "@stigmer/react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { samples } from "@stigmer/react/demo";
 
-const MOCK_SKILLS = [
+const EXISTING_SKILLS = [
   samples.searchResult({
     kind: ApiResourceKind.skill,
     name: "Product Catalog",
@@ -21,9 +22,18 @@ const MOCK_SKILLS = [
   }),
 ];
 
+const NEW_SKILL = samples.searchResult({
+  kind: ApiResourceKind.skill,
+  name: "Return Policy",
+  slug: "return-policy",
+  description: "Acme Corp's customer return and refund policy.",
+});
+
 interface SkillsListViewProps {
   /** When true, the "Create Skill" button pulses to draw attention. */
   highlightCreate?: boolean;
+  /** When true, the newly created "Return Policy" skill is appended with a highlight flash. */
+  showNewSkill?: boolean;
 }
 
 /**
@@ -33,7 +43,15 @@ interface SkillsListViewProps {
  * header and "Create Skill" button. The list is fed by fixture data
  * via `samples.searchResult()` — no live backend required.
  */
-export function SkillsListView({ highlightCreate }: SkillsListViewProps) {
+export function SkillsListView({
+  highlightCreate,
+  showNewSkill,
+}: SkillsListViewProps) {
+  const items = useMemo(
+    () => (showNewSkill ? [...EXISTING_SKILLS, NEW_SKILL] : EXISTING_SKILLS),
+    [showNewSkill],
+  );
+
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-4 flex items-center justify-between">
@@ -60,7 +78,26 @@ export function SkillsListView({ highlightCreate }: SkillsListViewProps) {
         </div>
       </div>
 
-      <ResourceListView items={MOCK_SKILLS} isLoading={false} />
+      <div className="relative">
+        <ResourceListView items={items} isLoading={false} />
+        {showNewSkill && <NewSkillHighlight />}
+      </div>
     </div>
+  );
+}
+
+/**
+ * Brief highlight flash on the last item in the list to draw the
+ * reader's eye to the newly created skill.
+ */
+function NewSkillHighlight() {
+  return (
+    <motion.div
+      className="pointer-events-none absolute inset-x-0 bottom-0 h-[52px] rounded-md bg-primary/5"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: [0, 1, 0] }}
+      transition={{ duration: 2, ease: "easeInOut" }}
+      aria-hidden
+    />
   );
 }
