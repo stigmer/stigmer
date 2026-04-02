@@ -70,7 +70,7 @@ That's it! No complex structure - just focused work.
 **Last Updated**: 2026-04-02
 **Current Focus**: Visual QA — run the dev server and verify the guided tour renders correctly on the first-skill docs page.
 
-## Session Progress (2026-04-02)
+## Session 1 Progress (2026-04-02)
 
 - Designed component architecture (GuidedTourStep discriminated union, ScenarioPlayer reuse, DemoAppShell + SkillsListView + ComposerView hierarchy)
 - Built all 5 new files: `skill-creation-tour.ts`, `DemoAppShell.tsx`, `SkillsListView.tsx`, `ComposerView.tsx`, `DemoSkillCreationTour.tsx`
@@ -79,6 +79,13 @@ That's it! No complex structure - just focused work.
 - TypeScript type check passes clean (zero errors)
 - Decided on representative/schematic fidelity (not pixel-accurate console replica)
 - Decided on pulse/highlight effects (no cursor animations)
+
+## Session 2 Progress (2026-04-02)
+
+- Replaced custom SkillsListView card rendering with real `ResourceListView` from `@stigmer/react` + `samples.searchResult()` fixtures
+- Replaced fake text input in ComposerView with real `SessionComposer` from `@stigmer/react`
+- All demo views now use real SDK components (MessageThread, ResourceListView, SessionComposer)
+- TypeScript type check passes clean
 
 ## Next Steps
 

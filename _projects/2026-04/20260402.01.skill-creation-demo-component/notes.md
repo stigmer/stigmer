@@ -100,8 +100,8 @@ DemoSkillCreationTour (top-level, exported from barrel)
        └─ render prop: switch on step.view
             └─ DemoAppShell (sidebar + content wrapper)
                  ├─ Sidebar (inline, nav items with highlight)
-                 ├─ SkillsListView (mock skill cards + Create button)
-                 └─ ComposerView (agent header + MessageThread)
+                 ├─ SkillsListView (ResourceListView + Create button)
+                 └─ ComposerView (agent header + SessionComposer / MessageThread)
 ```
 
 ### File structure
@@ -110,8 +110,8 @@ DemoSkillCreationTour (top-level, exported from barrel)
 demos/
   DemoSkillCreationTour.tsx    (new — top-level component)
   DemoAppShell.tsx             (new — shell layout + sidebar)
-  SkillsListView.tsx           (new — mock skills list)
-  ComposerView.tsx             (new — agent header + MessageThread)
+  SkillsListView.tsx           (new — ResourceListView + page chrome)
+  ComposerView.tsx             (new — agent header + SessionComposer / MessageThread)
   scenarios/
     skill-creation-tour.ts     (new — step definitions + snapshot helper)
     skill-creation.ts          (existing — scenario fixtures, keep for data)
@@ -125,3 +125,18 @@ demos/
 - ScenarioPlayer design doc:
   `_projects/2026-04/20260401.02.sp.getting-started-revision/design-decisions/scenario-player.md`
 - Architecture plan: `.cursor/plans/skill_creation_guided_tour_dfdca60b.plan.md`
+
+## Session 2: SDK component refactor (2026-04-02)
+
+Replaced custom illustrative components with real `@stigmer/react` SDK components:
+
+- **SkillsListView**: Replaced hand-rolled card divs with `ResourceListView`
+  fed by `samples.searchResult()` fixtures (`kind: ApiResourceKind.skill`).
+  The component now renders the same `DefaultResourceRow` the real Console
+  shows — skill icon, name, org, description. Page header and "Create Skill"
+  button retained as wrapper chrome.
+
+- **ComposerView**: Replaced fake text input div with real `SessionComposer`
+  (`showModelSelector={false}`, `enableAttachments={false}`, `initialRows={2}`).
+  Agent header bar and `MessageThread` for conversation steps unchanged
+  (already real SDK components).
