@@ -47,6 +47,8 @@ export const metadata: Metadata = {
     "Open-source AI agent platform that lets you turn domain knowledge and tools into agents your applications can call via API.",
   icons: {
     icon: [
+      { url: "/favicon-dark.svg", type: "image/svg+xml", media: "(prefers-color-scheme: dark)" },
+      { url: "/favicon-light.svg", type: "image/svg+xml", media: "(prefers-color-scheme: light)" },
       { url: "/favicon-dark.ico", sizes: "32x32", media: "(prefers-color-scheme: dark)" },
       { url: "/favicon-dark-16x16.png", sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: dark)" },
       { url: "/favicon-dark-32x32.png", sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: dark)" },
