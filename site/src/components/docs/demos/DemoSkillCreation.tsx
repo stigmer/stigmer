@@ -9,7 +9,7 @@ import {
 } from "./scenarios/skill-creation";
 
 /**
- * Embedded skill-creation conversation for the Cloud quickstart.
+ * Embedded skill-creation conversation for "Your first Skill".
  *
  * Renders a realistic MessageThread showing a user asking the AI to
  * create a return-policy Skill. Backed by fixture data — no live
