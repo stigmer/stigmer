@@ -57,7 +57,7 @@ export function SettingsView({
         </p>
       </div>
 
-      <div className="min-h-0 flex-1 px-4 pb-4" style={{ zoom: 0.92 }}>
+      <div className="min-h-0 flex-1 px-4 pb-4" style={{ zoom: 0.75 }}>
         {/* API Keys section */}
         <section>
           <div className="mb-2 flex items-center justify-between">

@@ -64,7 +64,7 @@ export function ComposerView({
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-hidden">
         {execution ? (
-          <div className="flex h-full flex-col">
+          <div className="flex h-full flex-col" style={{ zoom: 0.82 }}>
             {showArtifact ? (
               <ArtifactPanel
                 content={artifactContent}
@@ -73,7 +73,7 @@ export function ComposerView({
             ) : (
               <MessageThread
                 executions={[execution]}
-                className="max-h-[320px] px-3 py-2"
+                className="max-h-[390px] px-3 py-2"
               />
             )}
           </div>

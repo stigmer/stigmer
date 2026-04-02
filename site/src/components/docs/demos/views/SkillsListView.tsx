@@ -81,7 +81,7 @@ export function SkillsListView({
         </div>
       </div>
 
-      <div className="relative">
+      <div className="relative" style={{ zoom: 0.85 }}>
         <ResourceListView items={items} isLoading={false} />
         {showNewSkill && <NewSkillHighlight />}
       </div>

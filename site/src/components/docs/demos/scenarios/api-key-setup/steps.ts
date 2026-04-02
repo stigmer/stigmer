@@ -43,14 +43,14 @@ export type ApiKeySetupStep =
 
 const existingKey1 = samples.apiKey({
   id: "apk-00000000-0000-0000-0000-000000000001",
-  name: "mcp-server",
-  fingerprint: "Xn1l0s",
+  name: "ci-pipeline",
+  fingerprint: "Kd9m2R",
 });
 
 const existingKey2 = samples.apiKey({
   id: "apk-00000000-0000-0000-0000-000000000002",
-  name: "for-resource-management",
-  fingerprint: "xPt-v8",
+  name: "local-dev",
+  fingerprint: "Yw3pLx",
 });
 
 export const API_KEY_LIST = create(ApiKeysSchema, {
@@ -83,13 +83,13 @@ export const PERSONAL_ENVIRONMENT = create(EnvironmentSchema, {
         value: "",
         isSecret: true,
       }),
-      STIGMER_API_KEY: create(EnvironmentValueSchema, {
+      OPENAI_API_KEY: create(EnvironmentValueSchema, {
         value: "",
         isSecret: true,
       }),
-      STIGMER_SERVER_ADDRESS: create(EnvironmentValueSchema, {
-        value: "https://stigmer-prod-api.planton.live",
-        isSecret: false,
+      SLACK_WEBHOOK_URL: create(EnvironmentValueSchema, {
+        value: "",
+        isSecret: true,
       }),
     },
   }),

@@ -238,12 +238,9 @@ function UserMenu() {
         <Settings className="h-3 w-3 shrink-0 text-muted-foreground" />
         <span>Settings</span>
       </div>
-      <div className="flex items-center justify-between px-2.5 py-1 text-[10px] text-foreground hover:bg-accent">
-        <div className="flex items-center gap-1.5">
-          <Monitor className="h-3 w-3 shrink-0 text-muted-foreground" />
-          <span>Appearance</span>
-        </div>
-        <span className="text-[8px] text-muted-foreground">System</span>
+      <div className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] text-foreground hover:bg-accent">
+        <Monitor className="h-3 w-3 shrink-0 text-muted-foreground" />
+        <span>Appearance</span>
       </div>
       <div className="mx-2 my-0.5 border-t border-border" />
       <div className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] text-foreground hover:bg-accent">
