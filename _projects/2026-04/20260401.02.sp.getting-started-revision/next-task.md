@@ -102,7 +102,7 @@ When starting a new session:
 
 **Created**: 2026-04-01 18:00
 **Current Task**: T01 (Getting Started Documentation Revision)
-**Status**: Session 2 complete — ready for Session 3 (Cloud Quickstart + Docs Homepage)
+**Status**: Session 3 complete — Getting Started arc functionally done
 
 ## Session Progress
 
@@ -155,6 +155,16 @@ When starting a new session:
 - **Architectural discovery**: `MessageThread` is pure (takes `executions` props, no `useStigmer()` calls). Transport/fixture manipulation unnecessary — state-driven snapshots are simpler.
 - **Verification**: `tsc --noEmit` passes, `yarn build` passes (zero errors)
 
+### Session 3 (2026-04-02) — Quickstart + Homepage + Guided Tour
+
+- **3A: Quickstart rewrite** — pure cloud, multi-language (TS/Go/Python/Java), incremental code, file continuity cues, "View complete file" accordion, two-question narrative bridging to Your first Skill
+- **3B: ScenarioPlayer UX** — play-once-and-hold, reset on scroll-out, no replay button, duplicate message fix
+- **3C: Navigation cleanup** — removed "local" from meta.json, merged "Next step" into "What just happened"
+- **3D: Your first Skill rewrite** — pure cloud, skill creation via web app, SDK testing with skillRefs
+- **3E: Skill creation demo** (quick project 20260402.01) — three-tier demo architecture (engine/views/scenarios), DemoSkillCreationTour guided tour with animated cursor, AppShell/ComposerView/WidgetsSidebar
+- **3F: Docs homepage rewrite** — "Get started" (linked) + "Coming soon" (inert) sections, eliminated 3 dead links
+- **Verification**: `tsc --noEmit` passes, Vale zero warnings
+
 ## Key Decisions Made
 
 1. **Cloud Quickstart scope**: Sign up → API key → SDK → session → message → response. No skill creation. Implicit assistant agent.
@@ -176,7 +186,8 @@ When starting a new session:
 - `MessageThread` is a pure component — takes `executions` props, no `useStigmer()` hook calls. State-driven playback works without fixtures.
 - Seedpack assistant agent: `seedpack/agents/assistant.yaml` (label `stigmer.ai/default-agent: "true"`)
 - SDK exports ~50+ React components including `MessageThread`, `ArtifactCard`, `ArtifactContentRenderer`, `ApprovalCard`, `ToolCallDetail`, `SessionComposer`
-- **Session 3 focus**: Rewrite Cloud Quickstart (5-min path, implicit assistant, ScenarioPlayer replaces static demo) + Docs Homepage (journey preview, dual CTAs)
+- **Session 3 delivered**: Quickstart rewrite (multi-language, incremental code, play-once ScenarioPlayer), Your first Skill rewrite (cloud flow, DemoSkillCreationTour guided tour), Docs homepage rewrite (active + coming-soon cards). See checkpoint: `checkpoints/session-3-quickstart-homepage.md`
+- **Remaining**: Local Quickstart (deferred), Coming-soon page content (Core Concepts, Tutorials, SDK Reference, CLI Reference)
 
 ## Quick Commands
 
