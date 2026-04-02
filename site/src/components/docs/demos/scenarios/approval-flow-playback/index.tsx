@@ -8,6 +8,7 @@ import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
+import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import { type ApprovalFlowStep, approvalFlowSteps } from "./steps";
 
 const emptyScenario: DemoScenario = { fixtures: new Map() };
@@ -42,7 +43,7 @@ export function ApprovalFlowPlayback() {
 
   return (
     <StigmerProvider client={client}>
-      <div className="not-prose mx-auto max-w-4xl">
+      <div className={DEMO_PLAYER_CLASSES}>
         <ScenarioPlayer steps={approvalFlowSteps}>
           {(step) => renderStep(step)}
         </ScenarioPlayer>

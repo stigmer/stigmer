@@ -9,6 +9,7 @@ import {
   WriteBacksWidget,
 } from "@stigmer/react";
 import { DEMO_ORG } from "../engine/shared";
+import { DEMO_SIDEBAR_ZOOM } from "../shared/tokens";
 
 interface WidgetsSidebarProps {
   /** Active or most recent execution (for phase badge / todos). */
@@ -32,7 +33,7 @@ export function WidgetsSidebar({
   org,
 }: WidgetsSidebarProps) {
   return (
-    <div className="flex flex-col gap-2 p-2" style={{ zoom: 0.85 }}>
+    <div className="flex flex-col gap-2 p-2" style={{ zoom: DEMO_SIDEBAR_ZOOM }}>
       <div className="rounded-lg border border-border bg-card p-2">
         <ExecutionProgress execution={execution} />
       </div>

@@ -10,6 +10,7 @@ import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexe
 import { motion } from "framer-motion";
 import { Check, FileText, Folder } from "lucide-react";
 import { DEMO_ORG, MOCK_WORKSPACE } from "../engine/shared";
+import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
 
 const noop = () => {};
 
@@ -64,7 +65,7 @@ export function ComposerView({
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-hidden">
         {execution ? (
-          <div className="flex h-full flex-col" style={{ zoom: 0.82 }}>
+          <div className="flex h-full flex-col" style={{ zoom: DEMO_CONTENT_ZOOM }}>
             {showArtifact ? (
               <ArtifactPanel
                 content={artifactContent}
@@ -79,7 +80,7 @@ export function ComposerView({
           </div>
         ) : (
           <div className="flex h-full items-center justify-center p-4">
-            <div className="w-full max-w-xl" style={{ zoom: 0.88 }}>
+            <div className="w-full max-w-xl" style={{ zoom: DEMO_CONTENT_ZOOM }}>
               {typingMessage ? (
                 <TypingComposer
                   message={typingMessage}

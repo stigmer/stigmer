@@ -13,6 +13,7 @@ import { AgentSpecSchema, McpServerUsageSchema } from "@stigmer/protos/ai/stigme
 import { ApiResourceReferenceSchema } from "@stigmer/protos/ai/stigmer/commons/apiresource/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { EnvironmentSpecSchema, EnvironmentValueSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/spec_pb";
+import { DEMO_DETAIL_CLASSES } from "../../shared/tokens";
 
 const DEMO_ORG = "acme";
 
@@ -85,7 +86,7 @@ export function AgentDetail() {
 
   return (
     <StigmerProvider client={client}>
-      <div className="stgm not-prose overflow-hidden rounded-lg border border-border">
+      <div className={DEMO_DETAIL_CLASSES}>
         <div className="p-4">
           <AgentDetailView org={DEMO_ORG} slug="support-agent" />
         </div>
