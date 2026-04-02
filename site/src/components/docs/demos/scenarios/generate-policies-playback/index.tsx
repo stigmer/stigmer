@@ -12,7 +12,7 @@ import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/enviro
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { AppShell } from "../../views/AppShell";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
-import { DEMO_DETAIL_CLASSES, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
+import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
   generatePoliciesSteps,
   DEMO_ORG,
@@ -47,7 +47,7 @@ export function GeneratePoliciesPlayback() {
         {(step) => (
           <StigmerProvider client={clientMap.get(step.server)!}>
             <AppShell activeNav="library" contentKey="mcp-detail">
-              <div className={DEMO_DETAIL_CLASSES}>
+              <div className="h-full overflow-y-auto" style={{ zoom: DEMO_CONTENT_ZOOM }}>
                 <div className="p-4">
                   <McpServerDetailView
                     org={DEMO_ORG}
