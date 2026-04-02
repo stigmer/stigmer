@@ -31,7 +31,7 @@ Snipsync
 Docusaurus
 apiVersion
 metadata
-[Ss]pec
+spec
 status
 org
 slug
@@ -83,11 +83,6 @@ sandboxing
 Zigflow
 subtask
 mcp_server_ref
-subgraph
-runbook
-default_tool_approvals
-tool_approval_overrides
-auto_approve_all
-yourApp
-sdkCall
-llmLayer
+npm
+npx
+stdio

@@ -41,21 +41,27 @@ export type ApiKeySetupStep =
 // Fixture data — API keys matching the console screenshots
 // ---------------------------------------------------------------------------
 
-const existingKey1 = samples.apiKey({
-  id: "apk-00000000-0000-0000-0000-000000000001",
-  name: "ci-pipeline",
-  fingerprint: "Kd9m2R",
-});
+let _apiKeyList: ReturnType<typeof create<typeof ApiKeysSchema>> | undefined;
 
-const existingKey2 = samples.apiKey({
-  id: "apk-00000000-0000-0000-0000-000000000002",
-  name: "local-dev",
-  fingerprint: "Yw3pLx",
-});
-
-export const API_KEY_LIST = create(ApiKeysSchema, {
-  entries: [existingKey1, existingKey2],
-});
+export function getApiKeyList() {
+  if (!_apiKeyList) {
+    _apiKeyList = create(ApiKeysSchema, {
+      entries: [
+        samples.apiKey({
+          id: "apk-00000000-0000-0000-0000-000000000001",
+          name: "ci-pipeline",
+          fingerprint: "Kd9m2R",
+        }),
+        samples.apiKey({
+          id: "apk-00000000-0000-0000-0000-000000000002",
+          name: "local-dev",
+          fingerprint: "Yw3pLx",
+        }),
+      ],
+    });
+  }
+  return _apiKeyList;
+}
 
 export const CREATED_KEY_NAME = "quickstart-key";
 export const CREATED_RAW_KEY = "sk_live_dEm0k3y_a1b2c3d4e5f6g7h8";

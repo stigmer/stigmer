@@ -14,6 +14,28 @@ import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
 
 const noop = () => {};
 
+export interface ArtifactMeta {
+  readonly icon: "folder" | "file";
+  readonly name: string;
+  readonly label: string;
+  readonly title: string;
+  readonly description: string;
+  readonly fileName: string;
+  readonly contentType: string;
+  readonly pushLabel: string;
+}
+
+const SKILL_ARTIFACT_META: ArtifactMeta = {
+  icon: "folder",
+  name: "return-policy/",
+  label: "Skill · 1 file",
+  title: "Return Policy",
+  description: "Acme Corp\u2019s customer return and refund policy.",
+  fileName: "SKILL.md",
+  contentType: "text/markdown",
+  pushLabel: "Push Skill to my-org",
+};
+
 interface ComposerViewProps {
   /** When provided, renders the conversation via MessageThread. */
   execution?: AgentExecution;
@@ -32,9 +54,15 @@ interface ComposerViewProps {
    */
   artifactContent?: string;
   /**
+   * Metadata for the artifact preview. Controls the header, detection
+   * callout, file name, and push button labels. Defaults to the Skill
+   * artifact meta used by the skill creation tour.
+   */
+  artifactMeta?: ArtifactMeta;
+  /**
    * Controls the push CTA state shown below the artifact preview.
    *
-   * - `"ready"` — renders a pulsing "Push Skill to my-org" button
+   * - `"ready"` — renders a pulsing push button
    * - `"success"` — renders a green success indicator
    * - `undefined` — no push CTA shown
    */
@@ -57,9 +85,11 @@ export function ComposerView({
   placeholder = "Describe your skill...",
   agentRef,
   artifactContent,
+  artifactMeta,
   pushState,
 }: ComposerViewProps) {
   const showArtifact = artifactContent != null;
+  const meta = artifactMeta ?? SKILL_ARTIFACT_META;
 
   return (
     <div className="flex h-full flex-col">
@@ -69,6 +99,7 @@ export function ComposerView({
             {showArtifact ? (
               <ArtifactPanel
                 content={artifactContent}
+                meta={meta}
                 pushState={pushState}
               />
             ) : (
@@ -155,46 +186,46 @@ function TypingComposer({
 }
 
 /**
- * Inline artifact preview for a skill directory.
+ * Inline artifact preview for execution artifacts.
  *
- * Mirrors the SDK's `DirectoryContentView` pattern from
- * `ArtifactPreviewModal`: directory header with "Skill · 1 file"
- * badge, skill name/description callout, file entries list, then
- * rendered SKILL.md content scrollable below.
+ * Renders a header with icon + name + badge, a detection callout
+ * with title/description, a file entry, the rendered content, and
+ * an optional push CTA. All labels are driven by `meta` so the same
+ * panel works for skills, MCP servers, and future artifact types.
  */
 function ArtifactPanel({
   content,
+  meta,
   pushState,
 }: {
   readonly content: string;
+  readonly meta: ArtifactMeta;
   readonly pushState?: "ready" | "success";
 }) {
+  const HeaderIcon = meta.icon === "folder" ? Folder : FileText;
+
   return (
     <div className="flex h-full flex-col">
-      {/* Directory header — matches SDK ModalHeader pattern */}
       <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-1.5">
-        <Folder className="h-3 w-3 shrink-0 text-muted-foreground" />
+        <HeaderIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
         <span className="text-[11px] font-semibold text-foreground">
-          return-policy/
+          {meta.name}
         </span>
         <span className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-medium text-primary">
-          Skill · 1 file
+          {meta.label}
         </span>
       </div>
 
-      {/* Scrollable body */}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {/* Skill detection callout — matches SDK DirectoryContentView */}
         <div className="mx-3 mt-3 rounded-md bg-primary/5 p-2.5">
           <p className="text-[11px] font-medium text-foreground">
-            Return Policy
+            {meta.title}
           </p>
           <p className="mt-0.5 text-[10px] text-muted-foreground">
-            Acme Corp&apos;s customer return and refund policy.
+            {meta.description}
           </p>
         </div>
 
-        {/* File entries list — matches SDK DirectoryContentView */}
         <div className="px-3 pt-3">
           <h3 className="mb-1.5 text-[10px] font-medium text-muted-foreground">
             Files (1)
@@ -202,28 +233,26 @@ function ArtifactPanel({
           <ul role="list">
             <li className="flex items-center gap-1.5 rounded-sm px-1.5 py-0.5 font-mono text-[10px] text-foreground">
               <FileText className="h-3 w-3 shrink-0 text-muted-foreground" />
-              <span>SKILL.md</span>
+              <span>{meta.fileName}</span>
             </li>
           </ul>
         </div>
 
-        {/* Rendered SKILL.md content */}
         <div className="mt-2 border-t border-border">
           <ArtifactContentRenderer
             content={content}
-            fileName="SKILL.md"
-            contentType="text/markdown"
+            fileName={meta.fileName}
+            contentType={meta.contentType}
           />
         </div>
       </div>
 
-      {/* Push CTA pinned at the bottom */}
       {pushState && (
         <div className="flex shrink-0 items-center justify-end border-t border-border px-3 py-1.5">
           {pushState === "success" ? (
             <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-success">
               <Check size={11} />
-              Pushed · Return Policy
+              Pushed · {meta.title}
             </span>
           ) : (
             <div className="relative" data-cursor-target="push-button">
@@ -232,7 +261,7 @@ function ArtifactPanel({
                 className="rounded-md bg-primary px-2.5 py-0.5 text-[11px] font-medium text-primary-foreground"
                 tabIndex={-1}
               >
-                Push Skill to my-org
+                {meta.pushLabel}
               </button>
               <motion.span
                 className="absolute inset-0 rounded-md border border-foreground"

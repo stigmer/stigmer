@@ -1,0 +1,453 @@
+---
+title: Connect your tools
+description:
+  Give your agent tools and add approval policies so it can look up data, take
+  actions, and ask for human approval before doing anything risky.
+---
+
+import {
+  DemoMcpServerCreationTour,
+  DemoDiscoverCapabilities,
+  DemoGeneratePolicies,
+  DemoToolCallsPlayback,
+  DemoApprovalFlowPlayback,
+} from "@/components/docs";
+
+## What you'll build
+
+An agent that can **look up real data**, **take actions on your behalf**, and
+**ask for human approval** before doing anything risky. You will connect an MCP
+server, discover its tools, generate approval policies, and see everything
+working end-to-end from your code.
+
+**Time**: ~15 minutes **Prerequisites**: Completed
+[Your first Skill](/docs/getting-started/first-skill)
+
+## The problem
+
+Your agent knows your return policy — it answers domain questions accurately.
+But ask it to look up order #ORD-4821 or process a return, and it can't help. It
+has knowledge but no hands.
+
+MCP servers give your agent hands. An MCP server is a bridge between your agent
+and an external system — an API, a database, an internal service. Stigmer
+connects to any server that speaks the
+[Model Context Protocol](https://modelcontextprotocol.io/).
+
+<Steps>
+<Step>
+
+## Add an MCP server
+
+1. Open [`app.stigmer.ai`](https://app.stigmer.ai) and go to **Library → MCP
+   Servers**.
+2. Click **Add MCP Server**. This opens the MCP Server Creator — an agent that
+   builds the server configuration from your description.
+3. Tell it about your server: the name, the URL (for HTTP servers), and whether
+   it needs authentication.
+
+For an HTTP server, the agent needs the endpoint URL. For a stdio server (a
+command-line tool), it needs the command — `npx` for an npm package or the path
+to a Go binary.
+
+Here is what that conversation looks like:
+
+<DemoMcpServerCreationTour />
+
+4. Review the generated configuration and click **Push** to save it to your
+   organization's library.
+
+<Callout type="info">
+  Stigmer supports both **HTTP** servers (REST APIs, webhooks) and **stdio**
+  servers (CLI tools via `npx`, `go run`, or local binaries). The Server Creator
+  agent handles either — just describe what you have.
+</Callout>
+
+</Step>
+<Step>
+
+## Discover capabilities
+
+Your MCP server is registered, but Stigmer doesn't know what tools it provides
+yet. Discovery connects to the server and catalogs every tool.
+
+1. Open the MCP server detail page.
+2. If the server requires credentials (API keys, tokens), enter them in the
+   environment variables section.
+3. Click **Discover**.
+
+Stigmer connects to the live server, queries its capabilities, and lists every
+tool with its name and description:
+
+<DemoDiscoverCapabilities />
+
+In this example, three tools were discovered: `get_order` (read), `list_orders`
+(read), and `process_return` (write). Two are safe read operations. One modifies
+data — that's where approval policies come in.
+
+</Step>
+<Step>
+
+## Generate approval policies
+
+Some tools are safe to call any time — looking up an order is a read operation.
+Others, like processing a return and issuing a refund, need a human in the loop.
+
+1. On the same MCP server detail page, click **Generate Policies**.
+2. Stigmer's AI reviews each discovered tool. Read-only tools pass through.
+   Tools that modify data, move money, or have side effects get flagged for
+   approval.
+3. Review the generated policies and confirm.
+
+<DemoGeneratePolicies />
+
+In this example, `get_order` and `list_orders` run automatically.
+`process_return` requires human approval — the agent will pause and present the
+action details before executing.
+
+<Callout type="info">
+  Approval policies are stored on the MCP server resource. Every agent that uses
+  this server inherits the same policies. You can edit or override them at any
+  time.
+</Callout>
+
+</Step>
+<Step>
+
+## Connect the tools in your code
+
+Open the code from the previous guides. Add `mcpServerRefs` to your session
+creation — this tells the agent which tools are available alongside the domain
+knowledge.
+
+<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
+<Tab value="TypeScript">
+
+Update the session creation in `ask-agent.ts`:
+
+```typescript
+const session = await stigmer.session.create({
+  name: `session-${Date.now()}`,
+  org: "my-org",
+  skillRefs: [{ org: "my-org", slug: "return-policy" }],
+  mcpServerRefs: [{ org: "my-org", slug: "order-management-api" }],
+});
+```
+
+</Tab>
+<Tab value="Go">
+
+Update the session creation in `main.go`:
+
+```go
+session, err := client.Session.Create(ctx, &stigmer.SessionInput{
+    Name: "session-" + ts,
+    Org:  "my-org",
+    SkillRefs: []stigmer.ResourceRef{
+        {Org: "my-org", Slug: "return-policy"},
+    },
+    McpServerRefs: []stigmer.ResourceRef{
+        {Org: "my-org", Slug: "order-management-api"},
+    },
+})
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+</Tab>
+<Tab value="Python">
+
+Update the session creation in `ask_agent.py`:
+
+```python
+session = client.sessions.create(SessionInput(
+    name=f"session-{ts}",
+    org="my-org",
+    skill_refs=[ResourceRef(org="my-org", slug="return-policy")],
+    mcp_server_refs=[ResourceRef(org="my-org", slug="order-management-api")],
+))
+```
+
+</Tab>
+<Tab value="Java">
+
+Update the session creation in `src/main/java/AskAgent.java`:
+
+```java
+var session = client.sessions().create(
+    SessionInput.builder()
+        .name("session-" + ts)
+        .org("my-org")
+        .skillRefs(List.of(
+            ResourceRef.of("my-org", "return-policy")
+        ))
+        .mcpServerRefs(List.of(
+            ResourceRef.of("my-org", "order-management-api")
+        ))
+        .build()
+);
+```
+
+</Tab>
+</Tabs>
+
+Replace `order-management-api` with the slug of the MCP server you created.
+Update the message to ask something that requires a data lookup:
+
+```
+"What's the status of order #ORD-4821?"
+```
+
+<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
+<Tab value="TypeScript">
+
+```bash
+STIGMER_API_KEY=sk_your_key npx tsx ask-agent.ts
+```
+
+</Tab>
+<Tab value="Go">
+
+```bash
+STIGMER_API_KEY=sk_your_key go run main.go
+```
+
+</Tab>
+<Tab value="Python">
+
+```bash
+STIGMER_API_KEY=sk_your_key python ask_agent.py
+```
+
+</Tab>
+<Tab value="Java">
+
+```bash
+STIGMER_API_KEY=sk_your_key mvn compile exec:java
+```
+
+</Tab>
+</Tabs>
+
+This time the agent doesn't guess — it calls the `get_order` tool, retrieves the
+actual order data, and responds with real details:
+
+```
+Order #ORD-4821 has been shipped.
+
+- Item: Wireless Headphones (1x $79.99)
+- Tracking: 1Z999AA10123456784
+- Estimated delivery: April 5, 2026
+```
+
+Here is what that conversation looks like inside the Stigmer web app — watch the
+agent call the tool and return structured data:
+
+<DemoToolCallsPlayback />
+
+</Step>
+<Step>
+
+## Handle approvals in your code
+
+Now try a request that triggers the approval policy. Update the message:
+
+```
+"Process a return for order #ORD-4821 — the headphones are defective."
+```
+
+The execution will pause when the agent tries to call `process_return`. Your
+code needs to detect the pending approval and submit a decision. Update your
+subscribe loop:
+
+<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
+<Tab value="TypeScript">
+
+Replace the subscribe loop in `ask-agent.ts`:
+
+```typescript
+for await (const snapshot of stigmer.agentExecution.subscribe(
+  execution.metadata!.id,
+)) {
+  const phase = snapshot.status?.phase;
+  const messages = snapshot.status?.messages ?? [];
+  const pendingApprovals = snapshot.status?.pendingApprovals ?? [];
+
+  if (pendingApprovals.length > 0) {
+    for (const pending of pendingApprovals) {
+      console.log(`\nApproval required: ${pending.approvalMessage}`);
+      console.log(`  Tool: ${pending.toolCallId}`);
+
+      await stigmer.agentExecution.submitApproval({
+        agentExecutionId: snapshot.metadata!.id,
+        toolCallId: pending.toolCallId,
+        action: "APPROVAL_ACTION_APPROVE",
+      });
+      console.log("  Approved. Resuming execution...\n");
+    }
+  }
+
+  if (phase === "EXECUTION_COMPLETED" || phase === "EXECUTION_FAILED") {
+    const last = messages[messages.length - 1];
+    if (last?.content) console.log(last.content);
+    break;
+  }
+}
+
+main();
+```
+
+</Tab>
+<Tab value="Go">
+
+Replace the subscribe loop in `main.go`:
+
+```go
+for {
+    snapshot, err := stream.Recv()
+    if err == io.EOF {
+        break
+    }
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    status := snapshot.GetStatus()
+    pending := status.GetPendingApprovals()
+
+    for _, p := range pending {
+        fmt.Printf("\nApproval required: %s\n", p.GetApprovalMessage())
+        fmt.Printf("  Tool: %s\n", p.GetToolCallId())
+
+        _, err := client.AgentExecution.SubmitApproval(ctx,
+            &stigmer.SubmitApprovalInput{
+                AgentExecutionId: snapshot.GetMetadata().GetId(),
+                ToolCallId:       p.GetToolCallId(),
+                Action:           stigmer.ApprovalActionApprove,
+            })
+        if err != nil {
+            log.Fatal(err)
+        }
+        fmt.Println("  Approved. Resuming execution...\n")
+    }
+
+    phase := status.GetPhase()
+    if phase == stigmer.ExecutionCompleted || phase == stigmer.ExecutionFailed {
+        msgs := status.GetMessages()
+        if len(msgs) > 0 {
+            fmt.Println(msgs[len(msgs)-1].GetContent())
+        }
+        break
+    }
+}
+```
+
+</Tab>
+<Tab value="Python">
+
+Replace the subscribe loop in `ask_agent.py`:
+
+```python
+for snapshot in client.agent_executions.subscribe(execution.metadata.id):
+    pending = snapshot.status.pending_approvals
+
+    for p in pending:
+        print(f"\nApproval required: {p.approval_message}")
+        print(f"  Tool: {p.tool_call_id}")
+
+        client.agent_executions.submit_approval(
+            agent_execution_id=snapshot.metadata.id,
+            tool_call_id=p.tool_call_id,
+            action="APPROVAL_ACTION_APPROVE",
+        )
+        print("  Approved. Resuming execution...\n")
+
+    phase = snapshot.status.phase
+    if phase in ("EXECUTION_COMPLETED", "EXECUTION_FAILED"):
+        messages = snapshot.status.messages
+        if messages and messages[-1].content:
+            print(messages[-1].content)
+        break
+```
+
+</Tab>
+<Tab value="Java">
+
+Replace the subscribe loop in `src/main/java/AskAgent.java`:
+
+```java
+while (stream.hasNext()) {
+    var snapshot = stream.next();
+    var status = snapshot.getStatus();
+    var pending = status.getPendingApprovalsList();
+
+    for (var p : pending) {
+        System.out.printf("%nApproval required: %s%n", p.getApprovalMessage());
+        System.out.printf("  Tool: %s%n", p.getToolCallId());
+
+        client.agentExecutions().submitApproval(
+            SubmitApprovalInput.builder()
+                .agentExecutionId(snapshot.getMetadata().getId())
+                .toolCallId(p.getToolCallId())
+                .action(ApprovalAction.APPROVE)
+                .build()
+        );
+        System.out.println("  Approved. Resuming execution...\n");
+    }
+
+    var phase = status.getPhase();
+    if (phase == ExecutionPhase.COMPLETED || phase == ExecutionPhase.FAILED) {
+        var messages = status.getMessagesList();
+        if (!messages.isEmpty()) {
+            System.out.println(messages.get(messages.size() - 1).getContent());
+        }
+        break;
+    }
+}
+```
+
+</Tab>
+</Tabs>
+
+Run it again. You'll see the approval flow in your terminal:
+
+```
+Approval required: Process return for order 'ORD-4821' — refund $79.99 to original payment method
+  Tool: call_xK9m2R
+  Approved. Resuming execution...
+
+The return has been processed.
+
+- Return ID: RET-1092
+- Refund: $79.99 to original payment method
+- Estimated refund date: April 7, 2026
+```
+
+Here is what that approval flow looks like in the Stigmer web app — the agent
+pauses, waits for a human decision, and then completes the action:
+
+<DemoApprovalFlowPlayback />
+
+</Step>
+</Steps>
+
+## The difference
+
+|                     | Without tools         | With tools + approvals          |
+| ------------------- | --------------------- | ------------------------------- |
+| **Data access**     | None — can only guess | Calls APIs to get real data     |
+| **Actions**         | None — can only talk  | Processes returns, updates      |
+| **Human oversight** | Not applicable        | Sensitive actions need approval |
+| **Trust**           | Low — no verification | High — grounded in real data    |
+
+## What just happened
+
+You connected tools to your agent through an MCP server, discovered its
+capabilities, and generated approval policies — all through the Stigmer web app.
+In your code, two changes made the difference: `mcpServerRefs` to give the agent
+access to tools, and `submitApproval` to handle the human-in-the-loop flow.
+
+Your agent now knows your domain (Skills), uses your tools (MCP servers), and
+follows your rules (approval policies). That's the full Stigmer promise: **teach
+your domain, bring your tools, set your rules**.

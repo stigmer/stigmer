@@ -13,9 +13,9 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: Phase 3 complete — Getting Started documentation delivered
-- **Last Session**: 2026-04-01 (Session 11) — Phase 3: Getting Started documentation (quickstart, local, first-skill)
-- **Active Task**: T01 — Phase 3 complete. Ready for Phase 4 (Core Concepts documentation).
+- **Status**: Phase 4 complete, Getting Started "Connect your tools" page delivered
+- **Last Session**: 2026-04-02 (Session 12) — "Connect your tools" page, MCP server demos, SDK McpServerDetailView enhancement
+- **Active Task**: T01 — Phase 4 complete. Getting Started complete (3 pages). Ready for Phase 5 (Sample Reference Application).
 
 ## Session Progress (2026-03-31, Session 8)
 
@@ -92,10 +92,23 @@ Drop this file into your conversation to quickly resume work on this project.
 - Updated `stigmer run` syntax in docs to use `-m` flag (verified against CLI source)
 - Prerequisites delivered by sub-project `20260401.01.sp.react-demo-mode`: demo transport, fixtures, samples, scenarios infrastructure
 
+## Session Progress (2026-04-02, Session 12)
+
+- **"Connect your tools" Getting Started page** — third and final Getting Started page completing the tagline narrative ("teach your domain, bring your tools, set your rules")
+- Built 4 new demo scenarios: `mcp-server-creation-tour` (12-step guided tour), `discover-capabilities-playback`, `generate-policies-playback`, static `mcp-server-detail`
+- Created `McpServersListView` demo view component
+- Parameterized `ComposerView` artifact panel with `ArtifactMeta` interface — supports Skill and MCP Server artifact types
+- Added `defaultCapabilityTab` prop to SDK `McpServerDetailView` (non-breaking enhancement)
+- Replaced custom `McpServerDetailDemo` with real SDK `McpServerDetailView` in discover/generate scenarios using per-step client map pattern
+- Fixed pre-existing SSR build bug in `api-key-setup` scenario
+- Registered all new components in barrel exports and MDX map
+- Build verified: `tsc --noEmit` passes, `yarn next build` passes (Node 22), all 23 pages generated
+
 ## Next Steps
 
-1. **Begin Phase 4** — Core Concepts documentation (what-is-stigmer, agents, skills, tools, sessions, approval-flows, memory, workflows, environments)
-2. **Resolve Cloud README vocabulary inconsistencies** — #2 and #4 deferred from Phase 1 (separate repo)
+1. **Begin Phase 5** — Sample Reference Application
+2. **Or continue with Phase 6** — Progressive Tutorials (tools tutorial, approval flows tutorial)
+3. **Resolve Cloud README vocabulary inconsistencies** — #2 and #4 deferred from Phase 1 (separate repo)
 
 ## Context for Resume
 
