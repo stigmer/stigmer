@@ -12,8 +12,7 @@ resources and controls who can access them.
 
 ## Structure
 
-{/* vale off */} {/* prettier-ignore */}
-
+{/* prettier-ignore */}
 <Mermaid
   chart={`
 graph TD
@@ -21,12 +20,11 @@ graph TD
   O --> P2["Project<br/>(internal-tools)"]
   P1 --> A1["Agent: support-agent"]
   P1 --> S1["Skill: return-policy"]
-  P1 --> M1["MCP Server: order-api"]
+  P1 --> M1["MCP Server: order-service"]
   P2 --> A2["Agent: ops-assistant"]
   P2 --> S2["Skill: runbook"]
 `}
 />
-{/* vale on */}
 
 ### Organizations
 

@@ -54,17 +54,15 @@ Each variable has:
 An Agent Instance can reference multiple Environments. They merge in order —
 later environments override earlier ones for the same variable name:
 
-{/* vale off */} {/* prettier-ignore */}
-
+{/* prettier-ignore */}
 <Mermaid
   chart={`
 graph LR
-  E1["shared-config<br/>ORDER_API_URL=..."] --> M["Merged"]
-  E2["production-secrets<br/>ORDER_API_KEY=sk-prod-..."] --> M
-  M --> AI["Agent Instance"]
+  E1["shared-config<br/>ORDER_API_URL=..."] --> Merged["Merged"]
+  E2["production-secrets<br/>ORDER_API_KEY=sk-prod-..."] --> Merged
+  Merged --> AI["Agent Instance"]
 `}
 />
-{/* vale on */}
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
