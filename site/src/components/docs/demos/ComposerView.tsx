@@ -75,18 +75,20 @@ export function ComposerView({
             )}
           </div>
         ) : (
-          <div className="flex h-full flex-col justify-end p-2">
-            <SessionComposer
-              onSubmit={noop}
-              placeholder="Describe your skill..."
-              autoFocus={false}
-              workspace={MOCK_WORKSPACE}
-              org="demo-org"
-              agentRef={SKILL_CREATOR_REF}
-              onAgentRefChange={noop}
-              onMcpServerUsagesChange={noop}
-              onSkillRefsChange={noop}
-            />
+          <div className="flex h-full items-center justify-center p-4">
+            <div className="w-full max-w-xl" style={{ zoom: 0.88 }}>
+              <SessionComposer
+                onSubmit={noop}
+                placeholder="Describe your skill..."
+                autoFocus={false}
+                workspace={MOCK_WORKSPACE}
+                org="demo-org"
+                agentRef={SKILL_CREATOR_REF}
+                onAgentRefChange={noop}
+                onMcpServerUsagesChange={noop}
+                onSkillRefsChange={noop}
+              />
+            </div>
           </div>
         )}
       </div>
@@ -166,7 +168,7 @@ function ArtifactPanel({
               Pushed · Return Policy
             </span>
           ) : (
-            <div className="relative">
+            <div className="relative" data-cursor-target="push-button">
               <button
                 type="button"
                 className="rounded-md bg-primary px-2.5 py-0.5 text-[11px] font-medium text-primary-foreground"

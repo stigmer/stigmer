@@ -37,7 +37,9 @@ export function DemoWidgetsSidebar({
 
       <UsageWidget executions={executions} />
       <WriteBacksWidget executions={executions} />
-      <ArtifactsWidget executions={executions} org={org} />
+      <div data-cursor-target="artifact-widget">
+        <ArtifactsWidget executions={executions} org={org} />
+      </div>
     </div>
   );
 }

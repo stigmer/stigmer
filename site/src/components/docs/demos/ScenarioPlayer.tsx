@@ -135,12 +135,12 @@ export function ScenarioPlayer<T>({
       {isStarted && children(steps[stepIndex].data, stepIndex)}
 
       {/* Step caption */}
-      <div className="mt-2 flex h-5 items-center justify-center">
+      <div className="mt-2 flex h-6 items-center justify-center">
         <AnimatePresence mode="wait">
           {caption && (
             <motion.p
               key={caption}
-              className="text-xs text-muted-foreground"
+              className="text-sm font-medium text-foreground/70"
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
