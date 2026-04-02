@@ -1,148 +1,204 @@
 ---
 title: Your first Skill
 description:
-  Create domain knowledge for your agent and see the difference between generic
-  and expert responses.
+  Give your agent domain expertise and see the difference between generic and
+  expert responses.
 ---
+
+import { DemoSkillCreationTour } from "@/components/docs";
 
 ## What you'll build
 
-An agent that answers questions about **your** business, not just generic
-knowledge. You'll create a Skill—a package of domain knowledge—attach it to your
-agent, and compare the responses before and after.
+An agent that answers with **your** domain expertise—not generic knowledge. You
+will create a Skill through the Stigmer web app, connect it to your code, and
+watch the same question produce a completely different answer.
 
 **Time**: ~10 minutes **Prerequisites**: Completed the
-[Local quickstart](/docs/getting-started/local) (a running server and agent)
+[Quickstart](/docs/getting-started/quickstart)
+
+## The problem
+
+In the quickstart, your agent handled a general question well. But when you
+asked about your return policy, it couldn't help—it gave a generic answer
+because it has no domain knowledge. Let's fix that.
 
 <Steps>
 <Step>
 
-## See the problem
-
-Ask your agent a domain-specific question:
-
-```bash
-stigmer run my-first-agent -m "What is your return policy for defective items?"
-```
-
-The agent gives a generic answer. It might say something reasonable, but it
-doesn't know your company's actual policy. It's guessing.
-
-</Step>
-<Step>
-
 ## Create a Skill
 
-A Skill is a directory with a `SKILL.md` file. The YAML frontmatter provides
-metadata; the markdown body is the domain knowledge.
+A Skill is a package of domain knowledge—your return policy, product catalog,
+escalation process, or anything else your agent needs to answer accurately.
 
-Create the directory:
+1. Open [`app.stigmer.ai`](https://app.stigmer.ai) and go to **Library →
+   Skills**.
+2. Click **Create Skill**.
+3. The Skill Creator agent asks you a few questions about your domain. Describe
+   your return policy, and it generates a structured Skill from your answers.
 
-```bash
-mkdir return-policy
-```
+Here is what that conversation looks like:
 
-Create `return-policy/SKILL.md`:
+<DemoSkillCreationTour />
 
-```markdown
----
-name: return-policy
-description: Acme Corp's customer return and refund policy.
----
+4. Review the generated Skill and click **Push** to save it to your
+   organization's library.
 
-# Return Policy
-
-## Standard Returns
-
-Customers may return most items within **14 days** of delivery for a full
-refund.
-
-**Requirements:**
-
-- Original receipt or order confirmation email
-- Item in original packaging, unused condition
-- Return shipping label (provided at no cost)
-
-## Exceptions
-
-**Defective items**—accepted for return at any time, regardless of the 14-day
-window. Ship the item back with a brief description of the defect. We cover
-return shipping.
-
-**Final sale items**—marked "Final Sale" at checkout. Not eligible for return or
-exchange.
-
-**Digital products**—non-refundable once the download link has been accessed.
-
-## Refund Timeline
-
-Refunds are processed within **3–5 business days** after we receive the returned
-item. The refund appears on the original payment method.
-```
-
-This is pure domain knowledge—no code, no tool configuration. The agent reads
-this content and uses it to answer questions accurately.
+> [!NOTE] The Skill Creator produces a markdown document with structured
+> sections. You can edit it later from the web app at any time.
 
 </Step>
 <Step>
 
-## Push the Skill
+## Connect the Skill to your code
 
-```bash
-stigmer push skill ./return-policy/
+Open the code from the quickstart. The only change is adding `skillRefs` when
+you create the session—this tells the agent to use your Skill when answering.
+
+<!-- vale Vale.Terms = NO -->
+<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
+<!-- vale Vale.Terms = YES -->
+<Tab value="TypeScript">
+
+Update the session creation in `ask-agent.ts`:
+
+```typescript
+const session = await stigmer.session.create({
+  name: `session-${Date.now()}`,
+  org: "my-org",
+  skillRefs: [{ org: "my-org", slug: "return-policy" }],
+});
 ```
 
-This uploads the Skill to the server, versioned and ready to attach to any
-agent.
+</Tab>
+<Tab value="Go">
+
+Update the session creation in `main.go`:
+
+```go
+session, err := client.Session.Create(ctx, &stigmer.SessionInput{
+    Name: "session-" + ts,
+    Org:  "my-org",
+    SkillRefs: []stigmer.ResourceRef{
+        {Org: "my-org", Slug: "return-policy"},
+    },
+})
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+</Tab>
+<Tab value="Python">
+
+Update the session creation in `ask_agent.py`. Add `ResourceRef` to your import:
+
+```python
+from stigmer import StigmerClient, SessionInput, AgentExecutionInput, ResourceRef
+```
+
+Then update the session creation:
+
+```python
+session = client.sessions.create(SessionInput(
+    name=f"session-{ts}",
+    org="my-org",
+    skill_refs=[ResourceRef(org="my-org", slug="return-policy")],
+))
+```
+
+</Tab>
+<Tab value="Java">
+
+Update the session creation in `src/main/java/AskAgent.java`. Add the imports:
+
+```java
+import ai.stigmer.sdk.gen.ResourceRef;
+import java.util.List;
+```
+
+Then update the session creation:
+
+```java
+var session = client.sessions().create(
+    SessionInput.builder()
+        .name("session-" + ts)
+        .org("my-org")
+        .skillRefs(List.of(
+            ResourceRef.of("my-org", "return-policy")
+        ))
+        .build()
+);
+```
+
+</Tab>
+</Tabs>
+
+Also update the message to ask the domain-specific question:
+
+```
+"What is your return policy for defective items?"
+```
+
+Replace `my-org` with your organization slug and `return-policy` with the slug
+shown in your Skill's detail page.
 
 </Step>
 <Step>
 
-## Attach the Skill to your agent
+## Run it again
 
-Update `agent.yaml` to reference the Skill:
-
-```yaml
-apiVersion: agentic.stigmer.ai/v1
-kind: Agent
-metadata:
-  name: my-first-agent
-spec:
-  instructions: |
-    You are a helpful assistant. Answer questions clearly
-    and concisely. When you don't know something, say so.
-  skill_refs:
-    - kind: skill
-      slug: return-policy
-```
-
-Apply the change:
+<!-- vale Vale.Terms = NO -->
+<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
+<!-- vale Vale.Terms = YES -->
+<Tab value="TypeScript">
 
 ```bash
-stigmer apply -f agent.yaml
+STIGMER_API_KEY=sk_your_key npx tsx ask-agent.ts
 ```
 
-</Step>
-<Step>
-
-## Ask again
-
-Same question, same agent:
+</Tab>
+<Tab value="Go">
 
 ```bash
-stigmer run my-first-agent -m "What is your return policy for defective items?"
+STIGMER_API_KEY=sk_your_key go run main.go
 ```
 
-This time the agent responds with your actual policy: defective items are
-accepted at any time, return shipping is covered, and refunds take 3–5 business
-days. The answer is grounded in the Skill, not invented.
+</Tab>
+<Tab value="Python">
+
+```bash
+STIGMER_API_KEY=sk_your_key python ask_agent.py
+```
+
+</Tab>
+<Tab value="Java">
+
+```bash
+STIGMER_API_KEY=sk_your_key mvn compile exec:java
+```
+
+</Tab>
+</Tabs>
+
+This time the response is grounded in your actual policy:
+
+```
+Defective items can be returned at any time, regardless of the standard
+14-day return window. Simply ship the item back with a brief description
+of the defect — we cover return shipping at no cost to you.
+
+Once we receive the item, your refund will be processed within 3–5
+business days to your original payment method.
+```
+
+Same question. Completely different answer.
 
 </Step>
 </Steps>
 
 ## The difference
 
-|              | Before Skill               | After Skill                   |
+|              | Without Skill              | With Skill                    |
 | ------------ | -------------------------- | ----------------------------- |
 | **Source**   | Generic training data      | Your company's return policy  |
 | **Accuracy** | Plausible but unverifiable | Exact policy details          |
@@ -150,18 +206,11 @@ days. The answer is grounded in the Skill, not invented.
 
 ## What just happened
 
-A **Skill** is domain knowledge packaged as markdown. It's not code. It's not a
-tool. It's the information your agent needs to answer with expertise.
+You taught your agent domain knowledge through a conversation in the Stigmer web
+app. One field change in your code, and the agent went from guessing to
+answering with your company's actual policy.
 
-You can create as many Skills as you need—product documentation, HR policies,
+A Skill is domain knowledge packaged as markdown—not code, not configuration.
+You can create as many Skills as you need: product documentation, HR policies,
 technical runbooks, sales playbooks. Each one makes your agent more useful for a
 specific domain.
-
-## Next step
-
-<Cards>
-  <Card title="Give your agent tools" href="/docs/tutorials/connect-tools">
-    Your agent knows your domain. Now let it take actions—connect MCP Servers so
-    the agent can interact with your systems.
-  </Card>
-</Cards>
