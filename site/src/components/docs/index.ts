@@ -1,4 +1,9 @@
+export { AgentDetail as DemoAgentDetail } from "./demos/scenarios/agent-detail";
 export { ApiKeySetup as DemoApiKeySetup } from "./demos/scenarios/api-key-setup";
+export { ApprovalFlowPlayback as DemoApprovalFlowPlayback } from "./demos/scenarios/approval-flow-playback";
+export { SessionMemoryPlayback as DemoSessionMemoryPlayback } from "./demos/scenarios/session-memory-playback";
+export { SkillDetail as DemoSkillDetail } from "./demos/scenarios/skill-detail";
+export { ToolCallsPlayback as DemoToolCallsPlayback } from "./demos/scenarios/tool-calls-playback";
 export { CopyMarkdownButton } from "./copy-markdown-button";
 export { QuickstartPlayback as DemoQuickstartPlayback } from "./demos/scenarios/quickstart-playback";
 export { SkillCreationTour as DemoSkillCreationTour } from "./demos/scenarios/skill-creation-tour";

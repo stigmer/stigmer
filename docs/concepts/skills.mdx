@@ -1,0 +1,157 @@
+---
+title: Skills
+description:
+  A Skill is a piece of domain knowledge that makes an Agent a specialist. Learn
+  how Skills are structured, how they attach to Agents, and why they're the
+  fastest way to make AI useful for your business.
+---
+
+A Skill is a versioned knowledge artifact that transforms a generic AI agent
+into a domain expert. Without Skills, an agent only knows what the underlying
+LLM was trained on. With Skills, it knows _your_ business — your return policy,
+your product catalog, your internal processes.
+
+If you followed the [Quickstart](/docs/getting-started/quickstart) and
+[Your First Skill](/docs/getting-started/first-skill), you've already seen this
+in action. This page explains how Skills work under the hood.
+
+## What a Skill looks like
+
+A Skill is a directory with a required `SKILL.md` file and optional supporting
+resources:
+
+<Files>
+  <Folder name="return-policy" defaultOpen>
+    <File name="SKILL.md" />
+    <Folder name="references">
+      <File name="escalation-matrix.md" />
+    </Folder>
+  </Folder>
+</Files>
+
+The `SKILL.md` file has two parts: YAML frontmatter that tells Stigmer _when_ to
+use the Skill, and a markdown body that provides the actual knowledge.
+
+```yaml
+---
+name: return-policy
+description: >
+  Acme Corp return and refund policy. Use when customers ask
+  about returns, exchanges, refunds, or warranty claims.
+---
+
+# Return Policy
+
+## Standard Returns
+
+Customers may return unused items within 30 days of purchase
+for a full refund. Items must be in original packaging.
+
+## Exceptions
+
+The following items cannot be returned:
+- Personalized or custom-made products
+- Perishable goods
+- Digital downloads after activation
+
+## Refund Processing
+
+- Credit card: refund appears within 5–10 business days
+- Store credit: issued immediately upon return approval
+- Always refund to the original payment method unless
+  the customer requests store credit
+
+## Escalation Rules
+
+- Refunds over $500 require manager approval
+- Returns past the 30-day window need case-by-case review
+```
+
+Here's how this Skill looks in the Stigmer web console:
+
+<DemoSkillDetail />
+
+### YAML header
+
+The frontmatter contains two required fields:
+
+| Field         | Purpose                                                                                                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`        | A kebab-case identifier for the Skill                                                                                                                                    |
+| `description` | Tells the agent _when_ to use this Skill. Write it like a trigger condition — "Use when customers ask about returns" is better than "Contains return policy information" |
+
+The `description` is critical. It's always present in the agent's context, so
+the agent can decide whether to consult this Skill's content for a given
+question. A vague description means the agent won't know when to reach for this
+knowledge.
+
+### Body
+
+The markdown body is the knowledge itself. When the agent determines that a
+Skill is relevant (based on the description), it loads the body into context.
+Write it as you would onboard a new team member:
+
+- Lead with the most important rules
+- Use headings to structure by topic
+- Include concrete numbers, thresholds, and edge cases
+- Keep it focused — one Skill, one domain
+
+### Supporting resources
+
+For larger knowledge packages, you can include additional files:
+
+| Directory     | Purpose                                                |
+| ------------- | ------------------------------------------------------ |
+| `references/` | Additional documentation the agent loads on demand     |
+| `scripts/`    | Executable code for deterministic tasks                |
+| `assets/`     | Templates, images, or files used in the agent's output |
+
+The `SKILL.md` body should reference these files so the agent knows they exist.
+The agent loads them as needed rather than all at once — this keeps the context
+window efficient.
+
+## Attaching Skills to Agents
+
+Skills connect to [Agents](/docs/concepts/agents) through `skill_refs` in the
+Agent definition:
+
+```yaml
+spec:
+  skill_refs:
+    - kind: skill
+      slug: return-policy
+    - kind: skill
+      slug: product-catalog
+```
+
+Each reference points to a Skill by its slug. When the agent runs, Stigmer
+resolves these references and makes the Skill content available.
+
+You can also attach Skills at the [Session](/docs/concepts/sessions) level.
+Session-level Skills are merged with the agent's Skills — this lets you
+customize what an agent knows for a specific conversation without changing the
+Agent definition.
+
+## How Skills differ from RAG
+
+If you've used retrieval-augmented generation (RAG), Skills might look familiar
+— both add knowledge to an AI. But they work differently:
+
+|                    | RAG                                                        | Skills                                  |
+| ------------------ | ---------------------------------------------------------- | --------------------------------------- |
+| **Format**         | Embed documents, configure vector database, tune retrieval | Write markdown, upload                  |
+| **Versioning**     | You manage it                                              | Stigmer versions automatically          |
+| **Context**        | Retrieves relevant chunks from a corpus                    | Loads the full Skill body when relevant |
+| **Scope**          | Good for large document collections                        | Good for focused domain knowledge       |
+| **Infrastructure** | Embedding pipeline, vector database, retrieval tuning      | None — Skills are just files            |
+
+Skills are not a replacement for RAG on every use case. For searching across
+millions of documents, retrieval-based approaches have advantages. But for the
+kind of domain knowledge that makes an agent useful — policies, procedures,
+product details, escalation rules — Skills are simpler and more predictable.
+
+## What's next
+
+Your agent knows your business through Skills. But knowledge alone doesn't let
+it _act_. The next page explains [Tools](/docs/concepts/tools) — how agents
+interact with your external systems through the Model Context Protocol.

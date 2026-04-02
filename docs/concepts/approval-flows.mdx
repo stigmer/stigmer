@@ -1,0 +1,153 @@
+---
+title: Approval Flows
+description:
+  Approval flows let you define which agent actions require human oversight.
+  Learn how tool-call approvals work, how to configure them, and how the agent
+  pauses and resumes.
+---
+
+[Tools](/docs/concepts/tools) give agents the ability to act. Approval flows
+give _you_ control over which actions happen automatically and which ones pause
+for a human decision.
+
+This is not a logging feature. When an agent encounters an action that requires
+approval, it stops, presents what it wants to do and why, and waits for a human
+to approve, skip, or reject before proceeding. The agent's execution is durable
+— it waits indefinitely without losing state.
+
+## How it works
+
+Here's an approval flow in action. A customer requests a return, and the agent
+pauses before processing it because the `process_return` tool requires approval:
+
+<DemoApprovalFlowPlayback />
+
+The approval request shows the tool name, the arguments the agent wants to pass,
+and a human-readable message. The human sees exactly what the agent is about to
+do and can make an informed decision.
+
+## Configuring approvals
+
+Approval requirements are configured at three levels. Each level can add or
+override the one above it.
+
+{/* vale off */} {/* prettier-ignore */}
+
+<Mermaid
+  chart={`
+graph TD
+  M["MCP Server<br/>default_tool_approvals"] --> A["Agent<br/>tool_approval_overrides"]
+  A --> S["Session<br/>tool_approval_overrides"]
+  S --> R["Runtime<br/>auto_approve_all"]
+`}
+/>
+{/* vale on */}
+
+### 1. MCP Server defaults
+
+The [MCP Server](/docs/concepts/tools) resource defines default approval
+policies for its tools. These apply to every agent that uses this server:
+
+```yaml
+# In the McpServer definition
+spec:
+  default_tool_approvals:
+    - tool_name: process_return
+      message: "Process return for order '{{args.order_id}}'"
+    - tool_name: delete_agent
+      message: "Permanently delete agent '{{args.slug}}'"
+```
+
+Each `ToolApprovalPolicy` has:
+
+| Field       | Purpose                                                                 |
+| ----------- | ----------------------------------------------------------------------- |
+| `tool_name` | The exact tool name that requires approval                              |
+| `message`   | A human-readable message with `{{args.field}}` placeholders for context |
+
+The `message` template resolves at runtime using the actual tool call arguments,
+so the human sees "Process return for order 'ORD-4821'" instead of a generic
+prompt.
+
+### 2. Agent overrides
+
+[Agents](/docs/concepts/agents) can override the default policy for each MCP
+Server they reference:
+
+```yaml
+# In the Agent definition
+spec:
+  mcp_server_usages:
+    - mcp_server_ref:
+        kind: mcp_server
+        slug: order-management-api
+      tool_approval_overrides:
+        - tool_name: process_return
+          requires_approval: true
+          message: "Return requested for order '{{args.order_id}}'"
+        - tool_name: get_order
+          requires_approval: false
+```
+
+A `ToolApprovalOverride` can:
+
+- **Enable** approval for a tool that doesn't require it by default
+- **Disable** approval for a tool that does
+- **Change** the approval message
+
+This lets the same MCP Server behave differently across agents. A read-only
+agent might disable approvals for query tools, while a full-access agent keeps
+them enabled.
+
+### 3. Session and runtime overrides
+
+[Sessions](/docs/concepts/sessions) can further override approval settings for a
+specific conversation. At the execution level, `auto_approve_all` is a bypass
+flag that skips all approvals — useful for automated workflows where a human has
+already authorized the operation.
+
+## The approval lifecycle
+
+When a tool call triggers an approval:
+
+1. The agent runtime detects that the tool requires approval
+2. It sets the tool call status to `WAITING_APPROVAL` and pauses
+3. Stigmer computes a `PendingApproval` projection with the tool name, message,
+   and argument preview
+4. The UI or API surfaces the approval request
+5. The human submits a decision: **Approve**, **Skip**, or **Reject**
+6. The agent resumes based on the decision
+
+| Decision    | What happens                                                            |
+| ----------- | ----------------------------------------------------------------------- |
+| **Approve** | The tool call executes with the original arguments                      |
+| **Skip**    | The tool call is skipped — the agent continues without this action      |
+| **Reject**  | The tool call is rejected — the agent receives the rejection and adapts |
+
+The execution is durable throughout this process. If the server restarts while
+waiting for approval, the agent resumes from the same waiting state.
+
+## Designing approval policies
+
+A few principles for deciding what needs approval:
+
+- **Destructive actions** should always require approval — deletes, refunds,
+  account changes
+- **Read-only actions** generally don't need approval — queries, searches,
+  status checks
+- **High-value actions** benefit from approval even if they're not destructive —
+  sending emails to customers, creating orders
+- **Be specific in messages** — "Process return for order 'ORD-4821'" helps the
+  human decide faster than an uninformative message that only names the tool
+  `process_return` without further context.
+
+The goal is to make the approval decision quick. The human should see the
+message and immediately understand what's happening, why, and whether to allow
+it.
+
+## What's next
+
+Approval flows control individual tool calls. But conversations often span
+multiple messages, and the agent needs to remember what happened earlier. The
+next page explains [Sessions](/docs/concepts/sessions) — how Stigmer preserves
+conversation context across interactions.
