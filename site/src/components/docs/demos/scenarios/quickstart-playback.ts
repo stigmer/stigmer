@@ -8,8 +8,9 @@
  * ("the answer was generic; let's fix that").
  */
 
-import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { samples } from "@stigmer/react/demo";
 import type { ScenarioStep } from "../ScenarioPlayer";
 
@@ -35,13 +36,29 @@ const ai2 = samples.aiMessage(
     "support team for the exact policy.",
 );
 
-function snapshot(
-  ...msgs: ReturnType<typeof samples.humanMessage>[]
-): AgentExecution {
-  return samples.agentExecution({
+/**
+ * Build a snapshot where the first human message becomes `spec.message`
+ * and only the remaining messages go into `status.messages`. This avoids
+ * duplication since `MessageThread` synthesizes a human bubble from
+ * `spec.message` automatically.
+ */
+function snapshot(...msgs: AgentMessage[]): AgentExecution {
+  const firstHumanIdx = msgs.findIndex(
+    (m) => m.type === MessageType.MESSAGE_HUMAN,
+  );
+  const specMessage =
+    firstHumanIdx >= 0 ? msgs[firstHumanIdx].content : "";
+  const statusMessages =
+    firstHumanIdx >= 0
+      ? [...msgs.slice(0, firstHumanIdx), ...msgs.slice(firstHumanIdx + 1)]
+      : msgs;
+
+  const exec = samples.agentExecution({
     phase: ExecutionPhase.EXECUTION_COMPLETED,
-    messages: msgs,
+    messages: statusMessages,
   });
+  exec.spec!.message = specMessage;
+  return exec;
 }
 
 export const quickstartPlaybackSteps: ScenarioStep<AgentExecution>[] = [

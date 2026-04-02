@@ -1,9 +1,9 @@
 /**
- * Skill-creation scenario: a web console conversation where the AI
+ * Skill-creation scenario: a web app conversation where the AI
  * generates a return-policy SKILL.md from user input.
  *
- * Used by the Cloud quickstart documentation to embed a realistic
- * preview of the Stigmer web console's Skill creation flow.
+ * Used by the "Your first Skill" documentation to embed a realistic
+ * preview of the Stigmer web app's Skill creation flow.
  */
 
 import { ExecutionArtifactKind, ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";

@@ -1,14 +1,7 @@
 "use client";
 
-import {
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
-import { RotateCcw } from "lucide-react";
 
 /**
  * A single step in a scenario timeline.
@@ -36,9 +29,13 @@ interface ScenarioPlayerProps<T> {
 /**
  * Generic playback engine for timed scenario animations.
  *
- * Manages step timing, viewport-triggered auto-play, progress indication,
- * and replay. Renders content via a children render prop — the engine
- * knows nothing about what is being displayed.
+ * Manages step timing, viewport-triggered auto-play, and progress indication.
+ * Plays through all steps once when the component scrolls into view, then
+ * holds on the final state. Resets when scrolled out of view so the
+ * animation replays on re-entry.
+ *
+ * Renders content via a children render prop — the engine knows nothing
+ * about what is being displayed.
  *
  * Respects `prefers-reduced-motion` by skipping directly to the final step.
  */
@@ -55,20 +52,21 @@ export function ScenarioPlayer<T>({
     prefersReducedMotion ? lastIndex : -1,
   );
   const [playing, setPlaying] = useState(false);
-  const observedRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!autoPlay || observedRef.current || prefersReducedMotion) return;
+    if (!autoPlay || prefersReducedMotion) return;
     const el = containerRef.current;
     if (!el) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          observedRef.current = true;
+          setStepIndex(-1);
           setPlaying(true);
-          observer.disconnect();
+        } else {
+          setPlaying(false);
+          setStepIndex(-1);
         }
       },
       { threshold: 0.3 },
@@ -78,30 +76,21 @@ export function ScenarioPlayer<T>({
   }, [autoPlay, prefersReducedMotion]);
 
   useEffect(() => {
-    if (!playing || stepIndex >= lastIndex) {
-      if (stepIndex >= lastIndex) setPlaying(false);
-      return;
-    }
+    if (!playing || prefersReducedMotion || stepIndex >= lastIndex) return;
 
     const nextIndex = stepIndex + 1;
     const delay = steps[nextIndex].delayMs;
     const timer = setTimeout(() => setStepIndex(nextIndex), delay);
     return () => clearTimeout(timer);
-  }, [playing, stepIndex, steps, lastIndex]);
+  }, [playing, stepIndex, steps, lastIndex, prefersReducedMotion]);
 
-  const replay = useCallback(() => {
-    setStepIndex(-1);
-    setPlaying(true);
-  }, []);
-
-  const isComplete = stepIndex >= lastIndex;
   const isStarted = stepIndex >= 0;
 
   return (
     <div ref={containerRef} className={className}>
       {isStarted && children(steps[stepIndex].data, stepIndex)}
 
-      <div className="mt-3 flex items-center justify-between px-1">
+      <div className="mt-3 flex items-center px-1">
         <div
           className="flex gap-1.5"
           role="progressbar"
@@ -118,16 +107,6 @@ export function ScenarioPlayer<T>({
             />
           ))}
         </div>
-        {isComplete && (
-          <button
-            onClick={replay}
-            className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Replay scenario"
-          >
-            <RotateCcw size={12} />
-            Replay
-          </button>
-        )}
       </div>
     </div>
   );
