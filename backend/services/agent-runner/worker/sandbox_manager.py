@@ -290,7 +290,9 @@ class SandboxManager:
                 logger.info(f"Creating Daytona sandbox from snapshot: {snapshot_id}")
                 params = CreateSandboxFromSnapshotParams(
                     snapshot=snapshot_id,
-                    auto_delete_interval=-1,  # Never auto-delete; we manage lifecycle
+                    auto_stop_interval=5,
+                    auto_archive_interval=5,
+                    auto_delete_interval=-1,
                 )
                 sandbox = self._daytona.create(params=params)
             else:
@@ -363,22 +365,22 @@ class SandboxManager:
     def _try_revive_daytona_sandbox(self, sandbox: Any) -> bool:
         """Attempt to bring an existing Daytona sandbox to a ready state.
 
-        Inspects ``sandbox.state`` and takes the appropriate recovery action
-        based on the priority chain from DD02:
+        Inspects ``sandbox.state`` and takes the appropriate recovery action:
 
         1. **STARTED** -- verify responsiveness via health check, reuse.
-        2. **STOPPED** -- ``sandbox.start()`` (~5-30 s, runtime packages
-           preserved).
-        3. **ARCHIVED** -- ``sandbox.start()`` with longer timeout (~30-120 s,
-           filesystem restored from object storage, packages preserved).
-        4. **ERROR + recoverable** -- ``sandbox.recover()``.
-        5. **DESTROYED / non-recoverable ERROR / transitional / unknown** --
+        2. **STOPPED** -- ``sandbox.start()`` (~1-2 s).
+        3. **ARCHIVING** -- ``sandbox.start()`` cancels the in-flight archive
+           and resumes in ~1 s with all data preserved (verified by
+           benchmark_sandbox_lifecycle.py ``TestArchivingRaceCondition``).
+        4. **ARCHIVED** -- ``sandbox.start()`` restores from cold storage
+           (~3-10 s for 0-500 MB workspaces).
+        5. **ERROR + recoverable** -- ``sandbox.recover()``.
+        6. **DESTROYED / non-recoverable ERROR / other transitional** --
            cannot revive; caller should create a new sandbox.
 
         Each recovery action gets **one attempt** with a generous timeout.
         If it fails the method returns ``False`` and the caller falls through
-        to sandbox creation.  The persistent volume (T02) guarantees workspace
-        file survival regardless.
+        to sandbox creation.
 
         Args:
             sandbox: Daytona ``Sandbox`` instance obtained via
@@ -506,13 +508,42 @@ class SandboxManager:
             )
             return False
 
+        # ── ARCHIVING: mid-transition to cold storage ──────────────────
+        # Benchmark evidence: start() during ARCHIVING cancels the archive
+        # and resumes the sandbox in ~1s with full data preservation.
+        if state == SandboxState.ARCHIVING:
+            logger.info(
+                "Sandbox %s is ARCHIVING, calling start() to cancel "
+                "archive and resume…",
+                sandbox_id,
+            )
+            start_time = time.monotonic()
+            try:
+                sandbox.start(timeout=60)
+                elapsed = time.monotonic() - start_time
+                logger.info(
+                    "Sandbox %s resumed from ARCHIVING in %.1fs",
+                    sandbox_id,
+                    elapsed,
+                )
+                return True
+            except Exception as e:
+                elapsed = time.monotonic() - start_time
+                logger.warning(
+                    "Failed to resume ARCHIVING sandbox %s after %.1fs: %s",
+                    sandbox_id,
+                    elapsed,
+                    e,
+                )
+                return False
+
         # ── Transitional or unknown state ──────────────────────────────
-        # States like STARTING, STOPPING, CREATING, RESTORING, ARCHIVING,
+        # States like STARTING, STOPPING, CREATING, RESTORING,
         # DESTROYING, BUILD_FAILED, PENDING_BUILD, BUILDING_SNAPSHOT,
         # PULLING_SNAPSHOT, UNKNOWN.  These are either short-lived
         # transitions or terminal failures.  Rather than adding complex
         # wait/retry logic for rare edge cases, we fall through to sandbox
-        # creation.  The persistent volume guarantees file survival.
+        # creation.
         logger.warning(
             "Sandbox %s is in state '%s' (transitional/unsupported) — "
             "will create new sandbox",
