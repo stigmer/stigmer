@@ -3,7 +3,7 @@
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
-interface DemoCursorProps {
+interface CursorProps {
   /**
    * Value of the `data-cursor-target` attribute on the element the
    * cursor should point at. When `undefined`, the cursor fades out.
@@ -28,7 +28,7 @@ const SPRING = {
 const CLICK_DELAY_MS = 450;
 
 /**
- * Animated cursor overlay for the guided-tour demo.
+ * Animated cursor overlay for guided-tour demos.
  *
  * Renders a small pointer that smoothly animates to the target
  * element (identified by `data-cursor-target` attribute) and plays
@@ -37,7 +37,7 @@ const CLICK_DELAY_MS = 450;
  * Fades out when no target is set, fades in when a target appears.
  * Fully non-interactive (`pointer-events-none`).
  */
-export function DemoCursor({ target, containerRef }: DemoCursorProps) {
+export function Cursor({ target, containerRef }: CursorProps) {
   const [pos, setPos] = useState<Position | null>(null);
   const [clicking, setClicking] = useState(false);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);

@@ -1,32 +1,30 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import {
   ArtifactContentRenderer,
   MessageThread,
   SessionComposer,
 } from "@stigmer/react";
-import type { UseWorkspaceEntriesReturn } from "@stigmer/react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import { motion } from "framer-motion";
 import { Check, FileText, Folder } from "lucide-react";
+import { DEMO_ORG, MOCK_WORKSPACE } from "../engine/shared";
 
 const noop = () => {};
-
-const MOCK_WORKSPACE: UseWorkspaceEntriesReturn = {
-  entries: [],
-  addGitRepo: noop,
-  addLocalPath: noop,
-  remove: noop,
-  clear: noop,
-  toInput: () => [],
-  hasEntries: false,
-};
-
-const SKILL_CREATOR_REF = { org: "demo-org", slug: "skill-creator" };
 
 interface ComposerViewProps {
   /** When provided, renders the conversation via MessageThread. */
   execution?: AgentExecution;
+  /**
+   * When provided, programmatically fills the SessionComposer textarea
+   * with this text (simulating user typing).
+   */
+  typingMessage?: string;
+  /** Placeholder text for the SessionComposer textarea. */
+  placeholder?: string;
+  /** Agent reference chip shown in the composer. */
+  agentRef?: { org: string; slug: string };
   /**
    * When provided, replaces the MessageThread with an inline
    * artifact preview using `ArtifactContentRenderer`.
@@ -43,15 +41,20 @@ interface ComposerViewProps {
 }
 
 /**
- * Session composer view for the guided-tour demo.
+ * Session composer view used across demo scenarios.
  *
- * Uses real `@stigmer/react` components: `MessageThread` for
- * conversation steps, `SessionComposer` for the empty "ready" state
- * (with an agent chip rendered natively via `agentRef`), and
- * `ArtifactContentRenderer` for inline artifact preview.
+ * Handles five visual states driven by props:
+ * 1. **Empty** — `SessionComposer` in its "ready" state
+ * 2. **Typing** — `SessionComposer` with pre-filled text
+ * 3. **Conversation** — `MessageThread` showing execution messages
+ * 4. **Artifact preview** — `ArtifactContentRenderer` inline
+ * 5. **Push CTA** — artifact preview with push button/success indicator
  */
 export function ComposerView({
   execution,
+  typingMessage,
+  placeholder = "Describe your skill...",
+  agentRef,
   artifactContent,
   pushState,
 }: ComposerViewProps) {
@@ -77,21 +80,75 @@ export function ComposerView({
         ) : (
           <div className="flex h-full items-center justify-center p-4">
             <div className="w-full max-w-xl" style={{ zoom: 0.88 }}>
-              <SessionComposer
-                onSubmit={noop}
-                placeholder="Describe your skill..."
-                autoFocus={false}
-                workspace={MOCK_WORKSPACE}
-                org="demo-org"
-                agentRef={SKILL_CREATOR_REF}
-                onAgentRefChange={noop}
-                onMcpServerUsagesChange={noop}
-                onSkillRefsChange={noop}
-              />
+              {typingMessage ? (
+                <TypingComposer
+                  message={typingMessage}
+                  placeholder={placeholder}
+                  agentRef={agentRef}
+                />
+              ) : (
+                <SessionComposer
+                  onSubmit={noop}
+                  placeholder={placeholder}
+                  autoFocus={false}
+                  workspace={MOCK_WORKSPACE}
+                  org={DEMO_ORG}
+                  agentRef={agentRef}
+                  onAgentRefChange={noop}
+                  onMcpServerUsagesChange={noop}
+                  onSkillRefsChange={noop}
+                />
+              )}
             </div>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Wraps `SessionComposer` and programmatically fills the textarea with
+ * the given message by setting the native value and dispatching an
+ * `input` event. This is a standard React pattern for programmatically
+ * updating controlled inputs that don't expose a `value` prop.
+ */
+function TypingComposer({
+  message,
+  placeholder,
+  agentRef,
+}: {
+  readonly message: string;
+  readonly placeholder: string;
+  readonly agentRef?: { org: string; slug: string };
+}) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const textarea = wrapperRef.current?.querySelector("textarea");
+    if (!textarea) return;
+
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      "value",
+    )?.set;
+    setter?.call(textarea, message);
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  }, [message]);
+
+  return (
+    <div ref={wrapperRef}>
+      <SessionComposer
+        onSubmit={noop}
+        placeholder={placeholder}
+        autoFocus={false}
+        workspace={MOCK_WORKSPACE}
+        org={DEMO_ORG}
+        agentRef={agentRef}
+        onAgentRefChange={noop}
+        onMcpServerUsagesChange={noop}
+        onSkillRefsChange={noop}
+      />
     </div>
   );
 }

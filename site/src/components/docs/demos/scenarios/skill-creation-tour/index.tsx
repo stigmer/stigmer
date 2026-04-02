@@ -5,20 +5,19 @@ import { StigmerProvider } from "@stigmer/react";
 import { createDemoClient, fixtures, buildScenario } from "@stigmer/react/demo";
 import { create } from "@bufbuild/protobuf";
 import { GetArtifactContentResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
-import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { ScenarioPlayer } from "./ScenarioPlayer";
-import { DemoAppShell } from "./DemoAppShell";
-import { DemoWidgetsSidebar } from "./DemoWidgetsSidebar";
-import { DemoCursor } from "./DemoCursor";
-import { SkillsListView } from "./SkillsListView";
-import { ComposerView } from "./ComposerView";
+import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
+import { Cursor } from "../../engine/Cursor";
+import { AppShell } from "../../views/AppShell";
+import { ComposerView } from "../../views/ComposerView";
+import { SkillsListView } from "../../views/SkillsListView";
+import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
 import {
   type GuidedTourStep,
   skillCreationTourSteps,
   SKILL_MD_PREVIEW,
-} from "./scenarios/skill-creation-tour";
+} from "./steps";
 
-const DEMO_ORG = "demo-org";
+const SKILL_CREATOR_REF = { org: "demo-org", slug: "skill-creator" };
 
 const skillMdBytes = new TextEncoder().encode(SKILL_MD_PREVIEW);
 
@@ -35,7 +34,7 @@ const demoScenario = buildScenario(
 
 /**
  * Derive the content-area key from the current step so that
- * DemoAppShell only triggers a fade transition when the view
+ * AppShell only triggers a fade transition when the view
  * category changes — not on every message snapshot.
  */
 function contentKeyFor(step: GuidedTourStep): string {
@@ -85,17 +84,6 @@ function cursorTargetFor(step: GuidedTourStep): string | undefined {
   }
 }
 
-function widgetsSidebar(execution: AgentExecution) {
-  const executions = [execution];
-  return (
-    <DemoWidgetsSidebar
-      execution={execution}
-      executions={executions}
-      org={DEMO_ORG}
-    />
-  );
-}
-
 function renderStep(step: GuidedTourStep) {
   const contentKey = contentKeyFor(step);
   const slide = slideDirectionFor(step);
@@ -103,7 +91,7 @@ function renderStep(step: GuidedTourStep) {
   switch (step.view) {
     case "library-click":
       return (
-        <DemoAppShell
+        <AppShell
           highlightNav="library"
           contentKey={contentKey}
           slideDirection={slide}
@@ -113,106 +101,106 @@ function renderStep(step: GuidedTourStep) {
               Start a new session
             </p>
           </div>
-        </DemoAppShell>
+        </AppShell>
       );
 
     case "skills-list":
       return (
-        <DemoAppShell
+        <AppShell
           activeNav="library"
           contentKey={contentKey}
           slideDirection={slide}
         >
           <SkillsListView />
-        </DemoAppShell>
+        </AppShell>
       );
 
     case "create-skill-click":
       return (
-        <DemoAppShell
+        <AppShell
           activeNav="library"
           contentKey={contentKey}
           slideDirection={slide}
         >
           <SkillsListView highlightCreate />
-        </DemoAppShell>
+        </AppShell>
       );
 
     case "composer-ready":
       return (
-        <DemoAppShell
+        <AppShell
           activeNav="library"
           contentKey={contentKey}
           slideDirection={slide}
         >
-          <ComposerView />
-        </DemoAppShell>
+          <ComposerView agentRef={SKILL_CREATOR_REF} />
+        </AppShell>
       );
 
     case "conversation":
       return (
-        <DemoAppShell
+        <AppShell
           activeNav="library"
           contentKey={contentKey}
           slideDirection={slide}
-          aside={widgetsSidebar(step.execution)}
+          aside={renderWidgetsSidebar(step.execution)}
         >
           <ComposerView execution={step.execution} />
-        </DemoAppShell>
+        </AppShell>
       );
 
     case "artifact-click":
       return (
-        <DemoAppShell
+        <AppShell
           activeNav="library"
           contentKey={contentKey}
           slideDirection={slide}
-          aside={widgetsSidebar(step.execution)}
+          aside={renderWidgetsSidebar(step.execution)}
         >
           <ComposerView execution={step.execution} />
-        </DemoAppShell>
+        </AppShell>
       );
 
     case "artifact-preview":
       return (
-        <DemoAppShell
+        <AppShell
           activeNav="library"
           contentKey={contentKey}
           slideDirection={slide}
-          aside={widgetsSidebar(step.execution)}
+          aside={renderWidgetsSidebar(step.execution)}
         >
           <ComposerView
             execution={step.execution}
             artifactContent={step.artifactContent}
           />
-        </DemoAppShell>
+        </AppShell>
       );
 
     case "push-skill":
       return (
-        <DemoAppShell
+        <AppShell
           activeNav="library"
           contentKey={contentKey}
           slideDirection={slide}
-          aside={widgetsSidebar(step.execution)}
+          aside={renderWidgetsSidebar(step.execution)}
         >
           <ComposerView
             execution={step.execution}
             artifactContent={SKILL_MD_PREVIEW}
             pushState="ready"
           />
-        </DemoAppShell>
+        </AppShell>
       );
 
     case "library-complete":
       return (
-        <DemoAppShell
+        <AppShell
           activeNav="library"
           contentKey={contentKey}
           slideDirection={slide}
         >
           <SkillsListView showNewSkill />
-        </DemoAppShell>
+        </AppShell>
       );
   }
 }
@@ -230,7 +218,7 @@ function renderStep(step: GuidedTourStep) {
  * 2. **Slide transitions** — content slides left/right on navigation
  * 3. **Animated cursor** — pointer moves to click targets with ripple
  */
-export function DemoSkillCreationTour() {
+export function SkillCreationTour() {
   const client = useMemo(() => createDemoClient(demoScenario), []);
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
@@ -248,7 +236,7 @@ export function DemoSkillCreationTour() {
         >
           {(step) => renderStep(step)}
         </ScenarioPlayer>
-        <DemoCursor target={cursorTarget} containerRef={containerRef} />
+        <Cursor target={cursorTarget} containerRef={containerRef} />
       </div>
     </StigmerProvider>
   );
