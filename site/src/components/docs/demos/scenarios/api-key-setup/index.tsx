@@ -12,17 +12,19 @@ import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
   type ApiKeySetupStep,
   apiKeySetupSteps,
-  API_KEY_LIST,
+  getApiKeyList,
   PERSONAL_ENVIRONMENT,
   PERSONAL_ENV_ID,
   CREATED_KEY_NAME,
   CREATED_RAW_KEY,
 } from "./steps";
 
-const demoScenario = buildScenario(
-  fixtures.apiKey.findAll(() => API_KEY_LIST),
-  fixtures.environment.get(() => PERSONAL_ENVIRONMENT),
-);
+function buildDemoScenario() {
+  return buildScenario(
+    fixtures.apiKey.findAll(() => getApiKeyList()),
+    fixtures.environment.get(() => PERSONAL_ENVIRONMENT),
+  );
+}
 
 function contentKeyFor(step: ApiKeySetupStep): string {
   switch (step.view) {
@@ -170,7 +172,7 @@ function renderStep(step: ApiKeySetupStep) {
  * 4. **User menu** — popup mirrors the real Console's profile menu
  */
 export function ApiKeySetup() {
-  const client = useMemo(() => createDemoClient(demoScenario), []);
+  const client = useMemo(() => createDemoClient(buildDemoScenario()), []);
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
 

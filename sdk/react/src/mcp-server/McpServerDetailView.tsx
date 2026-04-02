@@ -63,6 +63,12 @@ export interface McpServerDetailViewProps {
     sessionId: string;
     executionId: string;
   }) => void;
+  /**
+   * Initial active capability tab. Defaults to `"tools"`.
+   * Useful for deep-linking or demo scenarios that need to start on
+   * a specific tab.
+   */
+  readonly defaultCapabilityTab?: CapabilityTab;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -99,6 +105,7 @@ export function McpServerDetailView({
   onVisibilityChange,
   isVisibilityPending,
   onPolicySessionCreated,
+  defaultCapabilityTab = "tools",
   className,
 }: McpServerDetailViewProps) {
   const { mcpServer, isLoading, error, refetch } = useMcpServer(org, slug);
@@ -110,7 +117,7 @@ export function McpServerDetailView({
   const [policyPanelExecutionId, setPolicyPanelExecutionId] = useState<
     string | null
   >(null);
-  const [capabilityTab, setCapabilityTab] = useState<CapabilityTab>("tools");
+  const [capabilityTab, setCapabilityTab] = useState<CapabilityTab>(defaultCapabilityTab);
 
   const onResourceLoadRef = useRef(onResourceLoad);
   onResourceLoadRef.current = onResourceLoad;
