@@ -11,6 +11,7 @@ import {
   Settings,
   User,
 } from "lucide-react";
+import { DEMO_SHELL_HEIGHT } from "../shared/tokens";
 
 export type NavId = "new-session" | "library";
 
@@ -68,7 +69,10 @@ export function AppShell({
   const slideX =
     slideDirection === "forward" ? 24 : slideDirection === "backward" ? -24 : 0;
   return (
-    <div className="flex h-[380px] overflow-hidden rounded-lg border border-border bg-card">
+    <div
+      className="flex overflow-hidden rounded-lg border border-border bg-card"
+      style={{ height: DEMO_SHELL_HEIGHT }}
+    >
       {/* Nav sidebar */}
       <nav
         className="flex w-28 shrink-0 flex-col border-r border-border bg-muted"

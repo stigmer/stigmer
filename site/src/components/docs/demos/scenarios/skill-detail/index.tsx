@@ -8,6 +8,7 @@ import {
   fixtures,
   samples,
 } from "@stigmer/react/demo";
+import { DEMO_DETAIL_CLASSES } from "../../shared/tokens";
 
 const DEMO_ORG = "acme";
 
@@ -61,7 +62,7 @@ export function SkillDetail() {
 
   return (
     <StigmerProvider client={client}>
-      <div className="stgm not-prose overflow-hidden rounded-lg border border-border">
+      <div className={DEMO_DETAIL_CLASSES}>
         <div className="p-4">
           <SkillDetailView org={DEMO_ORG} slug="return-policy" />
         </div>

@@ -10,6 +10,7 @@ import {
   EnvironmentVariableEditor,
 } from "@stigmer/react";
 import { DEMO_ORG } from "../engine/shared";
+import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
 
 type ApiKeyVisualState = "list" | "creating" | "created";
 
@@ -57,7 +58,7 @@ export function SettingsView({
         </p>
       </div>
 
-      <div className="min-h-0 flex-1 px-4 pb-4" style={{ zoom: 0.75 }}>
+      <div className="min-h-0 flex-1 px-4 pb-4" style={{ zoom: DEMO_CONTENT_ZOOM }}>
         {/* API Keys section */}
         <section>
           <div className="mb-2 flex items-center justify-between">

@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { ResourceListView } from "@stigmer/react";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { samples } from "@stigmer/react/demo";
+import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
 
 const EXISTING_SKILLS = [
   samples.searchResult({
@@ -81,7 +82,7 @@ export function SkillsListView({
         </div>
       </div>
 
-      <div className="relative" style={{ zoom: 0.85 }}>
+      <div className="relative" style={{ zoom: DEMO_CONTENT_ZOOM }}>
         <ResourceListView items={items} isLoading={false} />
         {showNewSkill && <NewSkillHighlight />}
       </div>

@@ -11,6 +11,7 @@ import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { SkillsListView } from "../../views/SkillsListView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
+import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
   type GuidedTourStep,
   skillCreationTourSteps,
@@ -229,7 +230,7 @@ export function SkillCreationTour() {
 
   return (
     <StigmerProvider client={client}>
-      <div ref={containerRef} className="not-prose relative mx-auto max-w-4xl">
+      <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
         <ScenarioPlayer
           steps={skillCreationTourSteps}
           onStepChange={handleStepChange}
