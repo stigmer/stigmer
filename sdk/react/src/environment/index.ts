@@ -41,3 +41,9 @@ export type {
   SessionEnvPoolInput,
   UseSessionEnvPoolReturn,
 } from "./useSessionEnvPool";
+export {
+  SYSTEM_ENV_VAR_KEYS,
+  toGrpcAddress,
+  buildSystemEnvVars,
+  resolveSystemEnvVarValues,
+} from "./systemEnvVars";

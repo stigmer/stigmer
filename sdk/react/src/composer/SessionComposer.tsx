@@ -24,6 +24,11 @@ import { useAttachments } from "../attachment/useAttachments";
 import { AttachmentChipList } from "../attachment/AttachmentChipList";
 import { useSessionEnvPool } from "../environment/useSessionEnvPool";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
+import { useStigmer } from "../hooks";
+import {
+  SYSTEM_ENV_VAR_KEYS,
+  resolveSystemEnvVarValues,
+} from "../environment/systemEnvVars";
 import {
   AgentIcon,
   McpServerIcon,
@@ -381,10 +386,17 @@ export function SessionComposer({
     [personalEnv.environment],
   );
 
+  const stigmer = useStigmer();
+
   const pool = useSessionEnvPool({
     personalEnvKeys,
     manualSecrets: sessionVariables?.entries,
   });
+
+  const poolKeysWithSystem = useMemo(
+    () => new Set([...pool.availableKeys, ...SYSTEM_ENV_VAR_KEYS]),
+    [pool.availableKeys],
+  );
 
   // ---------------------------------------------------------------------------
   // Setup hooks — instantiated before handleSubmit so it can read their state
@@ -392,12 +404,12 @@ export function SessionComposer({
 
   const agentSetup = useAgentSetup(
     showAgent ? (org ?? null) : null,
-    pool.availableKeys,
+    poolKeysWithSystem,
   );
 
   const mcpSetup = useMcpServerSetup(
     showMcp ? (org ?? null) : null,
-    pool.availableKeys,
+    poolKeysWithSystem,
   );
 
   // ---------------------------------------------------------------------------
@@ -489,6 +501,12 @@ export function SessionComposer({
 
       const env: Record<string, EnvVarInput> = {};
 
+      // System env vars first (lowest priority) — auto-resolved from
+      // the Stigmer client's connection context so MCP servers and
+      // agents can reach the backend without manual user input.
+      const systemVars = await resolveSystemEnvVarValues(stigmer);
+      Object.assign(env, systemVars);
+
       if (
         agentSetup.state.status === "ready" &&
         agentSetup.state.resolution.mode === "oneTime"
@@ -527,7 +545,7 @@ export function SessionComposer({
         attachments.clear();
       }
     },
-    [onSubmit, modelId, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv],
+    [onSubmit, modelId, stigmer, agentSetup.state, mcpSetup.pendingRuntimeEnv, sessionVariables, enableAttachments, attachments, personalEnv],
   );
 
   const composer = useComposer({
