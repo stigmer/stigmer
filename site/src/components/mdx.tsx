@@ -7,7 +7,7 @@ import { File, Files, Folder } from "fumadocs-ui/components/files";
 import { ImageZoom } from "fumadocs-ui/components/image-zoom";
 import { Accordion, Accordions } from "fumadocs-ui/components/accordion";
 import { Card, Cards } from "fumadocs-ui/components/card";
-import { DemoQuickstartPlayback, DemoSessionComposer, DemoSkillCreation, Mermaid, SDKTabs, Term } from "@/components/docs";
+import { DemoQuickstartPlayback, DemoSessionComposer, DemoSkillCreationTour, Mermaid, SDKTabs, Term } from "@/components/docs";
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
@@ -27,7 +27,7 @@ export function getMDXComponents(components?: MDXComponents) {
     Cards,
     DemoQuickstartPlayback,
     DemoSessionComposer,
-    DemoSkillCreation,
+    DemoSkillCreationTour,
     Mermaid,
     SDKTabs,
     Term,
