@@ -42,7 +42,9 @@ interface ScenarioPlayerProps<T> {
  * has full manual control. Pressing play resumes auto-advance from the
  * current position.
  *
- * Resets when scrolled out of view so the animation replays on re-entry.
+ * Pauses when scrolled out of view and resumes from the same step on
+ * re-entry — content is always rendered so the container height is
+ * stable and never causes layout shifts.
  *
  * Renders content via a children render prop — the engine knows nothing
  * about what is being displayed.
@@ -60,7 +62,7 @@ export function ScenarioPlayer<T>({
   const lastIndex = steps.length - 1;
 
   const [stepIndex, setStepIndex] = useState(() =>
-    prefersReducedMotion ? lastIndex : -1,
+    prefersReducedMotion ? lastIndex : 0,
   );
   const [playing, setPlaying] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -72,13 +74,7 @@ export function ScenarioPlayer<T>({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setStepIndex(-1);
-          setPlaying(true);
-        } else {
-          setPlaying(false);
-          setStepIndex(-1);
-        }
+        setPlaying(entry.isIntersecting);
       },
       { threshold: 0.3 },
     );
@@ -96,9 +92,7 @@ export function ScenarioPlayer<T>({
   }, [playing, stepIndex, steps, lastIndex, prefersReducedMotion]);
 
   useEffect(() => {
-    if (stepIndex >= 0) {
-      onStepChange?.(steps[stepIndex].data, stepIndex);
-    }
+    onStepChange?.(steps[stepIndex].data, stepIndex);
   }, [stepIndex, steps, onStepChange]);
 
   const goTo = useCallback(
@@ -121,18 +115,16 @@ export function ScenarioPlayer<T>({
     if (playing) {
       setPlaying(false);
     } else {
-      if (stepIndex >= lastIndex) setStepIndex(-1);
+      if (stepIndex >= lastIndex) setStepIndex(0);
       setPlaying(true);
     }
   }, [playing, stepIndex, lastIndex]);
 
-  const isStarted = stepIndex >= 0;
-
-  const caption = isStarted ? steps[stepIndex].caption : undefined;
+  const caption = steps[stepIndex].caption;
 
   return (
     <div ref={containerRef} className={className}>
-      {isStarted && children(steps[stepIndex].data, stepIndex)}
+      {children(steps[stepIndex].data, stepIndex)}
 
       {/* Step caption */}
       <div className="mt-2 flex h-6 items-center justify-center">
@@ -157,7 +149,7 @@ export function ScenarioPlayer<T>({
         <div className="flex items-center gap-1">
           <button
             onClick={prev}
-            disabled={!isStarted || stepIndex <= 0}
+            disabled={stepIndex <= 0}
             className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
             aria-label="Previous step"
           >
@@ -174,7 +166,7 @@ export function ScenarioPlayer<T>({
 
           <button
             onClick={next}
-            disabled={!isStarted || stepIndex >= lastIndex}
+            disabled={stepIndex >= lastIndex}
             className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
             aria-label="Next step"
           >
