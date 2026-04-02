@@ -22,15 +22,20 @@ export default async function Page(props: PageProps) {
 
   const MDX = page.data.body;
   const markdownUrl = `${page.url}.md`;
+  const isIndex = !params.slug || params.slug.length === 0;
 
   return (
     <DocsPage
       toc={page.data.toc}
       full={page.data.full}
-      breadcrumb={{
-        includeRoot: { url: "/docs" },
-        includePage: true,
-      }}
+      breadcrumb={
+        isIndex
+          ? { enabled: false }
+          : {
+              includeRoot: { url: "/docs" },
+              includePage: true,
+            }
+      }
     >
       <div className="flex items-center justify-between">
         <DocsTitle>{page.data.title}</DocsTitle>
