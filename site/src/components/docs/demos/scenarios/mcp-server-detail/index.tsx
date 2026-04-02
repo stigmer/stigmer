@@ -22,7 +22,7 @@ import {
   DiscoverySource,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
-import { DEMO_DETAIL_CLASSES } from "../../shared/tokens";
+import { DEMO_CONTENT_ZOOM, DEMO_DETAIL_CLASSES } from "../../shared/tokens";
 
 const DEMO_ORG = "acme";
 
@@ -93,7 +93,7 @@ export function McpServerDetail() {
   return (
     <StigmerProvider client={client}>
       <div className={DEMO_DETAIL_CLASSES}>
-        <div className="p-4">
+        <div className="p-4" style={{ zoom: DEMO_CONTENT_ZOOM }}>
           <McpServerDetailView org={DEMO_ORG} slug="order-management-api" />
         </div>
       </div>
