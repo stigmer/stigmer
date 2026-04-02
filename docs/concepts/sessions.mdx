@@ -1,0 +1,141 @@
+---
+title: Sessions
+description:
+  A Session is a conversation context that preserves memory across interactions.
+  Learn how Sessions work, how they connect to Agents, and how to customize them
+  per conversation.
+---
+
+When a user talks to an agent, the conversation needs memory. The second message
+should know about the first. The agent should remember an order number mentioned
+earlier without the user repeating it. That context lives in a Session.
+
+A Session is a conversation context that holds message history and connects a
+user to an [Agent](/docs/concepts/agents). When a user sends a message, the
+agent sees the full conversation history from that Session — it knows what was
+asked before, what tools were called, and what the outcomes were.
+
+## Sessions in action
+
+Watch how the agent remembers context across messages. The user mentions an
+order in the first message, and the agent recalls the product and order number
+in the second — without the user repeating any details:
+
+<DemoSessionMemoryPlayback />
+
+This works because both messages exist in the same Session. The agent sees the
+complete thread when processing each new message.
+
+## How Sessions fit in the lifecycle
+
+A Session connects an Agent (via an Agent Instance) to a conversation:
+
+{/* vale off */} {/* prettier-ignore */}
+
+<Mermaid
+  chart={`
+graph LR
+  AI["Agent Instance"] --> S["Session"]
+  S --> E1["Execution 1"]
+  S --> E2["Execution 2"]
+  S --> E3["Execution 3"]
+`}
+/>
+{/* vale on */}
+
+Each request-response cycle within a Session creates an
+[Agent Execution](/docs/concepts/agents#blueprint-vs-runtime). The execution
+sees all previous messages from the Session — this is how the agent remembers
+context.
+
+## Creating a Session
+
+In the SDK, you create a Session by specifying which Agent Instance to use:
+
+<!-- vale off -->
+<Tabs items={["TypeScript", "Go"]}>
+  <Tab value="TypeScript">
+```typescript
+const session = await client.session.create({
+  spec: {
+    subject: "Order inquiry",
+    agentInstanceId: "ain-abc123",
+  },
+});
+```
+  </Tab>
+  <Tab value="Go">
+```go
+session, err := client.Session.Create(ctx, &sessionv1.CreateInput{
+    Spec: &sessionv1.SessionSpec{
+        Subject:         "Order inquiry",
+        AgentInstanceId: "ain-abc123",
+    },
+})
+```
+  </Tab>
+</Tabs>
+<!-- vale on -->
+
+If you don't specify an `agentInstanceId`, Stigmer uses the default agent — the
+same `assistant` from the [Quickstart](/docs/getting-started/quickstart).
+
+## Session-level overrides
+
+Sessions can customize an agent's behavior for a specific conversation without
+changing the Agent definition. Two key overrides:
+
+### Skills
+
+Add domain knowledge for this conversation only:
+
+```yaml
+spec:
+  skill_refs:
+    - kind: skill
+      slug: seasonal-promotions
+```
+
+Session-level Skills merge with the agent's Skills. If the same Skill appears in
+both, the Session-level reference takes precedence.
+
+### Tools
+
+Add or restrict tool access per conversation:
+
+```yaml
+spec:
+  mcp_server_usages:
+    - mcp_server_ref:
+        kind: mcp_server
+        slug: inventory-api
+      enabled_tools:
+        - check_stock
+```
+
+This lets you give a specific conversation access to tools that the agent
+doesn't normally have, or restrict tools for a sensitive interaction.
+
+## Session lifecycle
+
+Sessions persist until explicitly deleted. You can:
+
+- **Resume** a Session by sending new messages to the same Session ID
+- **List** past Sessions and their execution history
+- **Delete** a Session when the conversation is no longer needed
+
+Each Session maintains its own thread of messages. The agent sees the complete
+history when processing a new message, so context accumulates naturally over the
+conversation.
+
+## What's next
+
+Sessions capture conversations. But what about multi-step automated processes
+that go beyond a single conversation — processes that chain agent calls, HTTP
+requests, and approval gates together? That's what
+[Workflows](/docs/concepts/workflows) are for. Workflow documentation is coming
+soon.
+
+If you want to continue learning about platform structure now, the next
+substantive page is [Environments](/docs/concepts/environments) — how Stigmer
+manages the secrets and configuration that Agents and tools need at runtime.

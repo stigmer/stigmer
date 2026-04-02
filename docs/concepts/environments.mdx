@@ -1,0 +1,135 @@
+---
+title: Environments
+description:
+  Environments hold configuration values and secrets that Agents and MCP Servers
+  need at runtime. Learn how environment layering works and how the same Agent
+  runs with different configurations.
+---
+
+[Agents](/docs/concepts/agents) and [MCP Servers](/docs/concepts/tools) need
+configuration at runtime — API keys, service URLs, feature flags. But these
+values don't belong in the Agent or MCP Server definition. The same
+`order-management-api` MCP Server should point to a test API in development and
+a production API in production.
+
+Environments solve this. An Environment is a named, persistent collection of
+configuration values and secrets. Agent Instances reference one or more
+Environments, and Stigmer resolves the values at runtime.
+
+## What an Environment looks like
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Environment
+metadata:
+  name: production-secrets
+  org: acme
+spec:
+  description: Production API keys and service URLs.
+  data:
+    ORDER_API_URL:
+      value: "https://api.acme.com/orders"
+      is_secret: false
+      description: Base URL for the order management API
+    ORDER_API_KEY:
+      value: "sk-prod-..."
+      is_secret: true
+      description: Production API key for the order service
+    SUPPORT_EMAIL:
+      value: "support@acme.com"
+      is_secret: false
+      description: Email address for customer support
+```
+
+Each variable has:
+
+| Field         | Purpose                                                                          |
+| ------------- | -------------------------------------------------------------------------------- |
+| `value`       | The actual value                                                                 |
+| `is_secret`   | Whether the value should be treated as a secret (redacted in logs, masked in UI) |
+| `description` | Human-readable description of what this variable is for                          |
+
+## Environment layering
+
+An Agent Instance can reference multiple Environments. They merge in order —
+later environments override earlier ones for the same variable name:
+
+{/* vale off */} {/* prettier-ignore */}
+
+<Mermaid
+  chart={`
+graph LR
+  E1["shared-config<br/>ORDER_API_URL=..."] --> M["Merged"]
+  E2["production-secrets<br/>ORDER_API_KEY=sk-prod-..."] --> M
+  M --> AI["Agent Instance"]
+`}
+/>
+{/* vale on */}
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: AgentInstance
+metadata:
+  name: support-agent-production
+spec:
+  agent_id: agt-abc123
+  environment_refs:
+    - kind: environment
+      slug: shared-config
+    - kind: environment
+      slug: production-secrets
+```
+
+This layering lets you separate concerns:
+
+- **Shared configuration** — URLs, feature flags, non-sensitive settings shared
+  across agents
+- **Per-environment secrets** — API keys, credentials, tokens specific to
+  dev/staging/production
+- **Per-agent overrides** — Settings that only one agent needs
+
+## Declaring required variables
+
+[Agents](/docs/concepts/agents) and [MCP Servers](/docs/concepts/tools) declare
+which environment variables they need through `env_spec`:
+
+```yaml
+# In the McpServer definition
+spec:
+  env_spec:
+    data:
+      ORDER_API_URL:
+        is_secret: false
+        description: Base URL of the order management API
+      ORDER_API_KEY:
+        is_secret: true
+        description: API key for the order management service
+```
+
+This is a _schema_, not a value assignment. It says "this resource needs these
+variables at runtime." The actual values come from the Environments attached to
+the Agent Instance.
+
+If a required variable is missing at runtime, the agent fails fast with a clear
+error — not halfway through a tool call.
+
+## Secrets vs. configuration
+
+The `is_secret` flag matters:
+
+|                    | Configuration | Secrets       |
+| ------------------ | ------------- | ------------- |
+| `is_secret`        | `false`       | `true`        |
+| **Visible in UI**  | Yes           | Masked        |
+| **In logs**        | Yes           | Redacted      |
+| **In audit trail** | Full value    | Presence only |
+
+Mark anything sensitive — API keys, passwords, tokens, credentials — as a
+secret. Stigmer handles the masking and redaction automatically.
+
+## What's next
+
+Environments organize secrets and configuration. But how are resources
+themselves organized? The next page explains
+[Organizations](/docs/concepts/organizations) — how Stigmer groups resources,
+teams, and access control into tenant boundaries.
