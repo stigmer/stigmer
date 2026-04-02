@@ -243,6 +243,10 @@ export const fixtures = {
   // ---- Environment ----
 
   environment: {
+    /** Components: `EnvironmentVariableEditor` */
+    get: (handler: UnaryFixtureHandler): FixtureSpec =>
+      unarySpec(EnvironmentQueryController, "get", handler),
+
     /** Hooks: `useEnvironment` */
     getByReference: (handler: UnaryFixtureHandler): FixtureSpec =>
       unarySpec(EnvironmentQueryController, "getByReference", handler),

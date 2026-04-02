@@ -66,9 +66,9 @@ That's it! No complex structure - just focused work.
 
 ## Current Status
 
-**Status**: All 5 tasks complete. Ready for visual review.
+**Status**: Session 4 complete — API key setup demo built and integrated. Ready for visual review.
 **Last Updated**: 2026-04-02
-**Current Focus**: Visual QA — run the dev server and verify the guided tour renders correctly on the first-skill docs page.
+**Current Focus**: Visual QA — run the dev server and verify both demos render correctly.
 
 ## Session 1 Progress (2026-04-02)
 
@@ -87,20 +87,45 @@ That's it! No complex structure - just focused work.
 - All demo views now use real SDK components (MessageThread, ResourceListView, SessionComposer)
 - TypeScript type check passes clean
 
+## Session 3 Progress (2026-04-02)
+
+- Diagnosed and fixed scroll-trap UX bug in ScenarioPlayer: IntersectionObserver reset loop collapsed the container on viewport exit, trapping users in a layout-shift cycle
+- Changed ScenarioPlayer from reset-on-intersection to pause/resume model: always render first frame, pause on exit, resume on re-entry
+- Removed `isStarted` concept and `-1` sentinel value — simpler state model
+- Commit: `b5e128d3` — `fix(site): eliminate scroll trap in ScenarioPlayer auto-play`
+- Changelog: `_changelog/2026-04/2026-04-02-164633-fix-scenario-player-scroll-trap.md`
+
+## Session 4 Progress (2026-04-02)
+
+- Built new `DemoApiKeySetup` scenario for Quickstart "Sign up and get your API key" step
+- Added `samples.apiKey()` / `samples.apiKeyList()` factories and `fixtures.environment.get` to SDK demo layer
+- Enhanced `AppShell` with user profile interaction: cursor targeting, highlight pulse, popup `UserMenu`
+- Created `SettingsView.tsx` — layout wrapper composing 4 SDK components (API key list, create form, created alert, env editor)
+- 8-step timed sequence: new-session → profile click → menu → Settings → API keys → create → form → key created
+- Removed old `DemoSessionComposer` export (replaced by this scenario)
+- Resolved TypeScript compilation issues from `file:` dependency model (SDK rebuild + site reinstall)
+- Checkpoint: `checkpoints/2026-04-02-session-4.md`
+- Changelog: `_changelog/2026-04/2026-04-02-172448-api-key-setup-demo-scenario.md`
+
 ## Next Steps
 
-1. Run dev server (`cd site && yarn dev`) and visually verify the guided tour on `/docs/getting-started/first-skill`
-2. Tune timings if the pace feels too fast or too slow
-3. Adjust `min-h` / `max-h` if the component is too tall or short in context
-4. Check light mode and dark mode rendering
-5. Verify reduced-motion behavior (ScenarioPlayer skips to final state)
-6. Consider removing old `DemoSkillCreation.tsx` once the tour is validated
+1. Run dev server (`cd site && yarn dev`) and visually verify `DemoApiKeySetup` on `/docs/getting-started/quickstart`
+2. Verify `DemoSkillCreationTour` still works on `/docs/getting-started/first-skill`
+3. Confirm scroll-trap fix works — user should be able to scroll past demos freely
+4. Tune timings if the pace feels too fast or too slow
+5. Adjust `min-h` / `max-h` if any component is too tall or short in context
+6. Check light mode and dark mode rendering
+7. Verify reduced-motion behavior (ScenarioPlayer skips to final state)
+8. Consider removing old `DemoSkillCreation.tsx` once both tours are validated
 
 ## Context for Resume
 
 - The old `DemoSkillCreation.tsx` is still in the repo but no longer exported from the barrel. Safe to delete after visual confirmation.
 - The `skill-creation.ts` scenario file (with `skillCreationScenario` and fixtures) is kept — it's still referenced as data source and useful for other demos.
 - Content transitions use `framer-motion` with keyed `motion.div` — the `contentKey` only changes when the view *category* changes, so message snapshots don't trigger unnecessary fade animations.
+- ScenarioPlayer now starts at `stepIndex = 0` (not `-1`). The first frame is always rendered as a poster state. Auto-play advances from step 1 onward when the demo enters the viewport.
+- `EnvironmentVariableEditor` calls `stigmer.environment.get(id)` (not `getByReference`) — the `fixtures.environment.get` helper was added for this.
+- `site` uses `file:` dependencies for the SDK: type changes in SDK source require `npm run build` in `sdk/react` + `npm install` in `site/` to propagate.
 
 ---
 
