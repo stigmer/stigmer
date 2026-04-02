@@ -1,8 +1,10 @@
 "use client";
 
-import { MessageThread } from "@stigmer/react";
+import { MessageThread, SessionComposer } from "@stigmer/react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import { Bot, SendHorizontal } from "lucide-react";
+import { Bot } from "lucide-react";
+
+const noop = () => {};
 
 interface ComposerViewProps {
   agentName: string;
@@ -11,17 +13,16 @@ interface ComposerViewProps {
 }
 
 /**
- * Simplified session composer view for the guided-tour demo.
+ * Session composer view for the guided-tour demo.
  *
- * Shows an agent header bar and — when an execution is provided —
- * renders the conversation using the real `MessageThread` component
- * from `@stigmer/react`. For the "ready" state (no execution), it
- * shows the empty composer with a placeholder input.
+ * Composes an agent header bar with real `@stigmer/react` components:
+ * `MessageThread` for conversation steps and `SessionComposer` for the
+ * empty "ready" state. No live backend required — the composer's
+ * `onSubmit` is a no-op and all features that trigger RPCs are disabled.
  */
 export function ComposerView({ agentName, execution }: ComposerViewProps) {
   return (
     <div className="flex h-full flex-col">
-      {/* Agent header */}
       <div className="flex items-center gap-2 border-b border-border px-4 py-2">
         <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted">
           <Bot className="h-3 w-3 text-muted-foreground" />
@@ -31,7 +32,6 @@ export function ComposerView({ agentName, execution }: ComposerViewProps) {
         </span>
       </div>
 
-      {/* Conversation or empty state */}
       <div className="flex-1 overflow-hidden">
         {execution ? (
           <MessageThread
@@ -39,16 +39,15 @@ export function ComposerView({ agentName, execution }: ComposerViewProps) {
             className="h-full max-h-[240px] px-4 py-3"
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-3 p-4">
-            <p className="text-[11px] text-muted-foreground">
-              Ask the Skill Creator to build a skill from your domain knowledge.
-            </p>
-            <div className="flex w-full items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5">
-              <span className="flex-1 text-[11px] text-muted-foreground">
-                Describe your skill...
-              </span>
-              <SendHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-            </div>
+          <div className="flex h-full flex-col justify-end p-3">
+            <SessionComposer
+              onSubmit={noop}
+              placeholder="Describe your skill..."
+              showModelSelector={false}
+              enableAttachments={false}
+              initialRows={2}
+              autoFocus={false}
+            />
           </div>
         )}
       </div>
