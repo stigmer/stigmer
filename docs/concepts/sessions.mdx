@@ -30,8 +30,7 @@ complete thread when processing each new message.
 
 A Session connects an Agent (via an Agent Instance) to a conversation:
 
-{/* vale off */} {/* prettier-ignore */}
-
+{/* prettier-ignore */}
 <Mermaid
   chart={`
 graph LR
@@ -41,7 +40,6 @@ graph LR
   S --> E3["Execution 3"]
 `}
 />
-{/* vale on */}
 
 Each request-response cycle within a Session creates an
 [Agent Execution](/docs/concepts/agents#blueprint-vs-runtime). The execution
@@ -52,7 +50,6 @@ context.
 
 In the SDK, you create a Session by specifying which Agent Instance to use:
 
-<!-- vale off -->
 <Tabs items={["TypeScript", "Go"]}>
   <Tab value="TypeScript">
 ```typescript
@@ -75,7 +72,6 @@ session, err := client.Session.Create(ctx, &sessionv1.CreateInput{
 ```
   </Tab>
 </Tabs>
-<!-- vale on -->
 
 If you don't specify an `agentInstanceId`, Stigmer uses the default agent — the
 same `assistant` from the [Quickstart](/docs/getting-started/quickstart).
