@@ -9,12 +9,14 @@ import { samples } from "@stigmer/react/demo";
 
 const EXISTING_SKILLS = [
   samples.searchResult({
+    id: "skl-00000000-0000-0000-0000-000000000001",
     kind: ApiResourceKind.skill,
     name: "Product Catalog",
     slug: "product-catalog",
     description: "Technical specs and pricing for all product lines.",
   }),
   samples.searchResult({
+    id: "skl-00000000-0000-0000-0000-000000000002",
     kind: ApiResourceKind.skill,
     name: "Escalation Runbook",
     slug: "escalation-runbook",
@@ -23,6 +25,7 @@ const EXISTING_SKILLS = [
 ];
 
 const NEW_SKILL = samples.searchResult({
+  id: "skl-00000000-0000-0000-0000-000000000003",
   kind: ApiResourceKind.skill,
   name: "Return Policy",
   slug: "return-policy",
@@ -56,7 +59,7 @@ export function SkillsListView({
     <div className="flex h-full flex-col p-4">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">Skills</h3>
-        <div className="relative">
+        <div className="relative" data-cursor-target="create-skill">
           <div className="flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground">
             <Plus className="h-3 w-3" />
             Create Skill

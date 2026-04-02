@@ -22,6 +22,14 @@ interface DemoAppShellProps {
    * a fade transition between views.
    */
   contentKey: string;
+  /**
+   * Direction of the slide transition when `contentKey` changes.
+   *
+   * - `"forward"` — slides in from the right (navigating deeper)
+   * - `"backward"` — slides in from the left (going back)
+   * - `undefined` — fades in without sliding
+   */
+  slideDirection?: "forward" | "backward";
   /** Optional right sidebar (e.g. execution widgets). */
   aside?: ReactNode;
   children: ReactNode;
@@ -39,9 +47,12 @@ export function DemoAppShell({
   activeNav,
   highlightNav,
   contentKey,
+  slideDirection,
   aside,
   children,
 }: DemoAppShellProps) {
+  const slideX =
+    slideDirection === "forward" ? 24 : slideDirection === "backward" ? -24 : 0;
   return (
     <div className="flex h-[380px] overflow-hidden rounded-lg border border-border bg-card">
       {/* Nav sidebar */}
@@ -107,10 +118,10 @@ export function DemoAppShell({
       {/* Content area */}
       <motion.div
         key={contentKey}
-        className="min-w-0 flex-1 overflow-hidden"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3 }}
+        className="min-w-0 flex-1 overflow-hidden bg-background"
+        initial={{ opacity: 0, x: slideX }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
       >
         {children}
       </motion.div>
@@ -143,7 +154,7 @@ function NavRow({
 }) {
   return (
     <div
-      key={id}
+      data-cursor-target={id}
       className={`relative flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] transition-colors ${
         isActive
           ? "bg-accent text-accent-foreground"

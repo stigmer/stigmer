@@ -14,6 +14,19 @@ import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecu
 import { samples } from "@stigmer/react/demo";
 import type { ScenarioStep } from "../ScenarioPlayer";
 
+// ---------------------------------------------------------------------------
+// Data model
+// ---------------------------------------------------------------------------
+
+export type QuickstartStep =
+  | { view: "composer-empty" }
+  | { view: "composer-typing"; message: string }
+  | { view: "conversation"; execution: AgentExecution };
+
+// ---------------------------------------------------------------------------
+// Conversation data
+// ---------------------------------------------------------------------------
+
 const user1 = samples.humanMessage(
   "What is your return policy for defective items?",
 );
@@ -42,7 +55,10 @@ const ai2 = samples.aiMessage(
  * duplication since `MessageThread` synthesizes a human bubble from
  * `spec.message` automatically.
  */
-function snapshot(...msgs: AgentMessage[]): AgentExecution {
+function snapshot(
+  msgs: AgentMessage[],
+  phase = ExecutionPhase.EXECUTION_IN_PROGRESS,
+): AgentExecution {
   const firstHumanIdx = msgs.findIndex(
     (m) => m.type === MessageType.MESSAGE_HUMAN,
   );
@@ -54,16 +70,25 @@ function snapshot(...msgs: AgentMessage[]): AgentExecution {
       : msgs;
 
   const exec = samples.agentExecution({
-    phase: ExecutionPhase.EXECUTION_COMPLETED,
+    phase,
     messages: statusMessages,
   });
   exec.spec!.message = specMessage;
   return exec;
 }
 
-export const quickstartPlaybackSteps: ScenarioStep<AgentExecution>[] = [
-  { delayMs: 0, data: snapshot(user1) },
-  { delayMs: 2000, data: snapshot(user1, ai1) },
-  { delayMs: 2500, data: snapshot(user1, ai1, user2) },
-  { delayMs: 2000, data: snapshot(user1, ai1, user2, ai2) },
+// ---------------------------------------------------------------------------
+// Step sequence
+// ---------------------------------------------------------------------------
+
+export const quickstartPlaybackSteps: ScenarioStep<QuickstartStep>[] = [
+  // Empty composer — establishes the starting point
+  { delayMs: 0, data: { view: "composer-empty" }, caption: "Start a new session" },
+  // Text appears in the composer before submission
+  { delayMs: 2000, data: { view: "composer-typing", message: "What is your return policy for defective items?" }, caption: "Type your question" },
+  // Conversation
+  { delayMs: 2500, data: { view: "conversation", execution: snapshot([user1]) }, caption: "Ask about your return policy" },
+  { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1, ai1]) }, caption: "Agent gives a generic answer" },
+  { delayMs: 2500, data: { view: "conversation", execution: snapshot([user1, ai1, user2]) }, caption: "Follow-up question" },
+  { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1, ai1, user2, ai2], ExecutionPhase.EXECUTION_COMPLETED) }, caption: "Still no domain knowledge" },
 ];

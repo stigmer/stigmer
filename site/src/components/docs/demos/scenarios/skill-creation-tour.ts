@@ -32,6 +32,7 @@ export type GuidedTourStep =
   | { view: "create-skill-click" }
   | { view: "composer-ready" }
   | { view: "conversation"; execution: AgentExecution }
+  | { view: "artifact-click"; execution: AgentExecution }
   | { view: "artifact-preview"; execution: AgentExecution; artifactContent: string }
   | { view: "push-skill"; execution: AgentExecution }
   | { view: "library-complete" };
@@ -149,19 +150,20 @@ const finalExecution = snapshot(
 
 export const skillCreationTourSteps: ScenarioStep<GuidedTourStep>[] = [
   // Navigation
-  { delayMs: 0, data: { view: "library-click", activeNav: "library" } },
-  { delayMs: 1500, data: { view: "skills-list" } },
-  { delayMs: 2000, data: { view: "create-skill-click" } },
+  { delayMs: 0, data: { view: "library-click", activeNav: "library" }, caption: "Navigate to Library" },
+  { delayMs: 1500, data: { view: "skills-list" }, caption: "View your Skills" },
+  { delayMs: 2000, data: { view: "create-skill-click" }, caption: "Click Create Skill" },
   // Composer
-  { delayMs: 1500, data: { view: "composer-ready" } },
+  { delayMs: 1500, data: { view: "composer-ready" }, caption: "Skill Creator opens" },
   // Conversation (IN_PROGRESS during interaction, COMPLETED when agent finishes)
-  { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1]) } },
-  { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1, ai1]) } },
-  { delayMs: 2500, data: { view: "conversation", execution: snapshot([user1, ai1, user2]) } },
-  { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1, ai1, user2, ai2], ExecutionPhase.EXECUTION_COMPLETED) } },
-  // Artifact & push (execution carries the artifact for the widget sidebar)
-  { delayMs: 2500, data: { view: "artifact-preview", execution: finalExecution, artifactContent: SKILL_MD_PREVIEW } },
-  { delayMs: 3000, data: { view: "push-skill", execution: finalExecution } },
+  { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1]) }, caption: "Describe your domain" },
+  { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1, ai1]) }, caption: "Agent asks questions" },
+  { delayMs: 2500, data: { view: "conversation", execution: snapshot([user1, ai1, user2]) }, caption: "Provide the details" },
+  { delayMs: 2000, data: { view: "conversation", execution: finalExecution }, caption: "Skill generated" },
+  // Artifact click → preview → push
+  { delayMs: 2000, data: { view: "artifact-click", execution: finalExecution }, caption: "Click to preview" },
+  { delayMs: 1500, data: { view: "artifact-preview", execution: finalExecution, artifactContent: SKILL_MD_PREVIEW }, caption: "Review the Skill" },
+  { delayMs: 3000, data: { view: "push-skill", execution: finalExecution }, caption: "Push to save" },
   // Back to library
-  { delayMs: 2000, data: { view: "library-complete" } },
+  { delayMs: 2000, data: { view: "library-complete" }, caption: "Skill added to Library" },
 ];
