@@ -620,7 +620,12 @@ def _create_from_snapshot(daytona: Any, snapshot_id: str) -> Any:
         CreateSandboxFromSnapshotParams,
     )
     
-    params = CreateSandboxFromSnapshotParams(snapshot=snapshot_id)
+    params = CreateSandboxFromSnapshotParams(
+        snapshot=snapshot_id,
+        auto_stop_interval=5,
+        auto_archive_interval=5,
+        auto_delete_interval=-1,
+    )
     sandbox = daytona.create(params=params)
     
     _wait_for_sandbox_ready(sandbox)
