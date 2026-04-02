@@ -1,8 +1,8 @@
 # Design decision: ScenarioPlayer component
 
 **Date**: 2026-04-01
-**Status**: Approved (prototype-first)
-**Context**: 20260401.02.sp.getting-started-revision, Session 1
+**Status**: Prototype built (Session 2)
+**Context**: 20260401.02.sp.getting-started-revision
 
 ## Problem
 
@@ -19,80 +19,101 @@ animated playback communicates *experience*.
 
 ## Chosen approach
 
-A `ScenarioPlayer` React component that delivers fixture data to real
-`@stigmer/react` components in timed steps, with CSS transition animations.
+A two-layer architecture: a generic `ScenarioPlayer<T>` playback engine
+paired with scenario-specific wrapper components.
 
-### How it works
-
-```
-ScenarioPlayer
-├── Accepts: DemoScenario + steps[] timeline
-├── Each step: { fixtureUpdates, delayMs }
-├── On mount: auto-plays through steps sequentially
-├── At each step: updates the fixture store → real components re-render
-├── Animations: framer-motion AnimatePresence (fade-in + slide-up)
-└── Controls: progress indicator, replay button
-```
-
-The key insight is that `DemoTransport` receives a `FixtureRegistry` at
-construction time. ScenarioPlayer extends this by managing a **stepped fixture
-store** — a mutable registry that grows with each step. At step 0, only the
-session exists. At step 1, the user message appears. At step 2, the assistant
-response arrives. The real `MessageThread` component re-renders at each step
-because the underlying data changed.
-
-### Prototype approach (Session 2)
-
-For the prototype, the simplest path is to recreate the demo client at each
-step with an expanded fixture set. This avoids modifying `DemoTransport` and
-keeps the prototype self-contained (~100-150 lines).
+### Architecture (revised in Session 2)
 
 ```
-Step 0: empty thread
-Step 1: user message appears (fade-in)
-Step 2: pause (simulated thinking)
-Step 3: assistant response appears (fade-in)
+ScenarioPlayer<T>              Generic playback engine
+├── Manages: step timing, viewport auto-play, progress, replay
+├── Accepts: steps[] + children render prop
+├── Knows nothing about Stigmer components
+└── Exports: ScenarioStep<T> type
+
+DemoQuickstartPlayback          Scenario-specific wrapper (MDX-facing)
+├── Provides: StigmerProvider (CSS scoping) + MessageThread
+├── Imports: quickstart-playback steps
+└── Passes render prop to ScenarioPlayer
 ```
 
-No artifacts in the prototype. Just enough to evaluate timing, transitions,
-and the "GIF-like" feel in the real docs context (fonts, colors, spacing).
+### Key discovery: MessageThread is pure
+
+Session 2 exploration revealed that `MessageThread` takes `executions` as
+props and does not call `useStigmer()`. This means playback can be driven
+entirely through React state — progressive execution snapshots passed as
+props — without manipulating `DemoTransport` or the fixture layer.
+
+The Session 1 design assumed transport-level fixture swapping. That approach
+is unnecessary for `MessageThread` and would have coupled the engine to the
+fixture system. The state-driven approach is simpler (~50 lines vs. ~150)
+and keeps the engine generic.
+
+`StigmerProvider` is still needed for CSS scoping (the `div.stgm` class),
+but uses a minimal empty-scenario client with no fixture registrations.
+
+### Why the engine is generic
+
+The playback mechanics (timing, progress, replay) are identical regardless of
+what is rendered. Future scenarios render different component trees:
+
+- **Your First Skill**: `MessageThread` + `ArtifactCard`
+- **Tools tutorial**: messages with `ToolCallGroup` expansions
+- **Approval flow**: messages leading to `ApprovalCard`
+
+Hardcoding `MessageThread` inside the engine would require a new player for
+each scenario type. The `children` render prop avoids this — the engine
+manages timing, the wrapper decides what to render.
+
+### Animation approach (prototype)
+
+New messages appear naturally — no per-message enter animations. This matches
+the real product behavior (messages arrive and auto-scroll follows). The timed
+delays between steps create the "thinking" rhythm that gives playback its
+GIF-like quality.
+
+Per-message enter animations (e.g., `AnimatePresence` on individual messages)
+would require modifying `MessageThread` in the SDK — a production component
+shared across the platform. This is deferred pending prototype feedback.
 
 ### Full build (Sessions 3-4, after feedback)
 
-If the prototype feels right, the full build introduces:
+If the prototype feels right, the full build may introduce:
 
-- A `SteppedDemoTransport` that supports mutable fixtures (cleaner than
-  recreating the client)
+- Per-message enter animations (CSS or SDK-level, decided based on feedback)
 - Artifact steps (skill cards, content previews)
-- Configurable timing per step
 - Streaming simulation (character-by-character text reveal)
 - Pause-on-hover for readers who want to examine a step
+- "Thinking" indicator via `activeStreamExecution` prop
 
 ## Location
 
-`site/src/components/docs/demos/ScenarioPlayer.tsx`
-
-This follows the existing pattern — `DemoSkillCreation.tsx` lives in the same
-directory with its scenario data in `scenarios/`.
+- `site/src/components/docs/demos/ScenarioPlayer.tsx` — generic engine
+- `site/src/components/docs/demos/DemoQuickstartPlayback.tsx` — quickstart wrapper
+- `site/src/components/docs/demos/scenarios/quickstart-playback.ts` — step data
 
 ## Dependencies
 
-- **`framer-motion`** — animation transitions (AnimatePresence, motion
-  components). Well-maintained, widely used, already common in Next.js
-  projects. No alternative provides the same enter/exit animation
-  coordination with React.
-- **`@stigmer/react/demo`** — existing infrastructure: `createDemoClient`,
-  `DemoTransport`, `buildScenario`, `fixtures`, `samples`.
-- **`@stigmer/react`** — the real components: `StigmerProvider`,
-  `MessageThread`, `ArtifactCard`, etc.
+- **`framer-motion`** — `useReducedMotion` hook for accessibility. Already a
+  site dependency (`^12.31.1`). Not used for per-message animations in the
+  prototype.
+- **`lucide-react`** — `RotateCcw` icon for the replay button. Already a site
+  dependency.
+- **`@stigmer/react`** — `StigmerProvider`, `MessageThread` (rendered by
+  the wrapper, not the engine).
+- **`@stigmer/react/demo`** — `createDemoClient`, `samples` (used by the
+  wrapper and scenario data, not the engine).
 
 ## What was considered and rejected
 
+**Transport-based fixture swapping** (Session 1 approach): Manipulating
+`DemoTransport` or recreating `createDemoClient` at each step. Rejected
+because `MessageThread` is a pure component — state-driven props are simpler
+and keep the engine decoupled from the fixture system.
+
 **Off-the-shelf replay/animation libraries**: No library exists that replays
-arbitrary React component trees with timed fixture data. Libraries like
-`react-player` or `lottie-react` handle video/animation playback, not
-component-state sequencing. The sequencing logic is custom; the animation
-layer uses a proven library (`framer-motion`).
+arbitrary React component trees with timed fixture data. The sequencing logic
+is custom (~50 lines); no framework needed.
 
 **Recorded video/GIF embeds**: Would show the real product but at the cost of
 maintainability (re-record on every UI change), accessibility (no text
@@ -103,17 +124,21 @@ in sync with the product automatically.
 information but not experience. Rejected as the default for multi-step
 interactions; still acceptable for single-state illustrations.
 
+**Per-message enter animations in prototype**: Would require modifying
+`MessageThread` in the SDK (production component). Deferred — the natural
+appearance with timed delays is sufficient for evaluating the concept.
+
 ## Risks and mitigations
 
 | Risk | Mitigation |
 |------|------------|
-| Animation timing feels wrong (too fast, too slow, uncanny) | Prototype first. Get feedback before building scenarios for all pages. |
-| `framer-motion` adds bundle size to docs pages | Tree-shakeable; only the components used are bundled. Measure after prototype. |
-| Fixture data falls out of sync with real proto messages | Same risk as existing `DemoSkillCreation`. Mitigated by TypeScript types — proto shape changes cause compile errors in fixtures. |
+| Timing feels wrong (too fast, too slow, uncanny) | Prototype first. Get feedback before building scenarios for all pages. Delays are easily tuned in the scenario data. |
+| Natural appearance (no enter animation) feels abrupt | Upgrade paths: CSS keyframe on last message, container-level framer-motion, or SDK-level AnimatePresence. Each is a separate, scoped decision. |
+| Fixture data falls out of sync with real proto messages | Same risk as `DemoSkillCreation`. Mitigated by TypeScript — proto shape changes cause compile errors in scenario data. |
 | ScenarioPlayer is over-engineered for simple demos | Keep `DemoSkillCreation`-style static components for single-state renders. ScenarioPlayer is for multi-step interactions only. |
 
 ## Strategy
 
-Prototype first. Build the minimal version in Session 2, embed it in the
-existing docs for visual evaluation, and collect feedback on timing and feel
-before investing in the full build.
+Prototype first. The minimal version is built (Session 2) and embedded in the
+Cloud Quickstart page for visual evaluation. Collect feedback on timing and
+feel before investing in animation polish or additional scenarios.

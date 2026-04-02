@@ -102,7 +102,7 @@ When starting a new session:
 
 **Created**: 2026-04-01 18:00
 **Current Task**: T01 (Getting Started Documentation Revision)
-**Status**: Session 1 complete — ready for Session 2 (ScenarioPlayer Prototype)
+**Status**: Session 2 complete — ready for Session 3 (Cloud Quickstart + Docs Homepage)
 
 ## Session Progress
 
@@ -135,6 +135,26 @@ When starting a new session:
   - These marketing links only appeared in the docs chrome (Fumadocs DocsLayout), not the marketing site (which uses its own Header/Footer)
 - **Verification**: `tsc --noEmit` passes, `yarn build` passes (13 static pages, zero errors)
 
+### Session 2 (2026-04-02) — ScenarioPlayer Prototype
+
+- **2A: ScenarioPlayer generic engine** (`site/src/components/docs/demos/ScenarioPlayer.tsx`)
+  - Generic `ScenarioPlayer<T>` with `children` render prop (~50 lines)
+  - Viewport-triggered auto-play via Intersection Observer
+  - Progress dots + replay button
+  - `useReducedMotion` support (skips to final state)
+  - Exports `ScenarioStep<T>` type for scenario data
+- **2B: Quickstart playback scenario** (`scenarios/quickstart-playback.ts`)
+  - 4-step timeline: 2 user messages, 2 generic AI responses
+  - Uses `samples.agentExecution` / `humanMessage` / `aiMessage` from demo infrastructure
+  - Delays: 0 → 2000 → 2500 → 2000 ms
+- **2C: DemoQuickstartPlayback wrapper** (`DemoQuickstartPlayback.tsx`)
+  - MDX-facing component wrapping ScenarioPlayer in StigmerProvider + MessageThread
+  - Empty DemoScenario (no fixtures needed — MessageThread is pure)
+- **2D: MDX wiring** — exported, registered in `getMDXComponents()`, embedded in quickstart.mdx
+- **2E: Design decision updated** — revised to reflect two-layer architecture, MessageThread-is-pure discovery, and state-driven approach
+- **Architectural discovery**: `MessageThread` is pure (takes `executions` props, no `useStigmer()` calls). Transport/fixture manipulation unnecessary — state-driven snapshots are simpler.
+- **Verification**: `tsc --noEmit` passes, `yarn build` passes (zero errors)
+
 ## Key Decisions Made
 
 1. **Cloud Quickstart scope**: Sign up → API key → SDK → session → message → response. No skill creation. Implicit assistant agent.
@@ -143,14 +163,20 @@ When starting a new session:
 4. **Document writer role update**: 6 principles + IA reference for path structure (cloud-primary principle not duplicated — lives in IA only).
 5. **Local Quickstart**: Alternative entry point (not step 2). After initial quickstart, both paths converge.
 6. **Section naming**: "Tutorial and learning path standards" (broader than "Getting Started and tutorial standards") to govern all sequential content.
+7. **ScenarioPlayer is generic**: Two-layer architecture — generic engine (`ScenarioPlayer<T>`) + scenario-specific wrappers (`DemoQuickstartPlayback`). Engine knows nothing about Stigmer components.
+8. **State-driven playback**: `MessageThread` is pure (no `useStigmer()`). Playback via progressive execution snapshots, not transport/fixture manipulation.
+9. **Natural message appearance**: No per-message enter animations in prototype. Matches real product behavior. Per-message animations deferred pending feedback.
 
 ## Context for Resume
 
 - Parent Phase 3 deliverables exist: `quickstart.mdx`, `local.mdx`, `first-skill.mdx` with `DemoSkillCreation` component
 - React demo mode infrastructure (`@stigmer/react/demo`) provides `createDemoClient`, `buildScenario`, `fixtures`, `samples`
-- The `DemoSkillCreation` component renders `MessageThread` + `StigmerProvider` with fixture data — this pattern extends to ScenarioPlayer
+- **ScenarioPlayer prototype is live**: `DemoQuickstartPlayback` embedded in `quickstart.mdx` (temporary section)
+- **ScenarioPlayer<T> is generic**: render prop API, viewport auto-play, progress dots, replay. Future wrappers for skill/tool/approval scenarios reuse the same engine.
+- `MessageThread` is a pure component — takes `executions` props, no `useStigmer()` hook calls. State-driven playback works without fixtures.
 - Seedpack assistant agent: `seedpack/agents/assistant.yaml` (label `stigmer.ai/default-agent: "true"`)
 - SDK exports ~50+ React components including `MessageThread`, `ArtifactCard`, `ArtifactContentRenderer`, `ApprovalCard`, `ToolCallDetail`, `SessionComposer`
+- **Session 3 focus**: Rewrite Cloud Quickstart (5-min path, implicit assistant, ScenarioPlayer replaces static demo) + Docs Homepage (journey preview, dual CTAs)
 
 ## Quick Commands
 
