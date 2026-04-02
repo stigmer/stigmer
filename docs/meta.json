@@ -1,3 +1,7 @@
 {
-  "pages": []
+  "pages": [
+    "getting-started",
+    "---Learn---",
+    "concepts"
+  ]
 }

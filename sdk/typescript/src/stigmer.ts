@@ -2,7 +2,11 @@ import { GeneratedClient } from "./gen/client";
 import { GitHubClient } from "./github";
 import { SearchClient } from "./search";
 import { createStigmerTransport } from "./transport";
-import { validateConfig, type StigmerConfig } from "./config";
+import {
+  validateConfig,
+  type StigmerConfig,
+  type TokenProvider,
+} from "./config";
 import type { AgentClient } from "./gen/agent";
 import type { AgentExecutionClient } from "./gen/agentexecution";
 import type { AgentInstanceClient } from "./gen/agentinstance";
@@ -38,6 +42,15 @@ import type { WorkflowInstanceClient } from "./gen/workflowinstance";
  * ```
  */
 export class Stigmer {
+  /**
+   * Base URL of the connected Stigmer API server.
+   *
+   * Exposed so downstream code (e.g., system env var resolution) can
+   * derive the gRPC address for MCP server subprocesses without
+   * requiring the host application to pass it separately.
+   */
+  readonly baseUrl: string;
+
   readonly agent: AgentClient;
   readonly agentExecution: AgentExecutionClient;
   readonly agentInstance: AgentInstanceClient;
@@ -58,8 +71,16 @@ export class Stigmer {
   readonly search: SearchClient;
   readonly github: GitHubClient;
 
+  private readonly _tokenProvider: TokenProvider;
+
   constructor(config: StigmerConfig) {
     validateConfig(config);
+
+    this.baseUrl = config.baseUrl;
+    this._tokenProvider = config.apiKey
+      ? () => config.apiKey!
+      : config.getAccessToken!;
+
     const transport = createStigmerTransport(config);
     const client = new GeneratedClient(transport);
 
@@ -82,5 +103,19 @@ export class Stigmer {
     this.workflowInstance = client.workflowInstance;
     this.search = new SearchClient(transport);
     this.github = new GitHubClient(transport);
+  }
+
+  /**
+   * Retrieve the current authentication credential.
+   *
+   * Returns the static API key or calls the dynamic token provider,
+   * depending on how the client was configured. Returns `null` when
+   * the token provider signals "no auth for this request."
+   *
+   * Used by system env var resolution to derive `STIGMER_API_KEY`
+   * for MCP server subprocesses without prompting the user.
+   */
+  async getAuthCredential(): Promise<string | null> {
+    return await this._tokenProvider();
   }
 }

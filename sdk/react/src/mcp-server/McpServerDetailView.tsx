@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@stigmer/theme";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -22,6 +22,9 @@ import { ErrorMessage } from "../error/ErrorMessage";
 import { EnvVarForm } from "../environment/EnvVarForm";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
 import { VisibilityToggle } from "../library/VisibilityToggle";
+import { Tabs, type TabItem } from "../internal/Tabs";
+
+type CapabilityTab = "tools" | "policies" | "resources";
 
 export interface McpServerDetailViewProps {
   /** Organization slug that owns the MCP server. */
@@ -60,6 +63,12 @@ export interface McpServerDetailViewProps {
     sessionId: string;
     executionId: string;
   }) => void;
+  /**
+   * Initial active capability tab. Defaults to `"tools"`.
+   * Useful for deep-linking or demo scenarios that need to start on
+   * a specific tab.
+   */
+  readonly defaultCapabilityTab?: CapabilityTab;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -68,13 +77,16 @@ export interface McpServerDetailViewProps {
  * Read-only detail view for an MCP Server integration.
  *
  * Fetches the server via {@link useMcpServer} internally and renders
- * its full configuration in structured sections: validation banner
- * (if invalid), header, server configuration (type-specific), discovered
- * tools, resource templates, environment variables, and tags. Sections
- * with no data are omitted entirely.
+ * its full configuration: validation banner (if invalid), header,
+ * a **tabbed capabilities panel** (Tools, Policies, and optionally
+ * Resources), server configuration, environment variables, and tags.
  *
- * The discovered tools section is the star of this view — it answers
- * the question every user asks: "What can this server do?"
+ * The capabilities panel groups the three core concerns of an MCP
+ * server into tabs, each co-locating its action with its output:
+ *
+ * - **Tools** — Discover button + discovered tool list
+ * - **Policies** — Existing approval policies + AI generate action
+ * - **Resources** — Discovered resource templates (tab hidden when empty)
  *
  * Handles loading, error, and not-found states automatically.
  * Zero Console dependencies — safe for platform builder embedding.
@@ -93,6 +105,7 @@ export function McpServerDetailView({
   onVisibilityChange,
   isVisibilityPending,
   onPolicySessionCreated,
+  defaultCapabilityTab = "tools",
   className,
 }: McpServerDetailViewProps) {
   const { mcpServer, isLoading, error, refetch } = useMcpServer(org, slug);
@@ -104,6 +117,7 @@ export function McpServerDetailView({
   const [policyPanelExecutionId, setPolicyPanelExecutionId] = useState<
     string | null
   >(null);
+  const [capabilityTab, setCapabilityTab] = useState<CapabilityTab>(defaultCapabilityTab);
 
   const onResourceLoadRef = useRef(onResourceLoad);
   onResourceLoadRef.current = onResourceLoad;
@@ -181,18 +195,34 @@ export function McpServerDetailView({
     refetch();
   }, [refetch]);
 
+  const spec = mcpServer?.spec;
+  const status = mcpServer?.status;
+  const specAudit = status?.audit?.specAudit;
+  const capabilities = status?.discoveredCapabilities;
+  const toolApprovals = spec?.defaultToolApprovals ?? [];
+  const tools = capabilities?.tools ?? [];
+  const resourceTemplates = capabilities?.resourceTemplates ?? [];
+  const hasDiscoveredTools = tools.length > 0;
+
+  const capabilityTabs: TabItem[] = useMemo(() => {
+    const items: TabItem[] = [
+      { id: "tools", label: "Tools", badge: tools.length },
+      { id: "policies", label: "Policies", badge: toolApprovals.length },
+    ];
+    if (resourceTemplates.length > 0) {
+      items.push({
+        id: "resources",
+        label: "Resources",
+        badge: resourceTemplates.length,
+      });
+    }
+    return items;
+  }, [tools.length, toolApprovals.length, resourceTemplates.length]);
+
   if (isLoading) return <LoadingSkeleton className={className} />;
   if (error)
     return <ErrorMessage error={error} retry={refetch} className={className} />;
   if (!mcpServer) return <NotFoundState className={className} />;
-
-  const spec = mcpServer.spec;
-  const status = mcpServer.status;
-  const specAudit = status?.audit?.specAudit;
-  const capabilities = status?.discoveredCapabilities;
-  const toolApprovals = spec?.defaultToolApprovals ?? [];
-  const hasDiscoveredTools =
-    capabilities != null && capabilities.tools.length > 0;
 
   return (
     <div className={cn("flex flex-col gap-6", className)}>
@@ -218,63 +248,62 @@ export function McpServerDetailView({
         isVisibilityPending={isVisibilityPending}
       />
 
-      {/* Discovery action */}
-      <DiscoverySection
-        isDiscovering={discovery.isDiscovering}
-        discoveryError={discovery.error}
-        onDiscover={handleDiscoverClick}
-        onClearDiscoveryError={discovery.clearError}
-        hasDiscoveredTools={hasDiscoveredTools}
-        showCredentialForm={showCredentialForm}
-        credentialVariables={credentials.missingVariables}
-        isSavingCredentials={credentials.isSaving}
-        onCredentialSubmit={handleCredentialSubmit}
-        onCredentialCancel={() => setShowCredentialForm(false)}
-        credentialsLoading={credentials.isLoading}
-      />
-
       {spec?.serverType.case && (
         <ServerConfigSection serverType={spec.serverType} />
-      )}
-
-      {hasDiscoveredTools && (
-        <ToolsSection tools={capabilities.tools} />
-      )}
-
-      {capabilities && capabilities.resourceTemplates.length > 0 && (
-        <ResourceTemplatesSection
-          templates={capabilities.resourceTemplates}
-        />
-      )}
-
-      {/* Approval Policies */}
-      {toolApprovals.length > 0 && (
-        <ApprovalPoliciesSection policies={toolApprovals} />
-      )}
-
-      {/* Generate Approval Policies */}
-      {hasDiscoveredTools && (
-        <GenerateApprovalPoliciesSection
-          hasPolicies={toolApprovals.length > 0}
-          isTriggering={policySession.isTriggering}
-          triggerError={policySession.error}
-          onGenerate={handleGenerateApprovalPolicies}
-          onClearError={policySession.clearError}
-        />
-      )}
-
-      {/* Inline approval policy generation panel */}
-      {policyPanelExecutionId && (
-        <ApprovalPolicyGeneratorPanel
-          executionId={policyPanelExecutionId}
-          onClose={() => setPolicyPanelExecutionId(null)}
-          onComplete={handlePolicyPanelComplete}
-        />
       )}
 
       {spec?.envSpec && Object.keys(spec.envSpec.data).length > 0 && (
         <EnvSpecSection data={spec.envSpec.data} />
       )}
+
+      <section>
+        <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Capabilities
+        </h3>
+        <div className="overflow-hidden rounded-lg border border-border">
+          <Tabs
+            tabs={capabilityTabs}
+            activeTab={capabilityTab}
+            onTabChange={(id) => setCapabilityTab(id as CapabilityTab)}
+            aria-label="MCP server capabilities"
+          >
+            {capabilityTab === "tools" && (
+              <ToolsTabContent
+                tools={tools}
+                isDiscovering={discovery.isDiscovering}
+                discoveryError={discovery.error}
+                onDiscover={handleDiscoverClick}
+                onClearDiscoveryError={discovery.clearError}
+                hasDiscoveredTools={hasDiscoveredTools}
+                showCredentialForm={showCredentialForm}
+                credentialVariables={credentials.missingVariables}
+                isSavingCredentials={credentials.isSaving}
+                onCredentialSubmit={handleCredentialSubmit}
+                onCredentialCancel={() => setShowCredentialForm(false)}
+                credentialsLoading={credentials.isLoading}
+              />
+            )}
+
+            {capabilityTab === "policies" && (
+              <PoliciesTabContent
+                policies={toolApprovals}
+                hasDiscoveredTools={hasDiscoveredTools}
+                isTriggering={policySession.isTriggering}
+                triggerError={policySession.error}
+                onGenerate={handleGenerateApprovalPolicies}
+                onClearTriggerError={policySession.clearError}
+                policyPanelExecutionId={policyPanelExecutionId}
+                onPolicyPanelClose={() => setPolicyPanelExecutionId(null)}
+                onPolicyPanelComplete={handlePolicyPanelComplete}
+              />
+            )}
+
+            {capabilityTab === "resources" && (
+              <ResourceTemplatesList templates={resourceTemplates} />
+            )}
+          </Tabs>
+        </div>
+      </section>
 
       {spec && spec.tags.length > 0 && <TagsSection tags={spec.tags} />}
     </div>
@@ -487,58 +516,33 @@ function ServerConfigSection({
   );
 }
 
-function ToolsSection({
-  tools,
-}: {
-  readonly tools: readonly DiscoveredTool[];
-}) {
-  return (
-    <Section title={`Tools (${tools.length})`}>
-      <div className="flex flex-col divide-y divide-border">
-        {tools.map((tool) => (
-          <div key={tool.name} className="px-3 py-2.5">
-            <code className="font-mono text-sm font-medium text-foreground">
-              {tool.name}
-            </code>
-            {tool.description && (
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {tool.description}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-function ResourceTemplatesSection({
+function ResourceTemplatesList({
   templates,
 }: {
   readonly templates: readonly DiscoveredResourceTemplate[];
 }) {
+  if (templates.length === 0) return null;
+
   return (
-    <Section title={`Resource Templates (${templates.length})`}>
-      <div className="flex flex-col divide-y divide-border">
-        {templates.map((tpl) => (
-          <div key={tpl.uriTemplate || tpl.name} className="px-3 py-2.5">
-            <div className="flex items-baseline gap-2">
-              <span className="text-sm font-medium text-foreground">
-                {tpl.name}
-              </span>
-              <code className="font-mono text-[10px] text-muted-foreground">
-                {tpl.uriTemplate}
-              </code>
-            </div>
-            {tpl.description && (
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {tpl.description}
-              </p>
-            )}
+    <div className="flex flex-col divide-y divide-border">
+      {templates.map((tpl) => (
+        <div key={tpl.uriTemplate || tpl.name} className="px-3 py-2.5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm font-medium text-foreground">
+              {tpl.name}
+            </span>
+            <code className="font-mono text-[10px] text-muted-foreground">
+              {tpl.uriTemplate}
+            </code>
           </div>
-        ))}
-      </div>
-    </Section>
+          {tpl.description && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {tpl.description}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -592,10 +596,11 @@ function TagsSection({ tags }: { readonly tags: readonly string[] }) {
 }
 
 // ---------------------------------------------------------------------------
-// Discovery section
+// Capability tab contents
 // ---------------------------------------------------------------------------
 
-function DiscoverySection({
+function ToolsTabContent({
+  tools,
   isDiscovering,
   discoveryError,
   onDiscover,
@@ -608,6 +613,7 @@ function DiscoverySection({
   onCredentialCancel,
   credentialsLoading,
 }: {
+  readonly tools: readonly DiscoveredTool[];
   readonly isDiscovering: boolean;
   readonly discoveryError: Error | null;
   readonly onDiscover: () => void;
@@ -624,17 +630,20 @@ function DiscoverySection({
   readonly credentialsLoading: boolean;
 }) {
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Discovery
-        </h3>
+    <div className="flex flex-col">
+      {/* Discovery action bar */}
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+        <span className="text-xs text-muted-foreground">
+          {hasDiscoveredTools
+            ? `${tools.length} tool${tools.length !== 1 ? "s" : ""} discovered`
+            : "No tools discovered yet"}
+        </span>
         <button
           type="button"
           onClick={onDiscover}
           disabled={isDiscovering || credentialsLoading}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
+            "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
             "border border-border bg-background text-foreground",
             "hover:bg-accent hover:text-accent-foreground",
             "disabled:pointer-events-none disabled:opacity-50",
@@ -653,14 +662,14 @@ function DiscoverySection({
           ) : (
             <>
               <DiscoverIcon className="size-3.5" />
-              Discover Tools
+              Discover
             </>
           )}
         </button>
       </div>
 
       {discoveryError && (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+        <div className="flex items-start gap-2 border-b border-destructive/20 bg-destructive/5 px-3 py-2">
           <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
           <p className="flex-1 text-xs text-destructive">
             {discoveryError.message}
@@ -677,7 +686,7 @@ function DiscoverySection({
       )}
 
       {showCredentialForm && credentialVariables.length > 0 && (
-        <div className="rounded-lg border border-border p-4">
+        <div className="border-b border-border p-4">
           <EnvVarForm
             title="Credentials Required"
             description="Enter the credentials needed to connect to this MCP server. Toggle &quot;Save for future runs&quot; to persist them in your personal environment, or leave it off to use them for this discovery only."
@@ -690,113 +699,104 @@ function DiscoverySection({
         </div>
       )}
 
-      {!hasDiscoveredTools && !isDiscovering && (
-        <p className="text-xs text-muted-foreground">
-          No tools discovered yet. Click &quot;Discover Tools&quot; to
-          connect to this MCP server and list its available tools and
-          resources.
-        </p>
-      )}
-    </section>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Approval policies section
-// ---------------------------------------------------------------------------
-
-function ApprovalPoliciesSection({
-  policies,
-}: {
-  readonly policies: readonly ToolApprovalPolicy[];
-}) {
-  return (
-    <Section title={`Approval Policies (${policies.length})`}>
-      <div className="flex flex-col divide-y divide-border">
-        {policies.map((policy) => (
-          <div key={policy.toolName} className="px-3 py-2.5">
-            <div className="flex items-baseline gap-2">
+      {hasDiscoveredTools ? (
+        <div className="flex flex-col divide-y divide-border">
+          {tools.map((tool) => (
+            <div key={tool.name} className="px-3 py-2.5">
               <code className="font-mono text-sm font-medium text-foreground">
-                {policy.toolName}
+                {tool.name}
               </code>
-              <ShieldIcon className="size-3 text-amber-500 dark:text-amber-400" />
+              {tool.description && (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {tool.description}
+                </p>
+              )}
             </div>
-            {policy.message && (
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {policy.message}
-              </p>
-            )}
+          ))}
+        </div>
+      ) : (
+        !isDiscovering && (
+          <div className="px-3 py-8 text-center">
+            <DiscoverIcon className="mx-auto mb-2 size-6 text-muted-foreground/40" />
+            <p className="text-xs text-muted-foreground">
+              Click &quot;Discover&quot; to connect to this MCP server and
+              list its available tools and resources.
+            </p>
           </div>
-        ))}
-      </div>
-    </Section>
+        )
+      )}
+    </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Generate approval policies section
-// ---------------------------------------------------------------------------
-
-function GenerateApprovalPoliciesSection({
-  hasPolicies,
+function PoliciesTabContent({
+  policies,
+  hasDiscoveredTools,
   isTriggering,
   triggerError,
   onGenerate,
-  onClearError,
+  onClearTriggerError,
+  policyPanelExecutionId,
+  onPolicyPanelClose,
+  onPolicyPanelComplete,
 }: {
-  readonly hasPolicies: boolean;
+  readonly policies: readonly ToolApprovalPolicy[];
+  readonly hasDiscoveredTools: boolean;
   readonly isTriggering: boolean;
   readonly triggerError: Error | null;
   readonly onGenerate: () => void;
-  readonly onClearError: () => void;
+  readonly onClearTriggerError: () => void;
+  readonly policyPanelExecutionId: string | null;
+  readonly onPolicyPanelClose: () => void;
+  readonly onPolicyPanelComplete: () => void;
 }) {
+  const hasPolicies = policies.length > 0;
+
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            AI-Generated Policies
-          </h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+    <div className="flex flex-col">
+      {/* Generate action bar */}
+      {hasDiscoveredTools && (
+        <div className="flex items-center justify-between border-b border-border px-3 py-2">
+          <span className="text-xs text-muted-foreground">
             {hasPolicies
-              ? "Regenerate approval policies using AI to classify each tool's risk level."
-              : "Automatically generate approval policies for the discovered tools using AI."}
-          </p>
+              ? "Regenerate to reclassify each tool\u2019s risk level with AI."
+              : "Generate approval policies for discovered tools using AI."}
+          </span>
+          <button
+            type="button"
+            onClick={onGenerate}
+            disabled={isTriggering}
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
+              "bg-primary text-primary-foreground",
+              "hover:bg-primary/90",
+              "disabled:pointer-events-none disabled:opacity-50",
+            )}
+          >
+            {isTriggering ? (
+              <>
+                <DiscoverSpinner />
+                Starting...
+              </>
+            ) : (
+              <>
+                <SparklesIcon className="size-3.5" />
+                {hasPolicies ? "Regenerate" : "Generate"}
+              </>
+            )}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onGenerate}
-          disabled={isTriggering}
-          className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-            "bg-primary text-primary-foreground",
-            "hover:bg-primary/90",
-            "disabled:pointer-events-none disabled:opacity-50",
-          )}
-        >
-          {isTriggering ? (
-            <>
-              <DiscoverSpinner />
-              Starting...
-            </>
-          ) : (
-            <>
-              <SparklesIcon className="size-3.5" />
-              {hasPolicies ? "Regenerate Policies" : "Generate Policies"}
-            </>
-          )}
-        </button>
-      </div>
+      )}
 
       {triggerError && (
-        <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+        <div className="flex items-start gap-2 border-b border-destructive/20 bg-destructive/5 px-3 py-2">
           <WarningIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
           <p className="flex-1 text-xs text-destructive">
             {triggerError.message}
           </p>
           <button
             type="button"
-            onClick={onClearError}
+            onClick={onClearTriggerError}
             className="shrink-0 text-xs text-destructive/70 hover:text-destructive"
             aria-label="Dismiss error"
           >
@@ -804,7 +804,46 @@ function GenerateApprovalPoliciesSection({
           </button>
         </div>
       )}
-    </section>
+
+      {hasPolicies ? (
+        <div className="flex flex-col divide-y divide-border">
+          {policies.map((policy) => (
+            <div key={policy.toolName} className="px-3 py-2.5">
+              <div className="flex items-baseline gap-2">
+                <code className="font-mono text-sm font-medium text-foreground">
+                  {policy.toolName}
+                </code>
+                <ShieldIcon className="size-3 text-amber-500 dark:text-amber-400" />
+              </div>
+              {policy.message && (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {policy.message}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="px-3 py-8 text-center">
+          <ShieldIcon className="mx-auto mb-2 size-6 text-muted-foreground/40" />
+          <p className="text-xs text-muted-foreground">
+            {hasDiscoveredTools
+              ? "No approval policies yet. Generate them to add human oversight for sensitive tools."
+              : "Discover tools first, then generate approval policies."}
+          </p>
+        </div>
+      )}
+
+      {policyPanelExecutionId && (
+        <div className="border-t border-border">
+          <ApprovalPolicyGeneratorPanel
+            executionId={policyPanelExecutionId}
+            onClose={onPolicyPanelClose}
+            onComplete={onPolicyPanelComplete}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 

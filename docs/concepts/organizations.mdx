@@ -1,0 +1,116 @@
+---
+title: Organizations
+description:
+  Organizations and Projects provide multi-tenant resource grouping in Stigmer.
+  Learn how resources are scoped, how projects work, and how Cloud and local
+  modes differ.
+---
+
+Every resource in Stigmer — Agents, Skills, MCP Servers, Sessions, Environments
+— belongs to an Organization. An Organization is a tenant boundary that groups
+resources and controls who can access them.
+
+## Structure
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+graph TD
+  O["Organization<br/>(acme)"] --> P1["Project<br/>(customer-support)"]
+  O --> P2["Project<br/>(internal-tools)"]
+  P1 --> A1["Agent: support-agent"]
+  P1 --> S1["Skill: return-policy"]
+  P1 --> M1["MCP Server: order-service"]
+  P2 --> A2["Agent: ops-assistant"]
+  P2 --> S2["Skill: runbook"]
+`}
+/>
+
+### Organizations
+
+An Organization is the top-level boundary. It owns all resources within it and
+controls access through identity providers and API keys.
+
+```yaml
+apiVersion: tenancy.stigmer.ai/v1
+kind: Organization
+metadata:
+  name: Acme Corp
+  slug: acme
+spec:
+  description: Acme Corp agent platform
+  management_mode: self_managed
+```
+
+Key properties:
+
+| Field             | Purpose                                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------------- |
+| `slug`            | URL-friendly identifier, unique across the platform                                                  |
+| `management_mode` | `self_managed` (you control everything) or `platform_managed` (Stigmer Cloud manages infrastructure) |
+
+### Projects
+
+A Project groups related resources within an Organization. It maps to a
+directory on disk that contains YAML definitions:
+
+```yaml
+apiVersion: tenancy.stigmer.ai/v1
+kind: Project
+metadata:
+  name: customer-support
+  org: acme
+spec:
+  description: >
+    Customer support agents, skills, and tool connections.
+```
+
+When you run `stigmer apply`, the CLI scans the project directory and applies
+all resource definitions it finds. This makes projects the unit of deployment —
+everything in a project directory deploys together.
+
+## Cloud vs. local
+
+In **Stigmer Cloud**, you create an Organization through the web console or API.
+Your Organization has its own isolated boundary, and you manage resources
+through the SDK, CLI, or web console.
+
+In **local mode** (running `stigmer server` on your machine), Stigmer creates an
+implicit Organization automatically. You don't need to think about Organizations
+at all — resources just work. This implicit Organization ensures that the same
+API contracts work identically in both modes.
+
+## Resource visibility
+
+Every resource has a visibility setting:
+
+| Visibility           | Meaning                                      |
+| -------------------- | -------------------------------------------- |
+| `visibility_public`  | Visible to all Organizations on the platform |
+| `visibility_private` | Visible only within the owning Organization  |
+
+Public resources enable sharing — a useful MCP Server or Skill published by one
+Organization can be referenced by Agents in another. The built-in Seedpack
+resources (like the `assistant` agent and `mcp-server-stigmer`) are public by
+default.
+
+## Resource references
+
+Resources reference each other by `kind` and `slug`. When the reference includes
+an `org` field, it points to a resource in a different Organization:
+
+```yaml
+# Same org — org field omitted
+skill_refs:
+  - kind: skill
+    slug: return-policy
+
+# Cross-org reference
+skill_refs:
+  - kind: skill
+    slug: return-policy
+    org: acme
+```
+
+This keeps resource definitions portable — they reference resources by name, not
+by internal IDs.

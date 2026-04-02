@@ -1,0 +1,177 @@
+---
+title: What is Stigmer?
+description:
+  Stigmer is an open-source AI agent platform. Learn what it does, who it's for,
+  and how it differs from calling an LLM directly, using RAG, or adopting an
+  agent framework.
+---
+
+## The problem Stigmer solves
+
+You called the ChatGPT or Claude API. The demo worked. Then you tried to ship
+it.
+
+The AI doesn't know your business — your return policy, your product catalog,
+your escalation process. It can't take actions in your systems. There's no way
+to add human oversight. Every call is a one-shot interaction with no memory of
+what came before.
+
+Building all of that yourself means assembling orchestration, durability, tool
+security, state management, and an API layer — months of infrastructure work
+before you ship a single agent.
+
+Stigmer is the platform that handles that infrastructure so you can focus on
+building agents.
+
+## What Stigmer is
+
+Stigmer is an open-source AI agent platform. You define agents, teach them your
+domain, connect them to your tools, and set rules for when they need human
+approval. Then any application in your stack can call those agents via a
+standard API.
+
+Stigmer provides the runtime layer that makes agents production-ready:
+
+- **Durable execution** — agents survive crashes and resume where they left off
+- **Tool sandboxing** — agents interact with external systems through
+  controlled, validated tool calls
+- **Human approval flows** — you decide which actions require a human decision
+  before proceeding
+- **Conversation memory** — agents remember context across interactions within a
+  Session
+- **Real API contracts** — gRPC services with public protobuf definitions, so
+  you generate type-safe clients in any language
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={[
+    "graph TB",
+    "  subgraph yourApp [Your Application]",
+    '    sdkCall["SDK / API call"]',
+    "  end",
+    "",
+    "  subgraph stigmer [Stigmer Platform]",
+    '    runtime["Agent Runtime"]',
+    '    runtime --> skills["Skills<br/>(domain knowledge)"]',
+    '    runtime --> mcpServers["MCP Servers<br/>(tool access)"]',
+    '    runtime --> approvals["Approval Flows<br/>(human oversight)"]',
+    '    runtime --> sessions["Sessions<br/>(conversation memory)"]',
+    "  end",
+    "",
+    "  subgraph llmLayer [LLM Provider]",
+    '    model["Anthropic / OpenAI / Ollama"]',
+    "  end",
+    "",
+    "  sdkCall --> runtime",
+    "  runtime --> model",
+  ].join("\n")}
+/>
+
+## Who Stigmer is for
+
+**Technical founders and engineering leads** choosing agent infrastructure for
+their product. You build software used by other people — SaaS platforms,
+internal tools, customer-facing applications — and you want to add AI agent
+capabilities without building agent infrastructure from scratch.
+
+**Developers on those teams** who implement the integration. You write the YAML,
+use the CLI, call the API, and embed SDK components. You care about developer
+experience, type safety, and local development that matches production.
+
+Stigmer is not for hobbyists building personal chat assistants, data scientists
+doing model training, or no-code users expecting a visual drag-and-drop builder.
+It's a platform for people building products.
+
+## Three capability layers
+
+Stigmer's value builds in layers. Each layer adds a capability that makes agents
+more useful. You adopt them progressively — start with domain knowledge, add
+tools when ready, add human oversight when the use case demands it.
+
+### 1. Knows your business
+
+You upload domain knowledge — product docs, process guides, policies,
+institutional knowledge — as Skills. The agent uses that knowledge to answer
+questions and make decisions specific to your business.
+
+Without a Skill, the agent gives generic answers. With a Skill, it gives
+domain-expert answers. The difference is visible in one prompt.
+
+### 2. Uses your tools
+
+Your agent can query databases, create tickets, send emails, update records —
+any action your systems support. Tool access uses the
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io/), an open
+standard for connecting AI models to external tools.
+
+An agent with tool access can look up an order, check its status, and initiate a
+return. An agent without it can only say "I'd be happy to help — please contact
+support."
+
+### 3. Asks before acting
+
+You define which actions require human approval. The agent pauses, presents its
+reasoning, and waits for a human to approve or reject before proceeding. This is
+a control mechanism, not a logging feature.
+
+Routine questions and queries are handled automatically. Only the actions you
+designate require approval.
+
+## How Stigmer is different
+
+### vs. Direct LLM API calls
+
+Calling the OpenAI or Anthropic API gives you a prompt-in, response-out flow.
+The LLM doesn't know your business, can't take actions, has no state across
+conversations, and offers no approval mechanism. Every call is a one-shot
+interaction.
+
+Stigmer adds domain knowledge, tool access, conversation memory, approval flows,
+and durable execution around the LLM.
+
+### vs. RAG solutions
+
+Retrieval-augmented generation makes an agent better at answering questions from
+documents. It's a read-only capability — the agent still can't take actions, run
+workflows, or ask for human approval. And you manage embedding pipelines, vector
+databases, and retrieval tuning yourself.
+
+Skills provide domain knowledge without embedding pipelines or vector databases.
+And knowledge is just the starting point — tool access, approval flows, and
+workflow automation build on top.
+
+### vs. Agent frameworks
+
+Frameworks give you agent primitives as a library. You still build the
+infrastructure: orchestration, durability, state management, API layer, tool
+security, deployment. Every app that uses the agent embeds the framework. Update
+the agent logic and you redeploy every consumer.
+
+Stigmer is a platform, not a framework. Define the agent once. Run it as a
+service. Call it from any app via API. Update the agent — every consumer
+benefits instantly. Stigmer provides the infrastructure layer that frameworks
+leave to you.
+
+## Core resource model
+
+Stigmer manages agents as declarative resources — similar to how a database
+manages tables or an auth service manages users. You define resources in YAML,
+apply them, and Stigmer handles the rest.
+
+The key resources you'll learn about in the following pages:
+
+| Resource                                     | What it represents                                                                |
+| -------------------------------------------- | --------------------------------------------------------------------------------- |
+| [Agent](/docs/concepts/agents)               | A blueprint that defines what an agent does — its instructions, skills, and tools |
+| [Skill](/docs/concepts/skills)               | A piece of domain knowledge that makes an agent an expert in your business        |
+| [MCP Server](/docs/concepts/tools)           | A tool connection that lets an agent interact with external systems               |
+| [Session](/docs/concepts/sessions)           | A conversation context that preserves memory across interactions                  |
+| [Environment](/docs/concepts/environments)   | A named set of configuration values and secrets                                   |
+| [Organization](/docs/concepts/organizations) | A tenant boundary that groups resources and teams                                 |
+
+## What's next
+
+You know what Stigmer is and why it exists. The next page explains the most
+important resource — the [Agent](/docs/concepts/agents). You'll learn how agents
+are defined, how they run, and how the lifecycle flows from blueprint to
+execution.

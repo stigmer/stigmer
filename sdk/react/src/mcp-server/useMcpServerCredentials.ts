@@ -5,6 +5,7 @@ import type { EnvVarInput } from "@stigmer/sdk";
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { usePersonalEnvironment } from "../environment/usePersonalEnvironment";
 import { diffEnvSpec } from "../environment/diffEnvSpec";
+import { SYSTEM_ENV_VAR_KEYS } from "../environment/systemEnvVars";
 import type { EnvVarFormVariable } from "../environment/EnvVarForm";
 
 export interface UseMcpServerCredentialsReturn {
@@ -82,7 +83,9 @@ export function useMcpServerCredentials(
     const existingKeys = new Set(
       Object.keys(personalEnv.environment?.spec?.data ?? {}),
     );
-    return diffEnvSpec(envSpecData, existingKeys);
+    return diffEnvSpec(envSpecData, existingKeys).filter(
+      (v) => !SYSTEM_ENV_VAR_KEYS.has(v.key),
+    );
   }, [mcpServer, personalEnv.environment]);
 
   const isReady =

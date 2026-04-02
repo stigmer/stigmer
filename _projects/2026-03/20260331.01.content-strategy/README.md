@@ -97,3 +97,10 @@ Only task logs (T##_1_feedback.md, T##_2_execution.md) can be updated without pe
 ## Notes
 
 _Add any additional notes, links, or context here as the project evolves._
+
+## Sub-Projects
+
+| Sub-Project | Path | Status | Description |
+|-------------|------|--------|-------------|
+| react-demo-mode | [20260401.01.sp.react-demo-mode](../20260401.01.sp.react-demo-mode/) | Active | Build a demo/mock mode for @stigmer/react that allows components to render with realistic sample data without a live Stigmer backend, enabling real product components to be embedded in documentation. |
+| getting-started-revision | [20260401.02.sp.getting-started-revision](../20260401.02.sp.getting-started-revision/) | Active | Revise the Getting Started documentation to tell a connected, progressive story. Rewrite Cloud Quickstart (sign up, SDK, implicit assistant agent), Your First Skill (domain knowledge before/after), Local Quickstart (alternative entry), and docs homepage. Build a ScenarioPlayer component for animated playback of real @stigmer/react components in docs. Update the document writer role with narrative continuity, aha-moment design, and progressive disclosure principles. |
