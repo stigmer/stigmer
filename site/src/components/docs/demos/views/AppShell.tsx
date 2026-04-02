@@ -1,8 +1,16 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { motion } from "framer-motion";
-import { Building2, Library, Plus, User } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Building2,
+  Library,
+  LogOut,
+  Monitor,
+  Plus,
+  Settings,
+  User,
+} from "lucide-react";
 
 export type NavId = "new-session" | "library";
 
@@ -17,6 +25,10 @@ interface AppShellProps {
   activeNav?: NavId;
   /** Which nav item should pulse to draw attention. */
   highlightNav?: NavId;
+  /** When true, the user profile row pulses to draw attention. */
+  highlightUserProfile?: boolean;
+  /** When true, a popup menu appears above the user profile row. */
+  showUserMenu?: boolean;
   /**
    * Stable key for the content area — changing this key triggers
    * a fade transition between views.
@@ -46,6 +58,8 @@ interface AppShellProps {
 export function AppShell({
   activeNav,
   highlightNav,
+  highlightUserProfile,
+  showUserMenu,
   contentKey,
   slideDirection,
   aside,
@@ -107,11 +121,34 @@ export function AppShell({
         </div>
 
         {/* User profile */}
-        <div className="flex items-center gap-1.5 border-t border-border px-3 py-2">
-          <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted-foreground/20">
-            <User className="h-2.5 w-2.5 text-muted-foreground" />
+        <div className="relative">
+          <AnimatePresence>
+            {showUserMenu && <UserMenu />}
+          </AnimatePresence>
+
+          <div
+            data-cursor-target="user-profile"
+            className="relative flex items-center gap-1.5 border-t border-border px-3 py-2"
+          >
+            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted-foreground/20">
+              <User className="h-2.5 w-2.5 text-muted-foreground" />
+            </div>
+            <span className="truncate text-[9px] text-muted-foreground">You</span>
+
+            {highlightUserProfile && (
+              <motion.span
+                className="absolute inset-0 rounded-md border border-foreground"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 0.5, 0] }}
+                transition={{
+                  duration: 1.2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                aria-hidden
+              />
+            )}
           </div>
-          <span className="truncate text-[9px] text-muted-foreground">You</span>
         </div>
       </nav>
 
@@ -178,5 +215,41 @@ function NavRow({
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Popup menu that appears above the user profile row.
+ * Mirrors the Console's user menu: Settings, Appearance, Sign out.
+ */
+function UserMenu() {
+  return (
+    <motion.div
+      className="absolute bottom-full left-1 right-1 mb-1 rounded-md border border-border bg-card py-1 shadow-lg"
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 4 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
+    >
+      <div
+        data-cursor-target="settings-menu-item"
+        className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] text-foreground hover:bg-accent"
+      >
+        <Settings className="h-3 w-3 shrink-0 text-muted-foreground" />
+        <span>Settings</span>
+      </div>
+      <div className="flex items-center justify-between px-2.5 py-1 text-[10px] text-foreground hover:bg-accent">
+        <div className="flex items-center gap-1.5">
+          <Monitor className="h-3 w-3 shrink-0 text-muted-foreground" />
+          <span>Appearance</span>
+        </div>
+        <span className="text-[8px] text-muted-foreground">System</span>
+      </div>
+      <div className="mx-2 my-0.5 border-t border-border" />
+      <div className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] text-foreground hover:bg-accent">
+        <LogOut className="h-3 w-3 shrink-0 text-muted-foreground" />
+        <span>Sign out</span>
+      </div>
+    </motion.div>
   );
 }

@@ -37,6 +37,20 @@ import {
   type Environment,
 } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/api_pb";
 import {
+  ApiKeySchema,
+  ApiKeyStatusSchema,
+  type ApiKey,
+} from "@stigmer/protos/ai/stigmer/iam/apikey/v1/api_pb";
+import { ApiKeySpecSchema } from "@stigmer/protos/ai/stigmer/iam/apikey/v1/spec_pb";
+import {
+  ApiKeysSchema,
+  type ApiKeys,
+} from "@stigmer/protos/ai/stigmer/iam/apikey/v1/io_pb";
+import {
+  ApiResourceAuditSchema,
+  ApiResourceAuditInfoSchema,
+} from "@stigmer/protos/ai/stigmer/commons/apiresource/status_pb";
+import {
   McpServerSchema,
   type McpServer,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
@@ -122,6 +136,15 @@ export interface AgentInstanceOverrides {
   readonly org?: string;
   readonly slug?: string;
   readonly agentId?: string;
+}
+
+export interface ApiKeyOverrides {
+  readonly id?: string;
+  readonly name?: string;
+  readonly slug?: string;
+  readonly fingerprint?: string;
+  readonly neverExpires?: boolean;
+  readonly keyHash?: string;
 }
 
 export interface SearchResultOverrides {
@@ -318,6 +341,34 @@ export const samples = {
     });
   },
 
+  /**
+   * An API key resource with metadata, spec, and status.
+   * Default: `demo-api-key` with fingerprint `Ab1c2D` and no expiry.
+   */
+  apiKey(o?: ApiKeyOverrides): ApiKey {
+    return create(ApiKeySchema, {
+      apiVersion: "iam.stigmer.ai/v1",
+      kind: "ApiKey",
+      metadata: create(ApiResourceMetadataSchema, {
+        id: o?.id ?? "apk-00000000-0000-0000-0000-000000000001",
+        name: o?.name ?? "demo-api-key",
+        slug: o?.slug ?? o?.name?.toLowerCase().replace(/\s+/g, "-") ?? "demo-api-key",
+      }),
+      spec: create(ApiKeySpecSchema, {
+        fingerprint: o?.fingerprint ?? "Ab1c2D",
+        neverExpires: o?.neverExpires ?? true,
+        keyHash: o?.keyHash ?? "",
+      }),
+      status: create(ApiKeyStatusSchema, {
+        audit: create(ApiResourceAuditSchema, {
+          specAudit: create(ApiResourceAuditInfoSchema, {
+            createdAt: { seconds: BigInt(Math.floor(Date.now() / 1000)), nanos: 0 },
+          }),
+        }),
+      }),
+    });
+  },
+
   // ---- Message & artifact primitives ----
 
   /** A human (user) message. */
@@ -395,6 +446,12 @@ export const samples = {
       totalCount: totalCount ?? items.length,
       totalPages: 1,
     });
+  },
+
+  /** An API key list response. Defaults to one demo API key. */
+  apiKeyList(entries?: ApiKey[]): ApiKeys {
+    const items = entries ?? [samples.apiKey()];
+    return create(ApiKeysSchema, { entries: items });
   },
 
   /** A single search result entry. */
