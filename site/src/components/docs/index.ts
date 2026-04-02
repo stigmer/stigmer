@@ -1,4 +1,5 @@
 export { CopyMarkdownButton } from "./copy-markdown-button";
+export { DemoQuickstartPlayback } from "./demos/DemoQuickstartPlayback";
 export { DemoSessionComposer } from "./demos/DemoSessionComposer";
 export { DemoSkillCreation } from "./demos/DemoSkillCreation";
 export { glossary } from "./glossary";
