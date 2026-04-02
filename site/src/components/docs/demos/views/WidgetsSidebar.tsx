@@ -32,7 +32,7 @@ export function WidgetsSidebar({
   org,
 }: WidgetsSidebarProps) {
   return (
-    <div className="flex flex-col gap-2 p-2">
+    <div className="flex flex-col gap-2 p-2" style={{ zoom: 0.85 }}>
       <div className="rounded-lg border border-border bg-card p-2">
         <ExecutionProgress execution={execution} />
       </div>
