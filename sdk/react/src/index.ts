@@ -327,7 +327,7 @@ export type {
   UseDefaultAgentReturn,
 } from "./agent";
 
-// Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, and styled components
+// Environment — data hooks, list hook, personal convenience hook, secret reveal, variable management, env var form, system env vars, and styled components
 export {
   useEnvironment,
   useEnvironmentList,
@@ -342,6 +342,10 @@ export {
   CreateEnvironmentForm,
   EnvVarForm,
   useSessionEnvPool,
+  SYSTEM_ENV_VAR_KEYS,
+  toGrpcAddress,
+  buildSystemEnvVars,
+  resolveSystemEnvVarValues,
 } from "./environment";
 export type {
   UseEnvironmentReturn,

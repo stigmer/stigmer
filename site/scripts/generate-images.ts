@@ -27,6 +27,8 @@ import * as path from "path";
 // ============================================================================
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
+const FAVICON_SVG_PATH = path.join(PUBLIC_DIR, "favicon.svg");
+const APP_ICON_SVG_PATH = path.join(PUBLIC_DIR, "stigmer_dark.svg");
 const ICON_SVG_PATH = path.join(PUBLIC_DIR, "Icon-bw.svg");
 
 // Monochromatic palette from Figma design system
@@ -55,47 +57,15 @@ const OG_IMAGE = {
 } as const;
 
 // ============================================================================
-// Logo Extraction
+// Logo Rendering
 // ============================================================================
 
 /**
- * Renders the icon SVG onto a dark rounded-rect background at 1024x1024.
- * The icon has white (#FEFEFE) paths on a transparent background, so we
- * composite it onto the brand dark background for favicon/PWA use.
+ * Renders an SVG at 1024x1024 for high-quality downscaling.
  */
-async function extractLogoFromSvg(): Promise<Buffer> {
-  const svgContent = await fs.readFile(ICON_SVG_PATH, "utf-8");
-
-  const baseSize = 1024;
-  const padding = Math.round(baseSize * 0.12);
-  const iconSize = baseSize - padding * 2;
-  const cornerRadius = Math.round(baseSize * 0.18);
-
-  const backgroundSvg = Buffer.from(`
-    <svg width="${baseSize}" height="${baseSize}" xmlns="http://www.w3.org/2000/svg">
-      <rect width="${baseSize}" height="${baseSize}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${COLORS.darkBg}"/>
-    </svg>
-  `);
-
-  const iconPng = await sharp(Buffer.from(svgContent))
-    .resize(iconSize, iconSize, {
-      fit: "contain",
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
-    })
-    .png()
-    .toBuffer();
-
-  const logoBuffer = await sharp(backgroundSvg)
-    .png()
-    .toBuffer()
-    .then((bg) =>
-      sharp(bg)
-        .composite([{ input: iconPng, left: padding, top: padding }])
-        .png()
-        .toBuffer()
-    );
-
-  return logoBuffer;
+async function renderSvgAt1024(svgPath: string): Promise<Buffer> {
+  const svgContent = await fs.readFile(svgPath, "utf-8");
+  return sharp(Buffer.from(svgContent)).resize(1024, 1024).png().toBuffer();
 }
 
 // ============================================================================
@@ -139,27 +109,27 @@ async function generateFavicon(
 }
 
 /**
- * Generates all icon variants from the source logo.
+ * Generates all icon variants.
+ * Favicons (16/32) use the tight-cropped favicon.svg for maximum visibility.
+ * Larger icons (apple-touch, PWA) use the designer's original stigmer_dark.svg
+ * with its intended padding and rounded corners.
  */
-async function generateAllIcons(logoBuffer: Buffer): Promise<void> {
+async function generateAllIcons(): Promise<void> {
   console.log("\n📦 Generating icons...");
 
-  const iconOutputs: Array<{ size: number; filename: string }> = [
-    { size: ICON_SIZES.favicon16, filename: "favicon-16x16.png" },
-    { size: ICON_SIZES.favicon32, filename: "favicon-32x32.png" },
-    { size: ICON_SIZES.appleTouch, filename: "apple-touch-icon.png" },
-    { size: ICON_SIZES.pwa192, filename: "icon-192.png" },
-    { size: ICON_SIZES.pwa512, filename: "icon-512.png" },
-  ];
+  const [faviconLogo, appIconLogo] = await Promise.all([
+    renderSvgAt1024(FAVICON_SVG_PATH),
+    renderSvgAt1024(APP_ICON_SVG_PATH),
+  ]);
 
-  // Generate all PNG icons in parallel
-  await Promise.all(
-    iconOutputs.map(({ size, filename }) =>
-      generateIcon(logoBuffer, size, path.join(PUBLIC_DIR, filename))
-    )
-  );
+  await Promise.all([
+    generateIcon(faviconLogo, ICON_SIZES.favicon16, path.join(PUBLIC_DIR, "favicon-16x16.png")),
+    generateIcon(faviconLogo, ICON_SIZES.favicon32, path.join(PUBLIC_DIR, "favicon-32x32.png")),
+    generateIcon(appIconLogo, ICON_SIZES.appleTouch, path.join(PUBLIC_DIR, "apple-touch-icon.png")),
+    generateIcon(appIconLogo, ICON_SIZES.pwa192, path.join(PUBLIC_DIR, "icon-192.png")),
+    generateIcon(appIconLogo, ICON_SIZES.pwa512, path.join(PUBLIC_DIR, "icon-512.png")),
+  ]);
 
-  // Generate favicon.ico from the 16x16 and 32x32 PNGs
   await generateFavicon(
     path.join(PUBLIC_DIR, "favicon-16x16.png"),
     path.join(PUBLIC_DIR, "favicon-32x32.png"),
@@ -320,13 +290,8 @@ async function main(): Promise<void> {
   console.log("===================================");
 
   try {
-    // Load icon from SVG and render onto dark background
-    console.log("\n📂 Loading icon from SVG...");
-    const logoBuffer = await extractLogoFromSvg();
-    console.log("  ✓ Icon loaded (1024x1024 PNG)");
-
-    // Generate all icons
-    await generateAllIcons(logoBuffer);
+    // Generate all icons (favicons with tight padding, app icons with standard)
+    await generateAllIcons();
 
     // Generate OG image
     await generateOgImage();

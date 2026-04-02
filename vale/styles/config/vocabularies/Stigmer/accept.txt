@@ -83,3 +83,6 @@ sandboxing
 Zigflow
 subtask
 mcp_server_ref
+npm
+npx
+stdio

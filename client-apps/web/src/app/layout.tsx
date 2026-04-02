@@ -42,11 +42,13 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Stigmer — Agents for Your Platform",
+  title: "Stigmer — Build agents that work for your business",
   description:
-    "Embed AI agents into your platform. SDKs, sandboxing, and orchestration — ready to integrate.",
+    "Open-source AI agent platform that lets you turn domain knowledge and tools into agents your applications can call via API.",
   icons: {
     icon: [
+      { url: "/favicon-dark.svg", type: "image/svg+xml", media: "(prefers-color-scheme: dark)" },
+      { url: "/favicon-light.svg", type: "image/svg+xml", media: "(prefers-color-scheme: light)" },
       { url: "/favicon-dark.ico", sizes: "32x32", media: "(prefers-color-scheme: dark)" },
       { url: "/favicon-dark-16x16.png", sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: dark)" },
       { url: "/favicon-dark-32x32.png", sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: dark)" },

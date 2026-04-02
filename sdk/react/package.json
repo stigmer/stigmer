@@ -11,7 +11,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./demo": "./src/demo/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -42,7 +43,11 @@
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
       },
-      "./styles.css": "./dist/styles.css"
+      "./styles.css": "./dist/styles.css",
+      "./demo": {
+        "types": "./dist/demo/index.d.ts",
+        "import": "./dist/demo/index.js"
+      }
     }
   },
   "repository": {

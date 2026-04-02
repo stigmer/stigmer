@@ -1,4 +1,16 @@
+export { AgentDetail as DemoAgentDetail } from "./demos/scenarios/agent-detail";
+export { McpServerDetail as DemoMcpServerDetail } from "./demos/scenarios/mcp-server-detail";
+export { McpServerCreationTour as DemoMcpServerCreationTour } from "./demos/scenarios/mcp-server-creation-tour";
+export { DiscoverCapabilitiesPlayback as DemoDiscoverCapabilities } from "./demos/scenarios/discover-capabilities-playback";
+export { GeneratePoliciesPlayback as DemoGeneratePolicies } from "./demos/scenarios/generate-policies-playback";
+export { ApiKeySetup as DemoApiKeySetup } from "./demos/scenarios/api-key-setup";
+export { ApprovalFlowPlayback as DemoApprovalFlowPlayback } from "./demos/scenarios/approval-flow-playback";
+export { SessionMemoryPlayback as DemoSessionMemoryPlayback } from "./demos/scenarios/session-memory-playback";
+export { SkillDetail as DemoSkillDetail } from "./demos/scenarios/skill-detail";
+export { ToolCallsPlayback as DemoToolCallsPlayback } from "./demos/scenarios/tool-calls-playback";
 export { CopyMarkdownButton } from "./copy-markdown-button";
+export { QuickstartPlayback as DemoQuickstartPlayback } from "./demos/scenarios/quickstart-playback";
+export { SkillCreationTour as DemoSkillCreationTour } from "./demos/scenarios/skill-creation-tour";
 export { glossary } from "./glossary";
 export { Mermaid } from "./mermaid";
 export { PageFeedback } from "./page-feedback";

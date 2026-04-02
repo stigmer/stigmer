@@ -1,0 +1,190 @@
+---
+title: Agents
+description:
+  An Agent is a blueprint that defines what an AI agent does — its instructions,
+  domain knowledge, and tool access. Learn how agents are defined, deployed, and
+  executed.
+---
+
+An Agent is the core resource in Stigmer. It defines _what_ an AI agent does —
+its role, its instructions, the domain knowledge it can access, and the tools it
+can use. Think of it as a job description: it describes the agent's capabilities
+and responsibilities, but it's not a running process.
+
+When you want the agent to actually handle requests, Stigmer creates runtime
+resources from the blueprint. This separation means you can update an agent's
+definition without disrupting active conversations.
+
+## Anatomy of an Agent
+
+An Agent is defined in YAML with a standard resource structure:
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: support-agent
+  visibility: visibility_public
+spec:
+  description: Handles customer support requests.
+  instructions: |
+    You are a customer support agent for Acme Corp.
+
+    Use the company knowledge base to answer product questions.
+    When customers ask about orders, look up the order details
+    using the available tools before responding.
+
+    For returns and refunds, always ask for human approval
+    before processing.
+  skill_refs:
+    - kind: skill
+      slug: company-knowledge-base
+    - kind: skill
+      slug: return-policy
+  mcp_server_usages:
+    - mcp_server_ref:
+        kind: mcp_server
+        slug: order-management-api
+      enabled_tools:
+        - get_order
+        - list_orders
+        - process_return
+  env_spec:
+    data:
+      ORDER_API_URL:
+        is_secret: false
+        description: Base URL of the order management API
+      ORDER_API_KEY:
+        is_secret: true
+        description: API key for the order management service
+```
+
+Here's how this agent looks in the Stigmer web console:
+
+<DemoAgentDetail />
+
+Each section of the Agent definition serves a purpose:
+
+| Field               | What it does                                                                           |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| `instructions`      | The agent's system prompt — defines its personality, behavior rules, and task guidance |
+| `skill_refs`        | References to [Skills](/docs/concepts/skills) that give the agent domain knowledge     |
+| `mcp_server_usages` | References to [MCP Servers](/docs/concepts/tools) that give the agent tool access      |
+| `env_spec`          | Environment variables the agent needs at runtime (API keys, URLs, configuration)       |
+
+## Blueprint vs. runtime
+
+An Agent definition is a **blueprint**. It contains zero secrets, zero
+environment-specific values, and zero runtime state. This separation is a hard
+architectural invariant — it means the same Agent definition works identically
+in development, staging, and production.
+
+The runtime resources that bring an Agent to life form a chain:
+
+{/* prettier-ignore */}
+<Mermaid
+  chart={`
+graph LR
+  A["Agent<br/>(blueprint)"] --> AI["Agent Instance<br/>(deployment)"]
+  AI --> S["Session<br/>(conversation)"]
+  S --> AE["Agent Execution<br/>(single run)"]
+`}
+/>
+
+| Resource            | What it represents                                                            | Analogy                              |
+| ------------------- | ----------------------------------------------------------------------------- | ------------------------------------ |
+| **Agent**           | The definition — instructions, skills, tools                                  | A recipe                             |
+| **Agent Instance**  | A deployed copy bound to specific [Environments](/docs/concepts/environments) | A kitchen set up to make that recipe |
+| **Session**         | A conversation context with memory                                            | An ongoing order at that kitchen     |
+| **Agent Execution** | One request-response cycle within a Session                                   | Preparing one dish for that order    |
+
+### Agent Instance
+
+An Agent Instance binds an Agent blueprint to one or more Environments. This is
+where secrets and configuration values are resolved. You can have multiple
+instances of the same Agent — one for development with test credentials, another
+for production with real ones.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: AgentInstance
+metadata:
+  name: support-agent-production
+spec:
+  agent_id: agt-abc123
+  environment_refs:
+    - kind: environment
+      slug: production-secrets
+    - kind: environment
+      slug: shared-config
+```
+
+When an Agent Instance references multiple Environments, they merge in order —
+later environments override earlier ones for the same variable name.
+
+### Sessions and Executions
+
+A [Session](/docs/concepts/sessions) represents a conversation. It holds message
+history and can override the agent's Skills and tools for a specific
+interaction.
+
+An Agent Execution is a single request-response cycle within a Session. When a
+user sends a message, Stigmer creates an Execution that:
+
+1. Loads the agent's instructions, Skills, and tool configuration
+2. Sends the message to the LLM along with conversation history
+3. Executes any tool calls the LLM requests
+4. Pauses for [approval](/docs/concepts/approval-flows) when required
+5. Returns the response
+
+Executions are **durable** — if the process crashes mid-execution, Stigmer
+recovers and resumes from where it left off.
+
+## The default Agent
+
+Every Stigmer installation includes a default Agent called `assistant`. This is
+the agent that handles requests when no specific agent is specified — it's what
+the [Cloud Quickstart](/docs/getting-started/quickstart) uses.
+
+```yaml
+apiVersion: agentic.stigmer.ai/v1
+kind: Agent
+metadata:
+  name: assistant
+  labels:
+    stigmer.ai/default-agent: "true"
+spec:
+  description: General-purpose AI assistant.
+  instructions: |
+    You are a general-purpose AI assistant. Help users accomplish
+    whatever they need using the tools available to you.
+
+    Be direct and concise. Act on requests rather than explaining
+    steps. When you do not know something, say so.
+```
+
+The assistant is minimal by design. It has no Skills and no MCP server
+references — it's a blank slate. The value of Stigmer appears when you create
+agents tailored to your domain.
+
+## Instructions matter
+
+The `instructions` field is the agent's system prompt. It's the single biggest
+factor in how the agent behaves. Write it like you're training a new team
+member:
+
+- **Be specific about the role.** "You are a customer support agent for Acme
+  Corp" is better than "You are a helpful assistant."
+- **Define boundaries.** "For returns and refunds, always ask for human
+  approval" tells the agent what to escalate.
+- **Reference available tools by purpose.** "Look up order details using the
+  available tools" guides the agent to use its tools naturally.
+- **Set the tone.** "Be direct and concise. Act on requests rather than
+  explaining steps." shapes conversational style.
+
+## What's next
+
+An Agent's `instructions` define what it knows from its prompt. But real domain
+expertise — your return policy, your product catalog, your internal processes —
+lives in [Skills](/docs/concepts/skills). The next page explains how Skills work
+and how they transform a generic agent into a domain expert.
