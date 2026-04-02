@@ -40,7 +40,7 @@ interface SkillsListViewProps {
 }
 
 /**
- * Skills list page for the guided-tour demo.
+ * Skills list page for demo scenarios.
  *
  * Wraps the real `ResourceListView` from `@stigmer/react` with a page
  * header and "Create Skill" button. The list is fed by fixture data

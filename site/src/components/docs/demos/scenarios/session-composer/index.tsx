@@ -16,7 +16,7 @@ const noop = () => {};
  * so no live backend is required. Uses an empty scenario — the minimal
  * composer (textarea + model selector + send button) fires no RPCs.
  */
-export function DemoSessionComposer() {
+export function SessionComposerDemo() {
   const client = useMemo(() => createDemoClient(emptyScenario), []);
 
   return (

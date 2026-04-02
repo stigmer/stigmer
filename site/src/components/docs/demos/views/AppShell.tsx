@@ -12,7 +12,7 @@ const RECENT_SESSIONS = [
   "Summarize meeting notes",
 ];
 
-interface DemoAppShellProps {
+interface AppShellProps {
   /** Which nav item is currently selected. */
   activeNav?: NavId;
   /** Which nav item should pulse to draw attention. */
@@ -36,21 +36,21 @@ interface DemoAppShellProps {
 }
 
 /**
- * Schematic web app layout for the guided-tour demo.
+ * Schematic web app layout for demo scenarios.
  *
  * Mirrors the Console's sidebar layout: org indicator, New Session,
  * Library, recent sessions, and user profile. This is a docs
  * illustration — it communicates the navigation flow without
  * depending on any internal Console components.
  */
-export function DemoAppShell({
+export function AppShell({
   activeNav,
   highlightNav,
   contentKey,
   slideDirection,
   aside,
   children,
-}: DemoAppShellProps) {
+}: AppShellProps) {
   const slideX =
     slideDirection === "forward" ? 24 : slideDirection === "backward" ? -24 : 0;
   return (

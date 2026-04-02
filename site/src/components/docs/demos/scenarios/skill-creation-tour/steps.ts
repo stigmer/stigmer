@@ -2,25 +2,24 @@
  * Guided-tour scenario for "Your first Skill".
  *
  * Defines a 12-step playback that walks the reader through the full
- * Stigmer web app navigation: sidebar → Library → Skills list →
- * Create Skill → Session Composer → conversation with Skill Creator →
- * artifact preview → push → back to Library with the new skill.
+ * Stigmer web app navigation: sidebar -> Library -> Skills list ->
+ * Create Skill -> Session Composer -> conversation with Skill Creator ->
+ * artifact preview -> push -> back to Library with the new skill.
  *
  * Each step is a discriminated union (`GuidedTourStep`) so the render
- * prop in `DemoSkillCreationTour` can switch on `step.view` and render
+ * prop in the scenario component can switch on `step.view` and render
  * the appropriate sub-component.
  */
 
 import {
   ExecutionArtifactKind,
   ExecutionPhase,
-  MessageType,
 } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import type { ExecutionArtifact } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/artifact_pb";
 import { samples } from "@stigmer/react/demo";
-import type { ScenarioStep } from "../ScenarioPlayer";
+import type { ScenarioStep } from "../../engine/ScenarioPlayer";
+import { snapshot } from "../../engine/shared";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -38,7 +37,7 @@ export type GuidedTourStep =
   | { view: "library-complete" };
 
 // ---------------------------------------------------------------------------
-// Conversation messages (same content as skill-creation.ts)
+// Conversation messages
 // ---------------------------------------------------------------------------
 
 const user1 = samples.humanMessage(
@@ -101,36 +100,8 @@ Customers may return most items within **14 days** of delivery for a full refund
 Refunds are processed within **3–5 business days** after we receive the returned item.`;
 
 // ---------------------------------------------------------------------------
-// Snapshot helper — fixes the duplicate-message bug from skill-creation.ts.
-//
-// MessageThread synthesizes a human bubble from `spec.message`, so the first
-// human message must go into `spec.message` and be excluded from
-// `status.messages` to avoid rendering it twice.
+// Fixture data
 // ---------------------------------------------------------------------------
-
-function snapshot(
-  msgs: AgentMessage[],
-  phase: ExecutionPhase = ExecutionPhase.EXECUTION_IN_PROGRESS,
-  artifacts?: ExecutionArtifact[],
-): AgentExecution {
-  const firstHumanIdx = msgs.findIndex(
-    (m) => m.type === MessageType.MESSAGE_HUMAN,
-  );
-  const specMessage =
-    firstHumanIdx >= 0 ? msgs[firstHumanIdx].content : "";
-  const statusMessages =
-    firstHumanIdx >= 0
-      ? [...msgs.slice(0, firstHumanIdx), ...msgs.slice(firstHumanIdx + 1)]
-      : msgs;
-
-  const exec = samples.agentExecution({
-    phase,
-    messages: statusMessages,
-    artifacts,
-  });
-  exec.spec!.message = specMessage;
-  return exec;
-}
 
 const SKILL_ARTIFACT: ExecutionArtifact = (() => {
   const a = samples.artifact("return-policy", ExecutionArtifactKind.DIRECTORY);
@@ -149,21 +120,16 @@ const finalExecution = snapshot(
 // ---------------------------------------------------------------------------
 
 export const skillCreationTourSteps: ScenarioStep<GuidedTourStep>[] = [
-  // Navigation
   { delayMs: 0, data: { view: "library-click", activeNav: "library" }, caption: "Navigate to Library" },
   { delayMs: 1500, data: { view: "skills-list" }, caption: "View your Skills" },
   { delayMs: 2000, data: { view: "create-skill-click" }, caption: "Click Create Skill" },
-  // Composer
   { delayMs: 1500, data: { view: "composer-ready" }, caption: "Skill Creator opens" },
-  // Conversation (IN_PROGRESS during interaction, COMPLETED when agent finishes)
   { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1]) }, caption: "Describe your domain" },
   { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1, ai1]) }, caption: "Agent asks questions" },
   { delayMs: 2500, data: { view: "conversation", execution: snapshot([user1, ai1, user2]) }, caption: "Provide the details" },
   { delayMs: 2000, data: { view: "conversation", execution: finalExecution }, caption: "Skill generated" },
-  // Artifact click → preview → push
   { delayMs: 2000, data: { view: "artifact-click", execution: finalExecution }, caption: "Click to preview" },
   { delayMs: 1500, data: { view: "artifact-preview", execution: finalExecution, artifactContent: SKILL_MD_PREVIEW }, caption: "Review the Skill" },
   { delayMs: 3000, data: { view: "push-skill", execution: finalExecution }, caption: "Push to save" },
-  // Back to library
   { delayMs: 2000, data: { view: "library-complete" }, caption: "Skill added to Library" },
 ];

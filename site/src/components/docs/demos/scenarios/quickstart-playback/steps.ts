@@ -8,11 +8,11 @@
  * ("the answer was generic; let's fix that").
  */
 
-import { ExecutionPhase, MessageType } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
+import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
-import type { AgentMessage } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/message_pb";
 import { samples } from "@stigmer/react/demo";
-import type { ScenarioStep } from "../ScenarioPlayer";
+import type { ScenarioStep } from "../../engine/ScenarioPlayer";
+import { snapshot } from "../../engine/shared";
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -49,44 +49,13 @@ const ai2 = samples.aiMessage(
     "support team for the exact policy.",
 );
 
-/**
- * Build a snapshot where the first human message becomes `spec.message`
- * and only the remaining messages go into `status.messages`. This avoids
- * duplication since `MessageThread` synthesizes a human bubble from
- * `spec.message` automatically.
- */
-function snapshot(
-  msgs: AgentMessage[],
-  phase = ExecutionPhase.EXECUTION_IN_PROGRESS,
-): AgentExecution {
-  const firstHumanIdx = msgs.findIndex(
-    (m) => m.type === MessageType.MESSAGE_HUMAN,
-  );
-  const specMessage =
-    firstHumanIdx >= 0 ? msgs[firstHumanIdx].content : "";
-  const statusMessages =
-    firstHumanIdx >= 0
-      ? [...msgs.slice(0, firstHumanIdx), ...msgs.slice(firstHumanIdx + 1)]
-      : msgs;
-
-  const exec = samples.agentExecution({
-    phase,
-    messages: statusMessages,
-  });
-  exec.spec!.message = specMessage;
-  return exec;
-}
-
 // ---------------------------------------------------------------------------
 // Step sequence
 // ---------------------------------------------------------------------------
 
 export const quickstartPlaybackSteps: ScenarioStep<QuickstartStep>[] = [
-  // Empty composer — establishes the starting point
   { delayMs: 0, data: { view: "composer-empty" }, caption: "Start a new session" },
-  // Text appears in the composer before submission
   { delayMs: 2000, data: { view: "composer-typing", message: "What is your return policy for defective items?" }, caption: "Type your question" },
-  // Conversation
   { delayMs: 2500, data: { view: "conversation", execution: snapshot([user1]) }, caption: "Ask about your return policy" },
   { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1, ai1]) }, caption: "Agent gives a generic answer" },
   { delayMs: 2500, data: { view: "conversation", execution: snapshot([user1, ai1, user2]) }, caption: "Follow-up question" },

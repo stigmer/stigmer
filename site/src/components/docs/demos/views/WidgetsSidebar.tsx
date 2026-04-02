@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import {
   ArtifactsWidget,
@@ -7,8 +8,9 @@ import {
   UsageWidget,
   WriteBacksWidget,
 } from "@stigmer/react";
+import { DEMO_ORG } from "../engine/shared";
 
-interface DemoWidgetsSidebarProps {
+interface WidgetsSidebarProps {
   /** Active or most recent execution (for phase badge / todos). */
   readonly execution: AgentExecution | null;
   /** All session executions (for aggregate widgets). */
@@ -17,18 +19,18 @@ interface DemoWidgetsSidebarProps {
 }
 
 /**
- * Compact widget sidebar for the guided-tour demo.
+ * Compact widget sidebar for demo scenarios.
  *
  * Mirrors the Console's `SessionPageInner` aside layout using real
  * `@stigmer/react` widgets. Widgets that have no data to display
  * (e.g. `UsageWidget` without `llm_metrics`) return `null`
  * automatically, so the sidebar adapts to what the fixture provides.
  */
-export function DemoWidgetsSidebar({
+export function WidgetsSidebar({
   execution,
   executions,
   org,
-}: DemoWidgetsSidebarProps) {
+}: WidgetsSidebarProps) {
   return (
     <div className="flex flex-col gap-2 p-2">
       <div className="rounded-lg border border-border bg-card p-2">
@@ -41,5 +43,19 @@ export function DemoWidgetsSidebar({
         <ArtifactsWidget executions={executions} org={org} />
       </div>
     </div>
+  );
+}
+
+/**
+ * Convenience wrapper that renders a `WidgetsSidebar` with standard
+ * demo props for a single execution.
+ */
+export function renderWidgetsSidebar(execution: AgentExecution): ReactNode {
+  return (
+    <WidgetsSidebar
+      execution={execution}
+      executions={[execution]}
+      org={DEMO_ORG}
+    />
   );
 }
