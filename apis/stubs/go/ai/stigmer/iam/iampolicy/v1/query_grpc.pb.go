@@ -29,9 +29,9 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// iam-policy query controller
+// IamPolicyQueryController handles read operations for IAM policies.
 type IamPolicyQueryControllerClient interface {
-	// lookup iam-policy by id
+	// Get an IAM policy by its unique identifier.
 	Get(ctx context.Context, in *IamPolicyId, opts ...grpc.CallOption) (*IamPolicy, error)
 	// Check if a principal is authorized to perform a relation on a resource
 	//
@@ -130,9 +130,9 @@ func (c *iamPolicyQueryControllerClient) ListAuthorizedPrincipalIds(ctx context.
 // All implementations should embed UnimplementedIamPolicyQueryControllerServer
 // for forward compatibility.
 //
-// iam-policy query controller
+// IamPolicyQueryController handles read operations for IAM policies.
 type IamPolicyQueryControllerServer interface {
-	// lookup iam-policy by id
+	// Get an IAM policy by its unique identifier.
 	Get(context.Context, *IamPolicyId) (*IamPolicy, error)
 	// Check if a principal is authorized to perform a relation on a resource
 	//

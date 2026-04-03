@@ -44,6 +44,7 @@ export const WorkflowExecutionQueryController: GenService<{
    * - status: Current execution state (phase, tasks, progress_events, output/error)
    * - metadata: Resource identification (id, name, labels, tags)
    *
+   * @internal
    * Authorization:
    * Standard authorization checks that user has "get" permission on the WorkflowExecution.
    * Permission is granted if:
@@ -122,6 +123,7 @@ export const WorkflowExecutionQueryController: GenService<{
    * Returns a paginated list of WorkflowExecution resources that the user has access to.
    * Results are automatically filtered based on user's permissions and owner scope.
    *
+   * @internal
    * Authorization:
    * Custom authorization filters results to only include executions the user can access:
    * - Organization users: Only executions in their organization
@@ -202,6 +204,7 @@ export const WorkflowExecutionQueryController: GenService<{
    * Returns executions filtered by a specific Workflow ID.
    * This is useful for viewing execution history of a particular workflow.
    *
+   * @internal
    * Authorization:
    * Custom authorization verifies:
    * 1. User has access to the referenced Workflow or WorkflowInstance
@@ -286,6 +289,7 @@ export const WorkflowExecutionQueryController: GenService<{
    * - Progress events are appended
    * - Output or error fields are set
    *
+   * @internal
    * Authorization:
    * Standard authorization checks that user has "get" permission on the WorkflowExecution.
    * This is the same permission check as get() RPC.

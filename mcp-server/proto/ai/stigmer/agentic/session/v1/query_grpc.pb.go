@@ -33,9 +33,13 @@ type SessionQueryControllerClient interface {
 	// Get a single session by ID.
 	Get(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error)
 	// List all sessions with pagination and optional filtering.
+	//
+	// @internal
 	// Authorization is handled in-handler via FGA-filtered queries.
 	List(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*SessionList, error)
 	// List all sessions for a specific agent.
+	//
+	// @internal
 	// Authorization is handled in-handler via FGA-filtered queries.
 	ListByAgent(ctx context.Context, in *ListSessionsByAgentRequest, opts ...grpc.CallOption) (*SessionList, error)
 }
@@ -87,9 +91,13 @@ type SessionQueryControllerServer interface {
 	// Get a single session by ID.
 	Get(context.Context, *SessionId) (*Session, error)
 	// List all sessions with pagination and optional filtering.
+	//
+	// @internal
 	// Authorization is handled in-handler via FGA-filtered queries.
 	List(context.Context, *ListSessionsRequest) (*SessionList, error)
 	// List all sessions for a specific agent.
+	//
+	// @internal
 	// Authorization is handled in-handler via FGA-filtered queries.
 	ListByAgent(context.Context, *ListSessionsByAgentRequest) (*SessionList, error)
 }

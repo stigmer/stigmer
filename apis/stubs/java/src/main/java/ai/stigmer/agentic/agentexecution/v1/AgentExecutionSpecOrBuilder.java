@@ -222,10 +222,10 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue);
 
   /**
    * <pre>
-   * Temporal task token for async activity completion (optional).
+   * Callback token for async activity completion (optional).
    *
-   * **Purpose**: Enables async activity completion pattern where the caller
-   * (typically a Zigflow workflow activity) waits for actual agent completion
+   * **Purpose**: Enables async completion pattern where the caller
+   * (typically a workflow activity) waits for actual agent completion
    * without blocking worker threads.
    *
    * **Flow**:

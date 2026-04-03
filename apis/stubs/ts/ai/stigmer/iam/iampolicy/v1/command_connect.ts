@@ -35,6 +35,7 @@ export const IamPolicyCommandController = {
      * Creates a single IAM policy that grants a principal access to a resource with a specific relation.
      * This is the fundamental operation for establishing permissions.
      *
+     * @internal
      * The operation:
      * 1. Validates the input (principal, resource, relation are all valid)
      * 2. Checks for duplicates (skips if the exact policy already exists, idempotent)
@@ -69,8 +70,9 @@ export const IamPolicyCommandController = {
      * Delete a single IAM policy by spec
      *
      * Removes an existing IAM policy by matching the principal, resource, and relation.
-     * This is a surgical operation - it removes one specific policy without affecting others.
+     * This is a surgical operation — it removes one specific policy without affecting others.
      *
+     * @internal
      * The operation:
      * 1. Finds the policy by matching principal+resource+relation
      * 2. Removes it from the database
@@ -107,8 +109,11 @@ export const IamPolicyCommandController = {
      * Bootstrap IAM policy during resource creation
      *
      * Creates IAM policies during resource creation when standard authorization cannot work yet
-     * because no tuples exist. This solves the chicken-and-egg problem where creating the first
-     * policy for a resource requires authorization, but authorization requires that first policy.
+     * because no tuples exist.
+     *
+     * @internal
+     * Solves the chicken-and-egg problem where creating the first policy for a resource
+     * requires authorization, but authorization requires that first policy.
      *
      * The operation:
      * 1. Validates that caller has can_bootstrap_iam permission on platform:stigmer
@@ -150,10 +155,12 @@ export const IamPolicyCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Cleanup all IAM policies for a deleted resource
+     * Cleanup all IAM policies for a deleted resource.
      *
-     * This is a system-level cleanup operation that removes all IAM policies
-     * associated with a deleted resource. It performs bidirectional cleanup:
+     * Removes all IAM policies associated with a deleted resource.
+     *
+     * @internal
+     * Performs bidirectional cleanup:
      * 1. Policies where resource is the TARGET (policies granting access TO this resource)
      * 2. Policies where resource is the PRINCIPAL (policies where this resource HAS access)
      *

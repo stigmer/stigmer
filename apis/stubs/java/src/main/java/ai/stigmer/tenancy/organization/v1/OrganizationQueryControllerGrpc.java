@@ -230,9 +230,10 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Find organizations the authenticated user is a member of
-     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds
-     * Returns only organizations the caller has access to
+     * Find organizations the authenticated user is a member of.
+     * Returns only organizations the caller has access to.
+     * &#64;internal
+     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
      * </pre>
      */
     default void findMyOrganizations(com.google.protobuf.Empty request,
@@ -244,6 +245,7 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+     * &#64;internal
      * Authorization: custom — checks can_view on the referenced IdentityProvider.
      * </pre>
      */
@@ -313,9 +315,10 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Find organizations the authenticated user is a member of
-     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds
-     * Returns only organizations the caller has access to
+     * Find organizations the authenticated user is a member of.
+     * Returns only organizations the caller has access to.
+     * &#64;internal
+     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
      * </pre>
      */
     public void findMyOrganizations(com.google.protobuf.Empty request,
@@ -328,6 +331,7 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+     * &#64;internal
      * Authorization: custom — checks can_view on the referenced IdentityProvider.
      * </pre>
      */
@@ -382,9 +386,10 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Find organizations the authenticated user is a member of
-     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds
-     * Returns only organizations the caller has access to
+     * Find organizations the authenticated user is a member of.
+     * Returns only organizations the caller has access to.
+     * &#64;internal
+     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organizations findMyOrganizations(com.google.protobuf.Empty request) throws io.grpc.StatusException {
@@ -396,6 +401,7 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+     * &#64;internal
      * Authorization: custom — checks can_view on the referenced IdentityProvider.
      * </pre>
      */
@@ -449,9 +455,10 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Find organizations the authenticated user is a member of
-     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds
-     * Returns only organizations the caller has access to
+     * Find organizations the authenticated user is a member of.
+     * Returns only organizations the caller has access to.
+     * &#64;internal
+     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
      * </pre>
      */
     public ai.stigmer.tenancy.organization.v1.Organizations findMyOrganizations(com.google.protobuf.Empty request) {
@@ -463,6 +470,7 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+     * &#64;internal
      * Authorization: custom — checks can_view on the referenced IdentityProvider.
      * </pre>
      */
@@ -518,9 +526,10 @@ public final class OrganizationQueryControllerGrpc {
 
     /**
      * <pre>
-     * Find organizations the authenticated user is a member of
-     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds
-     * Returns only organizations the caller has access to
+     * Find organizations the authenticated user is a member of.
+     * Returns only organizations the caller has access to.
+     * &#64;internal
+     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.organization.v1.Organizations> findMyOrganizations(
@@ -533,6 +542,7 @@ public final class OrganizationQueryControllerGrpc {
      * <pre>
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+     * &#64;internal
      * Authorization: custom — checks can_view on the referenced IdentityProvider.
      * </pre>
      */

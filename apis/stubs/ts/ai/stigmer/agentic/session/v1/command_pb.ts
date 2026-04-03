@@ -57,12 +57,17 @@ export const SessionCommandController: GenService<{
     output: typeof SessionSchema;
   },
   /**
-   * Set the session subject (server-side field-level update, race-safe).
+   * Set the session subject.
    *
-   * Unlike the full update RPC, this atomically modifies only spec.subject
-   * without touching other fields. This eliminates the lost-update race
-   * between GenerateSessionSubject and sandbox_manager, which both run in
-   * parallel during agent execution.
+   * This is a targeted update that modifies only the subject field,
+   * leaving other session fields untouched. Use this instead of the full
+   * update RPC when you only need to change the session subject.
+   *
+   * @internal
+   * Server-side field-level update, race-safe. Atomically modifies only
+   * spec.subject without touching other fields. Eliminates the lost-update
+   * race between GenerateSessionSubject and sandbox_manager, which both run
+   * in parallel during agent execution.
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.updateSubject
    */
@@ -72,12 +77,17 @@ export const SessionCommandController: GenService<{
     output: typeof SessionSchema;
   },
   /**
-   * Set the session sandbox ID (server-side field-level update, race-safe).
+   * Set the session sandbox ID.
    *
-   * Unlike the full update RPC, this atomically modifies only spec.sandbox_id
-   * without touching other fields. This eliminates the lost-update race
-   * between sandbox_manager and GenerateSessionSubject, which both run in
-   * parallel during agent execution.
+   * This is a targeted update that modifies only the sandbox ID field,
+   * leaving other session fields untouched. Use this instead of the full
+   * update RPC when you only need to change the sandbox assignment.
+   *
+   * @internal
+   * Server-side field-level update, race-safe. Atomically modifies only
+   * spec.sandbox_id without touching other fields. Eliminates the lost-update
+   * race between sandbox_manager and GenerateSessionSubject, which both run
+   * in parallel during agent execution.
    *
    * @generated from rpc ai.stigmer.agentic.session.v1.SessionCommandController.updateSandboxId
    */

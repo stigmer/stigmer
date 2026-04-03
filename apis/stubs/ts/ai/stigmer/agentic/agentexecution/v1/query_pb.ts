@@ -45,6 +45,8 @@ export const AgentExecutionQueryController: GenService<{
   },
   /**
    * List all executions in a specific session.
+   *
+   * @internal
    * Authorization is handled in handler via FGA query for authorized agent_execution_ids,
    * then filtered by session_id. This ensures consistent authorization pattern across all list operations.
    *
@@ -57,6 +59,8 @@ export const AgentExecutionQueryController: GenService<{
   },
   /**
    * Subscribe to real-time execution updates (streaming).
+   *
+   * @internal
    * Authorization is handled by the FJ model via proto configuration.
    *
    * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.subscribe
@@ -72,6 +76,8 @@ export const AgentExecutionQueryController: GenService<{
    * Returns a time-limited URL for downloading an artifact published by
    * an agent during execution. The URL can be used with a simple HTTP GET
    * request without authentication.
+   *
+   * @internal
    *
    * ## Authorization
    *
@@ -121,6 +127,8 @@ export const AgentExecutionQueryController: GenService<{
    * For direct file downloads, use getArtifactDownloadUrl instead — it
    * returns a presigned R2 URL that avoids proxying bytes through the server.
    *
+   * @internal
+   *
    * ## Authorization
    *
    * Requires can_view permission on the execution. This ensures users can
@@ -159,6 +167,7 @@ export const AgentExecutionQueryController: GenService<{
    * Get usage report for a session (all executions in a session).
    * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
    *
+   * @internal
    * Authorization is handled in handler — caller must have can_view on
    * all executions in the session (same pattern as listBySession).
    *
@@ -173,6 +182,7 @@ export const AgentExecutionQueryController: GenService<{
    * Get usage report for an agent (all sessions for an agent in a time range).
    * Returns aggregated tokens, cost, and per-session breakdown with pagination.
    *
+   * @internal
    * Authorization is handled in handler — caller must have can_view on the agent.
    *
    * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getAgentUsageReport
@@ -186,6 +196,7 @@ export const AgentExecutionQueryController: GenService<{
    * Get usage report for an organization (all agents in a time range).
    * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
    *
+   * @internal
    * Authorization is handled in handler — caller must be org member.
    *
    * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionQueryController.getOrgUsageReport

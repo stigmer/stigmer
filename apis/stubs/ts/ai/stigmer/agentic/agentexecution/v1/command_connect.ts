@@ -19,7 +19,9 @@ export const AgentExecutionCommandController = {
   methods: {
     /**
      * Create and trigger a new agent execution.
-     * Session is optional - can be provided or auto-created from agent_id.
+     * Session is optional — can be provided or auto-created from agent_id.
+     *
+     * @internal
      * Authorization is handled in handler:
      *   - If session_id provided: checks can_create_execution_in on session
      *   - If session_id NOT provided: checks can_create_execution_in on organization
@@ -47,8 +49,11 @@ export const AgentExecutionCommandController = {
     },
     /**
      * Update execution status during agent execution.
-     * Used by agent-runner to send progressive status updates (messages, tool_calls, phase, etc.)
-     * This RPC is optimized for frequent status updates and merges status fields with existing state.
+     *
+     * @internal
+     * System-level RPC used by agent-runner to send progressive status updates
+     * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
+     * and merges status fields with existing state.
      *
      * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.updateStatus
      */
@@ -84,6 +89,8 @@ export const AgentExecutionCommandController = {
      * - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
      * - REJECT: Execution fails with rejection error, phase becomes FAILED
      *
+     * @internal
+     *
      * ## State Transitions
      *
      * On success:
@@ -116,10 +123,11 @@ export const AgentExecutionCommandController = {
     /**
      * Cancel a running agent execution gracefully.
      *
-     * Sends a cancellation signal to the agent execution via Temporal's CancelWorkflow API.
-     * The agent can handle the cancellation signal to save checkpoint and clean up
-     * before transitioning to the CANCELLED phase.
+     * Sends a cancellation signal to the agent execution. The agent can handle
+     * the cancellation signal to save checkpoint and clean up before
+     * transitioning to the CANCELLED phase.
      *
+     * @internal
      * Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
      *
      * ## Behavior
@@ -166,10 +174,11 @@ export const AgentExecutionCommandController = {
     /**
      * Terminate an agent execution immediately.
      *
-     * Force-stops the agent execution via Temporal's TerminateWorkflow API without
-     * allowing cleanup. Unlike cancel, the agent cannot respond to termination -
-     * it is stopped immediately. Use this for stuck or unresponsive agents.
+     * Force-stops the agent execution without allowing cleanup. Unlike cancel,
+     * the agent cannot respond to termination - it is stopped immediately.
+     * Use this for stuck or unresponsive agents.
      *
+     * @internal
      * Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
      *
      * ## Behavior
@@ -224,11 +233,12 @@ export const AgentExecutionCommandController = {
     /**
      * Recover a failed agent execution from the last checkpoint.
      *
-     * Resumes execution from the last LangGraph checkpoint using Temporal's
-     * ResetWorkflow API. Completed work is preserved - successful tool calls
-     * are NOT re-executed.
+     * Resumes execution from the last checkpoint. Completed work is preserved -
+     * successful tool calls are NOT re-executed.
      *
+     * @internal
      * Temporal Equivalent: `temporal workflow reset --workflow-id <id> --type LastWorkflowTask`
+     * Uses LangGraph checkpoint for state restoration.
      *
      * ## Behavior
      *
@@ -279,6 +289,8 @@ export const AgentExecutionCommandController = {
      *
      * Temporarily stops the agent at its current checkpoint. Unlike cancel,
      * the execution is NOT terminal and can be resumed later from where it left off.
+     *
+     * @internal
      *
      * ## Behavior
      *
@@ -337,6 +349,8 @@ export const AgentExecutionCommandController = {
      * re-invokes with the same thread_id, loading from LangGraph checkpoint
      * and continuing from where it left off.
      *
+     * @internal
+     *
      * ## Behavior
      *
      * 1. Validates execution is in EXECUTION_PAUSED phase
@@ -384,6 +398,8 @@ export const AgentExecutionCommandController = {
      * Pre-uploads files to artifact storage before creating an execution.
      * The returned storage_key can be used in Attachment.storage_key when
      * creating the execution.
+     *
+     * @internal
      *
      * ## Authorization
      *

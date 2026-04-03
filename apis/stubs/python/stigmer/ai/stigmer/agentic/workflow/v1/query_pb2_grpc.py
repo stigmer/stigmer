@@ -41,7 +41,10 @@ class WorkflowQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getByReference(self, request, context):
-        """Custom authorization in handler
+        """Get a workflow by its organization-scoped reference (org/slug).
+
+        @internal
+        Custom authorization in handler.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

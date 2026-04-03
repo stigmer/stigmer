@@ -4,7 +4,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * identity-account query controller
+ * IdentityAccountQueryController handles read operations for identity accounts.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -231,14 +231,14 @@ public final class IdentityAccountQueryControllerGrpc {
 
   /**
    * <pre>
-   * identity-account query controller
+   * IdentityAccountQueryController handles read operations for identity accounts.
    * </pre>
    */
   public interface AsyncService {
 
     /**
      * <pre>
-     * lookup identity-account.
+     * Get an identity account by its unique identifier.
      * </pre>
      */
     default void get(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request,
@@ -248,7 +248,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * look up identity-account by authentication token.
+     * Get the identity account of the currently authenticated user.
      * </pre>
      */
     default void whoAmI(com.google.protobuf.Empty request,
@@ -258,7 +258,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup user-account by identity account email.
+     * Get an identity account by email address.
      * </pre>
      */
     default void getByEmail(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request,
@@ -268,7 +268,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup user-account by idp id.
+     * Get an identity account by identity provider ID.
      * </pre>
      */
     default void getByIdpId(ai.stigmer.iam.identityaccount.v1.IdpId request,
@@ -278,7 +278,8 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup identity-account actor-info (lightweight actor data for audit trail caching)
+     * Get lightweight actor information for an identity account.
+     * &#64;internal
      * This RPC is specifically designed to break circular dependency loops in audit actor resolution.
      * When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
      * needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
@@ -301,7 +302,7 @@ public final class IdentityAccountQueryControllerGrpc {
   /**
    * Base class for the server implementation of the service IdentityAccountQueryController.
    * <pre>
-   * identity-account query controller
+   * IdentityAccountQueryController handles read operations for identity accounts.
    * </pre>
    */
   public static abstract class IdentityAccountQueryControllerImplBase
@@ -315,7 +316,7 @@ public final class IdentityAccountQueryControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service IdentityAccountQueryController.
    * <pre>
-   * identity-account query controller
+   * IdentityAccountQueryController handles read operations for identity accounts.
    * </pre>
    */
   public static final class IdentityAccountQueryControllerStub
@@ -333,7 +334,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup identity-account.
+     * Get an identity account by its unique identifier.
      * </pre>
      */
     public void get(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request,
@@ -344,7 +345,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * look up identity-account by authentication token.
+     * Get the identity account of the currently authenticated user.
      * </pre>
      */
     public void whoAmI(com.google.protobuf.Empty request,
@@ -355,7 +356,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup user-account by identity account email.
+     * Get an identity account by email address.
      * </pre>
      */
     public void getByEmail(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request,
@@ -366,7 +367,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup user-account by idp id.
+     * Get an identity account by identity provider ID.
      * </pre>
      */
     public void getByIdpId(ai.stigmer.iam.identityaccount.v1.IdpId request,
@@ -377,7 +378,8 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup identity-account actor-info (lightweight actor data for audit trail caching)
+     * Get lightweight actor information for an identity account.
+     * &#64;internal
      * This RPC is specifically designed to break circular dependency loops in audit actor resolution.
      * When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
      * needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
@@ -401,7 +403,7 @@ public final class IdentityAccountQueryControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service IdentityAccountQueryController.
    * <pre>
-   * identity-account query controller
+   * IdentityAccountQueryController handles read operations for identity accounts.
    * </pre>
    */
   public static final class IdentityAccountQueryControllerBlockingV2Stub
@@ -419,7 +421,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup identity-account.
+     * Get an identity account by its unique identifier.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount get(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) throws io.grpc.StatusException {
@@ -429,7 +431,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * look up identity-account by authentication token.
+     * Get the identity account of the currently authenticated user.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount whoAmI(com.google.protobuf.Empty request) throws io.grpc.StatusException {
@@ -439,7 +441,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup user-account by identity account email.
+     * Get an identity account by email address.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByEmail(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request) throws io.grpc.StatusException {
@@ -449,7 +451,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup user-account by idp id.
+     * Get an identity account by identity provider ID.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByIdpId(ai.stigmer.iam.identityaccount.v1.IdpId request) throws io.grpc.StatusException {
@@ -459,7 +461,8 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup identity-account actor-info (lightweight actor data for audit trail caching)
+     * Get lightweight actor information for an identity account.
+     * &#64;internal
      * This RPC is specifically designed to break circular dependency loops in audit actor resolution.
      * When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
      * needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
@@ -482,7 +485,7 @@ public final class IdentityAccountQueryControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service IdentityAccountQueryController.
    * <pre>
-   * identity-account query controller
+   * IdentityAccountQueryController handles read operations for identity accounts.
    * </pre>
    */
   public static final class IdentityAccountQueryControllerBlockingStub
@@ -500,7 +503,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup identity-account.
+     * Get an identity account by its unique identifier.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount get(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) {
@@ -510,7 +513,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * look up identity-account by authentication token.
+     * Get the identity account of the currently authenticated user.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount whoAmI(com.google.protobuf.Empty request) {
@@ -520,7 +523,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup user-account by identity account email.
+     * Get an identity account by email address.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByEmail(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request) {
@@ -530,7 +533,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup user-account by idp id.
+     * Get an identity account by identity provider ID.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount getByIdpId(ai.stigmer.iam.identityaccount.v1.IdpId request) {
@@ -540,7 +543,8 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup identity-account actor-info (lightweight actor data for audit trail caching)
+     * Get lightweight actor information for an identity account.
+     * &#64;internal
      * This RPC is specifically designed to break circular dependency loops in audit actor resolution.
      * When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
      * needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
@@ -563,7 +567,7 @@ public final class IdentityAccountQueryControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service IdentityAccountQueryController.
    * <pre>
-   * identity-account query controller
+   * IdentityAccountQueryController handles read operations for identity accounts.
    * </pre>
    */
   public static final class IdentityAccountQueryControllerFutureStub
@@ -581,7 +585,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup identity-account.
+     * Get an identity account by its unique identifier.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> get(
@@ -592,7 +596,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * look up identity-account by authentication token.
+     * Get the identity account of the currently authenticated user.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> whoAmI(
@@ -603,7 +607,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup user-account by identity account email.
+     * Get an identity account by email address.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> getByEmail(
@@ -614,7 +618,7 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup user-account by idp id.
+     * Get an identity account by identity provider ID.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> getByIdpId(
@@ -625,7 +629,8 @@ public final class IdentityAccountQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup identity-account actor-info (lightweight actor data for audit trail caching)
+     * Get lightweight actor information for an identity account.
+     * &#64;internal
      * This RPC is specifically designed to break circular dependency loops in audit actor resolution.
      * When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
      * needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion

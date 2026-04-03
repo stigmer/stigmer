@@ -28,13 +28,14 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// api-key command controller
+// ApiKeyCommandController handles write operations for API keys.
 type ApiKeyCommandControllerClient interface {
-	// create an api-key
+	// Create a new API key for the authenticated user.
+	// Any authenticated user can create API keys.
 	Create(ctx context.Context, in *ApiKey, opts ...grpc.CallOption) (*ApiKey, error)
-	// update an existing api-key
+	// Update an existing API key.
 	Update(ctx context.Context, in *ApiKey, opts ...grpc.CallOption) (*ApiKey, error)
-	// delete an existing api-key
+	// Delete an API key.
 	Delete(ctx context.Context, in *ApiKeyId, opts ...grpc.CallOption) (*ApiKey, error)
 }
 
@@ -80,13 +81,14 @@ func (c *apiKeyCommandControllerClient) Delete(ctx context.Context, in *ApiKeyId
 // All implementations should embed UnimplementedApiKeyCommandControllerServer
 // for forward compatibility.
 //
-// api-key command controller
+// ApiKeyCommandController handles write operations for API keys.
 type ApiKeyCommandControllerServer interface {
-	// create an api-key
+	// Create a new API key for the authenticated user.
+	// Any authenticated user can create API keys.
 	Create(context.Context, *ApiKey) (*ApiKey, error)
-	// update an existing api-key
+	// Update an existing API key.
 	Update(context.Context, *ApiKey) (*ApiKey, error)
-	// delete an existing api-key
+	// Delete an API key.
 	Delete(context.Context, *ApiKeyId) (*ApiKey, error)
 }
 

@@ -186,7 +186,11 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an agent by its organization-scoped reference (org/slug).
+     * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+     * &#64;internal
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -203,6 +207,7 @@ public final class AgentQueryControllerGrpc {
      * Used by frontends to enable session-first UX where users start
      * a conversation without explicitly selecting an agent.
      * Error: NOT_FOUND if no default agent is configured.
+     * &#64;internal
      * Custom authorization in handler.
      * </pre>
      */
@@ -258,7 +263,11 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an agent by its organization-scoped reference (org/slug).
+     * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+     * &#64;internal
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -276,6 +285,7 @@ public final class AgentQueryControllerGrpc {
      * Used by frontends to enable session-first UX where users start
      * a conversation without explicitly selecting an agent.
      * Error: NOT_FOUND if no default agent is configured.
+     * &#64;internal
      * Custom authorization in handler.
      * </pre>
      */
@@ -317,7 +327,11 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an agent by its organization-scoped reference (org/slug).
+     * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+     * &#64;internal
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -334,6 +348,7 @@ public final class AgentQueryControllerGrpc {
      * Used by frontends to enable session-first UX where users start
      * a conversation without explicitly selecting an agent.
      * Error: NOT_FOUND if no default agent is configured.
+     * &#64;internal
      * Custom authorization in handler.
      * </pre>
      */
@@ -374,7 +389,11 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an agent by its organization-scoped reference (org/slug).
+     * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+     * &#64;internal
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -391,6 +410,7 @@ public final class AgentQueryControllerGrpc {
      * Used by frontends to enable session-first UX where users start
      * a conversation without explicitly selecting an agent.
      * Error: NOT_FOUND if no default agent is configured.
+     * &#64;internal
      * Custom authorization in handler.
      * </pre>
      */
@@ -432,7 +452,11 @@ public final class AgentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an agent by its organization-scoped reference (org/slug).
+     * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+     * &#64;internal
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> getByReference(
@@ -450,6 +474,7 @@ public final class AgentQueryControllerGrpc {
      * Used by frontends to enable session-first UX where users start
      * a conversation without explicitly selecting an agent.
      * Error: NOT_FOUND if no default agent is configured.
+     * &#64;internal
      * Custom authorization in handler.
      * </pre>
      */

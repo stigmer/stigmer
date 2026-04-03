@@ -218,9 +218,10 @@ public final class AgentInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get all instances of a specific agent template.
+     * Returns only instances the caller has access to.
+     * &#64;internal
      * Authorization is handled in handler via FGA query for authorized agent_instance_ids,
-     * then filtered by agent_id. This ensures users only see instances they have access to,
-     * even if the parent agent is shared across organizations.
+     * then filtered by agent_id.
      * </pre>
      */
     default void getByAgent(ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest request,
@@ -230,7 +231,9 @@ public final class AgentInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an agent instance by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -241,6 +244,7 @@ public final class AgentInstanceQueryControllerGrpc {
     /**
      * <pre>
      * List agent instances with optional label filtering.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries (cloud)
      * or unrestricted store queries (OSS).
      * </pre>
@@ -298,9 +302,10 @@ public final class AgentInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get all instances of a specific agent template.
+     * Returns only instances the caller has access to.
+     * &#64;internal
      * Authorization is handled in handler via FGA query for authorized agent_instance_ids,
-     * then filtered by agent_id. This ensures users only see instances they have access to,
-     * even if the parent agent is shared across organizations.
+     * then filtered by agent_id.
      * </pre>
      */
     public void getByAgent(ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest request,
@@ -311,7 +316,9 @@ public final class AgentInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an agent instance by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -323,6 +330,7 @@ public final class AgentInstanceQueryControllerGrpc {
     /**
      * <pre>
      * List agent instances with optional label filtering.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries (cloud)
      * or unrestricted store queries (OSS).
      * </pre>
@@ -366,9 +374,10 @@ public final class AgentInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get all instances of a specific agent template.
+     * Returns only instances the caller has access to.
+     * &#64;internal
      * Authorization is handled in handler via FGA query for authorized agent_instance_ids,
-     * then filtered by agent_id. This ensures users only see instances they have access to,
-     * even if the parent agent is shared across organizations.
+     * then filtered by agent_id.
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstanceList getByAgent(ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest request) throws io.grpc.StatusException {
@@ -378,7 +387,9 @@ public final class AgentInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an agent instance by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -389,6 +400,7 @@ public final class AgentInstanceQueryControllerGrpc {
     /**
      * <pre>
      * List agent instances with optional label filtering.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries (cloud)
      * or unrestricted store queries (OSS).
      * </pre>
@@ -431,9 +443,10 @@ public final class AgentInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get all instances of a specific agent template.
+     * Returns only instances the caller has access to.
+     * &#64;internal
      * Authorization is handled in handler via FGA query for authorized agent_instance_ids,
-     * then filtered by agent_id. This ensures users only see instances they have access to,
-     * even if the parent agent is shared across organizations.
+     * then filtered by agent_id.
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstanceList getByAgent(ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest request) {
@@ -443,7 +456,9 @@ public final class AgentInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an agent instance by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     public ai.stigmer.agentic.agentinstance.v1.AgentInstance getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -454,6 +469,7 @@ public final class AgentInstanceQueryControllerGrpc {
     /**
      * <pre>
      * List agent instances with optional label filtering.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries (cloud)
      * or unrestricted store queries (OSS).
      * </pre>
@@ -497,9 +513,10 @@ public final class AgentInstanceQueryControllerGrpc {
     /**
      * <pre>
      * Get all instances of a specific agent template.
+     * Returns only instances the caller has access to.
+     * &#64;internal
      * Authorization is handled in handler via FGA query for authorized agent_instance_ids,
-     * then filtered by agent_id. This ensures users only see instances they have access to,
-     * even if the parent agent is shared across organizations.
+     * then filtered by agent_id.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstanceList> getByAgent(
@@ -510,7 +527,9 @@ public final class AgentInstanceQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an agent instance by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentinstance.v1.AgentInstance> getByReference(
@@ -522,6 +541,7 @@ public final class AgentInstanceQueryControllerGrpc {
     /**
      * <pre>
      * List agent instances with optional label filtering.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries (cloud)
      * or unrestricted store queries (OSS).
      * </pre>

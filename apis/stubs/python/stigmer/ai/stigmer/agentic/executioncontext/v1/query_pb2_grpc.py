@@ -58,6 +58,8 @@ class ExecutionContextQueryControllerServicer(object):
 
     def get(self, request, context):
         """Get an ExecutionContext by ID.
+
+        @internal
         Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -66,6 +68,8 @@ class ExecutionContextQueryControllerServicer(object):
 
     def getByReference(self, request, context):
         """Get an ExecutionContext by reference (slug-based lookup).
+
+        @internal
         Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -74,10 +78,11 @@ class ExecutionContextQueryControllerServicer(object):
 
     def getByExecutionId(self, request, context):
         """Get an ExecutionContext by the execution ID it belongs to.
-        This is the primary lookup method used by runners to retrieve the merged
-        environment variables during workflow/agent execution. The returned context
-        contains decrypted secrets for runner consumption.
 
+        @internal
+        Primary lookup method used by runners to retrieve the merged environment
+        variables during workflow/agent execution. The returned context contains
+        decrypted secrets for runner consumption.
         Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)

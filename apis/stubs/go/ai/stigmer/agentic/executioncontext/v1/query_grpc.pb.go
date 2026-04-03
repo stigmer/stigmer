@@ -41,16 +41,21 @@ const (
 // This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
 type ExecutionContextQueryControllerClient interface {
 	// Get an ExecutionContext by ID.
+	//
+	// @internal
 	// Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
 	Get(ctx context.Context, in *ExecutionContextId, opts ...grpc.CallOption) (*ExecutionContext, error)
 	// Get an ExecutionContext by reference (slug-based lookup).
+	//
+	// @internal
 	// Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*ExecutionContext, error)
 	// Get an ExecutionContext by the execution ID it belongs to.
-	// This is the primary lookup method used by runners to retrieve the merged
-	// environment variables during workflow/agent execution. The returned context
-	// contains decrypted secrets for runner consumption.
 	//
+	// @internal
+	// Primary lookup method used by runners to retrieve the merged environment
+	// variables during workflow/agent execution. The returned context contains
+	// decrypted secrets for runner consumption.
 	// Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
 	GetByExecutionId(ctx context.Context, in *ExecutionContextExecutionIdInput, opts ...grpc.CallOption) (*ExecutionContext, error)
 }
@@ -109,16 +114,21 @@ func (c *executionContextQueryControllerClient) GetByExecutionId(ctx context.Con
 // This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
 type ExecutionContextQueryControllerServer interface {
 	// Get an ExecutionContext by ID.
+	//
+	// @internal
 	// Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
 	Get(context.Context, *ExecutionContextId) (*ExecutionContext, error)
 	// Get an ExecutionContext by reference (slug-based lookup).
+	//
+	// @internal
 	// Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*ExecutionContext, error)
 	// Get an ExecutionContext by the execution ID it belongs to.
-	// This is the primary lookup method used by runners to retrieve the merged
-	// environment variables during workflow/agent execution. The returned context
-	// contains decrypted secrets for runner consumption.
 	//
+	// @internal
+	// Primary lookup method used by runners to retrieve the merged environment
+	// variables during workflow/agent execution. The returned context contains
+	// decrypted secrets for runner consumption.
 	// Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
 	GetByExecutionId(context.Context, *ExecutionContextExecutionIdInput) (*ExecutionContext, error)
 }

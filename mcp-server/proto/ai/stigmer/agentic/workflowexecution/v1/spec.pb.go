@@ -255,9 +255,9 @@ type WorkflowExecutionSpec struct {
 	//
 	// Tasks can access these values using: {{env.VARIABLE_NAME}}
 	RuntimeEnv map[string]*v1.ExecutionValue `protobuf:"bytes,5,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Temporal task token for async activity completion (optional).
+	// Callback token for async activity completion (optional).
 	//
-	// **Purpose**: Enables async activity completion pattern where the caller
+	// **Purpose**: Enables async completion pattern where the caller
 	// (typically a parent workflow or orchestrator) waits for actual workflow completion
 	// without blocking worker threads.
 	//

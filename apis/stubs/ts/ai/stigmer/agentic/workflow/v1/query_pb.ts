@@ -36,7 +36,10 @@ export const WorkflowQueryController: GenService<{
     output: typeof WorkflowSchema;
   },
   /**
-   * Custom authorization in handler
+   * Get a workflow by its organization-scoped reference (org/slug).
+   *
+   * @internal
+   * Custom authorization in handler.
    *
    * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowQueryController.getByReference
    */

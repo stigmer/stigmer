@@ -37,7 +37,10 @@ export const ExecutionContextCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+     * Create a new ExecutionContext for an execution.
+     *
+     * @internal
+     * Called by execution pipeline on behalf of the user.
      * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      *
      * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextCommandController.create
@@ -49,8 +52,11 @@ export const ExecutionContextCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Delete an ExecutionContext (called when execution completes).
-     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+     * Delete an ExecutionContext.
+     *
+     * @internal
+     * Called when execution completes. Handler-level derived auth: checks can_edit
+     * on parent agent_execution or workflow_execution.
      *
      * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextCommandController.delete
      */
