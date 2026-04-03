@@ -3,7 +3,7 @@
  *
  * 12-step playback: sidebar → Library → MCP Servers list →
  * Add MCP Server → Session Composer → conversation with
- * MCP Server Creator → artifact preview → push → back to Library
+ * MCP Server Creator → artifact preview → apply → back to Library
  * with the new server.
  */
 
@@ -33,7 +33,7 @@ export type McpCreationStep =
       execution: AgentExecution;
       artifactContent: string;
     }
-  | { view: "push-mcp-server"; execution: AgentExecution }
+  | { view: "apply-mcp-server"; execution: AgentExecution }
   | { view: "library-complete" };
 
 // ---------------------------------------------------------------------------
@@ -62,7 +62,7 @@ const ai2 = samples.aiMessage(
     "- **URL**: `https://orders.internal.acme.com/mcp`\n" +
     "- **Auth**: `API_KEY` header (secret, configured via environment)\n" +
     "- **Description**: REST API for order lookup, inventory, and return processing\n\n" +
-    "The configuration is ready as an artifact. Review it and push to save.",
+    "The configuration is ready as an artifact. Review it and apply to save.",
 );
 
 // ---------------------------------------------------------------------------
@@ -164,8 +164,8 @@ export const mcpCreationTourSteps: ScenarioStep<McpCreationStep>[] = [
   },
   {
     delayMs: 3000,
-    data: { view: "push-mcp-server", execution: finalExecution },
-    caption: "Push to save",
+    data: { view: "apply-mcp-server", execution: finalExecution },
+    caption: "Apply to save",
   },
   {
     delayMs: 2000,
