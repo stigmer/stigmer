@@ -187,6 +187,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
@@ -198,6 +199,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
@@ -254,6 +256,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
@@ -266,6 +269,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
@@ -308,6 +312,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
@@ -319,6 +324,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
@@ -360,6 +366,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
@@ -371,6 +378,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
@@ -413,6 +421,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions with pagination and optional filtering.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */
@@ -425,6 +434,7 @@ public final class SessionQueryControllerGrpc {
     /**
      * <pre>
      * List all sessions for a specific agent.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries.
      * </pre>
      */

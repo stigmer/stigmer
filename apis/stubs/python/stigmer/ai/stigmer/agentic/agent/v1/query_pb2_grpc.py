@@ -46,7 +46,12 @@ class AgentQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getByReference(self, request, context):
-        """Custom authorization in handler
+        """Get an agent by its organization-scoped reference (org/slug).
+        Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+
+        @internal
+        Custom authorization in handler — checks both direct resource access
+        and organization-level visibility permissions.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -63,6 +68,8 @@ class AgentQueryControllerServicer(object):
         a conversation without explicitly selecting an agent.
 
         Error: NOT_FOUND if no default agent is configured.
+
+        @internal
         Custom authorization in handler.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)

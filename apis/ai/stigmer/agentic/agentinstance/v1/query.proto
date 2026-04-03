@@ -21,19 +21,26 @@ service AgentInstanceQueryController {
   }
 
   // Get all instances of a specific agent template.
+  // Returns only instances the caller has access to.
+  //
+  // @internal
   // Authorization is handled in handler via FGA query for authorized agent_instance_ids,
-  // then filtered by agent_id. This ensures users only see instances they have access to,
-  // even if the parent agent is shared across organizations.
+  // then filtered by agent_id.
   rpc getByAgent(GetAgentInstancesByAgentRequest) returns (AgentInstanceList) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
-  // Custom authorization in handler
+  // Get an agent instance by its organization-scoped reference (org/slug).
+  //
+  // @internal
+  // Custom authorization in handler.
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (AgentInstance) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
   // List agent instances with optional label filtering.
+  //
+  // @internal
   // Authorization is handled in-handler via FGA-filtered queries (cloud)
   // or unrestricted store queries (OSS).
   rpc list(ListAgentInstancesRequest) returns (AgentInstanceList) {

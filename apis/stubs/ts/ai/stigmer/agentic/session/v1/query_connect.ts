@@ -28,6 +28,8 @@ export const SessionQueryController = {
     },
     /**
      * List all sessions with pagination and optional filtering.
+     *
+     * @internal
      * Authorization is handled in-handler via FGA-filtered queries.
      *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.list
@@ -40,6 +42,8 @@ export const SessionQueryController = {
     },
     /**
      * List all sessions for a specific agent.
+     *
+     * @internal
      * Authorization is handled in-handler via FGA-filtered queries.
      *
      * @generated from rpc ai.stigmer.agentic.session.v1.SessionQueryController.listByAgent

@@ -8,7 +8,7 @@ import { MethodKind } from "@bufbuild/protobuf";
 import { ApiKeyId } from "./io_pb.js";
 
 /**
- * api-key command controller
+ * ApiKeyCommandController handles write operations for API keys.
  *
  * @generated from service ai.stigmer.iam.apikey.v1.ApiKeyCommandController
  */
@@ -16,7 +16,8 @@ export const ApiKeyCommandController = {
   typeName: "ai.stigmer.iam.apikey.v1.ApiKeyCommandController",
   methods: {
     /**
-     * create an api-key
+     * Create a new API key for the authenticated user.
+     * Any authenticated user can create API keys.
      *
      * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyCommandController.create
      */
@@ -27,7 +28,7 @@ export const ApiKeyCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * update an existing api-key
+     * Update an existing API key.
      *
      * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyCommandController.update
      */
@@ -38,7 +39,7 @@ export const ApiKeyCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * delete an existing api-key
+     * Delete an API key.
      *
      * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyCommandController.delete
      */

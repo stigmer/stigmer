@@ -46,12 +46,12 @@ export type IamPolicySpec = Message<"ai.stigmer.iam.iampolicy.v1.IamPolicySpec">
   resource?: ApiResourceRef;
 
   /**
-   * Relation: HOW/what permission is being granted
-   * This is the FGA relation/permission being granted (e.g., "admin", "viewer", "owner")
-   * The relation value maps to the role_code from IamRole.
+   * The permission being granted (e.g., "admin", "viewer", "owner").
+   * Maps to the role_code from IamRole.
    * Examples: "admin", "editor", "viewer", "owner", "member"
    *
-   * When this policy is synced to OpenFGA, this becomes the relation in the tuple:
+   * @internal
+   * This is the FGA relation in the authorization tuple:
    * principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation
    *
    * @generated from field: string relation = 3;
@@ -96,7 +96,7 @@ export type ApiResourceRef = Message<"ai.stigmer.iam.iampolicy.v1.ApiResourceRef
   id: string;
 
   /**
-   * Optional relation qualifier for the resource reference
+   * Optional relation qualifier for the resource reference.
    * Used when the reference needs additional context about the relationship.
    *
    * Primary use case: For team principals, this specifies the relation of the
@@ -104,11 +104,11 @@ export type ApiResourceRef = Message<"ai.stigmer.iam.iampolicy.v1.ApiResourceRef
    * Example: principal { kind: "team", id: "tm-123", relation: "member" }
    * means "members of team tm-123"
    *
-   * In OpenFGA tuple notation, this becomes:
-   * team:tm-123#member (as the subject of the tuple)
-   *
    * This field qualifies HOW the principal relates to this resource reference,
    * NOT the permission being granted (that's IamPolicySpec.relation).
+   *
+   * @internal
+   * In OpenFGA tuple notation: team:tm-123#member (as the subject of the tuple)
    *
    * @generated from field: string relation = 3;
    */

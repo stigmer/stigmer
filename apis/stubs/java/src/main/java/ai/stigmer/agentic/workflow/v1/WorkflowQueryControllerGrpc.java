@@ -155,7 +155,9 @@ public final class WorkflowQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get a workflow by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -210,7 +212,9 @@ public final class WorkflowQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get a workflow by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -251,7 +255,9 @@ public final class WorkflowQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get a workflow by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -291,7 +297,9 @@ public final class WorkflowQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get a workflow by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     public ai.stigmer.agentic.workflow.v1.Workflow getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -332,7 +340,9 @@ public final class WorkflowQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get a workflow by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.workflow.v1.Workflow> getByReference(

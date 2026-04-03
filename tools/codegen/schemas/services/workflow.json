@@ -59,7 +59,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "Workflow",
           "outputFullType": "ai.stigmer.agentic.workflow.v1.Workflow",
-          "description": "Custom authorization in handler"
+          "description": "Get a workflow by its organization-scoped reference (org/slug).\n\n @internal\n Custom authorization in handler."
         }
       ]
     }

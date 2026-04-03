@@ -217,7 +217,9 @@ public final class EnvironmentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an environment by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     default void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -228,8 +230,10 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * Get the unredacted value of a single secret key in an environment.
-     * Creator-only: requires can_read_secrets permission (FGA: creator relation).
+     * Creator-only: requires can_read_secrets permission.
      * Returns the EnvironmentValue with the decrypted value.
+     * &#64;internal
+     * FGA authorization: creator relation grants can_read_secrets.
      * </pre>
      */
     default void getSecretValue(ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput request,
@@ -240,8 +244,10 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * List environments with optional label filtering.
+     * Secret values are redacted in the response.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS). Secret values are redacted.
+     * or unrestricted store queries (OSS).
      * </pre>
      */
     default void list(ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest request,
@@ -296,7 +302,9 @@ public final class EnvironmentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an environment by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     public void getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request,
@@ -308,8 +316,10 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * Get the unredacted value of a single secret key in an environment.
-     * Creator-only: requires can_read_secrets permission (FGA: creator relation).
+     * Creator-only: requires can_read_secrets permission.
      * Returns the EnvironmentValue with the decrypted value.
+     * &#64;internal
+     * FGA authorization: creator relation grants can_read_secrets.
      * </pre>
      */
     public void getSecretValue(ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput request,
@@ -321,8 +331,10 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * List environments with optional label filtering.
+     * Secret values are redacted in the response.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS). Secret values are redacted.
+     * or unrestricted store queries (OSS).
      * </pre>
      */
     public void list(ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest request,
@@ -363,7 +375,9 @@ public final class EnvironmentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an environment by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) throws io.grpc.StatusException {
@@ -374,8 +388,10 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * Get the unredacted value of a single secret key in an environment.
-     * Creator-only: requires can_read_secrets permission (FGA: creator relation).
+     * Creator-only: requires can_read_secrets permission.
      * Returns the EnvironmentValue with the decrypted value.
+     * &#64;internal
+     * FGA authorization: creator relation grants can_read_secrets.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.EnvironmentValue getSecretValue(ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput request) throws io.grpc.StatusException {
@@ -386,8 +402,10 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * List environments with optional label filtering.
+     * Secret values are redacted in the response.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS). Secret values are redacted.
+     * or unrestricted store queries (OSS).
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.EnvironmentList list(ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest request) throws io.grpc.StatusException {
@@ -427,7 +445,9 @@ public final class EnvironmentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an environment by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.Environment getByReference(ai.stigmer.commons.apiresource.ApiResourceReference request) {
@@ -438,8 +458,10 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * Get the unredacted value of a single secret key in an environment.
-     * Creator-only: requires can_read_secrets permission (FGA: creator relation).
+     * Creator-only: requires can_read_secrets permission.
      * Returns the EnvironmentValue with the decrypted value.
+     * &#64;internal
+     * FGA authorization: creator relation grants can_read_secrets.
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.EnvironmentValue getSecretValue(ai.stigmer.agentic.environment.v1.EnvironmentSecretValueInput request) {
@@ -450,8 +472,10 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * List environments with optional label filtering.
+     * Secret values are redacted in the response.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS). Secret values are redacted.
+     * or unrestricted store queries (OSS).
      * </pre>
      */
     public ai.stigmer.agentic.environment.v1.EnvironmentList list(ai.stigmer.agentic.environment.v1.ListEnvironmentsRequest request) {
@@ -492,7 +516,9 @@ public final class EnvironmentQueryControllerGrpc {
 
     /**
      * <pre>
-     * Custom authorization in handler
+     * Get an environment by its organization-scoped reference (org/slug).
+     * &#64;internal
+     * Custom authorization in handler.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.Environment> getByReference(
@@ -504,8 +530,10 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * Get the unredacted value of a single secret key in an environment.
-     * Creator-only: requires can_read_secrets permission (FGA: creator relation).
+     * Creator-only: requires can_read_secrets permission.
      * Returns the EnvironmentValue with the decrypted value.
+     * &#64;internal
+     * FGA authorization: creator relation grants can_read_secrets.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.EnvironmentValue> getSecretValue(
@@ -517,8 +545,10 @@ public final class EnvironmentQueryControllerGrpc {
     /**
      * <pre>
      * List environments with optional label filtering.
+     * Secret values are redacted in the response.
+     * &#64;internal
      * Authorization is handled in-handler via FGA-filtered queries (cloud)
-     * or unrestricted store queries (OSS). Secret values are redacted.
+     * or unrestricted store queries (OSS).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.environment.v1.EnvironmentList> list(

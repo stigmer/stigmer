@@ -200,7 +200,9 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+     * Create a new ExecutionContext for an execution.
+     * &#64;internal
+     * Called by execution pipeline on behalf of the user.
      * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -211,8 +213,10 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an ExecutionContext (called when execution completes).
-     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+     * Delete an ExecutionContext.
+     * &#64;internal
+     * Called when execution completes. Handler-level derived auth: checks can_edit
+     * on parent agent_execution or workflow_execution.
      * </pre>
      */
     default void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -281,7 +285,9 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+     * Create a new ExecutionContext for an execution.
+     * &#64;internal
+     * Called by execution pipeline on behalf of the user.
      * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -293,8 +299,10 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an ExecutionContext (called when execution completes).
-     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+     * Delete an ExecutionContext.
+     * &#64;internal
+     * Called when execution completes. Handler-level derived auth: checks can_edit
+     * on parent agent_execution or workflow_execution.
      * </pre>
      */
     public void delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request,
@@ -343,7 +351,9 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+     * Create a new ExecutionContext for an execution.
+     * &#64;internal
+     * Called by execution pipeline on behalf of the user.
      * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -354,8 +364,10 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an ExecutionContext (called when execution completes).
-     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+     * Delete an ExecutionContext.
+     * &#64;internal
+     * Called when execution completes. Handler-level derived auth: checks can_edit
+     * on parent agent_execution or workflow_execution.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) throws io.grpc.StatusException {
@@ -403,7 +415,9 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+     * Create a new ExecutionContext for an execution.
+     * &#64;internal
+     * Called by execution pipeline on behalf of the user.
      * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -414,8 +428,10 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an ExecutionContext (called when execution completes).
-     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+     * Delete an ExecutionContext.
+     * &#64;internal
+     * Called when execution completes. Handler-level derived auth: checks can_edit
+     * on parent agent_execution or workflow_execution.
      * </pre>
      */
     public ai.stigmer.agentic.executioncontext.v1.ExecutionContext delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput request) {
@@ -464,7 +480,9 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+     * Create a new ExecutionContext for an execution.
+     * &#64;internal
+     * Called by execution pipeline on behalf of the user.
      * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -476,8 +494,10 @@ public final class ExecutionContextCommandControllerGrpc {
 
     /**
      * <pre>
-     * Delete an ExecutionContext (called when execution completes).
-     * Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+     * Delete an ExecutionContext.
+     * &#64;internal
+     * Called when execution completes. Handler-level derived auth: checks can_edit
+     * on parent agent_execution or workflow_execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.executioncontext.v1.ExecutionContext> delete(

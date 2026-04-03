@@ -108,8 +108,9 @@ class WorkflowExecutionCommandControllerServicer(object):
         """Create and trigger a new workflow execution.
 
         This RPC creates a WorkflowExecution resource and immediately triggers it for execution.
-        The workflow execution engine (Temporal) picks up the execution and begins processing tasks.
+        The workflow execution engine picks up the execution and begins processing tasks.
 
+        @internal
         Input Validation:
         - metadata.org must be specified
         - spec.workflow_instance_id is required and must reference an existing WorkflowInstance
@@ -238,8 +239,11 @@ class WorkflowExecutionCommandControllerServicer(object):
 
     def updateStatus(self, request, context):
         """Update execution status during workflow execution.
-        Used by workflow-runner to send progressive status updates (messages, task states, phase, etc.)
-        This RPC is optimized for frequent status updates and merges status fields with existing state.
+
+        @internal
+        System-level RPC used by workflow-runner to send progressive status updates
+        (messages, task states, phase, etc.). Optimized for frequent status updates
+        and merges status fields with existing state.
 
         This RPC is used by the workflow execution engine (Temporal) to update the status
         of a running workflow execution. Users cannot call this RPC directly.
@@ -352,6 +356,7 @@ class WorkflowExecutionCommandControllerServicer(object):
         request surfaces at the workflow level via status.pending_approval. Users can
         submit their decision through this RPC, which forwards it to the child agent.
 
+        @internal
         The approval is forwarded to the child via AgentExecution.submitApproval RPC,
         ensuring consistent validation and Temporal workflow signaling.
 
@@ -421,6 +426,10 @@ class WorkflowExecutionCommandControllerServicer(object):
         Send a signal to a running workflow execution.
 
         Delivers a signal to a workflow execution, typically to unblock a LISTEN task.
+        Delivery is race-proof: the signal is guaranteed to arrive even if sent
+        before the workflow is fully started.
+
+        @internal
         Uses Temporal's SignalWithStart API internally for race-proof delivery.
 
         ## Behavior
@@ -504,11 +513,11 @@ class WorkflowExecutionCommandControllerServicer(object):
 
         Cancel a running workflow execution gracefully.
 
-        Sends a cancellation signal to the workflow via Temporal's CancelWorkflow API.
-        The workflow code can handle the cancellation signal to perform cleanup
-        (e.g., compensation logic, resource cleanup, notifications) before
-        transitioning to the CANCELLED phase.
+        Sends a cancellation signal to the workflow. The workflow code can handle
+        the cancellation signal to perform cleanup (e.g., compensation logic,
+        resource cleanup, notifications) before transitioning to the CANCELLED phase.
 
+        @internal
         Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
 
         ## Behavior
@@ -569,11 +578,11 @@ class WorkflowExecutionCommandControllerServicer(object):
     def terminate(self, request, context):
         """Terminate a workflow execution immediately.
 
-        Force-stops the workflow via Temporal's TerminateWorkflow API without
-        allowing cleanup. Unlike cancel, the workflow code cannot respond to
-        termination - it is stopped immediately. Use this for stuck or
-        unresponsive workflows that don't respond to cancellation.
+        Force-stops the workflow without allowing cleanup. Unlike cancel,
+        the workflow code cannot respond to termination - it is stopped immediately.
+        Use this for stuck or unresponsive workflows that don't respond to cancellation.
 
+        @internal
         Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
 
         ## Behavior
@@ -644,11 +653,11 @@ class WorkflowExecutionCommandControllerServicer(object):
     def recover(self, request, context):
         """Recover a failed workflow execution from the last checkpoint.
 
-        Resumes execution from the last successful point using Temporal's
-        ResetWorkflow API. Completed work is preserved - successful tasks
-        are NOT re-executed. This enables "retry and resume" semantics
-        without duplicating side effects.
+        Resumes execution from the last successful point. Completed work is
+        preserved - successful tasks are NOT re-executed. This enables
+        "retry and resume" semantics without duplicating side effects.
 
+        @internal
         Temporal Equivalent: `temporal workflow reset --workflow-id <id> --type LastWorkflowTask`
 
         ## Behavior
@@ -733,6 +742,8 @@ class WorkflowExecutionCommandControllerServicer(object):
         Temporarily stops the workflow at its current checkpoint. Unlike cancel,
         the execution is NOT terminal and can be resumed later from where it left off.
         The workflow gracefully checkpoints and exits, preserving all progress.
+
+        @internal
 
         ## Behavior
 
@@ -819,6 +830,8 @@ class WorkflowExecutionCommandControllerServicer(object):
         Continues execution from the checkpoint where it was paused. The workflow
         re-invokes activities with the same thread_id, which loads from checkpoint
         and continues from where it left off.
+
+        @internal
 
         ## Behavior
 

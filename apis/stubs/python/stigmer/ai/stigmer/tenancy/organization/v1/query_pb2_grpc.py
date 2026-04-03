@@ -62,9 +62,11 @@ class OrganizationQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def findMyOrganizations(self, request, context):
-        """Find organizations the authenticated user is a member of
-        Authorization handled in handler via IAM Policy listAuthorizedResourceIds
-        Returns only organizations the caller has access to
+        """Find organizations the authenticated user is a member of.
+        Returns only organizations the caller has access to.
+
+        @internal
+        Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -73,6 +75,8 @@ class OrganizationQueryControllerServicer(object):
     def getByExternalOrgId(self, request, context):
         """Look up a platform-managed organization by its external platform coordinates.
         Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+
+        @internal
         Authorization: custom — checks can_view on the referenced IdentityProvider.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)

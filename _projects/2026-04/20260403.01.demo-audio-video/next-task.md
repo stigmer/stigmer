@@ -161,6 +161,18 @@ When starting a new session:
 ### Video quality limitation (known)
 Playwright's VP8 video recording produces dim, low-contrast output on dark UIs. Screenshots from the same Playwright instance are pixel-perfect, confirming the issue is in the VP8 codec. Follow-up project `20260403.02.remotion-video-export` created to replace Playwright with Remotion for pixel-perfect video rendering.
 
+## Session Progress (2026-04-03, Session 7 — Narration Audio Cutting Fix)
+
+- Fixed audio clipping during step transitions — narration tail was being cut by ~50-200ms at every step advance
+- Root cause: `setTimeout` and `playClip()` fire in the same React effect flush, but audio needs load/decode time before becoming audible; additionally Edge TTS `durationMs` metadata undercounts actual MP3 duration
+- Added `NARRATION_SAFETY_BUFFER_MS = 250` constant to `ScenarioPlayer.tsx`, applied to both final-step and non-final-step branches of the auto-advance effect (only when narration is active)
+- Added `prefetchManifestClips()` to `useNarrationPlayback.ts` — pre-fetches all clip URLs into browser HTTP cache on unmute (interactive) or at mount (video export), eliminating network latency at transitions
+- Two files changed, zero new files, zero lint/type errors
+- Manual browser testing blocked by unrelated MDX build error in `docs/sdk/agent-execution.mdx`
+
+### Design decision (Session 7)
+- **Buffer-based over event-driven timing**: A 250ms buffer is simpler and sufficient for small same-origin MP3 files. Event-driven approach (listen for `playing` event, defer timer) was evaluated and rejected — it couples the audio hook to step orchestration and adds async complexity to effect cleanup. Can be revisited if 250ms proves insufficient.
+
 ## Project Completion
 
 All 6 phases are complete:

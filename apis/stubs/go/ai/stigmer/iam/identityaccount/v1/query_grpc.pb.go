@@ -32,18 +32,19 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// identity-account query controller
+// IdentityAccountQueryController handles read operations for identity accounts.
 type IdentityAccountQueryControllerClient interface {
-	// lookup identity-account.
+	// Get an identity account by its unique identifier.
 	Get(ctx context.Context, in *IdentityAccountId, opts ...grpc.CallOption) (*IdentityAccount, error)
-	// look up identity-account by authentication token.
+	// Get the identity account of the currently authenticated user.
 	WhoAmI(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*IdentityAccount, error)
-	// lookup user-account by identity account email.
+	// Get an identity account by email address.
 	GetByEmail(ctx context.Context, in *IdentityAccountEmail, opts ...grpc.CallOption) (*IdentityAccount, error)
-	// lookup user-account by idp id.
+	// Get an identity account by identity provider ID.
 	GetByIdpId(ctx context.Context, in *IdpId, opts ...grpc.CallOption) (*IdentityAccount, error)
-	// lookup identity-account actor-info (lightweight actor data for audit trail caching)
+	// Get lightweight actor information for an identity account.
 	//
+	// @internal
 	// This RPC is specifically designed to break circular dependency loops in audit actor resolution.
 	// When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
 	// needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
@@ -122,18 +123,19 @@ func (c *identityAccountQueryControllerClient) GetActorInfo(ctx context.Context,
 // All implementations should embed UnimplementedIdentityAccountQueryControllerServer
 // for forward compatibility.
 //
-// identity-account query controller
+// IdentityAccountQueryController handles read operations for identity accounts.
 type IdentityAccountQueryControllerServer interface {
-	// lookup identity-account.
+	// Get an identity account by its unique identifier.
 	Get(context.Context, *IdentityAccountId) (*IdentityAccount, error)
-	// look up identity-account by authentication token.
+	// Get the identity account of the currently authenticated user.
 	WhoAmI(context.Context, *emptypb.Empty) (*IdentityAccount, error)
-	// lookup user-account by identity account email.
+	// Get an identity account by email address.
 	GetByEmail(context.Context, *IdentityAccountEmail) (*IdentityAccount, error)
-	// lookup user-account by idp id.
+	// Get an identity account by identity provider ID.
 	GetByIdpId(context.Context, *IdpId) (*IdentityAccount, error)
-	// lookup identity-account actor-info (lightweight actor data for audit trail caching)
+	// Get lightweight actor information for an identity account.
 	//
+	// @internal
 	// This RPC is specifically designed to break circular dependency loops in audit actor resolution.
 	// When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
 	// needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion

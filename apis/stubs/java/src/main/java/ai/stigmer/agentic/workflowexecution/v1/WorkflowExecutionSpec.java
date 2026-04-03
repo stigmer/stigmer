@@ -969,9 +969,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   private com.google.protobuf.ByteString callbackToken_ = com.google.protobuf.ByteString.EMPTY;
   /**
    * <pre>
-   * Temporal task token for async activity completion (optional).
+   * Callback token for async activity completion (optional).
    *
-   * **Purpose**: Enables async activity completion pattern where the caller
+   * **Purpose**: Enables async completion pattern where the caller
    * (typically a parent workflow or orchestrator) waits for actual workflow completion
    * without blocking worker threads.
    *
@@ -3251,9 +3251,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private com.google.protobuf.ByteString callbackToken_ = com.google.protobuf.ByteString.EMPTY;
     /**
      * <pre>
-     * Temporal task token for async activity completion (optional).
+     * Callback token for async activity completion (optional).
      *
-     * **Purpose**: Enables async activity completion pattern where the caller
+     * **Purpose**: Enables async completion pattern where the caller
      * (typically a parent workflow or orchestrator) waits for actual workflow completion
      * without blocking worker threads.
      *
@@ -3324,9 +3324,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Temporal task token for async activity completion (optional).
+     * Callback token for async activity completion (optional).
      *
-     * **Purpose**: Enables async activity completion pattern where the caller
+     * **Purpose**: Enables async completion pattern where the caller
      * (typically a parent workflow or orchestrator) waits for actual workflow completion
      * without blocking worker threads.
      *
@@ -3401,9 +3401,9 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Temporal task token for async activity completion (optional).
+     * Callback token for async activity completion (optional).
      *
-     * **Purpose**: Enables async activity completion pattern where the caller
+     * **Purpose**: Enables async completion pattern where the caller
      * (typically a parent workflow or orchestrator) waits for actual workflow completion
      * without blocking worker threads.
      *

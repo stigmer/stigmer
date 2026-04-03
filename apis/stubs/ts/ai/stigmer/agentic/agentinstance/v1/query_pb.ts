@@ -37,9 +37,11 @@ export const AgentInstanceQueryController: GenService<{
   },
   /**
    * Get all instances of a specific agent template.
+   * Returns only instances the caller has access to.
+   *
+   * @internal
    * Authorization is handled in handler via FGA query for authorized agent_instance_ids,
-   * then filtered by agent_id. This ensures users only see instances they have access to,
-   * even if the parent agent is shared across organizations.
+   * then filtered by agent_id.
    *
    * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController.getByAgent
    */
@@ -49,7 +51,10 @@ export const AgentInstanceQueryController: GenService<{
     output: typeof AgentInstanceListSchema;
   },
   /**
-   * Custom authorization in handler
+   * Get an agent instance by its organization-scoped reference (org/slug).
+   *
+   * @internal
+   * Custom authorization in handler.
    *
    * @generated from rpc ai.stigmer.agentic.agentinstance.v1.AgentInstanceQueryController.getByReference
    */
@@ -60,6 +65,8 @@ export const AgentInstanceQueryController: GenService<{
   },
   /**
    * List agent instances with optional label filtering.
+   *
+   * @internal
    * Authorization is handled in-handler via FGA-filtered queries (cloud)
    * or unrestricted store queries (OSS).
    *

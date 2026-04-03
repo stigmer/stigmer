@@ -8,7 +8,7 @@ import { IamPolicy } from "./api_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
- * iam-policy query controller
+ * IamPolicyQueryController handles read operations for IAM policies.
  *
  * @generated from service ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController
  */
@@ -16,7 +16,7 @@ export const IamPolicyQueryController = {
   typeName: "ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController",
   methods: {
     /**
-     * lookup iam-policy by id
+     * Get an IAM policy by its unique identifier.
      *
      * @generated from rpc ai.stigmer.iam.iampolicy.v1.IamPolicyQueryController.get
      */

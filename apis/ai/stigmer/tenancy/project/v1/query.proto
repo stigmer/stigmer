@@ -21,6 +21,8 @@ service ProjectQueryController {
   }
 
   // Get a project by reference (org/name).
+  //
+  // @internal
   // Custom authorization is handled in the controller implementation.
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Project) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;

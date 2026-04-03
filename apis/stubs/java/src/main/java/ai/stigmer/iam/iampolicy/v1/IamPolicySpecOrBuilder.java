@@ -99,12 +99,12 @@ public interface IamPolicySpecOrBuilder extends
 
   /**
    * <pre>
-   * Relation: HOW/what permission is being granted
-   * This is the FGA relation/permission being granted (e.g., "admin", "viewer", "owner")
-   * The relation value maps to the role_code from IamRole.
+   * The permission being granted (e.g., "admin", "viewer", "owner").
+   * Maps to the role_code from IamRole.
    * Examples: "admin", "editor", "viewer", "owner", "member"
    *
-   * When this policy is synced to OpenFGA, this becomes the relation in the tuple:
+   * &#64;internal
+   * This is the FGA relation in the authorization tuple:
    * principal.kind:principal.id#principal.relation&#64;resource.kind:resource.id#relation
    * </pre>
    *
@@ -114,12 +114,12 @@ public interface IamPolicySpecOrBuilder extends
   java.lang.String getRelation();
   /**
    * <pre>
-   * Relation: HOW/what permission is being granted
-   * This is the FGA relation/permission being granted (e.g., "admin", "viewer", "owner")
-   * The relation value maps to the role_code from IamRole.
+   * The permission being granted (e.g., "admin", "viewer", "owner").
+   * Maps to the role_code from IamRole.
    * Examples: "admin", "editor", "viewer", "owner", "member"
    *
-   * When this policy is synced to OpenFGA, this becomes the relation in the tuple:
+   * &#64;internal
+   * This is the FGA relation in the authorization tuple:
    * principal.kind:principal.id#principal.relation&#64;resource.kind:resource.id#relation
    * </pre>
    *

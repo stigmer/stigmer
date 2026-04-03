@@ -21,7 +21,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Create a new agent instance with full state.\n Provide organization_id in metadata.org, and complete spec with configuration and secrets.\n\n Authorization: FGA can_create_instance on parent agent (handler-level)\n - Checks can_create_instance on parent agent (via spec.agent_id)\n - Public agents: Any authenticated user can create instances (cross-org allowed)\n - Private agents: Only org members and agent owner can create instances\n\n FGA is the single source of truth — no hardcoded org-matching rules.\n Agents are blueprints with zero secrets; instances are personal resources in the caller's org."
+          "description": "Create a new agent instance with full state.\n Provide organization_id in metadata.org, and complete spec with configuration and secrets.\n\n Public agents allow any authenticated user to create instances (cross-org allowed).\n Private agents restrict instance creation to org members and the agent owner.\n\n @internal\n Authorization: FGA can_create_instance on parent agent (handler-level).\n FGA is the single source of truth — no hardcoded org-matching rules.\n Agents are blueprints with zero secrets; instances are personal resources in the caller's org."
         },
         {
           "name": "Update",
@@ -59,7 +59,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.GetAgentInstancesByAgentRequest",
           "outputType": "AgentInstanceList",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceList",
-          "description": "Get all instances of a specific agent template.\n Authorization is handled in handler via FGA query for authorized agent_instance_ids,\n then filtered by agent_id. This ensures users only see instances they have access to,\n even if the parent agent is shared across organizations."
+          "description": "Get all instances of a specific agent template.\n Returns only instances the caller has access to.\n\n @internal\n Authorization is handled in handler via FGA query for authorized agent_instance_ids,\n then filtered by agent_id."
         },
         {
           "name": "GetByReference",
@@ -67,7 +67,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "AgentInstance",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstance",
-          "description": "Custom authorization in handler"
+          "description": "Get an agent instance by its organization-scoped reference (org/slug).\n\n @internal\n Custom authorization in handler."
         },
         {
           "name": "List",
@@ -75,7 +75,7 @@
           "inputFullType": "ai.stigmer.agentic.agentinstance.v1.ListAgentInstancesRequest",
           "outputType": "AgentInstanceList",
           "outputFullType": "ai.stigmer.agentic.agentinstance.v1.AgentInstanceList",
-          "description": "List agent instances with optional label filtering.\n Authorization is handled in-handler via FGA-filtered queries (cloud)\n or unrestricted store queries (OSS)."
+          "description": "List agent instances with optional label filtering.\n\n @internal\n Authorization is handled in-handler via FGA-filtered queries (cloud)\n or unrestricted store queries (OSS)."
         }
       ]
     }

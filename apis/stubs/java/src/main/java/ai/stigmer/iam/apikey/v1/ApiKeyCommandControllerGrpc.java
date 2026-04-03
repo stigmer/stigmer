@@ -4,7 +4,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * api-key command controller
+ * ApiKeyCommandController handles write operations for API keys.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -169,14 +169,15 @@ public final class ApiKeyCommandControllerGrpc {
 
   /**
    * <pre>
-   * api-key command controller
+   * ApiKeyCommandController handles write operations for API keys.
    * </pre>
    */
   public interface AsyncService {
 
     /**
      * <pre>
-     * create an api-key
+     * Create a new API key for the authenticated user.
+     * Any authenticated user can create API keys.
      * </pre>
      */
     default void create(ai.stigmer.iam.apikey.v1.ApiKey request,
@@ -186,7 +187,7 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * update an existing api-key
+     * Update an existing API key.
      * </pre>
      */
     default void update(ai.stigmer.iam.apikey.v1.ApiKey request,
@@ -196,7 +197,7 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * delete an existing api-key
+     * Delete an API key.
      * </pre>
      */
     default void delete(ai.stigmer.iam.apikey.v1.ApiKeyId request,
@@ -208,7 +209,7 @@ public final class ApiKeyCommandControllerGrpc {
   /**
    * Base class for the server implementation of the service ApiKeyCommandController.
    * <pre>
-   * api-key command controller
+   * ApiKeyCommandController handles write operations for API keys.
    * </pre>
    */
   public static abstract class ApiKeyCommandControllerImplBase
@@ -222,7 +223,7 @@ public final class ApiKeyCommandControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service ApiKeyCommandController.
    * <pre>
-   * api-key command controller
+   * ApiKeyCommandController handles write operations for API keys.
    * </pre>
    */
   public static final class ApiKeyCommandControllerStub
@@ -240,7 +241,8 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * create an api-key
+     * Create a new API key for the authenticated user.
+     * Any authenticated user can create API keys.
      * </pre>
      */
     public void create(ai.stigmer.iam.apikey.v1.ApiKey request,
@@ -251,7 +253,7 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * update an existing api-key
+     * Update an existing API key.
      * </pre>
      */
     public void update(ai.stigmer.iam.apikey.v1.ApiKey request,
@@ -262,7 +264,7 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * delete an existing api-key
+     * Delete an API key.
      * </pre>
      */
     public void delete(ai.stigmer.iam.apikey.v1.ApiKeyId request,
@@ -275,7 +277,7 @@ public final class ApiKeyCommandControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service ApiKeyCommandController.
    * <pre>
-   * api-key command controller
+   * ApiKeyCommandController handles write operations for API keys.
    * </pre>
    */
   public static final class ApiKeyCommandControllerBlockingV2Stub
@@ -293,7 +295,8 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * create an api-key
+     * Create a new API key for the authenticated user.
+     * Any authenticated user can create API keys.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey create(ai.stigmer.iam.apikey.v1.ApiKey request) throws io.grpc.StatusException {
@@ -303,7 +306,7 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * update an existing api-key
+     * Update an existing API key.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey update(ai.stigmer.iam.apikey.v1.ApiKey request) throws io.grpc.StatusException {
@@ -313,7 +316,7 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * delete an existing api-key
+     * Delete an API key.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey delete(ai.stigmer.iam.apikey.v1.ApiKeyId request) throws io.grpc.StatusException {
@@ -325,7 +328,7 @@ public final class ApiKeyCommandControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service ApiKeyCommandController.
    * <pre>
-   * api-key command controller
+   * ApiKeyCommandController handles write operations for API keys.
    * </pre>
    */
   public static final class ApiKeyCommandControllerBlockingStub
@@ -343,7 +346,8 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * create an api-key
+     * Create a new API key for the authenticated user.
+     * Any authenticated user can create API keys.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey create(ai.stigmer.iam.apikey.v1.ApiKey request) {
@@ -353,7 +357,7 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * update an existing api-key
+     * Update an existing API key.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey update(ai.stigmer.iam.apikey.v1.ApiKey request) {
@@ -363,7 +367,7 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * delete an existing api-key
+     * Delete an API key.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey delete(ai.stigmer.iam.apikey.v1.ApiKeyId request) {
@@ -375,7 +379,7 @@ public final class ApiKeyCommandControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ApiKeyCommandController.
    * <pre>
-   * api-key command controller
+   * ApiKeyCommandController handles write operations for API keys.
    * </pre>
    */
   public static final class ApiKeyCommandControllerFutureStub
@@ -393,7 +397,8 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * create an api-key
+     * Create a new API key for the authenticated user.
+     * Any authenticated user can create API keys.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKey> create(
@@ -404,7 +409,7 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * update an existing api-key
+     * Update an existing API key.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKey> update(
@@ -415,7 +420,7 @@ public final class ApiKeyCommandControllerGrpc {
 
     /**
      * <pre>
-     * delete an existing api-key
+     * Delete an API key.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKey> delete(

@@ -8,6 +8,13 @@ import { useNarrationPlayback } from "./useNarrationPlayback";
 import { useVideoExport } from "./VideoExportContext";
 
 /**
+ * Extra time (ms) added to narration-based step delays to compensate for
+ * audio load/decode latency and minor gaps between Edge TTS word-boundary
+ * metadata and actual MP3 duration. Only applied when narration is active.
+ */
+const NARRATION_SAFETY_BUFFER_MS = 250;
+
+/**
  * A single step in a scenario timeline.
  *
  * @typeParam T - The data shape passed to the render function at this step.
@@ -139,7 +146,10 @@ export function ScenarioPlayer<T>({
           : 0;
 
       if (finalNarrationMs > 0) {
-        const timer = setTimeout(() => setPlaying(false), finalNarrationMs);
+        const timer = setTimeout(
+          () => setPlaying(false),
+          finalNarrationMs + NARRATION_SAFETY_BUFFER_MS,
+        );
         return () => clearTimeout(timer);
       }
 
@@ -153,7 +163,11 @@ export function ScenarioPlayer<T>({
       !muted && narrationManifest
         ? (narrationManifest.steps[stepIndex]?.durationMs ?? 0)
         : 0;
-    const delay = Math.max(baseDelay, narrationDuration);
+    const effectiveDuration =
+      narrationDuration > 0
+        ? narrationDuration + NARRATION_SAFETY_BUFFER_MS
+        : 0;
+    const delay = Math.max(baseDelay, effectiveDuration);
     const timer = setTimeout(() => setStepIndex(nextIndex), delay);
     return () => clearTimeout(timer);
   }, [playing, stepIndex, steps, lastIndex, prefersReducedMotion, muted, narrationManifest]);

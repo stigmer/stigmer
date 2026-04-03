@@ -20,16 +20,18 @@ export const file_ai_stigmer_iam_identityaccount_v1_command: GenFile = /*@__PURE
   fileDesc("Ci9haS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvY29tbWFuZC5wcm90bxIhYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxMvIECiBJZGVudGl0eUFjY291bnRDb21tYW5kQ29udHJvbGxlchJ2CgZjcmVhdGUSMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50GjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudCIE0LgYARKwAQoGdXBkYXRlEjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudBoyLmFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MS5JZGVudGl0eUFjY291bnQiPsK4GDoIBBALIgttZXRhZGF0YS5pZCondW5hdXRob3JpemVkIHRvIHVwZGF0ZSBpZGVudGl0eSBhY2NvdW50EqwBCgZkZWxldGUSNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50SWQaMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IjjCuBg0CAIQCyIFdmFsdWUqJ3VuYXV0aG9yaXplZCB0byBkZWxldGUgaWRlbnRpdHkgYWNjb3VudBJuChVzaW11bGF0ZVNpZ251cFdlYmhvb2sSNy5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50RW1haWwaFi5nb29nbGUucHJvdG9idWYuRW1wdHkiBNC4GAEaBKD/KwtiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_ai_stigmer_iam_identityaccount_v1_api, file_ai_stigmer_iam_identityaccount_v1_io, file_google_protobuf_empty]);
 
 /**
- * identity-account command controller
+ * IdentityAccountCommandController handles write operations for identity accounts.
  *
  * @generated from service ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController
  */
 export const IdentityAccountCommandController: GenService<{
   /**
-   * create a new identity-account.
-   * system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
-   * no FGA authorization — called via inProcessChannelAsSystem (machine account).
-   * the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+   * Create a new identity account.
+   *
+   * @internal
+   * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+   * No FGA authorization — called via inProcessChannelAsSystem (machine account).
+   * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
    *
    * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.create
    */
@@ -39,7 +41,7 @@ export const IdentityAccountCommandController: GenService<{
     output: typeof IdentityAccountSchema;
   },
   /**
-   * update an existing identity-account
+   * Update an existing identity account.
    *
    * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.update
    */
@@ -49,7 +51,7 @@ export const IdentityAccountCommandController: GenService<{
     output: typeof IdentityAccountSchema;
   },
   /**
-   * delete an existing identity-account
+   * Delete an identity account.
    *
    * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.delete
    */
@@ -59,9 +61,11 @@ export const IdentityAccountCommandController: GenService<{
     output: typeof IdentityAccountSchema;
   },
   /**
-   * simulate signup webhook to add a user who created account on auth0 but is not created on stigmer.
-   * this rpc will take the email, look it up on auth0,
-   * if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format.
+   * Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+   *
+   * @internal
+   * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
+   * to Stigmer with the Auth0 payload format to trigger account provisioning.
    *
    * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.simulateSignupWebhook
    */

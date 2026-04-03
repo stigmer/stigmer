@@ -383,6 +383,7 @@ public final class AgentExecutionQueryControllerGrpc {
     /**
      * <pre>
      * List all executions in a specific session.
+     * &#64;internal
      * Authorization is handled in handler via FGA query for authorized agent_execution_ids,
      * then filtered by session_id. This ensures consistent authorization pattern across all list operations.
      * </pre>
@@ -395,6 +396,7 @@ public final class AgentExecutionQueryControllerGrpc {
     /**
      * <pre>
      * Subscribe to real-time execution updates (streaming).
+     * &#64;internal
      * Authorization is handled by the FJ model via proto configuration.
      * </pre>
      */
@@ -409,6 +411,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * Returns a time-limited URL for downloading an artifact published by
      * an agent during execution. The URL can be used with a simple HTTP GET
      * request without authentication.
+     * &#64;internal
      * ## Authorization
      * Requires can_view permission on the execution. This ensures users can
      * only download artifacts from executions they have access to.
@@ -444,6 +447,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * (e.g., YAML parsing for resource detection, in-app preview rendering).
      * For direct file downloads, use getArtifactDownloadUrl instead — it
      * returns a presigned R2 URL that avoids proxying bytes through the server.
+     * &#64;internal
      * ## Authorization
      * Requires can_view permission on the execution. This ensures users can
      * only read artifacts from executions they have access to.
@@ -473,6 +477,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for a session (all executions in a session).
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * &#64;internal
      * Authorization is handled in handler — caller must have can_view on
      * all executions in the session (same pattern as listBySession).
      * </pre>
@@ -486,6 +491,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for an agent (all sessions for an agent in a time range).
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * &#64;internal
      * Authorization is handled in handler — caller must have can_view on the agent.
      * </pre>
      */
@@ -498,6 +504,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for an organization (all agents in a time range).
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * &#64;internal
      * Authorization is handled in handler — caller must be org member.
      * </pre>
      */
@@ -565,6 +572,7 @@ public final class AgentExecutionQueryControllerGrpc {
     /**
      * <pre>
      * List all executions in a specific session.
+     * &#64;internal
      * Authorization is handled in handler via FGA query for authorized agent_execution_ids,
      * then filtered by session_id. This ensures consistent authorization pattern across all list operations.
      * </pre>
@@ -578,6 +586,7 @@ public final class AgentExecutionQueryControllerGrpc {
     /**
      * <pre>
      * Subscribe to real-time execution updates (streaming).
+     * &#64;internal
      * Authorization is handled by the FJ model via proto configuration.
      * </pre>
      */
@@ -593,6 +602,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * Returns a time-limited URL for downloading an artifact published by
      * an agent during execution. The URL can be used with a simple HTTP GET
      * request without authentication.
+     * &#64;internal
      * ## Authorization
      * Requires can_view permission on the execution. This ensures users can
      * only download artifacts from executions they have access to.
@@ -629,6 +639,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * (e.g., YAML parsing for resource detection, in-app preview rendering).
      * For direct file downloads, use getArtifactDownloadUrl instead — it
      * returns a presigned R2 URL that avoids proxying bytes through the server.
+     * &#64;internal
      * ## Authorization
      * Requires can_view permission on the execution. This ensures users can
      * only read artifacts from executions they have access to.
@@ -659,6 +670,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for a session (all executions in a session).
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * &#64;internal
      * Authorization is handled in handler — caller must have can_view on
      * all executions in the session (same pattern as listBySession).
      * </pre>
@@ -673,6 +685,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for an agent (all sessions for an agent in a time range).
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * &#64;internal
      * Authorization is handled in handler — caller must have can_view on the agent.
      * </pre>
      */
@@ -686,6 +699,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for an organization (all agents in a time range).
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * &#64;internal
      * Authorization is handled in handler — caller must be org member.
      * </pre>
      */
@@ -738,6 +752,7 @@ public final class AgentExecutionQueryControllerGrpc {
     /**
      * <pre>
      * List all executions in a specific session.
+     * &#64;internal
      * Authorization is handled in handler via FGA query for authorized agent_execution_ids,
      * then filtered by session_id. This ensures consistent authorization pattern across all list operations.
      * </pre>
@@ -750,6 +765,7 @@ public final class AgentExecutionQueryControllerGrpc {
     /**
      * <pre>
      * Subscribe to real-time execution updates (streaming).
+     * &#64;internal
      * Authorization is handled by the FJ model via proto configuration.
      * </pre>
      */
@@ -766,6 +782,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * Returns a time-limited URL for downloading an artifact published by
      * an agent during execution. The URL can be used with a simple HTTP GET
      * request without authentication.
+     * &#64;internal
      * ## Authorization
      * Requires can_view permission on the execution. This ensures users can
      * only download artifacts from executions they have access to.
@@ -801,6 +818,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * (e.g., YAML parsing for resource detection, in-app preview rendering).
      * For direct file downloads, use getArtifactDownloadUrl instead — it
      * returns a presigned R2 URL that avoids proxying bytes through the server.
+     * &#64;internal
      * ## Authorization
      * Requires can_view permission on the execution. This ensures users can
      * only read artifacts from executions they have access to.
@@ -830,6 +848,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for a session (all executions in a session).
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * &#64;internal
      * Authorization is handled in handler — caller must have can_view on
      * all executions in the session (same pattern as listBySession).
      * </pre>
@@ -843,6 +862,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for an agent (all sessions for an agent in a time range).
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * &#64;internal
      * Authorization is handled in handler — caller must have can_view on the agent.
      * </pre>
      */
@@ -855,6 +875,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for an organization (all agents in a time range).
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * &#64;internal
      * Authorization is handled in handler — caller must be org member.
      * </pre>
      */
@@ -906,6 +927,7 @@ public final class AgentExecutionQueryControllerGrpc {
     /**
      * <pre>
      * List all executions in a specific session.
+     * &#64;internal
      * Authorization is handled in handler via FGA query for authorized agent_execution_ids,
      * then filtered by session_id. This ensures consistent authorization pattern across all list operations.
      * </pre>
@@ -918,6 +940,7 @@ public final class AgentExecutionQueryControllerGrpc {
     /**
      * <pre>
      * Subscribe to real-time execution updates (streaming).
+     * &#64;internal
      * Authorization is handled by the FJ model via proto configuration.
      * </pre>
      */
@@ -933,6 +956,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * Returns a time-limited URL for downloading an artifact published by
      * an agent during execution. The URL can be used with a simple HTTP GET
      * request without authentication.
+     * &#64;internal
      * ## Authorization
      * Requires can_view permission on the execution. This ensures users can
      * only download artifacts from executions they have access to.
@@ -968,6 +992,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * (e.g., YAML parsing for resource detection, in-app preview rendering).
      * For direct file downloads, use getArtifactDownloadUrl instead — it
      * returns a presigned R2 URL that avoids proxying bytes through the server.
+     * &#64;internal
      * ## Authorization
      * Requires can_view permission on the execution. This ensures users can
      * only read artifacts from executions they have access to.
@@ -997,6 +1022,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for a session (all executions in a session).
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * &#64;internal
      * Authorization is handled in handler — caller must have can_view on
      * all executions in the session (same pattern as listBySession).
      * </pre>
@@ -1010,6 +1036,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for an agent (all sessions for an agent in a time range).
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * &#64;internal
      * Authorization is handled in handler — caller must have can_view on the agent.
      * </pre>
      */
@@ -1022,6 +1049,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for an organization (all agents in a time range).
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * &#64;internal
      * Authorization is handled in handler — caller must be org member.
      * </pre>
      */
@@ -1075,6 +1103,7 @@ public final class AgentExecutionQueryControllerGrpc {
     /**
      * <pre>
      * List all executions in a specific session.
+     * &#64;internal
      * Authorization is handled in handler via FGA query for authorized agent_execution_ids,
      * then filtered by session_id. This ensures consistent authorization pattern across all list operations.
      * </pre>
@@ -1091,6 +1120,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * Returns a time-limited URL for downloading an artifact published by
      * an agent during execution. The URL can be used with a simple HTTP GET
      * request without authentication.
+     * &#64;internal
      * ## Authorization
      * Requires can_view permission on the execution. This ensures users can
      * only download artifacts from executions they have access to.
@@ -1127,6 +1157,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * (e.g., YAML parsing for resource detection, in-app preview rendering).
      * For direct file downloads, use getArtifactDownloadUrl instead — it
      * returns a presigned R2 URL that avoids proxying bytes through the server.
+     * &#64;internal
      * ## Authorization
      * Requires can_view permission on the execution. This ensures users can
      * only read artifacts from executions they have access to.
@@ -1157,6 +1188,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for a session (all executions in a session).
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
+     * &#64;internal
      * Authorization is handled in handler — caller must have can_view on
      * all executions in the session (same pattern as listBySession).
      * </pre>
@@ -1171,6 +1203,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for an agent (all sessions for an agent in a time range).
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
+     * &#64;internal
      * Authorization is handled in handler — caller must have can_view on the agent.
      * </pre>
      */
@@ -1184,6 +1217,7 @@ public final class AgentExecutionQueryControllerGrpc {
      * <pre>
      * Get usage report for an organization (all agents in a time range).
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
+     * &#64;internal
      * Authorization is handled in handler — caller must be org member.
      * </pre>
      */

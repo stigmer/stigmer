@@ -8,7 +8,7 @@ from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
 class ApiKeyQueryControllerStub(object):
-    """api-key query controller
+    """ApiKeyQueryController handles read operations for API keys.
     """
 
     def __init__(self, channel):
@@ -35,25 +35,29 @@ class ApiKeyQueryControllerStub(object):
 
 
 class ApiKeyQueryControllerServicer(object):
-    """api-key query controller
+    """ApiKeyQueryController handles read operations for API keys.
     """
 
     def get(self, request, context):
-        """lookup api-key.
+        """Get an API key by its unique identifier.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def getByKeyHash(self, request, context):
-        """lookup api-key by hashed key
+        """Get an API key by its hashed key value.
+
+        @internal
+        Authorization is handled in the handler after loading the resource
+        (input doesn't contain API key ID, so proto-level auth cannot work).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def findAll(self, request, context):
-        """lookup all api-keys for the identity-account in the auth header.
+        """List all API keys belonging to the authenticated user.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -86,7 +90,7 @@ def add_ApiKeyQueryControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class ApiKeyQueryController(object):
-    """api-key query controller
+    """ApiKeyQueryController handles read operations for API keys.
     """
 
     @staticmethod

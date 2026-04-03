@@ -52,7 +52,10 @@ class EnvironmentQueryControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def getByReference(self, request, context):
-        """Custom authorization in handler
+        """Get an environment by its organization-scoped reference (org/slug).
+
+        @internal
+        Custom authorization in handler.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -60,8 +63,11 @@ class EnvironmentQueryControllerServicer(object):
 
     def getSecretValue(self, request, context):
         """Get the unredacted value of a single secret key in an environment.
-        Creator-only: requires can_read_secrets permission (FGA: creator relation).
+        Creator-only: requires can_read_secrets permission.
         Returns the EnvironmentValue with the decrypted value.
+
+        @internal
+        FGA authorization: creator relation grants can_read_secrets.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -69,8 +75,11 @@ class EnvironmentQueryControllerServicer(object):
 
     def list(self, request, context):
         """List environments with optional label filtering.
+        Secret values are redacted in the response.
+
+        @internal
         Authorization is handled in-handler via FGA-filtered queries (cloud)
-        or unrestricted store queries (OSS). Secret values are redacted.
+        or unrestricted store queries (OSS).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

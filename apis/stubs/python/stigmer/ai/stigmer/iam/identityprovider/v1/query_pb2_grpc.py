@@ -41,6 +41,8 @@ class IdentityProviderQueryControllerServicer(object):
 
     def getByReference(self, request, context):
         """Get an identity provider by reference (org + slug).
+
+        @internal
         Custom authorization in handler.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)

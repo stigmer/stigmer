@@ -8,7 +8,7 @@ import { ApiKey } from "./api_pb.js";
 import { Empty, MethodKind } from "@bufbuild/protobuf";
 
 /**
- * api-key query controller
+ * ApiKeyQueryController handles read operations for API keys.
  *
  * @generated from service ai.stigmer.iam.apikey.v1.ApiKeyQueryController
  */
@@ -16,7 +16,7 @@ export const ApiKeyQueryController = {
   typeName: "ai.stigmer.iam.apikey.v1.ApiKeyQueryController",
   methods: {
     /**
-     * lookup api-key.
+     * Get an API key by its unique identifier.
      *
      * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyQueryController.get
      */
@@ -27,7 +27,11 @@ export const ApiKeyQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * lookup api-key by hashed key
+     * Get an API key by its hashed key value.
+     *
+     * @internal
+     * Authorization is handled in the handler after loading the resource
+     * (input doesn't contain API key ID, so proto-level auth cannot work).
      *
      * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyQueryController.getByKeyHash
      */
@@ -38,7 +42,7 @@ export const ApiKeyQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * lookup all api-keys for the identity-account in the auth header.
+     * List all API keys belonging to the authenticated user.
      *
      * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyQueryController.findAll
      */

@@ -9,7 +9,7 @@ import { Empty, MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceAuditActor } from "../../../commons/apiresource/status_pb.js";
 
 /**
- * identity-account query controller
+ * IdentityAccountQueryController handles read operations for identity accounts.
  *
  * @generated from service ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController
  */
@@ -17,7 +17,7 @@ export const IdentityAccountQueryController = {
   typeName: "ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController",
   methods: {
     /**
-     * lookup identity-account.
+     * Get an identity account by its unique identifier.
      *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.get
      */
@@ -28,7 +28,7 @@ export const IdentityAccountQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * look up identity-account by authentication token.
+     * Get the identity account of the currently authenticated user.
      *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.whoAmI
      */
@@ -39,7 +39,7 @@ export const IdentityAccountQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * lookup user-account by identity account email.
+     * Get an identity account by email address.
      *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByEmail
      */
@@ -50,7 +50,7 @@ export const IdentityAccountQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * lookup user-account by idp id.
+     * Get an identity account by identity provider ID.
      *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByIdpId
      */
@@ -61,8 +61,9 @@ export const IdentityAccountQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * lookup identity-account actor-info (lightweight actor data for audit trail caching)
+     * Get lightweight actor information for an identity account.
      *
+     * @internal
      * This RPC is specifically designed to break circular dependency loops in audit actor resolution.
      * When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
      * needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion

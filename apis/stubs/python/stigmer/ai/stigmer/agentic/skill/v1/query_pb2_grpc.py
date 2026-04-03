@@ -53,6 +53,7 @@ class SkillQueryControllerServicer(object):
         - Tag name (e.g., "stable", "v1.0") → Resolves to version with this tag
         - SHA256 hash (64 hex chars) → Returns exact immutable version
 
+        @internal
         Authorization is handled in the handler after resolving the reference to a skill ID.
         (Input doesn't contain skill ID, so proto-level auth cannot work)
         """
@@ -64,10 +65,10 @@ class SkillQueryControllerServicer(object):
         """Download skill artifact from storage by its storage key.
         Returns the ZIP file containing SKILL.md and implementation files.
 
-        This endpoint is used by the agent-runner to download and extract
-        skill artifacts into the sandbox at /bin/skills/{version_hash}/.
-
-        Authorization is skipped as the storage key itself acts as a capability token.
+        @internal
+        Used by the agent-runner to download and extract skill artifacts into the
+        sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
+        storage key itself acts as a capability token.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

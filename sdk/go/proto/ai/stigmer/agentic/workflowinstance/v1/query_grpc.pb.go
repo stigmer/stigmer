@@ -82,6 +82,8 @@ type WorkflowInstanceQueryControllerClient interface {
 	// - "staging-deploy" (wfi-def) - Staging deployment with aws-staging-env
 	// - "dev-deploy" (wfi-ghi) - Development deployment with aws-dev-env
 	//
+	// @internal
+	//
 	// Input:
 	// GetWorkflowInstancesByWorkflowRequest with:
 	// - workflow_id: Workflow template ID to filter by
@@ -232,6 +234,8 @@ type WorkflowInstanceQueryControllerServer interface {
 	// - "prod-deploy" (wfi-abc) - Production deployment with aws-prod-env
 	// - "staging-deploy" (wfi-def) - Staging deployment with aws-staging-env
 	// - "dev-deploy" (wfi-ghi) - Development deployment with aws-dev-env
+	//
+	// @internal
 	//
 	// Input:
 	// GetWorkflowInstancesByWorkflowRequest with:
