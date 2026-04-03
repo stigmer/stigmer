@@ -9,7 +9,9 @@ import { snapshot } from "../../engine/shared";
 
 export type ApprovalFlowStep =
   | { view: "composer-typing"; message: string }
-  | { view: "conversation"; execution: AgentExecution };
+  | { view: "conversation"; execution: AgentExecution }
+  | { view: "approval-card"; execution: AgentExecution }
+  | { view: "cursor-approve"; execution: AgentExecution };
 
 const user1 = samples.humanMessage(
   "Process a return for order #ORD-4821 — the headphones are defective.",
@@ -47,13 +49,14 @@ const completedToolCall = samples.toolCall(
   }, null, 2),
 );
 
-const ai1 = samples.aiMessage(
+const aiToolCallMsg = samples.aiMessage("", [completedToolCall]);
+
+const aiSummaryMsg = samples.aiMessage(
   "The return has been processed. Here's a summary:\n\n" +
     "- **Return ID**: RET-1092\n" +
     "- **Refund**: $79.99 to original payment method\n" +
     "- **Estimated refund date**: April 7, 2026\n\n" +
     "Is there anything else I can help with?",
-  [completedToolCall],
 );
 
 function buildWaitingExecution(): AgentExecution {
@@ -64,6 +67,8 @@ function buildWaitingExecution(): AgentExecution {
   exec.status!.pendingApprovals = [pendingApproval];
   return exec;
 }
+
+const waitingExecution = buildWaitingExecution();
 
 export const approvalFlowSteps: ScenarioStep<ApprovalFlowStep>[] = [
   {
@@ -78,14 +83,19 @@ export const approvalFlowSteps: ScenarioStep<ApprovalFlowStep>[] = [
   },
   {
     delayMs: 2000,
-    data: { view: "conversation", execution: buildWaitingExecution() },
+    data: { view: "approval-card", execution: waitingExecution },
     caption: "Agent pauses for human approval",
   },
   {
-    delayMs: 4000,
+    delayMs: 3000,
+    data: { view: "cursor-approve", execution: waitingExecution },
+    caption: "Human clicks Approve",
+  },
+  {
+    delayMs: 2500,
     data: {
       view: "conversation",
-      execution: snapshot([user1, ai1], ExecutionPhase.EXECUTION_COMPLETED),
+      execution: snapshot([user1, aiToolCallMsg, aiSummaryMsg], ExecutionPhase.EXECUTION_COMPLETED),
     },
     caption: "Approved — agent completes the return",
   },

@@ -7,6 +7,7 @@ import {
   SessionComposer,
 } from "@stigmer/react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
+import { ApprovalAction } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { motion } from "framer-motion";
 import { Check, FileText, Folder } from "lucide-react";
 import { DEMO_ORG, MOCK_WORKSPACE } from "../engine/shared";
@@ -67,6 +68,16 @@ interface ComposerViewProps {
    * - `undefined` — no push CTA shown
    */
   pushState?: "ready" | "success";
+  /**
+   * When provided, `MessageThread` renders `ApprovalCard` items for
+   * pending approvals on the active execution. The callback receives
+   * the tool call ID, the chosen action, and an optional comment.
+   */
+  onApprovalSubmit?: (
+    toolCallId: string,
+    action: ApprovalAction,
+    comment?: string,
+  ) => void;
 }
 
 /**
@@ -87,6 +98,7 @@ export function ComposerView({
   artifactContent,
   artifactMeta,
   pushState,
+  onApprovalSubmit,
 }: ComposerViewProps) {
   const showArtifact = artifactContent != null;
   const meta = artifactMeta ?? SKILL_ARTIFACT_META;
@@ -106,6 +118,7 @@ export function ComposerView({
               <MessageThread
                 executions={[execution]}
                 className="max-h-[390px] px-3 py-2"
+                onApprovalSubmit={onApprovalSubmit}
               />
             )}
           </div>

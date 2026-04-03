@@ -173,6 +173,7 @@ export function ApprovalCard({
             isSubmitting={isSubmitting}
             onClick={handleAction}
             variant="approve"
+            cursorTarget="approve-button"
           />
           <ActionButton
             label="Skip"
@@ -207,6 +208,7 @@ function ActionButton({
   isSubmitting,
   onClick,
   variant,
+  cursorTarget,
 }: {
   label: string;
   action: ApprovalAction;
@@ -214,6 +216,7 @@ function ActionButton({
   isSubmitting: boolean;
   onClick: (action: ApprovalAction) => void;
   variant: "approve" | "skip" | "reject";
+  cursorTarget?: string;
 }) {
   const isActive = activeAction === action;
   const disabled = isSubmitting;
@@ -239,6 +242,7 @@ function ActionButton({
       disabled={disabled}
       onClick={() => onClick(action)}
       aria-label={label}
+      data-cursor-target={cursorTarget}
       className={cn(
         "inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
