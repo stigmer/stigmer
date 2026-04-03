@@ -10,6 +10,8 @@ interface UseNarrationPlaybackOptions {
   stepIndex: number;
   /** Whether the scenario player is currently auto-advancing. */
   playing: boolean;
+  /** Initial muted state (default true). Set false for video export. */
+  initialMuted?: boolean;
 }
 
 interface UseNarrationPlaybackResult {
@@ -75,8 +77,9 @@ export function useNarrationPlayback({
   manifest,
   stepIndex,
   playing,
+  initialMuted = true,
 }: UseNarrationPlaybackOptions): UseNarrationPlaybackResult {
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(initialMuted);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Keep muted state accessible in effects without re-triggering them.

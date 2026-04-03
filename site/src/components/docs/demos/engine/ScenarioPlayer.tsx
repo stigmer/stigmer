@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import type { NarrationManifest } from "./narration";
 import { useNarrationPlayback } from "./useNarrationPlayback";
+import { useVideoExport } from "./VideoExportContext";
 
 /**
  * A single step in a scenario timeline.
@@ -72,6 +73,7 @@ export function ScenarioPlayer<T>({
   narrationManifest,
 }: ScenarioPlayerProps<T>) {
   const prefersReducedMotion = useReducedMotion();
+  const { isVideoExport, hideControls, initialMuted } = useVideoExport();
   const lastIndex = steps.length - 1;
 
   const [stepIndex, setStepIndex] = useState(() =>
@@ -82,14 +84,36 @@ export function ScenarioPlayer<T>({
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;
 
+  const playbackComplete = !playing && stepIndex >= lastIndex;
+
   const { muted, toggleMute, audioRef } = useNarrationPlayback({
     manifest: narrationManifest,
     stepIndex,
     playing,
+    initialMuted,
   });
 
   useEffect(() => {
-    if (!autoPlay || prefersReducedMotion) return;
+    if (!isVideoExport) return;
+    const w = window as unknown as Record<string, unknown>;
+    if (!Array.isArray(w.__exportTimeline)) {
+      w.__exportTimeline = [];
+    }
+    (w.__exportTimeline as Array<{ step: number; timestamp: number }>).push({
+      step: stepIndex,
+      timestamp: performance.now(),
+    });
+  }, [isVideoExport, stepIndex]);
+
+  // In video export mode, start playing immediately without waiting
+  // for IntersectionObserver (headless browsers can be unreliable).
+  useEffect(() => {
+    if (!isVideoExport || !autoPlay || prefersReducedMotion) return;
+    setPlaying(true);
+  }, [isVideoExport, autoPlay, prefersReducedMotion]);
+
+  useEffect(() => {
+    if (isVideoExport || !autoPlay || prefersReducedMotion) return;
     const el = containerRef.current;
     if (!el) return;
 
@@ -104,11 +128,21 @@ export function ScenarioPlayer<T>({
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [autoPlay, prefersReducedMotion, lastIndex]);
+  }, [isVideoExport, autoPlay, prefersReducedMotion, lastIndex]);
 
   useEffect(() => {
     if (!playing || prefersReducedMotion) return;
     if (stepIndex >= lastIndex) {
+      const finalNarrationMs =
+        !muted && narrationManifest
+          ? (narrationManifest.steps[stepIndex]?.durationMs ?? 0)
+          : 0;
+
+      if (finalNarrationMs > 0) {
+        const timer = setTimeout(() => setPlaying(false), finalNarrationMs);
+        return () => clearTimeout(timer);
+      }
+
       setPlaying(false);
       return;
     }
@@ -156,7 +190,11 @@ export function ScenarioPlayer<T>({
   const caption = steps[stepIndex].caption;
 
   return (
-    <div ref={containerRef} className={className}>
+    <div
+      ref={containerRef}
+      className={className}
+      data-playback-complete={playbackComplete ? "true" : undefined}
+    >
       {children(steps[stepIndex].data, stepIndex)}
       {narrationManifest && (
         <audio ref={audioRef} preload="none" hidden />
@@ -180,66 +218,68 @@ export function ScenarioPlayer<T>({
         </AnimatePresence>
       </div>
 
-      <div className="mt-1 flex items-center justify-between px-1">
-        {/* Playback controls */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={prev}
-            disabled={stepIndex <= 0}
-            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
-            aria-label="Previous step"
-          >
-            <ChevronLeft size={14} />
-          </button>
-
-          <button
-            onClick={togglePlay}
-            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
-            aria-label={playing ? "Pause" : "Play"}
-          >
-            {playing ? <Pause size={12} /> : <Play size={12} />}
-          </button>
-
-          <button
-            onClick={next}
-            disabled={stepIndex >= lastIndex}
-            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
-            aria-label="Next step"
-          >
-            <ChevronRight size={14} />
-          </button>
-
-          {narrationManifest && (
+      {!hideControls && (
+        <div className="mt-1 flex items-center justify-between px-1">
+          {/* Playback controls */}
+          <div className="flex items-center gap-1">
             <button
-              onClick={toggleMute}
-              className="ml-1 flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
-              aria-label={muted ? "Unmute narration" : "Mute narration"}
+              onClick={prev}
+              disabled={stepIndex <= 0}
+              className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
+              aria-label="Previous step"
             >
-              {muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+              <ChevronLeft size={14} />
             </button>
-          )}
-        </div>
 
-        {/* Progress dots */}
-        <div
-          className="flex gap-1.5"
-          role="progressbar"
-          aria-valuenow={stepIndex + 1}
-          aria-valuemin={1}
-          aria-valuemax={steps.length}
-        >
-          {steps.map((_, i) => (
             <button
-              key={i}
-              onClick={() => goTo(i)}
-              className={`h-1.5 w-1.5 rounded-full transition-colors duration-300 ${
-                i <= stepIndex ? "bg-foreground/60" : "bg-foreground/15"
-              } hover:bg-foreground/40`}
-              aria-label={`Go to step ${i + 1}`}
-            />
-          ))}
+              onClick={togglePlay}
+              className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+              aria-label={playing ? "Pause" : "Play"}
+            >
+              {playing ? <Pause size={12} /> : <Play size={12} />}
+            </button>
+
+            <button
+              onClick={next}
+              disabled={stepIndex >= lastIndex}
+              className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
+              aria-label="Next step"
+            >
+              <ChevronRight size={14} />
+            </button>
+
+            {narrationManifest && (
+              <button
+                onClick={toggleMute}
+                className="ml-1 flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+                aria-label={muted ? "Unmute narration" : "Mute narration"}
+              >
+                {muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+              </button>
+            )}
+          </div>
+
+          {/* Progress dots */}
+          <div
+            className="flex gap-1.5"
+            role="progressbar"
+            aria-valuenow={stepIndex + 1}
+            aria-valuemin={1}
+            aria-valuemax={steps.length}
+          >
+            {steps.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goTo(i)}
+                className={`h-1.5 w-1.5 rounded-full transition-colors duration-300 ${
+                  i <= stepIndex ? "bg-foreground/60" : "bg-foreground/15"
+                } hover:bg-foreground/40`}
+                aria-label={`Go to step ${i + 1}`}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
