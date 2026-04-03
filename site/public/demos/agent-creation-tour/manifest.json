@@ -1,0 +1,28 @@
+{
+  "steps": [
+    null,
+    {
+      "src": "/demos/agent-creation-tour/step-1.mp3",
+      "durationMs": 5100
+    },
+    null,
+    null,
+    {
+      "src": "/demos/agent-creation-tour/step-4.mp3",
+      "durationMs": 4375
+    },
+    null,
+    null,
+    {
+      "src": "/demos/agent-creation-tour/step-7.mp3",
+      "durationMs": 8488
+    },
+    null,
+    null,
+    null,
+    {
+      "src": "/demos/agent-creation-tour/step-11.mp3",
+      "durationMs": 4525
+    }
+  ]
+}
