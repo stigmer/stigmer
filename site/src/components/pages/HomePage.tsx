@@ -17,7 +17,7 @@ export type HomePageProps = React.HTMLAttributes<HTMLDivElement>;
 function HomePage({ className, ...props }: HomePageProps) {
   return (
     <div
-      className={cn("min-h-screen bg-background", className)}
+      className={cn("min-h-screen bg-background overflow-x-hidden", className)}
       {...props}
     >
       <SkipLink />

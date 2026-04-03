@@ -13,7 +13,6 @@ import {
   transitions,
 } from "@/lib/animations";
 import { AnimatePresence } from "@/components/ui/motion";
-import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 
@@ -147,8 +146,7 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
             )}
           >
             {/* Header */}
-            <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-              <Logo showText={false} asLink={false} />
+            <div className="flex items-center justify-end h-16 px-4 border-b border-border">
               <Button
                 ref={closeButtonRef}
                 variant="ghost"
