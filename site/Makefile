@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: deps dev build start lint typecheck clean preview
+.PHONY: deps dev build start lint typecheck clean preview generate-narration
 
 PORT ?= 3000
 
@@ -31,6 +31,10 @@ lint:
 # Run TypeScript type checking
 typecheck:
 	yarn typecheck
+
+# Generate narration audio from scenario step definitions
+generate-narration: deps
+	yarn generate-narration
 
 # Remove build artifacts
 clean:
