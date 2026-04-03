@@ -26,6 +26,31 @@ const SPRING = {
 } as const;
 
 const CLICK_DELAY_MS = 450;
+const RETRY_INTERVAL_MS = 80;
+const MAX_RETRIES = 12;
+
+/**
+ * Scroll the target element into the center of its nearest
+ * scrollable ancestor (overflow-y: auto | scroll). Only adjusts
+ * the internal scroll container — never touches the page scroll.
+ */
+function scrollIntoScrollParent(el: Element) {
+  let parent = el.parentElement;
+  while (parent) {
+    const { overflowY } = getComputedStyle(parent);
+    if (overflowY === "auto" || overflowY === "scroll") {
+      const pRect = parent.getBoundingClientRect();
+      const eRect = el.getBoundingClientRect();
+
+      if (eRect.top < pRect.top || eRect.bottom > pRect.bottom) {
+        parent.scrollTop +=
+          eRect.top - pRect.top - pRect.height / 2 + eRect.height / 2;
+      }
+      return;
+    }
+    parent = parent.parentElement;
+  }
+}
 
 /**
  * Animated cursor overlay for guided-tour demos.
@@ -34,6 +59,11 @@ const CLICK_DELAY_MS = 450;
  * element (identified by `data-cursor-target` attribute) and plays
  * a click ripple animation upon arrival.
  *
+ * When the target element doesn't exist yet (e.g. SDK component
+ * still loading async data), the cursor polls until it appears
+ * (up to ~1 s). When found, it scrolls the element into view
+ * within its nearest scrollable ancestor before positioning.
+ *
  * Fades out when no target is set, fades in when a target appears.
  * Fully non-interactive (`pointer-events-none`).
  */
@@ -41,9 +71,11 @@ export function Cursor({ target, containerRef }: CursorProps) {
   const [pos, setPos] = useState<Position | null>(null);
   const [clicking, setClicking] = useState(false);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     clearTimeout(clickTimerRef.current);
+    clearTimeout(retryTimerRef.current);
     setClicking(false);
 
     if (!target) {
@@ -51,37 +83,60 @@ export function Cursor({ target, containerRef }: CursorProps) {
       return;
     }
 
-    const frame = requestAnimationFrame(() => {
+    let cancelled = false;
+    let retries = 0;
+
+    function tryFind() {
+      if (cancelled) return;
+
       const container = containerRef.current;
       if (!container) return;
 
       const el = container.querySelector(
         `[data-cursor-target="${target}"]`,
       );
-      if (!el) return;
+      if (!el) {
+        if (retries < MAX_RETRIES) {
+          retries++;
+          retryTimerRef.current = setTimeout(tryFind, RETRY_INTERVAL_MS);
+        }
+        return;
+      }
 
-      const cRect = container.getBoundingClientRect();
-      const eRect = el.getBoundingClientRect();
+      scrollIntoScrollParent(el);
 
-      setPos({
-        x: eRect.left - cRect.left + eRect.width / 2,
-        y: eRect.top - cRect.top + eRect.height / 2,
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+
+        const cRect = container.getBoundingClientRect();
+        const eRect = el.getBoundingClientRect();
+
+        setPos({
+          x: eRect.left - cRect.left + eRect.width / 2,
+          y: eRect.top - cRect.top + eRect.height / 2,
+        });
+
+        clickTimerRef.current = setTimeout(() => {
+          if (!cancelled) setClicking(true);
+        }, CLICK_DELAY_MS);
       });
+    }
 
-      clickTimerRef.current = setTimeout(
-        () => setClicking(true),
-        CLICK_DELAY_MS,
-      );
-    });
+    const frame = requestAnimationFrame(tryFind);
 
     return () => {
+      cancelled = true;
       cancelAnimationFrame(frame);
+      clearTimeout(retryTimerRef.current);
       clearTimeout(clickTimerRef.current);
     };
   }, [target, containerRef]);
 
   useEffect(() => {
-    return () => clearTimeout(clickTimerRef.current);
+    return () => {
+      clearTimeout(clickTimerRef.current);
+      clearTimeout(retryTimerRef.current);
+    };
   }, []);
 
   return (
