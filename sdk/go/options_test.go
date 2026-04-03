@@ -8,7 +8,7 @@ import (
 
 func TestDefaultConfig(t *testing.T) {
 	cfg := defaultConfig()
-	if cfg.target != "api.stigmer.io:443" {
+	if cfg.target != "api.stigmer.ai:443" {
 		t.Errorf("expected default target, got %q", cfg.target)
 	}
 	if cfg.insecure {

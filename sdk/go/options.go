@@ -2,7 +2,7 @@ package stigmer
 
 import "google.golang.org/grpc"
 
-const defaultTarget = "api.stigmer.io:443"
+const defaultTarget = "api.stigmer.ai:443"
 
 // clientConfig holds resolved configuration for Client construction.
 type clientConfig struct {

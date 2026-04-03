@@ -43,7 +43,7 @@ import java.util.concurrent.TimeUnit;
  */
 public final class StigmerClient implements AutoCloseable {
 
-    private static final String DEFAULT_TARGET = "api.stigmer.io:443";
+    private static final String DEFAULT_TARGET = "api.stigmer.ai:443";
     private static final long SHUTDOWN_TIMEOUT_SECONDS = 5;
 
     private final ManagedChannel channel;
@@ -132,7 +132,7 @@ public final class StigmerClient implements AutoCloseable {
             }
         }
 
-        /** Sets the gRPC target address (host:port). Default is {@code api.stigmer.io:443}. */
+        /** Sets the gRPC target address (host:port). Default is {@code api.stigmer.ai:443}. */
         public Builder baseUrl(String baseUrl) {
             this.baseUrl = Objects.requireNonNull(baseUrl, "baseUrl must not be null");
             return this;

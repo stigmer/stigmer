@@ -164,7 +164,7 @@ Error codes: `NOT_FOUND`, `PERMISSION_DENIED`, `UNAUTHENTICATED`, `INVALID_ARGUM
 ## Configuration
 
 ```java
-// Default endpoint (api.stigmer.io:443)
+// Default endpoint (api.stigmer.ai:443)
 StigmerClient client = StigmerClient.builder("sk_live_...").build();
 
 // Custom endpoint

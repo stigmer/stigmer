@@ -16,7 +16,7 @@ func BasicCRUD() {
 	ctx := context.Background()
 
 	client, err := stigmer.NewClient("sk_live_your_api_key",
-		stigmer.WithBaseURL("api.stigmer.io:443"),
+		stigmer.WithBaseURL("api.stigmer.ai:443"),
 	)
 	if err != nil {
 		log.Fatal(err)
