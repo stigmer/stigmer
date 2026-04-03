@@ -4,9 +4,10 @@ SHELL := /bin/bash
 
 PORT ?= 3000
 
-# Install dependencies
+# Install dependencies (immutable installs disabled because file: workspace
+# dependencies produce environment-dependent content hashes)
 deps:
-	yarn install
+	YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install
 
 # Start development server with hot reload
 dev: deps
