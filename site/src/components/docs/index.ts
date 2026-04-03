@@ -1,3 +1,4 @@
+export { AgentCreationTour as DemoAgentCreationTour } from "./demos/scenarios/agent-creation-tour";
 export { AgentDetail as DemoAgentDetail } from "./demos/scenarios/agent-detail";
 export { McpServerDetail as DemoMcpServerDetail } from "./demos/scenarios/mcp-server-detail";
 export { McpServerCreationTour as DemoMcpServerCreationTour } from "./demos/scenarios/mcp-server-creation-tour";

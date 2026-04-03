@@ -13,9 +13,21 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: Phase 4 complete, demo polish pass delivered
-- **Last Session**: 2026-04-03 (Session 13) — Approval flow demo: cursor overlay, ApprovalCard rendering, message ordering fix, document writer role update
-- **Active Task**: T01 — Phase 4 complete. Getting Started complete (3 pages). Ready for Phase 5 (Sample Reference Application).
+- **Status**: Getting Started complete (4 pages), ready for Phase 5 or Phase 6
+- **Last Session**: 2026-04-03 (Session 14) — "Create your Agent" fourth Getting Started page, agent-creation-tour demo, navigation updates, bridge text
+- **Active Task**: T01 — Getting Started complete (4 pages: Quickstart, Your First Skill, Connect Your Tools, Create Your Agent). Ready for Phase 5 (Sample Reference Application) or Phase 6 (Progressive Tutorials).
+
+## Session Progress (2026-04-03, Session 14)
+
+- **"Create your Agent" Getting Started page** — fourth and final Getting Started page completing the primary resource vocabulary (Skill, MCP Server, Agent, Session)
+- Built `agent-creation-tour` demo scenario (12-step ScenarioPlayer guided tour): Library → Agents list → Create Agent → Agent Creator conversation → YAML artifact preview → Apply → Agent in Library
+- Created `create-agent.mdx` with full tutorial structure: problem statement (shopping-list session code), Agent creation through web app, AgentDetailView demo, code simplification across all four SDK languages (TypeScript, Go, Python, Java), before/after comparison
+- Updated `connect-tools.mdx` closing text to bridge to the Agent guide — motivates the next page with the "shopping list" problem
+- Updated `docs/index.mdx` to add missing Getting Started cards (Connect your tools, Create your Agent)
+- Updated `meta.json`, barrel exports (`index.ts`), and MDX component registration (`mdx.tsx`)
+- **Key design decision**: Agent is framed as resolution, not addition — the reader's code gets simpler (skills/MCP refs removed from session). The "hidden protagonist reveal" narrative device shows there was always an Agent (the default `assistant`).
+- **SDK wiring resolved**: `agent.getByReference({org,slug})` → `agent.status.defaultInstanceId` → `session.create({agentInstanceId})` — mirrors the web app's `useCreateSession` pattern. AgentInstance not explained as a concept; treated as opaque reference.
+- Build verified: `tsc --noEmit` passes, `yarn next build` passes (Node 22)
 
 ## Session Progress (2026-04-03, Session 13)
 
@@ -119,11 +131,13 @@ Drop this file into your conversation to quickly resume work on this project.
 1. **Begin Phase 5** — Sample Reference Application
 2. **Or continue with Phase 6** — Progressive Tutorials (tools tutorial, approval flows tutorial)
 3. **Resolve Cloud README vocabulary inconsistencies** — #2 and #4 deferred from Phase 1 (separate repo)
+4. **Update TODO links** — `create-agent.mdx` links to `/docs/tutorials/give-your-agent-tools` (not yet built)
 
 ## Context for Resume
 
 - Phase 2 (sales website) and Phase 3 (getting started docs) are fully built and passing build.
-- Phase 3 deliverables: `quickstart.mdx`, `local.mdx`, `first-skill.mdx` with embedded `DemoSkillCreation` component
+- Phase 3 deliverables: `quickstart.mdx`, `local.mdx`, `first-skill.mdx`, `connect-tools.mdx`, `create-agent.mdx` with embedded demo components
+- Getting Started covers all four primary resources: Skill, MCP Server, Agent, Session — the progressive arc is: Try it → Teach it → Equip it → Name it
 - React demo mode infrastructure (`@stigmer/react/demo`) provides `createDemoClient`, `buildScenario`, `fixtures`, `samples` for creating mock-backed components in docs
 - Remaining TODO comments in the codebase mark where links need updating as later phases deliver their content:
   - Phase 4 TODOs: `/docs/concepts/what-is-stigmer`

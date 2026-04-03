@@ -1,0 +1,332 @@
+---
+title: Create your Agent
+description:
+  Bundle your Skills, tools, and instructions into a reusable Agent definition —
+  then reference it with a single line.
+---
+
+import { DemoAgentCreationTour, DemoAgentDetail } from "@/components/docs";
+
+## What you'll build
+
+A reusable Agent with its own name, role, and bundled configuration. You will
+create the Agent through the Stigmer web app, then simplify your code — same
+conversation results, fewer moving parts.
+
+**Time**: ~10 minutes **Prerequisites**: Completed
+[Connect your tools](/docs/getting-started/connect-tools)
+
+## The problem
+
+Look at your Session creation code from the previous guide:
+
+<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
+<Tab value="TypeScript">
+
+```typescript
+const session = await stigmer.session.create({
+  name: `session-${Date.now()}`,
+  org: "my-org",
+  skillRefs: [{ org: "my-org", slug: "return-policy" }],
+  mcpServerRefs: [{ org: "my-org", slug: "order-management-api" }],
+});
+```
+
+</Tab>
+<Tab value="Go">
+
+```go
+session, err := client.Session.Create(ctx, &stigmer.SessionInput{
+    Name: "session-" + ts,
+    Org:  "my-org",
+    SkillRefs: []stigmer.ResourceRef{
+        {Org: "my-org", Slug: "return-policy"},
+    },
+    McpServerRefs: []stigmer.ResourceRef{
+        {Org: "my-org", Slug: "order-management-api"},
+    },
+})
+```
+
+</Tab>
+<Tab value="Python">
+
+```python
+session = client.sessions.create(SessionInput(
+    name=f"session-{ts}",
+    org="my-org",
+    skill_refs=[ResourceRef(org="my-org", slug="return-policy")],
+    mcp_server_refs=[ResourceRef(org="my-org", slug="order-management-api")],
+))
+```
+
+</Tab>
+<Tab value="Java">
+
+```java
+var session = client.sessions().create(
+    SessionInput.builder()
+        .name("session-" + ts)
+        .org("my-org")
+        .skillRefs(List.of(
+            ResourceRef.of("my-org", "return-policy")
+        ))
+        .mcpServerRefs(List.of(
+            ResourceRef.of("my-org", "order-management-api")
+        ))
+        .build()
+);
+```
+
+</Tab>
+</Tabs>
+
+Every time you create a Session, you assemble the same list of Skills and
+servers. Add a new feature tomorrow, and you'll copy-paste this list again. A
+colleague building the checkout page won't know which references to include. And
+the Agent has no personality — it uses a generic prompt for every interaction.
+
+Behind the scenes, every Session in Stigmer runs against an Agent. The
+quickstart used the built-in `assistant` — a blank-slate Agent with no Skills
+and no tools. You've been adding capabilities per-Session. Now it's time to
+create your own.
+
+<Steps>
+<Step>
+
+## Create an Agent
+
+1. Open [`app.stigmer.ai`](https://app.stigmer.ai) and go to **Library →
+   Agents**.
+2. Click **Create Agent**. This opens the Agent Creator — an Agent that builds
+   the definition from your description.
+3. Describe your Agent's role, the Skills it should use, and the MCP servers it
+   needs. Mention the `return-policy` Skill and `order-management-api` server
+   from the previous guides.
+
+The Agent Creator asks a few clarifying questions — role, behavior rules, tone —
+then produces a complete Agent definition.
+
+Here is what that conversation looks like:
+
+<DemoAgentCreationTour />
+
+4. Review the generated definition and click **Apply** to save it to your
+   Organization's library.
+
+<Callout type="info">
+  The Agent definition includes `instructions` — a system prompt that defines
+  the Agent's personality, behavior rules, and task guidance. This is the single
+  biggest difference between a generic assistant and a purpose-built Agent.
+</Callout>
+
+</Step>
+<Step>
+
+## See the bundled result
+
+Open the Agent detail page. Everything is in one place: the instructions that
+define the Agent's role, the Skills that provide domain knowledge, and the MCP
+servers that give it tools.
+
+<DemoAgentDetail />
+
+You can add as many Skills as your Agent needs — product documentation, HR
+policies, technical runbooks. Each one makes the Agent more useful for a
+specific domain.
+
+</Step>
+<Step>
+
+## Simplify your code
+
+Open the code from the previous guides. Two changes:
+
+1. Get your Agent by name — this returns its configuration including a default
+   reference for Session creation.
+2. Replace the `skillRefs` and `mcpServerRefs` with a single reference from your
+   Agent.
+
+<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
+<Tab value="TypeScript">
+
+Update `ask-agent.ts`:
+
+```typescript
+const agent = await stigmer.agent.getByReference({
+  org: "my-org",
+  slug: "support-agent",
+});
+
+const session = await stigmer.session.create({
+  name: `session-${Date.now()}`,
+  org: "my-org",
+  agentInstanceId: agent.status!.defaultInstanceId,
+});
+```
+
+</Tab>
+<Tab value="Go">
+
+Update `main.go`. Add `stigmer.ResourceRef` to your imports if needed:
+
+```go
+agent, err := client.Agent.GetByReference(ctx, stigmer.ResourceRef{
+    Org:  "my-org",
+    Slug: "support-agent",
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+session, err := client.Session.Create(ctx, &stigmer.SessionInput{
+    Name:            "session-" + ts,
+    Org:             "my-org",
+    AgentInstanceId: agent.GetStatus().GetDefaultInstanceId(),
+})
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+</Tab>
+<Tab value="Python">
+
+Update `ask_agent.py`. Add `ResourceRef` to your import if not already there:
+
+```python
+agent = client.agents.get_by_reference(ResourceRef(
+    org="my-org",
+    slug="support-agent",
+))
+
+session = client.sessions.create(SessionInput(
+    name=f"session-{ts}",
+    org="my-org",
+    agent_instance_id=agent.status.default_instance_id,
+))
+```
+
+</Tab>
+<Tab value="Java">
+
+Update `src/main/java/AskAgent.java`:
+
+```java
+var agent = client.agents().getByReference(
+    ResourceRef.of("my-org", "support-agent")
+);
+
+var session = client.sessions().create(
+    SessionInput.builder()
+        .name("session-" + ts)
+        .org("my-org")
+        .agentInstanceId(agent.getStatus().getDefaultInstanceId())
+        .build()
+);
+```
+
+</Tab>
+</Tabs>
+
+Replace `my-org` with your Organization slug and `support-agent` with the slug
+shown on your Agent's detail page.
+
+The Skills and MCP servers are gone from your Session code — they live on the
+Agent definition. Update the Agent in one place, and every Session picks up the
+change.
+
+</Step>
+<Step>
+
+## Run it
+
+Use the same question from the previous guide:
+
+```
+"What's the status of order #ORD-4821?"
+```
+
+<Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
+<Tab value="TypeScript">
+
+```bash
+STIGMER_API_KEY=sk_your_key npx tsx ask-agent.ts
+```
+
+</Tab>
+<Tab value="Go">
+
+```bash
+STIGMER_API_KEY=sk_your_key go run main.go
+```
+
+</Tab>
+<Tab value="Python">
+
+```bash
+STIGMER_API_KEY=sk_your_key python ask_agent.py
+```
+
+</Tab>
+<Tab value="Java">
+
+```bash
+STIGMER_API_KEY=sk_your_key mvn compile exec:java
+```
+
+</Tab>
+</Tabs>
+
+Same result. Same tool call. Same real data:
+
+```
+Order #ORD-4821 has been shipped.
+
+- Item: Wireless Headphones (1x $79.99)
+- Tracking: 1Z999AA10123456784
+- Estimated delivery: April 5, 2026
+```
+
+The behavior is identical — but your code is cleaner, and the Agent owns its
+configuration.
+
+</Step>
+</Steps>
+
+## The difference
+
+|                        | Per-Session config                 | Agent blueprint                        |
+| ---------------------- | ---------------------------------- | -------------------------------------- |
+| **Configuration**      | Repeated in every Session          | Defined once, referenced by name       |
+| **Instructions**       | None — generic assistant prompt    | Custom role, tone, and behavior rules  |
+| **Maintenance**        | Update every Session creation call | Update the Agent, all Sessions follow  |
+| **Team collaboration** | Copy-paste the right references    | Reference by name — everyone uses same |
+
+## What just happened
+
+You created a reusable Agent definition that bundles instructions, Skills, and
+tools into one named resource. In your code, one lookup replaced a shopping list
+— get the Agent, pass its reference to the Session.
+
+This is the Stigmer resource model: Skills provide domain knowledge, MCP Servers
+provide tools, and the Agent ties them together with instructions that define
+its role. Create the Agent once, use it from any Session.
+
+## What's next
+
+You've completed Getting Started. Your Agent knows your domain, uses your tools,
+follows your rules, and has a defined role.
+
+<Cards>
+  <Card
+    title="Core Concepts"
+    description="Understand how Agents, Sessions, and Executions fit together under the hood."
+    href="/docs/concepts/what-is-stigmer"
+  />
+  <Card
+    title="Tutorials"
+    description="Add workflows, connect more systems, and deploy to production."
+    href="/docs/tutorials/give-your-agent-tools"
+  />
+</Cards>
