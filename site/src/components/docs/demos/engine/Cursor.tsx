@@ -116,6 +116,11 @@ export function Cursor({ target, containerRef }: CursorProps) {
         if (retries < MAX_RETRIES) {
           retries++;
           retryTimerRef.current = setTimeout(tryFind, RETRY_INTERVAL_MS);
+        } else if (process.env.NODE_ENV === "development") {
+          console.warn(
+            `[Cursor] Could not find target "${target}" after ${MAX_RETRIES} retries. ` +
+              `Ensure a [data-cursor-target="${target}"] element exists in the container.`,
+          );
         }
         return;
       }

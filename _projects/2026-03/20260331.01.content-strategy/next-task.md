@@ -13,9 +13,19 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current State
 
-- **Status**: Phase 4 complete, Getting Started "Connect your tools" page delivered
-- **Last Session**: 2026-04-02 (Session 12) — "Connect your tools" page, MCP server demos, SDK McpServerDetailView enhancement
+- **Status**: Phase 4 complete, demo polish pass delivered
+- **Last Session**: 2026-04-03 (Session 13) — Approval flow demo: cursor overlay, ApprovalCard rendering, message ordering fix, document writer role update
 - **Active Task**: T01 — Phase 4 complete. Getting Started complete (3 pages). Ready for Phase 5 (Sample Reference Application).
+
+## Session Progress (2026-04-03, Session 13)
+
+- **Approval flow demo fully fixed** — renders real `ApprovalCard` with Approve/Skip/Reject buttons, animated cursor click on Approve, correct tool-before-summary message ordering
+- `ComposerView` gained `onApprovalSubmit` prop passthrough to `MessageThread` — enables approval card rendering in any conversation demo
+- `ApprovalCard` SDK component gained `data-cursor-target="approve-button"` on the Approve button for cursor overlay targeting
+- Expanded approval-flow-playback from 4 to 5 steps with `approval-card` and `cursor-approve` view types
+- Split single AI message (text + tool call) into two separate messages so `process_return` tool result renders above the AI summary text
+- **Document writer role updated** — added "Cursor overlay for user actions" subsection codifying the three-step pattern (before → cursor click → after), the wiring mechanism, and the self-check question
+- Committed: `fa0815d5` feat(sdk,site/demos): add cursor overlay and ApprovalCard to approval flow demo
 
 ## Session Progress (2026-03-31, Session 8)
 

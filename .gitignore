@@ -66,6 +66,7 @@ target/
 
 # Node.js
 node_modules/
+.yarn/install-state.gz
 
 # Stigmer specific
 .stigmer/
