@@ -1,4 +1,4 @@
-export { MODEL_REGISTRY, DEFAULT_MODEL_ID } from "./registry";
+export { MODEL_REGISTRY, DEFAULT_MODEL_ID, DISABLED_PROVIDERS } from "./registry";
 export type { ModelInfo, Provider, CostTier } from "./registry";
 export { useModelRegistry } from "./useModelRegistry";
 export type { UseModelRegistryReturn } from "./useModelRegistry";
