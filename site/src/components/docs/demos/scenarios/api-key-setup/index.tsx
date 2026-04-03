@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { StigmerProvider } from "@stigmer/react";
 import { createDemoClient, fixtures, buildScenario } from "@stigmer/react/demo";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
+import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
@@ -173,6 +174,7 @@ function renderStep(step: ApiKeySetupStep) {
  */
 export function ApiKeySetup() {
   const client = useMemo(() => createDemoClient(buildDemoScenario()), []);
+  const narrationManifest = useNarrationManifest("api-key-setup");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
 
@@ -185,6 +187,7 @@ export function ApiKeySetup() {
       <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
         <ScenarioPlayer
           steps={apiKeySetupSteps}
+          narrationManifest={narrationManifest}
           onStepChange={handleStepChange}
         >
           {(step) => renderStep(step)}

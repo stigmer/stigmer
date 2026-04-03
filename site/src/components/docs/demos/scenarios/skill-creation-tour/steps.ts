@@ -121,15 +121,40 @@ const finalExecution = snapshot(
 
 export const skillCreationTourSteps: ScenarioStep<GuidedTourStep>[] = [
   { delayMs: 0, data: { view: "library-click", activeNav: "library" }, caption: "Navigate to Library" },
-  { delayMs: 1500, data: { view: "skills-list" }, caption: "View your Skills" },
+  {
+    delayMs: 1500,
+    data: { view: "skills-list" },
+    caption: "View your Skills",
+    narration: "Skills are pieces of domain knowledge. Each one teaches your agent about a specific topic.",
+  },
   { delayMs: 2000, data: { view: "create-skill-click" }, caption: 'Click "Add Skill"' },
   { delayMs: 1500, data: { view: "composer-ready" }, caption: "Skill Creator opens" },
   { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1]) }, caption: "Describe your domain" },
-  { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1, ai1]) }, caption: "Agent asks questions" },
+  {
+    delayMs: 2000,
+    data: { view: "conversation", execution: snapshot([user1, ai1]) },
+    caption: "Agent asks questions",
+    narration: "The creator asks targeted questions to make sure it captures your domain accurately.",
+  },
   { delayMs: 2500, data: { view: "conversation", execution: snapshot([user1, ai1, user2]) }, caption: "Provide the details" },
-  { delayMs: 2000, data: { view: "conversation", execution: finalExecution }, caption: "Skill generated" },
+  {
+    delayMs: 2000,
+    data: { view: "conversation", execution: finalExecution },
+    caption: "Skill generated",
+    narration: "Your return policy is now a Skill. The agent will use these exact rules when answering customer questions.",
+  },
   { delayMs: 2000, data: { view: "artifact-click", execution: finalExecution }, caption: "Click to preview" },
-  { delayMs: 1500, data: { view: "artifact-preview", execution: finalExecution, artifactContent: SKILL_MD_PREVIEW }, caption: "Review the Skill" },
+  {
+    delayMs: 1500,
+    data: { view: "artifact-preview", execution: finalExecution, artifactContent: SKILL_MD_PREVIEW },
+    caption: "Review the Skill",
+    narration: "This is the Skill file — plain text that's easy to read and update.",
+  },
   { delayMs: 3000, data: { view: "push-skill", execution: finalExecution }, caption: "Push to save" },
-  { delayMs: 2000, data: { view: "library-complete" }, caption: "Skill added to Library" },
+  {
+    delayMs: 2000,
+    data: { view: "library-complete" },
+    caption: "Skill added to Library",
+    narration: "The Skill is in your Library, ready to attach to any agent.",
+  },
 ];

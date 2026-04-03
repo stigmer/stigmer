@@ -5,6 +5,7 @@ import { StigmerProvider } from "@stigmer/react";
 import { createDemoClient } from "@stigmer/react/demo";
 import type { DemoScenario } from "@stigmer/react/demo";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
+import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
@@ -47,11 +48,15 @@ function renderStep(step: SessionMemoryStep) {
 
 export function SessionMemoryPlayback() {
   const client = useMemo(() => createDemoClient(emptyScenario), []);
+  const narrationManifest = useNarrationManifest("session-memory-playback");
 
   return (
     <StigmerProvider client={client}>
       <div className={DEMO_PLAYER_CLASSES}>
-        <ScenarioPlayer steps={sessionMemorySteps}>
+        <ScenarioPlayer
+          steps={sessionMemorySteps}
+          narrationManifest={narrationManifest}
+        >
           {(step) => renderStep(step)}
         </ScenarioPlayer>
       </div>

@@ -5,6 +5,7 @@ import { StigmerProvider } from "@stigmer/react";
 import { createDemoClient } from "@stigmer/react/demo";
 import type { DemoScenario } from "@stigmer/react/demo";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
+import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
@@ -62,6 +63,7 @@ function renderStep(step: ApprovalFlowStep) {
 
 export function ApprovalFlowPlayback() {
   const client = useMemo(() => createDemoClient(emptyScenario), []);
+  const narrationManifest = useNarrationManifest("approval-flow-playback");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
 
@@ -74,6 +76,7 @@ export function ApprovalFlowPlayback() {
       <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
         <ScenarioPlayer
           steps={approvalFlowSteps}
+          narrationManifest={narrationManifest}
           onStepChange={handleStepChange}
         >
           {(step) => renderStep(step)}

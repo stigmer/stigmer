@@ -119,6 +119,7 @@ export const generatePoliciesSteps: ScenarioStep<GeneratePoliciesStep>[] = [
     delayMs: 0,
     data: { view: "tools-overview", server: toolsOnlyServer },
     caption: "3 tools discovered — 2 read, 1 write",
+    narration: "Your server has three tools. Two just read data, but process_return can change things — it processes refunds.",
   },
   {
     delayMs: 2500,
@@ -134,6 +135,7 @@ export const generatePoliciesSteps: ScenarioStep<GeneratePoliciesStep>[] = [
     delayMs: 2500,
     data: { view: "no-policies", server: toolsOnlyServer },
     caption: "No approval policies yet",
+    narration: "No approval policies yet. The agent could process a refund without asking anyone first.",
   },
   {
     delayMs: 2500,
@@ -144,5 +146,6 @@ export const generatePoliciesSteps: ScenarioStep<GeneratePoliciesStep>[] = [
     delayMs: 3000,
     data: { view: "policies-applied", server: withPoliciesServer },
     caption: "process_return requires approval",
+    narration: "Stigmer analyzed the tools and added an approval rule for process_return. Now the agent asks a human before processing any refund.",
   },
 ];

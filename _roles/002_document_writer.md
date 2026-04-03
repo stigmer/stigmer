@@ -79,6 +79,22 @@ See `generate-policies-playback`, `discover-capabilities-playback`, `api-key-set
 
 **Self-check**: review every playback scenario's step list and ask: "Is there a step where the UI changes because of a user action, but no cursor movement is shown?" If yes, the scenario is incomplete.
 
+### Narration for playback demos
+
+Every playback step has an optional `narration` field — a spoken script that a build-time process converts to audio. The narration plays when a viewer unmutes the demo. Captions and narration serve different purposes: the caption is a short subtitle visible on screen; the narration is one or two sentences that explain what the viewer sees and why it matters.
+
+**Writing rules:**
+
+- Match the register to the page. Quickstart narration uses the simplest language. Concept-page narration can be more precise.
+- Narrate concepts and outcomes, not screen mechanics. Say "The agent pauses and asks a human to approve before processing the return" — not "Now a card appears on the screen."
+- One idea per step. The viewer is watching an animation. Do not outpace the visual.
+- Keep each narration to one or two sentences. Longer narration forces the step to wait, which makes the demo feel slow.
+- Do not repeat the caption. The caption is already visible. The narration adds context the caption cannot carry.
+
+**Not every step needs narration.** Navigation, scrolling, and cursor clicks are visual pauses. Silence gives the visual room to breathe. Reserve narration for steps where a concept is introduced or a result is shown.
+
+**Self-check**: read the narration for a scenario out loud, pausing briefly at steps with no narration. Does it sound like a natural walkthrough, or does it feel like a wall of audio? If there is no breathing room, remove narration from the transitional steps.
+
 ## Documentation standards
 
 Every document must follow two frameworks.

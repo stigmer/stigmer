@@ -12,6 +12,7 @@ import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/enviro
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { AppShell } from "../../views/AppShell";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
+import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
 import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
@@ -75,6 +76,7 @@ function componentKeyFor(step: GeneratePoliciesStep): string {
 }
 
 export function GeneratePoliciesPlayback() {
+  const narrationManifest = useNarrationManifest("generate-policies-playback");
   const clientMap = useMemo(() => {
     const map = new Map<McpServer, ReturnType<typeof buildClient>>();
     for (const step of generatePoliciesSteps) {
@@ -110,6 +112,7 @@ export function GeneratePoliciesPlayback() {
     <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
       <ScenarioPlayer
         steps={generatePoliciesSteps}
+        narrationManifest={narrationManifest}
         onStepChange={handleStepChange}
       >
         {(step) => (
