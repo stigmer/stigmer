@@ -6,14 +6,16 @@ import {
   createDemoClient,
   fixtures,
   buildScenario,
+  samples,
 } from "@stigmer/react/demo";
 import { create } from "@bufbuild/protobuf";
 import { GetArtifactContentResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { Cursor } from "../../engine/Cursor";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView, type ArtifactMeta } from "../../views/ComposerView";
-import { McpServersListView } from "../../views/McpServersListView";
+import { ResourceListPage } from "../../views/ResourceListPage";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
 import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
@@ -23,6 +25,35 @@ import {
 } from "./steps";
 
 const MCP_SERVER_CREATOR_REF = { org: "demo-org", slug: "mcp-server-creator" };
+
+const EXISTING_SERVERS = [
+  samples.searchResult({
+    id: "mcp-00000000-0000-0000-0000-000000000001",
+    kind: ApiResourceKind.mcp_server,
+    name: "GitHub",
+    slug: "github",
+    description: "Repository management, issues, and pull requests.",
+  }),
+  samples.searchResult({
+    id: "mcp-00000000-0000-0000-0000-000000000002",
+    kind: ApiResourceKind.mcp_server,
+    name: "Slack Notifications",
+    slug: "slack-notifications",
+    description: "Send messages and manage channels via Slack API.",
+  }),
+];
+
+const ALL_SERVERS = [
+  ...EXISTING_SERVERS,
+  samples.searchResult({
+    id: "mcp-00000000-0000-0000-0000-000000000003",
+    kind: ApiResourceKind.mcp_server,
+    name: "Order Management API",
+    slug: "order-management-api",
+    description:
+      "REST API for order lookup, inventory, and return processing.",
+  }),
+];
 
 const MCP_SERVER_ARTIFACT_META: ArtifactMeta = {
   icon: "file",
@@ -121,14 +152,25 @@ function renderStep(step: McpCreationStep) {
           contentKey={contentKey}
           slideDirection={slide}
         >
-          <McpServersListView />
+          <ResourceListPage
+            title="MCP Servers"
+            createLabel="Add MCP Server"
+            cursorTarget="create-mcp-server"
+            items={EXISTING_SERVERS}
+          />
         </AppShell>
       );
 
     case "create-mcp-server-click":
       return (
         <AppShell activeNav="library" contentKey={contentKey}>
-          <McpServersListView highlightCreate />
+          <ResourceListPage
+            title="MCP Servers"
+            createLabel="Add MCP Server"
+            cursorTarget="create-mcp-server"
+            items={EXISTING_SERVERS}
+            highlightCreate
+          />
         </AppShell>
       );
 
@@ -203,7 +245,13 @@ function renderStep(step: McpCreationStep) {
           contentKey={contentKey}
           slideDirection={slide}
         >
-          <McpServersListView showNewServer />
+          <ResourceListPage
+            title="MCP Servers"
+            createLabel="Add MCP Server"
+            cursorTarget="create-mcp-server"
+            items={ALL_SERVERS}
+            showNewItem
+          />
         </AppShell>
       );
   }

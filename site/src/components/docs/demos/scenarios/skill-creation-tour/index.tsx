@@ -2,14 +2,20 @@
 
 import { useCallback, useMemo, useRef, useState } from "react";
 import { StigmerProvider } from "@stigmer/react";
-import { createDemoClient, fixtures, buildScenario } from "@stigmer/react/demo";
+import {
+  createDemoClient,
+  fixtures,
+  buildScenario,
+  samples,
+} from "@stigmer/react/demo";
 import { create } from "@bufbuild/protobuf";
 import { GetArtifactContentResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
+import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
 import { Cursor } from "../../engine/Cursor";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
-import { SkillsListView } from "../../views/SkillsListView";
+import { ResourceListPage } from "../../views/ResourceListPage";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
 import { DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
@@ -19,6 +25,34 @@ import {
 } from "./steps";
 
 const SKILL_CREATOR_REF = { org: "demo-org", slug: "skill-creator" };
+
+const EXISTING_SKILLS = [
+  samples.searchResult({
+    id: "skl-00000000-0000-0000-0000-000000000001",
+    kind: ApiResourceKind.skill,
+    name: "Product Catalog",
+    slug: "product-catalog",
+    description: "Technical specs and pricing for all product lines.",
+  }),
+  samples.searchResult({
+    id: "skl-00000000-0000-0000-0000-000000000002",
+    kind: ApiResourceKind.skill,
+    name: "Escalation Runbook",
+    slug: "escalation-runbook",
+    description: "Step-by-step process for customer issue escalation.",
+  }),
+];
+
+const ALL_SKILLS = [
+  ...EXISTING_SKILLS,
+  samples.searchResult({
+    id: "skl-00000000-0000-0000-0000-000000000003",
+    kind: ApiResourceKind.skill,
+    name: "Return Policy",
+    slug: "return-policy",
+    description: "Acme Corp's customer return and refund policy.",
+  }),
+];
 
 const skillMdBytes = new TextEncoder().encode(SKILL_MD_PREVIEW);
 
@@ -112,7 +146,12 @@ function renderStep(step: GuidedTourStep) {
           contentKey={contentKey}
           slideDirection={slide}
         >
-          <SkillsListView />
+          <ResourceListPage
+            title="Skills"
+            createLabel="Create Skill"
+            cursorTarget="create-skill"
+            items={EXISTING_SKILLS}
+          />
         </AppShell>
       );
 
@@ -123,7 +162,13 @@ function renderStep(step: GuidedTourStep) {
           contentKey={contentKey}
           slideDirection={slide}
         >
-          <SkillsListView highlightCreate />
+          <ResourceListPage
+            title="Skills"
+            createLabel="Create Skill"
+            cursorTarget="create-skill"
+            items={EXISTING_SKILLS}
+            highlightCreate
+          />
         </AppShell>
       );
 
@@ -200,7 +245,13 @@ function renderStep(step: GuidedTourStep) {
           contentKey={contentKey}
           slideDirection={slide}
         >
-          <SkillsListView showNewSkill />
+          <ResourceListPage
+            title="Skills"
+            createLabel="Create Skill"
+            cursorTarget="create-skill"
+            items={ALL_SKILLS}
+            showNewItem
+          />
         </AppShell>
       );
   }
