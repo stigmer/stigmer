@@ -69,6 +69,23 @@ export interface McpServerDetailViewProps {
    * a specific tab.
    */
   readonly defaultCapabilityTab?: CapabilityTab;
+  /**
+   * When `true`, the credential form inside the Tools tab opens
+   * immediately on mount (instead of waiting for a Discover click).
+   * Useful for guided tours and demo scenarios that need to show the
+   * credential entry step without user interaction.
+   * @default false
+   */
+  readonly defaultShowCredentialForm?: boolean;
+  /**
+   * Pre-fill function for credential form inputs. When provided, the
+   * {@link EnvVarForm} receives these as `poolValues`, populating
+   * fields on mount. Useful for demo scenarios that simulate a user
+   * having already entered credentials.
+   */
+  readonly credentialPoolValues?: (
+    key: string,
+  ) => import("@stigmer/sdk").EnvVarInput | undefined;
   /** Additional CSS classes for the root container. */
   readonly className?: string;
 }
@@ -106,6 +123,8 @@ export function McpServerDetailView({
   isVisibilityPending,
   onPolicySessionCreated,
   defaultCapabilityTab = "tools",
+  defaultShowCredentialForm = false,
+  credentialPoolValues,
   className,
 }: McpServerDetailViewProps) {
   const { mcpServer, isLoading, error, refetch } = useMcpServer(org, slug);
@@ -113,7 +132,7 @@ export function McpServerDetailView({
   const discovery = useDiscoverCapabilities();
   const policySession = useTriggerApprovalPolicySession();
 
-  const [showCredentialForm, setShowCredentialForm] = useState(false);
+  const [showCredentialForm, setShowCredentialForm] = useState(defaultShowCredentialForm);
   const [policyPanelExecutionId, setPolicyPanelExecutionId] = useState<
     string | null
   >(null);
@@ -281,6 +300,7 @@ export function McpServerDetailView({
                 onCredentialSubmit={handleCredentialSubmit}
                 onCredentialCancel={() => setShowCredentialForm(false)}
                 credentialsLoading={credentials.isLoading}
+                credentialPoolValues={credentialPoolValues}
               />
             )}
 
@@ -612,6 +632,7 @@ function ToolsTabContent({
   onCredentialSubmit,
   onCredentialCancel,
   credentialsLoading,
+  credentialPoolValues,
 }: {
   readonly tools: readonly DiscoveredTool[];
   readonly isDiscovering: boolean;
@@ -628,6 +649,9 @@ function ToolsTabContent({
   ) => void;
   readonly onCredentialCancel: () => void;
   readonly credentialsLoading: boolean;
+  readonly credentialPoolValues?: (
+    key: string,
+  ) => import("@stigmer/sdk").EnvVarInput | undefined;
 }) {
   return (
     <div className="flex flex-col">
@@ -642,6 +666,7 @@ function ToolsTabContent({
           type="button"
           onClick={onDiscover}
           disabled={isDiscovering || credentialsLoading}
+          data-cursor-target="discover-button"
           className={cn(
             "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
             "border border-border bg-background text-foreground",
@@ -686,7 +711,10 @@ function ToolsTabContent({
       )}
 
       {showCredentialForm && credentialVariables.length > 0 && (
-        <div className="border-b border-border p-4">
+        <div
+          className="border-b border-border p-4"
+          data-cursor-target="credential-form"
+        >
           <EnvVarForm
             title="Credentials Required"
             description="Enter the credentials needed to connect to this MCP server. Toggle &quot;Save for future runs&quot; to persist them in your personal environment, or leave it off to use them for this discovery only."
@@ -694,6 +722,7 @@ function ToolsTabContent({
             onSubmit={(values, options) => onCredentialSubmit(values, options)}
             onCancel={onCredentialCancel}
             isSubmitting={isSavingCredentials}
+            poolValues={credentialPoolValues}
             className="w-full max-w-md"
           />
         </div>
