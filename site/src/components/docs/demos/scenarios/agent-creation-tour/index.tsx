@@ -147,7 +147,7 @@ function renderStep(step: AgentCreationStep) {
         >
           <ResourceListPage
             title="Agents"
-            createLabel="Create Agent"
+            createLabel="Add Agent"
             cursorTarget="create-agent"
             items={EXISTING_AGENTS}
           />
@@ -159,7 +159,7 @@ function renderStep(step: AgentCreationStep) {
         <AppShell activeNav="library" contentKey={contentKey}>
           <ResourceListPage
             title="Agents"
-            createLabel="Create Agent"
+            createLabel="Add Agent"
             cursorTarget="create-agent"
             items={EXISTING_AGENTS}
             highlightCreate
@@ -240,7 +240,7 @@ function renderStep(step: AgentCreationStep) {
         >
           <ResourceListPage
             title="Agents"
-            createLabel="Create Agent"
+            createLabel="Add Agent"
             cursorTarget="create-agent"
             items={ALL_AGENTS}
             showNewItem

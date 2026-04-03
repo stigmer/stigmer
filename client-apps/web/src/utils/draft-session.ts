@@ -50,8 +50,8 @@ const VALID_TYPES = new Set<string>(Object.keys(CREATOR_AGENTS));
  * import Link from "next/link";
  * import { getDraftSessionUrl } from "@/utils/draft-session";
  *
- * <Link href={getDraftSessionUrl("agent")}>Create Agent</Link>
- * // renders <a href="/?draft=agent">Create Agent</a>
+ * <Link href={getDraftSessionUrl("agent")}>Add Agent</Link>
+ * // renders <a href="/?draft=agent">Add Agent</a>
  * ```
  */
 export function getDraftSessionUrl(resourceType: DraftResourceType): string {

@@ -1,8 +1,8 @@
 /**
- * Agent creation tour for "Create your Agent".
+ * Agent creation tour for "Add your Agent".
  *
  * 12-step playback: sidebar → Library → Agents list →
- * Create Agent → Session Composer → conversation with
+ * Add Agent → Session Composer → conversation with
  * Agent Creator → artifact preview → apply → back to Library
  * with the new agent.
  */
@@ -140,7 +140,7 @@ export const agentCreationTourSteps: ScenarioStep<AgentCreationStep>[] = [
   {
     delayMs: 2000,
     data: { view: "create-agent-click" },
-    caption: 'Click "Create Agent"',
+    caption: 'Click "Add Agent"',
   },
   {
     delayMs: 1500,

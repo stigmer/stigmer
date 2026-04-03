@@ -3,7 +3,7 @@
  *
  * Defines a 12-step playback that walks the reader through the full
  * Stigmer web app navigation: sidebar -> Library -> Skills list ->
- * Create Skill -> Session Composer -> conversation with Skill Creator ->
+ * Add Skill -> Session Composer -> conversation with Skill Creator ->
  * artifact preview -> push -> back to Library with the new skill.
  *
  * Each step is a discriminated union (`GuidedTourStep`) so the render
@@ -122,7 +122,7 @@ const finalExecution = snapshot(
 export const skillCreationTourSteps: ScenarioStep<GuidedTourStep>[] = [
   { delayMs: 0, data: { view: "library-click", activeNav: "library" }, caption: "Navigate to Library" },
   { delayMs: 1500, data: { view: "skills-list" }, caption: "View your Skills" },
-  { delayMs: 2000, data: { view: "create-skill-click" }, caption: "Click Create Skill" },
+  { delayMs: 2000, data: { view: "create-skill-click" }, caption: 'Click "Add Skill"' },
   { delayMs: 1500, data: { view: "composer-ready" }, caption: "Skill Creator opens" },
   { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1]) }, caption: "Describe your domain" },
   { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1, ai1]) }, caption: "Agent asks questions" },
