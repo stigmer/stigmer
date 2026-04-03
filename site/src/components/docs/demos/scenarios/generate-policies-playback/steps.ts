@@ -1,8 +1,8 @@
 /**
  * Generate approval policies playback for "Connect your tools".
  *
- * 3-step sequence: tools discovered (no policies) → highlight
- * generate button → policies applied.
+ * 4-step sequence: tools tab (context) → policies tab (empty) →
+ * cursor on Generate → policies applied.
  *
  * Each step carries the full McpServer fixture so the playback
  * component can swap the data fed to the real SDK McpServerDetailView.
@@ -104,6 +104,7 @@ function buildServerWithPolicies(): McpServer {
 }
 
 export type GeneratePoliciesStep =
+  | { view: "tools-tab"; server: McpServer }
   | { view: "no-policies"; server: McpServer }
   | { view: "click-generate"; server: McpServer }
   | { view: "policies-applied"; server: McpServer };
@@ -114,13 +115,18 @@ const withPoliciesServer = buildServerWithPolicies();
 export const generatePoliciesSteps: ScenarioStep<GeneratePoliciesStep>[] = [
   {
     delayMs: 0,
-    data: { view: "no-policies", server: toolsOnlyServer },
-    caption: "Tools discovered — no policies yet",
+    data: { view: "tools-tab", server: toolsOnlyServer },
+    caption: "3 tools discovered — 2 read, 1 write",
   },
   {
     delayMs: 3000,
+    data: { view: "no-policies", server: toolsOnlyServer },
+    caption: "No approval policies yet",
+  },
+  {
+    delayMs: 2500,
     data: { view: "click-generate", server: toolsOnlyServer },
-    caption: '"Generate Policies"',
+    caption: 'Click "Generate Policies"',
   },
   {
     delayMs: 3000,

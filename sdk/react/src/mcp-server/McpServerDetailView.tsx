@@ -795,6 +795,7 @@ function PoliciesTabContent({
             type="button"
             onClick={onGenerate}
             disabled={isTriggering}
+            data-cursor-target="generate-policies-button"
             className={cn(
               "inline-flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
               "bg-primary text-primary-foreground",

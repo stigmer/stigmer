@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { StigmerProvider, McpServerDetailView } from "@stigmer/react";
 import {
   createDemoClient,
@@ -12,8 +12,10 @@ import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/enviro
 import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/api_pb";
 import { AppShell } from "../../views/AppShell";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
+import { Cursor } from "../../engine/Cursor";
 import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
+  type GeneratePoliciesStep,
   generatePoliciesSteps,
   DEMO_ORG,
   DEMO_SLUG,
@@ -30,6 +32,21 @@ function buildClient(server: McpServer) {
   );
 }
 
+function cursorTargetFor(step: GeneratePoliciesStep): string | undefined {
+  switch (step.view) {
+    case "click-generate":
+      return "generate-policies-button";
+    default:
+      return undefined;
+  }
+}
+
+function defaultTabFor(
+  step: GeneratePoliciesStep,
+): "tools" | "policies" {
+  return step.view === "tools-tab" ? "tools" : "policies";
+}
+
 export function GeneratePoliciesPlayback() {
   const clientMap = useMemo(() => {
     const map = new Map<McpServer, ReturnType<typeof buildClient>>();
@@ -41,18 +58,34 @@ export function GeneratePoliciesPlayback() {
     return map;
   }, []);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [cursorTarget, setCursorTarget] = useState<string | undefined>();
+
+  const handleStepChange = useCallback((step: GeneratePoliciesStep) => {
+    setCursorTarget(cursorTargetFor(step));
+  }, []);
+
   return (
-    <div className={DEMO_PLAYER_CLASSES}>
-      <ScenarioPlayer steps={generatePoliciesSteps}>
+    <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
+      <ScenarioPlayer
+        steps={generatePoliciesSteps}
+        onStepChange={handleStepChange}
+      >
         {(step) => (
-          <StigmerProvider client={clientMap.get(step.server)!}>
+          <StigmerProvider
+            key={step.view}
+            client={clientMap.get(step.server)!}
+          >
             <AppShell activeNav="library" contentKey="mcp-detail">
-              <div className="h-full overflow-y-auto" style={{ zoom: DEMO_CONTENT_ZOOM }}>
+              <div
+                className="h-full overflow-y-auto"
+                style={{ zoom: DEMO_CONTENT_ZOOM }}
+              >
                 <div className="p-4">
                   <McpServerDetailView
                     org={DEMO_ORG}
                     slug={DEMO_SLUG}
-                    defaultCapabilityTab="policies"
+                    defaultCapabilityTab={defaultTabFor(step)}
                   />
                 </div>
               </div>
@@ -60,6 +93,7 @@ export function GeneratePoliciesPlayback() {
           </StigmerProvider>
         )}
       </ScenarioPlayer>
+      <Cursor target={cursorTarget} containerRef={containerRef} />
     </div>
   );
 }
