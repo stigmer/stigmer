@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { FOOTER_LINKS, SITE_CONFIG } from "@/lib/constants";
 import { Icon } from "@/components/ui/icon";
+import { DiscordIcon } from "@/components/ui/discord-icon";
 
 export type FooterProps = React.HTMLAttributes<HTMLElement>;
 
@@ -61,6 +62,15 @@ function Footer({ className, ...props }: FooterProps) {
               &copy; {new Date().getFullYear()} {SITE_CONFIG.copyright.holder}. All rights reserved.
             </p>
             <div className="flex items-center gap-4">
+              <a
+                href={SITE_CONFIG.social.discord}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-subtle hover:text-foreground transition-colors"
+                aria-label="Discord community"
+              >
+                <DiscordIcon size="md" />
+              </a>
               <a
                 href={SITE_CONFIG.githubUrl}
                 target="_blank"

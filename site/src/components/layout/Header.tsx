@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { NAV_LINKS, SITE_CONFIG } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { DiscordIcon } from "@/components/ui/discord-icon";
 import { MobileMenu } from "./MobileMenu";
 
 export type HeaderProps = React.HTMLAttributes<HTMLElement>;
@@ -57,6 +58,15 @@ function Header({ className, ...props }: HeaderProps) {
               })}
 
               <div className="ml-3 flex items-center gap-2">
+                <a
+                  href={SITE_CONFIG.social.discord}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <DiscordIcon size="md" />
+                  Discord
+                </a>
                 <Button asChild variant="ghost" size="sm">
                   <a href={SITE_CONFIG.cloudSigninUrl}>
                     Sign In
