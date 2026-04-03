@@ -24,7 +24,7 @@ function Hero({ className, ...props }: HeroProps) {
       className={cn(
         "relative min-h-[calc(100vh-4rem)]",
         "flex flex-col items-center justify-center",
-        "px-4 py-16 sm:py-24",
+        "py-16 sm:py-24",
         "overflow-hidden",
         className
       )}
@@ -42,7 +42,7 @@ function Hero({ className, ...props }: HeroProps) {
       />
 
       {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto w-full">
+      <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left: Copy */}
           <div>
@@ -81,7 +81,7 @@ function Hero({ className, ...props }: HeroProps) {
             </FadeInUp>
 
             <FadeInUp delay={0.5}>
-              <div className="flex flex-col sm:flex-row items-start gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
                 <Button asChild size="lg">
                   <a href={SITE_CONFIG.cloudSignupUrl}>
                     Start Free
