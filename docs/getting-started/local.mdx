@@ -1,12 +1,12 @@
 ---
 title: Local quickstart
 description:
-  Run an AI agent on your machine in 5 minutes—no cloud account needed.
+  Run an AI Agent on your machine in 5 minutes—no cloud account needed.
 ---
 
 ## What you'll build
 
-A running AI agent on your machine. You'll install Stigmer, define an agent in
+A running AI Agent on your machine. You'll install Stigmer, define an Agent in
 YAML, and talk to it from your terminal. Everything stays local—the server uses
 SQLite and connects to your own LLM provider.
 
@@ -64,7 +64,7 @@ Leave this terminal running and open a new one for the next steps.
 </Step>
 <Step>
 
-## Create your agent
+## Create your Agent
 
 Create a file called `agent.yaml`:
 
@@ -94,7 +94,7 @@ stigmer apply -f agent.yaml
 stigmer run my-first-agent -m "What can you help me with?"
 ```
 
-The agent responds in your terminal. You defined an agent as a YAML resource,
+The Agent responds in your terminal. You defined an Agent as a YAML resource,
 applied it to the local server, and ran it—all from the command line.
 
 </Step>
@@ -102,18 +102,18 @@ applied it to the local server, and ran it—all from the command line.
 
 ## What just happened
 
-Stigmer treats agents as **declarative resources**. You described what the agent
+Stigmer treats Agents as **declarative resources**. You described what the Agent
 should do in a YAML file, applied it to the server, and ran it. The same pattern
 works for Skills, MCP Servers, and every other Stigmer resource.
 
-Right now your agent gives generic answers. It doesn't know anything specific to
+Right now your Agent gives generic answers. It doesn't know anything specific to
 your business. The next tutorial fixes that.
 
 ## Next step
 
 <Cards>
   <Card title="Your first Skill" href="/docs/getting-started/first-skill">
-    Teach your agent domain knowledge and see the difference between generic and
+    Teach your Agent domain knowledge and see the difference between generic and
     expert responses.
   </Card>
 </Cards>

@@ -9,7 +9,7 @@ import { DemoSkillCreationTour } from "@/components/docs";
 
 ## What you'll build
 
-An agent that answers with **your** domain expertise—not generic knowledge. You
+An Agent that answers with **your** domain expertise—not generic knowledge. You
 will create a Skill through the Stigmer web app, connect it to your code, and
 watch the same question produce a completely different answer.
 
@@ -18,9 +18,9 @@ watch the same question produce a completely different answer.
 
 ## The problem
 
-In the quickstart, your agent handled a general question well. But when you
+In the quickstart, your Agent handled a general question well. But when you
 asked about your return policy, it couldn't help—it gave a generic answer
-because it has no domain knowledge. Let's fix that.
+because it has no domain knowledge. The following steps fix that.
 
 <Steps>
 <Step>
@@ -28,12 +28,12 @@ because it has no domain knowledge. Let's fix that.
 ## Create a Skill
 
 A Skill is a package of domain knowledge—your return policy, product catalog,
-escalation process, or anything else your agent needs to answer accurately.
+escalation process, or anything else your Agent needs to answer accurately.
 
 1. Open [`app.stigmer.ai`](https://app.stigmer.ai) and go to **Library →
    Skills**.
 2. Click **Create Skill**.
-3. The Skill Creator agent asks you a few questions about your domain. Describe
+3. The Skill Creator Agent asks you a few questions about your domain. Describe
    your return policy, and it generates a structured Skill from your answers.
 
 Here is what that conversation looks like:
@@ -41,7 +41,7 @@ Here is what that conversation looks like:
 <DemoSkillCreationTour />
 
 4. Review the generated Skill and click **Push** to save it to your
-   organization's library.
+   Organization's library.
 
 <Callout type="info">
   The Skill Creator produces a markdown document with structured sections. You
@@ -54,12 +54,12 @@ Here is what that conversation looks like:
 ## Connect the Skill to your code
 
 Open the code from the quickstart. The only change is adding `skillRefs` when
-you create the session—this tells the agent to use your Skill when answering.
+you create the Session—this tells the Agent to use your Skill when answering.
 
 <Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
 <Tab value="TypeScript">
 
-Update the session creation in `ask-agent.ts`:
+Update the Session creation in `ask-agent.ts`:
 
 ```typescript
 const session = await stigmer.session.create({
@@ -72,7 +72,7 @@ const session = await stigmer.session.create({
 </Tab>
 <Tab value="Go">
 
-Update the session creation in `main.go`:
+Update the Session creation in `main.go`:
 
 ```go
 session, err := client.Session.Create(ctx, &stigmer.SessionInput{
@@ -90,13 +90,13 @@ if err != nil {
 </Tab>
 <Tab value="Python">
 
-Update the session creation in `ask_agent.py`. Add `ResourceRef` to your import:
+Update the Session creation in `ask_agent.py`. Add `ResourceRef` to your import:
 
 ```python
 from stigmer import StigmerClient, SessionInput, AgentExecutionInput, ResourceRef
 ```
 
-Then update the session creation:
+Then update the Session creation:
 
 ```python
 session = client.sessions.create(SessionInput(
@@ -109,14 +109,14 @@ session = client.sessions.create(SessionInput(
 </Tab>
 <Tab value="Java">
 
-Update the session creation in `src/main/java/AskAgent.java`. Add the imports:
+Update the Session creation in `src/main/java/AskAgent.java`. Add the imports:
 
 ```java
 import ai.stigmer.sdk.gen.ResourceRef;
 import java.util.List;
 ```
 
-Then update the session creation:
+Then update the Session creation:
 
 ```java
 var session = client.sessions().create(
@@ -139,7 +139,7 @@ Also update the message to ask the domain-specific question:
 "What is your return policy for defective items?"
 ```
 
-Replace `my-org` with your organization slug and `return-policy` with the slug
+Replace `my-org` with your Organization slug and `return-policy` with the slug
 shown in your Skill's detail page.
 
 </Step>
@@ -204,16 +204,16 @@ Same question. Completely different answer.
 
 ## What just happened
 
-You taught your agent domain knowledge through a conversation in the Stigmer web
-app. One field change in your code, and the agent went from guessing to
+You taught your Agent domain knowledge through a conversation in the Stigmer web
+app. One field change in your code, and the Agent went from guessing to
 answering with your company's actual policy.
 
 A Skill is domain knowledge packaged as markdown—not code, not configuration.
 You can create as many Skills as you need: product documentation, HR policies,
-technical runbooks, sales playbooks. Each one makes your agent more useful for a
+technical runbooks, sales playbooks. Each one makes your Agent more useful for a
 specific domain.
 
-Your agent knows your business. But it can't look up orders, check inventory, or
+Your Agent knows your business. But it can't look up orders, check inventory, or
 take actions—it has knowledge but no hands. In the next guide, you'll connect
-tools and set approval policies so your agent can act on real data and ask
+tools and set approval policies so your Agent can act on real data and ask
 before doing anything risky.

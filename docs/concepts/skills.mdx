@@ -6,8 +6,8 @@ description:
   fastest way to make AI useful for your business.
 ---
 
-A Skill is a versioned knowledge artifact that transforms a generic AI agent
-into a domain expert. Without Skills, an agent only knows what the underlying
+A Skill is a versioned knowledge artifact that transforms a generic AI Agent
+into a domain expert. Without Skills, an Agent only knows what the underlying
 LLM was trained on. With Skills, it knows _your_ business — your return policy,
 your product catalog, your internal processes.
 
@@ -78,16 +78,16 @@ The frontmatter contains two required fields:
 | Field         | Purpose                                                                                                                                                                  |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `name`        | A kebab-case identifier for the Skill                                                                                                                                    |
-| `description` | Tells the agent _when_ to use this Skill. Write it like a trigger condition — "Use when customers ask about returns" is better than "Contains return policy information" |
+| `description` | Tells the Agent _when_ to use this Skill. Write it like a trigger condition — "Use when customers ask about returns" is better than "Contains return policy information" |
 
-The `description` is critical. It's always present in the agent's context, so
-the agent can decide whether to consult this Skill's content for a given
-question. A vague description means the agent won't know when to reach for this
+The `description` is critical. It's always present in the Agent's context, so
+the Agent can decide whether to consult this Skill's content for a given
+question. A vague description means the Agent won't know when to reach for this
 knowledge.
 
 ### Body
 
-The markdown body is the knowledge itself. When the agent determines that a
+The markdown body is the knowledge itself. When the Agent determines that a
 Skill is relevant (based on the description), it loads the body into context.
 Write it as you would onboard a new team member:
 
@@ -102,12 +102,12 @@ For larger knowledge packages, you can include additional files:
 
 | Directory     | Purpose                                                |
 | ------------- | ------------------------------------------------------ |
-| `references/` | Additional documentation the agent loads on demand     |
+| `references/` | Additional documentation the Agent loads on demand     |
 | `scripts/`    | Executable code for deterministic tasks                |
-| `assets/`     | Templates, images, or files used in the agent's output |
+| `assets/`     | Templates, images, or files used in the Agent's output |
 
-The `SKILL.md` body should reference these files so the agent knows they exist.
-The agent loads them as needed rather than all at once — this keeps the context
+The `SKILL.md` body should reference these files so the Agent knows they exist.
+The Agent loads them as needed rather than all at once — this keeps the context
 window efficient.
 
 ## Attaching Skills to Agents
@@ -124,12 +124,12 @@ spec:
       slug: product-catalog
 ```
 
-Each reference points to a Skill by its slug. When the agent runs, Stigmer
+Each reference points to a Skill by its slug. When the Agent runs, Stigmer
 resolves these references and makes the Skill content available.
 
 You can also attach Skills at the [Session](/docs/concepts/sessions) level.
-Session-level Skills are merged with the agent's Skills — this lets you
-customize what an agent knows for a specific conversation without changing the
+Session-level Skills are merged with the Agent's Skills — this lets you
+customize what an Agent knows for a specific conversation without changing the
 Agent definition.
 
 ## How Skills differ from RAG
@@ -147,11 +147,11 @@ If you've used retrieval-augmented generation (RAG), Skills might look familiar
 
 Skills are not a replacement for RAG on every use case. For searching across
 millions of documents, retrieval-based approaches have advantages. But for the
-kind of domain knowledge that makes an agent useful — policies, procedures,
+kind of domain knowledge that makes an Agent useful — policies, procedures,
 product details, escalation rules — Skills are simpler and more predictable.
 
 ## What's next
 
-Your agent knows your business through Skills. But knowledge alone doesn't let
-it _act_. The next page explains [Tools](/docs/concepts/tools) — how agents
+Your Agent knows your business through Skills. But knowledge alone doesn't let
+it _act_. The next page explains [Tools](/docs/concepts/tools) — how Agents
 interact with your external systems through the Model Context Protocol.

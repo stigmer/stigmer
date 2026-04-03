@@ -32,8 +32,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: Lint (Vale + Prettier)
+  lint-and-build:
+    name: Lint & Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,49 +45,20 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install Vale
-        env:
-          VALE_VERSION: "3.9.5"
-        run: |
-          curl -sSfL "https://github.com/errata-ai/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz" \
-            | sudo tar xz -C /usr/local/bin vale
-          vale --version
+      - name: Enable Corepack
+        run: corepack enable
 
-      - name: Download Vale style packages
-        run: vale sync
+      - name: Install Vale
+        run: make install-vale
 
       - name: Install npm dependencies
         run: npm ci
 
-      - name: Lint prose
-        run: make lint-docs
-
       - name: Check formatting
         run: make format-docs-check
 
-  build:
-    name: Build (Fumadocs)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: site
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: |
-          corepack enable
-          corepack install
-          yarn
-
       - name: Build documentation site
-        run: yarn build
+        run: make build-site
 
   cli-docs-freshness:
     name: CLI Docs Freshness

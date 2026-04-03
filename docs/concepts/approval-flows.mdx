@@ -10,20 +10,20 @@ description:
 give _you_ control over which actions happen automatically and which ones pause
 for a human decision.
 
-This is not a logging feature. When an agent encounters an action that requires
+This is not a logging feature. When an Agent encounters an action that requires
 approval, it stops, presents what it wants to do and why, and waits for a human
-to approve, skip, or reject before proceeding. The agent's execution is durable
+to approve, skip, or reject before proceeding. The Agent's execution is durable
 — it waits indefinitely without losing state.
 
 ## How it works
 
-Here's an approval flow in action. A customer requests a return, and the agent
+Here's an approval flow in action. A customer requests a return, and the Agent
 pauses before processing it because the `process_return` tool requires approval:
 
 <DemoApprovalFlowPlayback />
 
-The approval request shows the tool name, the arguments the agent wants to pass,
-and a human-readable message. The human sees exactly what the agent is about to
+The approval request shows the tool name, the arguments the Agent wants to pass,
+and a human-readable message. The human sees exactly what the Agent is about to
 do and can make an informed decision.
 
 ## Configuring approvals
@@ -44,7 +44,7 @@ graph TD
 ### 1. MCP Server defaults
 
 The [MCP Server](/docs/concepts/tools) resource defines default approval
-policies for its tools. These apply to every agent that uses this server:
+policies for its tools. These apply to every Agent that uses this server:
 
 ```yaml
 # In the McpServer definition
@@ -93,37 +93,37 @@ A `ToolApprovalOverride` can:
 - **Disable** approval for a tool that does
 - **Change** the approval message
 
-This lets the same MCP Server behave differently across agents. A read-only
-agent might disable approvals for query tools, while a full-access agent keeps
+This lets the same MCP Server behave differently across Agents. A read-only
+Agent might disable approvals for query tools, while a full-access Agent keeps
 them enabled.
 
 ### 3. Session and runtime overrides
 
 [Sessions](/docs/concepts/sessions) can further override approval settings for a
 specific conversation. At the execution level, `auto_approve_all` is a bypass
-flag that skips all approvals — useful for automated workflows where a human has
+flag that skips all approvals — useful for automated processes where a human has
 already authorized the operation.
 
 ## The approval lifecycle
 
 When a tool call triggers an approval:
 
-1. The agent runtime detects that the tool requires approval
+1. The Agent runtime detects that the tool requires approval
 2. It sets the tool call status to `WAITING_APPROVAL` and pauses
 3. Stigmer computes a `PendingApproval` projection with the tool name, message,
    and argument preview
 4. The UI or API surfaces the approval request
 5. The human submits a decision: **Approve**, **Skip**, or **Reject**
-6. The agent resumes based on the decision
+6. The Agent resumes based on the decision
 
 | Decision    | What happens                                                            |
 | ----------- | ----------------------------------------------------------------------- |
 | **Approve** | The tool call executes with the original arguments                      |
-| **Skip**    | The tool call is skipped — the agent continues without this action      |
-| **Reject**  | The tool call is rejected — the agent receives the rejection and adapts |
+| **Skip**    | The tool call is skipped — the Agent continues without this action      |
+| **Reject**  | The tool call is rejected — the Agent receives the rejection and adapts |
 
 The execution is durable throughout this process. If the server restarts while
-waiting for approval, the agent resumes from the same waiting state.
+waiting for approval, the Agent resumes from the same waiting state.
 
 ## Designing approval policies
 
@@ -131,8 +131,7 @@ A few principles for deciding what needs approval:
 
 - **Destructive actions** should always require approval — deletes, refunds,
   account changes
-- **Read-only actions** generally don't need approval — queries, searches,
-  status checks
+- **Read-only actions** don't need approval — queries, searches, status checks
 - **High-value actions** benefit from approval even if they're not destructive —
   sending emails to customers, creating orders
 - **Be specific in messages** — "Process return for order 'ORD-4821'" helps the
@@ -146,6 +145,6 @@ it.
 ## What's next
 
 Approval flows control individual tool calls. But conversations often span
-multiple messages, and the agent needs to remember what happened earlier. The
+multiple messages, and the Agent needs to remember what happened earlier. The
 next page explains [Sessions](/docs/concepts/sessions) — how Stigmer preserves
 conversation context across interactions.

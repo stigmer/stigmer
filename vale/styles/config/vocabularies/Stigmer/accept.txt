@@ -31,7 +31,7 @@ Snipsync
 Docusaurus
 apiVersion
 metadata
-spec
+[Ss]pec
 status
 org
 slug
@@ -86,3 +86,6 @@ mcp_server_ref
 npm
 npx
 stdio
+subgraph
+sdkCall
+llmLayer
