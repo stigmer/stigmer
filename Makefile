@@ -78,7 +78,7 @@ install-vale: ## Install Vale prose linter (auto-detects OS)
 
 # ─── Build ────────────────────────────────────
 
-.PHONY: build protos codegen gen-cli-docs gen-cli-docs-check
+.PHONY: build protos codegen gen-sdk-docs gen-sdk-docs-check
 build: ## Build the Stigmer CLI binary
 	@mkdir -p bin
 	cd client-apps/cli && go build -o ../../bin/stigmer .
@@ -91,15 +91,29 @@ protos: ## Generate protocol buffer stubs and SDK client code
 	$(MAKE) -C sdk/typescript codegen
 	$(MAKE) -C sdk/python codegen
 	$(MAKE) -C sdk/java codegen
+	$(MAKE) gen-sdk-docs
 
-gen-cli-docs: ## Generate CLI reference docs from command tree
-	$(MAKE) -C client-apps/cli gen-cli-docs
-	@npx prettier --write --prose-wrap always docs/cli/commands/*.mdx >/dev/null 2>&1
+gen-sdk-docs: ## Generate SDK reference docs from proto schemas
+	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
+		--schema-dir tools/codegen/schemas --output-dir docs/sdk
 
-gen-cli-docs-check: ## Verify CLI docs are up to date (CI, no writes)
-	$(MAKE) -C client-apps/cli gen-cli-docs-check
+gen-sdk-docs-check: ## Verify SDK docs are up to date (CI, no writes)
+	@tmpdir=$$(mktemp -d) && \
+	go run ./tools/codegen/generator --comprehensive --target=sdk-docs \
+		--schema-dir tools/codegen/schemas --output-dir "$$tmpdir" && \
+	rc=0; \
+	for f in "$$tmpdir"/*; do \
+		if ! diff -q "$$f" "docs/sdk/$$(basename $$f)" > /dev/null 2>&1; then \
+			rc=1; break; \
+		fi; \
+	done; \
+	rm -rf "$$tmpdir"; \
+	if [ $$rc -ne 0 ]; then \
+		echo "error: SDK docs are stale — run 'make gen-sdk-docs'"; exit 1; \
+	fi; \
+	echo "✓ SDK docs are up to date"
 
-codegen: protos gen-cli-docs ## Regenerate all derived code (protos, SDKs, CLI docs)
+codegen: protos ## Regenerate all derived code
 
 # ─── Test ─────────────────────────────────────
 
