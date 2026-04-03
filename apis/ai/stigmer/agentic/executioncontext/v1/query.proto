@@ -22,22 +22,27 @@ service ExecutionContextQueryController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = execution_context;
 
   // Get an ExecutionContext by ID.
+  //
+  // @internal
   // Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
   rpc get(ai.stigmer.agentic.executioncontext.v1.ExecutionContextId) returns (ExecutionContext) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
   // Get an ExecutionContext by reference (slug-based lookup).
+  //
+  // @internal
   // Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (ExecutionContext) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
   // Get an ExecutionContext by the execution ID it belongs to.
-  // This is the primary lookup method used by runners to retrieve the merged
-  // environment variables during workflow/agent execution. The returned context
-  // contains decrypted secrets for runner consumption.
   //
+  // @internal
+  // Primary lookup method used by runners to retrieve the merged environment
+  // variables during workflow/agent execution. The returned context contains
+  // decrypted secrets for runner consumption.
   // Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
   rpc getByExecutionId(ExecutionContextExecutionIdInput) returns (ExecutionContext) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;

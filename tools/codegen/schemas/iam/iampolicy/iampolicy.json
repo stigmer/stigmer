@@ -40,7 +40,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Relation: HOW/what permission is being granted\n This is the FGA relation/permission being granted (e.g., \"admin\", \"viewer\", \"owner\")\n The relation value maps to the role_code from IamRole.\n Examples: \"admin\", \"editor\", \"viewer\", \"owner\", \"member\"\n\n When this policy is synced to OpenFGA, this becomes the relation in the tuple:\n principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation",
+      "description": "The permission being granted (e.g., \"admin\", \"viewer\", \"owner\").\n Maps to the role_code from IamRole.\n Examples: \"admin\", \"editor\", \"viewer\", \"owner\", \"member\"\n\n @internal\n This is the FGA relation in the authorization tuple:\n principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation",
       "required": true,
       "validation": {
         "required": true,

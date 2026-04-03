@@ -218,9 +218,9 @@ func docWriteMethod(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfig, c
 	}
 
 	if m.Description != "" {
-		summary := docMethodSummary(m.Description)
-		if summary != "" {
-			buf.WriteString(docEscapeMDX(summary))
+		content := docSDKContent(m.Description)
+		if content != "" {
+			buf.WriteString(docEscapeMDX(content))
 			buf.WriteString("\n\n")
 		}
 	}
@@ -437,7 +437,7 @@ func docWriteMethodOverview(buf *bytes.Buffer, methods []MethodSchema) {
 	for i := range methods {
 		tsName := tsMethodName(methods[i].Name)
 		anchor := strings.ToLower(tsName)
-		desc := docFirstSentence(methods[i].Description)
+		desc := docFirstSentence(docStripInternal(methods[i].Description))
 		desc = strings.ReplaceAll(desc, "|", "\\|")
 
 		fmt.Fprintf(buf, "| [`%s`](#%s) | %s |", tsName, anchor, desc)
@@ -493,7 +493,7 @@ func docWriteTypes(buf *bytes.Buffer, cfg sdkResourceConfig, specSchema *TaskCon
 func docWriteTypeField(buf *bytes.Buffer, f *FieldSchema) {
 	fieldName := tsProtoFieldName(f.ProtoField)
 	fieldType := docTypeString(&f.Type)
-	desc := docEscapeJSString(docFirstSentence(f.Description))
+	desc := docEscapeJSString(docFirstSentence(docStripInternal(f.Description)))
 	if f.Required {
 		fmt.Fprintf(buf, "    %s: { type: \"%s\", description: \"%s\", required: true },\n", fieldName, fieldType, desc)
 	} else {
@@ -527,7 +527,7 @@ func docWriteNestedType(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*T
 	fmt.Fprintf(buf, "### %s\n\n", inputName)
 
 	if ts.Description != "" {
-		buf.WriteString(docEscapeMDX(docFirstSentence(ts.Description)))
+		buf.WriteString(docEscapeMDX(docFirstSentence(docStripInternal(ts.Description))))
 		buf.WriteString("\n\n")
 	}
 
@@ -724,6 +724,55 @@ func docEscapeJSString(s string) string {
 	return s
 }
 
+// docStripInternal removes everything from the @internal marker onward.
+// Content before @internal is SDK-facing; content after is for internal
+// developers reading the proto source only.
+func docStripInternal(desc string) string {
+	lines := strings.Split(desc, "\n")
+	var result []string
+	for _, line := range lines {
+		if strings.TrimSpace(line) == "@internal" {
+			break
+		}
+		result = append(result, line)
+	}
+	return strings.TrimSpace(strings.Join(result, "\n"))
+}
+
+// docSDKContent extracts the full SDK-facing content from a description,
+// stripping @internal sections, @since annotations, and ## markdown headings.
+// Unlike docMethodSummary (which truncated at the first paragraph break),
+// this preserves multi-paragraph SDK content for richer method documentation.
+func docSDKContent(desc string) string {
+	if desc == "" {
+		return ""
+	}
+	desc = strings.TrimSpace(desc)
+	desc = docStripInternal(desc)
+	desc = docStripSince(desc)
+
+	if strings.HasPrefix(desc, "## ") {
+		return ""
+	}
+
+	var paragraphs []string
+	for _, p := range strings.Split(desc, "\n\n") {
+		p = strings.TrimSpace(p)
+		if strings.HasPrefix(p, "## ") {
+			break
+		}
+		if p == "" {
+			continue
+		}
+		lines := strings.Split(p, "\n")
+		for i := range lines {
+			lines[i] = strings.TrimSpace(lines[i])
+		}
+		paragraphs = append(paragraphs, strings.Join(lines, " "))
+	}
+	return strings.TrimSpace(strings.Join(paragraphs, "\n\n"))
+}
+
 // docStripSince removes @since annotation lines from a description.
 func docStripSince(desc string) string {
 	lines := strings.Split(desc, "\n")
@@ -737,73 +786,56 @@ func docStripSince(desc string) string {
 	return strings.Join(result, "\n")
 }
 
-// docMethodSummary extracts the first paragraph of a method description,
-// stopping before any markdown heading (## Section) or @since annotation.
-// This keeps reference pages scannable — detailed behavior documentation
-// stays in the proto files and can surface in future explanation pages.
-func docMethodSummary(desc string) string {
-	if desc == "" {
-		return ""
-	}
-	desc = strings.TrimSpace(desc)
-	desc = docStripSince(desc)
-
-	if idx := strings.Index(desc, "\n## "); idx >= 0 {
-		desc = desc[:idx]
-	}
-	if strings.HasPrefix(desc, "## ") {
-		return ""
-	}
-
-	if idx := strings.Index(desc, "\n\n"); idx >= 0 {
-		desc = desc[:idx]
-	}
-
-	lines := strings.Split(desc, "\n")
-	for i := range lines {
-		lines[i] = strings.TrimSpace(lines[i])
-	}
-	desc = strings.Join(lines, " ")
-
-	return strings.TrimSpace(desc)
-}
-
-// docOverviewSummary extracts a user-facing overview from a spec description.
-// It strips proto-internal preambles like "XxxSpec defines..." and takes only
-// the first paragraph. Placeholder descriptions are dropped entirely.
+// docOverviewSummary extracts the full SDK-facing overview from a spec
+// description. It strips @internal sections, @since annotations, and
+// proto-internal preambles like "XxxSpec defines...".
+// Placeholder descriptions are dropped entirely.
 func docOverviewSummary(desc string) string {
 	if desc == "" {
 		return ""
 	}
 	desc = strings.TrimSpace(desc)
+	desc = docStripInternal(desc)
 	desc = docStripSince(desc)
-
-	if idx := strings.Index(desc, "\n\n"); idx >= 0 {
-		desc = desc[:idx]
-	}
-
-	lines := strings.Split(desc, "\n")
-	for i := range lines {
-		lines[i] = strings.TrimSpace(lines[i])
-	}
-	desc = strings.Join(lines, " ")
-	desc = strings.TrimSpace(desc)
+	desc = docCleanDesc(desc)
 
 	if desc == "" {
 		return ""
 	}
 
+	// Drop placeholder specs
 	lower := strings.ToLower(desc)
-	if len(desc) < 30 && (strings.HasSuffix(lower, " spec") || strings.HasSuffix(lower, " spec.")) {
+	firstLine := desc
+	if idx := strings.Index(desc, "\n"); idx >= 0 {
+		firstLine = desc[:idx]
+	}
+	firstLineLower := strings.ToLower(strings.TrimSpace(firstLine))
+	if len(firstLineLower) < 30 && (strings.HasSuffix(firstLineLower, " spec") || strings.HasSuffix(firstLineLower, " spec.")) {
 		return ""
 	}
+	_ = lower
 
-	words := strings.Fields(desc)
+	// Strip "XxxSpec defines..." preamble from first paragraph
+	words := strings.Fields(firstLine)
 	if len(words) >= 2 && strings.HasSuffix(words[0], "Spec") {
-		if idx := strings.Index(desc, ". "); idx >= 0 {
-			remainder := strings.TrimSpace(desc[idx+2:])
+		if idx := strings.Index(firstLine, ". "); idx >= 0 {
+			remainder := strings.TrimSpace(firstLine[idx+2:])
+			rest := ""
+			if nlIdx := strings.Index(desc, "\n\n"); nlIdx >= 0 {
+				rest = strings.TrimSpace(desc[nlIdx+2:])
+			}
+			if remainder != "" && rest != "" {
+				return remainder + "\n\n" + rest
+			}
 			if remainder != "" {
 				return remainder
+			}
+		}
+		// The first paragraph is just the preamble; return subsequent paragraphs
+		if nlIdx := strings.Index(desc, "\n\n"); nlIdx >= 0 {
+			rest := strings.TrimSpace(desc[nlIdx+2:])
+			if rest != "" {
+				return rest
 			}
 		}
 		return ""

@@ -20,7 +20,10 @@ service WorkflowQueryController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get workflow";
   }
 
-  // Custom authorization in handler
+  // Get a workflow by its organization-scoped reference (org/slug).
+  //
+  // @internal
+  // Custom authorization in handler.
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Workflow) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }

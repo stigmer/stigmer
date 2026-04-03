@@ -59,7 +59,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "Project",
           "outputFullType": "ai.stigmer.tenancy.project.v1.Project",
-          "description": "Get a project by reference (org/name).\n Custom authorization is handled in the controller implementation."
+          "description": "Get a project by reference (org/name).\n\n @internal\n Custom authorization is handled in the controller implementation."
         }
       ]
     }
