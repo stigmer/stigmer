@@ -449,5 +449,11 @@ In your code, two changes made the difference: `mcpServerRefs` to give the Agent
 access to tools, and `submitApproval` to handle the human-in-the-loop flow.
 
 Your Agent now knows your domain (Skills), uses your tools (MCP servers), and
-follows your rules (approval policies). That's the full Stigmer promise: **teach
-your domain, bring your tools, set your rules**.
+follows your rules (approval policies). But look at your Session creation code —
+every time you create a Session, you list every Skill and every MCP server. Add
+a new feature tomorrow, and you'll copy-paste that list again. A colleague
+building the checkout page won't know which references to include. And the Agent
+has no personality — it uses a generic prompt for every interaction.
+
+In the next guide, you'll bundle all of this into a reusable Agent with its own
+name, role, and instructions — then reference it with a single line.
