@@ -38,11 +38,11 @@ Five contexts, each with its own register. When the quick-reference table says
 
 | Context                    | Audience                                   | Register                                                                           | Example                                                                         |
 | -------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **Sales site**             | Technical founders choosing infrastructure | Business-outcome language. No jargon. Lead with what they gain.                    | "Teach your agent your domain."                                                 |
+| **Sales site**             | Technical founders choosing infrastructure | Business-outcome language. No jargon. Lead with what they gain.                    | "Teach your Agent your domain."                                                 |
 | **Quickstart / tutorials** | Developers following steps                 | Action-oriented. Introduce Stigmer terms with a plain-language gloss on first use. | "Create a Skill (a piece of domain knowledge your Agent can use)."              |
 | **Concepts / how-to**      | Developers building understanding          | Explanatory. Use Stigmer terms as proper nouns. Analogies welcome.                 | "A Skill is like a training manual for your Agent."                             |
 | **Reference / SDK**        | Developers looking up specifics            | Precise. Use API field names. Assume familiarity with the platform.                | "`spec.skill_refs`---list of Skill IDs attached to this Agent."                 |
-| **README / GitHub**        | Developers evaluating the project          | Developer-direct. CLI-first. Technical credibility.                                | "Versioned knowledge artifacts. A Skill is a directory with a `SKILL.md` file." |
+| **README / GitHub**        | Developers evaluating Stigmer              | Developer-direct. CLI-first. Technical credibility.                                | "Versioned knowledge artifacts. A Skill is a directory with a `SKILL.md` file." |
 
 **Rule of thumb**: move left in the table for simpler language, move right for
 more precise language. Never use a right-column term in a left-column context.
@@ -56,15 +56,15 @@ definitions, API names, and examples follow below.
 
 | Term                   | Sales site            | Quickstart / tutorial          | Concepts / how-to   | Reference / SDK                              | README             |
 | ---------------------- | --------------------- | ------------------------------ | ------------------- | -------------------------------------------- | ------------------ |
-| **Agent**              | agent                 | Agent                          | Agent               | Agent, `kind: Agent`                         | Agent              |
+| **Agent**              | Agent                 | Agent                          | Agent               | Agent, `kind: Agent`                         | Agent              |
 | **Skill**              | domain knowledge      | Skill ("domain knowledge")     | Skill               | Skill, `skill_refs`                          | Skill              |
 | **MCP Server**         | tools                 | MCP server ("tool connection") | MCP Server          | McpServer, `mcp_server_usages`               | MCP server         |
 | **Session**            | conversation          | Session ("conversation")       | Session             | Session, `kind: Session`                     | Session            |
 | **Workflow**           | multi-step automation | Workflow                       | Workflow            | Workflow, `kind: Workflow`                   | Workflow           |
 | **Approval flow**      | approval flow         | approval flow                  | approval flow, HITL | `ToolApprovalPolicy`, `submitApproval`       | HITL, approval     |
-| **Organization**       | organization          | Organization                   | Organization        | Organization, `kind: organization`           | Organization       |
-| **Project**            | project               | Project                        | Project             | Project, `kind: project`                     | Project            |
-| **Environment**        | environment           | Environment                    | Environment         | Environment, `kind: Environment`             | Environment        |
+| **Organization**       | Organization          | Organization                   | Organization        | Organization, `kind: organization`           | Organization       |
+| **Project**            | Project               | Project                        | Project             | Project, `kind: project`                     | Project            |
+| **Environment**        | Environment           | Environment                    | Environment         | Environment, `kind: Environment`             | Environment        |
 | **Agent Instance**     | ---                   | Agent Instance                 | Agent Instance      | AgentInstance, `kind: AgentInstance`         | Agent Instance     |
 | **Agent Execution**    | ---                   | run, execution                 | Agent Execution     | AgentExecution, `kind: AgentExecution`       | Agent Execution    |
 | **Workflow Execution** | ---                   | run, execution                 | Workflow Execution  | WorkflowExecution, `kind: WorkflowExecution` | Workflow Execution |
@@ -113,7 +113,7 @@ A reusable definition of what an AI assistant knows and can do.
 | Context    | Copy                                                    | Problem                                                    |
 | ---------- | ------------------------------------------------------- | ---------------------------------------------------------- |
 | Sales site | "Define an Agent resource with YAML."                   | Technical language in a business context.                  |
-| Quickstart | "The Agent abstraction encapsulates LLM orchestration." | Jargon. The reader just wants to create their first agent. |
+| Quickstart | "The Agent abstraction encapsulates LLM orchestration." | Jargon. The reader just wants to create their first Agent. |
 
 ---
 
@@ -136,7 +136,7 @@ A piece of knowledge you attach to an Agent so it has domain expertise.
 
 | Context    | Copy                                                                                                                                             |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sales site | "Teach your agent what generic AI doesn't know---your return policy, your product catalog, your escalation process."                             |
+| Sales site | "Teach your Agent what generic AI doesn't know---your return policy, your product catalog, your escalation process."                             |
 | Quickstart | "Create a Skill---a piece of domain knowledge your Agent can use. A Skill is a directory with a `SKILL.md` file."                                |
 | Concepts   | "A Skill is like a training manual for your Agent. Without it, the Agent gives generic answers. With it, the Agent gives domain-expert answers." |
 | Reference  | "`Skill`---a versioned knowledge artifact attached to Agents via `skill_refs`. Pushed via `stigmer push` or `SkillCommandController.push`."      |
@@ -147,7 +147,7 @@ A piece of knowledge you attach to an Agent so it has domain expertise.
 | ---------- | -------------------------------------------- | ------------------------------------------------------------------- |
 | Sales site | "Create a Skill with YAML frontmatter."      | The audience doesn't know what frontmatter is and doesn't need to.  |
 | Sales site | "Upload your knowledge artifacts."           | "Knowledge artifacts" is internal language. Say "domain knowledge." |
-| Quickstart | "Configure the RAG pipeline for your skill." | Stigmer Skills are not RAG. This is a positioning violation.        |
+| Quickstart | "Configure the RAG pipeline for your Skill." | Stigmer Skills are not RAG. This is a positioning violation.        |
 
 ---
 
@@ -178,7 +178,7 @@ An external tool connection that lets an Agent interact with other systems.
 
 | Context    | Copy                                                                                                                                                                                           |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Connect your agent to your systems. It checks inventory, creates tickets, updates records---with the same APIs your team already uses."                                                       |
+| Sales site | "Connect your Agent to your systems. It checks inventory, creates tickets, updates records---with the same APIs your team already uses."                                                       |
 | Quickstart | "Give your Agent tools by adding an MCP server---a connection to an external system like GitHub, a database, or a file store."                                                                 |
 | Concepts   | "An MCP Server is a bridge between your Agent and an external system. The Agent discovers what tools are available, and Stigmer handles input validation and execution sandboxing."            |
 | Reference  | "`McpServer`---a managed resource defining an MCP server connection. Supports `stdio` and `http` transport. Tools are discovered via the MCP protocol or declared in `default_enabled_tools`." |
@@ -188,7 +188,7 @@ An external tool connection that lets an Agent interact with other systems.
 | Context    | Copy                                             | Problem                                                                                                                |
 | ---------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
 | Sales site | "Configure MCP servers for tool integration."    | Technical jargon. Say "connect your tools."                                                                            |
-| Quickstart | "Set up the McpServerUsage with mcp_server_ref." | proto message names in a tutorial. Say "add an MCP server to your agent." Show the YAML by example, not by field name. |
+| Quickstart | "Set up the McpServerUsage with mcp_server_ref." | proto message names in a tutorial. Say "add an MCP server to your Agent." Show the YAML by example, not by field name. |
 
 ---
 
@@ -213,7 +213,7 @@ An ongoing conversation with an Agent across multiple messages.
 
 | Context    | Copy                                                                                                                                                                    |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Your agent remembers the conversation. Ask a follow-up question tomorrow---it picks up where you left off."                                                            |
+| Sales site | "Your Agent remembers the conversation. Ask a follow-up question tomorrow---it picks up where you left off."                                                            |
 | Quickstart | "Start a Session---an ongoing conversation where your Agent remembers what was said."                                                                                   |
 | Concepts   | "A Session is a container for a multi-turn conversation. It holds the message history, attached Skills, and tool connections for that conversation."                    |
 | Reference  | "`Session`---a multi-turn conversation container. Persists message history via `thread_id`. Merges Agent-level and Session-level `skill_refs` and `mcp_server_usages`." |
@@ -223,7 +223,7 @@ An ongoing conversation with an Agent across multiple messages.
 | Context    | Copy                                                          | Problem                                                                       |
 | ---------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | Sales site | "Create a Session resource to enable multi-turn interaction." | Resource-model language in a business context.                                |
-| Quickstart | "Configure the `thread_id` for session persistence."          | Implementation detail. The quickstart should just say "start a conversation." |
+| Quickstart | "Configure the `thread_id` for Session persistence."          | Implementation detail. The quickstart should just say "start a conversation." |
 
 ---
 
@@ -250,7 +250,7 @@ A step-by-step automation that runs tasks in a defined order.
 
 | Context    | Copy                                                                                                                                                                             |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sales site | "Automate multi-step processes. Your agent checks, decides, acts, and reports---reliably, every time."                                                                           |
+| Sales site | "Automate multi-step processes. Your Agent checks, decides, acts, and reports---reliably, every time."                                                                           |
 | Quickstart | "Create a Workflow---a series of steps that run in order. Workflows keep running even if something crashes."                                                                     |
 | Concepts   | "A Workflow chains tasks together: call an API, run an Agent, wait for approval, send a notification. Stigmer runs each step reliably and recovers automatically from failures." |
 | Reference  | "`Workflow`---a managed resource defining a multi-step automation. Uses CNCF Serverless Workflow DSL. Tasks support `http_call`, `agent_call`, `set_vars`, and `wait` kinds."    |
@@ -260,7 +260,7 @@ A step-by-step automation that runs tasks in a defined order.
 | Context    | Copy                                                  | Problem                                                                                                 |
 | ---------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | Sales site | "Orchestrate CNCF Serverless Workflows."              | The specification name is meaningless to founders.                                                      |
-| Quickstart | "The Zigflow engine executes your Temporal workflow." | Internal implementation details. Readers don't need to know about Zigflow or Temporal to use workflows. |
+| Quickstart | "The Zigflow engine executes your Temporal Workflow." | Internal implementation details. Readers don't need to know about Zigflow or Temporal to use Workflows. |
 
 ---
 
@@ -293,7 +293,7 @@ action before proceeding.
 
 | Context    | Copy                                                                                                                                                                                                                                             |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Sales site | "Your agent handles routine requests on its own. For anything sensitive, it asks a human first. You set the rules."                                                                                                                              |
+| Sales site | "Your Agent handles routine requests on its own. For anything sensitive, it asks a human first. You set the rules."                                                                                                                              |
 | Quickstart | "Add an approval flow---tell your Agent which actions need human approval before it proceeds."                                                                                                                                                   |
 | Concepts   | "An approval flow is a checkpoint. The Agent pauses, presents what it wants to do and why, and waits for a human to approve or reject. The Agent's execution is durable---it waits indefinitely without losing state."                           |
 | Reference  | "Tool-call approvals are configured via `ToolApprovalPolicy` on the `McpServer` resource or overridden per-Agent via `tool_approval_overrides`. The policy chain is: McpServer defaults → Agent overrides → Execution-level `auto_approve_all`." |
@@ -318,7 +318,7 @@ clear definitions.
 
 #### Organization
 
-A workspace that groups people, Agents, Workflows, and settings together.
+A Workspace that groups people, Agents, Workflows, and settings together.
 
 - **Capitalize**: Yes, when referring to the Stigmer concept.
 - **API surface**: `kind: organization`, prefix `org`. proto:
@@ -347,8 +347,11 @@ resources together.
 A named space (like "testing" or "production") where the same Agent can run with
 different settings and secrets.
 
+<!-- vale Stigmer.terms = NO -->
+
 - **Capitalize**: Yes, when referring to the Stigmer concept. Lowercase when
-  used generically ("environment variables").
+used generically ("environment variables").
+<!-- vale Stigmer.terms = YES -->
 - **API surface**: `kind: Environment`, prefix `env`. proto:
   `environment/v1/spec.proto`. CLI: `stigmer get environment`,
   `stigmer list environment`.
@@ -382,7 +385,12 @@ One run of an Agent from start to finish.
   compound "Agent Execution" until concept or reference pages.
 - **Capitalize**: Yes, as a compound proper noun.
 - **API surface**: `kind: AgentExecution`, prefix `aex`. proto:
-  `agentexecution/v1/api.proto`. CLI: `stigmer run <agent-name> "<prompt>"`.
+  `agentexecution/v1/api.proto`. CLI:
+
+  ```bash
+  stigmer run <agent_name> "<prompt>"
+  ```
+
 - **Message types**: `HUMAN`, `AI`, `TOOL`, `SYSTEM` (from
   `agentexecution/v1/enum.proto`).
 - **Phases**: `EXECUTION_WAITING_FOR_APPROVAL` is a notable phase---the
@@ -436,7 +444,7 @@ automatically, and resume exactly where they left off.
 - **Implementation**: Powered by Temporal. Do not mention Temporal on the sales
   site or in quickstart. Name it in architecture docs and reference pages.
 - **Sales-site phrasing**: "Agents that keep running even if something crashes."
-  or "Your workflows resume where they left off---automatically."
+  or "Your Workflows resume where they left off---automatically."
 - **Context rule**: "Durable Execution" as a term belongs in concepts and
   reference. On the sales site and in quickstart, describe the benefit without
   naming the mechanism.
@@ -492,7 +500,11 @@ The open specification that Stigmer's Workflow DSL is based on.
 
 #### Graphton
 
+<!-- vale Stigmer.terms = NO -->
+
 The Agent framework used internally by the agent-runner service.
+
+<!-- vale Stigmer.terms = YES -->
 
 - **Context rule**: Architecture docs and contributor guides only. Never in
   customer-facing documentation. Customers do not interact with Graphton
@@ -569,12 +581,14 @@ These require human decisions. Do not resolve them autonomously.
 platform." The positioning document says the category is "AI Agent Platform."
 The word "agentic" was explicitly rejected as jargon.
 
-**Resolution**: The README has been updated to "open-source AI agent platform,"
+**Resolution**: The README has been updated to "open-source AI Agent platform,"
 matching the positioning document's category name.
 
 ---
 
 ### 2. Cloud README tagline contradicts positioning
+
+<!-- vale Stigmer.terms = NO -->
 
 **What**: The Cloud README (`stigmer/stigmer-cloud/README.md`, line 7) says
 "SDK-first agent orchestration platform." This uses a different category name
@@ -585,10 +599,11 @@ matching the positioning document's category name.
 
 - `stigmer-cloud/README.md` line 7: "SDK-first agent orchestration platform"
 - `stigmer-cloud/README.md` line 15: repeats the phrase
+<!-- vale Stigmer.terms = YES -->
 
-**Recommendation**: Update to align with the positioning category "AI agent
+**Recommendation**: Update to align with the positioning category "AI Agent
 platform." The "SDK-first" aspect can remain as a supporting description, not as
-the category name. Example: "Stigmer Cloud---the cloud-hosted AI agent platform.
+the category name. Example: "Stigmer Cloud---the cloud-hosted AI Agent platform.
 Define Agents and Workflows as code."
 
 ---

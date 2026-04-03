@@ -22,7 +22,9 @@ help: ## Show available targets
 
 # ─── Setup ────────────────────────────────────
 
-.PHONY: setup
+VALE_VERSION ?= 3.9.5
+
+.PHONY: setup install-vale
 setup: ## Install all dependencies (one-time)
 	@for mod in $(GO_MODULES); do \
 		echo "go mod download  $$mod"; \
@@ -40,9 +42,39 @@ setup: ## Install all dependencies (one-time)
 	@npm install && echo "husky pre-commit hooks installed"
 	@echo ""
 	@echo "--- docs toolchain ---"
-	@command -v vale >/dev/null 2>&1 || { echo "error: vale not found — brew install vale"; exit 1; }
+	@$(MAKE) install-vale
 	@command -v lychee >/dev/null 2>&1 || { echo "error: lychee not found — brew install lychee"; exit 1; }
 	@vale sync && echo "vale packages synced"
+
+install-vale: ## Install Vale prose linter (auto-detects OS)
+	@if command -v vale >/dev/null 2>&1; then \
+		echo "vale already installed: $$(vale --version)"; \
+	else \
+		OS=$$(uname -s); \
+		case $$OS in \
+			Darwin) \
+				echo "installing vale via Homebrew..."; \
+				brew install vale; \
+				;; \
+			Linux) \
+				ARCH=$$(uname -m); \
+				case $$ARCH in \
+					x86_64)  VALE_ARCH="64-bit" ;; \
+					aarch64|arm64) VALE_ARCH="arm64" ;; \
+					*) echo "error: unsupported architecture $$ARCH"; exit 1 ;; \
+				esac; \
+				echo "installing vale v$(VALE_VERSION) for Linux ($$VALE_ARCH)..."; \
+				curl -sSfL "https://github.com/errata-ai/vale/releases/download/v$(VALE_VERSION)/vale_$(VALE_VERSION)_Linux_$$VALE_ARCH.tar.gz" \
+					| sudo tar xz -C /usr/local/bin vale; \
+				;; \
+			*) \
+				echo "error: unsupported OS '$$OS'"; \
+				echo "install vale manually: https://vale.sh/docs/install"; \
+				exit 1; \
+				;; \
+		esac; \
+		echo "vale installed: $$(vale --version)"; \
+	fi
 
 # ─── Build ────────────────────────────────────
 
@@ -124,6 +156,16 @@ check: tidy fix lint lint-docs format-docs-check libs-build web-build docs-build
 DOCS_SOURCES = $(shell find docs -path docs/_archive -prune -o \( -name '*.md' -o -name '*.mdx' \) -print)
 
 lint-docs: ## Lint documentation with Vale (strict, fails on warnings+)
+	@command -v vale >/dev/null 2>&1 || { \
+		echo ""; \
+		echo "error: vale is not installed."; \
+		echo ""; \
+		echo "  make install-vale   — auto-detect OS and install"; \
+		echo "  brew install vale   — macOS only"; \
+		echo "  https://vale.sh    — manual install"; \
+		echo ""; \
+		exit 1; \
+	}
 	@vale sync 2>/dev/null
 	@vale $(DOCS_SOURCES)
 
@@ -203,12 +245,12 @@ site: run-site ## Start the documentation website with hot reload
 run-site:
 	$(MAKE) -C site dev
 
-build-site:
+build-site: lint-docs
 	$(MAKE) -C site build
 
 clean-build-site:
 	$(MAKE) -C site clean
-	$(MAKE) -C site build
+	$(MAKE) build-site
 
 preview-site:
 	$(MAKE) -C site preview

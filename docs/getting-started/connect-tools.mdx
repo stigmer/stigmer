@@ -15,7 +15,7 @@ import {
 
 ## What you'll build
 
-An agent that can **look up real data**, **take actions on your behalf**, and
+An Agent that can **look up real data**, **take actions on your behalf**, and
 **ask for human approval** before doing anything risky. You will connect an MCP
 server, discover its tools, generate approval policies, and see everything
 working end-to-end from your code.
@@ -25,11 +25,11 @@ working end-to-end from your code.
 
 ## The problem
 
-Your agent knows your return policy — it answers domain questions accurately.
+Your Agent knows your return policy — it answers domain questions accurately.
 But ask it to look up order #ORD-4821 or process a return, and it can't help. It
 has knowledge but no hands.
 
-MCP servers give your agent hands. An MCP server is a bridge between your agent
+MCP servers give your Agent hands. An MCP server is a bridge between your Agent
 and an external system — an API, a database, an internal service. Stigmer
 connects to any server that speaks the
 [Model Context Protocol](https://modelcontextprotocol.io/).
@@ -41,12 +41,12 @@ connects to any server that speaks the
 
 1. Open [`app.stigmer.ai`](https://app.stigmer.ai) and go to **Library → MCP
    Servers**.
-2. Click **Add MCP Server**. This opens the MCP Server Creator — an agent that
+2. Click **Add MCP Server**. This opens the MCP Server Creator — an Agent that
    builds the server configuration from your description.
 3. Tell it about your server: the name, the URL (for HTTP servers), and whether
    it needs authentication.
 
-For an HTTP server, the agent needs the endpoint URL. For a stdio server (a
+For an HTTP server, the Agent needs the endpoint URL. For a stdio server (a
 command-line tool), it needs the command — `npx` for an npm package or the path
 to a Go binary.
 
@@ -55,12 +55,12 @@ Here is what that conversation looks like:
 <DemoMcpServerCreationTour />
 
 4. Review the generated configuration and click **Push** to save it to your
-   organization's library.
+   Organization's library.
 
 <Callout type="info">
   Stigmer supports both **HTTP** servers (REST APIs, webhooks) and **stdio**
   servers (CLI tools via `npx`, `go run`, or local binaries). The Server Creator
-  agent handles either — just describe what you have.
+  Agent handles either — just describe what you have.
 </Callout>
 
 </Step>
@@ -73,7 +73,7 @@ yet. Discovery connects to the server and catalogs every tool.
 
 1. Open the MCP server detail page.
 2. If the server requires credentials (API keys, tokens), enter them in the
-   environment variables section.
+   Environment variables section.
 3. Click **Discover**.
 
 Stigmer connects to the live server, queries its capabilities, and lists every
@@ -102,11 +102,11 @@ Others, like processing a return and issuing a refund, need a human in the loop.
 <DemoGeneratePolicies />
 
 In this example, `get_order` and `list_orders` run automatically.
-`process_return` requires human approval — the agent will pause and present the
+`process_return` requires human approval — the Agent will pause and present the
 action details before executing.
 
 <Callout type="info">
-  Approval policies are stored on the MCP server resource. Every agent that uses
+  Approval policies are stored on the MCP server resource. Every Agent that uses
   this server inherits the same policies. You can edit or override them at any
   time.
 </Callout>
@@ -116,14 +116,14 @@ action details before executing.
 
 ## Connect the tools in your code
 
-Open the code from the previous guides. Add `mcpServerRefs` to your session
-creation — this tells the agent which tools are available alongside the domain
+Open the code from the previous guides. Add `mcpServerRefs` to your Session
+creation — this tells the Agent which tools are available alongside the domain
 knowledge.
 
 <Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
 <Tab value="TypeScript">
 
-Update the session creation in `ask-agent.ts`:
+Update the Session creation in `ask-agent.ts`:
 
 ```typescript
 const session = await stigmer.session.create({
@@ -137,7 +137,7 @@ const session = await stigmer.session.create({
 </Tab>
 <Tab value="Go">
 
-Update the session creation in `main.go`:
+Update the Session creation in `main.go`:
 
 ```go
 session, err := client.Session.Create(ctx, &stigmer.SessionInput{
@@ -158,7 +158,7 @@ if err != nil {
 </Tab>
 <Tab value="Python">
 
-Update the session creation in `ask_agent.py`:
+Update the Session creation in `ask_agent.py`:
 
 ```python
 session = client.sessions.create(SessionInput(
@@ -172,7 +172,7 @@ session = client.sessions.create(SessionInput(
 </Tab>
 <Tab value="Java">
 
-Update the session creation in `src/main/java/AskAgent.java`:
+Update the Session creation in `src/main/java/AskAgent.java`:
 
 ```java
 var session = client.sessions().create(
@@ -230,7 +230,7 @@ STIGMER_API_KEY=sk_your_key mvn compile exec:java
 </Tab>
 </Tabs>
 
-This time the agent doesn't guess — it calls the `get_order` tool, retrieves the
+This time the Agent doesn't guess — it calls the `get_order` tool, retrieves the
 actual order data, and responds with real details:
 
 ```
@@ -242,7 +242,7 @@ Order #ORD-4821 has been shipped.
 ```
 
 Here is what that conversation looks like inside the Stigmer web app — watch the
-agent call the tool and return structured data:
+Agent call the tool and return structured data:
 
 <DemoToolCallsPlayback />
 
@@ -257,7 +257,7 @@ Now try a request that triggers the approval policy. Update the message:
 "Process a return for order #ORD-4821 — the headphones are defective."
 ```
 
-The execution will pause when the agent tries to call `process_return`. Your
+The execution will pause when the Agent tries to call `process_return`. Your
 code needs to detect the pending approval and submit a decision. Update your
 subscribe loop:
 
@@ -424,7 +424,7 @@ The return has been processed.
 - Estimated refund date: April 7, 2026
 ```
 
-Here is what that approval flow looks like in the Stigmer web app — the agent
+Here is what that approval flow looks like in the Stigmer web app — the Agent
 pauses, waits for a human decision, and then completes the action:
 
 <DemoApprovalFlowPlayback />
@@ -443,11 +443,11 @@ pauses, waits for a human decision, and then completes the action:
 
 ## What just happened
 
-You connected tools to your agent through an MCP server, discovered its
+You connected tools to your Agent through an MCP server, discovered its
 capabilities, and generated approval policies — all through the Stigmer web app.
-In your code, two changes made the difference: `mcpServerRefs` to give the agent
+In your code, two changes made the difference: `mcpServerRefs` to give the Agent
 access to tools, and `submitApproval` to handle the human-in-the-loop flow.
 
-Your agent now knows your domain (Skills), uses your tools (MCP servers), and
+Your Agent now knows your domain (Skills), uses your tools (MCP servers), and
 follows your rules (approval policies). That's the full Stigmer promise: **teach
 your domain, bring your tools, set your rules**.

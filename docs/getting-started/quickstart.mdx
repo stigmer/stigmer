@@ -1,14 +1,14 @@
 ---
 title: Quickstart
-description: Call an AI agent from your code in 5 minutes.
+description: Call the Stigmer API from your code in 5 minutes.
 ---
 
 import { DemoApiKeySetup, DemoQuickstartPlayback } from "@/components/docs";
 
 ## What you'll build
 
-A working AI agent you can call from your code — in 5 minutes. You will connect
-to Stigmer Cloud, send a message, and get a response through the SDK.
+A working Agent you can call from your code — in 5 minutes. You will connect to
+Stigmer Cloud, send a message, and get a response through the SDK.
 
 **Time**: ~5 minutes **Prerequisites**: A browser and one of:
 [Node.js](https://nodejs.org/) 20+, [Go](https://go.dev/) 1.21+,
@@ -33,7 +33,7 @@ to Stigmer Cloud, send a message, and get a response through the SDK.
 </Step>
 <Step>
 
-## Set up your project
+## Set up your Project
 
 <Tabs items={["TypeScript", "Go", "Python", "Java"]} groupId="sdk-language" persist>
 <Tab value="TypeScript">
@@ -195,10 +195,10 @@ public class AskAgent {
 </Step>
 <Step>
 
-## Create a session and send a message
+## Create a Session and send a message
 
-A session is a conversation with your agent. Create one, then send a message to
-start an execution. You don't specify which agent to use — Stigmer's built-in
+A Session is a conversation with your Agent. Create one, then send a message to
+start an execution. You don't specify which Agent to use — Stigmer's built-in
 assistant handles the request automatically.
 
 Add the following to the same file you created in the previous step.
@@ -301,14 +301,14 @@ Add to `src/main/java/AskAgent.java`:
 </Tab>
 </Tabs>
 
-Replace `my-org` with your organization slug from the Stigmer dashboard.
+Replace `my-org` with your Organization slug from the Stigmer dashboard.
 
 </Step>
 <Step>
 
 ## Stream the response
 
-Subscribe to the execution to receive the agent's response as it arrives.
+Subscribe to the execution to receive the Agent's response as it arrives.
 
 Add the following to the same file, right after the code from the previous step.
 
@@ -672,7 +672,7 @@ Here are some best practices for handling customer complaints:
    the customer is satisfied.
 ```
 
-It works. Your agent answered a general knowledge question accurately.
+It works. Your Agent answered a general knowledge question accurately.
 
 </Step>
 </Steps>
@@ -696,25 +696,25 @@ I'd recommend checking your company's return policy documentation or
 contacting your support team for accurate information.
 ```
 
-The agent answered the general question well. But when you asked about **your**
+The Agent answered the general question well. But when you asked about **your**
 business, it couldn't help — it doesn't know your return policy, your product
 catalog, or your escalation process. It's guessing.
 
 ## See it in action
 
 Here is what that conversation looks like inside the Stigmer web app. The
-assistant responds to each question, but the answers stay generic — the agent
+assistant responds to each question, but the answers stay generic — the Agent
 has no domain knowledge yet.
 
 <DemoQuickstartPlayback />
 
 ## What just happened
 
-You called an AI agent from your own code through a real API. No agent
+You called an Agent from your own code through a real API. No Agent
 configuration. No infrastructure setup. The built-in assistant handled your
 request automatically.
 
-The agent is good at general knowledge. But it doesn't know anything specific to
+The Agent is good at general knowledge. But it doesn't know anything specific to
 your business — and your customers can tell. In the next guide, you will teach
-your agent domain knowledge through the Stigmer web app. Same question,
+your Agent domain knowledge through the Stigmer web app. Same question,
 completely different answer.

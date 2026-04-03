@@ -6,39 +6,39 @@ description:
   it's configured, and how Stigmer keeps it safe.
 ---
 
-[Skills](/docs/concepts/skills) give an agent domain knowledge. Tools give it
-the ability to _act_. An agent with tool access can query databases, create
+[Skills](/docs/concepts/skills) give an Agent domain knowledge. Tools give it
+the ability to _act_. An Agent with tool access can query databases, create
 tickets, look up orders, send emails — any operation your systems support.
 
 Stigmer uses the
 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) to connect
-agents to external tools. MCP is an open standard that defines how AI models
+Agents to external tools. MCP is an open standard that defines how AI models
 discover and call tools. This means any MCP-compatible tool server works with
 Stigmer — you're not locked into a proprietary integration format.
 
 ## How tool calls work
 
-When an agent has tool access and receives a request that requires action, it:
+When an Agent has tool access and receives a request that requires action, it:
 
 1. Decides which tool to call based on the request and the tool's description
 2. Constructs the tool call arguments
 3. Stigmer validates the arguments and executes the call in a sandbox
 4. The tool returns a result
-5. The agent uses the result to form its response
+5. The Agent uses the result to form its response
 
 Here's what this looks like in practice — a customer asks about an order, and
-the agent calls the `get_order` tool to look up the details:
+the Agent calls the `get_order` tool to look up the details:
 
 <DemoToolCallsPlayback />
 
-The tool call appears in the conversation with its name and result. The agent
+The tool call appears in the conversation with its name and result. The Agent
 then uses that data to answer the customer's question with specific, real
 information instead of a generic response.
 
 ## MCP Server resource
 
 An MCP Server is a Stigmer resource that defines a tool connection. It describes
-how to reach the tool server and what environment variables it needs:
+how to reach the tool server and what Environment variables it needs:
 
 ```yaml
 apiVersion: agentic.stigmer.ai/v1
@@ -108,39 +108,39 @@ Each usage entry specifies:
 | Field                     | Purpose                                                                        |
 | ------------------------- | ------------------------------------------------------------------------------ |
 | `mcp_server_ref`          | Which MCP Server to connect to (by slug)                                       |
-| `enabled_tools`           | Which tools the agent can use (empty means all tools)                          |
-| `tool_approval_overrides` | Per-agent overrides for [approval requirements](/docs/concepts/approval-flows) |
+| `enabled_tools`           | Which tools the Agent can use (empty means all tools)                          |
+| `tool_approval_overrides` | Per-Agent overrides for [approval requirements](/docs/concepts/approval-flows) |
 
 This design means you define the tool server once and reference it from multiple
-agents. Each agent can enable a different subset of tools — a read-only agent
-might only get `get_order` and `list_orders`, while a full-access agent also
+Agents. Each Agent can enable a different subset of tools — a read-only Agent
+might only get `get_order` and `list_orders`, while a full-access Agent also
 gets `process_return`.
 
 ## Tool discovery
 
-When an agent runs, Stigmer connects to the referenced MCP Servers and discovers
+When an Agent runs, Stigmer connects to the referenced MCP Servers and discovers
 their available tools. Each tool has:
 
 - A **name** — used to call it (for example, `get_order`)
 - A **description** — helps the LLM decide when to use it
 - An **input schema** — defines what arguments it accepts
 
-The agent sees these tool descriptions in its context and decides which tools to
-call based on the user's request. You don't need to tell the agent "when the
+The Agent sees these tool descriptions in its context and decides which tools to
+call based on the user's request. You don't need to tell the Agent "when the
 user asks about an order, call `get_order`" — the LLM figures that out from the
 tool's description.
 
 ## Tool isolation
 
-Tool calls run in a controlled environment:
+Tool calls run in a controlled sandbox:
 
 - **Input validation** — Arguments are checked against the tool's input schema
   before execution
 - **Isolated execution** — Each tool call runs in its own sandbox
-- **Result capture** — Tool outputs are captured and returned to the agent as
+- **Result capture** — Tool outputs are captured and returned to the Agent as
   structured data
 
-This sandboxing means the agent can't bypass the tool server's logic or directly
+This sandboxing means the Agent can't bypass the tool server's logic or directly
 access the underlying system. It can only use the tools as the MCP Server
 exposes them.
 
@@ -148,7 +148,7 @@ exposes them.
 
 Just as [Skills](/docs/concepts/skills) can be added at the Session level, tool
 access can be customized per [Session](/docs/concepts/sessions). Session-level
-`mcp_server_usages` merge with the agent's configuration — if the same MCP
+`mcp_server_usages` merge with the Agent's configuration — if the same MCP
 Server appears in both, the Session-level entry takes precedence.
 
 This lets you temporarily add or restrict tool access for a specific
@@ -156,7 +156,7 @@ conversation without changing the Agent definition.
 
 ## What's next
 
-Tool access lets agents take actions. But some actions are too sensitive to
+Tool access lets Agents take actions. But some actions are too sensitive to
 execute automatically. The next page explains
 [Approval Flows](/docs/concepts/approval-flows) — how you define which tool
 calls require human oversight before proceeding.

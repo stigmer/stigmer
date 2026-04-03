@@ -52,7 +52,7 @@ Each variable has:
 ## Environment layering
 
 An Agent Instance can reference multiple Environments. They merge in order —
-later environments override earlier ones for the same variable name:
+later Environments override earlier ones for the same variable name:
 
 {/* prettier-ignore */}
 <Mermaid
@@ -81,15 +81,15 @@ spec:
 This layering lets you separate concerns:
 
 - **Shared configuration** — URLs, feature flags, non-sensitive settings shared
-  across agents
-- **Per-environment secrets** — API keys, credentials, tokens specific to
+  across Agents
+- **Per-Environment secrets** — API keys, credentials, tokens specific to
   dev/staging/production
-- **Per-agent overrides** — Settings that only one agent needs
+- **Per-Agent overrides** — Settings that only one Agent needs
 
 ## Declaring required variables
 
 [Agents](/docs/concepts/agents) and [MCP Servers](/docs/concepts/tools) declare
-which environment variables they need through `env_spec`:
+which variables they need at runtime through `env_spec`:
 
 ```yaml
 # In the McpServer definition
@@ -108,7 +108,7 @@ This is a _schema_, not a value assignment. It says "this resource needs these
 variables at runtime." The actual values come from the Environments attached to
 the Agent Instance.
 
-If a required variable is missing at runtime, the agent fails fast with a clear
+If a required variable is missing at runtime, the Agent fails fast with a clear
 error — not halfway through a tool call.
 
 ## Secrets vs. configuration
