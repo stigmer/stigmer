@@ -58,6 +58,19 @@ function stopAudio(audio: HTMLAudioElement): void {
 }
 
 /**
+ * Warm the browser HTTP cache by fetching every narration clip URL in
+ * the manifest. Subsequent `audio.load()` calls resolve from disk
+ * cache, eliminating network latency at step transitions.
+ */
+function prefetchManifestClips(manifest: NarrationManifest): void {
+  for (const entry of manifest.steps) {
+    if (entry?.src) {
+      fetch(entry.src).catch(() => {});
+    }
+  }
+}
+
+/**
  * Manages narration audio playback synced to scenario step progression.
  *
  * Encapsulates all audio state so ScenarioPlayer stays focused on step
@@ -81,6 +94,7 @@ export function useNarrationPlayback({
 }: UseNarrationPlaybackOptions): UseNarrationPlaybackResult {
   const [muted, setMuted] = useState(initialMuted);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const prefetchedRef = useRef(false);
 
   // Keep muted state accessible in effects without re-triggering them.
   const mutedRef = useRef(muted);
@@ -89,6 +103,16 @@ export function useNarrationPlayback({
   // Resolve the narration entry for the current step.
   const entry = manifest?.steps[stepIndex] ?? null;
   const entrySrc = entry?.src ?? null;
+
+  // -----------------------------------------------------------------------
+  // Pre-fetch all clips when starting unmuted (video export mode).
+  // Interactive unmute is handled inside toggleMute.
+  // -----------------------------------------------------------------------
+  useEffect(() => {
+    if (!manifest || initialMuted || prefetchedRef.current) return;
+    prefetchManifestClips(manifest);
+    prefetchedRef.current = true;
+  }, [manifest, initialMuted]);
 
   // -----------------------------------------------------------------------
   // Step change → play the new step's clip (if unmuted and available)
@@ -129,16 +153,20 @@ export function useNarrationPlayback({
       if (!audio) return next;
 
       if (next) {
-        // Muting → stop playback
         stopAudio(audio);
-      } else if (entrySrc) {
-        // Unmuting → play current step's clip (user gesture context)
-        playClip(audio, entrySrc);
+      } else {
+        if (manifest && !prefetchedRef.current) {
+          prefetchManifestClips(manifest);
+          prefetchedRef.current = true;
+        }
+        if (entrySrc) {
+          playClip(audio, entrySrc);
+        }
       }
 
       return next;
     });
-  }, [entrySrc]);
+  }, [entrySrc, manifest]);
 
   // -----------------------------------------------------------------------
   // Cleanup on unmount
