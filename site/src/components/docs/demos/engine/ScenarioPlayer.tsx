@@ -114,10 +114,15 @@ export function ScenarioPlayer<T>({
     }
 
     const nextIndex = stepIndex + 1;
-    const delay = steps[nextIndex].delayMs;
+    const baseDelay = steps[nextIndex].delayMs;
+    const narrationDuration =
+      !muted && narrationManifest
+        ? (narrationManifest.steps[stepIndex]?.durationMs ?? 0)
+        : 0;
+    const delay = Math.max(baseDelay, narrationDuration);
     const timer = setTimeout(() => setStepIndex(nextIndex), delay);
     return () => clearTimeout(timer);
-  }, [playing, stepIndex, steps, lastIndex, prefersReducedMotion]);
+  }, [playing, stepIndex, steps, lastIndex, prefersReducedMotion, muted, narrationManifest]);
 
   useEffect(() => {
     onStepChange?.(steps[stepIndex].data, stepIndex);
