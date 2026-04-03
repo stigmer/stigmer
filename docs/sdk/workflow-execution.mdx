@@ -8,70 +8,80 @@ description: "SDK reference for Workflow Execution resources."
 ## Client Access
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowExecution, err := client.WorkflowExecution.Get(ctx,
-    "workflow-execution-abc123") ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowExecution = await
-    stigmer.workflowExecution.get("workflow-execution-abc123"); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowExecution =
-    client.workflow_execution.get("workflow-execution-abc123") ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowExecution workflowExecution =
-    client.workflowExecution().get("workflow-execution-abc123"); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.Get(ctx, "workflow-execution-abc123")
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.get("workflow-execution-abc123");
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowExecution = client.workflow_execution.get("workflow-execution-abc123")
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecution().get("workflow-execution-abc123");
+```
+</Tab>
 </SDKTabs>
 
 ## Methods
 
-| Method                              | Description                                                                          | Streaming |
-| ----------------------------------- | ------------------------------------------------------------------------------------ | --------- |
-| [`get`](#get)                       | Get a single workflow execution by ID.                                               |           |
-| [`list`](#list)                     | List workflow executions with pagination and optional filtering.                     |           |
-| [`listByWorkflow`](#listbyworkflow) | List all executions for a specific Workflow or WorkflowInstance.                     |           |
-| [`subscribe`](#subscribe)           | Subscribe to real-time updates for a specific workflow execution (server streaming). | Server    |
-| [`create`](#create)                 | Create and trigger a new workflow execution.                                         |           |
-| [`update`](#update)                 | Update execution with full state.                                                    |           |
-| [`updateStatus`](#updatestatus)     | Update execution status during workflow execution.                                   |           |
-| [`delete`](#delete)                 | Delete an execution.                                                                 |           |
-| [`pause`](#pause)                   | Pause a running workflow execution.                                                  |           |
-| [`resume`](#resume)                 | Resume a paused workflow execution.                                                  |           |
-| [`cancel`](#cancel)                 | Cancel a running workflow execution gracefully.                                      |           |
-| [`terminate`](#terminate)           | Terminate a workflow execution immediately.                                          |           |
-| [`recover`](#recover)               | Recover a failed workflow execution from the last checkpoint.                        |           |
-| [`submitApproval`](#submitapproval) | Submit approval for a child agent's tool execution (HITL Phase 5.3).                 |           |
-| [`sendSignal`](#sendsignal)         | Send a signal to a running workflow execution.                                       |           |
+| Method | Description | Streaming |
+|--------|-------------|-----------|
+| [`get`](#get) | Get a single workflow execution by ID. | |
+| [`list`](#list) | List workflow executions with pagination and optional filtering. | |
+| [`listByWorkflow`](#listbyworkflow) | List all executions for a specific Workflow or WorkflowInstance. | |
+| [`subscribe`](#subscribe) | Subscribe to real-time updates for a specific workflow execution (server streaming). | Server |
+| [`create`](#create) | Create and trigger a new workflow execution. | |
+| [`update`](#update) | Update execution with full state. | |
+| [`updateStatus`](#updatestatus) | Update execution status during workflow execution. | |
+| [`delete`](#delete) | Delete an execution. | |
+| [`pause`](#pause) | Pause a running workflow execution. | |
+| [`resume`](#resume) | Resume a paused workflow execution. | |
+| [`cancel`](#cancel) | Cancel a running workflow execution gracefully. | |
+| [`terminate`](#terminate) | Terminate a workflow execution immediately. | |
+| [`recover`](#recover) | Recover a failed workflow execution from the last checkpoint. | |
+| [`submitApproval`](#submitapproval) | Submit approval for a child agent's tool execution (HITL Phase 5.3). | |
+| [`sendSignal`](#sendsignal) | Send a signal to a running workflow execution. | |
 
 ### get
 
 Get a single workflow execution by ID.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowExecution, err := client.WorkflowExecution.Get(ctx, id) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowExecution = await
-    stigmer.workflowExecution.get(id); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowExecution = client.workflow_execution.get(id) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowExecution workflowExecution =
-    client.workflowExecution().get(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.Get(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.get(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowExecution = client.workflow_execution.get(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecution().get(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description                    |
-| --------- | -------- | ------------------------------ |
-| `id`      | `string` | Workflow Execution identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Workflow Execution identifier. |
 
 **Returns**: `WorkflowExecution`
 
@@ -80,20 +90,26 @@ Get a single workflow execution by ID.
 List workflow executions with pagination and optional filtering.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go result, err := client.WorkflowExecution.List(ctx, input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const result = await stigmer.workflowExecution.list(input);
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python result = client.workflow_execution.list(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowExecutionList result =
-    client.workflowExecution().list(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+result, err := client.WorkflowExecution.List(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.workflowExecution.list(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.workflow_execution.list(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecutionList result = client.workflowExecution().list(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `ListWorkflowExecutionsRequest`
@@ -105,20 +121,26 @@ List workflow executions with pagination and optional filtering.
 List all executions for a specific Workflow or WorkflowInstance.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go result, err := client.WorkflowExecution.ListByWorkflow(ctx, input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const result = await
-    stigmer.workflowExecution.listByWorkflow(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python result = client.workflow_execution.list_by_workflow(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowExecutionList result =
-    client.workflowExecution().listByWorkflow(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+result, err := client.WorkflowExecution.ListByWorkflow(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.workflowExecution.listByWorkflow(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.workflow_execution.list_by_workflow(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecutionList result = client.workflowExecution().listByWorkflow(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `ListWorkflowExecutionsByWorkflowRequest`
@@ -127,11 +149,9 @@ List all executions for a specific Workflow or WorkflowInstance.
 
 ### subscribe
 
-> **Server Streaming** — This method returns a stream of updates, not a single
-> response.
+> **Server Streaming** — This method returns a stream of updates, not a single response.
 
-Subscribe to real-time updates for a specific workflow execution (server
-streaming).
+Subscribe to real-time updates for a specific workflow execution (server streaming).
 
 <SDKTabs>
 <Tab value="Go">
@@ -218,9 +238,7 @@ WorkflowExecution workflowExecution = client.workflowExecution().create(Workflow
 
 ### update
 
-Update execution with full state. Used by users to update execution
-configuration (spec fields). No individual field updates - always provide
-complete state.
+Update execution with full state. Used by users to update execution configuration (spec fields). No individual field updates - always provide complete state.
 
 <SDKTabs>
 <Tab value="Go">
@@ -263,28 +281,29 @@ WorkflowExecution workflowExecution = client.workflowExecution().update(Workflow
 
 ### updateStatus
 
-Update execution status during workflow execution. Used by workflow-runner to
-send progressive status updates (messages, task states, phase, etc.) This RPC is
-optimized for frequent status updates and merges status fields with existing
-state.
+Update execution status during workflow execution. Used by workflow-runner to send progressive status updates (messages, task states, phase, etc.) This RPC is optimized for frequent status updates and merges status fields with existing state.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowExecution, err := client.WorkflowExecution.UpdateStatus(ctx,
-    input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowExecution = await
-    stigmer.workflowExecution.updateStatus(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowExecution = client.workflow_execution.update_status(input)
-    ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowExecution workflowExecution =
-    client.workflowExecution().updateStatus(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.UpdateStatus(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.updateStatus(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowExecution = client.workflow_execution.update_status(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecution().updateStatus(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `WorkflowExecutionUpdateStatusInput`
@@ -296,27 +315,33 @@ state.
 Delete an execution.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowExecution, err := client.WorkflowExecution.Delete(ctx, id) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowExecution = await
-    stigmer.workflowExecution.delete(id); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowExecution = client.workflow_execution.delete(id) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowExecution workflowExecution =
-    client.workflowExecution().delete(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.Delete(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.delete(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowExecution = client.workflow_execution.delete(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecution().delete(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description                    |
-| --------- | -------- | ------------------------------ |
-| `id`      | `string` | Workflow Execution identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Workflow Execution identifier. |
 
 **Returns**: `WorkflowExecution`
 
@@ -325,21 +350,26 @@ Delete an execution.
 Pause a running workflow execution.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowExecution, err := client.WorkflowExecution.Pause(ctx, input)
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowExecution = await
-    stigmer.workflowExecution.pause(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowExecution = client.workflow_execution.pause(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowExecution workflowExecution =
-    client.workflowExecution().pause(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.Pause(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.pause(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowExecution = client.workflow_execution.pause(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecution().pause(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `PauseWorkflowExecutionInput`
@@ -351,21 +381,26 @@ Pause a running workflow execution.
 Resume a paused workflow execution.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowExecution, err := client.WorkflowExecution.Resume(ctx, input)
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowExecution = await
-    stigmer.workflowExecution.resume(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowExecution = client.workflow_execution.resume(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowExecution workflowExecution =
-    client.workflowExecution().resume(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.Resume(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.resume(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowExecution = client.workflow_execution.resume(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecution().resume(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `ResumeWorkflowExecutionInput`
@@ -377,21 +412,26 @@ Resume a paused workflow execution.
 Cancel a running workflow execution gracefully.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowExecution, err := client.WorkflowExecution.Cancel(ctx, input)
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowExecution = await
-    stigmer.workflowExecution.cancel(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowExecution = client.workflow_execution.cancel(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowExecution workflowExecution =
-    client.workflowExecution().cancel(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.Cancel(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.cancel(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowExecution = client.workflow_execution.cancel(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecution().cancel(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `CancelWorkflowExecutionInput`
@@ -403,21 +443,26 @@ Cancel a running workflow execution gracefully.
 Terminate a workflow execution immediately.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowExecution, err := client.WorkflowExecution.Terminate(ctx,
-    input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowExecution = await
-    stigmer.workflowExecution.terminate(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowExecution = client.workflow_execution.terminate(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowExecution workflowExecution =
-    client.workflowExecution().terminate(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.Terminate(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.terminate(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowExecution = client.workflow_execution.terminate(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecution().terminate(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `TerminateWorkflowExecutionInput`
@@ -429,21 +474,26 @@ Terminate a workflow execution immediately.
 Recover a failed workflow execution from the last checkpoint.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowExecution, err := client.WorkflowExecution.Recover(ctx, input)
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowExecution = await
-    stigmer.workflowExecution.recover(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowExecution = client.workflow_execution.recover(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowExecution workflowExecution =
-    client.workflowExecution().recover(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.Recover(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.recover(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowExecution = client.workflow_execution.recover(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecution().recover(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `RecoverWorkflowExecutionInput`
@@ -455,22 +505,26 @@ Recover a failed workflow execution from the last checkpoint.
 Submit approval for a child agent's tool execution (HITL Phase 5.3).
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowExecution, err := client.WorkflowExecution.SubmitApproval(ctx,
-    input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowExecution = await
-    stigmer.workflowExecution.submitApproval(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowExecution =
-    client.workflow_execution.submit_approval(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowExecution workflowExecution =
-    client.workflowExecution().submitApproval(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.SubmitApproval(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.submitApproval(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowExecution = client.workflow_execution.submit_approval(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecution().submitApproval(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `SubmitWorkflowApprovalInput`
@@ -482,22 +536,26 @@ Submit approval for a child agent's tool execution (HITL Phase 5.3).
 Send a signal to a running workflow execution.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowExecution, err := client.WorkflowExecution.SendSignal(ctx,
-    input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowExecution = await
-    stigmer.workflowExecution.sendSignal(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowExecution = client.workflow_execution.send_signal(input)
-    ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowExecution workflowExecution =
-    client.workflowExecution().sendSignal(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowExecution, err := client.WorkflowExecution.SendSignal(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowExecution = await stigmer.workflowExecution.sendSignal(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowExecution = client.workflow_execution.send_signal(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowExecution workflowExecution = client.workflowExecution().sendSignal(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `SendSignalInput`
@@ -515,35 +573,13 @@ Input for creating or updating a Workflow Execution.
     name: { type: "string", description: "Resource name.", required: true },
     slug: { type: "string", description: "URL-friendly identifier." },
     org: { type: "string", description: "Organization slug.", required: true },
-    labels: {
-      type: "Record<string, string>",
-      description: "Key-value labels.",
-    },
-    workflowInstanceId: {
-      type: "string",
-      description: "ID of the WorkflowInstance to execute (optional).",
-    },
-    workflowId: {
-      type: "string",
-      description: "ID of the Workflow template to execute (optional).",
-    },
-    triggerMessage: {
-      type: "string",
-      description: "Input message or payload for the workflow.",
-    },
-    triggerMetadata: {
-      type: "Record<string, string>",
-      description: "Trigger context metadata.",
-    },
-    runtimeEnv: {
-      type: "Record<string, EnvVarInput>",
-      description:
-        "Runtime environment variables and secrets (execution-scoped).",
-    },
-    callbackToken: {
-      type: "Uint8Array",
-      description:
-        "Temporal task token for async activity completion (optional).",
-    },
+    labels: { type: "Record<string, string>", description: "Key-value labels." },
+    workflowInstanceId: { type: "string", description: "ID of the WorkflowInstance to execute (optional)." },
+    workflowId: { type: "string", description: "ID of the Workflow template to execute (optional)." },
+    triggerMessage: { type: "string", description: "Input message or payload for the workflow." },
+    triggerMetadata: { type: "Record<string, string>", description: "Trigger context metadata." },
+    runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Runtime environment variables and secrets (execution-scoped)." },
+    callbackToken: { type: "Uint8Array", description: "Temporal task token for async activity completion (optional)." },
   }}
 />
+

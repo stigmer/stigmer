@@ -10,52 +10,71 @@ Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
 ## Client Access
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflow, err := client.Workflow.Get(ctx, "workflow-abc123") ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflow = await
-    stigmer.workflow.get("workflow-abc123"); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflow = client.workflow.get("workflow-abc123") ```
-  </Tab>
-  <Tab value="Java">
-    ```java Workflow workflow = client.workflow().get("workflow-abc123"); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.Get(ctx, "workflow-abc123")
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflow = await stigmer.workflow.get("workflow-abc123");
+```
+</Tab>
+<Tab value="Python">
+```python
+workflow = client.workflow.get("workflow-abc123")
+```
+</Tab>
+<Tab value="Java">
+```java
+Workflow workflow = client.workflow().get("workflow-abc123");
+```
+</Tab>
 </SDKTabs>
 
 ## Methods
 
-| Method                              | Description                      |
-| ----------------------------------- | -------------------------------- |
-| [`get`](#get)                       | Get a single workflow by ID.     |
+| Method | Description |
+|--------|-------------|
+| [`get`](#get) | Get a single workflow by ID. |
 | [`getByReference`](#getbyreference) | Custom authorization in handler. |
-| [`apply`](#apply)                   | Create or update a workflow.     |
-| [`create`](#create)                 | Create a new workflow.           |
-| [`update`](#update)                 | Update an existing workflow.     |
-| [`delete`](#delete)                 | Delete a workflow.               |
+| [`apply`](#apply) | Create or update a workflow. |
+| [`create`](#create) | Create a new workflow. |
+| [`update`](#update) | Update an existing workflow. |
+| [`delete`](#delete) | Delete a workflow. |
 
 ### get
 
 Get a single workflow by ID.
 
 <SDKTabs>
-  <Tab value="Go">```go workflow, err := client.Workflow.Get(ctx, id) ```</Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflow = await stigmer.workflow.get(id); ```
-  </Tab>
-  <Tab value="Python">```python workflow = client.workflow.get(id) ```</Tab>
-  <Tab value="Java">
-    ```java Workflow workflow = client.workflow().get(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.Get(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflow = await stigmer.workflow.get(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflow = client.workflow.get(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+Workflow workflow = client.workflow().get(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description          |
-| --------- | -------- | -------------------- |
-| `id`      | `string` | Workflow identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Workflow identifier. |
 
 **Returns**: `Workflow`
 
@@ -64,19 +83,26 @@ Get a single workflow by ID.
 Custom authorization in handler
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflow, err := client.Workflow.GetByReference(ctx, input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflow = await stigmer.workflow.getByReference(input);
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflow = client.workflow.get_by_reference(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java Workflow workflow = client.workflow().getByReference(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.GetByReference(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflow = await stigmer.workflow.getByReference(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflow = client.workflow.get_by_reference(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+Workflow workflow = client.workflow().getByReference(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `ApiResourceReference`
@@ -85,9 +111,7 @@ Custom authorization in handler
 
 ### apply
 
-Create or update a workflow. The authorization and state-operation are
-determined depending on whether the workflow is going to be created or updated
-which is determined as part of the request execution.
+Create or update a workflow. The authorization and state-operation are determined depending on whether the workflow is going to be created or updated which is determined as part of the request execution.
 
 <SDKTabs>
 <Tab value="Go">
@@ -219,23 +243,33 @@ Workflow workflow = client.workflow().update(WorkflowInput.builder()
 Delete a workflow.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflow, err := client.Workflow.Delete(ctx, id) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflow = await stigmer.workflow.delete(id); ```
-  </Tab>
-  <Tab value="Python">```python workflow = client.workflow.delete(id) ```</Tab>
-  <Tab value="Java">
-    ```java Workflow workflow = client.workflow().delete(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflow, err := client.Workflow.Delete(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflow = await stigmer.workflow.delete(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflow = client.workflow.delete(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+Workflow workflow = client.workflow().delete(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description          |
-| --------- | -------- | -------------------- |
-| `id`      | `string` | Workflow identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Workflow identifier. |
 
 **Returns**: `Workflow`
 
@@ -250,28 +284,11 @@ Input for creating or updating a Workflow.
     name: { type: "string", description: "Resource name.", required: true },
     slug: { type: "string", description: "URL-friendly identifier." },
     org: { type: "string", description: "Organization slug.", required: true },
-    labels: {
-      type: "Record<string, string>",
-      description: "Key-value labels.",
-    },
-    description: {
-      type: "string",
-      description: "Human-readable description for UI and marketplace display.",
-    },
-    document: {
-      type: "WorkflowDocumentInput",
-      description:
-        "Workflow document metadata (DSL version, namespace, name, version).",
-      required: true,
-    },
-    tasks: {
-      type: "WorkflowTaskInput[]",
-      description: "Ordered list of tasks that make up this workflow.",
-    },
-    envSpec: {
-      type: "EnvSpecInput",
-      description: "Environment variables required by the workflow.",
-    },
+    labels: { type: "Record<string, string>", description: "Key-value labels." },
+    description: { type: "string", description: "Human-readable description for UI and marketplace display." },
+    document: { type: "WorkflowDocumentInput", description: "Workflow document metadata (DSL version, namespace, name, version).", required: true },
+    tasks: { type: "WorkflowTaskInput[]", description: "Ordered list of tasks that make up this workflow." },
+    envSpec: { type: "EnvSpecInput", description: "Environment variables required by the workflow." },
   }}
 />
 
@@ -282,21 +299,9 @@ WorkflowDocument contains workflow metadata.
 <TypeTable
   type={{
     dsl: { type: "string", description: "DSL version (semver)." },
-    namespace: {
-      type: "string",
-      description: "Workflow namespace (organization/categorization).",
-      required: true,
-    },
-    name: {
-      type: "string",
-      description: "Workflow name (unique identifier within namespace).",
-      required: true,
-    },
-    version: {
-      type: "string",
-      description: "Workflow version (semver).",
-      required: true,
-    },
+    namespace: { type: "string", description: "Workflow namespace (organization/categorization).", required: true },
+    name: { type: "string", description: "Workflow name (unique identifier within namespace).", required: true },
+    version: { type: "string", description: "Workflow version (semver).", required: true },
     description: { type: "string", description: "Human-readable description." },
   }}
 />
@@ -307,29 +312,11 @@ WorkflowTask represents a single task in the workflow.
 
 <TypeTable
   type={{
-    name: {
-      type: "string",
-      description: "Task name/identifier (must be unique within workflow).",
-      required: true,
-    },
-    kind: {
-      type: "WorkflowTaskKind",
-      description: "Task type (determines how to interpret task_config).",
-      required: true,
-    },
-    taskConfig: {
-      type: "object",
-      description: "Task-specific configuration (dynamic typed).",
-      required: true,
-    },
-    export: {
-      type: "ExportInput",
-      description: "Export configuration (how to save task output to context).",
-    },
-    flow: {
-      type: "FlowControlInput",
-      description: "Flow control (which task executes next).",
-    },
+    name: { type: "string", description: "Task name/identifier (must be unique within workflow).", required: true },
+    kind: { type: "WorkflowTaskKind", description: "Task type (determines how to interpret task_config).", required: true },
+    taskConfig: { type: "object", description: "Task-specific configuration (dynamic typed).", required: true },
+    export: { type: "ExportInput", description: "Export configuration (how to save task output to context)." },
+    flow: { type: "FlowControlInput", description: "Flow control (which task executes next)." },
   }}
 />
 
@@ -339,10 +326,7 @@ Export defines how to save task output to context.
 
 <TypeTable
   type={{
-    as: {
-      type: "string",
-      description: "Expression defining how to export output.",
-    },
+    as: { type: "string", description: "Expression defining how to export output." },
   }}
 />
 
@@ -352,9 +336,7 @@ FlowControl defines which task executes next.
 
 <TypeTable
   type={{
-    then: {
-      type: "string",
-      description: 'Target task name or "end" to terminate workflow.',
-    },
+    then: { type: "string", description: "Target task name or \"end\" to terminate workflow." },
   }}
 />
+

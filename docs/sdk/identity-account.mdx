@@ -8,96 +8,109 @@ description: "SDK reference for Identity Account resources."
 ## Client Access
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go identityAccount, err := client.IdentityAccount.Get(ctx,
-    "identity-account-abc123") ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const identityAccount = await
-    stigmer.identityAccount.get("identity-account-abc123"); ```
-  </Tab>
-  <Tab value="Python">
-    ```python identityAccount =
-    client.identity_account.get("identity-account-abc123") ```
-  </Tab>
-  <Tab value="Java">
-    ```java IdentityAccount identityAccount =
-    client.identityAccount().get("identity-account-abc123"); ```
-  </Tab>
+<Tab value="Go">
+```go
+identityAccount, err := client.IdentityAccount.Get(ctx, "identity-account-abc123")
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const identityAccount = await stigmer.identityAccount.get("identity-account-abc123");
+```
+</Tab>
+<Tab value="Python">
+```python
+identityAccount = client.identity_account.get("identity-account-abc123")
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityAccount identityAccount = client.identityAccount().get("identity-account-abc123");
+```
+</Tab>
 </SDKTabs>
 
 ## Methods
 
-| Method                                            | Description                                                                                       |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| [`get`](#get)                                     | lookup identity-account.                                                                          |
-| [`getActorInfo`](#getactorinfo)                   | lookup identity-account actor-info (lightweight actor data for audit trail caching).              |
-| [`getByEmail`](#getbyemail)                       | lookup user-account by identity account email.                                                    |
-| [`getByIdpId`](#getbyidpid)                       | lookup user-account by idp id.                                                                    |
-| [`create`](#create)                               | create a new identity-account.                                                                    |
-| [`update`](#update)                               | update an existing identity-account.                                                              |
-| [`delete`](#delete)                               | delete an existing identity-account.                                                              |
+| Method | Description |
+|--------|-------------|
+| [`get`](#get) | lookup identity-account. |
+| [`getActorInfo`](#getactorinfo) | lookup identity-account actor-info (lightweight actor data for audit trail caching). |
+| [`getByEmail`](#getbyemail) | lookup user-account by identity account email. |
+| [`getByIdpId`](#getbyidpid) | lookup user-account by idp id. |
+| [`create`](#create) | create a new identity-account. |
+| [`update`](#update) | update an existing identity-account. |
+| [`delete`](#delete) | delete an existing identity-account. |
 | [`simulateSignupWebhook`](#simulatesignupwebhook) | simulate signup webhook to add a user who created account on auth0 but is not created on stigmer. |
-| [`whoAmI`](#whoami)                               | look up identity-account by authentication token.                                                 |
+| [`whoAmI`](#whoami) | look up identity-account by authentication token. |
 
 ### get
 
 lookup identity-account.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go identityAccount, err := client.IdentityAccount.Get(ctx, id) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const identityAccount = await stigmer.identityAccount.get(id);
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python identityAccount = client.identity_account.get(id) ```
-  </Tab>
-  <Tab value="Java">
-    ```java IdentityAccount identityAccount = client.identityAccount().get(id);
-    ```
-  </Tab>
+<Tab value="Go">
+```go
+identityAccount, err := client.IdentityAccount.Get(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const identityAccount = await stigmer.identityAccount.get(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+identityAccount = client.identity_account.get(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityAccount identityAccount = client.identityAccount().get(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description                  |
-| --------- | -------- | ---------------------------- |
-| `id`      | `string` | Identity Account identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Identity Account identifier. |
 
 **Returns**: `IdentityAccount`
 
 ### getActorInfo
 
-lookup identity-account actor-info (lightweight actor data for audit trail
-caching)
+lookup identity-account actor-info (lightweight actor data for audit trail caching)
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go apiResourceAuditActor, err := client.IdentityAccount.GetActorInfo(ctx,
-    id) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const apiResourceAuditActor = await
-    stigmer.identityAccount.getActorInfo(id); ```
-  </Tab>
-  <Tab value="Python">
-    ```python apiResourceAuditActor = client.identity_account.get_actor_info(id)
-    ```
-  </Tab>
-  <Tab value="Java">
-    ```java ApiResourceAuditActor apiResourceAuditActor =
-    client.identityAccount().getActorInfo(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+apiResourceAuditActor, err := client.IdentityAccount.GetActorInfo(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const apiResourceAuditActor = await stigmer.identityAccount.getActorInfo(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+apiResourceAuditActor = client.identity_account.get_actor_info(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+ApiResourceAuditActor apiResourceAuditActor = client.identityAccount().getActorInfo(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description                  |
-| --------- | -------- | ---------------------------- |
-| `id`      | `string` | Identity Account identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Identity Account identifier. |
 
 **Returns**: `ApiResourceAuditActor`
 
@@ -106,21 +119,26 @@ caching)
 lookup user-account by identity account email.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go identityAccount, err := client.IdentityAccount.GetByEmail(ctx, input)
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const identityAccount = await
-    stigmer.identityAccount.getByEmail(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python identityAccount = client.identity_account.get_by_email(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java IdentityAccount identityAccount =
-    client.identityAccount().getByEmail(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+identityAccount, err := client.IdentityAccount.GetByEmail(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const identityAccount = await stigmer.identityAccount.getByEmail(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+identityAccount = client.identity_account.get_by_email(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityAccount identityAccount = client.identityAccount().getByEmail(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `IdentityAccountEmail`
@@ -132,36 +150,39 @@ lookup user-account by identity account email.
 lookup user-account by idp id.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go identityAccount, err := client.IdentityAccount.GetByIdpId(ctx, id) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const identityAccount = await
-    stigmer.identityAccount.getByIdpId(id); ```
-  </Tab>
-  <Tab value="Python">
-    ```python identityAccount = client.identity_account.get_by_idp_id(id) ```
-  </Tab>
-  <Tab value="Java">
-    ```java IdentityAccount identityAccount =
-    client.identityAccount().getByIdpId(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+identityAccount, err := client.IdentityAccount.GetByIdpId(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const identityAccount = await stigmer.identityAccount.getByIdpId(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+identityAccount = client.identity_account.get_by_idp_id(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityAccount identityAccount = client.identityAccount().getByIdpId(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description                  |
-| --------- | -------- | ---------------------------- |
-| `id`      | `string` | Identity Account identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Identity Account identifier. |
 
 **Returns**: `IdentityAccount`
 
 ### create
 
-create a new identity-account. system-level RPC used by federated JIT
-provisioning and Auth0 webhook flow. no FGA authorization — called via
-inProcessChannelAsSystem (machine account). the handler's
-createAuthorizationTuples step writes the self-ownership tuple after creation.
+create a new identity-account. system-level RPC used by federated JIT provisioning and Auth0 webhook flow. no FGA authorization — called via inProcessChannelAsSystem (machine account). the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
 
 <SDKTabs>
 <Tab value="Go">
@@ -250,53 +271,61 @@ IdentityAccount identityAccount = client.identityAccount().update(IdentityAccoun
 delete an existing identity-account
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go identityAccount, err := client.IdentityAccount.Delete(ctx, id) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const identityAccount = await
-    stigmer.identityAccount.delete(id); ```
-  </Tab>
-  <Tab value="Python">
-    ```python identityAccount = client.identity_account.delete(id) ```
-  </Tab>
-  <Tab value="Java">
-    ```java IdentityAccount identityAccount =
-    client.identityAccount().delete(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+identityAccount, err := client.IdentityAccount.Delete(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const identityAccount = await stigmer.identityAccount.delete(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+identityAccount = client.identity_account.delete(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityAccount identityAccount = client.identityAccount().delete(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description                  |
-| --------- | -------- | ---------------------------- |
-| `id`      | `string` | Identity Account identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Identity Account identifier. |
 
 **Returns**: `IdentityAccount`
 
 ### simulateSignupWebhook
 
-simulate signup webhook to add a user who created account on auth0 but is not
-created on stigmer. this rpc will take the email, look it up on auth0, if there
-is a user with this email on auth0 and post a webhook to stigmer with auth0
-payload format.
+simulate signup webhook to add a user who created account on auth0 but is not created on stigmer. this rpc will take the email, look it up on auth0, if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go empty, err := client.IdentityAccount.SimulateSignupWebhook(ctx, input)
-    ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const empty = await
-    stigmer.identityAccount.simulateSignupWebhook(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python empty = client.identity_account.simulate_signup_webhook(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java Empty empty = client.identityAccount().simulateSignupWebhook(input);
-    ```
-  </Tab>
+<Tab value="Go">
+```go
+empty, err := client.IdentityAccount.SimulateSignupWebhook(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const empty = await stigmer.identityAccount.simulateSignupWebhook(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+empty = client.identity_account.simulate_signup_webhook(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+Empty empty = client.identityAccount().simulateSignupWebhook(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `IdentityAccountEmail`
@@ -308,20 +337,26 @@ payload format.
 look up identity-account by authentication token.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go identityAccount, err := client.IdentityAccount.WhoAmI(ctx) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const identityAccount = await
-    stigmer.identityAccount.whoAmI(); ```
-  </Tab>
-  <Tab value="Python">
-    ```python identityAccount = client.identity_account.who_am_i() ```
-  </Tab>
-  <Tab value="Java">
-    ```java IdentityAccount identityAccount = client.identityAccount().whoAmI();
-    ```
-  </Tab>
+<Tab value="Go">
+```go
+identityAccount, err := client.IdentityAccount.WhoAmI(ctx)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const identityAccount = await stigmer.identityAccount.whoAmI();
+```
+</Tab>
+<Tab value="Python">
+```python
+identityAccount = client.identity_account.who_am_i()
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityAccount identityAccount = client.identityAccount().whoAmI();
+```
+</Tab>
 </SDKTabs>
 
 **Returns**: `IdentityAccount`
@@ -337,38 +372,15 @@ Input for creating or updating an Identity Account.
     name: { type: "string", description: "Resource name.", required: true },
     slug: { type: "string", description: "URL-friendly identifier." },
     org: { type: "string", description: "Organization slug.", required: true },
-    labels: {
-      type: "Record<string, string>",
-      description: "Key-value labels.",
-    },
-    idpId: {
-      type: "string",
-      description: "IDP ID of the identity account.",
-      required: true,
-    },
+    labels: { type: "Record<string, string>", description: "Key-value labels." },
+    idpId: { type: "string", description: "IDP ID of the identity account.", required: true },
     email: { type: "string", description: "Email of the identity account." },
-    firstName: {
-      type: "string",
-      description: "First name of the identity account.",
-    },
-    lastName: {
-      type: "string",
-      description: "Last name of the identity account.",
-    },
+    firstName: { type: "string", description: "First name of the identity account." },
+    lastName: { type: "string", description: "Last name of the identity account." },
     pictureUrl: { type: "string", description: "URL of the profile picture." },
-    isMachineAccount: {
-      type: "boolean",
-      description:
-        "Indicates if this is a machine account used for inter-service communication.",
-    },
-    provisioningMode: {
-      type: "IdentityAccountProvisioningMode",
-      description: "How this identity account was provisioned.",
-    },
-    identityProviderRef: {
-      type: "ResourceRef",
-      description:
-        "Reference to the IdentityProvider that provisioned this account.",
-    },
+    isMachineAccount: { type: "boolean", description: "Indicates if this is a machine account used for inter-service communication." },
+    provisioningMode: { type: "IdentityAccountProvisioningMode", description: "How this identity account was provisioned." },
+    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that provisioned this account." },
   }}
 />
+

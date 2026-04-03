@@ -10,51 +10,73 @@ This is the "Template" layer - declares capabilities and requirements.
 ## Client Access
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go agent, err := client.Agent.Get(ctx, "agent-abc123") ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const agent = await stigmer.agent.get("agent-abc123"); ```
-  </Tab>
-  <Tab value="Python">
-    ```python agent = client.agent.get("agent-abc123") ```
-  </Tab>
-  <Tab value="Java">
-    ```java Agent agent = client.agent().get("agent-abc123"); ```
-  </Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.Get(ctx, "agent-abc123")
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const agent = await stigmer.agent.get("agent-abc123");
+```
+</Tab>
+<Tab value="Python">
+```python
+agent = client.agent.get("agent-abc123")
+```
+</Tab>
+<Tab value="Java">
+```java
+Agent agent = client.agent().get("agent-abc123");
+```
+</Tab>
 </SDKTabs>
 
 ## Methods
 
-| Method                                  | Description                                 |
-| --------------------------------------- | ------------------------------------------- |
-| [`get`](#get)                           | Get a single agent by ID.                   |
-| [`getByReference`](#getbyreference)     | Custom authorization in handler.            |
-| [`getDefault`](#getdefault)             | Get the platform default agent.             |
-| [`apply`](#apply)                       | Create or update an agent.                  |
-| [`create`](#create)                     | Create a new agent.                         |
-| [`update`](#update)                     | Update an existing agent.                   |
+| Method | Description |
+|--------|-------------|
+| [`get`](#get) | Get a single agent by ID. |
+| [`getByReference`](#getbyreference) | Custom authorization in handler. |
+| [`getDefault`](#getdefault) | Get the platform default agent. |
+| [`apply`](#apply) | Create or update an agent. |
+| [`create`](#create) | Create a new agent. |
+| [`update`](#update) | Update an existing agent. |
 | [`updateVisibility`](#updatevisibility) | Update the visibility of an existing agent. |
-| [`delete`](#delete)                     | Delete an agent.                            |
+| [`delete`](#delete) | Delete an agent. |
 
 ### get
 
 Get a single agent by ID.
 
 <SDKTabs>
-  <Tab value="Go">```go agent, err := client.Agent.Get(ctx, id) ```</Tab>
-  <Tab value="TypeScript">
-    ```typescript const agent = await stigmer.agent.get(id); ```
-  </Tab>
-  <Tab value="Python">```python agent = client.agent.get(id) ```</Tab>
-  <Tab value="Java">```java Agent agent = client.agent().get(id); ```</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.Get(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const agent = await stigmer.agent.get(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+agent = client.agent.get(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+Agent agent = client.agent().get(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description       |
-| --------- | -------- | ----------------- |
-| `id`      | `string` | Agent identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Agent identifier. |
 
 **Returns**: `Agent`
 
@@ -63,18 +85,26 @@ Get a single agent by ID.
 Custom authorization in handler
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go agent, err := client.Agent.GetByReference(ctx, input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const agent = await stigmer.agent.getByReference(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python agent = client.agent.get_by_reference(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java Agent agent = client.agent().getByReference(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.GetByReference(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const agent = await stigmer.agent.getByReference(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+agent = client.agent.get_by_reference(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+Agent agent = client.agent().getByReference(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `ApiResourceReference`
@@ -86,18 +116,26 @@ Custom authorization in handler
 Get the platform default agent.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go agent, err := client.Agent.GetDefault(ctx, input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const agent = await stigmer.agent.getDefault(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python agent = client.agent.get_default(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java Agent agent = client.agent().getDefault(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.GetDefault(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const agent = await stigmer.agent.getDefault(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+agent = client.agent.get_default(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+Agent agent = client.agent().getDefault(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `GetDefaultAgentRequest`
@@ -106,9 +144,7 @@ Get the platform default agent.
 
 ### apply
 
-Create or update an agent. The authorization and state-operation are determined
-depending on whether the agent is going to be created or updated which is
-determined as part of the request execution.
+Create or update an agent. The authorization and state-operation are determined depending on whether the agent is going to be created or updated which is determined as part of the request execution.
 
 <SDKTabs>
 <Tab value="Go">
@@ -240,18 +276,26 @@ Agent agent = client.agent().update(AgentInput.builder()
 Update the visibility of an existing agent.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go agent, err := client.Agent.UpdateVisibility(ctx, input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const agent = await stigmer.agent.updateVisibility(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python agent = client.agent.update_visibility(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java Agent agent = client.agent().updateVisibility(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.UpdateVisibility(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const agent = await stigmer.agent.updateVisibility(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+agent = client.agent.update_visibility(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+Agent agent = client.agent().updateVisibility(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `UpdateVisibilityInput`
@@ -263,19 +307,33 @@ Update the visibility of an existing agent.
 Delete an agent.
 
 <SDKTabs>
-  <Tab value="Go">```go agent, err := client.Agent.Delete(ctx, id) ```</Tab>
-  <Tab value="TypeScript">
-    ```typescript const agent = await stigmer.agent.delete(id); ```
-  </Tab>
-  <Tab value="Python">```python agent = client.agent.delete(id) ```</Tab>
-  <Tab value="Java">```java Agent agent = client.agent().delete(id); ```</Tab>
+<Tab value="Go">
+```go
+agent, err := client.Agent.Delete(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const agent = await stigmer.agent.delete(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+agent = client.agent.delete(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+Agent agent = client.agent().delete(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description       |
-| --------- | -------- | ----------------- |
-| `id`      | `string` | Agent identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Agent identifier. |
 
 **Returns**: `Agent`
 
@@ -290,39 +348,14 @@ Input for creating or updating an Agent.
     name: { type: "string", description: "Resource name.", required: true },
     slug: { type: "string", description: "URL-friendly identifier." },
     org: { type: "string", description: "Organization slug.", required: true },
-    labels: {
-      type: "Record<string, string>",
-      description: "Key-value labels.",
-    },
-    description: {
-      type: "string",
-      description: "Human-readable description for UI and marketplace display.",
-    },
-    iconUrl: {
-      type: "string",
-      description: "Icon URL for marketplace and UI display.",
-    },
-    instructions: {
-      type: "string",
-      description:
-        "Instructions defining the agent's behavior and personality.",
-    },
-    mcpServerUsages: {
-      type: "McpServerUsageInput[]",
-      description: "MCP servers this Agent can use.",
-    },
-    skillRefs: {
-      type: "ResourceRef[]",
-      description: "Skill resources providing agent knowledge.",
-    },
-    subAgents: {
-      type: "SubAgentInput[]",
-      description: "Sub-agents that can be delegated to.",
-    },
-    envSpec: {
-      type: "EnvSpecInput",
-      description: "Environment variables required by the agent.",
-    },
+    labels: { type: "Record<string, string>", description: "Key-value labels." },
+    description: { type: "string", description: "Human-readable description for UI and marketplace display." },
+    iconUrl: { type: "string", description: "Icon URL for marketplace and UI display." },
+    instructions: { type: "string", description: "Instructions defining the agent's behavior and personality." },
+    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers this Agent can use." },
+    skillRefs: { type: "ResourceRef[]", description: "Skill resources providing agent knowledge." },
+    subAgents: { type: "SubAgentInput[]", description: "Sub-agents that can be delegated to." },
+    envSpec: { type: "EnvSpecInput", description: "Environment variables required by the agent." },
   }}
 />
 
@@ -332,19 +365,9 @@ McpServerUsage declares that this Agent uses a McpServer resource.
 
 <TypeTable
   type={{
-    mcpServerRef: {
-      type: "ResourceRef",
-      description: "Reference to the McpServer resource.",
-      required: true,
-    },
-    enabledTools: {
-      type: "string[]",
-      description: "Tools to enable from this MCP server for this Agent.",
-    },
-    toolApprovalOverrides: {
-      type: "ToolApprovalOverrideInput[]",
-      description: "Override approval requirements for specific tools.",
-    },
+    mcpServerRef: { type: "ResourceRef", description: "Reference to the McpServer resource.", required: true },
+    enabledTools: { type: "string[]", description: "Tools to enable from this MCP server for this Agent." },
+    toolApprovalOverrides: { type: "ToolApprovalOverrideInput[]", description: "Override approval requirements for specific tools." },
   }}
 />
 
@@ -355,14 +378,8 @@ ToolApprovalOverride allows per-agent customization of approval requirements.
 <TypeTable
   type={{
     toolName: { type: "string", description: "Name of the tool to override." },
-    requiresApproval: {
-      type: "boolean",
-      description: "Whether this tool requires approval for this agent.",
-    },
-    message: {
-      type: "string",
-      description: "Optional: Custom approval message for this agent.",
-    },
+    requiresApproval: { type: "boolean", description: "Whether this tool requires approval for this agent." },
+    message: { type: "string", description: "Optional: Custom approval message for this agent." },
   }}
 />
 
@@ -372,31 +389,12 @@ SubAgent defines a specialized agent that the parent can delegate to.
 
 <TypeTable
   type={{
-    name: {
-      type: "string",
-      description: "Unique name of the sub-agent within the parent agent.",
-      required: true,
-    },
-    description: {
-      type: "string",
-      description: "Description of what this sub-agent specializes in.",
-    },
-    instructions: {
-      type: "string",
-      description: "Behavior instructions for this sub-agent.",
-    },
-    mcpAccess: {
-      type: "McpAccessInput[]",
-      description: "MCP server access grants for this sub-agent.",
-    },
-    skillRefs: {
-      type: "ResourceRef[]",
-      description: "Skill resources for this sub-agent's knowledge.",
-    },
-    modelOverride: {
-      type: "string",
-      description: "Model override for this sub-agent.",
-    },
+    name: { type: "string", description: "Unique name of the sub-agent within the parent agent.", required: true },
+    description: { type: "string", description: "Description of what this sub-agent specializes in." },
+    instructions: { type: "string", description: "Behavior instructions for this sub-agent." },
+    mcpAccess: { type: "McpAccessInput[]", description: "MCP server access grants for this sub-agent." },
+    skillRefs: { type: "ResourceRef[]", description: "Skill resources for this sub-agent's knowledge." },
+    modelOverride: { type: "string", description: "Model override for this sub-agent." },
   }}
 />
 
@@ -406,14 +404,8 @@ McpAccess grants a SubAgent access to one of the parent Agent's MCP servers.
 
 <TypeTable
   type={{
-    mcpServer: {
-      type: "string",
-      description: "Slug of the McpServer to grant access to.",
-      required: true,
-    },
-    enabledTools: {
-      type: "string[]",
-      description: "Tools this SubAgent can use from this MCP server.",
-    },
+    mcpServer: { type: "string", description: "Slug of the McpServer to grant access to.", required: true },
+    enabledTools: { type: "string[]", description: "Tools this SubAgent can use from this MCP server." },
   }}
 />
+
