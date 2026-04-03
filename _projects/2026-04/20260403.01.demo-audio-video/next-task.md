@@ -68,8 +68,8 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-03 14:45
-**Current Task**: T01 Phases 1–4 and 6 complete, ready for Phase 5
-**Status**: In Progress
+**Current Task**: T01 — All phases complete (1–6). Project complete.
+**Status**: Complete
 
 ## Session Progress (2026-04-03, Session 1 — Phase 1)
 
@@ -127,27 +127,51 @@ When starting a new session:
 - **Timer reset on mute toggle**: Adding `muted` to the dependency array means the timer resets from scratch when muted changes. This naturally syncs with the narration hook, which also restarts/stops the clip on mute toggles.
 - **No hard cap on duration**: If a narrated step feels too long, the fix is shorter narration text, not a code-level cap that cuts audio mid-sentence.
 
-## Next Steps
+## Session Progress (2026-04-03, Session 5 — Last-Step Narration Bugfix)
 
-1. **Phase 5: Video export pipeline** — Playwright records scenarios at 1920x1080 + FFmpeg composites audio into MP4 files for LinkedIn/YouTube.
+- Fixed a timing bug where every scenario's final step narration was immediately paused after starting
+- Root cause: the auto-advance timer effect in `ScenarioPlayer.tsx` called `setPlaying(false)` synchronously when `stepIndex >= lastIndex`, triggering the narration playback hook to call `audio.pause()` in the next render cycle
+- Fix: in the `stepIndex >= lastIndex` branch, defer `setPlaying(false)` by the final step's `narrationDuration` when unmuted; immediate stop when muted or no narration (preserves existing behavior)
+- All 10 scenarios benefit — every one has narration on its last step
+- Single file changed: `ScenarioPlayer.tsx`. Zero new types, zero dependency changes.
 
-## Context for Resume
+### Key insight (Session 5)
+- The `durationMs`-based timing for non-final steps was already correct. The gap was only in the final-step branch, which had no timer at all — it treated reaching the last step as "done" without considering that a narration clip might still need to play.
 
-- The `useNarrationPlayback` hook uses a single `<audio>` element via ref, reusing it across steps by changing `src`. Browser autoplay policy is handled by defaulting to muted and catching rejected `play()` promises.
-- The hook is inert when no manifest is provided — all existing scenarios work exactly as before.
-- `useNarrationManifest` fetches `/demos/{scenarioId}/manifest.json` on mount. Returns `undefined` until loaded. ScenarioPlayer treats `undefined` as "no narration" (original behavior). The mute toggle only renders when manifest is truthy.
-- `edge-tts-universal` uses the `EdgeTTS` simple API: `new EdgeTTS(text, voice)` -> `synthesize()` -> `{ audio: Blob, subtitle: [...] }`. Duration from `subtitle[last].offset + subtitle[last].duration` (100ns units / 10000 = ms).
-- Dynamic import via `tsx` resolves `@stigmer/protos` and `@stigmer/react/demo` correctly. Named exports are under `mod.default` due to CJS/ESM interop — script uses `mod.default ?? mod`.
-- The site uses `output: "export"` (static export) — no server routes available at runtime. Phase 5 video export will need a dev server approach.
-- Audio files are in `public/demos/` (gitignored). Run `make generate-narration` after cloning or after changing narration text.
+## Session Progress (2026-04-03, Session 6 — Phase 5: Video Export Pipeline)
 
-## Quick Commands
+- Built the complete video export pipeline: Playwright recording + FFmpeg audio compositing
+- Created `VideoExportContext.tsx` — React context providing `isVideoExport`, `hideControls`, `initialMuted`
+- Created `scenarios/registry.ts` — programmatic map of scenario IDs to React components
+- Created export route at `site/src/app/demos/export/[scenario]/` with `ExportShell.tsx`, layout with noindex, and `generateStaticParams`
+- Created `site/scripts/export-videos.ts` — full pipeline: prerequisite checks, static server, Playwright recording, FFmpeg compositing, timeout computation, batch/single export
+- Updated `ScenarioPlayer.tsx`: video export auto-play bypass (IntersectionObserver unreliable in headless), `data-playback-complete` attribute, timeline logging to `window.__exportTimeline`
+- Updated `useNarrationPlayback.ts`: `initialMuted` option (false for export, true for website)
+- Updated `robots.ts`, `.gitignore`, `Makefile`, `package.json` for export pipeline integration
+- Smoke test passed: `approval-flow-playback` exported as 1920x960 H.264 MP4 with 2 AAC audio clips
 
-After loading context:
-- "Continue with Phase 5" - Start video export pipeline
-- "Show project status" - Get overview of progress
-- "Create checkpoint" - Save current progress
-- "Review guidelines" - Check established patterns
+### Bugs fixed during smoke test
+1. **`serve -s` flag** caused all routes to fall back to `index.html`. Removed `-s` since `serve` supports clean URLs by default.
+2. **IntersectionObserver in headless Chromium** didn't reliably trigger auto-play. Added direct `setPlaying(true)` bypass for video export mode.
+3. **Scenario discovery assumed subdirectories** but Next.js static export produces `.html` files. Fixed to handle both formats.
+
+### Discovery: Node 23 incompatibility
+`next build` silently fails to produce the `out/` directory on Node 23.1.0 (exits 0 but never enters static generation). Works correctly on Node 22.22.1. The `engines` field already excludes Node 23 but doesn't enforce it.
+
+### Video quality limitation (known)
+Playwright's VP8 video recording produces dim, low-contrast output on dark UIs. Screenshots from the same Playwright instance are pixel-perfect, confirming the issue is in the VP8 codec. Follow-up project `20260403.02.remotion-video-export` created to replace Playwright with Remotion for pixel-perfect video rendering.
+
+## Project Completion
+
+All 6 phases are complete:
+- Phase 1: ScenarioPlayer audio engine
+- Phase 2: TTS build script (Edge TTS)
+- Phase 3: Narration content for all 10 scenarios
+- Phase 4: Dynamic step timing + manifest wiring
+- Phase 5: Video export pipeline (Playwright + FFmpeg)
+- Phase 6: Document writer role update
+
+**Follow-up**: Video quality improvement tracked in `20260403.02.remotion-video-export`
 
 ---
 
