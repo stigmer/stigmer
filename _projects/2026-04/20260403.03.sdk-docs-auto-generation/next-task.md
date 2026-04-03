@@ -13,49 +13,48 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Last Session**: 2026-04-03 (Session 4)
-**Status**: T05 complete, ready for T06
+**Last Session**: 2026-04-03 (Session 5)
+**Status**: T07 complete, ready for T06
 **Active Task**: T06 (Manual pages -- SDK overview, streaming guide, React SDK docs)
 
-## Session Progress (2026-04-03, Session 4)
+## Session Progress (2026-04-03, Session 5)
 
 ### Completed
-- **T05**: Audience-Aware Proto Comments & SDK Docs -- full implementation
-  - **Generator changes**: Added `docStripInternal()` to strip content after `@internal` marker. Added `docSDKContent()` to replace `docMethodSummary()` -- shows full multi-paragraph SDK content without truncation. Updated all call sites (overview summaries, method tables, method details, type fields, nested types) to strip `@internal` content before rendering.
-  - **Proto comment audit**: Updated 32 proto files across all three domains (agentic, IAM, platform). Enriched thin descriptions (e.g., `"lookup api-key"` → `"Get an API key by its unique identifier."`). Added `@internal` markers to separate SDK-facing content from internal implementation details.
-  - **Internal leak elimination**: Removed all leakage of internal terminology from generated MDX:
-    - Temporal API references (CancelWorkflow, TerminateWorkflow, ResetWorkflow, SignalWithStart) moved after `@internal`
-    - FGA/OpenFGA references moved after `@internal`
-    - `inProcessChannel`, `system-level`, `Handler-level` references cleaned
-    - Renamed "Temporal task token" → "Callback token" in spec field descriptions
-  - **Verification**: All 17 generated MDX files have zero occurrences of Temporal, FGA, OpenFGA, or other internal terminology.
-  - **Discovery**: The `--comprehensive` flag is REQUIRED when running `generator --target=sdk-docs`. Without it, the standard SDK code generation runs instead.
+- **T07**: Makefile Integration and CI for SDK Docs
+  - **Makefile changes**: Added `gen-sdk-docs` target that runs the SDK docs generator. Added `gen-sdk-docs-check` staleness check using per-file diff comparison (handles coexisting manual pages and stale artifacts). Added `$(MAKE) gen-sdk-docs` as the last step of `protos` so `make protos` automatically regenerates SDK docs. Simplified `codegen` to just depend on `protos`.
+  - **CLI docs removal**: Removed `gen-cli-docs` and `gen-cli-docs-check` targets from root Makefile (to be rebuilt in a separate project).
+  - **CI workflow**: Replaced `cli-docs-freshness` job with `sdk-docs-freshness` in `ci.docs.yaml`. Updated path triggers to include `apis/**` and `tools/codegen/**`, removed `client-apps/cli/**`. Uses `tools/go.mod` for Go setup.
+  - **Staleness check fix**: The original CLI docs check had a shell logic bug where `exit 1` inside a subshell `(...)` didn't propagate through `;`. Rewrote using per-file comparison loop with proper exit code propagation. Also handles extra files in `docs/sdk/` (untracked `.go` files, future manual pages) without false failures.
+  - **Verification**: Both `make gen-sdk-docs` (exit 0, generates 17 pages + meta.json) and `make gen-sdk-docs-check` (exit 0 when fresh, exit 1 when stale) verified locally.
 
-### Key Decisions (T05)
-- **`@internal` convention**: Proto comments use `// @internal` on its own line to separate SDK-facing content (above) from internal developer notes (below). The generator strips everything from `@internal` onward.
-- **Full content, not first-paragraph**: `docSDKContent()` preserves all paragraphs before `@internal`, unlike the old `docMethodSummary()` which truncated at the first paragraph break. This gives SDK users richer documentation.
-- **Authorization notes preserved**: Method-level authorization requirements (e.g., "Requires can_edit permission") are kept as SDK-facing content since they help users understand permissions.
-- **Spec field descriptions also stripped**: The `@internal` stripping applies to spec field descriptions too (Types section), not just method descriptions.
+### Key Decisions (T07)
+- **SDK docs in `protos`, not `codegen`**: Added `gen-sdk-docs` to `protos` rather than `codegen` because it belongs in the same pipeline as proto stubs and SDK clients. `codegen` is now just an alias for `protos`.
+- **Per-file diff, not `diff -r`**: The staleness check compares only generated files against their counterparts in `docs/sdk/`, ignoring extra files. This avoids false failures from untracked `.go` files and future manual pages (T06).
+- **CLI docs deferred**: CLI docs generation removed from the pipeline entirely -- to be rebuilt in a separate project with improved quality.
 
 ## Next Steps
 
 1. **T06**: Manual pages -- SDK overview, streaming guide, React SDK docs
-2. **T07**: Makefile integration and CI -- Add `sdk-docs` to `make codegen`, add CI staleness check
 
 ## Context for Resume
 
-### Files Modified (T05)
-- **Modified**: `tools/codegen/generator/sdk_docs.go` -- added `docStripInternal()`, `docSDKContent()`, removed `docMethodSummary()`, updated all call sites
-- **Modified**: 32 proto files in `apis/` -- added `@internal` markers, enriched descriptions
-- **Regenerated**: `tools/codegen/schemas/services/*.json` and `tools/codegen/schemas/{domain}/{resource}/*.json` -- updated from proto changes
-- **Regenerated**: `docs/sdk/*.mdx` -- all 17 reference pages updated with clean SDK-facing content
+### Files Modified (T07)
+- **Modified**: `Makefile` -- added `gen-sdk-docs`, `gen-sdk-docs-check`, updated `protos` and `codegen`, removed CLI docs targets
+- **Modified**: `.github/workflows/ci.docs.yaml` -- replaced `cli-docs-freshness` with `sdk-docs-freshness`, updated path triggers
 
-### New Functions in sdk_docs.go (T05)
-- `docStripInternal(desc)` -- removes everything from `@internal` marker onward
-- `docSDKContent(desc)` -- full SDK-facing content extraction (replaces `docMethodSummary`)
+### Full Codegen Chain (after T07)
+```
+make protos
+  ├─ apis build              → buf lint/format, proto stubs
+  ├─ sdk/go codegen          → stubs + proto2schema + sdk-client (Go)
+  ├─ mcp-server codegen      → stubs + schemas + mcp types
+  ├─ sdk/typescript codegen  → sdk-client-ts
+  ├─ sdk/python codegen      → sdk-client-python
+  ├─ sdk/java codegen        → sdk-client-java
+  └─ gen-sdk-docs            → SDK reference MDX pages
 
-### Removed Functions in sdk_docs.go (T05)
-- `docMethodSummary()` -- replaced by `docSDKContent()` which doesn't truncate
+make codegen = make protos
+```
 
 ### Architecture (unchanged)
 The generator reads from two schema sources:
@@ -67,8 +66,11 @@ It produces MDX files using existing Fumadocs components (SDKTabs, Tab, TypeTabl
 
 ### Important: Running the Generator
 ```bash
-# MUST use --comprehensive for sdk-docs target
-go run ./tools/codegen/generator --comprehensive --target=sdk-docs --schema-dir tools/codegen/schemas --output-dir docs/sdk
+# Now integrated into make protos, but can also run standalone:
+make gen-sdk-docs
+
+# Staleness check (CI):
+make gen-sdk-docs-check
 ```
 
 ## Essential Files to Review
@@ -98,7 +100,7 @@ When starting a new session:
 3. [ ] Review the generated output at `docs/sdk/session.mdx` (primary reference page)
 4. [ ] Review `tools/codegen/generator/sdk_docs.go` to understand the generator
 5. [ ] Review any new design decisions in `design-decisions/`
-6. [ ] Continue with T06 or the next prioritized task
+6. [ ] Continue with T06 (manual pages)
 
 ## Quick Commands
 
@@ -106,7 +108,8 @@ After loading context:
 - "Continue with T06" - Start the manual pages task
 - "Show project status" - Get overview of progress
 - "Review the generated session page" - Check template output quality
-- "Run the SDK docs generator" - `go run ./tools/codegen/generator --comprehensive --target=sdk-docs --schema-dir tools/codegen/schemas --output-dir docs/sdk`
+- "Run the SDK docs generator" - `make gen-sdk-docs`
+- "Check SDK docs freshness" - `make gen-sdk-docs-check`
 
 ---
 

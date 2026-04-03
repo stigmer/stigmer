@@ -2,8 +2,8 @@
 # Documentation CI
 # =============================================================================
 # Quality gates for documentation changes: prose linting, formatting, site
-# build verification, and link checking. Runs on every PR and push to main
-# that touches docs, the site, or the linting/formatting configuration.
+# build verification, SDK docs freshness, and link checking. Runs on every PR
+# and push to main that touches docs, the site, protos, or codegen tooling.
 # =============================================================================
 
 name: ci.docs
@@ -13,7 +13,8 @@ on:
     paths:
       - "docs/**"
       - "site/**"
-      - "client-apps/cli/**"
+      - "apis/**"
+      - "tools/codegen/**"
       - ".vale.ini"
       - ".prettierrc"
       - "vale/**"
@@ -22,7 +23,8 @@ on:
     paths:
       - "docs/**"
       - "site/**"
-      - "client-apps/cli/**"
+      - "apis/**"
+      - "tools/codegen/**"
       - ".vale.ini"
       - ".prettierrc"
       - "vale/**"
@@ -61,8 +63,8 @@ jobs:
       - name: Build documentation site
         run: make build-site
 
-  cli-docs-freshness:
-    name: CLI Docs Freshness
+  sdk-docs-freshness:
+    name: SDK Docs Freshness
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -71,10 +73,10 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: client-apps/cli/go.mod
+          go-version-file: tools/go.mod
 
-      - name: Verify CLI docs are up to date
-        run: make gen-cli-docs-check
+      - name: Verify SDK docs are up to date
+        run: make gen-sdk-docs-check
 
   links:
     name: Links (Lychee)
