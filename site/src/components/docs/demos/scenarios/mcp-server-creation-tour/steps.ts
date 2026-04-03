@@ -117,6 +117,7 @@ export const mcpCreationTourSteps: ScenarioStep<McpCreationStep>[] = [
     delayMs: 1500,
     data: { view: "mcp-servers-list" },
     caption: "View your MCP Servers",
+    narration: "MCP servers connect your agent to external systems — APIs, databases, and services your team already uses.",
   },
   {
     delayMs: 2000,
@@ -137,6 +138,7 @@ export const mcpCreationTourSteps: ScenarioStep<McpCreationStep>[] = [
     delayMs: 2000,
     data: { view: "conversation", execution: snapshot([user1, ai1]) },
     caption: "Agent asks for details",
+    narration: "The creator needs authentication details to connect securely, and a description so your team knows what this server does.",
   },
   {
     delayMs: 2500,
@@ -147,6 +149,7 @@ export const mcpCreationTourSteps: ScenarioStep<McpCreationStep>[] = [
     delayMs: 2000,
     data: { view: "conversation", execution: finalExecution },
     caption: "Server configuration created",
+    narration: "The MCP server is configured. Stigmer handles the connection and routes tool calls through it at runtime.",
   },
   {
     delayMs: 2000,
@@ -171,5 +174,6 @@ export const mcpCreationTourSteps: ScenarioStep<McpCreationStep>[] = [
     delayMs: 2000,
     data: { view: "library-complete" },
     caption: "Server added to Library",
+    narration: "Your MCP server is in the Library. Agents can use its tools to look up orders, check inventory, and process returns.",
   },
 ];

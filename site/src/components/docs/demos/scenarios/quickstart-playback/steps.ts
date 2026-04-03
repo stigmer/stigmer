@@ -54,10 +54,25 @@ const ai2 = samples.aiMessage(
 // ---------------------------------------------------------------------------
 
 export const quickstartPlaybackSteps: ScenarioStep<QuickstartStep>[] = [
-  { delayMs: 0, data: { view: "composer-empty" }, caption: "Start a new session" },
+  {
+    delayMs: 0,
+    data: { view: "composer-empty" },
+    caption: "Start a new session",
+    narration: "This is a new session in the Stigmer console. You can talk to your agent right here.",
+  },
   { delayMs: 2000, data: { view: "composer-typing", message: "What is your return policy for defective items?" }, caption: "Type your question" },
   { delayMs: 2500, data: { view: "conversation", execution: snapshot([user1]) }, caption: "Ask about your return policy" },
-  { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1, ai1]) }, caption: "Agent gives a generic answer" },
+  {
+    delayMs: 2000,
+    data: { view: "conversation", execution: snapshot([user1, ai1]) },
+    caption: "Agent gives a generic answer",
+    narration: "The agent responds, but it doesn't know your company's return policy. Without domain knowledge, it can only give generic answers.",
+  },
   { delayMs: 2500, data: { view: "conversation", execution: snapshot([user1, ai1, user2]) }, caption: "Follow-up question" },
-  { delayMs: 2000, data: { view: "conversation", execution: snapshot([user1, ai1, user2, ai2], ExecutionPhase.EXECUTION_COMPLETED) }, caption: "Still no domain knowledge" },
+  {
+    delayMs: 2000,
+    data: { view: "conversation", execution: snapshot([user1, ai1, user2, ai2], ExecutionPhase.EXECUTION_COMPLETED) },
+    caption: "Still no domain knowledge",
+    narration: "Same result. The agent has no way to answer questions about your business yet.",
+  },
 ];

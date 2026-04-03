@@ -136,6 +136,7 @@ export const agentCreationTourSteps: ScenarioStep<AgentCreationStep>[] = [
     delayMs: 1500,
     data: { view: "agents-list" },
     caption: "View your Agents",
+    narration: "An Agent is a reusable definition of what your AI assistant knows and can do.",
   },
   {
     delayMs: 2000,
@@ -151,6 +152,7 @@ export const agentCreationTourSteps: ScenarioStep<AgentCreationStep>[] = [
     delayMs: 2000,
     data: { view: "conversation", execution: snapshot([user1]) },
     caption: "Describe your agent",
+    narration: "You tell the creator what the agent should do, and which Skills and tools it needs.",
   },
   {
     delayMs: 2000,
@@ -166,6 +168,7 @@ export const agentCreationTourSteps: ScenarioStep<AgentCreationStep>[] = [
     delayMs: 2000,
     data: { view: "conversation", execution: finalExecution },
     caption: "Agent definition created",
+    narration: "The definition brings everything together — your Skill for domain knowledge, your MCP server for tools, and the behavior rules you set.",
   },
   {
     delayMs: 2000,
@@ -190,5 +193,6 @@ export const agentCreationTourSteps: ScenarioStep<AgentCreationStep>[] = [
     delayMs: 2000,
     data: { view: "library-complete" },
     caption: "Agent added to Library",
+    narration: "Your agent is ready. Any application can call it through the Stigmer API.",
   },
 ];

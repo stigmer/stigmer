@@ -5,6 +5,7 @@ import { StigmerProvider } from "@stigmer/react";
 import { createDemoClient } from "@stigmer/react/demo";
 import type { DemoScenario } from "@stigmer/react/demo";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
+import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
 import { renderWidgetsSidebar } from "../../views/WidgetsSidebar";
@@ -40,11 +41,15 @@ function renderStep(step: ToolCallStep) {
 
 export function ToolCallsPlayback() {
   const client = useMemo(() => createDemoClient(emptyScenario), []);
+  const narrationManifest = useNarrationManifest("tool-calls-playback");
 
   return (
     <StigmerProvider client={client}>
       <div className={DEMO_PLAYER_CLASSES}>
-        <ScenarioPlayer steps={toolCallsPlaybackSteps}>
+        <ScenarioPlayer
+          steps={toolCallsPlaybackSteps}
+          narrationManifest={narrationManifest}
+        >
           {(step) => renderStep(step)}
         </ScenarioPlayer>
       </div>

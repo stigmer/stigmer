@@ -13,6 +13,7 @@ import type { McpServer } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/
 import type { EnvVarInput } from "@stigmer/sdk";
 import { AppShell } from "../../views/AppShell";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
+import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
 import { DEMO_CONTENT_ZOOM, DEMO_PLAYER_CLASSES } from "../../shared/tokens";
 import {
@@ -84,6 +85,7 @@ function componentKeyFor(step: DiscoverStep): string {
 }
 
 export function DiscoverCapabilitiesPlayback() {
+  const narrationManifest = useNarrationManifest("discover-capabilities-playback");
   const clientMap = useMemo(() => {
     const map = new Map<McpServer, ReturnType<typeof buildClient>>();
     for (const step of discoverSteps) {
@@ -117,7 +119,11 @@ export function DiscoverCapabilitiesPlayback() {
 
   return (
     <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
-      <ScenarioPlayer steps={discoverSteps} onStepChange={handleStepChange}>
+      <ScenarioPlayer
+        steps={discoverSteps}
+        narrationManifest={narrationManifest}
+        onStepChange={handleStepChange}
+      >
         {(step) => (
           <StigmerProvider
             key={componentKeyFor(step)}

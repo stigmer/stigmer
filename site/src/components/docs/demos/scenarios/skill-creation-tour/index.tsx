@@ -12,6 +12,7 @@ import { create } from "@bufbuild/protobuf";
 import { GetArtifactContentResponseSchema } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/io_pb";
 import { ApiResourceKind } from "@stigmer/protos/ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind_pb";
 import { ScenarioPlayer } from "../../engine/ScenarioPlayer";
+import { useNarrationManifest } from "../../engine/useNarrationManifest";
 import { Cursor } from "../../engine/Cursor";
 import { AppShell } from "../../views/AppShell";
 import { ComposerView } from "../../views/ComposerView";
@@ -272,6 +273,7 @@ function renderStep(step: GuidedTourStep) {
  */
 export function SkillCreationTour() {
   const client = useMemo(() => createDemoClient(demoScenario), []);
+  const narrationManifest = useNarrationManifest("skill-creation-tour");
   const containerRef = useRef<HTMLDivElement>(null);
   const [cursorTarget, setCursorTarget] = useState<string | undefined>();
 
@@ -284,6 +286,7 @@ export function SkillCreationTour() {
       <div ref={containerRef} className={DEMO_PLAYER_CLASSES}>
         <ScenarioPlayer
           steps={skillCreationTourSteps}
+          narrationManifest={narrationManifest}
           onStepChange={handleStepChange}
         >
           {(step) => renderStep(step)}
