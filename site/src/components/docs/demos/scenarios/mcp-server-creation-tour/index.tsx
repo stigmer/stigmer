@@ -64,7 +64,7 @@ const MCP_SERVER_ARTIFACT_META: ArtifactMeta = {
     "REST API for order lookup, inventory checks, and return processing.",
   fileName: "mcp-server.yaml",
   contentType: "text/yaml",
-  pushLabel: "Push MCP Server to acme",
+  pushLabel: "Apply MCP Server to acme",
 };
 
 const yamlBytes = new TextEncoder().encode(MCP_SERVER_YAML);
@@ -94,7 +94,7 @@ function contentKeyFor(step: McpCreationStep): string {
     case "conversation":
     case "artifact-click":
     case "artifact-preview":
-    case "push-mcp-server":
+    case "apply-mcp-server":
       return "composer";
   }
 }
@@ -122,7 +122,7 @@ function cursorTargetFor(step: McpCreationStep): string | undefined {
       return "create-mcp-server";
     case "artifact-click":
       return "artifact-widget";
-    case "push-mcp-server":
+    case "apply-mcp-server":
       return "push-button";
     default:
       return undefined;
@@ -222,7 +222,7 @@ function renderStep(step: McpCreationStep) {
         </AppShell>
       );
 
-    case "push-mcp-server":
+    case "apply-mcp-server":
       return (
         <AppShell
           activeNav="library"
