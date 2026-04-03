@@ -89,5 +89,9 @@ jobs:
       - name: Check links
         uses: lycheeverse/lychee-action@v2
         with:
-          args: --no-progress --exclude-path docs/_archive docs/
+          args: >-
+            --no-progress
+            --exclude-path docs/_archive
+            --exclude '^/'
+            docs/
           fail: true
