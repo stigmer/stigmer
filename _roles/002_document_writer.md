@@ -56,6 +56,29 @@ Two demo patterns exist:
 
 For multi-step interactions, always prefer playback over a static final-state render.
 
+### Cursor overlay for user actions
+
+Every playback step where the UI changes because of a user action must include an animated cursor. A demo must never jump from "waiting for user input" to "input completed" without showing the pointer movement. User actions include clicking a button, selecting a tab, opening a menu, or scrolling to an element.
+
+The `Cursor` component (`site/src/components/docs/demos/engine/Cursor.tsx`) renders an animated pointer overlay. It finds the target element by its `data-cursor-target` attribute, spring-animates to it, and plays a click ripple on arrival. It also scrolls the target into view within its nearest scrollable ancestor, so the reader sees the element before the pointer arrives.
+
+**How to wire it:**
+
+1. The target element (button, tab, menu item) must have a `data-cursor-target="some-id"` attribute. SDK components already expose these on key interactive elements. Demo views can add them where needed.
+2. The scenario's `index.tsx` mounts a `<Cursor target={cursorTarget} containerRef={containerRef} />` inside the `DEMO_PLAYER_CLASSES` wrapper.
+3. A `cursorTargetFor(step)` function maps each step to its target ID (or `undefined` for steps with no cursor).
+4. An `onStepChange` callback updates the cursor target state when the step advances.
+
+**The three-step pattern:**
+
+1. Step N shows the UI state before the action (no cursor).
+2. Step N+1 sets the cursor target — the pointer animates to the element and fires a click ripple.
+3. Step N+2 shows the UI state after the action (cursor gone).
+
+See `generate-policies-playback`, `discover-capabilities-playback`, `api-key-setup`, and `approval-flow-playback` for working examples.
+
+**Self-check**: review every playback scenario's step list and ask: "Is there a step where the UI changes because of a user action, but no cursor movement is shown?" If yes, the scenario is incomplete.
+
 ## Documentation standards
 
 Every document must follow two frameworks.
