@@ -66,6 +66,8 @@ export function ScenarioPlayer<T>({
   );
   const [playing, setPlaying] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const stepIndexRef = useRef(stepIndex);
+  stepIndexRef.current = stepIndex;
 
   useEffect(() => {
     if (!autoPlay || prefersReducedMotion) return;
@@ -74,16 +76,23 @@ export function ScenarioPlayer<T>({
 
     const observer = new IntersectionObserver(
       ([entry]) => {
+        if (entry.isIntersecting && stepIndexRef.current >= lastIndex) {
+          setStepIndex(0);
+        }
         setPlaying(entry.isIntersecting);
       },
       { threshold: 0.3 },
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [autoPlay, prefersReducedMotion]);
+  }, [autoPlay, prefersReducedMotion, lastIndex]);
 
   useEffect(() => {
-    if (!playing || prefersReducedMotion || stepIndex >= lastIndex) return;
+    if (!playing || prefersReducedMotion) return;
+    if (stepIndex >= lastIndex) {
+      setPlaying(false);
+      return;
+    }
 
     const nextIndex = stepIndex + 1;
     const delay = steps[nextIndex].delayMs;
