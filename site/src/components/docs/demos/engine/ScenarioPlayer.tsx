@@ -2,7 +2,9 @@
 
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import type { NarrationManifest } from "./narration";
+import { useNarrationPlayback } from "./useNarrationPlayback";
 
 /**
  * A single step in a scenario timeline.
@@ -16,6 +18,11 @@ export interface ScenarioStep<T> {
   data: T;
   /** Short label shown below the demo content describing the current action. */
   caption?: string;
+  /**
+   * Narration script for TTS generation. Consumed by the build script
+   * to produce audio files — not rendered at runtime.
+   */
+  narration?: string;
 }
 
 interface ScenarioPlayerProps<T> {
@@ -29,6 +36,11 @@ interface ScenarioPlayerProps<T> {
   className?: string;
   /** Fires when the active step changes (after the step is rendered). */
   onStepChange?: (data: T, index: number) => void;
+  /**
+   * Audio manifest produced by the narration build script. When
+   * provided, enables audio playback and shows a mute/unmute toggle.
+   */
+  narrationManifest?: NarrationManifest;
 }
 
 /**
@@ -57,6 +69,7 @@ export function ScenarioPlayer<T>({
   autoPlay = true,
   className,
   onStepChange,
+  narrationManifest,
 }: ScenarioPlayerProps<T>) {
   const prefersReducedMotion = useReducedMotion();
   const lastIndex = steps.length - 1;
@@ -68,6 +81,12 @@ export function ScenarioPlayer<T>({
   const containerRef = useRef<HTMLDivElement>(null);
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;
+
+  const { muted, toggleMute, audioRef } = useNarrationPlayback({
+    manifest: narrationManifest,
+    stepIndex,
+    playing,
+  });
 
   useEffect(() => {
     if (!autoPlay || prefersReducedMotion) return;
@@ -134,6 +153,9 @@ export function ScenarioPlayer<T>({
   return (
     <div ref={containerRef} className={className}>
       {children(steps[stepIndex].data, stepIndex)}
+      {narrationManifest && (
+        <audio ref={audioRef} preload="none" hidden />
+      )}
 
       {/* Step caption */}
       <div className="mt-2 flex h-6 items-center justify-center">
@@ -181,6 +203,16 @@ export function ScenarioPlayer<T>({
           >
             <ChevronRight size={14} />
           </button>
+
+          {narrationManifest && (
+            <button
+              onClick={toggleMute}
+              className="ml-1 flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+              aria-label={muted ? "Unmute narration" : "Mute narration"}
+            >
+              {muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+            </button>
+          )}
         </div>
 
         {/* Progress dots */}
