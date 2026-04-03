@@ -35,6 +35,7 @@ export const sessionMemorySteps: ScenarioStep<SessionMemoryStep>[] = [
     delayMs: 0,
     data: { view: "composer-empty" },
     caption: "Start a conversation",
+    narration: "A Session remembers everything said in the conversation. The agent can refer back to earlier messages at any point.",
   },
   {
     delayMs: 1500,
@@ -50,6 +51,7 @@ export const sessionMemorySteps: ScenarioStep<SessionMemoryStep>[] = [
     delayMs: 2000,
     data: { view: "conversation", execution: snapshot([user1, ai1]) },
     caption: "Agent remembers the order",
+    narration: "The agent finds the order and pulls up the details. This information stays in the conversation.",
   },
   {
     delayMs: 2500,
@@ -63,5 +65,6 @@ export const sessionMemorySteps: ScenarioStep<SessionMemoryStep>[] = [
       execution: snapshot([user1, ai1, user2, ai2], ExecutionPhase.EXECUTION_COMPLETED),
     },
     caption: "Agent recalls the product and order from earlier",
+    narration: "The agent knows exactly which product and which order — it held the context from the earlier message.",
   },
 ];
