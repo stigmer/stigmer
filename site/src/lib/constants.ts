@@ -21,6 +21,7 @@ export const SITE_CONFIG = {
 
   social: {
     github: "https://github.com/stigmer/stigmer",
+    discord: "https://discord.gg/UGTHvNRv",
   },
 
   copyright: {

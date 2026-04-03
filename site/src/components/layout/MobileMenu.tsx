@@ -15,6 +15,7 @@ import {
 import { AnimatePresence } from "@/components/ui/motion";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { DiscordIcon } from "@/components/ui/discord-icon";
 
 export interface MobileMenuProps {
   isOpen: boolean;
@@ -188,6 +189,32 @@ function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
                     </motion.li>
                   );
                 })}
+
+                {/* Discord link */}
+                <motion.li
+                  variants={fadeInUp}
+                  transition={transitions.smooth}
+                >
+                  <a
+                    href={SITE_CONFIG.social.discord}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "flex items-center justify-between w-full",
+                      "px-4 py-3 rounded-lg",
+                      "text-base font-medium text-foreground",
+                      "transition-colors",
+                      "hover:bg-muted"
+                    )}
+                    onClick={onClose}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <DiscordIcon size="sm" />
+                      Discord
+                    </span>
+                    <Icon name="external-link" size="sm" className="text-muted-foreground" />
+                  </a>
+                </motion.li>
 
                 {/* Sign In link */}
                 <motion.li
