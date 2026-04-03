@@ -14,6 +14,20 @@ export type CostTier = "economy" | "standard" | "premium";
 
 export type Provider = "anthropic" | "openai" | "ollama";
 
+/**
+ * Providers whose models should be hidden from the UI.
+ *
+ * The model entries themselves stay in MODEL_REGISTRY so backend
+ * compatibility is preserved. The useModelRegistry hook filters
+ * them out before anything reaches a component.
+ *
+ * To re-enable a provider, simply remove it from this set.
+ */
+export const DISABLED_PROVIDERS: ReadonlySet<Provider> = new Set([
+  "openai",
+  "ollama",
+]);
+
 export interface ModelInfo {
   readonly modelId: string;
   readonly provider: Provider;

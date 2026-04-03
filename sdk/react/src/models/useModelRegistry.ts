@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import {
   MODEL_REGISTRY,
   DEFAULT_MODEL_ID,
+  DISABLED_PROVIDERS,
   type ModelInfo,
   type Provider,
 } from "./registry";
@@ -28,9 +29,13 @@ export function useModelRegistry(): UseModelRegistryReturn {
   return useMemo(() => {
     const byProvider = new Map<Provider, ModelInfo[]>();
     const byId = new Map<string, ModelInfo>();
+    const enabledModels: ModelInfo[] = [];
     let defaultModel: ModelInfo | undefined;
 
     for (const model of MODEL_REGISTRY) {
+      if (DISABLED_PROVIDERS.has(model.provider)) continue;
+
+      enabledModels.push(model);
       byId.set(model.modelId, model);
 
       const group = byProvider.get(model.provider);
@@ -48,9 +53,9 @@ export function useModelRegistry(): UseModelRegistryReturn {
     const providers = Array.from(byProvider.keys());
 
     return {
-      models: MODEL_REGISTRY,
+      models: enabledModels,
       byProvider: byProvider as ReadonlyMap<Provider, readonly ModelInfo[]>,
-      defaultModel: defaultModel ?? MODEL_REGISTRY[0],
+      defaultModel: defaultModel ?? enabledModels[0],
       getModel: (modelId: string) => byId.get(modelId),
       providers,
     };
