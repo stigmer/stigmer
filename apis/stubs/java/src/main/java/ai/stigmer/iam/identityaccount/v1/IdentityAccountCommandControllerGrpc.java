@@ -4,7 +4,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * identity-account command controller
+ * IdentityAccountCommandController handles write operations for identity accounts.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -200,17 +200,18 @@ public final class IdentityAccountCommandControllerGrpc {
 
   /**
    * <pre>
-   * identity-account command controller
+   * IdentityAccountCommandController handles write operations for identity accounts.
    * </pre>
    */
   public interface AsyncService {
 
     /**
      * <pre>
-     * create a new identity-account.
-     * system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
-     * no FGA authorization — called via inProcessChannelAsSystem (machine account).
-     * the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+     * Create a new identity account.
+     * &#64;internal
+     * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+     * No FGA authorization — called via inProcessChannelAsSystem (machine account).
+     * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
      */
     default void create(ai.stigmer.iam.identityaccount.v1.IdentityAccount request,
@@ -220,7 +221,7 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * update an existing identity-account
+     * Update an existing identity account.
      * </pre>
      */
     default void update(ai.stigmer.iam.identityaccount.v1.IdentityAccount request,
@@ -230,7 +231,7 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * delete an existing identity-account
+     * Delete an identity account.
      * </pre>
      */
     default void delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request,
@@ -240,9 +241,10 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     *simulate signup webhook to add a user who created account on auth0 but is not created on stigmer.
-     *this rpc will take the email, look it up on auth0,
-     * if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format.
+     * Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+     * &#64;internal
+     * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
+     * to Stigmer with the Auth0 payload format to trigger account provisioning.
      * </pre>
      */
     default void simulateSignupWebhook(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request,
@@ -254,7 +256,7 @@ public final class IdentityAccountCommandControllerGrpc {
   /**
    * Base class for the server implementation of the service IdentityAccountCommandController.
    * <pre>
-   * identity-account command controller
+   * IdentityAccountCommandController handles write operations for identity accounts.
    * </pre>
    */
   public static abstract class IdentityAccountCommandControllerImplBase
@@ -268,7 +270,7 @@ public final class IdentityAccountCommandControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service IdentityAccountCommandController.
    * <pre>
-   * identity-account command controller
+   * IdentityAccountCommandController handles write operations for identity accounts.
    * </pre>
    */
   public static final class IdentityAccountCommandControllerStub
@@ -286,10 +288,11 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * create a new identity-account.
-     * system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
-     * no FGA authorization — called via inProcessChannelAsSystem (machine account).
-     * the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+     * Create a new identity account.
+     * &#64;internal
+     * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+     * No FGA authorization — called via inProcessChannelAsSystem (machine account).
+     * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
      */
     public void create(ai.stigmer.iam.identityaccount.v1.IdentityAccount request,
@@ -300,7 +303,7 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * update an existing identity-account
+     * Update an existing identity account.
      * </pre>
      */
     public void update(ai.stigmer.iam.identityaccount.v1.IdentityAccount request,
@@ -311,7 +314,7 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * delete an existing identity-account
+     * Delete an identity account.
      * </pre>
      */
     public void delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request,
@@ -322,9 +325,10 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     *simulate signup webhook to add a user who created account on auth0 but is not created on stigmer.
-     *this rpc will take the email, look it up on auth0,
-     * if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format.
+     * Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+     * &#64;internal
+     * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
+     * to Stigmer with the Auth0 payload format to trigger account provisioning.
      * </pre>
      */
     public void simulateSignupWebhook(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request,
@@ -337,7 +341,7 @@ public final class IdentityAccountCommandControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service IdentityAccountCommandController.
    * <pre>
-   * identity-account command controller
+   * IdentityAccountCommandController handles write operations for identity accounts.
    * </pre>
    */
   public static final class IdentityAccountCommandControllerBlockingV2Stub
@@ -355,10 +359,11 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * create a new identity-account.
-     * system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
-     * no FGA authorization — called via inProcessChannelAsSystem (machine account).
-     * the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+     * Create a new identity account.
+     * &#64;internal
+     * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+     * No FGA authorization — called via inProcessChannelAsSystem (machine account).
+     * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount create(ai.stigmer.iam.identityaccount.v1.IdentityAccount request) throws io.grpc.StatusException {
@@ -368,7 +373,7 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * update an existing identity-account
+     * Update an existing identity account.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount update(ai.stigmer.iam.identityaccount.v1.IdentityAccount request) throws io.grpc.StatusException {
@@ -378,7 +383,7 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * delete an existing identity-account
+     * Delete an identity account.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) throws io.grpc.StatusException {
@@ -388,9 +393,10 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     *simulate signup webhook to add a user who created account on auth0 but is not created on stigmer.
-     *this rpc will take the email, look it up on auth0,
-     * if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format.
+     * Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+     * &#64;internal
+     * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
+     * to Stigmer with the Auth0 payload format to trigger account provisioning.
      * </pre>
      */
     public com.google.protobuf.Empty simulateSignupWebhook(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request) throws io.grpc.StatusException {
@@ -402,7 +408,7 @@ public final class IdentityAccountCommandControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service IdentityAccountCommandController.
    * <pre>
-   * identity-account command controller
+   * IdentityAccountCommandController handles write operations for identity accounts.
    * </pre>
    */
   public static final class IdentityAccountCommandControllerBlockingStub
@@ -420,10 +426,11 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * create a new identity-account.
-     * system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
-     * no FGA authorization — called via inProcessChannelAsSystem (machine account).
-     * the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+     * Create a new identity account.
+     * &#64;internal
+     * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+     * No FGA authorization — called via inProcessChannelAsSystem (machine account).
+     * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount create(ai.stigmer.iam.identityaccount.v1.IdentityAccount request) {
@@ -433,7 +440,7 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * update an existing identity-account
+     * Update an existing identity account.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount update(ai.stigmer.iam.identityaccount.v1.IdentityAccount request) {
@@ -443,7 +450,7 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * delete an existing identity-account
+     * Delete an identity account.
      * </pre>
      */
     public ai.stigmer.iam.identityaccount.v1.IdentityAccount delete(ai.stigmer.iam.identityaccount.v1.IdentityAccountId request) {
@@ -453,9 +460,10 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     *simulate signup webhook to add a user who created account on auth0 but is not created on stigmer.
-     *this rpc will take the email, look it up on auth0,
-     * if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format.
+     * Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+     * &#64;internal
+     * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
+     * to Stigmer with the Auth0 payload format to trigger account provisioning.
      * </pre>
      */
     public com.google.protobuf.Empty simulateSignupWebhook(ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail request) {
@@ -467,7 +475,7 @@ public final class IdentityAccountCommandControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service IdentityAccountCommandController.
    * <pre>
-   * identity-account command controller
+   * IdentityAccountCommandController handles write operations for identity accounts.
    * </pre>
    */
   public static final class IdentityAccountCommandControllerFutureStub
@@ -485,10 +493,11 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * create a new identity-account.
-     * system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
-     * no FGA authorization — called via inProcessChannelAsSystem (machine account).
-     * the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+     * Create a new identity account.
+     * &#64;internal
+     * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+     * No FGA authorization — called via inProcessChannelAsSystem (machine account).
+     * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> create(
@@ -499,7 +508,7 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * update an existing identity-account
+     * Update an existing identity account.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> update(
@@ -510,7 +519,7 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     * delete an existing identity-account
+     * Delete an identity account.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.identityaccount.v1.IdentityAccount> delete(
@@ -521,9 +530,10 @@ public final class IdentityAccountCommandControllerGrpc {
 
     /**
      * <pre>
-     *simulate signup webhook to add a user who created account on auth0 but is not created on stigmer.
-     *this rpc will take the email, look it up on auth0,
-     * if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format.
+     * Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+     * &#64;internal
+     * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
+     * to Stigmer with the Auth0 payload format to trigger account provisioning.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<com.google.protobuf.Empty> simulateSignupWebhook(

@@ -24,14 +24,20 @@ service ExecutionContextCommandController {
   // is going to be created or updated which is determined as part of the request execution.
   rpc apply(ExecutionContext) returns (ExecutionContext);
 
-  // Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+  // Create a new ExecutionContext for an execution.
+  //
+  // @internal
+  // Called by execution pipeline on behalf of the user.
   // Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
   rpc create(ExecutionContext) returns (ExecutionContext) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
-  // Delete an ExecutionContext (called when execution completes).
-  // Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+  // Delete an ExecutionContext.
+  //
+  // @internal
+  // Called when execution completes. Handler-level derived auth: checks can_edit
+  // on parent agent_execution or workflow_execution.
   rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (ExecutionContext) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }

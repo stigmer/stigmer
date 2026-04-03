@@ -7,7 +7,7 @@ from ai.stigmer.iam.apikey.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_apikey
 
 
 class ApiKeyCommandControllerStub(object):
-    """api-key command controller
+    """ApiKeyCommandController handles write operations for API keys.
     """
 
     def __init__(self, channel):
@@ -34,25 +34,26 @@ class ApiKeyCommandControllerStub(object):
 
 
 class ApiKeyCommandControllerServicer(object):
-    """api-key command controller
+    """ApiKeyCommandController handles write operations for API keys.
     """
 
     def create(self, request, context):
-        """create an api-key
+        """Create a new API key for the authenticated user.
+        Any authenticated user can create API keys.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """update an existing api-key
+        """Update an existing API key.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def delete(self, request, context):
-        """delete an existing api-key
+        """Delete an API key.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -85,7 +86,7 @@ def add_ApiKeyCommandControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class ApiKeyCommandController(object):
-    """api-key command controller
+    """ApiKeyCommandController handles write operations for API keys.
     """
 
     @staticmethod

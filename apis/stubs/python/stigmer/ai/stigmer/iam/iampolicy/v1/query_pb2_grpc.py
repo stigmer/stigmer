@@ -7,7 +7,7 @@ from ai.stigmer.iam.iampolicy.v1 import io_pb2 as ai_dot_stigmer_dot_iam_dot_iam
 
 
 class IamPolicyQueryControllerStub(object):
-    """iam-policy query controller
+    """IamPolicyQueryController handles read operations for IAM policies.
     """
 
     def __init__(self, channel):
@@ -39,11 +39,11 @@ class IamPolicyQueryControllerStub(object):
 
 
 class IamPolicyQueryControllerServicer(object):
-    """iam-policy query controller
+    """IamPolicyQueryController handles read operations for IAM policies.
     """
 
     def get(self, request, context):
-        """lookup iam-policy by id
+        """Get an IAM policy by its unique identifier.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -139,7 +139,7 @@ def add_IamPolicyQueryControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class IamPolicyQueryController(object):
-    """iam-policy query controller
+    """IamPolicyQueryController handles read operations for IAM policies.
     """
 
     @staticmethod

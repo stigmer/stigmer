@@ -42,19 +42,29 @@ type SessionCommandControllerClient interface {
 	Create(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Session, error)
 	// Update an existing session (e.g., subject, thread_id, sandbox_id).
 	Update(ctx context.Context, in *Session, opts ...grpc.CallOption) (*Session, error)
-	// Set the session subject (server-side field-level update, race-safe).
+	// Set the session subject.
 	//
-	// Unlike the full update RPC, this atomically modifies only spec.subject
-	// without touching other fields. This eliminates the lost-update race
-	// between GenerateSessionSubject and sandbox_manager, which both run in
-	// parallel during agent execution.
+	// This is a targeted update that modifies only the subject field,
+	// leaving other session fields untouched. Use this instead of the full
+	// update RPC when you only need to change the session subject.
+	//
+	// @internal
+	// Server-side field-level update, race-safe. Atomically modifies only
+	// spec.subject without touching other fields. Eliminates the lost-update
+	// race between GenerateSessionSubject and sandbox_manager, which both run
+	// in parallel during agent execution.
 	UpdateSubject(ctx context.Context, in *UpdateSessionSubjectRequest, opts ...grpc.CallOption) (*Session, error)
-	// Set the session sandbox ID (server-side field-level update, race-safe).
+	// Set the session sandbox ID.
 	//
-	// Unlike the full update RPC, this atomically modifies only spec.sandbox_id
-	// without touching other fields. This eliminates the lost-update race
-	// between sandbox_manager and GenerateSessionSubject, which both run in
-	// parallel during agent execution.
+	// This is a targeted update that modifies only the sandbox ID field,
+	// leaving other session fields untouched. Use this instead of the full
+	// update RPC when you only need to change the sandbox assignment.
+	//
+	// @internal
+	// Server-side field-level update, race-safe. Atomically modifies only
+	// spec.sandbox_id without touching other fields. Eliminates the lost-update
+	// race between sandbox_manager and GenerateSessionSubject, which both run
+	// in parallel during agent execution.
 	UpdateSandboxId(ctx context.Context, in *UpdateSessionSandboxIdRequest, opts ...grpc.CallOption) (*Session, error)
 	// Delete a session (also cleans up thread and sandbox).
 	Delete(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Session, error)
@@ -143,19 +153,29 @@ type SessionCommandControllerServer interface {
 	Create(context.Context, *Session) (*Session, error)
 	// Update an existing session (e.g., subject, thread_id, sandbox_id).
 	Update(context.Context, *Session) (*Session, error)
-	// Set the session subject (server-side field-level update, race-safe).
+	// Set the session subject.
 	//
-	// Unlike the full update RPC, this atomically modifies only spec.subject
-	// without touching other fields. This eliminates the lost-update race
-	// between GenerateSessionSubject and sandbox_manager, which both run in
-	// parallel during agent execution.
+	// This is a targeted update that modifies only the subject field,
+	// leaving other session fields untouched. Use this instead of the full
+	// update RPC when you only need to change the session subject.
+	//
+	// @internal
+	// Server-side field-level update, race-safe. Atomically modifies only
+	// spec.subject without touching other fields. Eliminates the lost-update
+	// race between GenerateSessionSubject and sandbox_manager, which both run
+	// in parallel during agent execution.
 	UpdateSubject(context.Context, *UpdateSessionSubjectRequest) (*Session, error)
-	// Set the session sandbox ID (server-side field-level update, race-safe).
+	// Set the session sandbox ID.
 	//
-	// Unlike the full update RPC, this atomically modifies only spec.sandbox_id
-	// without touching other fields. This eliminates the lost-update race
-	// between sandbox_manager and GenerateSessionSubject, which both run in
-	// parallel during agent execution.
+	// This is a targeted update that modifies only the sandbox ID field,
+	// leaving other session fields untouched. Use this instead of the full
+	// update RPC when you only need to change the sandbox assignment.
+	//
+	// @internal
+	// Server-side field-level update, race-safe. Atomically modifies only
+	// spec.sandbox_id without touching other fields. Eliminates the lost-update
+	// race between sandbox_manager and GenerateSessionSubject, which both run
+	// in parallel during agent execution.
 	UpdateSandboxId(context.Context, *UpdateSessionSandboxIdRequest) (*Session, error)
 	// Delete a session (also cleans up thread and sandbox).
 	Delete(context.Context, *SessionId) (*Session, error)

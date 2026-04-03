@@ -33,7 +33,12 @@ const (
 type AgentQueryControllerClient interface {
 	// Get a single agent by ID.
 	Get(ctx context.Context, in *AgentId, opts ...grpc.CallOption) (*Agent, error)
-	// Custom authorization in handler
+	// Get an agent by its organization-scoped reference (org/slug).
+	// Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+	//
+	// @internal
+	// Custom authorization in handler — checks both direct resource access
+	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Agent, error)
 	// Get the platform default agent.
 	//
@@ -45,6 +50,8 @@ type AgentQueryControllerClient interface {
 	// a conversation without explicitly selecting an agent.
 	//
 	// Error: NOT_FOUND if no default agent is configured.
+	//
+	// @internal
 	// Custom authorization in handler.
 	GetDefault(ctx context.Context, in *GetDefaultAgentRequest, opts ...grpc.CallOption) (*Agent, error)
 }
@@ -95,7 +102,12 @@ func (c *agentQueryControllerClient) GetDefault(ctx context.Context, in *GetDefa
 type AgentQueryControllerServer interface {
 	// Get a single agent by ID.
 	Get(context.Context, *AgentId) (*Agent, error)
-	// Custom authorization in handler
+	// Get an agent by its organization-scoped reference (org/slug).
+	// Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+	//
+	// @internal
+	// Custom authorization in handler — checks both direct resource access
+	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Agent, error)
 	// Get the platform default agent.
 	//
@@ -107,6 +119,8 @@ type AgentQueryControllerServer interface {
 	// a conversation without explicitly selecting an agent.
 	//
 	// Error: NOT_FOUND if no default agent is configured.
+	//
+	// @internal
 	// Custom authorization in handler.
 	GetDefault(context.Context, *GetDefaultAgentRequest) (*Agent, error)
 }

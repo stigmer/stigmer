@@ -21,14 +21,20 @@ service EnvironmentQueryController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get environment";
   }
 
-  // Custom authorization in handler
+  // Get an environment by its organization-scoped reference (org/slug).
+  //
+  // @internal
+  // Custom authorization in handler.
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Environment) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
   // Get the unredacted value of a single secret key in an environment.
-  // Creator-only: requires can_read_secrets permission (FGA: creator relation).
+  // Creator-only: requires can_read_secrets permission.
   // Returns the EnvironmentValue with the decrypted value.
+  //
+  // @internal
+  // FGA authorization: creator relation grants can_read_secrets.
   rpc getSecretValue(EnvironmentSecretValueInput) returns (EnvironmentValue) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = environment;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_read_secrets;
@@ -37,8 +43,11 @@ service EnvironmentQueryController {
   }
 
   // List environments with optional label filtering.
+  // Secret values are redacted in the response.
+  //
+  // @internal
   // Authorization is handled in-handler via FGA-filtered queries (cloud)
-  // or unrestricted store queries (OSS). Secret values are redacted.
+  // or unrestricted store queries (OSS).
   rpc list(ListEnvironmentsRequest) returns (EnvironmentList) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }

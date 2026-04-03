@@ -127,13 +127,14 @@ type McpServerCommandControllerClient interface {
 	UpdateDiscoveredCapabilities(ctx context.Context, in *UpdateDiscoveredCapabilitiesInput, opts ...grpc.CallOption) (*McpServer, error)
 	// Discover the capabilities of an MCP server by connecting to it.
 	//
-	// This triggers server-side discovery: the backend resolves credentials from the
-	// authenticated user's personal environment, delegates the actual MCP connection
-	// to the agent-runner via a Temporal workflow, and stores the result.
+	// This triggers server-side discovery: the backend resolves credentials,
+	// connects to the MCP server, enumerates tools and resource templates,
+	// and stores the result.
 	//
 	// The RPC blocks until discovery completes (up to ~30 seconds) and returns the
 	// updated McpServer with populated status.discovered_capabilities.
 	//
+	// @internal
 	// Typical flow:
 	// 1. Web console ensures required credentials are saved in the user's personal environment
 	// 2. Web console calls discoverCapabilities with the MCP server ID
@@ -329,13 +330,14 @@ type McpServerCommandControllerServer interface {
 	UpdateDiscoveredCapabilities(context.Context, *UpdateDiscoveredCapabilitiesInput) (*McpServer, error)
 	// Discover the capabilities of an MCP server by connecting to it.
 	//
-	// This triggers server-side discovery: the backend resolves credentials from the
-	// authenticated user's personal environment, delegates the actual MCP connection
-	// to the agent-runner via a Temporal workflow, and stores the result.
+	// This triggers server-side discovery: the backend resolves credentials,
+	// connects to the MCP server, enumerates tools and resource templates,
+	// and stores the result.
 	//
 	// The RPC blocks until discovery completes (up to ~30 seconds) and returns the
 	// updated McpServer with populated status.discovered_capabilities.
 	//
+	// @internal
 	// Typical flow:
 	// 1. Web console ensures required credentials are saved in the user's personal environment
 	// 2. Web console calls discoverCapabilities with the MCP server ID

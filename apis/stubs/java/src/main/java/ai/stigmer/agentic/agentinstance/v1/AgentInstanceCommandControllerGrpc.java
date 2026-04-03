@@ -223,10 +223,10 @@ public final class AgentInstanceCommandControllerGrpc {
      * <pre>
      * Create a new agent instance with full state.
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: FGA can_create_instance on parent agent (handler-level)
-     * - Checks can_create_instance on parent agent (via spec.agent_id)
-     * - Public agents: Any authenticated user can create instances (cross-org allowed)
-     * - Private agents: Only org members and agent owner can create instances
+     * Public agents allow any authenticated user to create instances (cross-org allowed).
+     * Private agents restrict instance creation to org members and the agent owner.
+     * &#64;internal
+     * Authorization: FGA can_create_instance on parent agent (handler-level).
      * FGA is the single source of truth — no hardcoded org-matching rules.
      * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
@@ -313,10 +313,10 @@ public final class AgentInstanceCommandControllerGrpc {
      * <pre>
      * Create a new agent instance with full state.
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: FGA can_create_instance on parent agent (handler-level)
-     * - Checks can_create_instance on parent agent (via spec.agent_id)
-     * - Public agents: Any authenticated user can create instances (cross-org allowed)
-     * - Private agents: Only org members and agent owner can create instances
+     * Public agents allow any authenticated user to create instances (cross-org allowed).
+     * Private agents restrict instance creation to org members and the agent owner.
+     * &#64;internal
+     * Authorization: FGA can_create_instance on parent agent (handler-level).
      * FGA is the single source of truth — no hardcoded org-matching rules.
      * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
@@ -390,10 +390,10 @@ public final class AgentInstanceCommandControllerGrpc {
      * <pre>
      * Create a new agent instance with full state.
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: FGA can_create_instance on parent agent (handler-level)
-     * - Checks can_create_instance on parent agent (via spec.agent_id)
-     * - Public agents: Any authenticated user can create instances (cross-org allowed)
-     * - Private agents: Only org members and agent owner can create instances
+     * Public agents allow any authenticated user to create instances (cross-org allowed).
+     * Private agents restrict instance creation to org members and the agent owner.
+     * &#64;internal
+     * Authorization: FGA can_create_instance on parent agent (handler-level).
      * FGA is the single source of truth — no hardcoded org-matching rules.
      * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
@@ -464,10 +464,10 @@ public final class AgentInstanceCommandControllerGrpc {
      * <pre>
      * Create a new agent instance with full state.
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: FGA can_create_instance on parent agent (handler-level)
-     * - Checks can_create_instance on parent agent (via spec.agent_id)
-     * - Public agents: Any authenticated user can create instances (cross-org allowed)
-     * - Private agents: Only org members and agent owner can create instances
+     * Public agents allow any authenticated user to create instances (cross-org allowed).
+     * Private agents restrict instance creation to org members and the agent owner.
+     * &#64;internal
+     * Authorization: FGA can_create_instance on parent agent (handler-level).
      * FGA is the single source of truth — no hardcoded org-matching rules.
      * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>
@@ -539,10 +539,10 @@ public final class AgentInstanceCommandControllerGrpc {
      * <pre>
      * Create a new agent instance with full state.
      * Provide organization_id in metadata.org, and complete spec with configuration and secrets.
-     * Authorization: FGA can_create_instance on parent agent (handler-level)
-     * - Checks can_create_instance on parent agent (via spec.agent_id)
-     * - Public agents: Any authenticated user can create instances (cross-org allowed)
-     * - Private agents: Only org members and agent owner can create instances
+     * Public agents allow any authenticated user to create instances (cross-org allowed).
+     * Private agents restrict instance creation to org members and the agent owner.
+     * &#64;internal
+     * Authorization: FGA can_create_instance on parent agent (handler-level).
      * FGA is the single source of truth — no hardcoded org-matching rules.
      * Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
      * </pre>

@@ -302,11 +302,15 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Set the session subject (server-side field-level update, race-safe).
-     * Unlike the full update RPC, this atomically modifies only spec.subject
-     * without touching other fields. This eliminates the lost-update race
-     * between GenerateSessionSubject and sandbox_manager, which both run in
-     * parallel during agent execution.
+     * Set the session subject.
+     * This is a targeted update that modifies only the subject field,
+     * leaving other session fields untouched. Use this instead of the full
+     * update RPC when you only need to change the session subject.
+     * &#64;internal
+     * Server-side field-level update, race-safe. Atomically modifies only
+     * spec.subject without touching other fields. Eliminates the lost-update
+     * race between GenerateSessionSubject and sandbox_manager, which both run
+     * in parallel during agent execution.
      * </pre>
      */
     default void updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request,
@@ -316,11 +320,15 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Set the session sandbox ID (server-side field-level update, race-safe).
-     * Unlike the full update RPC, this atomically modifies only spec.sandbox_id
-     * without touching other fields. This eliminates the lost-update race
-     * between sandbox_manager and GenerateSessionSubject, which both run in
-     * parallel during agent execution.
+     * Set the session sandbox ID.
+     * This is a targeted update that modifies only the sandbox ID field,
+     * leaving other session fields untouched. Use this instead of the full
+     * update RPC when you only need to change the sandbox assignment.
+     * &#64;internal
+     * Server-side field-level update, race-safe. Atomically modifies only
+     * spec.sandbox_id without touching other fields. Eliminates the lost-update
+     * race between sandbox_manager and GenerateSessionSubject, which both run
+     * in parallel during agent execution.
      * </pre>
      */
     default void updateSandboxId(ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest request,
@@ -410,11 +418,15 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Set the session subject (server-side field-level update, race-safe).
-     * Unlike the full update RPC, this atomically modifies only spec.subject
-     * without touching other fields. This eliminates the lost-update race
-     * between GenerateSessionSubject and sandbox_manager, which both run in
-     * parallel during agent execution.
+     * Set the session subject.
+     * This is a targeted update that modifies only the subject field,
+     * leaving other session fields untouched. Use this instead of the full
+     * update RPC when you only need to change the session subject.
+     * &#64;internal
+     * Server-side field-level update, race-safe. Atomically modifies only
+     * spec.subject without touching other fields. Eliminates the lost-update
+     * race between GenerateSessionSubject and sandbox_manager, which both run
+     * in parallel during agent execution.
      * </pre>
      */
     public void updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request,
@@ -425,11 +437,15 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Set the session sandbox ID (server-side field-level update, race-safe).
-     * Unlike the full update RPC, this atomically modifies only spec.sandbox_id
-     * without touching other fields. This eliminates the lost-update race
-     * between sandbox_manager and GenerateSessionSubject, which both run in
-     * parallel during agent execution.
+     * Set the session sandbox ID.
+     * This is a targeted update that modifies only the sandbox ID field,
+     * leaving other session fields untouched. Use this instead of the full
+     * update RPC when you only need to change the sandbox assignment.
+     * &#64;internal
+     * Server-side field-level update, race-safe. Atomically modifies only
+     * spec.sandbox_id without touching other fields. Eliminates the lost-update
+     * race between sandbox_manager and GenerateSessionSubject, which both run
+     * in parallel during agent execution.
      * </pre>
      */
     public void updateSandboxId(ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest request,
@@ -504,11 +520,15 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Set the session subject (server-side field-level update, race-safe).
-     * Unlike the full update RPC, this atomically modifies only spec.subject
-     * without touching other fields. This eliminates the lost-update race
-     * between GenerateSessionSubject and sandbox_manager, which both run in
-     * parallel during agent execution.
+     * Set the session subject.
+     * This is a targeted update that modifies only the subject field,
+     * leaving other session fields untouched. Use this instead of the full
+     * update RPC when you only need to change the session subject.
+     * &#64;internal
+     * Server-side field-level update, race-safe. Atomically modifies only
+     * spec.subject without touching other fields. Eliminates the lost-update
+     * race between GenerateSessionSubject and sandbox_manager, which both run
+     * in parallel during agent execution.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request) throws io.grpc.StatusException {
@@ -518,11 +538,15 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Set the session sandbox ID (server-side field-level update, race-safe).
-     * Unlike the full update RPC, this atomically modifies only spec.sandbox_id
-     * without touching other fields. This eliminates the lost-update race
-     * between sandbox_manager and GenerateSessionSubject, which both run in
-     * parallel during agent execution.
+     * Set the session sandbox ID.
+     * This is a targeted update that modifies only the sandbox ID field,
+     * leaving other session fields untouched. Use this instead of the full
+     * update RPC when you only need to change the sandbox assignment.
+     * &#64;internal
+     * Server-side field-level update, race-safe. Atomically modifies only
+     * spec.sandbox_id without touching other fields. Eliminates the lost-update
+     * race between sandbox_manager and GenerateSessionSubject, which both run
+     * in parallel during agent execution.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session updateSandboxId(ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest request) throws io.grpc.StatusException {
@@ -595,11 +619,15 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Set the session subject (server-side field-level update, race-safe).
-     * Unlike the full update RPC, this atomically modifies only spec.subject
-     * without touching other fields. This eliminates the lost-update race
-     * between GenerateSessionSubject and sandbox_manager, which both run in
-     * parallel during agent execution.
+     * Set the session subject.
+     * This is a targeted update that modifies only the subject field,
+     * leaving other session fields untouched. Use this instead of the full
+     * update RPC when you only need to change the session subject.
+     * &#64;internal
+     * Server-side field-level update, race-safe. Atomically modifies only
+     * spec.subject without touching other fields. Eliminates the lost-update
+     * race between GenerateSessionSubject and sandbox_manager, which both run
+     * in parallel during agent execution.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session updateSubject(ai.stigmer.agentic.session.v1.UpdateSessionSubjectRequest request) {
@@ -609,11 +637,15 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Set the session sandbox ID (server-side field-level update, race-safe).
-     * Unlike the full update RPC, this atomically modifies only spec.sandbox_id
-     * without touching other fields. This eliminates the lost-update race
-     * between sandbox_manager and GenerateSessionSubject, which both run in
-     * parallel during agent execution.
+     * Set the session sandbox ID.
+     * This is a targeted update that modifies only the sandbox ID field,
+     * leaving other session fields untouched. Use this instead of the full
+     * update RPC when you only need to change the sandbox assignment.
+     * &#64;internal
+     * Server-side field-level update, race-safe. Atomically modifies only
+     * spec.sandbox_id without touching other fields. Eliminates the lost-update
+     * race between sandbox_manager and GenerateSessionSubject, which both run
+     * in parallel during agent execution.
      * </pre>
      */
     public ai.stigmer.agentic.session.v1.Session updateSandboxId(ai.stigmer.agentic.session.v1.UpdateSessionSandboxIdRequest request) {
@@ -689,11 +721,15 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Set the session subject (server-side field-level update, race-safe).
-     * Unlike the full update RPC, this atomically modifies only spec.subject
-     * without touching other fields. This eliminates the lost-update race
-     * between GenerateSessionSubject and sandbox_manager, which both run in
-     * parallel during agent execution.
+     * Set the session subject.
+     * This is a targeted update that modifies only the subject field,
+     * leaving other session fields untouched. Use this instead of the full
+     * update RPC when you only need to change the session subject.
+     * &#64;internal
+     * Server-side field-level update, race-safe. Atomically modifies only
+     * spec.subject without touching other fields. Eliminates the lost-update
+     * race between GenerateSessionSubject and sandbox_manager, which both run
+     * in parallel during agent execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.Session> updateSubject(
@@ -704,11 +740,15 @@ public final class SessionCommandControllerGrpc {
 
     /**
      * <pre>
-     * Set the session sandbox ID (server-side field-level update, race-safe).
-     * Unlike the full update RPC, this atomically modifies only spec.sandbox_id
-     * without touching other fields. This eliminates the lost-update race
-     * between sandbox_manager and GenerateSessionSubject, which both run in
-     * parallel during agent execution.
+     * Set the session sandbox ID.
+     * This is a targeted update that modifies only the sandbox ID field,
+     * leaving other session fields untouched. Use this instead of the full
+     * update RPC when you only need to change the sandbox assignment.
+     * &#64;internal
+     * Server-side field-level update, race-safe. Atomically modifies only
+     * spec.sandbox_id without touching other fields. Eliminates the lost-update
+     * race between sandbox_manager and GenerateSessionSubject, which both run
+     * in parallel during agent execution.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.session.v1.Session> updateSandboxId(

@@ -67,7 +67,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Custom authorization in handler"
+          "description": "Get an agent by its organization-scoped reference (org/slug).\n Resolves a human-readable reference like \"acme/web-search\" to the full Agent resource.\n\n @internal\n Custom authorization in handler — checks both direct resource access\n and organization-level visibility permissions."
         },
         {
           "name": "GetDefault",
@@ -75,7 +75,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Get the platform default agent.\n\n Resolves the agent labeled stigmer.ai/default-agent: \"true\" with\n visibility_public. Returns the full Agent resource including\n status.default_instance_id for session creation.\n\n Used by frontends to enable session-first UX where users start\n a conversation without explicitly selecting an agent.\n\n Error: NOT_FOUND if no default agent is configured.\n Custom authorization in handler."
+          "description": "Get the platform default agent.\n\n Resolves the agent labeled stigmer.ai/default-agent: \"true\" with\n visibility_public. Returns the full Agent resource including\n status.default_instance_id for session creation.\n\n Used by frontends to enable session-first UX where users start\n a conversation without explicitly selecting an agent.\n\n Error: NOT_FOUND if no default agent is configured.\n\n @internal\n Custom authorization in handler."
         }
       ]
     }

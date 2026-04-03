@@ -38,7 +38,10 @@ export const EnvironmentQueryController: GenService<{
     output: typeof EnvironmentSchema;
   },
   /**
-   * Custom authorization in handler
+   * Get an environment by its organization-scoped reference (org/slug).
+   *
+   * @internal
+   * Custom authorization in handler.
    *
    * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getByReference
    */
@@ -49,8 +52,11 @@ export const EnvironmentQueryController: GenService<{
   },
   /**
    * Get the unredacted value of a single secret key in an environment.
-   * Creator-only: requires can_read_secrets permission (FGA: creator relation).
+   * Creator-only: requires can_read_secrets permission.
    * Returns the EnvironmentValue with the decrypted value.
+   *
+   * @internal
+   * FGA authorization: creator relation grants can_read_secrets.
    *
    * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getSecretValue
    */
@@ -61,8 +67,11 @@ export const EnvironmentQueryController: GenService<{
   },
   /**
    * List environments with optional label filtering.
+   * Secret values are redacted in the response.
+   *
+   * @internal
    * Authorization is handled in-handler via FGA-filtered queries (cloud)
-   * or unrestricted store queries (OSS). Secret values are redacted.
+   * or unrestricted store queries (OSS).
    *
    * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.list
    */

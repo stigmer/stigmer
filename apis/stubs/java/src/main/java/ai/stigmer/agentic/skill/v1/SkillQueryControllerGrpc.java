@@ -191,6 +191,7 @@ public final class SkillQueryControllerGrpc {
      * - Empty/"latest" → Returns current version from main collection
      * - Tag name (e.g., "stable", "v1.0") → Resolves to version with this tag
      * - SHA256 hash (64 hex chars) → Returns exact immutable version
+     * &#64;internal
      * Authorization is handled in the handler after resolving the reference to a skill ID.
      * (Input doesn't contain skill ID, so proto-level auth cannot work)
      * </pre>
@@ -204,9 +205,10 @@ public final class SkillQueryControllerGrpc {
      * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
-     * This endpoint is used by the agent-runner to download and extract
-     * skill artifacts into the sandbox at /bin/skills/{version_hash}/.
-     * Authorization is skipped as the storage key itself acts as a capability token.
+     * &#64;internal
+     * Used by the agent-runner to download and extract skill artifacts into the
+     * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
+     * storage key itself acts as a capability token.
      * </pre>
      */
     default void getArtifact(ai.stigmer.agentic.skill.v1.GetArtifactRequest request,
@@ -266,6 +268,7 @@ public final class SkillQueryControllerGrpc {
      * - Empty/"latest" → Returns current version from main collection
      * - Tag name (e.g., "stable", "v1.0") → Resolves to version with this tag
      * - SHA256 hash (64 hex chars) → Returns exact immutable version
+     * &#64;internal
      * Authorization is handled in the handler after resolving the reference to a skill ID.
      * (Input doesn't contain skill ID, so proto-level auth cannot work)
      * </pre>
@@ -280,9 +283,10 @@ public final class SkillQueryControllerGrpc {
      * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
-     * This endpoint is used by the agent-runner to download and extract
-     * skill artifacts into the sandbox at /bin/skills/{version_hash}/.
-     * Authorization is skipped as the storage key itself acts as a capability token.
+     * &#64;internal
+     * Used by the agent-runner to download and extract skill artifacts into the
+     * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
+     * storage key itself acts as a capability token.
      * </pre>
      */
     public void getArtifact(ai.stigmer.agentic.skill.v1.GetArtifactRequest request,
@@ -328,6 +332,7 @@ public final class SkillQueryControllerGrpc {
      * - Empty/"latest" → Returns current version from main collection
      * - Tag name (e.g., "stable", "v1.0") → Resolves to version with this tag
      * - SHA256 hash (64 hex chars) → Returns exact immutable version
+     * &#64;internal
      * Authorization is handled in the handler after resolving the reference to a skill ID.
      * (Input doesn't contain skill ID, so proto-level auth cannot work)
      * </pre>
@@ -341,9 +346,10 @@ public final class SkillQueryControllerGrpc {
      * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
-     * This endpoint is used by the agent-runner to download and extract
-     * skill artifacts into the sandbox at /bin/skills/{version_hash}/.
-     * Authorization is skipped as the storage key itself acts as a capability token.
+     * &#64;internal
+     * Used by the agent-runner to download and extract skill artifacts into the
+     * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
+     * storage key itself acts as a capability token.
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.GetArtifactResponse getArtifact(ai.stigmer.agentic.skill.v1.GetArtifactRequest request) throws io.grpc.StatusException {
@@ -388,6 +394,7 @@ public final class SkillQueryControllerGrpc {
      * - Empty/"latest" → Returns current version from main collection
      * - Tag name (e.g., "stable", "v1.0") → Resolves to version with this tag
      * - SHA256 hash (64 hex chars) → Returns exact immutable version
+     * &#64;internal
      * Authorization is handled in the handler after resolving the reference to a skill ID.
      * (Input doesn't contain skill ID, so proto-level auth cannot work)
      * </pre>
@@ -401,9 +408,10 @@ public final class SkillQueryControllerGrpc {
      * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
-     * This endpoint is used by the agent-runner to download and extract
-     * skill artifacts into the sandbox at /bin/skills/{version_hash}/.
-     * Authorization is skipped as the storage key itself acts as a capability token.
+     * &#64;internal
+     * Used by the agent-runner to download and extract skill artifacts into the
+     * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
+     * storage key itself acts as a capability token.
      * </pre>
      */
     public ai.stigmer.agentic.skill.v1.GetArtifactResponse getArtifact(ai.stigmer.agentic.skill.v1.GetArtifactRequest request) {
@@ -449,6 +457,7 @@ public final class SkillQueryControllerGrpc {
      * - Empty/"latest" → Returns current version from main collection
      * - Tag name (e.g., "stable", "v1.0") → Resolves to version with this tag
      * - SHA256 hash (64 hex chars) → Returns exact immutable version
+     * &#64;internal
      * Authorization is handled in the handler after resolving the reference to a skill ID.
      * (Input doesn't contain skill ID, so proto-level auth cannot work)
      * </pre>
@@ -463,9 +472,10 @@ public final class SkillQueryControllerGrpc {
      * <pre>
      * Download skill artifact from storage by its storage key.
      * Returns the ZIP file containing SKILL.md and implementation files.
-     * This endpoint is used by the agent-runner to download and extract
-     * skill artifacts into the sandbox at /bin/skills/{version_hash}/.
-     * Authorization is skipped as the storage key itself acts as a capability token.
+     * &#64;internal
+     * Used by the agent-runner to download and extract skill artifacts into the
+     * sandbox at /bin/skills/{version_hash}/. Authorization is skipped as the
+     * storage key itself acts as a capability token.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.skill.v1.GetArtifactResponse> getArtifact(

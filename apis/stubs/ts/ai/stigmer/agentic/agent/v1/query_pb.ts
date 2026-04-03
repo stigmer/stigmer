@@ -36,7 +36,12 @@ export const AgentQueryController: GenService<{
     output: typeof AgentSchema;
   },
   /**
-   * Custom authorization in handler
+   * Get an agent by its organization-scoped reference (org/slug).
+   * Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+   *
+   * @internal
+   * Custom authorization in handler — checks both direct resource access
+   * and organization-level visibility permissions.
    *
    * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getByReference
    */
@@ -56,6 +61,8 @@ export const AgentQueryController: GenService<{
    * a conversation without explicitly selecting an agent.
    *
    * Error: NOT_FOUND if no default agent is configured.
+   *
+   * @internal
    * Custom authorization in handler.
    *
    * @generated from rpc ai.stigmer.agentic.agent.v1.AgentQueryController.getDefault

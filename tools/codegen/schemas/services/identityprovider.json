@@ -59,7 +59,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "IdentityProvider",
           "outputFullType": "ai.stigmer.iam.identityprovider.v1.IdentityProvider",
-          "description": "Get an identity provider by reference (org + slug).\n Custom authorization in handler."
+          "description": "Get an identity provider by reference (org + slug).\n\n @internal\n Custom authorization in handler."
         }
       ]
     }

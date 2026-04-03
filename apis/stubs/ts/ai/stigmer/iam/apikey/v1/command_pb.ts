@@ -18,13 +18,14 @@ export const file_ai_stigmer_iam_apikey_v1_command: GenFile = /*@__PURE__*/
   fileDesc("CiZhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvY29tbWFuZC5wcm90bxIYYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxMvoCChdBcGlLZXlDb21tYW5kQ29udHJvbGxlchJSCgZjcmVhdGUSIC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5GiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleSIE0LgYARKDAQoGdXBkYXRlEiAuYWkuc3RpZ21lci5pYW0uYXBpa2V5LnYxLkFwaUtleRogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiNcK4GDEIBBAMIgttZXRhZGF0YS5pZCoedW5hdXRob3JpemVkIHRvIHVwZGF0ZSBhcGkga2V5En8KBmRlbGV0ZRIiLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlJZBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiL8K4GCsIAhAMIgV2YWx1ZSoedW5hdXRob3JpemVkIHRvIGRlbGV0ZSBhcGkga2V5GgSg/ysMYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_apikey_v1_api, file_ai_stigmer_iam_apikey_v1_io, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
- * api-key command controller
+ * ApiKeyCommandController handles write operations for API keys.
  *
  * @generated from service ai.stigmer.iam.apikey.v1.ApiKeyCommandController
  */
 export const ApiKeyCommandController: GenService<{
   /**
-   * create an api-key
+   * Create a new API key for the authenticated user.
+   * Any authenticated user can create API keys.
    *
    * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyCommandController.create
    */
@@ -34,7 +35,7 @@ export const ApiKeyCommandController: GenService<{
     output: typeof ApiKeySchema;
   },
   /**
-   * update an existing api-key
+   * Update an existing API key.
    *
    * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyCommandController.update
    */
@@ -44,7 +45,7 @@ export const ApiKeyCommandController: GenService<{
     output: typeof ApiKeySchema;
   },
   /**
-   * delete an existing api-key
+   * Delete an API key.
    *
    * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyCommandController.delete
    */

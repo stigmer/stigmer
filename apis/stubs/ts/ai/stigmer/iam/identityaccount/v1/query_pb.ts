@@ -22,13 +22,13 @@ export const file_ai_stigmer_iam_identityaccount_v1_query: GenFile = /*@__PURE__
   fileDesc("Ci1haS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvcXVlcnkucHJvdG8SIWFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MTKuBgoeSWRlbnRpdHlBY2NvdW50UXVlcnlDb250cm9sbGVyEqYBCgNnZXQSNC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50SWQaMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IjXCuBgxCAMQCyIFdmFsdWUqJHVuYXV0aG9yaXplZCB0byBnZXQgaWRlbnRpdHkgYWNjb3VudBJaCgZ3aG9BbUkSFi5nb29nbGUucHJvdG9idWYuRW1wdHkaMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IgTQuBgBErABCgpnZXRCeUVtYWlsEjcuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudEVtYWlsGjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudCI1wrgYMQgDEAsiBXZhbHVlKiR1bmF1dGhvcml6ZWQgdG8gZ2V0IGlkZW50aXR5IGFjY291bnQSoQEKCmdldEJ5SWRwSWQSKC5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRwSWQaMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IjXCuBgxCAMQCyIFdmFsdWUqJHVuYXV0aG9yaXplZCB0byBnZXQgaWRlbnRpdHkgYWNjb3VudBKpAQoMZ2V0QWN0b3JJbmZvEjQuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudElkGjUuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRBY3RvciIswrgYKAgDEAsqInVuYXV0aG9yaXplZCB0byBsb29rIHVwIGFjdG9yIGluZm8aBKD/KwtiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_commons_apiresource_status, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_ai_stigmer_iam_identityaccount_v1_api, file_ai_stigmer_iam_identityaccount_v1_io, file_google_protobuf_empty]);
 
 /**
- * identity-account query controller
+ * IdentityAccountQueryController handles read operations for identity accounts.
  *
  * @generated from service ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController
  */
 export const IdentityAccountQueryController: GenService<{
   /**
-   * lookup identity-account.
+   * Get an identity account by its unique identifier.
    *
    * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.get
    */
@@ -38,7 +38,7 @@ export const IdentityAccountQueryController: GenService<{
     output: typeof IdentityAccountSchema;
   },
   /**
-   * look up identity-account by authentication token.
+   * Get the identity account of the currently authenticated user.
    *
    * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.whoAmI
    */
@@ -48,7 +48,7 @@ export const IdentityAccountQueryController: GenService<{
     output: typeof IdentityAccountSchema;
   },
   /**
-   * lookup user-account by identity account email.
+   * Get an identity account by email address.
    *
    * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByEmail
    */
@@ -58,7 +58,7 @@ export const IdentityAccountQueryController: GenService<{
     output: typeof IdentityAccountSchema;
   },
   /**
-   * lookup user-account by idp id.
+   * Get an identity account by identity provider ID.
    *
    * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountQueryController.getByIdpId
    */
@@ -68,8 +68,9 @@ export const IdentityAccountQueryController: GenService<{
     output: typeof IdentityAccountSchema;
   },
   /**
-   * lookup identity-account actor-info (lightweight actor data for audit trail caching)
+   * Get lightweight actor information for an identity account.
    *
+   * @internal
    * This RPC is specifically designed to break circular dependency loops in audit actor resolution.
    * When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
    * needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion

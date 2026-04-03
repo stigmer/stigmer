@@ -32,7 +32,10 @@ const (
 type WorkflowQueryControllerClient interface {
 	// Get a single workflow by ID.
 	Get(ctx context.Context, in *WorkflowId, opts ...grpc.CallOption) (*Workflow, error)
-	// Custom authorization in handler
+	// Get a workflow by its organization-scoped reference (org/slug).
+	//
+	// @internal
+	// Custom authorization in handler.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*Workflow, error)
 }
 
@@ -72,7 +75,10 @@ func (c *workflowQueryControllerClient) GetByReference(ctx context.Context, in *
 type WorkflowQueryControllerServer interface {
 	// Get a single workflow by ID.
 	Get(context.Context, *WorkflowId) (*Workflow, error)
-	// Custom authorization in handler
+	// Get a workflow by its organization-scoped reference (org/slug).
+	//
+	// @internal
+	// Custom authorization in handler.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*Workflow, error)
 }
 

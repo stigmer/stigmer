@@ -1,3 +1,11 @@
+<div align="center">
+  <a href="https://stigmer.ai">
+    <img src="docs/banner_dark.png" alt="Stigmer — Build agents that work for your business" width="100%" height="auto" />
+  </a>
+</div>
+
+<br/>
+
 # Stigmer
 
 **Build AI agents and workflows with zero infrastructure.**

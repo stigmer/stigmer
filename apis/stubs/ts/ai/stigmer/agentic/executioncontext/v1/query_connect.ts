@@ -27,6 +27,8 @@ export const ExecutionContextQueryController = {
   methods: {
     /**
      * Get an ExecutionContext by ID.
+     *
+     * @internal
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      *
      * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.get
@@ -39,6 +41,8 @@ export const ExecutionContextQueryController = {
     },
     /**
      * Get an ExecutionContext by reference (slug-based lookup).
+     *
+     * @internal
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      *
      * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByReference
@@ -51,10 +55,11 @@ export const ExecutionContextQueryController = {
     },
     /**
      * Get an ExecutionContext by the execution ID it belongs to.
-     * This is the primary lookup method used by runners to retrieve the merged
-     * environment variables during workflow/agent execution. The returned context
-     * contains decrypted secrets for runner consumption.
      *
+     * @internal
+     * Primary lookup method used by runners to retrieve the merged environment
+     * variables during workflow/agent execution. The returned context contains
+     * decrypted secrets for runner consumption.
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      *
      * @generated from rpc ai.stigmer.agentic.executioncontext.v1.ExecutionContextQueryController.getByExecutionId
