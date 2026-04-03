@@ -11,6 +11,7 @@
     "generate-images": "tsx scripts/generate-images.ts",
     "build": "tsx scripts/generate-images.ts && next build && tsx scripts/generate-llms-txt.ts",
     "generate-llms": "tsx scripts/generate-llms-txt.ts",
+    "generate-narration": "tsx scripts/generate-narration.ts",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit"
@@ -48,6 +49,7 @@
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "edge-tts-universal": "^1.4.0",
     "eslint": "^9.17.0",
     "eslint-config-next": "15.3.9",
     "gray-matter": "^4.0.3",
