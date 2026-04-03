@@ -93,6 +93,7 @@ jobs:
           args: >-
             --no-progress
             --exclude-path docs/_archive
-            --exclude '^/'
+            --scheme https
+            --scheme http
             docs/
           fail: true

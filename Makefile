@@ -247,6 +247,14 @@ run-site:
 
 build-site: lint-docs
 	$(MAKE) -C site build
+	@if ! git diff --quiet site/yarn.lock 2>/dev/null; then \
+		echo ""; \
+		echo "WARNING: site/yarn.lock was updated by yarn install."; \
+		echo "Commit the updated lockfile before pushing:"; \
+		echo ""; \
+		echo "  git add site/yarn.lock"; \
+		echo ""; \
+	fi
 
 clean-build-site:
 	$(MAKE) -C site clean
