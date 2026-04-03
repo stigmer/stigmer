@@ -8,49 +8,71 @@ description: "SDK reference for API Key resources."
 ## Client Access
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go apiKey, err := client.ApiKey.Get(ctx, "api-key-abc123") ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const apiKey = await stigmer.apiKey.get("api-key-abc123"); ```
-  </Tab>
-  <Tab value="Python">
-    ```python apiKey = client.api_key.get("api-key-abc123") ```
-  </Tab>
-  <Tab value="Java">
-    ```java ApiKey apiKey = client.apiKey().get("api-key-abc123"); ```
-  </Tab>
+<Tab value="Go">
+```go
+apiKey, err := client.ApiKey.Get(ctx, "api-key-abc123")
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const apiKey = await stigmer.apiKey.get("api-key-abc123");
+```
+</Tab>
+<Tab value="Python">
+```python
+apiKey = client.api_key.get("api-key-abc123")
+```
+</Tab>
+<Tab value="Java">
+```java
+ApiKey apiKey = client.apiKey().get("api-key-abc123");
+```
+</Tab>
 </SDKTabs>
 
 ## Methods
 
-| Method                          | Description                                                      |
-| ------------------------------- | ---------------------------------------------------------------- |
-| [`get`](#get)                   | lookup api-key.                                                  |
-| [`getByKeyHash`](#getbykeyhash) | lookup api-key by hashed key.                                    |
-| [`findAll`](#findall)           | lookup all api-keys for the identity-account in the auth header. |
-| [`create`](#create)             | create an api-key.                                               |
-| [`update`](#update)             | update an existing api-key.                                      |
-| [`delete`](#delete)             | delete an existing api-key.                                      |
+| Method | Description |
+|--------|-------------|
+| [`get`](#get) | lookup api-key. |
+| [`getByKeyHash`](#getbykeyhash) | lookup api-key by hashed key. |
+| [`findAll`](#findall) | lookup all api-keys for the identity-account in the auth header. |
+| [`create`](#create) | create an api-key. |
+| [`update`](#update) | update an existing api-key. |
+| [`delete`](#delete) | delete an existing api-key. |
 
 ### get
 
 lookup api-key.
 
 <SDKTabs>
-  <Tab value="Go">```go apiKey, err := client.ApiKey.Get(ctx, id) ```</Tab>
-  <Tab value="TypeScript">
-    ```typescript const apiKey = await stigmer.apiKey.get(id); ```
-  </Tab>
-  <Tab value="Python">```python apiKey = client.api_key.get(id) ```</Tab>
-  <Tab value="Java">```java ApiKey apiKey = client.apiKey().get(id); ```</Tab>
+<Tab value="Go">
+```go
+apiKey, err := client.ApiKey.Get(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const apiKey = await stigmer.apiKey.get(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+apiKey = client.api_key.get(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+ApiKey apiKey = client.apiKey().get(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description         |
-| --------- | -------- | ------------------- |
-| `id`      | `string` | API Key identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | API Key identifier. |
 
 **Returns**: `ApiKey`
 
@@ -59,18 +81,26 @@ lookup api-key.
 lookup api-key by hashed key
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go apiKey, err := client.ApiKey.GetByKeyHash(ctx, input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const apiKey = await stigmer.apiKey.getByKeyHash(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python apiKey = client.api_key.get_by_key_hash(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java ApiKey apiKey = client.apiKey().getByKeyHash(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+apiKey, err := client.ApiKey.GetByKeyHash(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const apiKey = await stigmer.apiKey.getByKeyHash(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+apiKey = client.api_key.get_by_key_hash(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+ApiKey apiKey = client.apiKey().getByKeyHash(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `ApiKeyHash`
@@ -82,14 +112,26 @@ lookup api-key by hashed key
 lookup all api-keys for the identity-account in the auth header.
 
 <SDKTabs>
-  <Tab value="Go">```go apiKeys, err := client.ApiKey.FindAll(ctx) ```</Tab>
-  <Tab value="TypeScript">
-    ```typescript const apiKeys = await stigmer.apiKey.findAll(); ```
-  </Tab>
-  <Tab value="Python">```python apiKeys = client.api_key.find_all() ```</Tab>
-  <Tab value="Java">
-    ```java ApiKeys apiKeys = client.apiKey().findAll(); ```
-  </Tab>
+<Tab value="Go">
+```go
+apiKeys, err := client.ApiKey.FindAll(ctx)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const apiKeys = await stigmer.apiKey.findAll();
+```
+</Tab>
+<Tab value="Python">
+```python
+apiKeys = client.api_key.find_all()
+```
+</Tab>
+<Tab value="Java">
+```java
+ApiKeys apiKeys = client.apiKey().findAll();
+```
+</Tab>
 </SDKTabs>
 
 **Returns**: `ApiKeys`
@@ -185,21 +227,33 @@ ApiKey apiKey = client.apiKey().update(ApiKeyInput.builder()
 delete an existing api-key
 
 <SDKTabs>
-  <Tab value="Go">```go apiKey, err := client.ApiKey.Delete(ctx, id) ```</Tab>
-  <Tab value="TypeScript">
-    ```typescript const apiKey = await stigmer.apiKey.delete(id); ```
-  </Tab>
-  <Tab value="Python">```python apiKey = client.api_key.delete(id) ```</Tab>
-  <Tab value="Java">
-    ```java ApiKey apiKey = client.apiKey().delete(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+apiKey, err := client.ApiKey.Delete(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const apiKey = await stigmer.apiKey.delete(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+apiKey = client.api_key.delete(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+ApiKey apiKey = client.apiKey().delete(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description         |
-| --------- | -------- | ------------------- |
-| `id`      | `string` | API Key identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | API Key identifier. |
 
 **Returns**: `ApiKey`
 
@@ -214,26 +268,11 @@ Input for creating or updating an API Key.
     name: { type: "string", description: "Resource name.", required: true },
     slug: { type: "string", description: "URL-friendly identifier." },
     org: { type: "string", description: "Organization slug.", required: true },
-    labels: {
-      type: "Record<string, string>",
-      description: "Key-value labels.",
-    },
-    keyHash: {
-      type: "string",
-      description:
-        "SHA-256/Bcrypt hash of the raw key generated by the system during.",
-    },
-    fingerprint: {
-      type: "string",
-      description: "UI-visible fingerprint (e.g.",
-    },
-    expiresAt: {
-      type: "string",
-      description: "absolute expiry time (null if neverExpires = true).",
-    },
-    neverExpires: {
-      type: "boolean",
-      description: "never expire flag (forces expires_at to be ignored).",
-    },
+    labels: { type: "Record<string, string>", description: "Key-value labels." },
+    keyHash: { type: "string", description: "SHA-256/Bcrypt hash of the raw key generated by the system during." },
+    fingerprint: { type: "string", description: "UI-visible fingerprint (e.g. last 6 chars)." },
+    expiresAt: { type: "string", description: "absolute expiry time (null if neverExpires = true)." },
+    neverExpires: { type: "boolean", description: "never expire flag (forces expires_at to be ignored)." },
   }}
 />
+

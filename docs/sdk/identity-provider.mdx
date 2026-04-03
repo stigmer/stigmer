@@ -8,86 +8,99 @@ description: "SDK reference for Identity Provider resources."
 ## Client Access
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go identityProvider, err := client.IdentityProvider.Get(ctx,
-    "identity-provider-abc123") ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const identityProvider = await
-    stigmer.identityProvider.get("identity-provider-abc123"); ```
-  </Tab>
-  <Tab value="Python">
-    ```python identityProvider =
-    client.identity_provider.get("identity-provider-abc123") ```
-  </Tab>
-  <Tab value="Java">
-    ```java IdentityProvider identityProvider =
-    client.identityProvider().get("identity-provider-abc123"); ```
-  </Tab>
+<Tab value="Go">
+```go
+identityProvider, err := client.IdentityProvider.Get(ctx, "identity-provider-abc123")
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const identityProvider = await stigmer.identityProvider.get("identity-provider-abc123");
+```
+</Tab>
+<Tab value="Python">
+```python
+identityProvider = client.identity_provider.get("identity-provider-abc123")
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityProvider identityProvider = client.identityProvider().get("identity-provider-abc123");
+```
+</Tab>
 </SDKTabs>
 
 ## Methods
 
-| Method                              | Description                                                     |
-| ----------------------------------- | --------------------------------------------------------------- |
-| [`get`](#get)                       | Get an identity provider by its unique identifier.              |
-| [`getByReference`](#getbyreference) | Get an identity provider by reference (org + slug).             |
-| [`apply`](#apply)                   | Create or update an identity provider (Kubernetes-style apply). |
-| [`create`](#create)                 | Create a new identity provider.                                 |
-| [`update`](#update)                 | Update an existing identity provider.                           |
-| [`delete`](#delete)                 | Delete an identity provider.                                    |
+| Method | Description |
+|--------|-------------|
+| [`get`](#get) | Get an identity provider by its unique identifier. |
+| [`getByReference`](#getbyreference) | Get an identity provider by reference (org + slug). |
+| [`apply`](#apply) | Create or update an identity provider (Kubernetes-style apply). |
+| [`create`](#create) | Create a new identity provider. |
+| [`update`](#update) | Update an existing identity provider. |
+| [`delete`](#delete) | Delete an identity provider. |
 
 ### get
 
 Get an identity provider by its unique identifier.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go identityProvider, err := client.IdentityProvider.Get(ctx, id) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const identityProvider = await
-    stigmer.identityProvider.get(id); ```
-  </Tab>
-  <Tab value="Python">
-    ```python identityProvider = client.identity_provider.get(id) ```
-  </Tab>
-  <Tab value="Java">
-    ```java IdentityProvider identityProvider =
-    client.identityProvider().get(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+identityProvider, err := client.IdentityProvider.Get(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const identityProvider = await stigmer.identityProvider.get(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+identityProvider = client.identity_provider.get(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityProvider identityProvider = client.identityProvider().get(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description                   |
-| --------- | -------- | ----------------------------- |
-| `id`      | `string` | Identity Provider identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Identity Provider identifier. |
 
 **Returns**: `IdentityProvider`
 
 ### getByReference
 
-Get an identity provider by reference (org + slug). Custom authorization in
-handler.
+Get an identity provider by reference (org + slug). Custom authorization in handler.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go identityProvider, err := client.IdentityProvider.GetByReference(ctx,
-    input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const identityProvider = await
-    stigmer.identityProvider.getByReference(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python identityProvider =
-    client.identity_provider.get_by_reference(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java IdentityProvider identityProvider =
-    client.identityProvider().getByReference(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+identityProvider, err := client.IdentityProvider.GetByReference(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const identityProvider = await stigmer.identityProvider.getByReference(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+identityProvider = client.identity_provider.get_by_reference(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+IdentityProvider identityProvider = client.identityProvider().getByReference(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `ApiResourceReference`
@@ -96,9 +109,7 @@ handler.
 
 ### apply
 
-Create or update an identity provider (Kubernetes-style apply). If the resource
-doesn't exist: creates a new identity provider. If the resource exists: updates
-the existing identity provider.
+Create or update an identity provider (Kubernetes-style apply). If the resource doesn't exist: creates a new identity provider. If the resource exists: updates the existing identity provider.
 
 <SDKTabs>
 <Tab value="Go">
@@ -141,8 +152,7 @@ IdentityProvider identityProvider = client.identityProvider().apply(IdentityProv
 
 ### create
 
-Create a new identity provider. The creator's organization owns the identity
-provider.
+Create a new identity provider. The creator's organization owns the identity provider.
 
 <SDKTabs>
 <Tab value="Go">
@@ -185,8 +195,7 @@ IdentityProvider identityProvider = client.identityProvider().create(IdentityPro
 
 ### update
 
-Update an existing identity provider. Requires can_edit permission on the
-identity provider.
+Update an existing identity provider. Requires can_edit permission on the identity provider.
 
 <SDKTabs>
 <Tab value="Go">
@@ -229,8 +238,7 @@ IdentityProvider identityProvider = client.identityProvider().update(IdentityPro
 
 ### delete
 
-Delete an identity provider. Deletion is blocked if any platform-managed
-organizations reference this identity provider.
+Delete an identity provider. Deletion is blocked if any platform-managed organizations reference this identity provider.
 
 <SDKTabs>
 <Tab value="Go">
@@ -261,11 +269,11 @@ IdentityProvider identityProvider = client.identityProvider().delete(DeleteResou
 
 **Parameters**
 
-| Parameter        | Type      | Description                              |
-| ---------------- | --------- | ---------------------------------------- |
-| `resourceId`     | `string`  | ID of the resource to delete.            |
-| `versionMessage` | `string`  | Optional deletion reason.                |
-| `force`          | `boolean` | Force delete even if resource is in use. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resourceId` | `string` | ID of the resource to delete. |
+| `versionMessage` | `string` | Optional deletion reason. |
+| `force` | `boolean` | Force delete even if resource is in use. |
 
 **Returns**: `IdentityProvider`
 
@@ -280,37 +288,13 @@ Input for creating or updating an Identity Provider.
     name: { type: "string", description: "Resource name.", required: true },
     slug: { type: "string", description: "URL-friendly identifier." },
     org: { type: "string", description: "Organization slug.", required: true },
-    labels: {
-      type: "Record<string, string>",
-      description: "Key-value labels.",
-    },
-    displayName: {
-      type: "string",
-      description: "Human-readable display name for this identity provider.",
-    },
-    jwksUri: {
-      type: "string",
-      description:
-        "JWKS endpoint URL for validating tokens presented during token exchange.",
-    },
-    allowedIssuers: {
-      type: "string[]",
-      description:
-        "JWT issuer values that Stigmer will accept from this platform.",
-    },
-    expectedAudience: {
-      type: "string",
-      description: "Expected JWT audience value.",
-    },
-    rateLimitBudget: {
-      type: "number",
-      description:
-        "Shared rate limit budget across all organizations managed via this identity provider.",
-    },
-    userinfoEndpoint: {
-      type: "string",
-      description:
-        "OIDC UserInfo endpoint URL for fetching user profile data during token exchange.",
-    },
+    labels: { type: "Record<string, string>", description: "Key-value labels." },
+    displayName: { type: "string", description: "Human-readable display name for this identity provider." },
+    jwksUri: { type: "string", description: "JWKS endpoint URL for validating tokens presented during token exchange." },
+    allowedIssuers: { type: "string[]", description: "JWT issuer values that Stigmer will accept from this platform." },
+    expectedAudience: { type: "string", description: "Expected JWT audience value." },
+    rateLimitBudget: { type: "number", description: "Shared rate limit budget across all organizations managed via this identity provider." },
+    userinfoEndpoint: { type: "string", description: "OIDC UserInfo endpoint URL for fetching user profile data during token exchange." },
   }}
 />
+

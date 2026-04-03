@@ -555,7 +555,10 @@ func docWriteTab(buf *bytes.Buffer, lang, syntax, code string) {
 // docWriteStreamingSigs emits SDK code examples for server-streaming methods,
 // showing the language-idiomatic iteration pattern in each SDK.
 func docWriteStreamingSigs(buf *bytes.Buffer, m *MethodSchema, clientField, goField, pyField, tsName, pyName string, idInput bool) {
-	eventVar := strings.ToLower(m.OutputType[:1]) + m.OutputType[1:]
+	eventVar := "event"
+	if m.OutputType != "" {
+		eventVar = strings.ToLower(m.OutputType[:1]) + m.OutputType[1:]
+	}
 
 	param := "input"
 	if idInput {
@@ -678,13 +681,39 @@ func docFirstSentence(desc string) string {
 	if idx := strings.Index(desc, "\n\n"); idx >= 0 {
 		desc = desc[:idx]
 	}
-	if idx := strings.Index(desc, ". "); idx >= 0 {
+	idx := docSentenceEnd(desc)
+	if idx >= 0 {
 		return desc[:idx+1]
 	}
 	if strings.HasSuffix(desc, ".") {
 		return desc
 	}
 	return desc + "."
+}
+
+// docSentenceEnd finds the index of the period that ends the first sentence,
+// skipping periods that follow common abbreviations (e.g., i.e., etc., vs.).
+func docSentenceEnd(s string) int {
+	abbrevs := []string{"e.g.", "i.e.", "etc.", "vs.", "approx.", "incl.", "resp."}
+	offset := 0
+	for {
+		idx := strings.Index(s[offset:], ". ")
+		if idx < 0 {
+			return -1
+		}
+		pos := offset + idx
+		isAbbrev := false
+		for _, abbr := range abbrevs {
+			if pos+1 >= len(abbr) && strings.EqualFold(s[pos+1-len(abbr):pos+1], abbr) {
+				isAbbrev = true
+				break
+			}
+		}
+		if !isAbbrev {
+			return pos
+		}
+		offset = pos + 2
+	}
 }
 
 // docEscapeJSString escapes a string for use inside a JavaScript/JSX string literal.

@@ -10,89 +10,99 @@ This is created during execution and deleted when execution completes.
 ## Client Access
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go executionContext, err := client.ExecutionContext.Get(ctx,
-    "execution-context-abc123") ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const executionContext = await
-    stigmer.executionContext.get("execution-context-abc123"); ```
-  </Tab>
-  <Tab value="Python">
-    ```python executionContext =
-    client.execution_context.get("execution-context-abc123") ```
-  </Tab>
-  <Tab value="Java">
-    ```java ExecutionContext executionContext =
-    client.executionContext().get("execution-context-abc123"); ```
-  </Tab>
+<Tab value="Go">
+```go
+executionContext, err := client.ExecutionContext.Get(ctx, "execution-context-abc123")
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const executionContext = await stigmer.executionContext.get("execution-context-abc123");
+```
+</Tab>
+<Tab value="Python">
+```python
+executionContext = client.execution_context.get("execution-context-abc123")
+```
+</Tab>
+<Tab value="Java">
+```java
+ExecutionContext executionContext = client.executionContext().get("execution-context-abc123");
+```
+</Tab>
 </SDKTabs>
 
 ## Methods
 
-| Method                                  | Description                                                                         |
-| --------------------------------------- | ----------------------------------------------------------------------------------- |
-| [`get`](#get)                           | Get an ExecutionContext by ID.                                                      |
-| [`getByExecutionId`](#getbyexecutionid) | Get an ExecutionContext by the execution ID it belongs to.                          |
-| [`getByReference`](#getbyreference)     | Get an ExecutionContext by reference (slug-based lookup).                           |
-| [`apply`](#apply)                       | Create or update an ExecutionContext.                                               |
-| [`create`](#create)                     | Create a new ExecutionContext (called by execution pipeline on behalf of the user). |
-| [`delete`](#delete)                     | Delete an ExecutionContext (called when execution completes).                       |
+| Method | Description |
+|--------|-------------|
+| [`get`](#get) | Get an ExecutionContext by ID. |
+| [`getByExecutionId`](#getbyexecutionid) | Get an ExecutionContext by the execution ID it belongs to. |
+| [`getByReference`](#getbyreference) | Get an ExecutionContext by reference (slug-based lookup). |
+| [`apply`](#apply) | Create or update an ExecutionContext. |
+| [`create`](#create) | Create a new ExecutionContext (called by execution pipeline on behalf of the user). |
+| [`delete`](#delete) | Delete an ExecutionContext (called when execution completes). |
 
 ### get
 
-Get an ExecutionContext by ID. Handler-level derived auth: checks can_view on
-parent agent_execution or workflow_execution.
+Get an ExecutionContext by ID. Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go executionContext, err := client.ExecutionContext.Get(ctx, id) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const executionContext = await
-    stigmer.executionContext.get(id); ```
-  </Tab>
-  <Tab value="Python">
-    ```python executionContext = client.execution_context.get(id) ```
-  </Tab>
-  <Tab value="Java">
-    ```java ExecutionContext executionContext =
-    client.executionContext().get(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+executionContext, err := client.ExecutionContext.Get(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const executionContext = await stigmer.executionContext.get(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+executionContext = client.execution_context.get(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+ExecutionContext executionContext = client.executionContext().get(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description                   |
-| --------- | -------- | ----------------------------- |
-| `id`      | `string` | Execution Context identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Execution Context identifier. |
 
 **Returns**: `ExecutionContext`
 
 ### getByExecutionId
 
-Get an ExecutionContext by the execution ID it belongs to. This is the primary
-lookup method used by runners to retrieve the merged environment variables
-during workflow/agent execution. The returned context contains decrypted secrets
-for runner consumption.
+Get an ExecutionContext by the execution ID it belongs to. This is the primary lookup method used by runners to retrieve the merged environment variables during workflow/agent execution. The returned context contains decrypted secrets for runner consumption.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go executionContext, err := client.ExecutionContext.GetByExecutionId(ctx,
-    input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const executionContext = await
-    stigmer.executionContext.getByExecutionId(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python executionContext =
-    client.execution_context.get_by_execution_id(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java ExecutionContext executionContext =
-    client.executionContext().getByExecutionId(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+executionContext, err := client.ExecutionContext.GetByExecutionId(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const executionContext = await stigmer.executionContext.getByExecutionId(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+executionContext = client.execution_context.get_by_execution_id(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+ExecutionContext executionContext = client.executionContext().getByExecutionId(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `ExecutionContextExecutionIdInput`
@@ -101,26 +111,29 @@ for runner consumption.
 
 ### getByReference
 
-Get an ExecutionContext by reference (slug-based lookup). Handler-level derived
-auth: checks can_view on parent agent_execution or workflow_execution.
+Get an ExecutionContext by reference (slug-based lookup). Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go executionContext, err := client.ExecutionContext.GetByReference(ctx,
-    input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const executionContext = await
-    stigmer.executionContext.getByReference(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python executionContext =
-    client.execution_context.get_by_reference(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java ExecutionContext executionContext =
-    client.executionContext().getByReference(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+executionContext, err := client.ExecutionContext.GetByReference(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const executionContext = await stigmer.executionContext.getByReference(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+executionContext = client.execution_context.get_by_reference(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+ExecutionContext executionContext = client.executionContext().getByReference(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `ApiResourceReference`
@@ -129,9 +142,7 @@ auth: checks can_view on parent agent_execution or workflow_execution.
 
 ### apply
 
-Create or update an ExecutionContext. The authorization and state-operation are
-determined depending on whether the execution context is going to be created or
-updated which is determined as part of the request execution.
+Create or update an ExecutionContext. The authorization and state-operation are determined depending on whether the execution context is going to be created or updated which is determined as part of the request execution.
 
 <SDKTabs>
 <Tab value="Go">
@@ -174,9 +185,7 @@ ExecutionContext executionContext = client.executionContext().apply(ExecutionCon
 
 ### create
 
-Create a new ExecutionContext (called by execution pipeline on behalf of the
-user). Handler-level derived auth: checks can_edit on parent agent_execution or
-workflow_execution.
+Create a new ExecutionContext (called by execution pipeline on behalf of the user). Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
 
 <SDKTabs>
 <Tab value="Go">
@@ -219,8 +228,7 @@ ExecutionContext executionContext = client.executionContext().create(ExecutionCo
 
 ### delete
 
-Delete an ExecutionContext (called when execution completes). Handler-level
-derived auth: checks can_edit on parent agent_execution or workflow_execution.
+Delete an ExecutionContext (called when execution completes). Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
 
 <SDKTabs>
 <Tab value="Go">
@@ -251,11 +259,11 @@ ExecutionContext executionContext = client.executionContext().delete(DeleteResou
 
 **Parameters**
 
-| Parameter        | Type      | Description                              |
-| ---------------- | --------- | ---------------------------------------- |
-| `resourceId`     | `string`  | ID of the resource to delete.            |
-| `versionMessage` | `string`  | Optional deletion reason.                |
-| `force`          | `boolean` | Force delete even if resource is in use. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `resourceId` | `string` | ID of the resource to delete. |
+| `versionMessage` | `string` | Optional deletion reason. |
+| `force` | `boolean` | Force delete even if resource is in use. |
 
 **Returns**: `ExecutionContext`
 
@@ -270,17 +278,9 @@ Input for creating or updating an Execution Context.
     name: { type: "string", description: "Resource name.", required: true },
     slug: { type: "string", description: "URL-friendly identifier." },
     org: { type: "string", description: "Organization slug.", required: true },
-    labels: {
-      type: "Record<string, string>",
-      description: "Key-value labels.",
-    },
-    executionId: {
-      type: "string",
-      description: "The execution ID this context belongs to.",
-    },
-    data: {
-      type: "Record<string, EnvVarInput>",
-      description: "Key-value pairs containing both configuration and secrets.",
-    },
+    labels: { type: "Record<string, string>", description: "Key-value labels." },
+    executionId: { type: "string", description: "The execution ID this context belongs to." },
+    data: { type: "Record<string, EnvVarInput>", description: "Key-value pairs containing both configuration and secrets." },
   }}
 />
+

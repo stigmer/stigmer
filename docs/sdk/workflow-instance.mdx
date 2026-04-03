@@ -8,62 +8,72 @@ description: "SDK reference for Workflow Instance resources."
 ## Client Access
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowInstance, err := client.WorkflowInstance.Get(ctx,
-    "workflow-instance-abc123") ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowInstance = await
-    stigmer.workflowInstance.get("workflow-instance-abc123"); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowInstance =
-    client.workflow_instance.get("workflow-instance-abc123") ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowInstance workflowInstance =
-    client.workflowInstance().get("workflow-instance-abc123"); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowInstance, err := client.WorkflowInstance.Get(ctx, "workflow-instance-abc123")
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowInstance = await stigmer.workflowInstance.get("workflow-instance-abc123");
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowInstance = client.workflow_instance.get("workflow-instance-abc123")
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowInstance workflowInstance = client.workflowInstance().get("workflow-instance-abc123");
+```
+</Tab>
 </SDKTabs>
 
 ## Methods
 
-| Method                              | Description                                                 |
-| ----------------------------------- | ----------------------------------------------------------- |
-| [`get`](#get)                       | Get a single workflow instance by ID.                       |
+| Method | Description |
+|--------|-------------|
+| [`get`](#get) | Get a single workflow instance by ID. |
 | [`getByReference`](#getbyreference) | Get a workflow instance by flexible reference (ID or slug). |
-| [`getByWorkflow`](#getbyworkflow)   | Get all instances of a specific workflow template.          |
-| [`apply`](#apply)                   | Create or update a workflow instance.                       |
-| [`create`](#create)                 | Create a new workflow instance.                             |
-| [`update`](#update)                 | Update an existing workflow instance.                       |
-| [`delete`](#delete)                 | Delete a workflow instance.                                 |
+| [`getByWorkflow`](#getbyworkflow) | Get all instances of a specific workflow template. |
+| [`apply`](#apply) | Create or update a workflow instance. |
+| [`create`](#create) | Create a new workflow instance. |
+| [`update`](#update) | Update an existing workflow instance. |
+| [`delete`](#delete) | Delete a workflow instance. |
 
 ### get
 
 Get a single workflow instance by ID.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowInstance, err := client.WorkflowInstance.Get(ctx, id) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowInstance = await
-    stigmer.workflowInstance.get(id); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowInstance = client.workflow_instance.get(id) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowInstance workflowInstance =
-    client.workflowInstance().get(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowInstance, err := client.WorkflowInstance.Get(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowInstance = await stigmer.workflowInstance.get(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowInstance = client.workflow_instance.get(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowInstance workflowInstance = client.workflowInstance().get(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description                   |
-| --------- | -------- | ----------------------------- |
-| `id`      | `string` | Workflow Instance identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Workflow Instance identifier. |
 
 **Returns**: `WorkflowInstance`
 
@@ -72,22 +82,26 @@ Get a single workflow instance by ID.
 Get a workflow instance by flexible reference (ID or slug).
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowInstance, err := client.WorkflowInstance.GetByReference(ctx,
-    input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowInstance = await
-    stigmer.workflowInstance.getByReference(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowInstance =
-    client.workflow_instance.get_by_reference(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowInstance workflowInstance =
-    client.workflowInstance().getByReference(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowInstance, err := client.WorkflowInstance.GetByReference(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowInstance = await stigmer.workflowInstance.getByReference(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowInstance = client.workflow_instance.get_by_reference(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowInstance workflowInstance = client.workflowInstance().getByReference(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `ApiResourceReference`
@@ -99,20 +113,26 @@ Get a workflow instance by flexible reference (ID or slug).
 Get all instances of a specific workflow template.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go result, err := client.WorkflowInstance.GetByWorkflow(ctx, input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const result = await
-    stigmer.workflowInstance.getByWorkflow(input); ```
-  </Tab>
-  <Tab value="Python">
-    ```python result = client.workflow_instance.get_by_workflow(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowInstanceList result =
-    client.workflowInstance().getByWorkflow(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+result, err := client.WorkflowInstance.GetByWorkflow(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const result = await stigmer.workflowInstance.getByWorkflow(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+result = client.workflow_instance.get_by_workflow(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowInstanceList result = client.workflowInstance().getByWorkflow(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `GetWorkflowInstancesByWorkflowRequest`
@@ -121,9 +141,7 @@ Get all instances of a specific workflow template.
 
 ### apply
 
-Create or update a workflow instance. The authorization and state-operation are
-determined depending on whether the workflow instance is going to be created or
-updated which is determined as part of the request execution.
+Create or update a workflow instance. The authorization and state-operation are determined depending on whether the workflow instance is going to be created or updated which is determined as part of the request execution.
 
 <SDKTabs>
 <Tab value="Go">
@@ -255,27 +273,33 @@ WorkflowInstance workflowInstance = client.workflowInstance().update(WorkflowIns
 Delete a workflow instance.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go workflowInstance, err := client.WorkflowInstance.Delete(ctx, id) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const workflowInstance = await
-    stigmer.workflowInstance.delete(id); ```
-  </Tab>
-  <Tab value="Python">
-    ```python workflowInstance = client.workflow_instance.delete(id) ```
-  </Tab>
-  <Tab value="Java">
-    ```java WorkflowInstance workflowInstance =
-    client.workflowInstance().delete(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+workflowInstance, err := client.WorkflowInstance.Delete(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const workflowInstance = await stigmer.workflowInstance.delete(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+workflowInstance = client.workflow_instance.delete(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+WorkflowInstance workflowInstance = client.workflowInstance().delete(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description                   |
-| --------- | -------- | ----------------------------- |
-| `id`      | `string` | Workflow Instance identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Workflow Instance identifier. |
 
 **Returns**: `WorkflowInstance`
 
@@ -290,23 +314,10 @@ Input for creating or updating a Workflow Instance.
     name: { type: "string", description: "Resource name.", required: true },
     slug: { type: "string", description: "URL-friendly identifier." },
     org: { type: "string", description: "Organization slug.", required: true },
-    labels: {
-      type: "Record<string, string>",
-      description: "Key-value labels.",
-    },
-    workflowId: {
-      type: "string",
-      description: "Reference to the Workflow template this instance deploys.",
-    },
-    description: {
-      type: "string",
-      description:
-        "Human-readable description explaining what this instance is for.",
-    },
-    environmentRefs: {
-      type: "ResourceRef[]",
-      description:
-        "References to Environment resources providing configuration and secrets.",
-    },
+    labels: { type: "Record<string, string>", description: "Key-value labels." },
+    workflowId: { type: "string", description: "Reference to the Workflow template this instance deploys." },
+    description: { type: "string", description: "Human-readable description explaining what this instance is for." },
+    environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources providing configuration and secrets." },
   }}
 />
+

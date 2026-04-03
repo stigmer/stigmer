@@ -8,74 +8,99 @@ description: "SDK reference for Project resources."
 ## Client Access
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go project, err := client.Project.Get(ctx, "project-abc123") ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const project = await stigmer.project.get("project-abc123");
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python project = client.project.get("project-abc123") ```
-  </Tab>
-  <Tab value="Java">
-    ```java Project project = client.project().get("project-abc123"); ```
-  </Tab>
+<Tab value="Go">
+```go
+project, err := client.Project.Get(ctx, "project-abc123")
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const project = await stigmer.project.get("project-abc123");
+```
+</Tab>
+<Tab value="Python">
+```python
+project = client.project.get("project-abc123")
+```
+</Tab>
+<Tab value="Java">
+```java
+Project project = client.project().get("project-abc123");
+```
+</Tab>
 </SDKTabs>
 
 ## Methods
 
-| Method                              | Description                            |
-| ----------------------------------- | -------------------------------------- |
-| [`get`](#get)                       | Get a single project by ID.            |
+| Method | Description |
+|--------|-------------|
+| [`get`](#get) | Get a single project by ID. |
 | [`getByReference`](#getbyreference) | Get a project by reference (org/name). |
-| [`apply`](#apply)                   | Create or update a project.            |
-| [`create`](#create)                 | Create a new project.                  |
-| [`update`](#update)                 | Update an existing project.            |
-| [`delete`](#delete)                 | Delete a project.                      |
+| [`apply`](#apply) | Create or update a project. |
+| [`create`](#create) | Create a new project. |
+| [`update`](#update) | Update an existing project. |
+| [`delete`](#delete) | Delete a project. |
 
 ### get
 
 Get a single project by ID.
 
 <SDKTabs>
-  <Tab value="Go">```go project, err := client.Project.Get(ctx, id) ```</Tab>
-  <Tab value="TypeScript">
-    ```typescript const project = await stigmer.project.get(id); ```
-  </Tab>
-  <Tab value="Python">```python project = client.project.get(id) ```</Tab>
-  <Tab value="Java">
-    ```java Project project = client.project().get(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+project, err := client.Project.Get(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const project = await stigmer.project.get(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+project = client.project.get(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+Project project = client.project().get(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description         |
-| --------- | -------- | ------------------- |
-| `id`      | `string` | Project identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Project identifier. |
 
 **Returns**: `Project`
 
 ### getByReference
 
-Get a project by reference (org/name). Custom authorization is handled in the
-controller implementation.
+Get a project by reference (org/name). Custom authorization is handled in the controller implementation.
 
 <SDKTabs>
-  <Tab value="Go">
-    ```go project, err := client.Project.GetByReference(ctx, input) ```
-  </Tab>
-  <Tab value="TypeScript">
-    ```typescript const project = await stigmer.project.getByReference(input);
-    ```
-  </Tab>
-  <Tab value="Python">
-    ```python project = client.project.get_by_reference(input) ```
-  </Tab>
-  <Tab value="Java">
-    ```java Project project = client.project().getByReference(input); ```
-  </Tab>
+<Tab value="Go">
+```go
+project, err := client.Project.GetByReference(ctx, input)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const project = await stigmer.project.getByReference(input);
+```
+</Tab>
+<Tab value="Python">
+```python
+project = client.project.get_by_reference(input)
+```
+</Tab>
+<Tab value="Java">
+```java
+Project project = client.project().getByReference(input);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**: `ApiResourceReference`
@@ -84,9 +109,7 @@ controller implementation.
 
 ### apply
 
-Create or update a project. The authorization and state-operation are determined
-depending on whether the project is going to be created or updated which is
-determined as part of the request execution.
+Create or update a project. The authorization and state-operation are determined depending on whether the project is going to be created or updated which is determined as part of the request execution.
 
 <SDKTabs>
 <Tab value="Go">
@@ -218,21 +241,33 @@ Project project = client.project().update(ProjectInput.builder()
 Delete a project.
 
 <SDKTabs>
-  <Tab value="Go">```go project, err := client.Project.Delete(ctx, id) ```</Tab>
-  <Tab value="TypeScript">
-    ```typescript const project = await stigmer.project.delete(id); ```
-  </Tab>
-  <Tab value="Python">```python project = client.project.delete(id) ```</Tab>
-  <Tab value="Java">
-    ```java Project project = client.project().delete(id); ```
-  </Tab>
+<Tab value="Go">
+```go
+project, err := client.Project.Delete(ctx, id)
+```
+</Tab>
+<Tab value="TypeScript">
+```typescript
+const project = await stigmer.project.delete(id);
+```
+</Tab>
+<Tab value="Python">
+```python
+project = client.project.delete(id)
+```
+</Tab>
+<Tab value="Java">
+```java
+Project project = client.project().delete(id);
+```
+</Tab>
 </SDKTabs>
 
 **Parameters**
 
-| Parameter | Type     | Description         |
-| --------- | -------- | ------------------- |
-| `id`      | `string` | Project identifier. |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | `string` | Project identifier. |
 
 **Returns**: `Project`
 
@@ -247,21 +282,10 @@ Input for creating or updating a Project.
     name: { type: "string", description: "Resource name.", required: true },
     slug: { type: "string", description: "URL-friendly identifier." },
     org: { type: "string", description: "Organization slug.", required: true },
-    labels: {
-      type: "Record<string, string>",
-      description: "Key-value labels.",
-    },
-    entryPoint: {
-      type: "string",
-      description: "Entry point file for SDK synthesis.",
-    },
-    description: {
-      type: "string",
-      description: "Human-readable description of the project.",
-    },
-    members: {
-      type: "ResourceRef[]",
-      description: "References to resources managed by this project.",
-    },
+    labels: { type: "Record<string, string>", description: "Key-value labels." },
+    entryPoint: { type: "string", description: "Entry point file for SDK synthesis." },
+    description: { type: "string", description: "Human-readable description of the project." },
+    members: { type: "ResourceRef[]", description: "References to resources managed by this project." },
   }}
 />
+
