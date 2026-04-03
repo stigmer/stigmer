@@ -196,12 +196,26 @@ web-console-build:
 
 # ─── Site ─────────────────────────────────────
 
-.PHONY: site docs-build gen-llms
-site: ## Start the documentation website with hot reload
+.PHONY: site run-site build-site clean-build-site preview-site preview docs-build gen-llms
+
+site: run-site ## Start the documentation website with hot reload
+
+run-site:
 	$(MAKE) -C site dev
 
-docs-build: ## Build the documentation site (production)
+build-site:
 	$(MAKE) -C site build
+
+clean-build-site:
+	$(MAKE) -C site clean
+	$(MAKE) -C site build
+
+preview-site:
+	$(MAKE) -C site preview
+
+preview: preview-site
+
+docs-build: build-site ## Build the documentation site (production)
 
 gen-llms: ## Generate LLM-friendly output (llms.txt, llms-full.txt, per-page .md)
 	cd site && yarn generate-llms
