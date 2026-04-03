@@ -10,7 +10,7 @@ import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
 interface ResourceListPageProps {
   /** Page heading (e.g. "Skills", "MCP Servers"). */
   readonly title: string;
-  /** Label for the create button (e.g. "Create Skill", "Add MCP Server"). */
+  /** Label for the create button (e.g. "Add Skill", "Add MCP Server"). */
   readonly createLabel: string;
   /** `data-cursor-target` value for the create button. */
   readonly cursorTarget: string;

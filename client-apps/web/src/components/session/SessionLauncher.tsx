@@ -51,9 +51,24 @@ import { useSessionNavigation } from "@/contexts/session-navigation";
 const STORAGE_KEY_MODEL = "stigmer:session:model";
 
 const DRAFT_PLACEHOLDERS: Record<DraftResourceType, string> = {
-  agent: "Describe the agent you want to create\u2026",
-  skill: "Describe the skill you want to create\u2026",
-  "mcp-server": "Describe the MCP server you want to create\u2026",
+  agent:
+    "Describe the agent you\u2019d like to build \u2014 its purpose, the skills " +
+    "and MCP servers it should use, and any system instructions to " +
+    "guide its behavior.",
+  skill:
+    "Describe the skill you\u2019d like to build \u2014 what it does and " +
+    "what instructions it should follow. You can attach a workspace " +
+    "or reference files for additional context.",
+  "mcp-server":
+    "Describe the MCP server you\u2019d like to register \u2014 its name, " +
+    "connection type (stdio or SSE), startup command or endpoint URL, " +
+    "and any required environment variables.",
+};
+
+const DRAFT_HEADINGS: Record<DraftResourceType, string> = {
+  agent: "Add an Agent",
+  skill: "Add a Skill",
+  "mcp-server": "Add an MCP Server",
 };
 
 const EDIT_PLACEHOLDERS: Record<DraftResourceType, string> = {
@@ -71,14 +86,32 @@ export function SessionLauncher() {
   const stigmer = useStigmer();
   const { navigateToSession } = useSessionNavigation();
 
-  const draftType = draftParams?.draftType ?? null;
-  const editRef = draftParams?.editRef ?? null;
+  const liveDraftType = draftParams?.draftType ?? null;
+  const liveEditRef = draftParams?.editRef ?? null;
+
+  // Capture draft params in state so they survive URL cleanup.
+  // useState initializer handles the fast path (params available on first
+  // render). The effect handles the deferred path: in Next.js static
+  // export, useSearchParams() may not have the params until after
+  // hydration completes.
+  const [capturedDraftType, setCapturedDraftType] = useState<DraftResourceType | null>(
+    () => liveDraftType,
+  );
+  const [capturedEditRef, setCapturedEditRef] = useState(liveEditRef);
+  const draftCaptured = useRef(liveDraftType !== null);
+
+  useEffect(() => {
+    if (!draftCaptured.current && liveDraftType) {
+      draftCaptured.current = true;
+      setCapturedDraftType(liveDraftType);
+      setCapturedEditRef(liveEditRef);
+    }
+  }, [liveDraftType, liveEditRef]);
+
+  const draftType = capturedDraftType;
+  const editRef = capturedEditRef;
   const isEditMode = editRef !== null;
 
-  // Capture initialAgentRef from draft params. The useState initializer
-  // handles the fast path (params available on first render). The effect
-  // handles the deferred path: in Next.js static export, useSearchParams()
-  // may not have the params until after hydration completes.
   const [initialAgentRef, setInitialAgentRef] = useState<ResourceRef | undefined>(
     () => (draftType ? CREATOR_AGENTS[draftType] : undefined),
   );
@@ -99,14 +132,16 @@ export function SessionLauncher() {
 
   const heading = isEditMode
     ? "What would you like to change?"
-    : "What would you like to work on?";
+    : draftType
+      ? DRAFT_HEADINGS[draftType]
+      : "What would you like to work on?";
 
-  // Clean URL params after reading
+  // Clean URL params after capturing
   useEffect(() => {
-    if (draftType) {
+    if (liveDraftType) {
       window.history.replaceState({}, "", "/");
     }
-  }, [draftType]);
+  }, [liveDraftType]);
 
   // ---------------------------------------------------------------------------
   // Edit mode: fetch resource and build initial attachment files

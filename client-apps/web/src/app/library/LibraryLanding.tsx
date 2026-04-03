@@ -41,7 +41,7 @@ const RESOURCE_CARDS = [
   },
 ] as const;
 
-const CREATE_MENU_ITEMS: readonly {
+const ADD_MENU_ITEMS: readonly {
   readonly type: DraftResourceType;
   readonly label: string;
   readonly icon: React.ReactNode;
@@ -112,18 +112,18 @@ export function LibraryLanding() {
       </div>
 
       <div className="mt-6">
-        <CreateResourceMenu />
+        <AddResourceMenu />
       </div>
     </>
   );
 }
 
 // ---------------------------------------------------------------------------
-// CreateResourceMenu — single "+ Create" button with a dropdown of
+// AddResourceMenu — single "+ Add" button with a dropdown of
 // resource types, each linking to the corresponding draft session.
 // ---------------------------------------------------------------------------
 
-function CreateResourceMenu() {
+function AddResourceMenu() {
   const [open, setOpen] = useState(false);
 
   return (
@@ -135,10 +135,10 @@ function CreateResourceMenu() {
           "hover:bg-accent hover:text-accent-foreground",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         )}
-        aria-label="Create a new resource"
+        aria-label="Add a new resource"
       >
         <Plus className="size-3.5" aria-hidden="true" />
-        Create
+        Add
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner sideOffset={4} align="start">
@@ -149,7 +149,7 @@ function CreateResourceMenu() {
             )}
           >
             <div className="py-1" role="menu">
-              {CREATE_MENU_ITEMS.map((item) => (
+              {ADD_MENU_ITEMS.map((item) => (
                 <Link
                   key={item.type}
                   href={getDraftSessionUrl(item.type)}

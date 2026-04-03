@@ -148,7 +148,7 @@ function renderStep(step: GuidedTourStep) {
         >
           <ResourceListPage
             title="Skills"
-            createLabel="Create Skill"
+            createLabel="Add Skill"
             cursorTarget="create-skill"
             items={EXISTING_SKILLS}
           />
@@ -164,7 +164,7 @@ function renderStep(step: GuidedTourStep) {
         >
           <ResourceListPage
             title="Skills"
-            createLabel="Create Skill"
+            createLabel="Add Skill"
             cursorTarget="create-skill"
             items={EXISTING_SKILLS}
             highlightCreate
@@ -247,7 +247,7 @@ function renderStep(step: GuidedTourStep) {
         >
           <ResourceListPage
             title="Skills"
-            createLabel="Create Skill"
+            createLabel="Add Skill"
             cursorTarget="create-skill"
             items={ALL_SKILLS}
             showNewItem
