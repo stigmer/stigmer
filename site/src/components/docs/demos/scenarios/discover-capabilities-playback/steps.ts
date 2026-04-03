@@ -108,6 +108,7 @@ export const discoverSteps: ScenarioStep<DiscoverStep>[] = [
     delayMs: 0,
     data: { view: "no-tools", server: noToolsServer },
     caption: "MCP server added — no tools yet",
+    narration: "You've added the MCP server, but Stigmer doesn't know what tools it offers yet.",
   },
   {
     delayMs: 2500,
@@ -123,6 +124,7 @@ export const discoverSteps: ScenarioStep<DiscoverStep>[] = [
     delayMs: 2500,
     data: { view: "credential-form", server: noToolsServer },
     caption: "Enter your API key",
+    narration: "Stigmer needs your API key to connect to the server.",
   },
   {
     delayMs: 3000,
@@ -133,5 +135,6 @@ export const discoverSteps: ScenarioStep<DiscoverStep>[] = [
     delayMs: 3000,
     data: { view: "tools-discovered", server: withToolsServer },
     caption: "3 tools discovered",
+    narration: "Stigmer connected to the server and found three tools — get_order, list_orders, and process_return.",
   },
 ];

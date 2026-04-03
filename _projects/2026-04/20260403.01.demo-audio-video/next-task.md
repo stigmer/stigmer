@@ -68,7 +68,7 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-03 14:45
-**Current Task**: T01 Phase 1 and Phase 2 complete, ready for Phase 3
+**Current Task**: T01 Phases 1–3 and 6 complete, ready for Phase 4
 **Status**: In Progress
 
 ## Session Progress (2026-04-03, Session 1 — Phase 1)
@@ -95,12 +95,25 @@ When starting a new session:
 - Audio duration computed from Edge TTS word-boundary metadata (100ns units)
 - Build-time cache stored in `.narration-cache.json` separate from runtime `manifest.json`
 
+## Session Progress (2026-04-03, Session 3 — Phases 3 & 6)
+
+- Phase 3 (narration content) fully implemented — all 10 playback scenarios have narration text
+- Phase 6 (document writer role update) completed — narration authoring guidelines added to `_roles/002_document_writer.md`
+- 30 narrated steps out of 75 total (~40% density), each 1–2 sentences
+- Narration written in 4 batches with review after each: Quickstart path, Creation tours, MCP features, Concept demos
+- TypeScript: zero errors. ESLint: zero warnings.
+
+### Narration philosophy established
+- Narrate concepts and outcomes, not screen mechanics
+- Silent steps are deliberate — navigation, scrolling, cursor clicks are visual pauses
+- Register matches the page context (quickstart = simplest, concepts = more precise)
+- Each tour emphasizes different concepts despite identical UI structure
+
 ## Next Steps
 
-1. **Phase 3: Narration content** — Add `narration` text to all 10 playback scenario step definitions. Run `make generate-narration` to produce audio. This is the content authoring phase.
+1. **Run `make generate-narration`** — Produce MP3 audio files from the narration text for all 10 scenarios.
 2. **Phase 4: Dynamic step timing** — Sync step duration with narration clip length when unmuted. Logic: `effectiveDelay = Math.max(step.delayMs, manifest.steps[i].durationMs ?? 0)`.
 3. **Phase 5: Video export pipeline** — Playwright records scenarios + FFmpeg composites audio into MP4 files.
-4. **Phase 6: Document writer role update** — Add narration authoring guidelines to `_roles/002_document_writer.md`.
 
 ## Context for Resume
 

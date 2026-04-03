@@ -54,6 +54,7 @@ export const toolCallsPlaybackSteps: ScenarioStep<ToolCallStep>[] = [
       ),
     },
     caption: "Agent calls the get_order tool",
+    narration: "Instead of guessing, the agent calls get_order to look up the real order details from the system.",
   },
   {
     delayMs: 2500,
@@ -65,5 +66,6 @@ export const toolCallsPlaybackSteps: ScenarioStep<ToolCallStep>[] = [
       ),
     },
     caption: "Agent responds with order details",
+    narration: "The response includes real data — tracking number, delivery date, and item details — all from the tool call.",
   },
 ];
