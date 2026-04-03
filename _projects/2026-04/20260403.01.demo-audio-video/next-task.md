@@ -68,12 +68,11 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-03 14:45
-**Current Task**: T01 Phase 1 complete, ready for Phase 2
+**Current Task**: T01 Phase 1 and Phase 2 complete, ready for Phase 3
 **Status**: In Progress
 
-## Session Progress (2026-04-03)
+## Session Progress (2026-04-03, Session 1 — Phase 1)
 
-### Completed
 - Phase 1 (ScenarioPlayer audio engine) fully implemented and verified
 - Created `engine/narration.ts` with `NarrationEntry` and `NarrationManifest` type definitions
 - Created `engine/useNarrationPlayback.ts` custom hook (audio element management, mute toggle, step-synced playback, autoplay policy handling)
@@ -82,35 +81,39 @@ When starting a new session:
 - Added mute/unmute toggle button (VolumeX/Volume2 from lucide-react) to ScenarioPlayer controls
 - Hidden `<audio>` element rendered only when manifest is provided
 
-### Key Design Decision
-- Deviated from T01 plan: used a separate `narrationManifest` prop on ScenarioPlayer instead of `narrationSrc` on `ScenarioStep<T>`. This cleanly separates authored content (narration text on steps) from build artifacts (audio URLs in manifest). Approved by project owner before implementation.
+### Key Design Decision (Phase 1)
+- Used a separate `narrationManifest` prop on ScenarioPlayer instead of `narrationSrc` on `ScenarioStep<T>`. This cleanly separates authored content (narration text on steps) from build artifacts (audio URLs in manifest).
 
-### Verification
-- TypeScript: zero errors
-- ESLint: zero new warnings in engine files
-- Zero regression: all existing demos render identically, no mute button appears (correct — no manifests yet)
-- Mock manifest test: mute button renders, aria-labels correct, nonexistent audio handled gracefully (safePlay catches rejected promises)
-- Test fixture reverted — approval-flow-playback is clean
+## Session Progress (2026-04-03, Session 2 — Phase 2)
+
+- Phase 2 (TTS build script) fully implemented and verified
+- Installed `edge-tts-universal` (v1.4.0) as devDependency — TypeScript-native, zero deps
+- Created `site/scripts/generate-narration.ts`: scenario discovery, hash-based caching, Edge TTS synthesis via `en-US-AndrewMultilingualNeural` voice, manifest generation
+- Added `generate-narration` script to package.json, Makefile target, and .gitignore for `public/demos/`
+- Validated dynamic import of step files with protobuf and `@stigmer/react/demo` deps works in `tsx`
+- Smoke-tested: dry-run (0 narration), generation (1 test clip at 4.3s/28KB), caching (second run skips TTS)
+- Audio duration computed from Edge TTS word-boundary metadata (100ns units)
+- Build-time cache stored in `.narration-cache.json` separate from runtime `manifest.json`
 
 ## Next Steps
 
-1. **Phase 2: TTS build script** — Create `site/scripts/generate-narration.ts` using Edge TTS. Hash-based caching, manifest generation per scenario, Makefile target.
-2. **Phase 3: Narration content** — Add `narration` text to all 10 playback scenario step definitions.
-3. **Phase 4: Dynamic step timing** — Sync step duration with narration clip length when unmuted.
-4. **Phase 5: Video export pipeline** — Playwright + FFmpeg video recording and compositing.
-5. **Phase 6: Document writer role update** — Add narration authoring guidelines.
+1. **Phase 3: Narration content** — Add `narration` text to all 10 playback scenario step definitions. Run `make generate-narration` to produce audio. This is the content authoring phase.
+2. **Phase 4: Dynamic step timing** — Sync step duration with narration clip length when unmuted. Logic: `effectiveDelay = Math.max(step.delayMs, manifest.steps[i].durationMs ?? 0)`.
+3. **Phase 5: Video export pipeline** — Playwright records scenarios + FFmpeg composites audio into MP4 files.
+4. **Phase 6: Document writer role update** — Add narration authoring guidelines to `_roles/002_document_writer.md`.
 
 ## Context for Resume
 
 - The `useNarrationPlayback` hook uses a single `<audio>` element via ref, reusing it across steps by changing `src`. Browser autoplay policy is handled by defaulting to muted and catching rejected `play()` promises.
 - The hook is inert when no manifest is provided — all existing scenarios work exactly as before.
-- Phase 2 will need to install `edge-tts` as a dev dependency and may need `ffmpeg` installed via brew for Phase 5.
+- `edge-tts-universal` uses the `EdgeTTS` simple API: `new EdgeTTS(text, voice)` -> `synthesize()` -> `{ audio: Blob, subtitle: [...] }`. Duration from `subtitle[last].offset + subtitle[last].duration` (100ns units / 10000 = ms).
+- Dynamic import via `tsx` resolves `@stigmer/protos` and `@stigmer/react/demo` correctly. Named exports are under `mod.default` due to CJS/ESM interop — script uses `mod.default ?? mod`.
 - The site uses `output: "export"` (static export) — no server routes available at runtime. Phase 5 video export will need a dev server approach.
 
 ## Quick Commands
 
 After loading context:
-- "Continue with Phase 2" - Start the TTS build script
+- "Continue with Phase 3" - Start adding narration content
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
