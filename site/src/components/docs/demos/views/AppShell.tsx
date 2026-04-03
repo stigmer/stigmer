@@ -11,6 +11,7 @@ import {
   Settings,
   User,
 } from "lucide-react";
+import { PulseHighlight } from "../shared/PulseHighlight";
 import { DEMO_SHELL_HEIGHT } from "../shared/tokens";
 
 export type NavId = "new-session" | "library";
@@ -139,19 +140,7 @@ export function AppShell({
             </div>
             <span className="truncate text-[9px] text-muted-foreground">You</span>
 
-            {highlightUserProfile && (
-              <motion.span
-                className="absolute inset-0 rounded-md border border-foreground"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 0.5, 0] }}
-                transition={{
-                  duration: 1.2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                aria-hidden
-              />
-            )}
+            {highlightUserProfile && <PulseHighlight />}
           </div>
         </div>
       </nav>
@@ -205,19 +194,7 @@ function NavRow({
       <Icon className="h-3 w-3 shrink-0" />
       <span>{label}</span>
 
-      {isHighlighted && (
-        <motion.span
-          className="absolute inset-0 rounded-md border border-foreground"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 0.5, 0] }}
-          transition={{
-            duration: 1.2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          aria-hidden
-        />
-      )}
+      {isHighlighted && <PulseHighlight />}
     </div>
   );
 }

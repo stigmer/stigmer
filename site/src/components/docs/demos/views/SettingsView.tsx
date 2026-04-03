@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import {
   ApiKeyCreatedAlert,
@@ -10,6 +9,7 @@ import {
   EnvironmentVariableEditor,
 } from "@stigmer/react";
 import { DEMO_ORG } from "../engine/shared";
+import { PulseHighlight } from "../shared/PulseHighlight";
 import { DEMO_CONTENT_ZOOM } from "../shared/tokens";
 
 type ApiKeyVisualState = "list" | "creating" | "created";
@@ -69,19 +69,7 @@ export function SettingsView({
                 New API key
               </div>
 
-              {highlightCreate && (
-                <motion.span
-                  className="absolute inset-0 rounded-md border border-foreground"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 0.5, 0] }}
-                  transition={{
-                    duration: 1.2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  aria-hidden
-                />
-              )}
+              {highlightCreate && <PulseHighlight />}
             </div>
           </div>
 
