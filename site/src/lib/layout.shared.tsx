@@ -4,7 +4,7 @@ import { StigmerIcon } from "@/components/ui/stigmer-icon";
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
-      title: <StigmerIcon size={24} />,
+      title: <StigmerIcon size={32} />,
     },
   };
 }
