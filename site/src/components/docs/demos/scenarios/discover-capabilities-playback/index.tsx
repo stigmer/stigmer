@@ -62,6 +62,27 @@ function showCredentialFormFor(step: DiscoverStep): boolean {
   return step.view === "credential-form" || step.view === "credential-filled";
 }
 
+/**
+ * Compute a stable React key that only changes when the component
+ * state needs to reinitialize (credential form, pool values, server).
+ * Steps that only differ in scroll position or cursor share the
+ * same key so the component stays mounted and scroll persists.
+ */
+function componentKeyFor(step: DiscoverStep): string {
+  switch (step.view) {
+    case "no-tools":
+    case "scroll-to-capabilities":
+    case "click-discover":
+      return "base";
+    case "credential-form":
+      return "cred-form";
+    case "credential-filled":
+      return "cred-filled";
+    case "tools-discovered":
+      return "tools";
+  }
+}
+
 export function DiscoverCapabilitiesPlayback() {
   const clientMap = useMemo(() => {
     const map = new Map<McpServer, ReturnType<typeof buildClient>>();
@@ -78,6 +99,20 @@ export function DiscoverCapabilitiesPlayback() {
 
   const handleStepChange = useCallback((step: DiscoverStep) => {
     setCursorTarget(cursorTargetFor(step));
+
+    if (step.view === "scroll-to-capabilities") {
+      setTimeout(() => {
+        const scrollEl = containerRef.current?.querySelector(
+          "[data-scroll-container]",
+        );
+        if (scrollEl) {
+          scrollEl.scrollTo({
+            top: scrollEl.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      }, 50);
+    }
   }, []);
 
   return (
@@ -85,11 +120,12 @@ export function DiscoverCapabilitiesPlayback() {
       <ScenarioPlayer steps={discoverSteps} onStepChange={handleStepChange}>
         {(step) => (
           <StigmerProvider
-            key={step.view}
+            key={componentKeyFor(step)}
             client={clientMap.get(step.server)!}
           >
             <AppShell activeNav="library" contentKey="mcp-detail">
               <div
+                data-scroll-container
                 className="h-full overflow-y-auto"
                 style={{ zoom: DEMO_CONTENT_ZOOM }}
               >

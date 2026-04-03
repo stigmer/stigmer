@@ -119,6 +119,7 @@ export function Tabs({
               aria-controls={panelId(tab.id)}
               tabIndex={isActive ? 0 : -1}
               onClick={() => onTabChange(tab.id)}
+              data-cursor-target={`tab-${tab.id}`}
               className={cn(
                 "relative inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",

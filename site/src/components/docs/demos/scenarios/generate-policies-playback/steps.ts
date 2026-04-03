@@ -1,8 +1,8 @@
 /**
  * Generate approval policies playback for "Connect your tools".
  *
- * 4-step sequence: tools tab (context) → policies tab (empty) →
- * cursor on Generate → policies applied.
+ * 6-step sequence: tools tab → scroll down → cursor clicks Policies
+ * tab → no policies → cursor clicks Generate → policies applied.
  *
  * Each step carries the full McpServer fixture so the playback
  * component can swap the data fed to the real SDK McpServerDetailView.
@@ -104,7 +104,9 @@ function buildServerWithPolicies(): McpServer {
 }
 
 export type GeneratePoliciesStep =
-  | { view: "tools-tab"; server: McpServer }
+  | { view: "tools-overview"; server: McpServer }
+  | { view: "scroll-to-capabilities"; server: McpServer }
+  | { view: "click-policies-tab"; server: McpServer }
   | { view: "no-policies"; server: McpServer }
   | { view: "click-generate"; server: McpServer }
   | { view: "policies-applied"; server: McpServer };
@@ -115,18 +117,28 @@ const withPoliciesServer = buildServerWithPolicies();
 export const generatePoliciesSteps: ScenarioStep<GeneratePoliciesStep>[] = [
   {
     delayMs: 0,
-    data: { view: "tools-tab", server: toolsOnlyServer },
+    data: { view: "tools-overview", server: toolsOnlyServer },
     caption: "3 tools discovered — 2 read, 1 write",
   },
   {
-    delayMs: 3000,
+    delayMs: 2500,
+    data: { view: "scroll-to-capabilities", server: toolsOnlyServer },
+    caption: "Scroll to Capabilities",
+  },
+  {
+    delayMs: 2000,
+    data: { view: "click-policies-tab", server: toolsOnlyServer },
+    caption: 'Switch to "Policies"',
+  },
+  {
+    delayMs: 2500,
     data: { view: "no-policies", server: toolsOnlyServer },
     caption: "No approval policies yet",
   },
   {
     delayMs: 2500,
     data: { view: "click-generate", server: toolsOnlyServer },
-    caption: 'Click "Generate Policies"',
+    caption: 'Click "Generate"',
   },
   {
     delayMs: 3000,

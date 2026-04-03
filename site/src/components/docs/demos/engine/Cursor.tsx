@@ -28,28 +28,42 @@ const SPRING = {
 const CLICK_DELAY_MS = 450;
 const RETRY_INTERVAL_MS = 80;
 const MAX_RETRIES = 12;
+const SCROLL_SETTLE_MS = 400;
 
 /**
- * Scroll the target element into the center of its nearest
- * scrollable ancestor (overflow-y: auto | scroll). Only adjusts
- * the internal scroll container — never touches the page scroll.
+ * Scroll the target element into view inside its nearest scrollable
+ * ancestor using the browser's native `scrollIntoView`. This handles
+ * CSS `zoom` correctly (manual `scrollTop` arithmetic does not).
+ *
+ * After scrolling the internal container, page scroll is immediately
+ * restored so the demo block doesn't jump on the page.
+ *
+ * @returns `true` when scrolling was necessary.
  */
-function scrollIntoScrollParent(el: Element) {
+function scrollTargetIntoView(el: Element): boolean {
+  const scrollParent = findScrollParent(el);
+  if (!scrollParent) return false;
+
+  const pRect = scrollParent.getBoundingClientRect();
+  const eRect = el.getBoundingClientRect();
+  const isVisible = eRect.top >= pRect.top && eRect.bottom <= pRect.bottom;
+  if (isVisible) return false;
+
+  const pageX = window.scrollX;
+  const pageY = window.scrollY;
+  el.scrollIntoView({ block: "center", behavior: "smooth" });
+  window.scrollTo(pageX, pageY);
+  return true;
+}
+
+function findScrollParent(el: Element): Element | null {
   let parent = el.parentElement;
   while (parent) {
     const { overflowY } = getComputedStyle(parent);
-    if (overflowY === "auto" || overflowY === "scroll") {
-      const pRect = parent.getBoundingClientRect();
-      const eRect = el.getBoundingClientRect();
-
-      if (eRect.top < pRect.top || eRect.bottom > pRect.bottom) {
-        parent.scrollTop +=
-          eRect.top - pRect.top - pRect.height / 2 + eRect.height / 2;
-      }
-      return;
-    }
+    if (overflowY === "auto" || overflowY === "scroll") return parent;
     parent = parent.parentElement;
   }
+  return null;
 }
 
 /**
@@ -61,8 +75,9 @@ function scrollIntoScrollParent(el: Element) {
  *
  * When the target element doesn't exist yet (e.g. SDK component
  * still loading async data), the cursor polls until it appears
- * (up to ~1 s). When found, it scrolls the element into view
- * within its nearest scrollable ancestor before positioning.
+ * (up to ~1 s). When found, it smooth-scrolls the element into view
+ * within its nearest scrollable ancestor, waits for the scroll to
+ * settle, then positions and clicks.
  *
  * Fades out when no target is set, fades in when a target appears.
  * Fully non-interactive (`pointer-events-none`).
@@ -72,10 +87,12 @@ export function Cursor({ target, containerRef }: CursorProps) {
   const [clicking, setClicking] = useState(false);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     clearTimeout(clickTimerRef.current);
     clearTimeout(retryTimerRef.current);
+    clearTimeout(settleTimerRef.current);
     setClicking(false);
 
     if (!target) {
@@ -103,23 +120,28 @@ export function Cursor({ target, containerRef }: CursorProps) {
         return;
       }
 
-      scrollIntoScrollParent(el);
+      const didScroll = scrollTargetIntoView(el);
 
-      requestAnimationFrame(() => {
-        if (cancelled) return;
+      settleTimerRef.current = setTimeout(
+        () => {
+          requestAnimationFrame(() => {
+            if (cancelled) return;
 
-        const cRect = container.getBoundingClientRect();
-        const eRect = el.getBoundingClientRect();
+            const cRect = container.getBoundingClientRect();
+            const eRect = el.getBoundingClientRect();
 
-        setPos({
-          x: eRect.left - cRect.left + eRect.width / 2,
-          y: eRect.top - cRect.top + eRect.height / 2,
-        });
+            setPos({
+              x: eRect.left - cRect.left + eRect.width / 2,
+              y: eRect.top - cRect.top + eRect.height / 2,
+            });
 
-        clickTimerRef.current = setTimeout(() => {
-          if (!cancelled) setClicking(true);
-        }, CLICK_DELAY_MS);
-      });
+            clickTimerRef.current = setTimeout(() => {
+              if (!cancelled) setClicking(true);
+            }, CLICK_DELAY_MS);
+          });
+        },
+        didScroll ? SCROLL_SETTLE_MS : 0,
+      );
     }
 
     const frame = requestAnimationFrame(tryFind);
@@ -128,6 +150,7 @@ export function Cursor({ target, containerRef }: CursorProps) {
       cancelled = true;
       cancelAnimationFrame(frame);
       clearTimeout(retryTimerRef.current);
+      clearTimeout(settleTimerRef.current);
       clearTimeout(clickTimerRef.current);
     };
   }, [target, containerRef]);
@@ -136,6 +159,7 @@ export function Cursor({ target, containerRef }: CursorProps) {
     return () => {
       clearTimeout(clickTimerRef.current);
       clearTimeout(retryTimerRef.current);
+      clearTimeout(settleTimerRef.current);
     };
   }, []);
 

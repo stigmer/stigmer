@@ -34,6 +34,8 @@ function buildClient(server: McpServer) {
 
 function cursorTargetFor(step: GeneratePoliciesStep): string | undefined {
   switch (step.view) {
+    case "click-policies-tab":
+      return "tab-policies";
     case "click-generate":
       return "generate-policies-button";
     default:
@@ -41,10 +43,35 @@ function cursorTargetFor(step: GeneratePoliciesStep): string | undefined {
   }
 }
 
-function defaultTabFor(
-  step: GeneratePoliciesStep,
-): "tools" | "policies" {
-  return step.view === "tools-tab" ? "tools" : "policies";
+function defaultTabFor(step: GeneratePoliciesStep): "tools" | "policies" {
+  switch (step.view) {
+    case "tools-overview":
+    case "scroll-to-capabilities":
+    case "click-policies-tab":
+      return "tools";
+    default:
+      return "policies";
+  }
+}
+
+/**
+ * Compute a stable React key that only changes when the component
+ * state needs to reinitialize (different tab, different server).
+ * Steps that only differ in scroll position or cursor share the
+ * same key so the component stays mounted and scroll persists.
+ */
+function componentKeyFor(step: GeneratePoliciesStep): string {
+  switch (step.view) {
+    case "tools-overview":
+    case "scroll-to-capabilities":
+    case "click-policies-tab":
+      return "tools";
+    case "no-policies":
+    case "click-generate":
+      return "policies";
+    case "policies-applied":
+      return "policies-done";
+  }
 }
 
 export function GeneratePoliciesPlayback() {
@@ -63,6 +90,20 @@ export function GeneratePoliciesPlayback() {
 
   const handleStepChange = useCallback((step: GeneratePoliciesStep) => {
     setCursorTarget(cursorTargetFor(step));
+
+    if (step.view === "scroll-to-capabilities") {
+      setTimeout(() => {
+        const scrollEl = containerRef.current?.querySelector(
+          "[data-scroll-container]",
+        );
+        if (scrollEl) {
+          scrollEl.scrollTo({
+            top: scrollEl.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      }, 50);
+    }
   }, []);
 
   return (
@@ -73,11 +114,12 @@ export function GeneratePoliciesPlayback() {
       >
         {(step) => (
           <StigmerProvider
-            key={step.view}
+            key={componentKeyFor(step)}
             client={clientMap.get(step.server)!}
           >
             <AppShell activeNav="library" contentKey="mcp-detail">
               <div
+                data-scroll-container
                 className="h-full overflow-y-auto"
                 style={{ zoom: DEMO_CONTENT_ZOOM }}
               >
