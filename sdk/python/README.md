@@ -131,7 +131,7 @@ Error codes: `not-found`, `permission-denied`, `unauthenticated`, `invalid-argum
 StigmerClient(
     api_key: str,               # Stigmer API key (required)
     *,
-    base_url: str = "api.stigmer.io:443",  # gRPC target address
+    base_url: str = "api.stigmer.ai:443",  # gRPC target address
     insecure: bool = False,     # Skip TLS (local development only)
 )
 ```

@@ -3,12 +3,12 @@ import { validateConfig, type StigmerConfig } from "../config";
 
 describe("validateConfig", () => {
   const validApiKeyConfig: StigmerConfig = {
-    baseUrl: "https://api.stigmer.io",
+    baseUrl: "https://api.stigmer.ai",
     apiKey: "sk_live_abc123",
   };
 
   const validTokenProviderConfig: StigmerConfig = {
-    baseUrl: "https://api.stigmer.io",
+    baseUrl: "https://api.stigmer.ai",
     getAccessToken: () => "token",
   };
 
@@ -28,20 +28,20 @@ describe("validateConfig", () => {
 
   it("rejects missing both apiKey and getAccessToken", () => {
     expect(() =>
-      validateConfig({ baseUrl: "https://api.stigmer.io" }),
+      validateConfig({ baseUrl: "https://api.stigmer.ai" }),
     ).toThrow("stigmer: either apiKey or getAccessToken must be provided");
   });
 
   it("rejects empty apiKey without getAccessToken", () => {
     expect(() =>
-      validateConfig({ baseUrl: "https://api.stigmer.io", apiKey: "" }),
+      validateConfig({ baseUrl: "https://api.stigmer.ai", apiKey: "" }),
     ).toThrow("stigmer: either apiKey or getAccessToken must be provided");
   });
 
   it("rejects providing both apiKey and getAccessToken", () => {
     expect(() =>
       validateConfig({
-        baseUrl: "https://api.stigmer.io",
+        baseUrl: "https://api.stigmer.ai",
         apiKey: "sk_live_abc123",
         getAccessToken: () => "token",
       }),

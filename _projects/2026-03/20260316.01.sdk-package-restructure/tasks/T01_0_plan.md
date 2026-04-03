@@ -148,7 +148,7 @@ The client methods are generated from proto service definitions (RPC methods alr
 - [ ] Create `sdk/typescript/` directory with `package.json` (`name: "@stigmer/sdk"`), `tsconfig.json`
 - [ ] Design the public API surface:
   ```typescript
-  const stigmer = new Stigmer({ apiKey: "sk_...", baseUrl: "https://api.stigmer.io" });
+  const stigmer = new Stigmer({ apiKey: "sk_...", baseUrl: "https://api.stigmer.ai" });
   const agent = await stigmer.agents.get("my-agent");
   const execution = await stigmer.executions.create({ agentSlug: "my-agent", message: "Hello" });
   for await (const event of stigmer.executions.subscribe(execution.id)) { ... }

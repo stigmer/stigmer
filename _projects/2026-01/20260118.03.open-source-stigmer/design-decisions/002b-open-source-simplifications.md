@@ -427,7 +427,7 @@ Update all API examples to remove `org_id`:
 **Before**:
 ```bash
 # Create agent (Cloud)
-curl -X POST https://api.stigmer.io/v1/organizations/org-acme/agents \
+curl -X POST https://api.stigmer.ai/v1/organizations/org-acme/agents \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"name": "Customer Support", "spec": {...}}'
 ```

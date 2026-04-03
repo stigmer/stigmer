@@ -20,7 +20,7 @@ client, err := stigmer.NewClient("sk_live_abc123")
 
 // Full configuration
 client, err := stigmer.NewClient("sk_live_abc123",
-    stigmer.WithBaseURL("https://api.stigmer.io:443"),
+    stigmer.WithBaseURL("https://api.stigmer.ai:443"),
     stigmer.WithInsecure(),                          // disable TLS (local dev)
     stigmer.WithDialOptions(grpc.WithBlock()),       // pass-through gRPC dial options
 )

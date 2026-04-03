@@ -28,7 +28,7 @@ import { StigmerProvider } from "@stigmer/react";
 import "@stigmer/react/styles.css";
 
 const client = new Stigmer({
-  baseUrl: "https://api.stigmer.io",
+  baseUrl: "https://api.stigmer.ai",
   getAccessToken: () => auth.getToken(),
 });
 

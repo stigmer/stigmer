@@ -13,7 +13,7 @@ export type TokenProvider = () => Promise<string | null> | string | null;
  * - `getAccessToken`: Dynamic token provider for browser or rotating credentials.
  */
 export interface StigmerConfig {
-  /** Base URL of the Stigmer API server (e.g., "https://api.stigmer.io"). */
+  /** Base URL of the Stigmer API server (e.g., "https://api.stigmer.ai"). */
   readonly baseUrl: string;
 
   /** Static API key. Sent as `Authorization: Bearer <apiKey>` on every request. */

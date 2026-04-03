@@ -392,7 +392,7 @@ graph TB
   backend:
     type: cloud
     cloud:
-      endpoint: api.stigmer.io:443
+      endpoint: api.stigmer.ai:443
       token: <auth-token>
       organization: my-org
   ```
@@ -431,7 +431,7 @@ graph TB
   $ stigmer login
   Opening browser for authentication...
   ✓ Logged in as user@example.com
-  ✓ Switched to cloud backend (api.stigmer.io)
+  ✓ Switched to cloud backend (api.stigmer.ai)
   ```
 
 - [ ] **Design `stigmer backend` (Status)**

@@ -18,7 +18,7 @@ npm install @stigmer/sdk @stigmer/protos @bufbuild/protobuf
 import { Stigmer } from "@stigmer/sdk";
 
 const stigmer = new Stigmer({
-  baseUrl: "https://api.stigmer.io",
+  baseUrl: "https://api.stigmer.ai",
   apiKey: "sk_live_abc123",
 });
 
@@ -31,7 +31,7 @@ const agent = await stigmer.agent.get("agent-id");
 import { Stigmer } from "@stigmer/sdk";
 
 const stigmer = new Stigmer({
-  baseUrl: "https://api.stigmer.io",
+  baseUrl: "https://api.stigmer.ai",
   getAccessToken: () => authStore.getToken(),
   onUnauthenticated: () => router.push("/login"),
 });
@@ -161,13 +161,13 @@ The SDK supports two transport protocols. Both are supported by the Stigmer serv
 ```typescript
 // gRPC-Web (default) — compact binary protocol
 const stigmer = new Stigmer({
-  baseUrl: "https://api.stigmer.io",
+  baseUrl: "https://api.stigmer.ai",
   apiKey: "sk_live_abc123",
 });
 
 // Connect protocol — HTTP/JSON, easier to debug with browser devtools
 const stigmer = new Stigmer({
-  baseUrl: "https://api.stigmer.io",
+  baseUrl: "https://api.stigmer.ai",
   apiKey: "sk_live_abc123",
   transport: "connect",
 });

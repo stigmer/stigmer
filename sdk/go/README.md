@@ -69,7 +69,7 @@ The client provides sub-clients for each resource type:
 ## Configuration
 
 ```go
-// Default endpoint (api.stigmer.io:443)
+// Default endpoint (api.stigmer.ai:443)
 client, _ := stigmer.NewClient("sk_live_...")
 
 // Custom endpoint

@@ -6,7 +6,7 @@ import grpc
 
 from ._interceptors import AuthInterceptor
 
-DEFAULT_TARGET = "api.stigmer.io:443"
+DEFAULT_TARGET = "api.stigmer.ai:443"
 
 
 def create_channel(

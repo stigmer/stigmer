@@ -34,7 +34,7 @@ import type { WorkflowInstanceClient } from "./gen/workflowinstance";
  * @example
  * ```typescript
  * const stigmer = new Stigmer({
- *   baseUrl: "https://api.stigmer.io",
+ *   baseUrl: "https://api.stigmer.ai",
  *   apiKey: "sk_live_abc123",
  * });
  *
