@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { StigmerProvider, McpServerDetailView } from "@stigmer/react";
 import {
   createDemoClient,
@@ -18,9 +18,9 @@ import {
   McpServerStatusSchema,
   DiscoveredCapabilitiesSchema,
   DiscoveredToolSchema,
-  ValidationState,
   DiscoverySource,
 } from "@stigmer/protos/ai/stigmer/agentic/mcpserver/v1/status_pb";
+import { ApiResourceVisibility } from "@stigmer/protos/ai/stigmer/commons/apiresource/enum_pb";
 import { EnvironmentListSchema } from "@stigmer/protos/ai/stigmer/agentic/environment/v1/io_pb";
 import { DEMO_CONTENT_ZOOM, DEMO_DETAIL_CLASSES } from "../../shared/tokens";
 
@@ -51,8 +51,9 @@ function buildDemoMcpServer() {
     ],
   });
 
+  server.metadata!.visibility = ApiResourceVisibility.visibility_private;
+
   server.status = create(McpServerStatusSchema, {
-    validationState: ValidationState.valid,
     discoveredCapabilities: create(DiscoveredCapabilitiesSchema, {
       discoveredBy: DiscoverySource.api,
       tools: [
@@ -90,11 +91,21 @@ export function McpServerDetail() {
     return createDemoClient(scenario);
   }, []);
 
+  const [, setVisibility] = useState(ApiResourceVisibility.visibility_private);
+  const handleVisibilityChange = useCallback(
+    (v: ApiResourceVisibility) => setVisibility(v),
+    [],
+  );
+
   return (
     <StigmerProvider client={client}>
       <div className={DEMO_DETAIL_CLASSES}>
         <div className="p-4" style={{ zoom: DEMO_CONTENT_ZOOM }}>
-          <McpServerDetailView org={DEMO_ORG} slug="order-management-api" />
+          <McpServerDetailView
+            org={DEMO_ORG}
+            slug="order-management-api"
+            onVisibilityChange={handleVisibilityChange}
+          />
         </div>
       </div>
     </StigmerProvider>

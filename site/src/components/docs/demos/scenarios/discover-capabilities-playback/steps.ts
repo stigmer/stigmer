@@ -1,8 +1,9 @@
 /**
  * Discover capabilities playback for "Connect your tools".
  *
- * 5-step sequence: MCP server with no tools → cursor on Discover →
- * credential form opens → credentials filled + Save → tools discovered.
+ * 7-step sequence: MCP server from the top → scroll down to show
+ * Capabilities → cursor clicks Discover → credential form opens →
+ * credentials filled + Save → tools discovered.
  *
  * Each step carries the full McpServer fixture so the playback
  * component can swap the data fed to the real SDK McpServerDetailView.
@@ -93,6 +94,7 @@ function buildServerWithTools(): McpServer {
 
 export type DiscoverStep =
   | { view: "no-tools"; server: McpServer }
+  | { view: "scroll-to-capabilities"; server: McpServer }
   | { view: "click-discover"; server: McpServer }
   | { view: "credential-form"; server: McpServer }
   | { view: "credential-filled"; server: McpServer }
@@ -108,7 +110,12 @@ export const discoverSteps: ScenarioStep<DiscoverStep>[] = [
     caption: "MCP server added — no tools yet",
   },
   {
-    delayMs: 3000,
+    delayMs: 2500,
+    data: { view: "scroll-to-capabilities", server: noToolsServer },
+    caption: "Scroll to Capabilities",
+  },
+  {
+    delayMs: 2000,
     data: { view: "click-discover", server: noToolsServer },
     caption: 'Click "Discover"',
   },
