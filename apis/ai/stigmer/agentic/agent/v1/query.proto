@@ -20,7 +20,12 @@ service AgentQueryController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get agent";
   }
 
-  // Custom authorization in handler
+  // Get an agent by its organization-scoped reference (org/slug).
+  // Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
+  //
+  // @internal
+  // Custom authorization in handler — checks both direct resource access
+  // and organization-level visibility permissions.
   rpc getByReference(ai.stigmer.commons.apiresource.ApiResourceReference) returns (Agent) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
@@ -35,6 +40,8 @@ service AgentQueryController {
   // a conversation without explicitly selecting an agent.
   //
   // Error: NOT_FOUND if no default agent is configured.
+  //
+  // @internal
   // Custom authorization in handler.
   rpc getDefault(GetDefaultAgentRequest) returns (Agent) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;

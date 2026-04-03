@@ -9,11 +9,11 @@ import "ai/stigmer/iam/identityaccount/v1/api.proto";
 import "ai/stigmer/iam/identityaccount/v1/io.proto";
 import "google/protobuf/empty.proto";
 
-// identity-account query controller
+// IdentityAccountQueryController handles read operations for identity accounts.
 service IdentityAccountQueryController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = identity_account;
 
-  // lookup identity-account.
+  // Get an identity account by its unique identifier.
   rpc get(IdentityAccountId) returns (IdentityAccount) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
@@ -21,12 +21,12 @@ service IdentityAccountQueryController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get identity account";
   }
 
-  // look up identity-account by authentication token.
+  // Get the identity account of the currently authenticated user.
   rpc whoAmI(google.protobuf.Empty) returns (IdentityAccount) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
-  // lookup user-account by identity account email.
+  // Get an identity account by email address.
   rpc getByEmail(IdentityAccountEmail) returns (IdentityAccount) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
@@ -34,7 +34,7 @@ service IdentityAccountQueryController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get identity account";
   }
 
-  // lookup user-account by idp id.
+  // Get an identity account by identity provider ID.
   rpc getByIdpId(IdpId) returns (IdentityAccount) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_account;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_view;
@@ -42,8 +42,9 @@ service IdentityAccountQueryController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to get identity account";
   }
 
-  // lookup identity-account actor-info (lightweight actor data for audit trail caching)
+  // Get lightweight actor information for an identity account.
   //
+  // @internal
   // This RPC is specifically designed to break circular dependency loops in audit actor resolution.
   // When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
   // needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion

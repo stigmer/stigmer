@@ -67,7 +67,7 @@
           "inputFullType": "google.protobuf.Empty",
           "outputType": "Organizations",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organizations",
-          "description": "Find organizations the authenticated user is a member of\n Authorization handled in handler via IAM Policy listAuthorizedResourceIds\n Returns only organizations the caller has access to"
+          "description": "Find organizations the authenticated user is a member of.\n Returns only organizations the caller has access to.\n\n @internal\n Authorization handled in handler via IAM Policy listAuthorizedResourceIds."
         },
         {
           "name": "GetByExternalOrgId",
@@ -75,7 +75,7 @@
           "inputFullType": "ai.stigmer.tenancy.organization.v1.OrganizationExternalLookup",
           "outputType": "Organization",
           "outputFullType": "ai.stigmer.tenancy.organization.v1.Organization",
-          "description": "Look up a platform-managed organization by its external platform coordinates.\n Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.\n Authorization: custom — checks can_view on the referenced IdentityProvider."
+          "description": "Look up a platform-managed organization by its external platform coordinates.\n Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.\n\n @internal\n Authorization: custom — checks can_view on the referenced IdentityProvider."
         }
       ]
     }

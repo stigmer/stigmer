@@ -37,7 +37,7 @@ Environment environment = client.environment().get("environment-abc123");
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get an Environment by ID. |
-| [`getByReference`](#getbyreference) | Custom authorization in handler. |
+| [`getByReference`](#getbyreference) | Get an environment by its organization-scoped reference (org/slug). |
 | [`getSecretValue`](#getsecretvalue) | Get the unredacted value of a single secret key in an environment. |
 | [`list`](#list) | List environments with optional label filtering. |
 | [`apply`](#apply) | Create or update an Environment resource. |
@@ -84,7 +84,7 @@ Environment environment = client.environment().get(id);
 
 ### getByReference
 
-Custom authorization in handler
+Get an environment by its organization-scoped reference (org/slug).
 
 <SDKTabs>
 <Tab value="Go">
@@ -115,7 +115,7 @@ Environment environment = client.environment().getByReference(input);
 
 ### getSecretValue
 
-Get the unredacted value of a single secret key in an environment. Creator-only: requires can_read_secrets permission (FGA: creator relation). Returns the EnvironmentValue with the decrypted value.
+Get the unredacted value of a single secret key in an environment. Creator-only: requires can_read_secrets permission. Returns the EnvironmentValue with the decrypted value.
 
 <SDKTabs>
 <Tab value="Go">
@@ -146,7 +146,7 @@ EnvironmentValue environmentValue = client.environment().getSecretValue(input);
 
 ### list
 
-List environments with optional label filtering. Authorization is handled in-handler via FGA-filtered queries (cloud) or unrestricted store queries (OSS). Secret values are redacted.
+List environments with optional label filtering. Secret values are redacted in the response.
 
 <SDKTabs>
 <Tab value="Go">

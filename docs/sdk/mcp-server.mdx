@@ -7,6 +7,8 @@ description: "SDK reference for MCP Server resources."
 
 This is a reusable definition that can be referenced by multiple agents. Actual secrets/credentials are provided at runtime via AgentInstance's environment.
 
+MCP (Model Context Protocol) servers provide tools and capabilities to AI agents. This spec declares the server type, connection details, and required environment variables.
+
 ## Client Access
 
 <SDKTabs>
@@ -50,6 +52,10 @@ McpServer mcpServer = client.mcpServer().get("mcp-server-abc123");
 
 Get an MCP server by its unique identifier.
 
+Input: ApiResourceId containing the MCP server's system-generated ID. Returns: The full McpServer resource including metadata, spec, and status.
+
+Authorization: Requires can_view permission on the mcp_server resource. The caller must have access based on the resource's scope: - Platform: All authenticated users - Organization: Organization members - Identity Account: Only the owner
+
 <SDKTabs>
 <Tab value="Go">
 ```go
@@ -85,6 +91,12 @@ McpServer mcpServer = client.mcpServer().get(id);
 
 Get an MCP server by reference (scope + org + slug).
 
+Input: ApiResourceReference with scope, org (if applicable), kind, and slug. Returns: The full McpServer resource.
+
+This is the preferred method for looking up MCP servers by name/slug rather than system-generated ID. Useful for: - Resolving references from Agent.mcp_server_usages - CLI lookups by name - Cross-scope resolution (platform vs org vs personal)
+
+Authorization: Custom authorization in handler. The handler performs scope-aware authorization based on the reference.
+
 <SDKTabs>
 <Tab value="Go">
 ```go
@@ -115,6 +127,14 @@ McpServer mcpServer = client.mcpServer().getByReference(input);
 ### apply
 
 Create or update an MCP server resource (Kubernetes-style apply).
+
+This is the primary interface for MCP server management. Behavior: - If the resource doesn't exist: Creates a new MCP server - If the resource exists: Updates the existing MCP server
+
+The resource is identified by (scope, org, slug) combination.
+
+Input: Full McpServer resource with metadata and spec. Returns: The created/updated McpServer with system-populated fields.
+
+Authorization: Custom authorization in handler. The handler determines whether this is a create or update operation and performs appropriate scope-aware authorization: - Create: Requires permission to create in the target scope - Update: Requires can_edit on the existing resource
 
 <SDKTabs>
 <Tab value="Go">
@@ -159,6 +179,12 @@ McpServer mcpServer = client.mcpServer().apply(McpServerInput.builder()
 
 Create a new MCP server resource.
 
+Use this when you explicitly want to create a new resource and want an error if it already exists.
+
+Input: McpServer with metadata (scope, org, name/slug) and spec. Returns: The created McpServer with system-generated ID and status.
+
+Authorization: Custom authorization in handler. Requires permission to create MCP servers in the specified scope: - Platform: Requires platform operator role - Organization: Requires org admin role or can_create_mcp_server permission - Identity Account: Automatically allowed for the authenticated user
+
 <SDKTabs>
 <Tab value="Go">
 ```go
@@ -201,6 +227,10 @@ McpServer mcpServer = client.mcpServer().create(McpServerInput.builder()
 ### update
 
 Update an existing MCP server resource.
+
+Input: McpServer with metadata.id populated and updated spec. Returns: The updated McpServer.
+
+Authorization: Requires can_edit permission on the mcp_server resource. Only the owner (based on scope) can update: - Platform: Platform operators - Organization: Org admins or resource owner - Identity Account: The owner
 
 <SDKTabs>
 <Tab value="Go">
@@ -245,6 +275,14 @@ McpServer mcpServer = client.mcpServer().update(McpServerInput.builder()
 
 Update the discovered capabilities (tools and resource templates) for an MCP server.
 
+This is a targeted status update — it only modifies status.discovered_capabilities, leaving spec, validation state, and other status fields untouched.
+
+Typical flow: 1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID 2. CLI connects to the MCP server locally and queries tools/resources 3. CLI calls this RPC with the ID and discovered capabilities
+
+Input: UpdateDiscoveredCapabilitiesInput with mcp_server_id and discovered_capabilities. Returns: The updated McpServer with the new discovered capabilities.
+
+Authorization: Requires can_edit permission on the mcp_server resource.
+
 <SDKTabs>
 <Tab value="Go">
 ```go
@@ -276,6 +314,10 @@ McpServer mcpServer = client.mcpServer().updateDiscoveredCapabilities(input);
 
 Update the visibility of an existing MCP server.
 
+This is a targeted metadata update — it only modifies metadata.visibility, leaving spec, status, and other metadata fields untouched. Use this to make an MCP server publicly accessible (marketplace-style sharing) or to revoke public access without sending the entire resource.
+
+Authorization: Requires can_edit permission on the mcp_server resource.
+
 <SDKTabs>
 <Tab value="Go">
 ```go
@@ -306,6 +348,12 @@ McpServer mcpServer = client.mcpServer().updateVisibility(input);
 ### delete
 
 Delete an MCP server resource.
+
+Permanently removes the MCP server definition. Agents referencing this MCP server will need to be updated.
+
+Input: ApiResourceDeleteInput with resource_id and optional version_message. Returns: The deleted McpServer (for confirmation/audit).
+
+Authorization: Requires can_delete permission on the mcp_server resource. Only the owner can delete: - Platform: Platform operators - Organization: Org admins or resource owner - Identity Account: The owner
 
 <SDKTabs>
 <Tab value="Go">
@@ -347,6 +395,10 @@ McpServer mcpServer = client.mcpServer().delete(DeleteResourceInput.builder()
 ### discoverCapabilities
 
 Discover the capabilities of an MCP server by connecting to it.
+
+This triggers server-side discovery: the backend resolves credentials, connects to the MCP server, enumerates tools and resource templates, and stores the result.
+
+The RPC blocks until discovery completes (up to ~30 seconds) and returns the updated McpServer with populated status.discovered_capabilities.
 
 <SDKTabs>
 <Tab value="Go">

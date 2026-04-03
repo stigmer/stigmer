@@ -7,16 +7,17 @@ import "ai/stigmer/iam/apikey/v1/api.proto";
 import "ai/stigmer/iam/apikey/v1/io.proto";
 import "ai/stigmer/iam/iampolicy/v1/rpcauthorization/method_options.proto";
 
-// api-key command controller
+// ApiKeyCommandController handles write operations for API keys.
 service ApiKeyCommandController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = api_key;
-  // create an api-key
+  // Create a new API key for the authenticated user.
+  // Any authenticated user can create API keys.
   rpc create(ApiKey) returns (ApiKey) {
     //any authenticated user can create an api-key. so authorization is not required.
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
-  // update an existing api-key
+  // Update an existing API key.
   rpc update(ApiKey) returns (ApiKey) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = api_key;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
@@ -24,7 +25,7 @@ service ApiKeyCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update api key";
   }
 
-  // delete an existing api-key
+  // Delete an API key.
   rpc delete(ApiKeyId) returns (ApiKey) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = api_key;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;

@@ -7,6 +7,8 @@ description: "SDK reference for Agent resources."
 
 This is the "Template" layer - declares capabilities and requirements.
 
+Example YAML: apiVersion: agentic.stigmer.ai/v1 kind: Agent metadata: name: engineering-assistant slug: eng-assistant spec: description: "Helps engineering teams with code review" instructions: "You are an engineering assistant..." mcp_server_usages: - mcp_server_ref: kind: mcp_server slug: github enabled_tools: [search_code, create_pr] skill_refs: - kind: skill slug: code-review-best-practices
+
 ## Client Access
 
 <SDKTabs>
@@ -37,7 +39,7 @@ Agent agent = client.agent().get("agent-abc123");
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get a single agent by ID. |
-| [`getByReference`](#getbyreference) | Custom authorization in handler. |
+| [`getByReference`](#getbyreference) | Get an agent by its organization-scoped reference (org/slug). |
 | [`getDefault`](#getdefault) | Get the platform default agent. |
 | [`apply`](#apply) | Create or update an agent. |
 | [`create`](#create) | Create a new agent. |
@@ -82,7 +84,7 @@ Agent agent = client.agent().get(id);
 
 ### getByReference
 
-Custom authorization in handler
+Get an agent by its organization-scoped reference (org/slug). Resolves a human-readable reference like "acme/web-search" to the full Agent resource.
 
 <SDKTabs>
 <Tab value="Go">
@@ -114,6 +116,12 @@ Agent agent = client.agent().getByReference(input);
 ### getDefault
 
 Get the platform default agent.
+
+Resolves the agent labeled stigmer.ai/default-agent: "true" with visibility_public. Returns the full Agent resource including status.default_instance_id for session creation.
+
+Used by frontends to enable session-first UX where users start a conversation without explicitly selecting an agent.
+
+Error: NOT_FOUND if no default agent is configured.
 
 <SDKTabs>
 <Tab value="Go">
@@ -188,6 +196,8 @@ Agent agent = client.agent().apply(AgentInput.builder()
 ### create
 
 Create a new agent.
+
+Authorization: - Organization-scoped agents: Caller must have can_create_agent permission in the organization - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
 
 <SDKTabs>
 <Tab value="Go">
@@ -274,6 +284,10 @@ Agent agent = client.agent().update(AgentInput.builder()
 ### updateVisibility
 
 Update the visibility of an existing agent.
+
+This is a targeted metadata update — it only modifies metadata.visibility, leaving spec, status, and other metadata fields untouched. Use this to make an agent publicly accessible or to revoke public access without sending the entire agent resource (avoiding read-modify-write races).
+
+Authorization: Requires can_edit permission on the agent resource.
 
 <SDKTabs>
 <Tab value="Go">

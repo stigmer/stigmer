@@ -7,6 +7,8 @@ description: "SDK reference for Workflow resources."
 
 Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
 
+This replaces the old `synthesized_yaml` field with structured proto definitions. Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration, providing maximum flexibility and extensibility.
+
 ## Client Access
 
 <SDKTabs>
@@ -37,7 +39,7 @@ Workflow workflow = client.workflow().get("workflow-abc123");
 | Method | Description |
 |--------|-------------|
 | [`get`](#get) | Get a single workflow by ID. |
-| [`getByReference`](#getbyreference) | Custom authorization in handler. |
+| [`getByReference`](#getbyreference) | Get a workflow by its organization-scoped reference (org/slug). |
 | [`apply`](#apply) | Create or update a workflow. |
 | [`create`](#create) | Create a new workflow. |
 | [`update`](#update) | Update an existing workflow. |
@@ -80,7 +82,7 @@ Workflow workflow = client.workflow().get(id);
 
 ### getByReference
 
-Custom authorization in handler
+Get a workflow by its organization-scoped reference (org/slug).
 
 <SDKTabs>
 <Tab value="Go">
@@ -155,6 +157,8 @@ Workflow workflow = client.workflow().apply(WorkflowInput.builder()
 ### create
 
 Create a new workflow.
+
+Authorization: - Organization-scoped workflows: Caller must have can_create_workflow permission in the organization - Platform-scoped workflows: Caller must be a platform operator (handled automatically by common auth step)
 
 <SDKTabs>
 <Tab value="Go">

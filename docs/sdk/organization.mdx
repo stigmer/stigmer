@@ -39,7 +39,7 @@ Organization organization = client.organization().get("organization-abc123");
 | [`get`](#get) | Get an organization by ID Requires: User must be a member of the organization (can_view). |
 | [`getByExternalOrgId`](#getbyexternalorgid) | Look up a platform-managed organization by its external platform coordinates. |
 | [`find`](#find) | Find organizations with pagination and filtering Requires: Platform admin permission This is for administrative purposes only. |
-| [`findMyOrganizations`](#findmyorganizations) | Find organizations the authenticated user is a member of Authorization handled in handler via IAM Policy listAuthorizedResourceIds Returns only organizations the caller has access to. |
+| [`findMyOrganizations`](#findmyorganizations) | Find organizations the authenticated user is a member of. |
 | [`apply`](#apply) | Create or update an organization. |
 | [`create`](#create) | Create a new organization No authorization required - any authenticated user can create an organization The creator automatically becomes the owner of the organization. |
 | [`update`](#update) | Update an existing organization Requires: Organization admin permission (can_edit). |
@@ -82,7 +82,7 @@ Organization organization = client.organization().get(id);
 
 ### getByExternalOrgId
 
-Look up a platform-managed organization by its external platform coordinates. Returns the Stigmer organization mapped to the given IdentityProvider + external org ID. Authorization: custom — checks can_view on the referenced IdentityProvider.
+Look up a platform-managed organization by its external platform coordinates. Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
 
 <SDKTabs>
 <Tab value="Go">
@@ -144,7 +144,7 @@ OrganizationList result = client.organization().find(input);
 
 ### findMyOrganizations
 
-Find organizations the authenticated user is a member of Authorization handled in handler via IAM Policy listAuthorizedResourceIds Returns only organizations the caller has access to
+Find organizations the authenticated user is a member of. Returns only organizations the caller has access to.
 
 <SDKTabs>
 <Tab value="Go">

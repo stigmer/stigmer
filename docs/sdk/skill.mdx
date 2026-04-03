@@ -7,6 +7,8 @@ description: "SDK reference for Skill resources."
 
 All fields are extracted from the skill artifact by the backend. This follows the Kubernetes spec pattern - contains user's desired state.
 
+Note: Source/provenance information is NOT stored here - it's in SkillStatus as GitProvenance (observed state). See synth.proto for SDK input structure.
+
 ## Client Access
 
 <SDKTabs>
@@ -114,6 +116,8 @@ GetArtifactResponse getArtifactResponse = client.skill().getArtifact(input);
 
 Get a skill by API resource reference with version support.
 
+Version resolution (via ApiResourceReference.version field): - Empty/"latest" → Returns current version from main collection - Tag name (e.g., "stable", "v1.0") → Resolves to version with this tag - SHA256 hash (64 hex chars) → Returns exact immutable version
+
 <SDKTabs>
 <Tab value="Go">
 ```go
@@ -144,6 +148,10 @@ Skill skill = client.skill().getByReference(input);
 ### updateVisibility
 
 Update the visibility of an existing skill.
+
+This is a targeted metadata update — it only modifies metadata.visibility, leaving spec, status, and other metadata fields untouched. Skills default to visibility_private on push; use this RPC to make a skill publicly accessible (marketplace-style sharing) or to revoke public access.
+
+Authorization: Requires can_edit permission on the skill resource.
 
 <SDKTabs>
 <Tab value="Go">
@@ -211,6 +219,8 @@ Skill skill = client.skill().delete(id);
 
 Push (upload) a skill artifact. This operation creates a new skill if it doesn't exist, or creates a new version of an existing skill. The skill artifact must contain SKILL.md.
 
+Authorization: - Organization-scoped skills: Caller must have can_create_skill permission in the organization - Platform-scoped skills: Caller must be a platform operator
+
 <SDKTabs>
 <Tab value="Go">
 ```go
@@ -241,6 +251,12 @@ Skill skill = client.skill().push(input);
 ### pushFromExecutionArtifact
 
 Push a skill directly from an execution artifact already in storage.
+
+This is the server-side equivalent of push() — instead of receiving ZIP bytes from the client, it reads an existing directory artifact (produced by an agent execution) from artifact storage and pushes it as a skill. This avoids downloading the ZIP to the browser and re-uploading it, and eliminates CORS concerns for SDK consumers.
+
+The caller must have can_view on the referenced execution AND can_create_skill in the target organization.
+
+Returns: The created or updated Skill resource
 
 <SDKTabs>
 <Tab value="Go">

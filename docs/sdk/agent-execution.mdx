@@ -127,6 +127,10 @@ GetAgentUsageReportOutput getAgentUsageReportOutput = client.agentExecution().ge
 
 Read the raw content of an execution artifact.
 
+Returns artifact bytes through the Stigmer API, eliminating CORS concerns for SDK consumers who need to read content programmatically (e.g., YAML parsing for resource detection, in-app preview rendering).
+
+For direct file downloads, use getArtifactDownloadUrl instead — it returns a presigned R2 URL that avoids proxying bytes through the server.
+
 <SDKTabs>
 <Tab value="Go">
 ```go
@@ -157,6 +161,8 @@ GetArtifactContentResponse getArtifactContentResponse = client.agentExecution().
 ### getArtifactDownloadUrl
 
 Get a presigned download URL for an execution artifact.
+
+Returns a time-limited URL for downloading an artifact published by an agent during execution. The URL can be used with a simple HTTP GET request without authentication.
 
 <SDKTabs>
 <Tab value="Go">
@@ -280,7 +286,7 @@ AgentExecutionList result = client.agentExecution().list(input);
 
 ### listBySession
 
-List all executions in a specific session. Authorization is handled in handler via FGA query for authorized agent_execution_ids, then filtered by session_id. This ensures consistent authorization pattern across all list operations.
+List all executions in a specific session.
 
 <SDKTabs>
 <Tab value="Go">
@@ -313,7 +319,7 @@ AgentExecutionList result = client.agentExecution().listBySession(input);
 
 > **Server Streaming** — This method returns a stream of updates, not a single response.
 
-Subscribe to real-time execution updates (streaming). Authorization is handled by the FJ model via proto configuration.
+Subscribe to real-time execution updates (streaming).
 
 <SDKTabs>
 <Tab value="Go">
@@ -361,7 +367,7 @@ client.agentExecution().subscribe(id, agentExecution -> {
 
 ### create
 
-Create and trigger a new agent execution. Session is optional - can be provided or auto-created from agent_id. Authorization is handled in handler: - If session_id provided: checks can_create_execution_in on session - If session_id NOT provided: checks can_create_execution_in on organization
+Create and trigger a new agent execution. Session is optional — can be provided or auto-created from agent_id.
 
 <SDKTabs>
 <Tab value="Go">
@@ -447,7 +453,7 @@ AgentExecution agentExecution = client.agentExecution().update(AgentExecutionInp
 
 ### updateStatus
 
-Update execution status during agent execution. Used by agent-runner to send progressive status updates (messages, tool_calls, phase, etc.) This RPC is optimized for frequent status updates and merges status fields with existing state.
+Update execution status during agent execution.
 
 <SDKTabs>
 <Tab value="Go">
@@ -515,6 +521,8 @@ AgentExecution agentExecution = client.agentExecution().delete(id);
 
 Pause a running agent execution.
 
+Temporarily stops the agent at its current checkpoint. Unlike cancel, the execution is NOT terminal and can be resumed later from where it left off.
+
 <SDKTabs>
 <Tab value="Go">
 ```go
@@ -545,6 +553,8 @@ AgentExecution agentExecution = client.agentExecution().pause(input);
 ### resume
 
 Resume a paused agent execution.
+
+Continues execution from the checkpoint where it was paused. The agent re-invokes with the same thread_id, loading from LangGraph checkpoint and continuing from where it left off.
 
 <SDKTabs>
 <Tab value="Go">
@@ -577,6 +587,8 @@ AgentExecution agentExecution = client.agentExecution().resume(input);
 
 Cancel a running agent execution gracefully.
 
+Sends a cancellation signal to the agent execution. The agent can handle the cancellation signal to save checkpoint and clean up before transitioning to the CANCELLED phase.
+
 <SDKTabs>
 <Tab value="Go">
 ```go
@@ -608,6 +620,8 @@ AgentExecution agentExecution = client.agentExecution().cancel(input);
 
 Terminate an agent execution immediately.
 
+Force-stops the agent execution without allowing cleanup. Unlike cancel, the agent cannot respond to termination - it is stopped immediately. Use this for stuck or unresponsive agents.
+
 <SDKTabs>
 <Tab value="Go">
 ```go
@@ -638,6 +652,8 @@ AgentExecution agentExecution = client.agentExecution().terminate(input);
 ### recover
 
 Recover a failed agent execution from the last checkpoint.
+
+Resumes execution from the last checkpoint. Completed work is preserved - successful tool calls are NOT re-executed.
 
 <SDKTabs>
 <Tab value="Go">
@@ -701,6 +717,8 @@ AgentExecution agentExecution = client.agentExecution().submitApproval(input);
 
 Upload a file attachment for use in an agent execution.
 
+Pre-uploads files to artifact storage before creating an execution. The returned storage_key can be used in Attachment.storage_key when creating the execution.
+
 <SDKTabs>
 <Tab value="Go">
 ```go
@@ -745,7 +763,7 @@ Input for creating or updating an Agent Execution.
     message: { type: "string", description: "User input message that triggers this execution." },
     executionConfig: { type: "ExecutionConfigInput", description: "Optional execution-time configuration overrides." },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Runtime environment variables and secrets (execution-scoped)." },
-    callbackToken: { type: "Uint8Array", description: "Temporal task token for async activity completion (optional)." },
+    callbackToken: { type: "Uint8Array", description: "Callback token for async activity completion (optional)." },
     autoApproveAll: { type: "boolean", description: "Auto-approve all tool executions for this execution." },
     parentWorkflowId: { type: "string", description: "Parent workflow context for events-based approval notification (optional)." },
     attachments: { type: "AttachmentInput[]", description: "Files attached to this execution." },

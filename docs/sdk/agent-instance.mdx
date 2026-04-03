@@ -38,7 +38,7 @@ AgentInstance agentInstance = client.agentInstance().get("agent-instance-abc123"
 |--------|-------------|
 | [`get`](#get) | Get a single agent instance by ID. |
 | [`getByAgent`](#getbyagent) | Get all instances of a specific agent template. |
-| [`getByReference`](#getbyreference) | Custom authorization in handler. |
+| [`getByReference`](#getbyreference) | Get an agent instance by its organization-scoped reference (org/slug). |
 | [`list`](#list) | List agent instances with optional label filtering. |
 | [`apply`](#apply) | Create or update an agent instance. |
 | [`create`](#create) | Create a new agent instance with full state. |
@@ -82,7 +82,7 @@ AgentInstance agentInstance = client.agentInstance().get(id);
 
 ### getByAgent
 
-Get all instances of a specific agent template. Authorization is handled in handler via FGA query for authorized agent_instance_ids, then filtered by agent_id. This ensures users only see instances they have access to, even if the parent agent is shared across organizations.
+Get all instances of a specific agent template. Returns only instances the caller has access to.
 
 <SDKTabs>
 <Tab value="Go">
@@ -113,7 +113,7 @@ AgentInstanceList result = client.agentInstance().getByAgent(input);
 
 ### getByReference
 
-Custom authorization in handler
+Get an agent instance by its organization-scoped reference (org/slug).
 
 <SDKTabs>
 <Tab value="Go">
@@ -144,7 +144,7 @@ AgentInstance agentInstance = client.agentInstance().getByReference(input);
 
 ### list
 
-List agent instances with optional label filtering. Authorization is handled in-handler via FGA-filtered queries (cloud) or unrestricted store queries (OSS).
+List agent instances with optional label filtering.
 
 <SDKTabs>
 <Tab value="Go">
@@ -219,6 +219,8 @@ AgentInstance agentInstance = client.agentInstance().apply(AgentInstanceInput.bu
 ### create
 
 Create a new agent instance with full state. Provide organization_id in metadata.org, and complete spec with configuration and secrets.
+
+Public agents allow any authenticated user to create instances (cross-org allowed). Private agents restrict instance creation to org members and the agent owner.
 
 <SDKTabs>
 <Tab value="Go">

@@ -40,12 +40,12 @@ ExecutionContext executionContext = client.executionContext().get("execution-con
 | [`getByExecutionId`](#getbyexecutionid) | Get an ExecutionContext by the execution ID it belongs to. |
 | [`getByReference`](#getbyreference) | Get an ExecutionContext by reference (slug-based lookup). |
 | [`apply`](#apply) | Create or update an ExecutionContext. |
-| [`create`](#create) | Create a new ExecutionContext (called by execution pipeline on behalf of the user). |
-| [`delete`](#delete) | Delete an ExecutionContext (called when execution completes). |
+| [`create`](#create) | Create a new ExecutionContext for an execution. |
+| [`delete`](#delete) | Delete an ExecutionContext. |
 
 ### get
 
-Get an ExecutionContext by ID. Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+Get an ExecutionContext by ID.
 
 <SDKTabs>
 <Tab value="Go">
@@ -80,7 +80,7 @@ ExecutionContext executionContext = client.executionContext().get(id);
 
 ### getByExecutionId
 
-Get an ExecutionContext by the execution ID it belongs to. This is the primary lookup method used by runners to retrieve the merged environment variables during workflow/agent execution. The returned context contains decrypted secrets for runner consumption.
+Get an ExecutionContext by the execution ID it belongs to.
 
 <SDKTabs>
 <Tab value="Go">
@@ -111,7 +111,7 @@ ExecutionContext executionContext = client.executionContext().getByExecutionId(i
 
 ### getByReference
 
-Get an ExecutionContext by reference (slug-based lookup). Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
+Get an ExecutionContext by reference (slug-based lookup).
 
 <SDKTabs>
 <Tab value="Go">
@@ -185,7 +185,7 @@ ExecutionContext executionContext = client.executionContext().apply(ExecutionCon
 
 ### create
 
-Create a new ExecutionContext (called by execution pipeline on behalf of the user). Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+Create a new ExecutionContext for an execution.
 
 <SDKTabs>
 <Tab value="Go">
@@ -228,7 +228,7 @@ ExecutionContext executionContext = client.executionContext().create(ExecutionCo
 
 ### delete
 
-Delete an ExecutionContext (called when execution completes). Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+Delete an ExecutionContext.
 
 <SDKTabs>
 <Tab value="Go">
