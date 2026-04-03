@@ -41,12 +41,12 @@ type IamPolicySpec struct {
 	// - service
 	// - Any other resource that requires access control
 	Resource *ApiResourceRef `protobuf:"bytes,2,opt,name=resource,proto3" json:"resource,omitempty"`
-	// Relation: HOW/what permission is being granted
-	// This is the FGA relation/permission being granted (e.g., "admin", "viewer", "owner")
-	// The relation value maps to the role_code from IamRole.
+	// The permission being granted (e.g., "admin", "viewer", "owner").
+	// Maps to the role_code from IamRole.
 	// Examples: "admin", "editor", "viewer", "owner", "member"
 	//
-	// When this policy is synced to OpenFGA, this becomes the relation in the tuple:
+	// @internal
+	// This is the FGA relation in the authorization tuple:
 	// principal.kind:principal.id#principal.relation@resource.kind:resource.id#relation
 	Relation      string `protobuf:"bytes,3,opt,name=relation,proto3" json:"relation,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -120,7 +120,7 @@ type ApiResourceRef struct {
 	// Unique identifier of the resource
 	// This is the resource's ID field (e.g., ia-01HQUSER123, tm-01HQTEAM456)
 	Id string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
-	// Optional relation qualifier for the resource reference
+	// Optional relation qualifier for the resource reference.
 	// Used when the reference needs additional context about the relationship.
 	//
 	// Primary use case: For team principals, this specifies the relation of the
@@ -128,11 +128,11 @@ type ApiResourceRef struct {
 	// Example: principal { kind: "team", id: "tm-123", relation: "member" }
 	// means "members of team tm-123"
 	//
-	// In OpenFGA tuple notation, this becomes:
-	// team:tm-123#member (as the subject of the tuple)
-	//
 	// This field qualifies HOW the principal relates to this resource reference,
 	// NOT the permission being granted (that's IamPolicySpec.relation).
+	//
+	// @internal
+	// In OpenFGA tuple notation: team:tm-123#member (as the subject of the tuple)
 	Relation      string `protobuf:"bytes,3,opt,name=relation,proto3" json:"relation,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

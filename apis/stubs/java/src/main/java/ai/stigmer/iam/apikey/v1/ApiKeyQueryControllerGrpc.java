@@ -4,7 +4,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * api-key query controller
+ * ApiKeyQueryController handles read operations for API keys.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -169,14 +169,14 @@ public final class ApiKeyQueryControllerGrpc {
 
   /**
    * <pre>
-   * api-key query controller
+   * ApiKeyQueryController handles read operations for API keys.
    * </pre>
    */
   public interface AsyncService {
 
     /**
      * <pre>
-     * lookup api-key.
+     * Get an API key by its unique identifier.
      * </pre>
      */
     default void get(ai.stigmer.iam.apikey.v1.ApiKeyId request,
@@ -186,7 +186,10 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup api-key by hashed key
+     * Get an API key by its hashed key value.
+     * &#64;internal
+     * Authorization is handled in the handler after loading the resource
+     * (input doesn't contain API key ID, so proto-level auth cannot work).
      * </pre>
      */
     default void getByKeyHash(ai.stigmer.iam.apikey.v1.ApiKeyHash request,
@@ -196,7 +199,7 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup all api-keys for the identity-account in the auth header.
+     * List all API keys belonging to the authenticated user.
      * </pre>
      */
     default void findAll(com.google.protobuf.Empty request,
@@ -208,7 +211,7 @@ public final class ApiKeyQueryControllerGrpc {
   /**
    * Base class for the server implementation of the service ApiKeyQueryController.
    * <pre>
-   * api-key query controller
+   * ApiKeyQueryController handles read operations for API keys.
    * </pre>
    */
   public static abstract class ApiKeyQueryControllerImplBase
@@ -222,7 +225,7 @@ public final class ApiKeyQueryControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service ApiKeyQueryController.
    * <pre>
-   * api-key query controller
+   * ApiKeyQueryController handles read operations for API keys.
    * </pre>
    */
   public static final class ApiKeyQueryControllerStub
@@ -240,7 +243,7 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup api-key.
+     * Get an API key by its unique identifier.
      * </pre>
      */
     public void get(ai.stigmer.iam.apikey.v1.ApiKeyId request,
@@ -251,7 +254,10 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup api-key by hashed key
+     * Get an API key by its hashed key value.
+     * &#64;internal
+     * Authorization is handled in the handler after loading the resource
+     * (input doesn't contain API key ID, so proto-level auth cannot work).
      * </pre>
      */
     public void getByKeyHash(ai.stigmer.iam.apikey.v1.ApiKeyHash request,
@@ -262,7 +268,7 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup all api-keys for the identity-account in the auth header.
+     * List all API keys belonging to the authenticated user.
      * </pre>
      */
     public void findAll(com.google.protobuf.Empty request,
@@ -275,7 +281,7 @@ public final class ApiKeyQueryControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service ApiKeyQueryController.
    * <pre>
-   * api-key query controller
+   * ApiKeyQueryController handles read operations for API keys.
    * </pre>
    */
   public static final class ApiKeyQueryControllerBlockingV2Stub
@@ -293,7 +299,7 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup api-key.
+     * Get an API key by its unique identifier.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey get(ai.stigmer.iam.apikey.v1.ApiKeyId request) throws io.grpc.StatusException {
@@ -303,7 +309,10 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup api-key by hashed key
+     * Get an API key by its hashed key value.
+     * &#64;internal
+     * Authorization is handled in the handler after loading the resource
+     * (input doesn't contain API key ID, so proto-level auth cannot work).
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey getByKeyHash(ai.stigmer.iam.apikey.v1.ApiKeyHash request) throws io.grpc.StatusException {
@@ -313,7 +322,7 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup all api-keys for the identity-account in the auth header.
+     * List all API keys belonging to the authenticated user.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKeys findAll(com.google.protobuf.Empty request) throws io.grpc.StatusException {
@@ -325,7 +334,7 @@ public final class ApiKeyQueryControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service ApiKeyQueryController.
    * <pre>
-   * api-key query controller
+   * ApiKeyQueryController handles read operations for API keys.
    * </pre>
    */
   public static final class ApiKeyQueryControllerBlockingStub
@@ -343,7 +352,7 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup api-key.
+     * Get an API key by its unique identifier.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey get(ai.stigmer.iam.apikey.v1.ApiKeyId request) {
@@ -353,7 +362,10 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup api-key by hashed key
+     * Get an API key by its hashed key value.
+     * &#64;internal
+     * Authorization is handled in the handler after loading the resource
+     * (input doesn't contain API key ID, so proto-level auth cannot work).
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKey getByKeyHash(ai.stigmer.iam.apikey.v1.ApiKeyHash request) {
@@ -363,7 +375,7 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup all api-keys for the identity-account in the auth header.
+     * List all API keys belonging to the authenticated user.
      * </pre>
      */
     public ai.stigmer.iam.apikey.v1.ApiKeys findAll(com.google.protobuf.Empty request) {
@@ -375,7 +387,7 @@ public final class ApiKeyQueryControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service ApiKeyQueryController.
    * <pre>
-   * api-key query controller
+   * ApiKeyQueryController handles read operations for API keys.
    * </pre>
    */
   public static final class ApiKeyQueryControllerFutureStub
@@ -393,7 +405,7 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup api-key.
+     * Get an API key by its unique identifier.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKey> get(
@@ -404,7 +416,10 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup api-key by hashed key
+     * Get an API key by its hashed key value.
+     * &#64;internal
+     * Authorization is handled in the handler after loading the resource
+     * (input doesn't contain API key ID, so proto-level auth cannot work).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKey> getByKeyHash(
@@ -415,7 +430,7 @@ public final class ApiKeyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup all api-keys for the identity-account in the auth header.
+     * List all API keys belonging to the authenticated user.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.apikey.v1.ApiKeys> findAll(

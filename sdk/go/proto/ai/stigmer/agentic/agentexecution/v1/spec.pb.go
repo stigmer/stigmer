@@ -65,10 +65,10 @@ type AgentExecutionSpec struct {
 	// These values are stored in ExecutionContext and deleted when execution completes.
 	// Merge priority: Agent defaults < Environment < runtime_env (highest)
 	RuntimeEnv map[string]*v1.ExecutionValue `protobuf:"bytes,5,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Temporal task token for async activity completion (optional).
+	// Callback token for async activity completion (optional).
 	//
-	// **Purpose**: Enables async activity completion pattern where the caller
-	// (typically a Zigflow workflow activity) waits for actual agent completion
+	// **Purpose**: Enables async completion pattern where the caller
+	// (typically a workflow activity) waits for actual agent completion
 	// without blocking worker threads.
 	//
 	// **Flow**:
@@ -638,8 +638,7 @@ func (x *ContextManagementConfig) GetCustomTargetTokens() int32 {
 // Attachment represents a file attached to an agent execution.
 //
 // All files must be pre-uploaded via the uploadAttachment RPC and referenced
-// by storage_key. This ensures consistent behavior regardless of file size
-// and avoids Temporal payload limits (2MB).
+// by storage_key. This ensures consistent behavior regardless of file size.
 //
 // ## Usage Flow
 //

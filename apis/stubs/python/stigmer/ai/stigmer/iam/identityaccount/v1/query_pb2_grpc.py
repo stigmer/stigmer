@@ -9,7 +9,7 @@ from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
 class IdentityAccountQueryControllerStub(object):
-    """identity-account query controller
+    """IdentityAccountQueryController handles read operations for identity accounts.
     """
 
     def __init__(self, channel):
@@ -46,40 +46,41 @@ class IdentityAccountQueryControllerStub(object):
 
 
 class IdentityAccountQueryControllerServicer(object):
-    """identity-account query controller
+    """IdentityAccountQueryController handles read operations for identity accounts.
     """
 
     def get(self, request, context):
-        """lookup identity-account.
+        """Get an identity account by its unique identifier.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def whoAmI(self, request, context):
-        """look up identity-account by authentication token.
+        """Get the identity account of the currently authenticated user.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def getByEmail(self, request, context):
-        """lookup user-account by identity account email.
+        """Get an identity account by email address.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def getByIdpId(self, request, context):
-        """lookup user-account by idp id.
+        """Get an identity account by identity provider ID.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def getActorInfo(self, request, context):
-        """lookup identity-account actor-info (lightweight actor data for audit trail caching)
+        """Get lightweight actor information for an identity account.
 
+        @internal
         This RPC is specifically designed to break circular dependency loops in audit actor resolution.
         When converting IdentityAccount entities to proto responses, the audit info (created_by, updated_by)
         needs actor details. If we use the standard get() RPC, it triggers a full entity-to-proto conversion
@@ -135,7 +136,7 @@ def add_IdentityAccountQueryControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class IdentityAccountQueryController(object):
-    """identity-account query controller
+    """IdentityAccountQueryController handles read operations for identity accounts.
     """
 
     @staticmethod

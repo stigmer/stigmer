@@ -41,7 +41,9 @@ const (
 // Follows the standard pattern: create, update, delete (no granular field updates).
 type AgentExecutionCommandControllerClient interface {
 	// Create and trigger a new agent execution.
-	// Session is optional - can be provided or auto-created from agent_id.
+	// Session is optional — can be provided or auto-created from agent_id.
+	//
+	// @internal
 	// Authorization is handled in handler:
 	//   - If session_id provided: checks can_create_execution_in on session
 	//   - If session_id NOT provided: checks can_create_execution_in on organization
@@ -51,8 +53,11 @@ type AgentExecutionCommandControllerClient interface {
 	// No individual field updates - always provide complete state.
 	Update(ctx context.Context, in *AgentExecution, opts ...grpc.CallOption) (*AgentExecution, error)
 	// Update execution status during agent execution.
-	// Used by agent-runner to send progressive status updates (messages, tool_calls, phase, etc.)
-	// This RPC is optimized for frequent status updates and merges status fields with existing state.
+	//
+	// @internal
+	// System-level RPC used by agent-runner to send progressive status updates
+	// (messages, tool_calls, phase, etc.). Optimized for frequent status updates
+	// and merges status fields with existing state.
 	UpdateStatus(ctx context.Context, in *AgentExecutionUpdateStatusInput, opts ...grpc.CallOption) (*AgentExecution, error)
 	// Delete an execution.
 	Delete(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*AgentExecution, error)
@@ -69,6 +74,8 @@ type AgentExecutionCommandControllerClient interface {
 	// - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
 	// - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
 	// - REJECT: Execution fails with rejection error, phase becomes FAILED
+	//
+	// @internal
 	//
 	// ## State Transitions
 	//
@@ -93,10 +100,11 @@ type AgentExecutionCommandControllerClient interface {
 	SubmitApproval(ctx context.Context, in *SubmitApprovalInput, opts ...grpc.CallOption) (*AgentExecution, error)
 	// Cancel a running agent execution gracefully.
 	//
-	// Sends a cancellation signal to the agent execution via Temporal's CancelWorkflow API.
-	// The agent can handle the cancellation signal to save checkpoint and clean up
-	// before transitioning to the CANCELLED phase.
+	// Sends a cancellation signal to the agent execution. The agent can handle
+	// the cancellation signal to save checkpoint and clean up before
+	// transitioning to the CANCELLED phase.
 	//
+	// @internal
 	// Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
 	//
 	// ## Behavior
@@ -134,10 +142,11 @@ type AgentExecutionCommandControllerClient interface {
 	Cancel(ctx context.Context, in *CancelAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error)
 	// Terminate an agent execution immediately.
 	//
-	// Force-stops the agent execution via Temporal's TerminateWorkflow API without
-	// allowing cleanup. Unlike cancel, the agent cannot respond to termination -
-	// it is stopped immediately. Use this for stuck or unresponsive agents.
+	// Force-stops the agent execution without allowing cleanup. Unlike cancel,
+	// the agent cannot respond to termination - it is stopped immediately.
+	// Use this for stuck or unresponsive agents.
 	//
+	// @internal
 	// Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
 	//
 	// ## Behavior
@@ -183,11 +192,12 @@ type AgentExecutionCommandControllerClient interface {
 	Terminate(ctx context.Context, in *TerminateAgentExecutionInput, opts ...grpc.CallOption) (*AgentExecution, error)
 	// Recover a failed agent execution from the last checkpoint.
 	//
-	// Resumes execution from the last LangGraph checkpoint using Temporal's
-	// ResetWorkflow API. Completed work is preserved - successful tool calls
-	// are NOT re-executed.
+	// Resumes execution from the last checkpoint. Completed work is preserved -
+	// successful tool calls are NOT re-executed.
 	//
+	// @internal
 	// Temporal Equivalent: `temporal workflow reset --workflow-id <id> --type LastWorkflowTask`
+	// Uses LangGraph checkpoint for state restoration.
 	//
 	// ## Behavior
 	//
@@ -229,6 +239,8 @@ type AgentExecutionCommandControllerClient interface {
 	//
 	// Temporarily stops the agent at its current checkpoint. Unlike cancel,
 	// the execution is NOT terminal and can be resumed later from where it left off.
+	//
+	// @internal
 	//
 	// ## Behavior
 	//
@@ -278,6 +290,8 @@ type AgentExecutionCommandControllerClient interface {
 	// re-invokes with the same thread_id, loading from LangGraph checkpoint
 	// and continuing from where it left off.
 	//
+	// @internal
+	//
 	// ## Behavior
 	//
 	// 1. Validates execution is in EXECUTION_PAUSED phase
@@ -316,6 +330,8 @@ type AgentExecutionCommandControllerClient interface {
 	// Pre-uploads files to artifact storage before creating an execution.
 	// The returned storage_key can be used in Attachment.storage_key when
 	// creating the execution.
+	//
+	// @internal
 	//
 	// ## Authorization
 	//
@@ -471,7 +487,9 @@ func (c *agentExecutionCommandControllerClient) UploadAttachment(ctx context.Con
 // Follows the standard pattern: create, update, delete (no granular field updates).
 type AgentExecutionCommandControllerServer interface {
 	// Create and trigger a new agent execution.
-	// Session is optional - can be provided or auto-created from agent_id.
+	// Session is optional — can be provided or auto-created from agent_id.
+	//
+	// @internal
 	// Authorization is handled in handler:
 	//   - If session_id provided: checks can_create_execution_in on session
 	//   - If session_id NOT provided: checks can_create_execution_in on organization
@@ -481,8 +499,11 @@ type AgentExecutionCommandControllerServer interface {
 	// No individual field updates - always provide complete state.
 	Update(context.Context, *AgentExecution) (*AgentExecution, error)
 	// Update execution status during agent execution.
-	// Used by agent-runner to send progressive status updates (messages, tool_calls, phase, etc.)
-	// This RPC is optimized for frequent status updates and merges status fields with existing state.
+	//
+	// @internal
+	// System-level RPC used by agent-runner to send progressive status updates
+	// (messages, tool_calls, phase, etc.). Optimized for frequent status updates
+	// and merges status fields with existing state.
 	UpdateStatus(context.Context, *AgentExecutionUpdateStatusInput) (*AgentExecution, error)
 	// Delete an execution.
 	Delete(context.Context, *apiresource.ApiResourceId) (*AgentExecution, error)
@@ -499,6 +520,8 @@ type AgentExecutionCommandControllerServer interface {
 	// - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
 	// - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
 	// - REJECT: Execution fails with rejection error, phase becomes FAILED
+	//
+	// @internal
 	//
 	// ## State Transitions
 	//
@@ -523,10 +546,11 @@ type AgentExecutionCommandControllerServer interface {
 	SubmitApproval(context.Context, *SubmitApprovalInput) (*AgentExecution, error)
 	// Cancel a running agent execution gracefully.
 	//
-	// Sends a cancellation signal to the agent execution via Temporal's CancelWorkflow API.
-	// The agent can handle the cancellation signal to save checkpoint and clean up
-	// before transitioning to the CANCELLED phase.
+	// Sends a cancellation signal to the agent execution. The agent can handle
+	// the cancellation signal to save checkpoint and clean up before
+	// transitioning to the CANCELLED phase.
 	//
+	// @internal
 	// Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
 	//
 	// ## Behavior
@@ -564,10 +588,11 @@ type AgentExecutionCommandControllerServer interface {
 	Cancel(context.Context, *CancelAgentExecutionInput) (*AgentExecution, error)
 	// Terminate an agent execution immediately.
 	//
-	// Force-stops the agent execution via Temporal's TerminateWorkflow API without
-	// allowing cleanup. Unlike cancel, the agent cannot respond to termination -
-	// it is stopped immediately. Use this for stuck or unresponsive agents.
+	// Force-stops the agent execution without allowing cleanup. Unlike cancel,
+	// the agent cannot respond to termination - it is stopped immediately.
+	// Use this for stuck or unresponsive agents.
 	//
+	// @internal
 	// Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
 	//
 	// ## Behavior
@@ -613,11 +638,12 @@ type AgentExecutionCommandControllerServer interface {
 	Terminate(context.Context, *TerminateAgentExecutionInput) (*AgentExecution, error)
 	// Recover a failed agent execution from the last checkpoint.
 	//
-	// Resumes execution from the last LangGraph checkpoint using Temporal's
-	// ResetWorkflow API. Completed work is preserved - successful tool calls
-	// are NOT re-executed.
+	// Resumes execution from the last checkpoint. Completed work is preserved -
+	// successful tool calls are NOT re-executed.
 	//
+	// @internal
 	// Temporal Equivalent: `temporal workflow reset --workflow-id <id> --type LastWorkflowTask`
+	// Uses LangGraph checkpoint for state restoration.
 	//
 	// ## Behavior
 	//
@@ -659,6 +685,8 @@ type AgentExecutionCommandControllerServer interface {
 	//
 	// Temporarily stops the agent at its current checkpoint. Unlike cancel,
 	// the execution is NOT terminal and can be resumed later from where it left off.
+	//
+	// @internal
 	//
 	// ## Behavior
 	//
@@ -708,6 +736,8 @@ type AgentExecutionCommandControllerServer interface {
 	// re-invokes with the same thread_id, loading from LangGraph checkpoint
 	// and continuing from where it left off.
 	//
+	// @internal
+	//
 	// ## Behavior
 	//
 	// 1. Validates execution is in EXECUTION_PAUSED phase
@@ -746,6 +776,8 @@ type AgentExecutionCommandControllerServer interface {
 	// Pre-uploads files to artifact storage before creating an execution.
 	// The returned storage_key can be used in Attachment.storage_key when
 	// creating the execution.
+	//
+	// @internal
 	//
 	// ## Authorization
 	//

@@ -42,9 +42,11 @@ export const OrganizationQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Find organizations the authenticated user is a member of
-     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds
-     * Returns only organizations the caller has access to
+     * Find organizations the authenticated user is a member of.
+     * Returns only organizations the caller has access to.
+     *
+     * @internal
+     * Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
      *
      * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.findMyOrganizations
      */
@@ -57,6 +59,8 @@ export const OrganizationQueryController = {
     /**
      * Look up a platform-managed organization by its external platform coordinates.
      * Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+     *
+     * @internal
      * Authorization: custom — checks can_view on the referenced IdentityProvider.
      *
      * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.getByExternalOrgId

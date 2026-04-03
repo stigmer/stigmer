@@ -232,6 +232,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - spec: User inputs (workflow_instance_id, trigger_message, etc.)
      * - status: Current execution state (phase, tasks, progress_events, output/error)
      * - metadata: Resource identification (id, name, labels, tags)
+     * &#64;internal
      * Authorization:
      * Standard authorization checks that user has "get" permission on the WorkflowExecution.
      * Permission is granted if:
@@ -298,6 +299,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * List workflow executions with pagination and optional filtering.
      * Returns a paginated list of WorkflowExecution resources that the user has access to.
      * Results are automatically filtered based on user's permissions and owner scope.
+     * &#64;internal
      * Authorization:
      * Custom authorization filters results to only include executions the user can access:
      * - Organization users: Only executions in their organization
@@ -364,6 +366,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * List all executions for a specific Workflow or WorkflowInstance.
      * Returns executions filtered by a specific Workflow ID.
      * This is useful for viewing execution history of a particular workflow.
+     * &#64;internal
      * Authorization:
      * Custom authorization verifies:
      * 1. User has access to the referenced Workflow or WorkflowInstance
@@ -433,6 +436,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - Tasks start or complete
      * - Progress events are appended
      * - Output or error fields are set
+     * &#64;internal
      * Authorization:
      * Standard authorization checks that user has "get" permission on the WorkflowExecution.
      * This is the same permission check as get() RPC.
@@ -588,6 +592,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - spec: User inputs (workflow_instance_id, trigger_message, etc.)
      * - status: Current execution state (phase, tasks, progress_events, output/error)
      * - metadata: Resource identification (id, name, labels, tags)
+     * &#64;internal
      * Authorization:
      * Standard authorization checks that user has "get" permission on the WorkflowExecution.
      * Permission is granted if:
@@ -655,6 +660,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * List workflow executions with pagination and optional filtering.
      * Returns a paginated list of WorkflowExecution resources that the user has access to.
      * Results are automatically filtered based on user's permissions and owner scope.
+     * &#64;internal
      * Authorization:
      * Custom authorization filters results to only include executions the user can access:
      * - Organization users: Only executions in their organization
@@ -722,6 +728,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * List all executions for a specific Workflow or WorkflowInstance.
      * Returns executions filtered by a specific Workflow ID.
      * This is useful for viewing execution history of a particular workflow.
+     * &#64;internal
      * Authorization:
      * Custom authorization verifies:
      * 1. User has access to the referenced Workflow or WorkflowInstance
@@ -792,6 +799,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - Tasks start or complete
      * - Progress events are appended
      * - Output or error fields are set
+     * &#64;internal
      * Authorization:
      * Standard authorization checks that user has "get" permission on the WorkflowExecution.
      * This is the same permission check as get() RPC.
@@ -924,6 +932,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - spec: User inputs (workflow_instance_id, trigger_message, etc.)
      * - status: Current execution state (phase, tasks, progress_events, output/error)
      * - metadata: Resource identification (id, name, labels, tags)
+     * &#64;internal
      * Authorization:
      * Standard authorization checks that user has "get" permission on the WorkflowExecution.
      * Permission is granted if:
@@ -990,6 +999,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * List workflow executions with pagination and optional filtering.
      * Returns a paginated list of WorkflowExecution resources that the user has access to.
      * Results are automatically filtered based on user's permissions and owner scope.
+     * &#64;internal
      * Authorization:
      * Custom authorization filters results to only include executions the user can access:
      * - Organization users: Only executions in their organization
@@ -1056,6 +1066,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * List all executions for a specific Workflow or WorkflowInstance.
      * Returns executions filtered by a specific Workflow ID.
      * This is useful for viewing execution history of a particular workflow.
+     * &#64;internal
      * Authorization:
      * Custom authorization verifies:
      * 1. User has access to the referenced Workflow or WorkflowInstance
@@ -1125,6 +1136,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - Tasks start or complete
      * - Progress events are appended
      * - Output or error fields are set
+     * &#64;internal
      * Authorization:
      * Standard authorization checks that user has "get" permission on the WorkflowExecution.
      * This is the same permission check as get() RPC.
@@ -1258,6 +1270,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - spec: User inputs (workflow_instance_id, trigger_message, etc.)
      * - status: Current execution state (phase, tasks, progress_events, output/error)
      * - metadata: Resource identification (id, name, labels, tags)
+     * &#64;internal
      * Authorization:
      * Standard authorization checks that user has "get" permission on the WorkflowExecution.
      * Permission is granted if:
@@ -1324,6 +1337,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * List workflow executions with pagination and optional filtering.
      * Returns a paginated list of WorkflowExecution resources that the user has access to.
      * Results are automatically filtered based on user's permissions and owner scope.
+     * &#64;internal
      * Authorization:
      * Custom authorization filters results to only include executions the user can access:
      * - Organization users: Only executions in their organization
@@ -1390,6 +1404,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * List all executions for a specific Workflow or WorkflowInstance.
      * Returns executions filtered by a specific Workflow ID.
      * This is useful for viewing execution history of a particular workflow.
+     * &#64;internal
      * Authorization:
      * Custom authorization verifies:
      * 1. User has access to the referenced Workflow or WorkflowInstance
@@ -1459,6 +1474,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - Tasks start or complete
      * - Progress events are appended
      * - Output or error fields are set
+     * &#64;internal
      * Authorization:
      * Standard authorization checks that user has "get" permission on the WorkflowExecution.
      * This is the same permission check as get() RPC.
@@ -1591,6 +1607,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * - spec: User inputs (workflow_instance_id, trigger_message, etc.)
      * - status: Current execution state (phase, tasks, progress_events, output/error)
      * - metadata: Resource identification (id, name, labels, tags)
+     * &#64;internal
      * Authorization:
      * Standard authorization checks that user has "get" permission on the WorkflowExecution.
      * Permission is granted if:
@@ -1658,6 +1675,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * List workflow executions with pagination and optional filtering.
      * Returns a paginated list of WorkflowExecution resources that the user has access to.
      * Results are automatically filtered based on user's permissions and owner scope.
+     * &#64;internal
      * Authorization:
      * Custom authorization filters results to only include executions the user can access:
      * - Organization users: Only executions in their organization
@@ -1725,6 +1743,7 @@ public final class WorkflowExecutionQueryControllerGrpc {
      * List all executions for a specific Workflow or WorkflowInstance.
      * Returns executions filtered by a specific Workflow ID.
      * This is useful for viewing execution history of a particular workflow.
+     * &#64;internal
      * Authorization:
      * Custom authorization verifies:
      * 1. User has access to the referenced Workflow or WorkflowInstance

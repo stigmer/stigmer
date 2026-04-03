@@ -8,7 +8,7 @@ from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
 class IdentityAccountCommandControllerStub(object):
-    """identity-account command controller
+    """IdentityAccountCommandController handles write operations for identity accounts.
     """
 
     def __init__(self, channel):
@@ -40,37 +40,41 @@ class IdentityAccountCommandControllerStub(object):
 
 
 class IdentityAccountCommandControllerServicer(object):
-    """identity-account command controller
+    """IdentityAccountCommandController handles write operations for identity accounts.
     """
 
     def create(self, request, context):
-        """create a new identity-account.
-        system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
-        no FGA authorization — called via inProcessChannelAsSystem (machine account).
-        the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+        """Create a new identity account.
+
+        @internal
+        System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+        No FGA authorization — called via inProcessChannelAsSystem (machine account).
+        The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """update an existing identity-account
+        """Update an existing identity account.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def delete(self, request, context):
-        """delete an existing identity-account
+        """Delete an identity account.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def simulateSignupWebhook(self, request, context):
-        """simulate signup webhook to add a user who created account on auth0 but is not created on stigmer.
-        this rpc will take the email, look it up on auth0,
-        if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format.
+        """Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+
+        @internal
+        Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
+        to Stigmer with the Auth0 payload format to trigger account provisioning.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -108,7 +112,7 @@ def add_IdentityAccountCommandControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class IdentityAccountCommandController(object):
-    """identity-account command controller
+    """IdentityAccountCommandController handles write operations for identity accounts.
     """
 
     @staticmethod

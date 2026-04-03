@@ -63,7 +63,10 @@ class ExecutionContextCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def create(self, request, context):
-        """Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+        """Create a new ExecutionContext for an execution.
+
+        @internal
+        Called by execution pipeline on behalf of the user.
         Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -71,8 +74,11 @@ class ExecutionContextCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def delete(self, request, context):
-        """Delete an ExecutionContext (called when execution completes).
-        Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+        """Delete an ExecutionContext.
+
+        @internal
+        Called when execution completes. Handler-level derived auth: checks can_edit
+        on parent agent_execution or workflow_execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

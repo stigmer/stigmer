@@ -4,7 +4,7 @@ import static io.grpc.MethodDescriptor.generateFullMethodName;
 
 /**
  * <pre>
- * iam-policy query controller
+ * IamPolicyQueryController handles read operations for IAM policies.
  * </pre>
  */
 @io.grpc.stub.annotations.GrpcGenerated
@@ -200,14 +200,14 @@ public final class IamPolicyQueryControllerGrpc {
 
   /**
    * <pre>
-   * iam-policy query controller
+   * IamPolicyQueryController handles read operations for IAM policies.
    * </pre>
    */
   public interface AsyncService {
 
     /**
      * <pre>
-     * lookup iam-policy by id
+     * Get an IAM policy by its unique identifier.
      * </pre>
      */
     default void get(ai.stigmer.iam.iampolicy.v1.IamPolicyId request,
@@ -276,7 +276,7 @@ public final class IamPolicyQueryControllerGrpc {
   /**
    * Base class for the server implementation of the service IamPolicyQueryController.
    * <pre>
-   * iam-policy query controller
+   * IamPolicyQueryController handles read operations for IAM policies.
    * </pre>
    */
   public static abstract class IamPolicyQueryControllerImplBase
@@ -290,7 +290,7 @@ public final class IamPolicyQueryControllerGrpc {
   /**
    * A stub to allow clients to do asynchronous rpc calls to service IamPolicyQueryController.
    * <pre>
-   * iam-policy query controller
+   * IamPolicyQueryController handles read operations for IAM policies.
    * </pre>
    */
   public static final class IamPolicyQueryControllerStub
@@ -308,7 +308,7 @@ public final class IamPolicyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup iam-policy by id
+     * Get an IAM policy by its unique identifier.
      * </pre>
      */
     public void get(ai.stigmer.iam.iampolicy.v1.IamPolicyId request,
@@ -381,7 +381,7 @@ public final class IamPolicyQueryControllerGrpc {
   /**
    * A stub to allow clients to do synchronous rpc calls to service IamPolicyQueryController.
    * <pre>
-   * iam-policy query controller
+   * IamPolicyQueryController handles read operations for IAM policies.
    * </pre>
    */
   public static final class IamPolicyQueryControllerBlockingV2Stub
@@ -399,7 +399,7 @@ public final class IamPolicyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup iam-policy by id
+     * Get an IAM policy by its unique identifier.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.IamPolicy get(ai.stigmer.iam.iampolicy.v1.IamPolicyId request) throws io.grpc.StatusException {
@@ -468,7 +468,7 @@ public final class IamPolicyQueryControllerGrpc {
   /**
    * A stub to allow clients to do limited synchronous rpc calls to service IamPolicyQueryController.
    * <pre>
-   * iam-policy query controller
+   * IamPolicyQueryController handles read operations for IAM policies.
    * </pre>
    */
   public static final class IamPolicyQueryControllerBlockingStub
@@ -486,7 +486,7 @@ public final class IamPolicyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup iam-policy by id
+     * Get an IAM policy by its unique identifier.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.IamPolicy get(ai.stigmer.iam.iampolicy.v1.IamPolicyId request) {
@@ -555,7 +555,7 @@ public final class IamPolicyQueryControllerGrpc {
   /**
    * A stub to allow clients to do ListenableFuture-style rpc calls to service IamPolicyQueryController.
    * <pre>
-   * iam-policy query controller
+   * IamPolicyQueryController handles read operations for IAM policies.
    * </pre>
    */
   public static final class IamPolicyQueryControllerFutureStub
@@ -573,7 +573,7 @@ public final class IamPolicyQueryControllerGrpc {
 
     /**
      * <pre>
-     * lookup iam-policy by id
+     * Get an IAM policy by its unique identifier.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.IamPolicy> get(

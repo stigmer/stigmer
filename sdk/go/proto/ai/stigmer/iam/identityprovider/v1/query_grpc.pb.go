@@ -33,6 +33,8 @@ type IdentityProviderQueryControllerClient interface {
 	// Get an identity provider by its unique identifier.
 	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*IdentityProvider, error)
 	// Get an identity provider by reference (org + slug).
+	//
+	// @internal
 	// Custom authorization in handler.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*IdentityProvider, error)
 }
@@ -74,6 +76,8 @@ type IdentityProviderQueryControllerServer interface {
 	// Get an identity provider by its unique identifier.
 	Get(context.Context, *apiresource.ApiResourceId) (*IdentityProvider, error)
 	// Get an identity provider by reference (org + slug).
+	//
+	// @internal
 	// Custom authorization in handler.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*IdentityProvider, error)
 }

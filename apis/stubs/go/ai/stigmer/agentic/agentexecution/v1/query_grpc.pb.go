@@ -41,10 +41,14 @@ type AgentExecutionQueryControllerClient interface {
 	// List all agent executions with pagination and optional filtering.
 	List(ctx context.Context, in *ListAgentExecutionsRequest, opts ...grpc.CallOption) (*AgentExecutionList, error)
 	// List all executions in a specific session.
+	//
+	// @internal
 	// Authorization is handled in handler via FGA query for authorized agent_execution_ids,
 	// then filtered by session_id. This ensures consistent authorization pattern across all list operations.
 	ListBySession(ctx context.Context, in *ListAgentExecutionsBySessionRequest, opts ...grpc.CallOption) (*AgentExecutionList, error)
 	// Subscribe to real-time execution updates (streaming).
+	//
+	// @internal
 	// Authorization is handled by the FJ model via proto configuration.
 	Subscribe(ctx context.Context, in *AgentExecutionId, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentExecution], error)
 	// Get a presigned download URL for an execution artifact.
@@ -52,6 +56,8 @@ type AgentExecutionQueryControllerClient interface {
 	// Returns a time-limited URL for downloading an artifact published by
 	// an agent during execution. The URL can be used with a simple HTTP GET
 	// request without authentication.
+	//
+	// @internal
 	//
 	// ## Authorization
 	//
@@ -93,6 +99,8 @@ type AgentExecutionQueryControllerClient interface {
 	// For direct file downloads, use getArtifactDownloadUrl instead — it
 	// returns a presigned R2 URL that avoids proxying bytes through the server.
 	//
+	// @internal
+	//
 	// ## Authorization
 	//
 	// Requires can_view permission on the execution. This ensures users can
@@ -123,17 +131,20 @@ type AgentExecutionQueryControllerClient interface {
 	// Get usage report for a session (all executions in a session).
 	// Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
 	//
+	// @internal
 	// Authorization is handled in handler — caller must have can_view on
 	// all executions in the session (same pattern as listBySession).
 	GetSessionUsageReport(ctx context.Context, in *GetSessionUsageReportInput, opts ...grpc.CallOption) (*GetSessionUsageReportOutput, error)
 	// Get usage report for an agent (all sessions for an agent in a time range).
 	// Returns aggregated tokens, cost, and per-session breakdown with pagination.
 	//
+	// @internal
 	// Authorization is handled in handler — caller must have can_view on the agent.
 	GetAgentUsageReport(ctx context.Context, in *GetAgentUsageReportInput, opts ...grpc.CallOption) (*GetAgentUsageReportOutput, error)
 	// Get usage report for an organization (all agents in a time range).
 	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
 	//
+	// @internal
 	// Authorization is handled in handler — caller must be org member.
 	GetOrgUsageReport(ctx context.Context, in *GetOrgUsageReportInput, opts ...grpc.CallOption) (*GetOrgUsageReportOutput, error)
 }
@@ -256,10 +267,14 @@ type AgentExecutionQueryControllerServer interface {
 	// List all agent executions with pagination and optional filtering.
 	List(context.Context, *ListAgentExecutionsRequest) (*AgentExecutionList, error)
 	// List all executions in a specific session.
+	//
+	// @internal
 	// Authorization is handled in handler via FGA query for authorized agent_execution_ids,
 	// then filtered by session_id. This ensures consistent authorization pattern across all list operations.
 	ListBySession(context.Context, *ListAgentExecutionsBySessionRequest) (*AgentExecutionList, error)
 	// Subscribe to real-time execution updates (streaming).
+	//
+	// @internal
 	// Authorization is handled by the FJ model via proto configuration.
 	Subscribe(*AgentExecutionId, grpc.ServerStreamingServer[AgentExecution]) error
 	// Get a presigned download URL for an execution artifact.
@@ -267,6 +282,8 @@ type AgentExecutionQueryControllerServer interface {
 	// Returns a time-limited URL for downloading an artifact published by
 	// an agent during execution. The URL can be used with a simple HTTP GET
 	// request without authentication.
+	//
+	// @internal
 	//
 	// ## Authorization
 	//
@@ -308,6 +325,8 @@ type AgentExecutionQueryControllerServer interface {
 	// For direct file downloads, use getArtifactDownloadUrl instead — it
 	// returns a presigned R2 URL that avoids proxying bytes through the server.
 	//
+	// @internal
+	//
 	// ## Authorization
 	//
 	// Requires can_view permission on the execution. This ensures users can
@@ -338,17 +357,20 @@ type AgentExecutionQueryControllerServer interface {
 	// Get usage report for a session (all executions in a session).
 	// Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
 	//
+	// @internal
 	// Authorization is handled in handler — caller must have can_view on
 	// all executions in the session (same pattern as listBySession).
 	GetSessionUsageReport(context.Context, *GetSessionUsageReportInput) (*GetSessionUsageReportOutput, error)
 	// Get usage report for an agent (all sessions for an agent in a time range).
 	// Returns aggregated tokens, cost, and per-session breakdown with pagination.
 	//
+	// @internal
 	// Authorization is handled in handler — caller must have can_view on the agent.
 	GetAgentUsageReport(context.Context, *GetAgentUsageReportInput) (*GetAgentUsageReportOutput, error)
 	// Get usage report for an organization (all agents in a time range).
 	// Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
 	//
+	// @internal
 	// Authorization is handled in handler — caller must be org member.
 	GetOrgUsageReport(context.Context, *GetOrgUsageReportInput) (*GetOrgUsageReportOutput, error)
 }

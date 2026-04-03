@@ -156,6 +156,7 @@ public final class ProjectQueryControllerGrpc {
     /**
      * <pre>
      * Get a project by reference (org/name).
+     * &#64;internal
      * Custom authorization is handled in the controller implementation.
      * </pre>
      */
@@ -212,6 +213,7 @@ public final class ProjectQueryControllerGrpc {
     /**
      * <pre>
      * Get a project by reference (org/name).
+     * &#64;internal
      * Custom authorization is handled in the controller implementation.
      * </pre>
      */
@@ -254,6 +256,7 @@ public final class ProjectQueryControllerGrpc {
     /**
      * <pre>
      * Get a project by reference (org/name).
+     * &#64;internal
      * Custom authorization is handled in the controller implementation.
      * </pre>
      */
@@ -295,6 +298,7 @@ public final class ProjectQueryControllerGrpc {
     /**
      * <pre>
      * Get a project by reference (org/name).
+     * &#64;internal
      * Custom authorization is handled in the controller implementation.
      * </pre>
      */
@@ -337,6 +341,7 @@ public final class ProjectQueryControllerGrpc {
     /**
      * <pre>
      * Get a project by reference (org/name).
+     * &#64;internal
      * Custom authorization is handled in the controller implementation.
      * </pre>
      */

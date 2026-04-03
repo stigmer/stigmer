@@ -40,12 +40,16 @@ type OrganizationQueryControllerClient interface {
 	// Requires: Platform admin permission
 	// This is for administrative purposes only
 	Find(ctx context.Context, in *apiresource.FindApiResourcesRequest, opts ...grpc.CallOption) (*OrganizationList, error)
-	// Find organizations the authenticated user is a member of
-	// Authorization handled in handler via IAM Policy listAuthorizedResourceIds
-	// Returns only organizations the caller has access to
+	// Find organizations the authenticated user is a member of.
+	// Returns only organizations the caller has access to.
+	//
+	// @internal
+	// Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
 	FindMyOrganizations(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Organizations, error)
 	// Look up a platform-managed organization by its external platform coordinates.
 	// Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+	//
+	// @internal
 	// Authorization: custom — checks can_view on the referenced IdentityProvider.
 	GetByExternalOrgId(ctx context.Context, in *OrganizationExternalLookup, opts ...grpc.CallOption) (*Organization, error)
 }
@@ -111,12 +115,16 @@ type OrganizationQueryControllerServer interface {
 	// Requires: Platform admin permission
 	// This is for administrative purposes only
 	Find(context.Context, *apiresource.FindApiResourcesRequest) (*OrganizationList, error)
-	// Find organizations the authenticated user is a member of
-	// Authorization handled in handler via IAM Policy listAuthorizedResourceIds
-	// Returns only organizations the caller has access to
+	// Find organizations the authenticated user is a member of.
+	// Returns only organizations the caller has access to.
+	//
+	// @internal
+	// Authorization handled in handler via IAM Policy listAuthorizedResourceIds.
 	FindMyOrganizations(context.Context, *emptypb.Empty) (*Organizations, error)
 	// Look up a platform-managed organization by its external platform coordinates.
 	// Returns the Stigmer organization mapped to the given IdentityProvider + external org ID.
+	//
+	// @internal
 	// Authorization: custom — checks can_view on the referenced IdentityProvider.
 	GetByExternalOrgId(context.Context, *OrganizationExternalLookup) (*Organization, error)
 }

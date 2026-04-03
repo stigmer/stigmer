@@ -43,11 +43,17 @@ type ExecutionContextCommandControllerClient interface {
 	// The authorization and state-operation are determined depending on whether the execution context
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(ctx context.Context, in *ExecutionContext, opts ...grpc.CallOption) (*ExecutionContext, error)
-	// Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+	// Create a new ExecutionContext for an execution.
+	//
+	// @internal
+	// Called by execution pipeline on behalf of the user.
 	// Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
 	Create(ctx context.Context, in *ExecutionContext, opts ...grpc.CallOption) (*ExecutionContext, error)
-	// Delete an ExecutionContext (called when execution completes).
-	// Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+	// Delete an ExecutionContext.
+	//
+	// @internal
+	// Called when execution completes. Handler-level derived auth: checks can_edit
+	// on parent agent_execution or workflow_execution.
 	Delete(ctx context.Context, in *apiresource.ApiResourceDeleteInput, opts ...grpc.CallOption) (*ExecutionContext, error)
 }
 
@@ -107,11 +113,17 @@ type ExecutionContextCommandControllerServer interface {
 	// The authorization and state-operation are determined depending on whether the execution context
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(context.Context, *ExecutionContext) (*ExecutionContext, error)
-	// Create a new ExecutionContext (called by execution pipeline on behalf of the user).
+	// Create a new ExecutionContext for an execution.
+	//
+	// @internal
+	// Called by execution pipeline on behalf of the user.
 	// Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
 	Create(context.Context, *ExecutionContext) (*ExecutionContext, error)
-	// Delete an ExecutionContext (called when execution completes).
-	// Handler-level derived auth: checks can_edit on parent agent_execution or workflow_execution.
+	// Delete an ExecutionContext.
+	//
+	// @internal
+	// Called when execution completes. Handler-level derived auth: checks can_edit
+	// on parent agent_execution or workflow_execution.
 	Delete(context.Context, *apiresource.ApiResourceDeleteInput) (*ExecutionContext, error)
 }
 

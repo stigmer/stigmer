@@ -191,6 +191,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
+     * &#64;internal
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -202,6 +203,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
+     * &#64;internal
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -213,9 +215,10 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by the execution ID it belongs to.
-     * This is the primary lookup method used by runners to retrieve the merged
-     * environment variables during workflow/agent execution. The returned context
-     * contains decrypted secrets for runner consumption.
+     * &#64;internal
+     * Primary lookup method used by runners to retrieve the merged environment
+     * variables during workflow/agent execution. The returned context contains
+     * decrypted secrets for runner consumption.
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -275,6 +278,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
+     * &#64;internal
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -287,6 +291,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
+     * &#64;internal
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -299,9 +304,10 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by the execution ID it belongs to.
-     * This is the primary lookup method used by runners to retrieve the merged
-     * environment variables during workflow/agent execution. The returned context
-     * contains decrypted secrets for runner consumption.
+     * &#64;internal
+     * Primary lookup method used by runners to retrieve the merged environment
+     * variables during workflow/agent execution. The returned context contains
+     * decrypted secrets for runner consumption.
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -341,6 +347,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
+     * &#64;internal
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -352,6 +359,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
+     * &#64;internal
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -363,9 +371,10 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by the execution ID it belongs to.
-     * This is the primary lookup method used by runners to retrieve the merged
-     * environment variables during workflow/agent execution. The returned context
-     * contains decrypted secrets for runner consumption.
+     * &#64;internal
+     * Primary lookup method used by runners to retrieve the merged environment
+     * variables during workflow/agent execution. The returned context contains
+     * decrypted secrets for runner consumption.
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -404,6 +413,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
+     * &#64;internal
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -415,6 +425,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
+     * &#64;internal
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -426,9 +437,10 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by the execution ID it belongs to.
-     * This is the primary lookup method used by runners to retrieve the merged
-     * environment variables during workflow/agent execution. The returned context
-     * contains decrypted secrets for runner consumption.
+     * &#64;internal
+     * Primary lookup method used by runners to retrieve the merged environment
+     * variables during workflow/agent execution. The returned context contains
+     * decrypted secrets for runner consumption.
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -467,6 +479,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by ID.
+     * &#64;internal
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -479,6 +492,7 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by reference (slug-based lookup).
+     * &#64;internal
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */
@@ -491,9 +505,10 @@ public final class ExecutionContextQueryControllerGrpc {
     /**
      * <pre>
      * Get an ExecutionContext by the execution ID it belongs to.
-     * This is the primary lookup method used by runners to retrieve the merged
-     * environment variables during workflow/agent execution. The returned context
-     * contains decrypted secrets for runner consumption.
+     * &#64;internal
+     * Primary lookup method used by runners to retrieve the merged environment
+     * variables during workflow/agent execution. The returned context contains
+     * decrypted secrets for runner consumption.
      * Handler-level derived auth: checks can_view on parent agent_execution or workflow_execution.
      * </pre>
      */

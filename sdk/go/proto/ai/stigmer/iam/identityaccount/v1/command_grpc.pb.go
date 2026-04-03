@@ -30,20 +30,24 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// identity-account command controller
+// IdentityAccountCommandController handles write operations for identity accounts.
 type IdentityAccountCommandControllerClient interface {
-	// create a new identity-account.
-	// system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
-	// no FGA authorization — called via inProcessChannelAsSystem (machine account).
-	// the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+	// Create a new identity account.
+	//
+	// @internal
+	// System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+	// No FGA authorization — called via inProcessChannelAsSystem (machine account).
+	// The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
 	Create(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error)
-	// update an existing identity-account
+	// Update an existing identity account.
 	Update(ctx context.Context, in *IdentityAccount, opts ...grpc.CallOption) (*IdentityAccount, error)
-	// delete an existing identity-account
+	// Delete an identity account.
 	Delete(ctx context.Context, in *IdentityAccountId, opts ...grpc.CallOption) (*IdentityAccount, error)
-	// simulate signup webhook to add a user who created account on auth0 but is not created on stigmer.
-	// this rpc will take the email, look it up on auth0,
-	// if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format.
+	// Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+	//
+	// @internal
+	// Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
+	// to Stigmer with the Auth0 payload format to trigger account provisioning.
 	SimulateSignupWebhook(ctx context.Context, in *IdentityAccountEmail, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
@@ -99,20 +103,24 @@ func (c *identityAccountCommandControllerClient) SimulateSignupWebhook(ctx conte
 // All implementations should embed UnimplementedIdentityAccountCommandControllerServer
 // for forward compatibility.
 //
-// identity-account command controller
+// IdentityAccountCommandController handles write operations for identity accounts.
 type IdentityAccountCommandControllerServer interface {
-	// create a new identity-account.
-	// system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
-	// no FGA authorization — called via inProcessChannelAsSystem (machine account).
-	// the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+	// Create a new identity account.
+	//
+	// @internal
+	// System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+	// No FGA authorization — called via inProcessChannelAsSystem (machine account).
+	// The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
 	Create(context.Context, *IdentityAccount) (*IdentityAccount, error)
-	// update an existing identity-account
+	// Update an existing identity account.
 	Update(context.Context, *IdentityAccount) (*IdentityAccount, error)
-	// delete an existing identity-account
+	// Delete an identity account.
 	Delete(context.Context, *IdentityAccountId) (*IdentityAccount, error)
-	// simulate signup webhook to add a user who created account on auth0 but is not created on stigmer.
-	// this rpc will take the email, look it up on auth0,
-	// if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format.
+	// Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+	//
+	// @internal
+	// Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
+	// to Stigmer with the Auth0 payload format to trigger account provisioning.
 	SimulateSignupWebhook(context.Context, *IdentityAccountEmail) (*emptypb.Empty, error)
 }
 

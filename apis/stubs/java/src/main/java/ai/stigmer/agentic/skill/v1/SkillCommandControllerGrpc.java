@@ -212,7 +212,8 @@ public final class SkillCommandControllerGrpc {
      * of an existing skill. The skill artifact must contain SKILL.md.
      * Authorization:
      * - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-     * - Platform-scoped skills: Caller must be a platform operator (handled automatically by common auth step)
+     * - Platform-scoped skills: Caller must be a platform operator
+     * &#64;internal
      * The backend will:
      * 1. Normalize the name to a slug
      * 2. Find or create the skill resource
@@ -314,7 +315,8 @@ public final class SkillCommandControllerGrpc {
      * of an existing skill. The skill artifact must contain SKILL.md.
      * Authorization:
      * - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-     * - Platform-scoped skills: Caller must be a platform operator (handled automatically by common auth step)
+     * - Platform-scoped skills: Caller must be a platform operator
+     * &#64;internal
      * The backend will:
      * 1. Normalize the name to a slug
      * 2. Find or create the skill resource
@@ -406,7 +408,8 @@ public final class SkillCommandControllerGrpc {
      * of an existing skill. The skill artifact must contain SKILL.md.
      * Authorization:
      * - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-     * - Platform-scoped skills: Caller must be a platform operator (handled automatically by common auth step)
+     * - Platform-scoped skills: Caller must be a platform operator
+     * &#64;internal
      * The backend will:
      * 1. Normalize the name to a slug
      * 2. Find or create the skill resource
@@ -494,7 +497,8 @@ public final class SkillCommandControllerGrpc {
      * of an existing skill. The skill artifact must contain SKILL.md.
      * Authorization:
      * - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-     * - Platform-scoped skills: Caller must be a platform operator (handled automatically by common auth step)
+     * - Platform-scoped skills: Caller must be a platform operator
+     * &#64;internal
      * The backend will:
      * 1. Normalize the name to a slug
      * 2. Find or create the skill resource
@@ -582,7 +586,8 @@ public final class SkillCommandControllerGrpc {
      * of an existing skill. The skill artifact must contain SKILL.md.
      * Authorization:
      * - Organization-scoped skills: Caller must have can_create_skill permission in the organization
-     * - Platform-scoped skills: Caller must be a platform operator (handled automatically by common auth step)
+     * - Platform-scoped skills: Caller must be a platform operator
+     * &#64;internal
      * The backend will:
      * 1. Normalize the name to a slug
      * 2. Find or create the skill resource

@@ -8,7 +8,7 @@ import { Empty, MethodKind } from "@bufbuild/protobuf";
 import { IdentityAccountEmail, IdentityAccountId } from "./io_pb.js";
 
 /**
- * identity-account command controller
+ * IdentityAccountCommandController handles write operations for identity accounts.
  *
  * @generated from service ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController
  */
@@ -16,10 +16,12 @@ export const IdentityAccountCommandController = {
   typeName: "ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController",
   methods: {
     /**
-     * create a new identity-account.
-     * system-level RPC used by federated JIT provisioning and Auth0 webhook flow.
-     * no FGA authorization — called via inProcessChannelAsSystem (machine account).
-     * the handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
+     * Create a new identity account.
+     *
+     * @internal
+     * System-level RPC used by federated JIT provisioning and Auth0 webhook flow.
+     * No FGA authorization — called via inProcessChannelAsSystem (machine account).
+     * The handler's createAuthorizationTuples step writes the self-ownership tuple after creation.
      *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.create
      */
@@ -30,7 +32,7 @@ export const IdentityAccountCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * update an existing identity-account
+     * Update an existing identity account.
      *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.update
      */
@@ -41,7 +43,7 @@ export const IdentityAccountCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * delete an existing identity-account
+     * Delete an identity account.
      *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.delete
      */
@@ -52,9 +54,11 @@ export const IdentityAccountCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * simulate signup webhook to add a user who created account on auth0 but is not created on stigmer.
-     * this rpc will take the email, look it up on auth0,
-     * if there is a user with this email on auth0 and post a webhook to stigmer with auth0 payload format.
+     * Simulate a signup webhook for a user who exists in Auth0 but not in Stigmer.
+     *
+     * @internal
+     * Takes the email, looks it up on Auth0, and if a user exists, posts a webhook
+     * to Stigmer with the Auth0 payload format to trigger account provisioning.
      *
      * @generated from rpc ai.stigmer.iam.identityaccount.v1.IdentityAccountCommandController.simulateSignupWebhook
      */

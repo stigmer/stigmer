@@ -20,14 +20,17 @@ export const file_ai_stigmer_iam_identityaccount_v1_spec: GenFile = /*@__PURE__*
 /**
  * IdentityAccountSpec defines the configuration for an identity account.
  *
- * An identity account represents a user or machine principal in Stigmer's
- * authorization model. All FGA tuples use identity_account as the principal type.
+ * An identity account represents a user or machine principal in Stigmer.
+ * Accounts can be direct (signed up via Stigmer), federated (provisioned
+ * through an external identity provider), or machine (service-to-service
+ * credentials).
  *
- * Accounts are provisioned in one of three ways:
- * - direct: User signed up via Stigmer's Auth0 (idp_id is the Auth0 subject ID)
- * - federated: JIT-provisioned via an external IdentityProvider during federated auth
- *   (idp_id is a compound key: "federated:{provider_id}:{external_sub}")
- * - machine: M2M client credentials (idp_id ends with "@clients")
+ * @internal
+ * All FGA tuples use identity_account as the principal type.
+ * Provisioning details:
+ * - direct: Auth0 subject ID (e.g., "auth0|abc123")
+ * - federated: compound key "federated:{provider_id}:{external_sub}"
+ * - machine: Auth0 client ID with "@clients" suffix
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec
  */

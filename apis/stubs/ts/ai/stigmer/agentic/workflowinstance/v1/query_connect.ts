@@ -77,6 +77,8 @@ export const WorkflowInstanceQueryController = {
      * - "staging-deploy" (wfi-def) - Staging deployment with aws-staging-env
      * - "dev-deploy" (wfi-ghi) - Development deployment with aws-dev-env
      *
+     * @internal
+     *
      * Input:
      * GetWorkflowInstancesByWorkflowRequest with:
      * - workflow_id: Workflow template ID to filter by

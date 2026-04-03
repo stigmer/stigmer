@@ -156,6 +156,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by reference (org + slug).
+     * &#64;internal
      * Custom authorization in handler.
      * </pre>
      */
@@ -212,6 +213,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by reference (org + slug).
+     * &#64;internal
      * Custom authorization in handler.
      * </pre>
      */
@@ -254,6 +256,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by reference (org + slug).
+     * &#64;internal
      * Custom authorization in handler.
      * </pre>
      */
@@ -295,6 +298,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by reference (org + slug).
+     * &#64;internal
      * Custom authorization in handler.
      * </pre>
      */
@@ -337,6 +341,7 @@ public final class IdentityProviderQueryControllerGrpc {
     /**
      * <pre>
      * Get an identity provider by reference (org + slug).
+     * &#64;internal
      * Custom authorization in handler.
      * </pre>
      */

@@ -60,7 +60,7 @@ public interface ApiResourceRefOrBuilder extends
 
   /**
    * <pre>
-   * Optional relation qualifier for the resource reference
+   * Optional relation qualifier for the resource reference.
    * Used when the reference needs additional context about the relationship.
    *
    * Primary use case: For team principals, this specifies the relation of the
@@ -68,11 +68,11 @@ public interface ApiResourceRefOrBuilder extends
    * Example: principal { kind: "team", id: "tm-123", relation: "member" }
    * means "members of team tm-123"
    *
-   * In OpenFGA tuple notation, this becomes:
-   * team:tm-123#member (as the subject of the tuple)
-   *
    * This field qualifies HOW the principal relates to this resource reference,
    * NOT the permission being granted (that's IamPolicySpec.relation).
+   *
+   * &#64;internal
+   * In OpenFGA tuple notation: team:tm-123#member (as the subject of the tuple)
    * </pre>
    *
    * <code>string relation = 3 [json_name = "relation", (.buf.validate.field) = { ... }</code>
@@ -81,7 +81,7 @@ public interface ApiResourceRefOrBuilder extends
   java.lang.String getRelation();
   /**
    * <pre>
-   * Optional relation qualifier for the resource reference
+   * Optional relation qualifier for the resource reference.
    * Used when the reference needs additional context about the relationship.
    *
    * Primary use case: For team principals, this specifies the relation of the
@@ -89,11 +89,11 @@ public interface ApiResourceRefOrBuilder extends
    * Example: principal { kind: "team", id: "tm-123", relation: "member" }
    * means "members of team tm-123"
    *
-   * In OpenFGA tuple notation, this becomes:
-   * team:tm-123#member (as the subject of the tuple)
-   *
    * This field qualifies HOW the principal relates to this resource reference,
    * NOT the permission being granted (that's IamPolicySpec.relation).
+   *
+   * &#64;internal
+   * In OpenFGA tuple notation: team:tm-123#member (as the subject of the tuple)
    * </pre>
    *
    * <code>string relation = 3 [json_name = "relation", (.buf.validate.field) = { ... }</code>

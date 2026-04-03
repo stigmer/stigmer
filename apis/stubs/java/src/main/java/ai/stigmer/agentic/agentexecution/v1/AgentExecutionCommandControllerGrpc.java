@@ -427,7 +427,8 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Create and trigger a new agent execution.
-     * Session is optional - can be provided or auto-created from agent_id.
+     * Session is optional — can be provided or auto-created from agent_id.
+     * &#64;internal
      * Authorization is handled in handler:
      *   - If session_id provided: checks can_create_execution_in on session
      *   - If session_id NOT provided: checks can_create_execution_in on organization
@@ -453,8 +454,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Update execution status during agent execution.
-     * Used by agent-runner to send progressive status updates (messages, tool_calls, phase, etc.)
-     * This RPC is optimized for frequent status updates and merges status fields with existing state.
+     * &#64;internal
+     * System-level RPC used by agent-runner to send progressive status updates
+     * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
+     * and merges status fields with existing state.
      * </pre>
      */
     default void updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request,
@@ -483,6 +486,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
      * - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
      * - REJECT: Execution fails with rejection error, phase becomes FAILED
+     * &#64;internal
      * ## State Transitions
      * On success:
      * - ToolCall.approval_action = submitted action
@@ -508,9 +512,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Cancel a running agent execution gracefully.
-     * Sends a cancellation signal to the agent execution via Temporal's CancelWorkflow API.
-     * The agent can handle the cancellation signal to save checkpoint and clean up
-     * before transitioning to the CANCELLED phase.
+     * Sends a cancellation signal to the agent execution. The agent can handle
+     * the cancellation signal to save checkpoint and clean up before
+     * transitioning to the CANCELLED phase.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow cancel --workflow-id &lt;id&gt;`
      * ## Behavior
      * 1. Validates execution exists and is in a cancellable phase
@@ -544,9 +549,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Terminate an agent execution immediately.
-     * Force-stops the agent execution via Temporal's TerminateWorkflow API without
-     * allowing cleanup. Unlike cancel, the agent cannot respond to termination -
-     * it is stopped immediately. Use this for stuck or unresponsive agents.
+     * Force-stops the agent execution without allowing cleanup. Unlike cancel,
+     * the agent cannot respond to termination - it is stopped immediately.
+     * Use this for stuck or unresponsive agents.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow terminate --workflow-id &lt;id&gt;`
      * ## Behavior
      * 1. Validates execution exists and is in a terminable phase
@@ -586,10 +592,11 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Recover a failed agent execution from the last checkpoint.
-     * Resumes execution from the last LangGraph checkpoint using Temporal's
-     * ResetWorkflow API. Completed work is preserved - successful tool calls
-     * are NOT re-executed.
+     * Resumes execution from the last checkpoint. Completed work is preserved -
+     * successful tool calls are NOT re-executed.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
+     * Uses LangGraph checkpoint for state restoration.
      * ## Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
      * 2. Uses Temporal ResetWorkflow to resume from last checkpoint
@@ -627,6 +634,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Pause a running agent execution.
      * Temporarily stops the agent at its current checkpoint. Unlike cancel,
      * the execution is NOT terminal and can be resumed later from where it left off.
+     * &#64;internal
      * ## Behavior
      * 1. Validates execution exists and is in a pausable phase
      * 2. Sends "pause" signal to Temporal workflow
@@ -669,6 +677,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Continues execution from the checkpoint where it was paused. The agent
      * re-invokes with the same thread_id, loading from LangGraph checkpoint
      * and continuing from where it left off.
+     * &#64;internal
      * ## Behavior
      * 1. Validates execution is in EXECUTION_PAUSED phase
      * 2. Sends "resume" signal to Temporal workflow
@@ -704,6 +713,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Pre-uploads files to artifact storage before creating an execution.
      * The returned storage_key can be used in Attachment.storage_key when
      * creating the execution.
+     * &#64;internal
      * ## Authorization
      * This endpoint does not require authorization. The storage_key returned
      * acts as a capability token - knowing the key grants access to the content.
@@ -767,7 +777,8 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Create and trigger a new agent execution.
-     * Session is optional - can be provided or auto-created from agent_id.
+     * Session is optional — can be provided or auto-created from agent_id.
+     * &#64;internal
      * Authorization is handled in handler:
      *   - If session_id provided: checks can_create_execution_in on session
      *   - If session_id NOT provided: checks can_create_execution_in on organization
@@ -795,8 +806,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Update execution status during agent execution.
-     * Used by agent-runner to send progressive status updates (messages, tool_calls, phase, etc.)
-     * This RPC is optimized for frequent status updates and merges status fields with existing state.
+     * &#64;internal
+     * System-level RPC used by agent-runner to send progressive status updates
+     * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
+     * and merges status fields with existing state.
      * </pre>
      */
     public void updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request,
@@ -827,6 +840,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
      * - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
      * - REJECT: Execution fails with rejection error, phase becomes FAILED
+     * &#64;internal
      * ## State Transitions
      * On success:
      * - ToolCall.approval_action = submitted action
@@ -853,9 +867,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Cancel a running agent execution gracefully.
-     * Sends a cancellation signal to the agent execution via Temporal's CancelWorkflow API.
-     * The agent can handle the cancellation signal to save checkpoint and clean up
-     * before transitioning to the CANCELLED phase.
+     * Sends a cancellation signal to the agent execution. The agent can handle
+     * the cancellation signal to save checkpoint and clean up before
+     * transitioning to the CANCELLED phase.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow cancel --workflow-id &lt;id&gt;`
      * ## Behavior
      * 1. Validates execution exists and is in a cancellable phase
@@ -890,9 +905,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Terminate an agent execution immediately.
-     * Force-stops the agent execution via Temporal's TerminateWorkflow API without
-     * allowing cleanup. Unlike cancel, the agent cannot respond to termination -
-     * it is stopped immediately. Use this for stuck or unresponsive agents.
+     * Force-stops the agent execution without allowing cleanup. Unlike cancel,
+     * the agent cannot respond to termination - it is stopped immediately.
+     * Use this for stuck or unresponsive agents.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow terminate --workflow-id &lt;id&gt;`
      * ## Behavior
      * 1. Validates execution exists and is in a terminable phase
@@ -933,10 +949,11 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Recover a failed agent execution from the last checkpoint.
-     * Resumes execution from the last LangGraph checkpoint using Temporal's
-     * ResetWorkflow API. Completed work is preserved - successful tool calls
-     * are NOT re-executed.
+     * Resumes execution from the last checkpoint. Completed work is preserved -
+     * successful tool calls are NOT re-executed.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
+     * Uses LangGraph checkpoint for state restoration.
      * ## Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
      * 2. Uses Temporal ResetWorkflow to resume from last checkpoint
@@ -975,6 +992,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Pause a running agent execution.
      * Temporarily stops the agent at its current checkpoint. Unlike cancel,
      * the execution is NOT terminal and can be resumed later from where it left off.
+     * &#64;internal
      * ## Behavior
      * 1. Validates execution exists and is in a pausable phase
      * 2. Sends "pause" signal to Temporal workflow
@@ -1018,6 +1036,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Continues execution from the checkpoint where it was paused. The agent
      * re-invokes with the same thread_id, loading from LangGraph checkpoint
      * and continuing from where it left off.
+     * &#64;internal
      * ## Behavior
      * 1. Validates execution is in EXECUTION_PAUSED phase
      * 2. Sends "resume" signal to Temporal workflow
@@ -1054,6 +1073,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Pre-uploads files to artifact storage before creating an execution.
      * The returned storage_key can be used in Attachment.storage_key when
      * creating the execution.
+     * &#64;internal
      * ## Authorization
      * This endpoint does not require authorization. The storage_key returned
      * acts as a capability token - knowing the key grants access to the content.
@@ -1103,7 +1123,8 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Create and trigger a new agent execution.
-     * Session is optional - can be provided or auto-created from agent_id.
+     * Session is optional — can be provided or auto-created from agent_id.
+     * &#64;internal
      * Authorization is handled in handler:
      *   - If session_id provided: checks can_create_execution_in on session
      *   - If session_id NOT provided: checks can_create_execution_in on organization
@@ -1129,8 +1150,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Update execution status during agent execution.
-     * Used by agent-runner to send progressive status updates (messages, tool_calls, phase, etc.)
-     * This RPC is optimized for frequent status updates and merges status fields with existing state.
+     * &#64;internal
+     * System-level RPC used by agent-runner to send progressive status updates
+     * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
+     * and merges status fields with existing state.
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.AgentExecution updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request) throws io.grpc.StatusException {
@@ -1159,6 +1182,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
      * - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
      * - REJECT: Execution fails with rejection error, phase becomes FAILED
+     * &#64;internal
      * ## State Transitions
      * On success:
      * - ToolCall.approval_action = submitted action
@@ -1184,9 +1208,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Cancel a running agent execution gracefully.
-     * Sends a cancellation signal to the agent execution via Temporal's CancelWorkflow API.
-     * The agent can handle the cancellation signal to save checkpoint and clean up
-     * before transitioning to the CANCELLED phase.
+     * Sends a cancellation signal to the agent execution. The agent can handle
+     * the cancellation signal to save checkpoint and clean up before
+     * transitioning to the CANCELLED phase.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow cancel --workflow-id &lt;id&gt;`
      * ## Behavior
      * 1. Validates execution exists and is in a cancellable phase
@@ -1220,9 +1245,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Terminate an agent execution immediately.
-     * Force-stops the agent execution via Temporal's TerminateWorkflow API without
-     * allowing cleanup. Unlike cancel, the agent cannot respond to termination -
-     * it is stopped immediately. Use this for stuck or unresponsive agents.
+     * Force-stops the agent execution without allowing cleanup. Unlike cancel,
+     * the agent cannot respond to termination - it is stopped immediately.
+     * Use this for stuck or unresponsive agents.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow terminate --workflow-id &lt;id&gt;`
      * ## Behavior
      * 1. Validates execution exists and is in a terminable phase
@@ -1262,10 +1288,11 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Recover a failed agent execution from the last checkpoint.
-     * Resumes execution from the last LangGraph checkpoint using Temporal's
-     * ResetWorkflow API. Completed work is preserved - successful tool calls
-     * are NOT re-executed.
+     * Resumes execution from the last checkpoint. Completed work is preserved -
+     * successful tool calls are NOT re-executed.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
+     * Uses LangGraph checkpoint for state restoration.
      * ## Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
      * 2. Uses Temporal ResetWorkflow to resume from last checkpoint
@@ -1303,6 +1330,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Pause a running agent execution.
      * Temporarily stops the agent at its current checkpoint. Unlike cancel,
      * the execution is NOT terminal and can be resumed later from where it left off.
+     * &#64;internal
      * ## Behavior
      * 1. Validates execution exists and is in a pausable phase
      * 2. Sends "pause" signal to Temporal workflow
@@ -1345,6 +1373,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Continues execution from the checkpoint where it was paused. The agent
      * re-invokes with the same thread_id, loading from LangGraph checkpoint
      * and continuing from where it left off.
+     * &#64;internal
      * ## Behavior
      * 1. Validates execution is in EXECUTION_PAUSED phase
      * 2. Sends "resume" signal to Temporal workflow
@@ -1380,6 +1409,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Pre-uploads files to artifact storage before creating an execution.
      * The returned storage_key can be used in Attachment.storage_key when
      * creating the execution.
+     * &#64;internal
      * ## Authorization
      * This endpoint does not require authorization. The storage_key returned
      * acts as a capability token - knowing the key grants access to the content.
@@ -1428,7 +1458,8 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Create and trigger a new agent execution.
-     * Session is optional - can be provided or auto-created from agent_id.
+     * Session is optional — can be provided or auto-created from agent_id.
+     * &#64;internal
      * Authorization is handled in handler:
      *   - If session_id provided: checks can_create_execution_in on session
      *   - If session_id NOT provided: checks can_create_execution_in on organization
@@ -1454,8 +1485,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Update execution status during agent execution.
-     * Used by agent-runner to send progressive status updates (messages, tool_calls, phase, etc.)
-     * This RPC is optimized for frequent status updates and merges status fields with existing state.
+     * &#64;internal
+     * System-level RPC used by agent-runner to send progressive status updates
+     * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
+     * and merges status fields with existing state.
      * </pre>
      */
     public ai.stigmer.agentic.agentexecution.v1.AgentExecution updateStatus(ai.stigmer.agentic.agentexecution.v1.AgentExecutionUpdateStatusInput request) {
@@ -1484,6 +1517,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
      * - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
      * - REJECT: Execution fails with rejection error, phase becomes FAILED
+     * &#64;internal
      * ## State Transitions
      * On success:
      * - ToolCall.approval_action = submitted action
@@ -1509,9 +1543,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Cancel a running agent execution gracefully.
-     * Sends a cancellation signal to the agent execution via Temporal's CancelWorkflow API.
-     * The agent can handle the cancellation signal to save checkpoint and clean up
-     * before transitioning to the CANCELLED phase.
+     * Sends a cancellation signal to the agent execution. The agent can handle
+     * the cancellation signal to save checkpoint and clean up before
+     * transitioning to the CANCELLED phase.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow cancel --workflow-id &lt;id&gt;`
      * ## Behavior
      * 1. Validates execution exists and is in a cancellable phase
@@ -1545,9 +1580,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Terminate an agent execution immediately.
-     * Force-stops the agent execution via Temporal's TerminateWorkflow API without
-     * allowing cleanup. Unlike cancel, the agent cannot respond to termination -
-     * it is stopped immediately. Use this for stuck or unresponsive agents.
+     * Force-stops the agent execution without allowing cleanup. Unlike cancel,
+     * the agent cannot respond to termination - it is stopped immediately.
+     * Use this for stuck or unresponsive agents.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow terminate --workflow-id &lt;id&gt;`
      * ## Behavior
      * 1. Validates execution exists and is in a terminable phase
@@ -1587,10 +1623,11 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Recover a failed agent execution from the last checkpoint.
-     * Resumes execution from the last LangGraph checkpoint using Temporal's
-     * ResetWorkflow API. Completed work is preserved - successful tool calls
-     * are NOT re-executed.
+     * Resumes execution from the last checkpoint. Completed work is preserved -
+     * successful tool calls are NOT re-executed.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
+     * Uses LangGraph checkpoint for state restoration.
      * ## Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
      * 2. Uses Temporal ResetWorkflow to resume from last checkpoint
@@ -1628,6 +1665,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Pause a running agent execution.
      * Temporarily stops the agent at its current checkpoint. Unlike cancel,
      * the execution is NOT terminal and can be resumed later from where it left off.
+     * &#64;internal
      * ## Behavior
      * 1. Validates execution exists and is in a pausable phase
      * 2. Sends "pause" signal to Temporal workflow
@@ -1670,6 +1708,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Continues execution from the checkpoint where it was paused. The agent
      * re-invokes with the same thread_id, loading from LangGraph checkpoint
      * and continuing from where it left off.
+     * &#64;internal
      * ## Behavior
      * 1. Validates execution is in EXECUTION_PAUSED phase
      * 2. Sends "resume" signal to Temporal workflow
@@ -1705,6 +1744,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Pre-uploads files to artifact storage before creating an execution.
      * The returned storage_key can be used in Attachment.storage_key when
      * creating the execution.
+     * &#64;internal
      * ## Authorization
      * This endpoint does not require authorization. The storage_key returned
      * acts as a capability token - knowing the key grants access to the content.
@@ -1753,7 +1793,8 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Create and trigger a new agent execution.
-     * Session is optional - can be provided or auto-created from agent_id.
+     * Session is optional — can be provided or auto-created from agent_id.
+     * &#64;internal
      * Authorization is handled in handler:
      *   - If session_id provided: checks can_create_execution_in on session
      *   - If session_id NOT provided: checks can_create_execution_in on organization
@@ -1781,8 +1822,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Update execution status during agent execution.
-     * Used by agent-runner to send progressive status updates (messages, tool_calls, phase, etc.)
-     * This RPC is optimized for frequent status updates and merges status fields with existing state.
+     * &#64;internal
+     * System-level RPC used by agent-runner to send progressive status updates
+     * (messages, tool_calls, phase, etc.). Optimized for frequent status updates
+     * and merges status fields with existing state.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agentexecution.v1.AgentExecution> updateStatus(
@@ -1813,6 +1856,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * - APPROVE: Tool executes normally, execution resumes to IN_PROGRESS
      * - SKIP: Tool returns skip message to LLM, execution continues to IN_PROGRESS
      * - REJECT: Execution fails with rejection error, phase becomes FAILED
+     * &#64;internal
      * ## State Transitions
      * On success:
      * - ToolCall.approval_action = submitted action
@@ -1839,9 +1883,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Cancel a running agent execution gracefully.
-     * Sends a cancellation signal to the agent execution via Temporal's CancelWorkflow API.
-     * The agent can handle the cancellation signal to save checkpoint and clean up
-     * before transitioning to the CANCELLED phase.
+     * Sends a cancellation signal to the agent execution. The agent can handle
+     * the cancellation signal to save checkpoint and clean up before
+     * transitioning to the CANCELLED phase.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow cancel --workflow-id &lt;id&gt;`
      * ## Behavior
      * 1. Validates execution exists and is in a cancellable phase
@@ -1876,9 +1921,10 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Terminate an agent execution immediately.
-     * Force-stops the agent execution via Temporal's TerminateWorkflow API without
-     * allowing cleanup. Unlike cancel, the agent cannot respond to termination -
-     * it is stopped immediately. Use this for stuck or unresponsive agents.
+     * Force-stops the agent execution without allowing cleanup. Unlike cancel,
+     * the agent cannot respond to termination - it is stopped immediately.
+     * Use this for stuck or unresponsive agents.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow terminate --workflow-id &lt;id&gt;`
      * ## Behavior
      * 1. Validates execution exists and is in a terminable phase
@@ -1919,10 +1965,11 @@ public final class AgentExecutionCommandControllerGrpc {
     /**
      * <pre>
      * Recover a failed agent execution from the last checkpoint.
-     * Resumes execution from the last LangGraph checkpoint using Temporal's
-     * ResetWorkflow API. Completed work is preserved - successful tool calls
-     * are NOT re-executed.
+     * Resumes execution from the last checkpoint. Completed work is preserved -
+     * successful tool calls are NOT re-executed.
+     * &#64;internal
      * Temporal Equivalent: `temporal workflow reset --workflow-id &lt;id&gt; --type LastWorkflowTask`
+     * Uses LangGraph checkpoint for state restoration.
      * ## Behavior
      * 1. Validates execution is in FAILED phase (recoverable)
      * 2. Uses Temporal ResetWorkflow to resume from last checkpoint
@@ -1961,6 +2008,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Pause a running agent execution.
      * Temporarily stops the agent at its current checkpoint. Unlike cancel,
      * the execution is NOT terminal and can be resumed later from where it left off.
+     * &#64;internal
      * ## Behavior
      * 1. Validates execution exists and is in a pausable phase
      * 2. Sends "pause" signal to Temporal workflow
@@ -2004,6 +2052,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Continues execution from the checkpoint where it was paused. The agent
      * re-invokes with the same thread_id, loading from LangGraph checkpoint
      * and continuing from where it left off.
+     * &#64;internal
      * ## Behavior
      * 1. Validates execution is in EXECUTION_PAUSED phase
      * 2. Sends "resume" signal to Temporal workflow
@@ -2040,6 +2089,7 @@ public final class AgentExecutionCommandControllerGrpc {
      * Pre-uploads files to artifact storage before creating an execution.
      * The returned storage_key can be used in Attachment.storage_key when
      * creating the execution.
+     * &#64;internal
      * ## Authorization
      * This endpoint does not require authorization. The storage_key returned
      * acts as a capability token - knowing the key grants access to the content.

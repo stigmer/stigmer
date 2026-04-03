@@ -55,8 +55,9 @@ type WorkflowExecutionCommandControllerClient interface {
 	// Create and trigger a new workflow execution.
 	//
 	// This RPC creates a WorkflowExecution resource and immediately triggers it for execution.
-	// The workflow execution engine (Temporal) picks up the execution and begins processing tasks.
+	// The workflow execution engine picks up the execution and begins processing tasks.
 	//
+	// @internal
 	// Input Validation:
 	// - metadata.org must be specified
 	// - spec.workflow_instance_id is required and must reference an existing WorkflowInstance
@@ -177,8 +178,11 @@ type WorkflowExecutionCommandControllerClient interface {
 	// No individual field updates - always provide complete state.
 	Update(ctx context.Context, in *WorkflowExecution, opts ...grpc.CallOption) (*WorkflowExecution, error)
 	// Update execution status during workflow execution.
-	// Used by workflow-runner to send progressive status updates (messages, task states, phase, etc.)
-	// This RPC is optimized for frequent status updates and merges status fields with existing state.
+	//
+	// @internal
+	// System-level RPC used by workflow-runner to send progressive status updates
+	// (messages, task states, phase, etc.). Optimized for frequent status updates
+	// and merges status fields with existing state.
 	//
 	// This RPC is used by the workflow execution engine (Temporal) to update the status
 	// of a running workflow execution. Users cannot call this RPC directly.
@@ -288,6 +292,7 @@ type WorkflowExecutionCommandControllerClient interface {
 	// request surfaces at the workflow level via status.pending_approval. Users can
 	// submit their decision through this RPC, which forwards it to the child agent.
 	//
+	// @internal
 	// The approval is forwarded to the child via AgentExecution.submitApproval RPC,
 	// ensuring consistent validation and Temporal workflow signaling.
 	//
@@ -339,6 +344,10 @@ type WorkflowExecutionCommandControllerClient interface {
 	// Send a signal to a running workflow execution.
 	//
 	// Delivers a signal to a workflow execution, typically to unblock a LISTEN task.
+	// Delivery is race-proof: the signal is guaranteed to arrive even if sent
+	// before the workflow is fully started.
+	//
+	// @internal
 	// Uses Temporal's SignalWithStart API internally for race-proof delivery.
 	//
 	// ## Behavior
@@ -411,11 +420,11 @@ type WorkflowExecutionCommandControllerClient interface {
 	SendSignal(ctx context.Context, in *SendSignalInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
 	// Cancel a running workflow execution gracefully.
 	//
-	// Sends a cancellation signal to the workflow via Temporal's CancelWorkflow API.
-	// The workflow code can handle the cancellation signal to perform cleanup
-	// (e.g., compensation logic, resource cleanup, notifications) before
-	// transitioning to the CANCELLED phase.
+	// Sends a cancellation signal to the workflow. The workflow code can handle
+	// the cancellation signal to perform cleanup (e.g., compensation logic,
+	// resource cleanup, notifications) before transitioning to the CANCELLED phase.
 	//
+	// @internal
 	// Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
 	//
 	// ## Behavior
@@ -471,11 +480,11 @@ type WorkflowExecutionCommandControllerClient interface {
 	Cancel(ctx context.Context, in *CancelWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
 	// Terminate a workflow execution immediately.
 	//
-	// Force-stops the workflow via Temporal's TerminateWorkflow API without
-	// allowing cleanup. Unlike cancel, the workflow code cannot respond to
-	// termination - it is stopped immediately. Use this for stuck or
-	// unresponsive workflows that don't respond to cancellation.
+	// Force-stops the workflow without allowing cleanup. Unlike cancel,
+	// the workflow code cannot respond to termination - it is stopped immediately.
+	// Use this for stuck or unresponsive workflows that don't respond to cancellation.
 	//
+	// @internal
 	// Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
 	//
 	// ## Behavior
@@ -541,11 +550,11 @@ type WorkflowExecutionCommandControllerClient interface {
 	Terminate(ctx context.Context, in *TerminateWorkflowExecutionInput, opts ...grpc.CallOption) (*WorkflowExecution, error)
 	// Recover a failed workflow execution from the last checkpoint.
 	//
-	// Resumes execution from the last successful point using Temporal's
-	// ResetWorkflow API. Completed work is preserved - successful tasks
-	// are NOT re-executed. This enables "retry and resume" semantics
-	// without duplicating side effects.
+	// Resumes execution from the last successful point. Completed work is
+	// preserved - successful tasks are NOT re-executed. This enables
+	// "retry and resume" semantics without duplicating side effects.
 	//
+	// @internal
 	// Temporal Equivalent: `temporal workflow reset --workflow-id <id> --type LastWorkflowTask`
 	//
 	// ## Behavior
@@ -627,6 +636,8 @@ type WorkflowExecutionCommandControllerClient interface {
 	// the execution is NOT terminal and can be resumed later from where it left off.
 	// The workflow gracefully checkpoints and exits, preserving all progress.
 	//
+	// @internal
+	//
 	// ## Behavior
 	//
 	// 1. Validates execution exists and is in a pausable phase
@@ -707,6 +718,8 @@ type WorkflowExecutionCommandControllerClient interface {
 	// Continues execution from the checkpoint where it was paused. The workflow
 	// re-invokes activities with the same thread_id, which loads from checkpoint
 	// and continues from where it left off.
+	//
+	// @internal
 	//
 	// ## Behavior
 	//
@@ -912,8 +925,9 @@ type WorkflowExecutionCommandControllerServer interface {
 	// Create and trigger a new workflow execution.
 	//
 	// This RPC creates a WorkflowExecution resource and immediately triggers it for execution.
-	// The workflow execution engine (Temporal) picks up the execution and begins processing tasks.
+	// The workflow execution engine picks up the execution and begins processing tasks.
 	//
+	// @internal
 	// Input Validation:
 	// - metadata.org must be specified
 	// - spec.workflow_instance_id is required and must reference an existing WorkflowInstance
@@ -1034,8 +1048,11 @@ type WorkflowExecutionCommandControllerServer interface {
 	// No individual field updates - always provide complete state.
 	Update(context.Context, *WorkflowExecution) (*WorkflowExecution, error)
 	// Update execution status during workflow execution.
-	// Used by workflow-runner to send progressive status updates (messages, task states, phase, etc.)
-	// This RPC is optimized for frequent status updates and merges status fields with existing state.
+	//
+	// @internal
+	// System-level RPC used by workflow-runner to send progressive status updates
+	// (messages, task states, phase, etc.). Optimized for frequent status updates
+	// and merges status fields with existing state.
 	//
 	// This RPC is used by the workflow execution engine (Temporal) to update the status
 	// of a running workflow execution. Users cannot call this RPC directly.
@@ -1145,6 +1162,7 @@ type WorkflowExecutionCommandControllerServer interface {
 	// request surfaces at the workflow level via status.pending_approval. Users can
 	// submit their decision through this RPC, which forwards it to the child agent.
 	//
+	// @internal
 	// The approval is forwarded to the child via AgentExecution.submitApproval RPC,
 	// ensuring consistent validation and Temporal workflow signaling.
 	//
@@ -1196,6 +1214,10 @@ type WorkflowExecutionCommandControllerServer interface {
 	// Send a signal to a running workflow execution.
 	//
 	// Delivers a signal to a workflow execution, typically to unblock a LISTEN task.
+	// Delivery is race-proof: the signal is guaranteed to arrive even if sent
+	// before the workflow is fully started.
+	//
+	// @internal
 	// Uses Temporal's SignalWithStart API internally for race-proof delivery.
 	//
 	// ## Behavior
@@ -1268,11 +1290,11 @@ type WorkflowExecutionCommandControllerServer interface {
 	SendSignal(context.Context, *SendSignalInput) (*WorkflowExecution, error)
 	// Cancel a running workflow execution gracefully.
 	//
-	// Sends a cancellation signal to the workflow via Temporal's CancelWorkflow API.
-	// The workflow code can handle the cancellation signal to perform cleanup
-	// (e.g., compensation logic, resource cleanup, notifications) before
-	// transitioning to the CANCELLED phase.
+	// Sends a cancellation signal to the workflow. The workflow code can handle
+	// the cancellation signal to perform cleanup (e.g., compensation logic,
+	// resource cleanup, notifications) before transitioning to the CANCELLED phase.
 	//
+	// @internal
 	// Temporal Equivalent: `temporal workflow cancel --workflow-id <id>`
 	//
 	// ## Behavior
@@ -1328,11 +1350,11 @@ type WorkflowExecutionCommandControllerServer interface {
 	Cancel(context.Context, *CancelWorkflowExecutionInput) (*WorkflowExecution, error)
 	// Terminate a workflow execution immediately.
 	//
-	// Force-stops the workflow via Temporal's TerminateWorkflow API without
-	// allowing cleanup. Unlike cancel, the workflow code cannot respond to
-	// termination - it is stopped immediately. Use this for stuck or
-	// unresponsive workflows that don't respond to cancellation.
+	// Force-stops the workflow without allowing cleanup. Unlike cancel,
+	// the workflow code cannot respond to termination - it is stopped immediately.
+	// Use this for stuck or unresponsive workflows that don't respond to cancellation.
 	//
+	// @internal
 	// Temporal Equivalent: `temporal workflow terminate --workflow-id <id>`
 	//
 	// ## Behavior
@@ -1398,11 +1420,11 @@ type WorkflowExecutionCommandControllerServer interface {
 	Terminate(context.Context, *TerminateWorkflowExecutionInput) (*WorkflowExecution, error)
 	// Recover a failed workflow execution from the last checkpoint.
 	//
-	// Resumes execution from the last successful point using Temporal's
-	// ResetWorkflow API. Completed work is preserved - successful tasks
-	// are NOT re-executed. This enables "retry and resume" semantics
-	// without duplicating side effects.
+	// Resumes execution from the last successful point. Completed work is
+	// preserved - successful tasks are NOT re-executed. This enables
+	// "retry and resume" semantics without duplicating side effects.
 	//
+	// @internal
 	// Temporal Equivalent: `temporal workflow reset --workflow-id <id> --type LastWorkflowTask`
 	//
 	// ## Behavior
@@ -1484,6 +1506,8 @@ type WorkflowExecutionCommandControllerServer interface {
 	// the execution is NOT terminal and can be resumed later from where it left off.
 	// The workflow gracefully checkpoints and exits, preserving all progress.
 	//
+	// @internal
+	//
 	// ## Behavior
 	//
 	// 1. Validates execution exists and is in a pausable phase
@@ -1564,6 +1588,8 @@ type WorkflowExecutionCommandControllerServer interface {
 	// Continues execution from the checkpoint where it was paused. The workflow
 	// re-invokes activities with the same thread_id, which loads from checkpoint
 	// and continues from where it left off.
+	//
+	// @internal
 	//
 	// ## Behavior
 	//

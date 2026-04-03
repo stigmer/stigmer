@@ -20,13 +20,13 @@ export const file_ai_stigmer_iam_apikey_v1_query: GenFile = /*@__PURE__*/
   fileDesc("CiRhaS9zdGlnbWVyL2lhbS9hcGlrZXkvdjEvcXVlcnkucHJvdG8SGGFpLnN0aWdtZXIuaWFtLmFwaWtleS52MTLDAgoVQXBpS2V5UXVlcnlDb250cm9sbGVyEnoKA2dldBIiLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlJZBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiLcK4GCkIAxAMIgV2YWx1ZSocdW5hdXRob3JpemVkIHRvIHZpZXcgYXBpIGtleRJcCgxnZXRCeUtleUhhc2gSJC5haS5zdGlnbWVyLmlhbS5hcGlrZXkudjEuQXBpS2V5SGFzaBogLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXkiBNC4GAESSgoHZmluZEFsbBIWLmdvb2dsZS5wcm90b2J1Zi5FbXB0eRohLmFpLnN0aWdtZXIuaWFtLmFwaWtleS52MS5BcGlLZXlzIgTQuBgBGgSg/ysMYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_apikey_v1_api, file_ai_stigmer_iam_apikey_v1_io, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_google_protobuf_empty]);
 
 /**
- * api-key query controller
+ * ApiKeyQueryController handles read operations for API keys.
  *
  * @generated from service ai.stigmer.iam.apikey.v1.ApiKeyQueryController
  */
 export const ApiKeyQueryController: GenService<{
   /**
-   * lookup api-key.
+   * Get an API key by its unique identifier.
    *
    * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyQueryController.get
    */
@@ -36,7 +36,11 @@ export const ApiKeyQueryController: GenService<{
     output: typeof ApiKeySchema;
   },
   /**
-   * lookup api-key by hashed key
+   * Get an API key by its hashed key value.
+   *
+   * @internal
+   * Authorization is handled in the handler after loading the resource
+   * (input doesn't contain API key ID, so proto-level auth cannot work).
    *
    * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyQueryController.getByKeyHash
    */
@@ -46,7 +50,7 @@ export const ApiKeyQueryController: GenService<{
     output: typeof ApiKeySchema;
   },
   /**
-   * lookup all api-keys for the identity-account in the auth header.
+   * List all API keys belonging to the authenticated user.
    *
    * @generated from rpc ai.stigmer.iam.apikey.v1.ApiKeyQueryController.findAll
    */

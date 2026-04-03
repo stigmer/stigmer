@@ -10,8 +10,7 @@ package ai.stigmer.agentic.agentexecution.v1;
  * Attachment represents a file attached to an agent execution.
  *
  * All files must be pre-uploaded via the uploadAttachment RPC and referenced
- * by storage_key. This ensures consistent behavior regardless of file size
- * and avoids Temporal payload limits (2MB).
+ * by storage_key. This ensures consistent behavior regardless of file size.
  *
  * ## Usage Flow
  *
@@ -580,8 +579,7 @@ private static final long serialVersionUID = 0L;
    * Attachment represents a file attached to an agent execution.
    *
    * All files must be pre-uploaded via the uploadAttachment RPC and referenced
-   * by storage_key. This ensures consistent behavior regardless of file size
-   * and avoids Temporal payload limits (2MB).
+   * by storage_key. This ensures consistent behavior regardless of file size.
    *
    * ## Usage Flow
    *
