@@ -26,6 +26,7 @@ on:
       - ".vale.ini"
       - ".prettierrc"
       - "vale/**"
+  workflow_dispatch:
 
 concurrency:
   group: docs-${{ github.head_ref || github.ref }}
