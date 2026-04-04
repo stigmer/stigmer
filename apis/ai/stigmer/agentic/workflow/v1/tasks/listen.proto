@@ -5,9 +5,10 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
-// ListenTaskConfig defines the configuration for LISTEN tasks.
+// ListenTaskConfig defines the configuration for listen tasks that wait for external signals.
 //
-// LISTEN tasks wait for external signals/events (Temporal signals).
+// @internal
+// Implemented via Temporal signals.
 //
 // YAML Example:
 //   - taskName:
@@ -53,10 +54,7 @@ message SignalSpec {
     (buf.validate.field).string.min_len = 1
   ];
 
-  // Signal type:
-  // - "signal": Temporal signal
-  // - "query": Temporal query
-  // - "update": Temporal update
+  // Signal type: "signal", "query", or "update".
   string type = 2 [
     (buf.validate.field).required = true,
     (buf.validate.field).string = {

@@ -6,10 +6,9 @@ import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
-// GrpcCallTaskConfig defines the configuration for GRPC_CALL tasks.
+// GrpcCallTaskConfig defines the configuration for grpc_call tasks that make gRPC requests.
 //
-// GRPC_CALL tasks make gRPC requests to external services.
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //       call: grpc

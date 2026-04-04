@@ -1,7 +1,7 @@
 {
   "name": "ForTaskConfig",
   "kind": "FOR",
-  "description": "ForTaskConfig defines the configuration for FOR tasks.\n\n FOR tasks iterate over collections, executing tasks for each item.\n\n YAML Example:\n   - taskName:\n       for:\n         each: item\n         in: ${ $data.items }\n       do:\n         - processItem:\n             call: http\n             with:\n               method: POST\n               body:\n                 item: ${ $data.item }\n                 index: ${ $data.index }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 4",
+  "description": "ForTaskConfig defines the configuration for for_each tasks that iterate over collections.\n\n @internal\n YAML Example:\n   - taskName:\n       for:\n         each: item\n         in: ${ $data.items }\n       do:\n         - processItem:\n             call: http\n             with:\n               method: POST\n               body:\n                 item: ${ $data.item }\n                 index: ${ $data.index }\n\n Reference: zigflow-dsl-pattern-catalog.md - Task Type 4",
   "protoType": "ai.stigmer.agentic.workflow.v1.tasks.ForTaskConfig",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/tasks/for.proto",
   "discriminatorValue": "for_each",

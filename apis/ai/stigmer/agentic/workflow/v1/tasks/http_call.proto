@@ -6,10 +6,9 @@ import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 
-// HttpCallTaskConfig defines the configuration for HTTP_CALL tasks.
+// HttpCallTaskConfig defines the configuration for http_call tasks that make HTTP requests.
 //
-// HTTP_CALL tasks make HTTP requests (GET, POST, PUT, DELETE, PATCH).
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //       call: http

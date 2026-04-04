@@ -1,6 +1,6 @@
 {
   "name": "WorkflowDocument",
-  "description": "WorkflowDocument contains workflow metadata.\n Maps to the `document:` block in Zigflow DSL YAML.",
+  "description": "WorkflowDocument contains workflow-level metadata for versioning and identification.\n\n @internal\n Maps to the `document:` block in Zigflow DSL YAML.",
   "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowDocument",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/spec.proto",
   "fields": [
@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "DSL version (semver). Must be \"1.0.0\" for current Zigflow.",
+      "description": "Workflow DSL version (semver). Must be \"1.0.0\" for the current specification.",
       "required": false,
       "validation": {
         "pattern": "^1\\.0\\.0$"

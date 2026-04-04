@@ -5,10 +5,9 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
-// SwitchTaskConfig defines the configuration for SWITCH tasks.
+// SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally.
 //
-// SWITCH tasks provide conditional branching based on expressions.
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //       switch:

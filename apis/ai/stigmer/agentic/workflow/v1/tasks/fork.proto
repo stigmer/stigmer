@@ -6,10 +6,9 @@ import "ai/stigmer/agentic/workflow/v1/spec.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
-// ForkTaskConfig defines the configuration for FORK tasks.
+// ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel.
 //
-// FORK tasks execute multiple branches in parallel.
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //       fork:
