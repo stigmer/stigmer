@@ -50,6 +50,8 @@ class AgentCommandControllerServicer(object):
 
     def apply(self, request, context):
         """Create or update an agent.
+
+        @internal
         The authorization and state-operation are determined depending on whether the agent
         is going to be created or updated which is determined as part of the request execution.
         """
@@ -58,8 +60,9 @@ class AgentCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def create(self, request, context):
-        """Create a new agent.
+        """Create an agent.
 
+        @internal
         Authorization:
         - Organization-scoped agents: Caller must have can_create_agent permission in the organization
         - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)
@@ -83,6 +86,7 @@ class AgentCommandControllerServicer(object):
         make an agent publicly accessible or to revoke public access without
         sending the entire agent resource (avoiding read-modify-write races).
 
+        @internal
         Authorization: Requires can_edit permission on the agent resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)

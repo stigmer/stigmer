@@ -24,9 +24,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// RunTaskConfig defines the configuration for RUN tasks.
+// RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.
 //
-// RUN tasks execute sub-workflows (Temporal child workflows).
+// @internal
+// Implemented via Temporal child workflows.
 //
 // YAML Example:
 //   - taskName:

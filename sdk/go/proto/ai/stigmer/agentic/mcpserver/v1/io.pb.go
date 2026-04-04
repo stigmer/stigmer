@@ -29,8 +29,8 @@ type McpServerId struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The unique identifier of the MCP server resource.
 	// This is the system-generated ID (metadata.id), not the slug.
-	// Format: "mcp-" followed by a unique identifier.
-	// Example: "mcp-abc123xyz"
+	// Format: "mcp_" followed by a unique identifier.
+	// Example: "mcp_abc123xyz"
 	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -75,6 +75,7 @@ func (x *McpServerId) GetValue() string {
 
 // UpdateDiscoveredCapabilitiesInput is the request for the updateDiscoveredCapabilities RPC.
 //
+// @internal
 // Used by:
 //   - CLI: after `stigmer discover mcp-server <name>` connects locally, queries tools/resources,
 //     and pushes the results to stigmer-server.
@@ -139,14 +140,12 @@ func (x *UpdateDiscoveredCapabilitiesInput) GetDiscoveredCapabilities() *Discove
 
 // DiscoverCapabilitiesInput is the request for the discoverCapabilities RPC.
 //
+// @internal
 // Triggers server-side MCP discovery: the backend creates an ephemeral
 // ExecutionContext with the resolved environment variables, starts a Temporal
 // workflow that connects to the MCP server (via the agent-runner), enumerates
 // tools and resource templates, and stores the result in
 // status.discovered_capabilities.
-//
-// The RPC blocks until discovery completes (~30s timeout) and returns the updated
-// McpServer with populated discovered_capabilities.
 //
 // Environment variable resolution:
 //   - When runtime_env is provided, the backend creates an ExecutionContext directly
@@ -163,12 +162,7 @@ type DiscoverCapabilitiesInput struct {
 	// System-generated ID of the MCP server to discover.
 	// Obtained from McpServer.metadata.id (e.g., via getByReference).
 	McpServerId string `protobuf:"bytes,1,opt,name=mcp_server_id,json=mcpServerId,proto3" json:"mcp_server_id,omitempty"`
-	// Optional environment variable values for one-time discovery. When provided,
-	// the backend creates a temporary ExecutionContext directly from these values
-	// without reading from the personal environment. Each value carries its own
-	// is_secret classification, matching the contract of
-	// AgentExecution.spec.runtime_env.
-	//
+	// Optional environment variable values for one-time discovery.
 	// When empty, values are resolved from the user's personal environment.
 	RuntimeEnv    map[string]*v1.ExecutionValue `protobuf:"bytes,2,rep,name=runtime_env,json=runtimeEnv,proto3" json:"runtime_env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields

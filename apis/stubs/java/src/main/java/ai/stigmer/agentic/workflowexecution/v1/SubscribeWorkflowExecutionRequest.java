@@ -9,21 +9,9 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.
  *
+ * &#64;internal
  * Opens a server-side streaming RPC that pushes WorkflowExecution updates
- * as the execution progresses through its lifecycle.
- *
- * Stream Behavior:
- * 1. Client sends this request with execution_id
- * 2. Server validates authorization (user must have "get" permission)
- * 3. Server sends initial WorkflowExecution (current state)
- * 4. Server streams updates as execution state changes
- * 5. Server closes stream when execution reaches terminal state
- *
- * Use Cases:
- * - Real-time progress monitoring in UI
- * - Live dashboards showing execution status
- * - Debugging with live updates
- * - Multi-user collaborative monitoring
+ * as the execution progresses. Stream closes when execution reaches a terminal state.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest}
@@ -76,23 +64,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Execution ID to subscribe to.
    *
-   * Format: "wfx-{unique-suffix}"
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required field, cannot be empty
-   *
-   * Error Cases:
-   * - NOT_FOUND: No WorkflowExecution with this ID exists
-   * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
-   *
-   * Example:
-   * execution_id: "wfx-abc123xyz456"
-   *
-   * After subscription starts, client receives:
-   * - Initial message: Current state of execution
-   * - Update messages: Changes to status.phase, status.tasks, etc.
-   * - Final message: Execution reached terminal state (COMPLETED/FAILED/CANCELLED)
-   * - Stream closes automatically after final message
+   * &#64;internal
+   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -115,23 +88,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Execution ID to subscribe to.
    *
-   * Format: "wfx-{unique-suffix}"
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required field, cannot be empty
-   *
-   * Error Cases:
-   * - NOT_FOUND: No WorkflowExecution with this ID exists
-   * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
-   *
-   * Example:
-   * execution_id: "wfx-abc123xyz456"
-   *
-   * After subscription starts, client receives:
-   * - Initial message: Current state of execution
-   * - Update messages: Changes to status.phase, status.tasks, etc.
-   * - Final message: Execution reached terminal state (COMPLETED/FAILED/CANCELLED)
-   * - Stream closes automatically after final message
+   * &#64;internal
+   * Format: "wfx_{unique-suffix}"
    * </pre>
    *
    * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -312,21 +270,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * SubscribeWorkflowExecutionRequest subscribes to real-time execution updates.
    *
+   * &#64;internal
    * Opens a server-side streaming RPC that pushes WorkflowExecution updates
-   * as the execution progresses through its lifecycle.
-   *
-   * Stream Behavior:
-   * 1. Client sends this request with execution_id
-   * 2. Server validates authorization (user must have "get" permission)
-   * 3. Server sends initial WorkflowExecution (current state)
-   * 4. Server streams updates as execution state changes
-   * 5. Server closes stream when execution reaches terminal state
-   *
-   * Use Cases:
-   * - Real-time progress monitoring in UI
-   * - Live dashboards showing execution status
-   * - Debugging with live updates
-   * - Multi-user collaborative monitoring
+   * as the execution progresses. Stream closes when execution reaches a terminal state.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.SubscribeWorkflowExecutionRequest}
@@ -471,23 +417,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution ID to subscribe to.
      *
-     * Format: "wfx-{unique-suffix}"
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required field, cannot be empty
-     *
-     * Error Cases:
-     * - NOT_FOUND: No WorkflowExecution with this ID exists
-     * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
-     *
-     * Example:
-     * execution_id: "wfx-abc123xyz456"
-     *
-     * After subscription starts, client receives:
-     * - Initial message: Current state of execution
-     * - Update messages: Changes to status.phase, status.tasks, etc.
-     * - Final message: Execution reached terminal state (COMPLETED/FAILED/CANCELLED)
-     * - Stream closes automatically after final message
+     * &#64;internal
+     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -509,23 +440,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution ID to subscribe to.
      *
-     * Format: "wfx-{unique-suffix}"
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required field, cannot be empty
-     *
-     * Error Cases:
-     * - NOT_FOUND: No WorkflowExecution with this ID exists
-     * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
-     *
-     * Example:
-     * execution_id: "wfx-abc123xyz456"
-     *
-     * After subscription starts, client receives:
-     * - Initial message: Current state of execution
-     * - Update messages: Changes to status.phase, status.tasks, etc.
-     * - Final message: Execution reached terminal state (COMPLETED/FAILED/CANCELLED)
-     * - Stream closes automatically after final message
+     * &#64;internal
+     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -548,23 +464,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution ID to subscribe to.
      *
-     * Format: "wfx-{unique-suffix}"
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required field, cannot be empty
-     *
-     * Error Cases:
-     * - NOT_FOUND: No WorkflowExecution with this ID exists
-     * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
-     *
-     * Example:
-     * execution_id: "wfx-abc123xyz456"
-     *
-     * After subscription starts, client receives:
-     * - Initial message: Current state of execution
-     * - Update messages: Changes to status.phase, status.tasks, etc.
-     * - Final message: Execution reached terminal state (COMPLETED/FAILED/CANCELLED)
-     * - Stream closes automatically after final message
+     * &#64;internal
+     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -583,23 +484,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution ID to subscribe to.
      *
-     * Format: "wfx-{unique-suffix}"
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required field, cannot be empty
-     *
-     * Error Cases:
-     * - NOT_FOUND: No WorkflowExecution with this ID exists
-     * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
-     *
-     * Example:
-     * execution_id: "wfx-abc123xyz456"
-     *
-     * After subscription starts, client receives:
-     * - Initial message: Current state of execution
-     * - Update messages: Changes to status.phase, status.tasks, etc.
-     * - Final message: Execution reached terminal state (COMPLETED/FAILED/CANCELLED)
-     * - Stream closes automatically after final message
+     * &#64;internal
+     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>
@@ -615,23 +501,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Execution ID to subscribe to.
      *
-     * Format: "wfx-{unique-suffix}"
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required field, cannot be empty
-     *
-     * Error Cases:
-     * - NOT_FOUND: No WorkflowExecution with this ID exists
-     * - PERMISSION_DENIED: User doesn't have "get" permission on this execution
-     *
-     * Example:
-     * execution_id: "wfx-abc123xyz456"
-     *
-     * After subscription starts, client receives:
-     * - Initial message: Current state of execution
-     * - Update messages: Changes to status.phase, status.tasks, etc.
-     * - Final message: Execution reached terminal state (COMPLETED/FAILED/CANCELLED)
-     * - Stream closes automatically after final message
+     * &#64;internal
+     * Format: "wfx_{unique-suffix}"
      * </pre>
      *
      * <code>string execution_id = 1 [json_name = "executionId", (.buf.validate.field) = { ... }</code>

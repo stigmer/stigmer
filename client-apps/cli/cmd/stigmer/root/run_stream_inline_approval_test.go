@@ -592,7 +592,7 @@ func TestHandleApproval_SessionExit_SkipsAndExits(t *testing.T) {
 	r, _, stderr, responses := newApprovalTestRenderer(prompter, approval.ActionUnspecified)
 	tc := writeToolCall()
 	r.waitingApproval = &waitingApprovalState{tc: tc}
-	r.cfg.sessionID = "ses-test123"
+	r.cfg.sessionID = "ses_test123"
 
 	r.handleApproval(context.Background(), executiontui.ApprovalNeededEvent{
 		ToolCallID: "tc-1",
@@ -611,7 +611,7 @@ func TestHandleApproval_SessionExit_SkipsAndExits(t *testing.T) {
 	if !strings.Contains(output, "Session ended by user") {
 		t.Errorf("session exit should show ended message, got:\n%s", output)
 	}
-	if !strings.Contains(output, "ses-test123") {
+	if !strings.Contains(output, "ses_test123") {
 		t.Errorf("session exit should show resume hint with session ID, got:\n%s", output)
 	}
 	if r.waitingApproval != nil {

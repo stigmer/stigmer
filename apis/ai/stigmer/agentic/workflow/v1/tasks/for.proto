@@ -6,10 +6,9 @@ import "ai/stigmer/agentic/workflow/v1/spec.proto";
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
-// ForTaskConfig defines the configuration for FOR tasks.
+// ForTaskConfig defines the configuration for for_each tasks that iterate over collections.
 //
-// FOR tasks iterate over collections, executing tasks for each item.
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //       for:

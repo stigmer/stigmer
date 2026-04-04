@@ -7,7 +7,12 @@ package ai.stigmer.iam.identityaccount.v1;
 
 /**
  * <pre>
- * identity-account for user accounts
+ * IdentityAccount represents a user or machine principal in Stigmer.
+ *
+ * An identity account is the core identity primitive for authentication and
+ * authorization. Accounts can be direct (signed up via Stigmer), federated
+ * (provisioned through an external identity provider), or machine
+ * (service-to-service credentials).
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccount}
@@ -60,7 +65,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object apiVersion_ = "";
   /**
    * <pre>
-   * api-version
+   * API version for this resource type.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -81,7 +86,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * api-version
+   * API version for this resource type.
    * </pre>
    *
    * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -107,7 +112,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object kind_ = "";
   /**
    * <pre>
-   * resource-kind
+   * Resource kind identifier.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -128,7 +133,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * resource-kind
+   * Resource kind identifier.
    * </pre>
    *
    * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -153,7 +158,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceMetadata metadata_;
   /**
    * <pre>
-   * metadata
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -165,7 +170,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * metadata
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -177,7 +182,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * metadata
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -191,7 +196,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec_;
   /**
    * <pre>
-   * spec
+   * Configurable properties: identity provider ID, email, name, and provisioning mode.
    * </pre>
    *
    * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -203,7 +208,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * spec
+   * Configurable properties: identity provider ID, email, name, and provisioning mode.
    * </pre>
    *
    * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -215,7 +220,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * spec
+   * Configurable properties: identity provider ID, email, name, and provisioning mode.
    * </pre>
    *
    * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -229,7 +234,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceAuditStatus status_;
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -241,7 +246,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -253,7 +258,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * status
+   * System-managed state including audit trail.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -479,7 +484,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * identity-account for user accounts
+   * IdentityAccount represents a user or machine principal in Stigmer.
+   *
+   * An identity account is the core identity primitive for authentication and
+   * authorization. Accounts can be direct (signed up via Stigmer), federated
+   * (provisioned through an external identity provider), or machine
+   * (service-to-service credentials).
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityaccount.v1.IdentityAccount}
@@ -709,7 +719,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object apiVersion_ = "";
     /**
      * <pre>
-     * api-version
+     * API version for this resource type.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -729,7 +739,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * api-version
+     * API version for this resource type.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -750,7 +760,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * api-version
+     * API version for this resource type.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -767,7 +777,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * api-version
+     * API version for this resource type.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -781,7 +791,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * api-version
+     * API version for this resource type.
      * </pre>
      *
      * <code>string api_version = 1 [json_name = "apiVersion", (.buf.validate.field) = { ... }</code>
@@ -801,7 +811,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object kind_ = "";
     /**
      * <pre>
-     * resource-kind
+     * Resource kind identifier.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -821,7 +831,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * resource-kind
+     * Resource kind identifier.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -842,7 +852,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * resource-kind
+     * Resource kind identifier.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -859,7 +869,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * resource-kind
+     * Resource kind identifier.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -873,7 +883,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * resource-kind
+     * Resource kind identifier.
      * </pre>
      *
      * <code>string kind = 2 [json_name = "kind", (.buf.validate.field) = { ... }</code>
@@ -895,7 +905,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceMetadata, ai.stigmer.commons.apiresource.ApiResourceMetadata.Builder, ai.stigmer.commons.apiresource.ApiResourceMetadataOrBuilder> metadataBuilder_;
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -906,7 +916,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -921,7 +931,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -941,7 +951,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -959,7 +969,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -984,7 +994,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -1001,7 +1011,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -1013,7 +1023,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -1028,7 +1038,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * metadata
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata"];</code>
@@ -1052,7 +1062,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec, ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec.Builder, ai.stigmer.iam.identityaccount.v1.IdentityAccountSpecOrBuilder> specBuilder_;
     /**
      * <pre>
-     * spec
+     * Configurable properties: identity provider ID, email, name, and provisioning mode.
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -1063,7 +1073,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Configurable properties: identity provider ID, email, name, and provisioning mode.
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -1078,7 +1088,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Configurable properties: identity provider ID, email, name, and provisioning mode.
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -1098,7 +1108,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Configurable properties: identity provider ID, email, name, and provisioning mode.
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -1116,7 +1126,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Configurable properties: identity provider ID, email, name, and provisioning mode.
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -1141,7 +1151,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Configurable properties: identity provider ID, email, name, and provisioning mode.
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -1158,7 +1168,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Configurable properties: identity provider ID, email, name, and provisioning mode.
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -1170,7 +1180,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Configurable properties: identity provider ID, email, name, and provisioning mode.
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -1185,7 +1195,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * spec
+     * Configurable properties: identity provider ID, email, name, and provisioning mode.
      * </pre>
      *
      * <code>.ai.stigmer.iam.identityaccount.v1.IdentityAccountSpec spec = 4 [json_name = "spec"];</code>
@@ -1209,7 +1219,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceAuditStatus, ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder> statusBuilder_;
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1220,7 +1230,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1235,7 +1245,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1255,7 +1265,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1273,7 +1283,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1298,7 +1308,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1315,7 +1325,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1327,7 +1337,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1342,7 +1352,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * status
+     * System-managed state including audit trail.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>

@@ -208,6 +208,7 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a project.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the project
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -219,10 +220,11 @@ public final class ProjectCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new project.
+     * Create a project.
+     * &#64;internal
      * Authorization:
-     * - Organization-scoped projects: Caller must have can_create_project permission in the organization
-     * - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step)
+     * - Organization-scoped projects: Caller must have can_create_project permission in the organization.
+     * - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step).
      * </pre>
      */
     default void create(ai.stigmer.tenancy.project.v1.Project request,
@@ -233,6 +235,8 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing project.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the project.
      * </pre>
      */
     default void update(ai.stigmer.tenancy.project.v1.Project request,
@@ -243,6 +247,8 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Delete a project.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the project.
      * </pre>
      */
     default void delete(ai.stigmer.tenancy.project.v1.ProjectId request,
@@ -287,6 +293,7 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a project.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the project
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -299,10 +306,11 @@ public final class ProjectCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new project.
+     * Create a project.
+     * &#64;internal
      * Authorization:
-     * - Organization-scoped projects: Caller must have can_create_project permission in the organization
-     * - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step)
+     * - Organization-scoped projects: Caller must have can_create_project permission in the organization.
+     * - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step).
      * </pre>
      */
     public void create(ai.stigmer.tenancy.project.v1.Project request,
@@ -314,6 +322,8 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing project.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the project.
      * </pre>
      */
     public void update(ai.stigmer.tenancy.project.v1.Project request,
@@ -325,6 +335,8 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Delete a project.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the project.
      * </pre>
      */
     public void delete(ai.stigmer.tenancy.project.v1.ProjectId request,
@@ -356,6 +368,7 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a project.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the project
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -367,10 +380,11 @@ public final class ProjectCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new project.
+     * Create a project.
+     * &#64;internal
      * Authorization:
-     * - Organization-scoped projects: Caller must have can_create_project permission in the organization
-     * - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step)
+     * - Organization-scoped projects: Caller must have can_create_project permission in the organization.
+     * - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step).
      * </pre>
      */
     public ai.stigmer.tenancy.project.v1.Project create(ai.stigmer.tenancy.project.v1.Project request) throws io.grpc.StatusException {
@@ -381,6 +395,8 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing project.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the project.
      * </pre>
      */
     public ai.stigmer.tenancy.project.v1.Project update(ai.stigmer.tenancy.project.v1.Project request) throws io.grpc.StatusException {
@@ -391,6 +407,8 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Delete a project.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the project.
      * </pre>
      */
     public ai.stigmer.tenancy.project.v1.Project delete(ai.stigmer.tenancy.project.v1.ProjectId request) throws io.grpc.StatusException {
@@ -421,6 +439,7 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a project.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the project
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -432,10 +451,11 @@ public final class ProjectCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new project.
+     * Create a project.
+     * &#64;internal
      * Authorization:
-     * - Organization-scoped projects: Caller must have can_create_project permission in the organization
-     * - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step)
+     * - Organization-scoped projects: Caller must have can_create_project permission in the organization.
+     * - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step).
      * </pre>
      */
     public ai.stigmer.tenancy.project.v1.Project create(ai.stigmer.tenancy.project.v1.Project request) {
@@ -446,6 +466,8 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing project.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the project.
      * </pre>
      */
     public ai.stigmer.tenancy.project.v1.Project update(ai.stigmer.tenancy.project.v1.Project request) {
@@ -456,6 +478,8 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Delete a project.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the project.
      * </pre>
      */
     public ai.stigmer.tenancy.project.v1.Project delete(ai.stigmer.tenancy.project.v1.ProjectId request) {
@@ -486,6 +510,7 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Create or update a project.
+     * &#64;internal
      * The authorization and state-operation are determined depending on whether the project
      * is going to be created or updated which is determined as part of the request execution.
      * </pre>
@@ -498,10 +523,11 @@ public final class ProjectCommandControllerGrpc {
 
     /**
      * <pre>
-     * Create a new project.
+     * Create a project.
+     * &#64;internal
      * Authorization:
-     * - Organization-scoped projects: Caller must have can_create_project permission in the organization
-     * - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step)
+     * - Organization-scoped projects: Caller must have can_create_project permission in the organization.
+     * - Platform-scoped projects: Caller must be a platform operator (handled automatically by common auth step).
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.project.v1.Project> create(
@@ -513,6 +539,8 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Update an existing project.
+     * &#64;internal
+     * Authorization: Requires can_edit permission on the project.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.project.v1.Project> update(
@@ -524,6 +552,8 @@ public final class ProjectCommandControllerGrpc {
     /**
      * <pre>
      * Delete a project.
+     * &#64;internal
+     * Authorization: Requires can_delete permission on the project.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.tenancy.project.v1.Project> delete(

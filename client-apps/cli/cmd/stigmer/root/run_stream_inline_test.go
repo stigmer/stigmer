@@ -577,7 +577,7 @@ func TestInlineRenderer_StreamError_ReturnsError(t *testing.T) {
 		prompter:          approval.NewInteractivePrompter(),
 		data:              &stdout,
 		status:            &stderr,
-		sessionID:         "ses-abc",
+		sessionID:         "ses_abc",
 	})
 
 	if result.phase != "" {
@@ -586,7 +586,7 @@ func TestInlineRenderer_StreamError_ReturnsError(t *testing.T) {
 	if result.exitErr != "connection lost" {
 		t.Errorf("expected error 'connection lost', got %q", result.exitErr)
 	}
-	if !strings.Contains(stderr.String(), "Re-attach with: stigmer resume ses-abc") {
+	if !strings.Contains(stderr.String(), "Re-attach with: stigmer resume ses_abc") {
 		t.Errorf("should show re-attach hint, got: %q", stderr.String())
 	}
 }

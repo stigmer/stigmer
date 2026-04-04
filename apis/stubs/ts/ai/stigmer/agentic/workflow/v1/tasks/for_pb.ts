@@ -17,10 +17,9 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_for: GenFile = /*@__PURE_
   fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvZm9yLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MilwEKDUZvclRhc2tDb25maWcSGAoEZWFjaBgBIAEoCUIKukgHyAEBcgIQARIaCgJpbhgCIAEoCUIOukgHyAEBcgIQAdiFLAESQgoCZG8YAyADKAsyLC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dUYXNrQgi6SAWSAQIIAToM6ossCGZvcl9lYWNoYgZwcm90bzM", [file_ai_stigmer_agentic_workflow_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
- * ForTaskConfig defines the configuration for FOR tasks.
+ * ForTaskConfig defines the configuration for for_each tasks that iterate over collections.
  *
- * FOR tasks iterate over collections, executing tasks for each item.
- *
+ * @internal
  * YAML Example:
  *   - taskName:
  *       for:

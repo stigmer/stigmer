@@ -12,9 +12,9 @@ public interface SessionSpecOrBuilder extends
 
   /**
    * <pre>
-   * ID of the AgentInstance this session runs against.
+   * Agent instance this session runs against.
    *
-   * When provided, the session uses this specific agent instance.
+   * &#64;internal
    * When empty, the backend resolves the platform default agent
    * (labeled stigmer.ai/default-agent: "true" with visibility_public)
    * and auto-creates a default instance if needed.
@@ -26,9 +26,9 @@ public interface SessionSpecOrBuilder extends
   java.lang.String getAgentInstanceId();
   /**
    * <pre>
-   * ID of the AgentInstance this session runs against.
+   * Agent instance this session runs against.
    *
-   * When provided, the session uses this specific agent instance.
+   * &#64;internal
    * When empty, the backend resolves the platform default agent
    * (labeled stigmer.ai/default-agent: "true" with visibility_public)
    * and auto-creates a default instance if needed.
@@ -42,7 +42,7 @@ public interface SessionSpecOrBuilder extends
 
   /**
    * <pre>
-   * Conversation title/subject for UI display (optional).
+   * Conversation title for UI display.
    * </pre>
    *
    * <code>string subject = 2 [json_name = "subject"];</code>
@@ -51,7 +51,7 @@ public interface SessionSpecOrBuilder extends
   java.lang.String getSubject();
   /**
    * <pre>
-   * Conversation title/subject for UI display (optional).
+   * Conversation title for UI display.
    * </pre>
    *
    * <code>string subject = 2 [json_name = "subject"];</code>
@@ -62,7 +62,10 @@ public interface SessionSpecOrBuilder extends
 
   /**
    * <pre>
-   * thread ID (generated on first execution, persists across all executions).
+   * Thread ID that carries the conversation history across executions.
+   *
+   * &#64;internal
+   * Generated on first execution, persists across all executions.
    * </pre>
    *
    * <code>string thread_id = 3 [json_name = "threadId"];</code>
@@ -71,7 +74,10 @@ public interface SessionSpecOrBuilder extends
   java.lang.String getThreadId();
   /**
    * <pre>
-   * thread ID (generated on first execution, persists across all executions).
+   * Thread ID that carries the conversation history across executions.
+   *
+   * &#64;internal
+   * Generated on first execution, persists across all executions.
    * </pre>
    *
    * <code>string thread_id = 3 [json_name = "threadId"];</code>
@@ -82,7 +88,10 @@ public interface SessionSpecOrBuilder extends
 
   /**
    * <pre>
-   * Daytona sandbox ID (created on first execution, reused for file persistence).
+   * Sandbox ID for persistent file storage across executions.
+   *
+   * &#64;internal
+   * Created on first execution (Daytona sandbox), reused for file persistence.
    * </pre>
    *
    * <code>string sandbox_id = 4 [json_name = "sandboxId"];</code>
@@ -91,7 +100,10 @@ public interface SessionSpecOrBuilder extends
   java.lang.String getSandboxId();
   /**
    * <pre>
-   * Daytona sandbox ID (created on first execution, reused for file persistence).
+   * Sandbox ID for persistent file storage across executions.
+   *
+   * &#64;internal
+   * Created on first execution (Daytona sandbox), reused for file persistence.
    * </pre>
    *
    * <code>string sandbox_id = 4 [json_name = "sandboxId"];</code>
@@ -102,7 +114,7 @@ public interface SessionSpecOrBuilder extends
 
   /**
    * <pre>
-   * Session metadata (e.g., client info, tags).
+   * Custom key-value pairs for client-specific information.
    * </pre>
    *
    * <code>map&lt;string, string&gt; metadata = 5 [json_name = "metadata"];</code>
@@ -110,7 +122,7 @@ public interface SessionSpecOrBuilder extends
   int getMetadataCount();
   /**
    * <pre>
-   * Session metadata (e.g., client info, tags).
+   * Custom key-value pairs for client-specific information.
    * </pre>
    *
    * <code>map&lt;string, string&gt; metadata = 5 [json_name = "metadata"];</code>
@@ -125,7 +137,7 @@ public interface SessionSpecOrBuilder extends
   getMetadata();
   /**
    * <pre>
-   * Session metadata (e.g., client info, tags).
+   * Custom key-value pairs for client-specific information.
    * </pre>
    *
    * <code>map&lt;string, string&gt; metadata = 5 [json_name = "metadata"];</code>
@@ -134,7 +146,7 @@ public interface SessionSpecOrBuilder extends
   getMetadataMap();
   /**
    * <pre>
-   * Session metadata (e.g., client info, tags).
+   * Custom key-value pairs for client-specific information.
    * </pre>
    *
    * <code>map&lt;string, string&gt; metadata = 5 [json_name = "metadata"];</code>
@@ -146,7 +158,7 @@ java.lang.String getMetadataOrDefault(
 java.lang.String defaultValue);
   /**
    * <pre>
-   * Session metadata (e.g., client info, tags).
+   * Custom key-value pairs for client-specific information.
    * </pre>
    *
    * <code>map&lt;string, string&gt; metadata = 5 [json_name = "metadata"];</code>
@@ -156,14 +168,13 @@ java.lang.String defaultValue);
 
   /**
    * <pre>
-   * Workspace entries for this session (optional, may be empty).
+   * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace (VS Code model). Entries are provisioned on the
-   * first execution; subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first execution;
+   * subsequent executions reuse the same workspace.
    *
-   * When empty, the session uses an empty workspace directory
-   * (existing default behavior, no provisioning step).
+   * When empty, the session uses an empty workspace directory.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
@@ -172,14 +183,13 @@ java.lang.String defaultValue);
       getWorkspaceEntriesList();
   /**
    * <pre>
-   * Workspace entries for this session (optional, may be empty).
+   * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace (VS Code model). Entries are provisioned on the
-   * first execution; subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first execution;
+   * subsequent executions reuse the same workspace.
    *
-   * When empty, the session uses an empty workspace directory
-   * (existing default behavior, no provisioning step).
+   * When empty, the session uses an empty workspace directory.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
@@ -187,14 +197,13 @@ java.lang.String defaultValue);
   ai.stigmer.agentic.session.v1.WorkspaceEntry getWorkspaceEntries(int index);
   /**
    * <pre>
-   * Workspace entries for this session (optional, may be empty).
+   * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace (VS Code model). Entries are provisioned on the
-   * first execution; subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first execution;
+   * subsequent executions reuse the same workspace.
    *
-   * When empty, the session uses an empty workspace directory
-   * (existing default behavior, no provisioning step).
+   * When empty, the session uses an empty workspace directory.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
@@ -202,14 +211,13 @@ java.lang.String defaultValue);
   int getWorkspaceEntriesCount();
   /**
    * <pre>
-   * Workspace entries for this session (optional, may be empty).
+   * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace (VS Code model). Entries are provisioned on the
-   * first execution; subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first execution;
+   * subsequent executions reuse the same workspace.
    *
-   * When empty, the session uses an empty workspace directory
-   * (existing default behavior, no provisioning step).
+   * When empty, the session uses an empty workspace directory.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
@@ -218,14 +226,13 @@ java.lang.String defaultValue);
       getWorkspaceEntriesOrBuilderList();
   /**
    * <pre>
-   * Workspace entries for this session (optional, may be empty).
+   * Workspace entries for this session.
    *
    * Each entry pairs a name with a source (git repo or local path), forming
-   * a multi-root workspace (VS Code model). Entries are provisioned on the
-   * first execution; subsequent executions reuse the same workspace.
+   * a multi-root workspace. Entries are provisioned on the first execution;
+   * subsequent executions reuse the same workspace.
    *
-   * When empty, the session uses an empty workspace directory
-   * (existing default behavior, no provisioning step).
+   * When empty, the session uses an empty workspace directory.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.session.v1.WorkspaceEntry workspace_entries = 6 [json_name = "workspaceEntries"];</code>
@@ -235,16 +242,18 @@ java.lang.String defaultValue);
 
   /**
    * <pre>
-   * MCP servers to make available in this session (merged with agent's at execution time).
+   * MCP servers to make available in this session.
    *
-   * Enables users to augment the agent's tool set for a specific conversation
-   * without modifying the agent blueprint. Each usage references an McpServer
-   * resource; the agent runner merges these with the agent's mcp_server_usages
-   * when constructing the execution graph.
+   * Augments the agent's tool set for this specific conversation without
+   * modifying the agent blueprint. Each usage references an McpServer
+   * resource.
    *
+   * &#64;internal
    * Merge semantics: session-level usages are union'd with agent-level usages.
    * If both reference the same MCP server slug, the session-level entry takes
-   * precedence (enables per-session tool restriction or expansion).
+   * precedence (enables per-session tool restriction or expansion). The agent
+   * runner merges these with the agent's mcp_server_usages when constructing
+   * the execution graph.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -253,16 +262,18 @@ java.lang.String defaultValue);
       getMcpServerUsagesList();
   /**
    * <pre>
-   * MCP servers to make available in this session (merged with agent's at execution time).
+   * MCP servers to make available in this session.
    *
-   * Enables users to augment the agent's tool set for a specific conversation
-   * without modifying the agent blueprint. Each usage references an McpServer
-   * resource; the agent runner merges these with the agent's mcp_server_usages
-   * when constructing the execution graph.
+   * Augments the agent's tool set for this specific conversation without
+   * modifying the agent blueprint. Each usage references an McpServer
+   * resource.
    *
+   * &#64;internal
    * Merge semantics: session-level usages are union'd with agent-level usages.
    * If both reference the same MCP server slug, the session-level entry takes
-   * precedence (enables per-session tool restriction or expansion).
+   * precedence (enables per-session tool restriction or expansion). The agent
+   * runner merges these with the agent's mcp_server_usages when constructing
+   * the execution graph.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -270,16 +281,18 @@ java.lang.String defaultValue);
   ai.stigmer.agentic.agent.v1.McpServerUsage getMcpServerUsages(int index);
   /**
    * <pre>
-   * MCP servers to make available in this session (merged with agent's at execution time).
+   * MCP servers to make available in this session.
    *
-   * Enables users to augment the agent's tool set for a specific conversation
-   * without modifying the agent blueprint. Each usage references an McpServer
-   * resource; the agent runner merges these with the agent's mcp_server_usages
-   * when constructing the execution graph.
+   * Augments the agent's tool set for this specific conversation without
+   * modifying the agent blueprint. Each usage references an McpServer
+   * resource.
    *
+   * &#64;internal
    * Merge semantics: session-level usages are union'd with agent-level usages.
    * If both reference the same MCP server slug, the session-level entry takes
-   * precedence (enables per-session tool restriction or expansion).
+   * precedence (enables per-session tool restriction or expansion). The agent
+   * runner merges these with the agent's mcp_server_usages when constructing
+   * the execution graph.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -287,16 +300,18 @@ java.lang.String defaultValue);
   int getMcpServerUsagesCount();
   /**
    * <pre>
-   * MCP servers to make available in this session (merged with agent's at execution time).
+   * MCP servers to make available in this session.
    *
-   * Enables users to augment the agent's tool set for a specific conversation
-   * without modifying the agent blueprint. Each usage references an McpServer
-   * resource; the agent runner merges these with the agent's mcp_server_usages
-   * when constructing the execution graph.
+   * Augments the agent's tool set for this specific conversation without
+   * modifying the agent blueprint. Each usage references an McpServer
+   * resource.
    *
+   * &#64;internal
    * Merge semantics: session-level usages are union'd with agent-level usages.
    * If both reference the same MCP server slug, the session-level entry takes
-   * precedence (enables per-session tool restriction or expansion).
+   * precedence (enables per-session tool restriction or expansion). The agent
+   * runner merges these with the agent's mcp_server_usages when constructing
+   * the execution graph.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -305,16 +320,18 @@ java.lang.String defaultValue);
       getMcpServerUsagesOrBuilderList();
   /**
    * <pre>
-   * MCP servers to make available in this session (merged with agent's at execution time).
+   * MCP servers to make available in this session.
    *
-   * Enables users to augment the agent's tool set for a specific conversation
-   * without modifying the agent blueprint. Each usage references an McpServer
-   * resource; the agent runner merges these with the agent's mcp_server_usages
-   * when constructing the execution graph.
+   * Augments the agent's tool set for this specific conversation without
+   * modifying the agent blueprint. Each usage references an McpServer
+   * resource.
    *
+   * &#64;internal
    * Merge semantics: session-level usages are union'd with agent-level usages.
    * If both reference the same MCP server slug, the session-level entry takes
-   * precedence (enables per-session tool restriction or expansion).
+   * precedence (enables per-session tool restriction or expansion). The agent
+   * runner merges these with the agent's mcp_server_usages when constructing
+   * the execution graph.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpServerUsage mcp_server_usages = 7 [json_name = "mcpServerUsages", (.buf.validate.field) = { ... }</code>
@@ -324,12 +341,13 @@ java.lang.String defaultValue);
 
   /**
    * <pre>
-   * Skills to inject into this session's context (merged with agent's at execution time).
+   * Skills to inject into this session's context.
    *
-   * Enables users to provide domain-specific knowledge for a specific conversation
-   * without modifying the agent blueprint. Each reference points to a Skill resource
-   * whose content is injected into the agent's context alongside agent-level skills.
+   * Provides domain-specific knowledge for this specific conversation without
+   * modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is added to the agent's context alongside agent-level skills.
    *
+   * &#64;internal
    * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
    * </pre>
    *
@@ -339,12 +357,13 @@ java.lang.String defaultValue);
       getSkillRefsList();
   /**
    * <pre>
-   * Skills to inject into this session's context (merged with agent's at execution time).
+   * Skills to inject into this session's context.
    *
-   * Enables users to provide domain-specific knowledge for a specific conversation
-   * without modifying the agent blueprint. Each reference points to a Skill resource
-   * whose content is injected into the agent's context alongside agent-level skills.
+   * Provides domain-specific knowledge for this specific conversation without
+   * modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is added to the agent's context alongside agent-level skills.
    *
+   * &#64;internal
    * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
    * </pre>
    *
@@ -353,12 +372,13 @@ java.lang.String defaultValue);
   ai.stigmer.commons.apiresource.ApiResourceReference getSkillRefs(int index);
   /**
    * <pre>
-   * Skills to inject into this session's context (merged with agent's at execution time).
+   * Skills to inject into this session's context.
    *
-   * Enables users to provide domain-specific knowledge for a specific conversation
-   * without modifying the agent blueprint. Each reference points to a Skill resource
-   * whose content is injected into the agent's context alongside agent-level skills.
+   * Provides domain-specific knowledge for this specific conversation without
+   * modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is added to the agent's context alongside agent-level skills.
    *
+   * &#64;internal
    * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
    * </pre>
    *
@@ -367,12 +387,13 @@ java.lang.String defaultValue);
   int getSkillRefsCount();
   /**
    * <pre>
-   * Skills to inject into this session's context (merged with agent's at execution time).
+   * Skills to inject into this session's context.
    *
-   * Enables users to provide domain-specific knowledge for a specific conversation
-   * without modifying the agent blueprint. Each reference points to a Skill resource
-   * whose content is injected into the agent's context alongside agent-level skills.
+   * Provides domain-specific knowledge for this specific conversation without
+   * modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is added to the agent's context alongside agent-level skills.
    *
+   * &#64;internal
    * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
    * </pre>
    *
@@ -382,12 +403,13 @@ java.lang.String defaultValue);
       getSkillRefsOrBuilderList();
   /**
    * <pre>
-   * Skills to inject into this session's context (merged with agent's at execution time).
+   * Skills to inject into this session's context.
    *
-   * Enables users to provide domain-specific knowledge for a specific conversation
-   * without modifying the agent blueprint. Each reference points to a Skill resource
-   * whose content is injected into the agent's context alongside agent-level skills.
+   * Provides domain-specific knowledge for this specific conversation without
+   * modifying the agent blueprint. Each reference points to a Skill resource
+   * whose content is added to the agent's context alongside agent-level skills.
    *
+   * &#64;internal
    * Merge semantics: union'd with agent-level skill_refs, deduplicated by slug.
    * </pre>
    *

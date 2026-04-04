@@ -7,11 +7,12 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * WaitTaskConfig defines the configuration for WAIT tasks.
+ * WaitTaskConfig defines the configuration for wait tasks that pause workflow execution.
  *
- * WAIT tasks pause workflow execution using Temporal timers.
- * Supports both relative durations ("wait 1 week") and absolute
- * timestamps ("wait until March 1st 9am").
+ * Supports both relative durations and absolute timestamps.
+ *
+ * &#64;internal
+ * Implemented via Temporal timers.
  *
  * YAML Examples:
  *
@@ -416,11 +417,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * WaitTaskConfig defines the configuration for WAIT tasks.
+   * WaitTaskConfig defines the configuration for wait tasks that pause workflow execution.
    *
-   * WAIT tasks pause workflow execution using Temporal timers.
-   * Supports both relative durations ("wait 1 week") and absolute
-   * timestamps ("wait until March 1st 9am").
+   * Supports both relative durations and absolute timestamps.
+   *
+   * &#64;internal
+   * Implemented via Temporal timers.
    *
    * YAML Examples:
    *

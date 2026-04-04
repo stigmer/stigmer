@@ -76,6 +76,7 @@ message WorkspaceWriteBack {
 // The phases are ordered: COMMITTED -> PUSHED -> PR_CREATED.
 // FAILED can be reached from any step.
 enum WorkspaceWriteBackPhase {
+  // Default value, not a valid write-back phase.
   WORKSPACE_WRITE_BACK_PHASE_UNSPECIFIED = 0;
 
   // Changes were committed to a new branch in the sandbox.

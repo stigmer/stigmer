@@ -18,12 +18,14 @@ export const file_ai_stigmer_tenancy_organization_v1_io: GenFile = /*@__PURE__*/
   fileDesc("CithaS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL2lvLnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxIlIKDU9yZ2FuaXphdGlvbnMSQQoHZW50cmllcxgBIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uImoKEE9yZ2FuaXphdGlvbkxpc3QSEwoLdG90YWxfcGFnZXMYASABKAUSQQoHZW50cmllcxgCIAMoCzIwLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIioKDk9yZ2FuaXphdGlvbklkEhgKBXZhbHVlGAEgASgJQgm6SAZyBBABGEAimwEKGk9yZ2FuaXphdGlvbkV4dGVybmFsTG9va3VwElsKFWlkZW50aXR5X3Byb3ZpZGVyX3JlZhgBIAEoCzI0LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZVJlZmVyZW5jZUIGukgDyAEBEiAKD2V4dGVybmFsX29yZ19pZBgCIAEoCUIHukgEcgIQAWIGcHJvdG8z", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_tenancy_organization_v1_api, file_buf_validate_validate]);
 
 /**
- * List of organizations (unbounded)
+ * List of organizations.
  *
  * @generated from message ai.stigmer.tenancy.organization.v1.Organizations
  */
 export type Organizations = Message<"ai.stigmer.tenancy.organization.v1.Organizations"> & {
   /**
+   * Organization resources in this list.
+   *
    * @generated from field: repeated ai.stigmer.tenancy.organization.v1.Organization entries = 1;
    */
   entries: Organization[];
@@ -37,20 +39,20 @@ export const OrganizationsSchema: GenMessage<Organizations> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 0);
 
 /**
- * Response for paginated list query
+ * Response for a paginated organization list query.
  *
  * @generated from message ai.stigmer.tenancy.organization.v1.OrganizationList
  */
 export type OrganizationList = Message<"ai.stigmer.tenancy.organization.v1.OrganizationList"> & {
   /**
-   * total number of pages
+   * Total number of pages.
    *
    * @generated from field: int32 total_pages = 1;
    */
   totalPages: number;
 
   /**
-   * organizations in current page
+   * Organizations in the current page.
    *
    * @generated from field: repeated ai.stigmer.tenancy.organization.v1.Organization entries = 2;
    */
@@ -65,13 +67,13 @@ export const OrganizationListSchema: GenMessage<OrganizationList> = /*@__PURE__*
   messageDesc(file_ai_stigmer_tenancy_organization_v1_io, 1);
 
 /**
- * Wrapper for organization id
+ * OrganizationId wraps an organization identifier.
  *
  * @generated from message ai.stigmer.tenancy.organization.v1.OrganizationId
  */
 export type OrganizationId = Message<"ai.stigmer.tenancy.organization.v1.OrganizationId"> & {
   /**
-   * organization id (UUID format)
+   * Organization identifier.
    *
    * @generated from field: string value = 1;
    */

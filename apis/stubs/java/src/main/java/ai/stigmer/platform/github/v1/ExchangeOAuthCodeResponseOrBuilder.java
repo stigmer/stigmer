@@ -12,7 +12,7 @@ public interface ExchangeOAuthCodeResponseOrBuilder extends
 
   /**
    * <pre>
-   * The GitHub access token for API calls.
+   * GitHub access token for API calls.
    * </pre>
    *
    * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -21,7 +21,7 @@ public interface ExchangeOAuthCodeResponseOrBuilder extends
   java.lang.String getAccessToken();
   /**
    * <pre>
-   * The GitHub access token for API calls.
+   * GitHub access token for API calls.
    * </pre>
    *
    * <code>string access_token = 1 [json_name = "accessToken"];</code>
@@ -32,7 +32,7 @@ public interface ExchangeOAuthCodeResponseOrBuilder extends
 
   /**
    * <pre>
-   * The token type (typically "bearer").
+   * Token type (typically "bearer").
    * </pre>
    *
    * <code>string token_type = 2 [json_name = "tokenType"];</code>
@@ -41,7 +41,7 @@ public interface ExchangeOAuthCodeResponseOrBuilder extends
   java.lang.String getTokenType();
   /**
    * <pre>
-   * The token type (typically "bearer").
+   * Token type (typically "bearer").
    * </pre>
    *
    * <code>string token_type = 2 [json_name = "tokenType"];</code>
@@ -52,7 +52,7 @@ public interface ExchangeOAuthCodeResponseOrBuilder extends
 
   /**
    * <pre>
-   * The granted OAuth scopes (comma-separated).
+   * Granted OAuth scopes, comma-separated.
    * </pre>
    *
    * <code>string scope = 3 [json_name = "scope"];</code>
@@ -61,7 +61,7 @@ public interface ExchangeOAuthCodeResponseOrBuilder extends
   java.lang.String getScope();
   /**
    * <pre>
-   * The granted OAuth scopes (comma-separated).
+   * Granted OAuth scopes, comma-separated.
    * </pre>
    *
    * <code>string scope = 3 [json_name = "scope"];</code>

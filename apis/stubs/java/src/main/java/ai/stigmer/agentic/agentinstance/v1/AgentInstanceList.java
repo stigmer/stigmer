@@ -7,7 +7,7 @@ package ai.stigmer.agentic.agentinstance.v1;
 
 /**
  * <pre>
- * AgentInstanceList represents a list of agent instances.
+ * Response containing a paginated list of agent instances.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.AgentInstanceList}
@@ -57,7 +57,7 @@ private static final long serialVersionUID = 0L;
   private int totalCount_ = 0;
   /**
    * <pre>
-   * Total count of instances.
+   * Total number of agent instances matching the query.
    * </pre>
    *
    * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
@@ -73,7 +73,7 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.agentic.agentinstance.v1.AgentInstance> items_;
   /**
    * <pre>
-   * List of instances.
+   * Agent instances in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -84,7 +84,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * List of instances.
+   * Agent instances in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -96,7 +96,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * List of instances.
+   * Agent instances in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -107,7 +107,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * List of instances.
+   * Agent instances in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -118,7 +118,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * List of instances.
+   * Agent instances in the current page.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -306,7 +306,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AgentInstanceList represents a list of agent instances.
+   * Response containing a paginated list of agent instances.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.AgentInstanceList}
@@ -506,7 +506,7 @@ private static final long serialVersionUID = 0L;
     private int totalCount_ ;
     /**
      * <pre>
-     * Total count of instances.
+     * Total number of agent instances matching the query.
      * </pre>
      *
      * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
@@ -518,7 +518,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total count of instances.
+     * Total number of agent instances matching the query.
      * </pre>
      *
      * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
@@ -534,7 +534,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Total count of instances.
+     * Total number of agent instances matching the query.
      * </pre>
      *
      * <code>int32 total_count = 1 [json_name = "totalCount"];</code>
@@ -561,7 +561,7 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -575,7 +575,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -589,7 +589,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -603,7 +603,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -624,7 +624,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -642,7 +642,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -662,7 +662,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -683,7 +683,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -701,7 +701,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -719,7 +719,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -738,7 +738,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -755,7 +755,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -772,7 +772,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -783,7 +783,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -797,7 +797,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -812,7 +812,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -823,7 +823,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>
@@ -835,7 +835,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * List of instances.
+     * Agent instances in the current page.
      * </pre>
      *
      * <code>repeated .ai.stigmer.agentic.agentinstance.v1.AgentInstance items = 2 [json_name = "items"];</code>

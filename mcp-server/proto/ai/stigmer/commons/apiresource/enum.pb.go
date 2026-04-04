@@ -21,19 +21,25 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// enumeration of the union of all event types used across all the api resources.
-// this is used for specifying the event type produced by rpc methods in command controllers.
-// using different enum for these event types while specifying in rpc methods and individual api resource would
-// work because the events are eventually converted to strings during message passing.
+// Event types produced by command controller RPCs across all API resources.
+//
+// @internal
+// Different enums could be used per resource, but a shared enum is simpler
+// because events are converted to strings during message passing.
 type ApiResourceEventType int32
 
 const (
+	// Default value when no event type is set.
 	ApiResourceEventType_unspecified ApiResourceEventType = 0
-	ApiResourceEventType_created     ApiResourceEventType = 1
-	ApiResourceEventType_updated     ApiResourceEventType = 2
-	ApiResourceEventType_deleted     ApiResourceEventType = 3
-	ApiResourceEventType_renamed     ApiResourceEventType = 4
-	// this is only applicable for cloud-resources
+	// Resource was created.
+	ApiResourceEventType_created ApiResourceEventType = 1
+	// Resource spec or status was updated.
+	ApiResourceEventType_updated ApiResourceEventType = 2
+	// Resource was deleted.
+	ApiResourceEventType_deleted ApiResourceEventType = 3
+	// Resource was renamed (slug changed).
+	ApiResourceEventType_renamed ApiResourceEventType = 4
+	// Cloud infrastructure stack outputs were updated.
 	ApiResourceEventType_stack_outputs_updated ApiResourceEventType = 5
 )
 
@@ -84,15 +90,26 @@ func (ApiResourceEventType) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_commons_apiresource_enum_proto_rawDescGZIP(), []int{0}
 }
 
+// Operation type for API resource state transitions.
+//
+// @internal
+// Used by the state machine to classify RPC operations and enforce
+// transition rules (e.g., a resource in "deleting" state rejects create).
 type ApiResourceStateOperationType int32
 
 const (
+	// Default value when no operation type is set.
 	ApiResourceStateOperationType_api_resource_state_operation_type_unspecified ApiResourceStateOperationType = 0
-	ApiResourceStateOperationType_create                                        ApiResourceStateOperationType = 1
-	ApiResourceStateOperationType_update                                        ApiResourceStateOperationType = 2
-	ApiResourceStateOperationType_delete                                        ApiResourceStateOperationType = 3
-	ApiResourceStateOperationType_read                                          ApiResourceStateOperationType = 4
-	ApiResourceStateOperationType_stream                                        ApiResourceStateOperationType = 5
+	// Create a new resource.
+	ApiResourceStateOperationType_create ApiResourceStateOperationType = 1
+	// Update an existing resource.
+	ApiResourceStateOperationType_update ApiResourceStateOperationType = 2
+	// Delete an existing resource.
+	ApiResourceStateOperationType_delete ApiResourceStateOperationType = 3
+	// Read a resource (query).
+	ApiResourceStateOperationType_read ApiResourceStateOperationType = 4
+	// Open a server-streaming connection to a resource.
+	ApiResourceStateOperationType_stream ApiResourceStateOperationType = 5
 )
 
 // Enum value maps for ApiResourceStateOperationType.

@@ -9,40 +9,15 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * CancelWorkflowExecutionInput requests graceful cancellation of a workflow execution.
  *
- * Cancellation sends a signal to the workflow, allowing it to clean up gracefully.
- * The workflow code can handle the cancellation signal (e.g., via defer blocks,
- * compensation logic) before the execution transitions to CANCELLED phase.
+ * &#64;internal
+ * Sends a cancellation signal to the workflow engine, allowing the workflow code
+ * to perform cleanup before transitioning to EXECUTION_CANCELLED phase.
  *
- * ## Behavior
- *
- * - Sends cancellation signal to Temporal via CancelWorkflow API
- * - Workflow code receives the signal and can perform cleanup
- * - Execution transitions to EXECUTION_CANCELLED phase after cleanup
- * - In-progress tasks may complete or be interrupted depending on workflow logic
- *
- * ## Preconditions
- *
+ * Preconditions:
  * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
- * - User must have can_edit permission on the workflow execution
+ * - User must have can_edit permission
  *
- * ## Idempotency
- *
- * If the execution is already cancelled (phase == EXECUTION_CANCELLED),
- * the call succeeds as a no-op and returns the current execution state.
- *
- * ## Use Cases
- *
- * - User realizes they triggered the wrong workflow
- * - Business decision to stop a long-running process
- * - Graceful shutdown before maintenance window
- * - Cancel stuck workflow that is still responsive
- *
- * ## Example
- *
- * {
- * "id": "wfx-abc123xyz456",
- * "reason": "Customer requested cancellation - no longer needed"
- * }
+ * Idempotent: if already cancelled, returns current state as a no-op.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput}
@@ -96,10 +71,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Workflow execution ID to cancel.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -122,10 +95,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Workflow execution ID to cancel.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -151,16 +122,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object reason_ = "";
   /**
    * <pre>
-   * Human-readable reason for cancellation.
-   *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
-   * Optional but strongly recommended for compliance and troubleshooting.
-   *
-   * Examples:
-   * - "Customer requested cancellation"
-   * - "Incorrect workflow triggered by mistake"
-   * - "Superseded by newer execution wfx-def456"
-   * - "Pre-maintenance shutdown"
+   * Human-readable reason for cancellation, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -181,16 +143,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Human-readable reason for cancellation.
-   *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
-   * Optional but strongly recommended for compliance and troubleshooting.
-   *
-   * Examples:
-   * - "Customer requested cancellation"
-   * - "Incorrect workflow triggered by mistake"
-   * - "Superseded by newer execution wfx-def456"
-   * - "Pre-maintenance shutdown"
+   * Human-readable reason for cancellation, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -381,40 +334,15 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * CancelWorkflowExecutionInput requests graceful cancellation of a workflow execution.
    *
-   * Cancellation sends a signal to the workflow, allowing it to clean up gracefully.
-   * The workflow code can handle the cancellation signal (e.g., via defer blocks,
-   * compensation logic) before the execution transitions to CANCELLED phase.
+   * &#64;internal
+   * Sends a cancellation signal to the workflow engine, allowing the workflow code
+   * to perform cleanup before transitioning to EXECUTION_CANCELLED phase.
    *
-   * ## Behavior
-   *
-   * - Sends cancellation signal to Temporal via CancelWorkflow API
-   * - Workflow code receives the signal and can perform cleanup
-   * - Execution transitions to EXECUTION_CANCELLED phase after cleanup
-   * - In-progress tasks may complete or be interrupted depending on workflow logic
-   *
-   * ## Preconditions
-   *
+   * Preconditions:
    * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
-   * - User must have can_edit permission on the workflow execution
+   * - User must have can_edit permission
    *
-   * ## Idempotency
-   *
-   * If the execution is already cancelled (phase == EXECUTION_CANCELLED),
-   * the call succeeds as a no-op and returns the current execution state.
-   *
-   * ## Use Cases
-   *
-   * - User realizes they triggered the wrong workflow
-   * - Business decision to stop a long-running process
-   * - Graceful shutdown before maintenance window
-   * - Cancel stuck workflow that is still responsive
-   *
-   * ## Example
-   *
-   * {
-   * "id": "wfx-abc123xyz456",
-   * "reason": "Customer requested cancellation - no longer needed"
-   * }
+   * Idempotent: if already cancelled, returns current state as a no-op.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.CancelWorkflowExecutionInput}
@@ -573,10 +501,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to cancel.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -598,10 +524,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to cancel.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -624,10 +548,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to cancel.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -646,10 +568,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to cancel.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -665,10 +585,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to cancel.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -688,16 +606,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object reason_ = "";
     /**
      * <pre>
-     * Human-readable reason for cancellation.
-     *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
-     * Optional but strongly recommended for compliance and troubleshooting.
-     *
-     * Examples:
-     * - "Customer requested cancellation"
-     * - "Incorrect workflow triggered by mistake"
-     * - "Superseded by newer execution wfx-def456"
-     * - "Pre-maintenance shutdown"
+     * Human-readable reason for cancellation, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -717,16 +626,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for cancellation.
-     *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
-     * Optional but strongly recommended for compliance and troubleshooting.
-     *
-     * Examples:
-     * - "Customer requested cancellation"
-     * - "Incorrect workflow triggered by mistake"
-     * - "Superseded by newer execution wfx-def456"
-     * - "Pre-maintenance shutdown"
+     * Human-readable reason for cancellation, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -747,16 +647,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for cancellation.
-     *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
-     * Optional but strongly recommended for compliance and troubleshooting.
-     *
-     * Examples:
-     * - "Customer requested cancellation"
-     * - "Incorrect workflow triggered by mistake"
-     * - "Superseded by newer execution wfx-def456"
-     * - "Pre-maintenance shutdown"
+     * Human-readable reason for cancellation, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -773,16 +664,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for cancellation.
-     *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
-     * Optional but strongly recommended for compliance and troubleshooting.
-     *
-     * Examples:
-     * - "Customer requested cancellation"
-     * - "Incorrect workflow triggered by mistake"
-     * - "Superseded by newer execution wfx-def456"
-     * - "Pre-maintenance shutdown"
+     * Human-readable reason for cancellation, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -796,16 +678,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for cancellation.
-     *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
-     * Optional but strongly recommended for compliance and troubleshooting.
-     *
-     * Examples:
-     * - "Customer requested cancellation"
-     * - "Incorrect workflow triggered by mistake"
-     * - "Superseded by newer execution wfx-def456"
-     * - "Pre-maintenance shutdown"
+     * Human-readable reason for cancellation, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>

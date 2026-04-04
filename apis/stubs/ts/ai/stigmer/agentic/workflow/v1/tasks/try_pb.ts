@@ -17,10 +17,9 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_try: GenFile = /*@__PURE_
   fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvdHJ5LnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MipAEKDVRyeVRhc2tDb25maWcSQwoDdHJ5GAEgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAESPwoFY2F0Y2gYAiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MuQ2F0Y2hCbG9jazoN6ossCXRyeV9jYXRjaCJcCgpDYXRjaEJsb2NrEgoKAmFzGAEgASgJEkIKAmRvGAIgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAFiBnByb3RvMw", [file_ai_stigmer_agentic_workflow_v1_spec, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
- * TryTaskConfig defines the configuration for TRY tasks.
+ * TryTaskConfig defines the configuration for try_catch tasks that handle errors.
  *
- * TRY tasks provide try/catch error handling.
- *
+ * @internal
  * YAML Example:
  *   - taskName:
  *       try:

@@ -37,9 +37,11 @@ export const WorkflowQueryController: GenService<{
   },
   /**
    * Get a workflow by its organization-scoped reference (org/slug).
+   * Resolves a human-readable reference like "stigmer/deploy" to the full Workflow resource.
    *
    * @internal
-   * Custom authorization in handler.
+   * Custom authorization in handler — checks both direct resource access
+   * and organization-level visibility permissions.
    *
    * @generated from rpc ai.stigmer.agentic.workflow.v1.WorkflowQueryController.getByReference
    */

@@ -8,8 +8,11 @@ package ai.stigmer.agentic.environment.v1;
 /**
  * <pre>
  * Request to add or update specific variables in an environment.
- * Server-side merge: existing variables not included in this request are preserved.
- * For secret variables, the new value replaces the old one (re-encrypted server-side).
+ * Existing variables not included in this request are preserved.
+ *
+ * &#64;internal
+ * Server-side merge. For secret variables the new value replaces the old
+ * one and is re-encrypted server-side.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest}
@@ -142,8 +145,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Variables to add or update. Keys that already exist are overwritten.
-   * Keys not present in this map are left unchanged.
+   * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -164,8 +166,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Variables to add or update. Keys that already exist are overwritten.
-   * Keys not present in this map are left unchanged.
+   * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -176,8 +177,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Variables to add or update. Keys that already exist are overwritten.
-   * Keys not present in this map are left unchanged.
+   * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -195,8 +195,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
   }
   /**
    * <pre>
-   * Variables to add or update. Keys that already exist are overwritten.
-   * Keys not present in this map are left unchanged.
+   * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
    * </pre>
    *
    * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -394,8 +393,11 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
   /**
    * <pre>
    * Request to add or update specific variables in an environment.
-   * Server-side merge: existing variables not included in this request are preserved.
-   * For secret variables, the new value replaces the old one (re-encrypted server-side).
+   * Existing variables not included in this request are preserved.
+   *
+   * &#64;internal
+   * Server-side merge. For secret variables the new value replaces the old
+   * one and is re-encrypted server-side.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.environment.v1.UpdateEnvironmentVariablesRequest}
@@ -702,8 +704,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Variables to add or update. Keys that already exist are overwritten.
-     * Keys not present in this map are left unchanged.
+     * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -724,8 +725,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Variables to add or update. Keys that already exist are overwritten.
-     * Keys not present in this map are left unchanged.
+     * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -736,8 +736,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Variables to add or update. Keys that already exist are overwritten.
-     * Keys not present in this map are left unchanged.
+     * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -754,8 +753,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Variables to add or update. Keys that already exist are overwritten.
-     * Keys not present in this map are left unchanged.
+     * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -777,8 +775,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Variables to add or update. Keys that already exist are overwritten.
-     * Keys not present in this map are left unchanged.
+     * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -801,8 +798,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Variables to add or update. Keys that already exist are overwritten.
-     * Keys not present in this map are left unchanged.
+     * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -819,8 +815,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Variables to add or update. Keys that already exist are overwritten.
-     * Keys not present in this map are left unchanged.
+     * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>
@@ -839,8 +834,7 @@ ai.stigmer.agentic.environment.v1.EnvironmentValue defaultValue) {
     }
     /**
      * <pre>
-     * Variables to add or update. Keys that already exist are overwritten.
-     * Keys not present in this map are left unchanged.
+     * Variables to add or update. Keys that already exist are overwritten; keys not present in this map are left unchanged.
      * </pre>
      *
      * <code>map&lt;string, .ai.stigmer.agentic.environment.v1.EnvironmentValue&gt; variables = 2 [json_name = "variables"];</code>

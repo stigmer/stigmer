@@ -26,21 +26,20 @@ const (
 type ValidationState int32
 
 const (
-	// Unspecified state (should not be used)
+	// Default value, not a valid validation state.
 	ValidationState_VALIDATION_STATE_UNSPECIFIED ValidationState = 0
-	// Validation has been triggered but not yet completed
-	// This is the initial state when a workflow is created
+	// Validation is pending and has not yet completed.
 	ValidationState_PENDING ValidationState = 1
-	// Validation completed successfully - workflow structure is valid
-	// The generated YAML is stored and can be used for execution
+	// Validation completed successfully and the workflow structure is valid.
 	ValidationState_VALID ValidationState = 2
-	// Validation completed but found errors - workflow structure is invalid
-	// The workflow cannot be executed until errors are fixed
-	// Errors are listed in the 'errors' field
+	// Validation completed but found errors in the workflow structure.
+	// Check the `errors` field for details.
 	ValidationState_INVALID ValidationState = 3
-	// Validation process itself failed (system error, not user error)
+	// Validation process failed due to a system error (not a user error).
+	// Retry validation or contact support.
+	//
+	// @internal
 	// Examples: Temporal workflow crashed, activity timeout, etc.
-	// User should retry validation or contact support
 	ValidationState_FAILED ValidationState = 4
 )
 
@@ -89,38 +88,32 @@ func (ValidationState) EnumDescriptor() ([]byte, []int) {
 	return file_ai_stigmer_agentic_workflow_v1_serverless_validation_proto_rawDescGZIP(), []int{0}
 }
 
-// ServerlessWorkflowValidation contains the generated Serverless Workflow YAML
-// and its validation state. This is populated asynchronously after workflow creation
-// via a Temporal workflow that validates the workflow structure.
+// ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.
+//
+// @internal
+// Populated asynchronously after workflow creation via a Temporal workflow
+// that validates the workflow structure.
 type ServerlessWorkflowValidation struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Current validation state
+	// Current validation state.
 	State ValidationState `protobuf:"varint,1,opt,name=state,proto3,enum=ai.stigmer.agentic.workflow.v1.serverless.ValidationState" json:"state,omitempty"`
-	// Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)
-	// This YAML may contain runtime expressions for environment variables:
-	//
-	//	Example: ${ .env.API_BASE_URL }
-	//
+	// Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
 	// Present even if validation failed (helps debugging).
-	// Empty if validation hasn't started yet.
+	// Empty if validation has not started yet.
+	//
+	// @internal
+	// May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
 	Yaml string `protobuf:"bytes,2,opt,name=yaml,proto3" json:"yaml,omitempty"`
-	// Validation errors (empty if valid)
-	// Examples:
-	//   - "Invalid YAML syntax at line 15"
-	//   - "Unknown task type 'invalid_task'"
-	//   - "Missing required field: document.namespace"
+	// Validation errors, empty when valid.
 	Errors []string `protobuf:"bytes,3,rep,name=errors,proto3" json:"errors,omitempty"`
-	// Non-fatal warnings
-	// Examples:
-	//   - "Environment variable API_KEY referenced but not defined"
-	//   - "Task 'fetchData' has no error handling"
+	// Non-fatal validation warnings.
 	Warnings []string `protobuf:"bytes,4,rep,name=warnings,proto3" json:"warnings,omitempty"`
-	// When validation was performed
-	// Null if validation hasn't completed yet
+	// When the validation was performed.
 	ValidatedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=validated_at,json=validatedAt,proto3" json:"validated_at,omitempty"`
-	// Temporal workflow ID for the validation workflow
-	// Format: "validate-workflow-{workflow_id}"
-	// Useful for tracking/debugging validation progress
+	// Validation process ID for tracking validation progress.
+	//
+	// @internal
+	// Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
 	ValidationWorkflowId string `protobuf:"bytes,6,opt,name=validation_workflow_id,json=validationWorkflowId,proto3" json:"validation_workflow_id,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache

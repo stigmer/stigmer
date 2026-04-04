@@ -9,16 +9,8 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * WorkflowUpdateType defines the type of workflow execution update event.
  *
+ * &#64;internal
  * Used by WorkflowExecutionUpdate to indicate what changed in the execution.
- * Helps clients apply efficient delta updates instead of re-rendering entire UI.
- *
- * Event Sequence Example:
- * 1. wf_update_status_changed (PENDING → IN_PROGRESS)
- * 2. wf_update_task_started (task-1 started)
- * 3. wf_update_task_completed (task-1 completed)
- * 4. wf_update_task_started (task-2 started)
- * 5. wf_update_task_completed (task-2 completed)
- * 6. wf_update_execution_completed (workflow done)
  * </pre>
  *
  * Protobuf enum {@code ai.stigmer.agentic.workflowexecution.v1.WorkflowUpdateType}
@@ -28,7 +20,10 @@ public enum WorkflowUpdateType
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
    * <pre>
-   * Unspecified update type (invalid, should never be used).
+   * Unspecified update type (invalid).
+   *
+   * &#64;internal
+   * Exists only for proto3 zero-value semantics.
    * </pre>
    *
    * <code>workflow_update_type_unspecified = 0;</code>
@@ -38,13 +33,8 @@ public enum WorkflowUpdateType
    * <pre>
    * Workflow execution phase changed.
    *
-   * Triggered when status.phase transitions:
-   * - PENDING → IN_PROGRESS (execution started)
-   * - IN_PROGRESS → COMPLETED (execution succeeded)
-   * - IN_PROGRESS → FAILED (execution failed)
-   * - IN_PROGRESS → CANCELLED (execution cancelled)
-   *
-   * UI Impact: Update status badge, progress indicator
+   * &#64;internal
+   * Triggered when status.phase transitions to a new value.
    * </pre>
    *
    * <code>wf_update_status_changed = 1;</code>
@@ -54,13 +44,8 @@ public enum WorkflowUpdateType
    * <pre>
    * A workflow task started executing.
    *
+   * &#64;internal
    * Triggered when task status changes from PENDING to IN_PROGRESS.
-   *
-   * Update includes:
-   * - task.status = WORKFLOW_TASK_IN_PROGRESS
-   * - task.started_at = current timestamp
-   *
-   * UI Impact: Show spinner/loading indicator for this task
    * </pre>
    *
    * <code>wf_update_task_started = 2;</code>
@@ -70,15 +55,8 @@ public enum WorkflowUpdateType
    * <pre>
    * A workflow task completed successfully.
    *
+   * &#64;internal
    * Triggered when task status changes from IN_PROGRESS to COMPLETED.
-   *
-   * Update includes:
-   * - task.status = WORKFLOW_TASK_COMPLETED
-   * - task.output = task results
-   * - task.completed_at = current timestamp
-   * - execution.completed_tasks incremented
-   *
-   * UI Impact: Show checkmark, display task output, update progress bar
    * </pre>
    *
    * <code>wf_update_task_completed = 3;</code>
@@ -88,15 +66,8 @@ public enum WorkflowUpdateType
    * <pre>
    * A workflow task failed.
    *
+   * &#64;internal
    * Triggered when task status changes from IN_PROGRESS to FAILED.
-   *
-   * Update includes:
-   * - task.status = WORKFLOW_TASK_FAILED
-   * - task.error = error message
-   * - task.completed_at = current timestamp
-   * - execution.completed_tasks incremented
-   *
-   * UI Impact: Show error icon, display error message, may trigger workflow failure
    * </pre>
    *
    * <code>wf_update_task_failed = 4;</code>
@@ -106,16 +77,8 @@ public enum WorkflowUpdateType
    * <pre>
    * Workflow execution completed successfully.
    *
-   * Triggered when all tasks completed and workflow produces final output.
-   *
-   * Update includes:
-   * - execution.status.phase = EXECUTION_COMPLETED
-   * - execution.status.output = workflow results
-   * - execution.status.completed_at = current timestamp
-   *
-   * UI Impact: Show success badge, display final output, enable download/export
-   *
-   * Note: This is a terminal event - no more updates will follow.
+   * &#64;internal
+   * Terminal event - no more updates will follow.
    * </pre>
    *
    * <code>wf_update_execution_completed = 5;</code>
@@ -125,15 +88,8 @@ public enum WorkflowUpdateType
    * <pre>
    * Workflow execution was cancelled.
    *
-   * Triggered when user or system cancels the execution.
-   *
-   * Update includes:
-   * - execution.status.phase = EXECUTION_CANCELLED
-   * - execution.status.completed_at = current timestamp
-   *
-   * UI Impact: Show cancelled badge, grey out in-progress tasks
-   *
-   * Note: This is a terminal event - no more updates will follow.
+   * &#64;internal
+   * Terminal event - no more updates will follow.
    * </pre>
    *
    * <code>wf_update_execution_cancelled = 6;</code>
@@ -153,7 +109,10 @@ public enum WorkflowUpdateType
   }
   /**
    * <pre>
-   * Unspecified update type (invalid, should never be used).
+   * Unspecified update type (invalid).
+   *
+   * &#64;internal
+   * Exists only for proto3 zero-value semantics.
    * </pre>
    *
    * <code>workflow_update_type_unspecified = 0;</code>
@@ -163,13 +122,8 @@ public enum WorkflowUpdateType
    * <pre>
    * Workflow execution phase changed.
    *
-   * Triggered when status.phase transitions:
-   * - PENDING → IN_PROGRESS (execution started)
-   * - IN_PROGRESS → COMPLETED (execution succeeded)
-   * - IN_PROGRESS → FAILED (execution failed)
-   * - IN_PROGRESS → CANCELLED (execution cancelled)
-   *
-   * UI Impact: Update status badge, progress indicator
+   * &#64;internal
+   * Triggered when status.phase transitions to a new value.
    * </pre>
    *
    * <code>wf_update_status_changed = 1;</code>
@@ -179,13 +133,8 @@ public enum WorkflowUpdateType
    * <pre>
    * A workflow task started executing.
    *
+   * &#64;internal
    * Triggered when task status changes from PENDING to IN_PROGRESS.
-   *
-   * Update includes:
-   * - task.status = WORKFLOW_TASK_IN_PROGRESS
-   * - task.started_at = current timestamp
-   *
-   * UI Impact: Show spinner/loading indicator for this task
    * </pre>
    *
    * <code>wf_update_task_started = 2;</code>
@@ -195,15 +144,8 @@ public enum WorkflowUpdateType
    * <pre>
    * A workflow task completed successfully.
    *
+   * &#64;internal
    * Triggered when task status changes from IN_PROGRESS to COMPLETED.
-   *
-   * Update includes:
-   * - task.status = WORKFLOW_TASK_COMPLETED
-   * - task.output = task results
-   * - task.completed_at = current timestamp
-   * - execution.completed_tasks incremented
-   *
-   * UI Impact: Show checkmark, display task output, update progress bar
    * </pre>
    *
    * <code>wf_update_task_completed = 3;</code>
@@ -213,15 +155,8 @@ public enum WorkflowUpdateType
    * <pre>
    * A workflow task failed.
    *
+   * &#64;internal
    * Triggered when task status changes from IN_PROGRESS to FAILED.
-   *
-   * Update includes:
-   * - task.status = WORKFLOW_TASK_FAILED
-   * - task.error = error message
-   * - task.completed_at = current timestamp
-   * - execution.completed_tasks incremented
-   *
-   * UI Impact: Show error icon, display error message, may trigger workflow failure
    * </pre>
    *
    * <code>wf_update_task_failed = 4;</code>
@@ -231,16 +166,8 @@ public enum WorkflowUpdateType
    * <pre>
    * Workflow execution completed successfully.
    *
-   * Triggered when all tasks completed and workflow produces final output.
-   *
-   * Update includes:
-   * - execution.status.phase = EXECUTION_COMPLETED
-   * - execution.status.output = workflow results
-   * - execution.status.completed_at = current timestamp
-   *
-   * UI Impact: Show success badge, display final output, enable download/export
-   *
-   * Note: This is a terminal event - no more updates will follow.
+   * &#64;internal
+   * Terminal event - no more updates will follow.
    * </pre>
    *
    * <code>wf_update_execution_completed = 5;</code>
@@ -250,15 +177,8 @@ public enum WorkflowUpdateType
    * <pre>
    * Workflow execution was cancelled.
    *
-   * Triggered when user or system cancels the execution.
-   *
-   * Update includes:
-   * - execution.status.phase = EXECUTION_CANCELLED
-   * - execution.status.completed_at = current timestamp
-   *
-   * UI Impact: Show cancelled badge, grey out in-progress tasks
-   *
-   * Note: This is a terminal event - no more updates will follow.
+   * &#64;internal
+   * Terminal event - no more updates will follow.
    * </pre>
    *
    * <code>wf_update_execution_cancelled = 6;</code>

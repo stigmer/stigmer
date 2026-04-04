@@ -14,19 +14,12 @@ package ai.stigmer.search.v1;
  * - Search: Find resources matching a text query
  * - Discover: Search across all resource kinds
  *
+ * &#64;internal
  * Examples:
- *
- * List agents in an organization:
- * {kinds: [agent], org: "acme", query: ""}
- *
- * Search agents by text:
- * {kinds: [agent], query: "code review"}
- *
- * Discover all resources matching a query:
- * {kinds: [], query: "kubernetes"}
- *
- * Search multiple kinds:
- * {kinds: [agent, skill], query: "security", org: "acme"}
+ * List agents in org:         {kinds: [agent], org: "acme", query: ""}
+ * Search agents by text:      {kinds: [agent], query: "code review"}
+ * Discover all:               {kinds: [], query: "kubernetes"}
+ * Search multiple kinds:      {kinds: [agent, skill], query: "security", org: "acme"}
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.search.v1.SearchRequest}
@@ -98,6 +91,7 @@ private static final long serialVersionUID = 0L;
    * - Single kind: Search only that resource type
    * - Multiple kinds: Search specified types
    *
+   * &#64;internal
    * Invalid kinds are silently ignored (allows forward compatibility).
    * </pre>
    *
@@ -119,6 +113,7 @@ private static final long serialVersionUID = 0L;
    * - Single kind: Search only that resource type
    * - Multiple kinds: Search specified types
    *
+   * &#64;internal
    * Invalid kinds are silently ignored (allows forward compatibility).
    * </pre>
    *
@@ -139,6 +134,7 @@ private static final long serialVersionUID = 0L;
    * - Single kind: Search only that resource type
    * - Multiple kinds: Search specified types
    *
+   * &#64;internal
    * Invalid kinds are silently ignored (allows forward compatibility).
    * </pre>
    *
@@ -160,6 +156,7 @@ private static final long serialVersionUID = 0L;
    * - Single kind: Search only that resource type
    * - Multiple kinds: Search specified types
    *
+   * &#64;internal
    * Invalid kinds are silently ignored (allows forward compatibility).
    * </pre>
    *
@@ -181,6 +178,7 @@ private static final long serialVersionUID = 0L;
    * - Single kind: Search only that resource type
    * - Multiple kinds: Search specified types
    *
+   * &#64;internal
    * Invalid kinds are silently ignored (allows forward compatibility).
    * </pre>
    *
@@ -275,9 +273,9 @@ private static final long serialVersionUID = 0L;
    * Behavior:
    * - Empty: Search all organizations the caller has access to
    * - Non-empty: Search only within the specified organization
-   * Caller must have access to at least one resource in the org
    *
-   * Examples: "stigmer", "acme-corp", "my-org"
+   * &#64;internal
+   * Caller must have access to at least one resource in the org.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -305,9 +303,9 @@ private static final long serialVersionUID = 0L;
    * Behavior:
    * - Empty: Search all organizations the caller has access to
    * - Non-empty: Search only within the specified organization
-   * Caller must have access to at least one resource in the org
    *
-   * Examples: "stigmer", "acme-corp", "my-org"
+   * &#64;internal
+   * Caller must have access to at least one resource in the org.
    * </pre>
    *
    * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -632,19 +630,12 @@ private static final long serialVersionUID = 0L;
    * - Search: Find resources matching a text query
    * - Discover: Search across all resource kinds
    *
+   * &#64;internal
    * Examples:
-   *
-   * List agents in an organization:
-   * {kinds: [agent], org: "acme", query: ""}
-   *
-   * Search agents by text:
-   * {kinds: [agent], query: "code review"}
-   *
-   * Discover all resources matching a query:
-   * {kinds: [], query: "kubernetes"}
-   *
-   * Search multiple kinds:
-   * {kinds: [agent, skill], query: "security", org: "acme"}
+   * List agents in org:         {kinds: [agent], org: "acme", query: ""}
+   * Search agents by text:      {kinds: [agent], query: "code review"}
+   * Discover all:               {kinds: [], query: "kubernetes"}
+   * Search multiple kinds:      {kinds: [agent, skill], query: "security", org: "acme"}
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.search.v1.SearchRequest}
@@ -888,6 +879,7 @@ private static final long serialVersionUID = 0L;
      * - Single kind: Search only that resource type
      * - Multiple kinds: Search specified types
      *
+     * &#64;internal
      * Invalid kinds are silently ignored (allows forward compatibility).
      * </pre>
      *
@@ -908,6 +900,7 @@ private static final long serialVersionUID = 0L;
      * - Single kind: Search only that resource type
      * - Multiple kinds: Search specified types
      *
+     * &#64;internal
      * Invalid kinds are silently ignored (allows forward compatibility).
      * </pre>
      *
@@ -927,6 +920,7 @@ private static final long serialVersionUID = 0L;
      * - Single kind: Search only that resource type
      * - Multiple kinds: Search specified types
      *
+     * &#64;internal
      * Invalid kinds are silently ignored (allows forward compatibility).
      * </pre>
      *
@@ -947,6 +941,7 @@ private static final long serialVersionUID = 0L;
      * - Single kind: Search only that resource type
      * - Multiple kinds: Search specified types
      *
+     * &#64;internal
      * Invalid kinds are silently ignored (allows forward compatibility).
      * </pre>
      *
@@ -973,6 +968,7 @@ private static final long serialVersionUID = 0L;
      * - Single kind: Search only that resource type
      * - Multiple kinds: Search specified types
      *
+     * &#64;internal
      * Invalid kinds are silently ignored (allows forward compatibility).
      * </pre>
      *
@@ -997,6 +993,7 @@ private static final long serialVersionUID = 0L;
      * - Single kind: Search only that resource type
      * - Multiple kinds: Search specified types
      *
+     * &#64;internal
      * Invalid kinds are silently ignored (allows forward compatibility).
      * </pre>
      *
@@ -1023,6 +1020,7 @@ private static final long serialVersionUID = 0L;
      * - Single kind: Search only that resource type
      * - Multiple kinds: Search specified types
      *
+     * &#64;internal
      * Invalid kinds are silently ignored (allows forward compatibility).
      * </pre>
      *
@@ -1045,6 +1043,7 @@ private static final long serialVersionUID = 0L;
      * - Single kind: Search only that resource type
      * - Multiple kinds: Search specified types
      *
+     * &#64;internal
      * Invalid kinds are silently ignored (allows forward compatibility).
      * </pre>
      *
@@ -1066,6 +1065,7 @@ private static final long serialVersionUID = 0L;
      * - Single kind: Search only that resource type
      * - Multiple kinds: Search specified types
      *
+     * &#64;internal
      * Invalid kinds are silently ignored (allows forward compatibility).
      * </pre>
      *
@@ -1086,6 +1086,7 @@ private static final long serialVersionUID = 0L;
      * - Single kind: Search only that resource type
      * - Multiple kinds: Search specified types
      *
+     * &#64;internal
      * Invalid kinds are silently ignored (allows forward compatibility).
      * </pre>
      *
@@ -1111,6 +1112,7 @@ private static final long serialVersionUID = 0L;
      * - Single kind: Search only that resource type
      * - Multiple kinds: Search specified types
      *
+     * &#64;internal
      * Invalid kinds are silently ignored (allows forward compatibility).
      * </pre>
      *
@@ -1135,6 +1137,7 @@ private static final long serialVersionUID = 0L;
      * - Single kind: Search only that resource type
      * - Multiple kinds: Search specified types
      *
+     * &#64;internal
      * Invalid kinds are silently ignored (allows forward compatibility).
      * </pre>
      *
@@ -1310,9 +1313,9 @@ private static final long serialVersionUID = 0L;
      * Behavior:
      * - Empty: Search all organizations the caller has access to
      * - Non-empty: Search only within the specified organization
-     * Caller must have access to at least one resource in the org
      *
-     * Examples: "stigmer", "acme-corp", "my-org"
+     * &#64;internal
+     * Caller must have access to at least one resource in the org.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -1339,9 +1342,9 @@ private static final long serialVersionUID = 0L;
      * Behavior:
      * - Empty: Search all organizations the caller has access to
      * - Non-empty: Search only within the specified organization
-     * Caller must have access to at least one resource in the org
      *
-     * Examples: "stigmer", "acme-corp", "my-org"
+     * &#64;internal
+     * Caller must have access to at least one resource in the org.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -1369,9 +1372,9 @@ private static final long serialVersionUID = 0L;
      * Behavior:
      * - Empty: Search all organizations the caller has access to
      * - Non-empty: Search only within the specified organization
-     * Caller must have access to at least one resource in the org
      *
-     * Examples: "stigmer", "acme-corp", "my-org"
+     * &#64;internal
+     * Caller must have access to at least one resource in the org.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -1395,9 +1398,9 @@ private static final long serialVersionUID = 0L;
      * Behavior:
      * - Empty: Search all organizations the caller has access to
      * - Non-empty: Search only within the specified organization
-     * Caller must have access to at least one resource in the org
      *
-     * Examples: "stigmer", "acme-corp", "my-org"
+     * &#64;internal
+     * Caller must have access to at least one resource in the org.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>
@@ -1418,9 +1421,9 @@ private static final long serialVersionUID = 0L;
      * Behavior:
      * - Empty: Search all organizations the caller has access to
      * - Non-empty: Search only within the specified organization
-     * Caller must have access to at least one resource in the org
      *
-     * Examples: "stigmer", "acme-corp", "my-org"
+     * &#64;internal
+     * Caller must have access to at least one resource in the org.
      * </pre>
      *
      * <code>string org = 3 [json_name = "org", (.buf.validate.field) = { ... }</code>

@@ -9,10 +9,8 @@ package ai.stigmer.agentic.mcpserver.v1;
  * <pre>
  * DiscoveredTool describes a single tool reported by an MCP server.
  *
- * Maps directly to the MCP protocol's Tool type from tools/list:
- * - name: unique tool identifier within the server
- * - description: human-readable explanation of what the tool does
- * - input_schema: JSON Schema describing the tool's expected input
+ * &#64;internal
+ * Maps directly to the MCP protocol's Tool type from tools/list.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredTool}
@@ -161,9 +159,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * JSON Schema describing the tool's input parameters.
-   * Stored as a Struct for natural representation in YAML/JSON and to allow
-   * inspection without string parsing. This is the raw schema from the MCP
-   * server's tools/list response.
    * </pre>
    *
    * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
@@ -176,9 +171,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * JSON Schema describing the tool's input parameters.
-   * Stored as a Struct for natural representation in YAML/JSON and to allow
-   * inspection without string parsing. This is the raw schema from the MCP
-   * server's tools/list response.
    * </pre>
    *
    * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
@@ -191,9 +183,6 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * JSON Schema describing the tool's input parameters.
-   * Stored as a Struct for natural representation in YAML/JSON and to allow
-   * inspection without string parsing. This is the raw schema from the MCP
-   * server's tools/list response.
    * </pre>
    *
    * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
@@ -389,10 +378,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * DiscoveredTool describes a single tool reported by an MCP server.
    *
-   * Maps directly to the MCP protocol's Tool type from tools/list:
-   * - name: unique tool identifier within the server
-   * - description: human-readable explanation of what the tool does
-   * - input_schema: JSON Schema describing the tool's expected input
+   * &#64;internal
+   * Maps directly to the MCP protocol's Tool type from tools/list.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.mcpserver.v1.DiscoveredTool}
@@ -770,9 +757,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * JSON Schema describing the tool's input parameters.
-     * Stored as a Struct for natural representation in YAML/JSON and to allow
-     * inspection without string parsing. This is the raw schema from the MCP
-     * server's tools/list response.
      * </pre>
      *
      * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
@@ -784,9 +768,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * JSON Schema describing the tool's input parameters.
-     * Stored as a Struct for natural representation in YAML/JSON and to allow
-     * inspection without string parsing. This is the raw schema from the MCP
-     * server's tools/list response.
      * </pre>
      *
      * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
@@ -802,9 +783,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * JSON Schema describing the tool's input parameters.
-     * Stored as a Struct for natural representation in YAML/JSON and to allow
-     * inspection without string parsing. This is the raw schema from the MCP
-     * server's tools/list response.
      * </pre>
      *
      * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
@@ -825,9 +803,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * JSON Schema describing the tool's input parameters.
-     * Stored as a Struct for natural representation in YAML/JSON and to allow
-     * inspection without string parsing. This is the raw schema from the MCP
-     * server's tools/list response.
      * </pre>
      *
      * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
@@ -846,9 +821,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * JSON Schema describing the tool's input parameters.
-     * Stored as a Struct for natural representation in YAML/JSON and to allow
-     * inspection without string parsing. This is the raw schema from the MCP
-     * server's tools/list response.
      * </pre>
      *
      * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
@@ -874,9 +846,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * JSON Schema describing the tool's input parameters.
-     * Stored as a Struct for natural representation in YAML/JSON and to allow
-     * inspection without string parsing. This is the raw schema from the MCP
-     * server's tools/list response.
      * </pre>
      *
      * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
@@ -894,9 +863,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * JSON Schema describing the tool's input parameters.
-     * Stored as a Struct for natural representation in YAML/JSON and to allow
-     * inspection without string parsing. This is the raw schema from the MCP
-     * server's tools/list response.
      * </pre>
      *
      * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
@@ -909,9 +875,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * JSON Schema describing the tool's input parameters.
-     * Stored as a Struct for natural representation in YAML/JSON and to allow
-     * inspection without string parsing. This is the raw schema from the MCP
-     * server's tools/list response.
      * </pre>
      *
      * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>
@@ -927,9 +890,6 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * JSON Schema describing the tool's input parameters.
-     * Stored as a Struct for natural representation in YAML/JSON and to allow
-     * inspection without string parsing. This is the raw schema from the MCP
-     * server's tools/list response.
      * </pre>
      *
      * <code>.google.protobuf.Struct input_schema = 3 [json_name = "inputSchema"];</code>

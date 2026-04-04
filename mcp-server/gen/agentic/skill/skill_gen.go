@@ -8,12 +8,12 @@ import (
 	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource"
 )
 
-// SkillSpec defines the stored desired state of a skill.
+// SkillSpec defines the desired state of a skill.
 //
+//	@internal
 //	All fields are extracted from the skill artifact by the backend.
-//	This follows the Kubernetes spec pattern - contains user's desired state.
-//
-//	Note: Source/provenance information is NOT stored here - it's in SkillStatus
+//	This follows the Kubernetes spec pattern — contains user's desired state.
+//	Source/provenance information is NOT stored here — it's in SkillStatus
 //	as GitProvenance (observed state). See synth.proto for SDK input structure.
 type SkillInput struct {
 	// Human-readable name of the resource.

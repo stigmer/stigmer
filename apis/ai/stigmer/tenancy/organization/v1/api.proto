@@ -8,17 +8,19 @@ import "ai/stigmer/tenancy/organization/v1/spec.proto";
 import "buf/validate/validate.proto";
 
 // Organization is the top-level container for all Stigmer resources.
+//
+// @internal
 // Similar to GitHub organizations, all agents, workflows, sessions, and other
 // resources are scoped under an organization. This enables multi-tenancy and
 // proper resource isolation.
 message Organization {
-  // api-version (tenancy.stigmer.ai/v1)
+  // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = "tenancy.stigmer.ai/v1"];
 
-  // resource kind
+  // Resource kind identifier.
   string kind = 2 [(buf.validate.field).string.const = "Organization"];
 
-  // metadata
+  // Resource metadata including name, organization, and labels.
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [
     (buf.validate.field).required = true,
     (buf.validate.field).cel = {
@@ -40,9 +42,9 @@ message Organization {
     }
   ];
 
-  // spec
+  // Configurable properties: description, logo, and management mode.
   OrganizationSpec spec = 4;
 
-  // status
+  // System-managed audit state.
   ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
 }

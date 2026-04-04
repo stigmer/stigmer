@@ -411,7 +411,7 @@ func runSDKClientPythonGeneration(schemaDir, outputDir string) error {
 			continue
 		}
 		resource := strings.TrimSuffix(entry.Name(), ".json")
-		if resource == "search" {
+		if resource == "search" || resource == "commons" {
 			continue
 		}
 

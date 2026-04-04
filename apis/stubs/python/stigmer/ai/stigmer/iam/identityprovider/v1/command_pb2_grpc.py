@@ -43,17 +43,27 @@ class IdentityProviderCommandControllerServicer(object):
     """
 
     def apply(self, request, context):
-        """Create or update an identity provider (Kubernetes-style apply).
-        If the resource doesn't exist: creates a new identity provider.
-        If the resource exists: updates the existing identity provider.
+        """Create or update an identity provider.
+
+        If the resource does not exist, creates a new identity provider.
+        If the resource exists, updates the existing identity provider.
+
+        @internal
+        The authorization and state-operation are determined depending on whether the
+        identity provider is going to be created or updated, which is determined as
+        part of the request execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def create(self, request, context):
-        """Create a new identity provider.
+        """Create an identity provider.
+
         The creator's organization owns the identity provider.
+
+        @internal
+        Authorization: Requires can_create_idp permission in the organization.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -61,7 +71,9 @@ class IdentityProviderCommandControllerServicer(object):
 
     def update(self, request, context):
         """Update an existing identity provider.
-        Requires can_edit permission on the identity provider.
+
+        @internal
+        Authorization: Requires can_edit permission on the identity provider resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -69,7 +81,12 @@ class IdentityProviderCommandControllerServicer(object):
 
     def delete(self, request, context):
         """Delete an identity provider.
-        Deletion is blocked if any platform-managed organizations reference this identity provider.
+
+        Deletion is blocked if any platform-managed organizations reference this
+        identity provider.
+
+        @internal
+        Authorization: Requires can_delete permission on the identity provider resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

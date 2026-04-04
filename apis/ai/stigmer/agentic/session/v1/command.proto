@@ -12,11 +12,15 @@ service SessionCommandController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = session;
 
   // Create or update a session.
+  //
+  // @internal
   // The authorization and state-operation are determined depending on whether the session
   // is going to be created or updated which is determined as part of the request execution.
   rpc apply(Session) returns (Session);
 
-  // Create a new session for an agent.
+  // Create a session.
+  //
+  // @internal
   // Requires can_create_session permission in the organization.
   rpc create(Session) returns (Session) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;

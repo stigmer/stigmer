@@ -30,7 +30,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// AgentInstanceQueryController provides queries for retrieving agent instances.
+// AgentInstanceQueryController handles read operations for agent instances.
 type AgentInstanceQueryControllerClient interface {
 	// Get a single agent instance by ID.
 	Get(ctx context.Context, in *AgentInstanceId, opts ...grpc.CallOption) (*AgentInstance, error)
@@ -106,7 +106,7 @@ func (c *agentInstanceQueryControllerClient) List(ctx context.Context, in *ListA
 // All implementations should embed UnimplementedAgentInstanceQueryControllerServer
 // for forward compatibility.
 //
-// AgentInstanceQueryController provides queries for retrieving agent instances.
+// AgentInstanceQueryController handles read operations for agent instances.
 type AgentInstanceQueryControllerServer interface {
 	// Get a single agent instance by ID.
 	Get(context.Context, *AgentInstanceId) (*AgentInstance, error)

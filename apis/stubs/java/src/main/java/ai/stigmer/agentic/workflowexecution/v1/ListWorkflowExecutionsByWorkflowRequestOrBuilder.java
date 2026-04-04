@@ -14,19 +14,8 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
    * <pre>
    * Workflow or WorkflowInstance ID to filter by.
    *
-   * Can be either:
-   * - Workflow ID (wf-{slug}): Lists all executions of any instance
-   * - WorkflowInstance ID (wfi-{slug}): Lists executions of specific instance
-   *
-   * Examples:
-   * - "wf-customer-onboarding" (all instances: prod, dev, staging)
-   * - "wfi-customer-onboarding-prod" (only prod instance)
-   *
-   * Validation: Required field, cannot be empty
-   *
-   * Error Cases:
-   * - NOT_FOUND: No Workflow/WorkflowInstance with this ID exists
-   * - PERMISSION_DENIED: User doesn't have access to this Workflow/WorkflowInstance
+   * &#64;internal
+   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -37,19 +26,8 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
    * <pre>
    * Workflow or WorkflowInstance ID to filter by.
    *
-   * Can be either:
-   * - Workflow ID (wf-{slug}): Lists all executions of any instance
-   * - WorkflowInstance ID (wfi-{slug}): Lists executions of specific instance
-   *
-   * Examples:
-   * - "wf-customer-onboarding" (all instances: prod, dev, staging)
-   * - "wfi-customer-onboarding-prod" (only prod instance)
-   *
-   * Validation: Required field, cannot be empty
-   *
-   * Error Cases:
-   * - NOT_FOUND: No Workflow/WorkflowInstance with this ID exists
-   * - PERMISSION_DENIED: User doesn't have access to this Workflow/WorkflowInstance
+   * &#64;internal
+   * Can be either a Workflow ID (wf_{slug}) or WorkflowInstance ID (wfi_{slug}).
    * </pre>
    *
    * <code>string workflow_id = 1 [json_name = "workflowId", (.buf.validate.field) = { ... }</code>
@@ -62,10 +40,8 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
    * <pre>
    * Maximum number of executions to return per page.
    *
-   * Default: 50 (if not specified or 0)
-   * Maximum: 100 (backend enforces this limit)
-   *
-   * Example: page_size=20 returns up to 20 executions
+   * &#64;internal
+   * Default: 50. Maximum: 100 (backend enforces this limit).
    * </pre>
    *
    * <code>int32 page_size = 2 [json_name = "pageSize"];</code>
@@ -75,14 +51,7 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
 
   /**
    * <pre>
-   * Token for pagination, obtained from previous response.
-   *
-   * Same pagination semantics as ListWorkflowExecutionsRequest.page_token.
-   *
-   * Example:
-   * Request 1: { workflow_id: "wfi-prod", page_size: 50 }
-   * Response 1: { entries: [...], page_token: "abc123" }
-   * Request 2: { workflow_id: "wfi-prod", page_size: 50, page_token: "abc123" }
+   * Opaque pagination token from a previous response.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>
@@ -91,14 +60,7 @@ public interface ListWorkflowExecutionsByWorkflowRequestOrBuilder extends
   java.lang.String getPageToken();
   /**
    * <pre>
-   * Token for pagination, obtained from previous response.
-   *
-   * Same pagination semantics as ListWorkflowExecutionsRequest.page_token.
-   *
-   * Example:
-   * Request 1: { workflow_id: "wfi-prod", page_size: 50 }
-   * Response 1: { entries: [...], page_token: "abc123" }
-   * Request 2: { workflow_id: "wfi-prod", page_size: 50, page_token: "abc123" }
+   * Opaque pagination token from a previous response.
    * </pre>
    *
    * <code>string page_token = 3 [json_name = "pageToken"];</code>

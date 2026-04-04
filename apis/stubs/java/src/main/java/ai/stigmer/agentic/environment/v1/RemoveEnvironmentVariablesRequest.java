@@ -108,7 +108,7 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
    * <pre>
-   * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+   * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
    * </pre>
    *
    * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -120,7 +120,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+   * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
    * </pre>
    *
    * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -131,7 +131,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+   * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
    * </pre>
    *
    * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -143,7 +143,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+   * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
    * </pre>
    *
    * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -593,7 +593,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+     * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
      * </pre>
      *
      * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -606,7 +606,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+     * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
      * </pre>
      *
      * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -617,7 +617,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+     * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
      * </pre>
      *
      * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -629,7 +629,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+     * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
      * </pre>
      *
      * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -642,7 +642,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+     * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
      * </pre>
      *
      * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -661,7 +661,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+     * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
      * </pre>
      *
      * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -679,7 +679,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+     * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
      * </pre>
      *
      * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -697,7 +697,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+     * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
      * </pre>
      *
      * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -712,7 +712,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+     * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
      * </pre>
      *
      * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>

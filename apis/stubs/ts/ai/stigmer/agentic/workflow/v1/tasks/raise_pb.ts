@@ -15,10 +15,9 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_raise: GenFile = /*@__PUR
   fileDesc("CjBhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvcmFpc2UucHJvdG8SJGFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcyJiCg9SYWlzZVRhc2tDb25maWcSHQoFZXJyb3IYASABKAlCDrpIB8gBAXICEAHYhSwBEh8KB21lc3NhZ2UYAiABKAlCDrpIB8gBAXICEAHYhSwBOg/qiywLcmFpc2VfZXJyb3JiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
- * RaiseTaskConfig defines the configuration for RAISE tasks.
+ * RaiseTaskConfig defines the configuration for raise_error tasks that raise errors.
  *
- * RAISE tasks raise errors/exceptions, terminating workflow execution.
- *
+ * @internal
  * YAML Example:
  *   - taskName:
  *       raise:

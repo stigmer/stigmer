@@ -65,13 +65,13 @@ type IamPolicyCommandControllerClient interface {
 	// Example:
 	// Input:
 	//
-	//	principal: {kind: "identity_account", id: "ia-alice-123"}
-	//	resource: {kind: "organization", id: "org-demo-456"}
+	//	principal: {kind: "identity_account", id: "ia_alice-123"}
+	//	resource: {kind: "organization", id: "org_demo-456"}
 	//	relation: "viewer"
 	//
 	// Result:
 	//
-	//	Created IamPolicy with auto-generated ID (e.g., "iamp-01HQ...")
+	//	Created IamPolicy with auto-generated ID (e.g., "iamp_01HQ...")
 	//	Alice can view (but not modify) the organization
 	//
 	// Input: IamPolicySpec containing principal, resource, and relation
@@ -100,8 +100,8 @@ type IamPolicyCommandControllerClient interface {
 	// Example:
 	// Input:
 	//
-	//	principal: {kind: "identity_account", id: "ia-alice-123"}
-	//	resource: {kind: "organization", id: "org-demo-456"}
+	//	principal: {kind: "identity_account", id: "ia_alice-123"}
+	//	resource: {kind: "organization", id: "org_demo-456"}
 	//	relation: "viewer"
 	//
 	// Result: The policy granting Alice viewer access to the organization is deleted
@@ -137,8 +137,8 @@ type IamPolicyCommandControllerClient interface {
 	// Example:
 	// Input:
 	//
-	//	principal: {kind: "organization", id: "org-demo-123"}
-	//	resource: {kind: "agent", id: "agt-abc-456"}
+	//	principal: {kind: "organization", id: "org_demo-123"}
+	//	resource: {kind: "agent", id: "agt_abc-456"}
 	//	relation: "organization"
 	//
 	// Result:
@@ -178,8 +178,8 @@ type IamPolicyCommandControllerClient interface {
 	// - Maintaining authorization system integrity
 	//
 	// Example:
-	// Input: {kind: "organization", id: "org-demo-123"}
-	// Result: All policies referencing org-demo-123 are deleted
+	// Input: {kind: "organization", id: "org_demo-123"}
+	// Result: All policies referencing org_demo-123 are deleted
 	//
 	// Input: ApiResourceRef with resource kind and ID
 	// Output: Empty (google.protobuf.Empty)
@@ -273,13 +273,13 @@ type IamPolicyCommandControllerServer interface {
 	// Example:
 	// Input:
 	//
-	//	principal: {kind: "identity_account", id: "ia-alice-123"}
-	//	resource: {kind: "organization", id: "org-demo-456"}
+	//	principal: {kind: "identity_account", id: "ia_alice-123"}
+	//	resource: {kind: "organization", id: "org_demo-456"}
 	//	relation: "viewer"
 	//
 	// Result:
 	//
-	//	Created IamPolicy with auto-generated ID (e.g., "iamp-01HQ...")
+	//	Created IamPolicy with auto-generated ID (e.g., "iamp_01HQ...")
 	//	Alice can view (but not modify) the organization
 	//
 	// Input: IamPolicySpec containing principal, resource, and relation
@@ -308,8 +308,8 @@ type IamPolicyCommandControllerServer interface {
 	// Example:
 	// Input:
 	//
-	//	principal: {kind: "identity_account", id: "ia-alice-123"}
-	//	resource: {kind: "organization", id: "org-demo-456"}
+	//	principal: {kind: "identity_account", id: "ia_alice-123"}
+	//	resource: {kind: "organization", id: "org_demo-456"}
 	//	relation: "viewer"
 	//
 	// Result: The policy granting Alice viewer access to the organization is deleted
@@ -345,8 +345,8 @@ type IamPolicyCommandControllerServer interface {
 	// Example:
 	// Input:
 	//
-	//	principal: {kind: "organization", id: "org-demo-123"}
-	//	resource: {kind: "agent", id: "agt-abc-456"}
+	//	principal: {kind: "organization", id: "org_demo-123"}
+	//	resource: {kind: "agent", id: "agt_abc-456"}
 	//	relation: "organization"
 	//
 	// Result:
@@ -386,8 +386,8 @@ type IamPolicyCommandControllerServer interface {
 	// - Maintaining authorization system integrity
 	//
 	// Example:
-	// Input: {kind: "organization", id: "org-demo-123"}
-	// Result: All policies referencing org-demo-123 are deleted
+	// Input: {kind: "organization", id: "org_demo-123"}
+	// Result: All policies referencing org_demo-123 are deleted
 	//
 	// Input: ApiResourceRef with resource kind and ID
 	// Output: Empty (google.protobuf.Empty)

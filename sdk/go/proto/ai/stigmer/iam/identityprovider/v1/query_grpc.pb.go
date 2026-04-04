@@ -31,11 +31,18 @@ const (
 // IdentityProviderQueryController provides read operations for identity providers.
 type IdentityProviderQueryControllerClient interface {
 	// Get an identity provider by its unique identifier.
-	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*IdentityProvider, error)
-	// Get an identity provider by reference (org + slug).
 	//
 	// @internal
-	// Custom authorization in handler.
+	// Authorization: Requires can_view permission on the identity provider resource.
+	Get(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*IdentityProvider, error)
+	// Get an identity provider by its organization-scoped reference (org/slug).
+	//
+	// Resolves a human-readable reference like "acme/planton-cloud" to the full
+	// IdentityProvider resource.
+	//
+	// @internal
+	// Custom authorization in handler — checks both direct resource access
+	// and organization-level visibility permissions.
 	GetByReference(ctx context.Context, in *apiresource.ApiResourceReference, opts ...grpc.CallOption) (*IdentityProvider, error)
 }
 
@@ -74,11 +81,18 @@ func (c *identityProviderQueryControllerClient) GetByReference(ctx context.Conte
 // IdentityProviderQueryController provides read operations for identity providers.
 type IdentityProviderQueryControllerServer interface {
 	// Get an identity provider by its unique identifier.
-	Get(context.Context, *apiresource.ApiResourceId) (*IdentityProvider, error)
-	// Get an identity provider by reference (org + slug).
 	//
 	// @internal
-	// Custom authorization in handler.
+	// Authorization: Requires can_view permission on the identity provider resource.
+	Get(context.Context, *apiresource.ApiResourceId) (*IdentityProvider, error)
+	// Get an identity provider by its organization-scoped reference (org/slug).
+	//
+	// Resolves a human-readable reference like "acme/planton-cloud" to the full
+	// IdentityProvider resource.
+	//
+	// @internal
+	// Custom authorization in handler — checks both direct resource access
+	// and organization-level visibility permissions.
 	GetByReference(context.Context, *apiresource.ApiResourceReference) (*IdentityProvider, error)
 }
 

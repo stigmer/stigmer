@@ -51,8 +51,8 @@ func TestAgentCreatePipeline_Integration(t *testing.T) {
 	if agent.Metadata.Id == "" {
 		t.Errorf("Expected ID to be generated")
 	}
-	if !strings.HasPrefix(agent.Metadata.Id, "agt-") {
-		t.Errorf("Expected ID to start with 'agt-', got %q", agent.Metadata.Id)
+	if !strings.HasPrefix(agent.Metadata.Id, "agt_") {
+		t.Errorf("Expected ID to start with 'agt_', got %q", agent.Metadata.Id)
 	}
 
 	// Verify audit fields

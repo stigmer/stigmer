@@ -20,15 +20,18 @@ export const file_ai_stigmer_agentic_environment_v1_command: GenFile = /*@__PURE
   fileDesc("Ci9haS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvY29tbWFuZC5wcm90bxIhYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxMsEIChxFbnZpcm9ubWVudENvbW1hbmRDb250cm9sbGVyEmcKBWFwcGx5Ei4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50ErkBCgZjcmVhdGUSLi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnQaLi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnQiT8K4GEsIGxAeIgxtZXRhZGF0YS5vcmcqN3VuYXV0aG9yaXplZCB0byBjcmVhdGUgZW52aXJvbm1lbnQgaW4gdGhpcyBvcmdhbml6YXRpb24SowEKBnVwZGF0ZRIuLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudBouLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudCI5wrgYNQgEEDUiC21ldGFkYXRhLmlkKiJ1bmF1dGhvcml6ZWQgdG8gdXBkYXRlIGVudmlyb25tZW50EqsBCgZkZWxldGUSNi5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VEZWxldGVJbnB1dBouLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudCI5wrgYNQgEEDUiC21ldGFkYXRhLmlkKiJ1bmF1dGhvcml6ZWQgdG8gZGVsZXRlIGVudmlyb25tZW50Es8BCg91cGRhdGVWYXJpYWJsZXMSRC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuVXBkYXRlRW52aXJvbm1lbnRWYXJpYWJsZXNSZXF1ZXN0Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50IkbCuBhCCAQQNSIOZW52aXJvbm1lbnRfaWQqLHVuYXV0aG9yaXplZCB0byB1cGRhdGUgZW52aXJvbm1lbnQgdmFyaWFibGVzEs8BCg9yZW1vdmVWYXJpYWJsZXMSRC5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuUmVtb3ZlRW52aXJvbm1lbnRWYXJpYWJsZXNSZXF1ZXN0Gi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50IkbCuBhCCAQQNSIOZW52aXJvbm1lbnRfaWQqLHVuYXV0aG9yaXplZCB0byByZW1vdmUgZW52aXJvbm1lbnQgdmFyaWFibGVzGgSg/ys1YgZwcm90bzM", [file_ai_stigmer_agentic_environment_v1_api, file_ai_stigmer_agentic_environment_v1_io, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
- * EnvironmentCommandController provides write operations for Environment resources.
+ * EnvironmentCommandController handles write operations for environments.
  *
  * @generated from service ai.stigmer.agentic.environment.v1.EnvironmentCommandController
  */
 export const EnvironmentCommandController: GenService<{
   /**
-   * Create or update an Environment resource.
-   * The authorization and state-operation are determined depending on whether the environment
-   * is going to be created or updated which is determined as part of the request execution.
+   * Create or update an environment.
+   *
+   * @internal
+   * The authorization and state-operation are determined depending on whether the
+   * environment is going to be created or updated, which is resolved as part of
+   * the request execution.
    *
    * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.apply
    */
@@ -38,7 +41,14 @@ export const EnvironmentCommandController: GenService<{
     output: typeof EnvironmentSchema;
   },
   /**
-   * Create a new Environment resource.
+   * Create an environment.
+   *
+   * @internal
+   * Authorization:
+   * - Organization-scoped environments: Caller must have can_create_environment
+   *   permission in the organization.
+   * - Platform-scoped environments: Caller must be a platform operator
+   *   (handled automatically by common auth step).
    *
    * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.create
    */
@@ -48,7 +58,10 @@ export const EnvironmentCommandController: GenService<{
     output: typeof EnvironmentSchema;
   },
   /**
-   * Update an existing Environment resource.
+   * Update an existing environment.
+   *
+   * @internal
+   * Authorization: requires can_edit permission on the environment resource.
    *
    * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.update
    */
@@ -58,7 +71,10 @@ export const EnvironmentCommandController: GenService<{
     output: typeof EnvironmentSchema;
   },
   /**
-   * Delete an Environment resource.
+   * Delete an environment.
+   *
+   * @internal
+   * Authorization: requires can_edit permission on the environment resource.
    *
    * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.delete
    */
@@ -68,8 +84,12 @@ export const EnvironmentCommandController: GenService<{
     output: typeof EnvironmentSchema;
   },
   /**
-   * Add or update specific variables in an environment (server-side merge).
+   * Add or update specific variables in an environment.
    * Existing variables not included in the request are preserved unchanged.
+   *
+   * @internal
+   * Authorization: requires can_edit permission on the environment resource.
+   * Server-side merge — secret values are re-encrypted on write.
    *
    * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.updateVariables
    */
@@ -80,7 +100,10 @@ export const EnvironmentCommandController: GenService<{
   },
   /**
    * Remove specific variables from an environment by key.
-   * Keys that don't exist are silently ignored.
+   * Keys that do not exist are silently ignored.
+   *
+   * @internal
+   * Authorization: requires can_edit permission on the environment resource.
    *
    * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentCommandController.removeVariables
    */

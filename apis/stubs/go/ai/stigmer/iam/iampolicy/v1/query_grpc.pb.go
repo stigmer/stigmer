@@ -32,6 +32,11 @@ const (
 // IamPolicyQueryController handles read operations for IAM policies.
 type IamPolicyQueryControllerClient interface {
 	// Get an IAM policy by its unique identifier.
+	//
+	// Returns the full IAM policy including its principal, resource, and relation binding.
+	//
+	// @internal
+	// Authorization: Requires can_view_access permission.
 	Get(ctx context.Context, in *IamPolicyId, opts ...grpc.CallOption) (*IamPolicy, error)
 	// Check if a principal is authorized to perform a relation on a resource
 	//
@@ -133,6 +138,11 @@ func (c *iamPolicyQueryControllerClient) ListAuthorizedPrincipalIds(ctx context.
 // IamPolicyQueryController handles read operations for IAM policies.
 type IamPolicyQueryControllerServer interface {
 	// Get an IAM policy by its unique identifier.
+	//
+	// Returns the full IAM policy including its principal, resource, and relation binding.
+	//
+	// @internal
+	// Authorization: Requires can_view_access permission.
 	Get(context.Context, *IamPolicyId) (*IamPolicy, error)
 	// Check if a principal is authorized to perform a relation on a resource
 	//

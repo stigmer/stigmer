@@ -12,9 +12,9 @@ export const file_ai_stigmer_agentic_session_v1_enum: GenFile = /*@__PURE__*/
   fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS9lbnVtLnByb3RvEh1haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MSpZChBHaXRXcml0ZUJhY2tNb2RlEiMKH0dJVF9XUklURV9CQUNLX01PREVfVU5TUEVDSUZJRUQQABIgChxHSVRfV1JJVEVfQkFDS19CUkFOQ0hfQU5EX1BSEAFiBnByb3RvMw");
 
 /**
- * GitWriteBackMode controls the platform's git workflow for a
- * git-backed workspace entry.
+ * GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
  *
+ * @internal
  * The platform enables write-back by default when credentials are
  * available. Users can override this per-session by setting an
  * explicit mode. The agent never sees or controls this setting.
@@ -23,24 +23,24 @@ export const file_ai_stigmer_agentic_session_v1_enum: GenFile = /*@__PURE__*/
  */
 export enum GitWriteBackMode {
   /**
-   * Platform default. Currently treated as write-back enabled when git
-   * credentials are available. Artifacts are still published as
-   * downloadable files regardless of this setting.
-   * Set an explicit mode to override the platform default.
+   * Platform default behavior — write-back is enabled when git credentials are available.
+   *
+   * @internal
+   * Artifacts are still published as downloadable files regardless of this
+   * setting. Set an explicit mode to override the platform default.
    *
    * @generated from enum value: GIT_WRITE_BACK_MODE_UNSPECIFIED = 0;
    */
   GIT_WRITE_BACK_MODE_UNSPECIFIED = 0,
 
   /**
-   * After execution completes, the platform automatically:
-   *   1. Detects uncommitted changes via `git diff`
-   *   2. Creates a branch (stigmer/{execution_id_short})
-   *   3. Commits all changes
-   *   4. Pushes the branch to the remote
-   *   5. Creates a pull request targeting the original branch
+   * Create a branch and pull request from the agent's file changes after execution completes.
    *
-   * The write-back outcome is recorded in
+   * @internal
+   * The platform automatically detects uncommitted changes via git diff,
+   * creates a branch (stigmer/{execution_id_short}), commits all changes,
+   * pushes the branch to the remote, and creates a pull request targeting
+   * the original branch. The write-back outcome is recorded in
    * AgentExecutionStatus.workspace_write_backs.
    *
    * @generated from enum value: GIT_WRITE_BACK_BRANCH_AND_PR = 1;

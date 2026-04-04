@@ -22,15 +22,18 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ExecutionContextSpec defines ephemeral runtime configuration and secrets.
-// This is created during execution and deleted when execution completes.
+// Runtime configuration and secrets for a single execution.
+//
+// @internal
+// Created by the execution engine, deleted when execution completes.
 type ExecutionContextSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The execution ID this context belongs to.
-	// This is typically a WorkflowExecution ID or AgentExecution ID.
+	// ID of the parent AgentExecution or WorkflowExecution.
 	ExecutionId string `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
-	// Key-value pairs containing both configuration and secrets.
-	// These are provided at runtime and only exist for the duration of the execution.
+	// Runtime key-value pairs, each marked as secret or plaintext.
+	//
+	// @internal
+	// Provided at runtime and only exist for the duration of the execution.
 	// Example: {"AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
 	Data          map[string]*ExecutionValue `protobuf:"bytes,2,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
@@ -81,21 +84,21 @@ func (x *ExecutionContextSpec) GetData() map[string]*ExecutionValue {
 	return nil
 }
 
-// ExecutionValue represents a single runtime configuration or secret value.
+// A single runtime configuration or secret value.
 type ExecutionValue struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The actual value.
-	// - If is_secret=true: This value is encrypted at rest and redacted in logs
-	// - If is_secret=false: This value is stored as plaintext
+	// String content of this entry.
+	//
+	// @internal
+	// If is_secret=true: encrypted at rest and redacted in logs.
+	// If is_secret=false: stored as plaintext.
 	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	// Whether this value should be treated as a secret.
-	// When true:
-	// - Value is encrypted at rest
-	// - Value is redacted in logs
-	// - Value is deleted when execution completes
-	// When false:
-	// - Value is stored as plaintext
-	// - Value is visible in audit logs
+	//
+	// @internal
+	// When true: value is encrypted at rest, redacted in logs, and deleted
+	// when execution completes.
+	// When false: value is stored as plaintext and visible in audit logs.
 	IsSecret      bool `protobuf:"varint,2,opt,name=is_secret,json=isSecret,proto3" json:"is_secret,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

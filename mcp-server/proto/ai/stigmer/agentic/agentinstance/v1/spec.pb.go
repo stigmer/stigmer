@@ -23,16 +23,20 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// AgentInstanceSpec defines a configured deployment of an Agent template.
-// This is the "Instance" layer - stateful configuration with secrets.
+// AgentInstanceSpec defines the configurable properties of an agent instance.
+//
+// @internal
+// This is the "Instance" layer — stateful configuration with secrets.
+// The overview.md file provides the SDK-facing description and example YAML.
 type AgentInstanceSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Reference to the Agent template this instance deploys.
+	// Identifier of the Agent template this instance deploys.
 	AgentId string `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
-	// Human-readable description for this instance.
-	// Example: "Production GitHub bot for main repo"
+	// Human-readable description for UI and API display.
 	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	// References to Environment resources (can be multiple).
+	// References to Environment resources providing secrets and configuration at runtime.
+	//
+	// @internal
 	// Environments are merged in order: later environments override earlier ones.
 	// Example: [base-env, aws-prod-env, github-team-env]
 	// This allows layering of configurations (base → specific overrides).

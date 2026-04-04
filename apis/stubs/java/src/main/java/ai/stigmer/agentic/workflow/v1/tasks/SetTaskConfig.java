@@ -7,10 +7,9 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * SetTaskConfig defines the configuration for SET tasks.
+ * SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state.
  *
- * SET tasks assign variables in workflow state.
- *
+ * &#64;internal
  * YAML Example:
  * - taskName:
  * set:
@@ -348,10 +347,9 @@ java.lang.String defaultValue) {
   }
   /**
    * <pre>
-   * SetTaskConfig defines the configuration for SET tasks.
+   * SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state.
    *
-   * SET tasks assign variables in workflow state.
-   *
+   * &#64;internal
    * YAML Example:
    * - taskName:
    * set:

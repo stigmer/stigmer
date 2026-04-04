@@ -12,12 +12,48 @@ import (
 	"unicode"
 )
 
+// MethodTypeSchema describes a proto message type used as a method parameter
+// or return value, extracted by proto2schema for SDK documentation.
+type MethodTypeSchema struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	ProtoType   string         `json:"protoType"`
+	ProtoFile   string         `json:"protoFile"`
+	Fields      []*FieldSchema `json:"fields"`
+}
+
+// EnumSchema describes a proto enum type referenced by resource fields.
+type EnumSchema struct {
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	ProtoType   string            `json:"protoType"`
+	Values      []EnumValueSchema `json:"values"`
+}
+
+// EnumValueSchema describes a single value within a proto enum.
+type EnumValueSchema struct {
+	Name        string `json:"name"`
+	Number      int32  `json:"number"`
+	Description string `json:"description"`
+}
+
+// CommonsSchemaFile holds shared types and enums from the commons package.
+type CommonsSchemaFile struct {
+	MessageTypes []MethodTypeSchema `json:"messageTypes"`
+	EnumTypes    []EnumSchema       `json:"enumTypes"`
+}
+
 type ServiceSchemaFile struct {
-	Resource     string              `json:"resource"`
-	Package      string              `json:"package"`
-	GoImportPath string              `json:"goImportPath"`
-	Services     []ServiceDefinition `json:"services"`
-	ListVia      string              `json:"listVia,omitempty"`
+	Resource            string              `json:"resource"`
+	Package             string              `json:"package"`
+	GoImportPath        string              `json:"goImportPath"`
+	Services            []ServiceDefinition `json:"services"`
+	ListVia             string              `json:"listVia,omitempty"`
+	MethodTypes         []MethodTypeSchema  `json:"methodTypes,omitempty"`
+	EnumTypes           []EnumSchema        `json:"enumTypes,omitempty"`
+	ResourceDescription string              `json:"resourceDescription,omitempty"`
+	StatusType          *MethodTypeSchema   `json:"statusType,omitempty"`
+	StatusNestedTypes   []MethodTypeSchema  `json:"statusNestedTypes,omitempty"`
 }
 
 type ServiceDefinition struct {
@@ -44,6 +80,7 @@ type sdkResourceConfig struct {
 	idType       string
 	specSchema   string
 	apiVersion   string
+	idPrefix     string
 }
 
 // metaFieldNames are fields that always come from ApiResourceMetadata.
@@ -88,7 +125,7 @@ func runSDKClientGeneration(schemaDir, outputDir string) error {
 			continue
 		}
 		resource := strings.TrimSuffix(entry.Name(), ".json")
-		if resource == "search" {
+		if resource == "search" || resource == "commons" {
 			continue
 		}
 

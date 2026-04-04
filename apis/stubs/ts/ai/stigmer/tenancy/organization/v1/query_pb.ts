@@ -22,14 +22,16 @@ export const file_ai_stigmer_tenancy_organization_v1_query: GenFile = /*@__PURE_
   fileDesc("Ci5haS9zdGlnbWVyL3RlbmFuY3kvb3JnYW5pemF0aW9uL3YxL3F1ZXJ5LnByb3RvEiJhaS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxMrkEChtPcmdhbml6YXRpb25RdWVyeUNvbnRyb2xsZXISnwEKA2dldBIyLmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uSWQaMC5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbiIywrgYLggDEB4iBXZhbHVlKiF1bmF1dGhvcml6ZWQgdG8gdmlldyBvcmdhbml6YXRpb24SewoEZmluZBI3LmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5GaW5kQXBpUmVzb3VyY2VzUmVxdWVzdBo0LmFpLnN0aWdtZXIudGVuYW5jeS5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uTGlzdCIE0LgYARJmChNmaW5kTXlPcmdhbml6YXRpb25zEhYuZ29vZ2xlLnByb3RvYnVmLkVtcHR5GjEuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb25zIgTQuBgBEowBChJnZXRCeUV4dGVybmFsT3JnSWQSPi5haS5zdGlnbWVyLnRlbmFuY3kub3JnYW5pemF0aW9uLnYxLk9yZ2FuaXphdGlvbkV4dGVybmFsTG9va3VwGjAuYWkuc3RpZ21lci50ZW5hbmN5Lm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb24iBNC4GAEaBKD/Kx5iBnByb3RvMw", [file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options, file_ai_stigmer_tenancy_organization_v1_api, file_ai_stigmer_tenancy_organization_v1_io, file_google_protobuf_empty]);
 
 /**
- * OrganizationQueryController provides read operations for organizations
+ * OrganizationQueryController handles read operations for organizations.
  *
  * @generated from service ai.stigmer.tenancy.organization.v1.OrganizationQueryController
  */
 export const OrganizationQueryController: GenService<{
   /**
-   * Get an organization by ID
-   * Requires: User must be a member of the organization (can_view)
+   * Get an organization by ID.
+   *
+   * @internal
+   * Authorization: Requires can_view permission on the organization.
    *
    * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.get
    */
@@ -39,9 +41,10 @@ export const OrganizationQueryController: GenService<{
     output: typeof OrganizationSchema;
   },
   /**
-   * Find organizations with pagination and filtering
-   * Requires: Platform admin permission
-   * This is for administrative purposes only
+   * List organizations with pagination and filtering.
+   *
+   * @internal
+   * Authorization: Requires platform admin permission. Administrative use only.
    *
    * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationQueryController.find
    */

@@ -9,9 +9,11 @@ import (
 	apiresourcekind "github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
-// AgentInstanceSpec defines a configured deployment of an Agent template.
+// AgentInstanceSpec defines the configurable properties of an agent instance.
 //
-//	This is the "Instance" layer - stateful configuration with secrets.
+//	@internal
+//	This is the "Instance" layer — stateful configuration with secrets.
+//	The overview.md file provides the SDK-facing description and example YAML.
 type AgentInstanceInput struct {
 	// Human-readable name of the resource.
 	Name string `json:"name" jsonschema:"Human-readable name of the resource."`
@@ -26,12 +28,12 @@ type AgentInstanceInput struct {
 	// Tags for categorization and discovery.
 	Tags []string `json:"tags,omitempty" jsonschema:"Tags for categorization and discovery."`
 
-	// Reference to the Agent template this instance deploys.
-	AgentId string `json:"agent_id,omitempty" jsonschema:"Reference to the Agent template this instance deploys."`
-	// Human-readable description for this instance. Example: "Production GitHub bot for main repo"
-	Description string `json:"description,omitempty" jsonschema:"Human-readable description for this instance. Example: 'Production GitHub bot for main repo'"`
-	// References to Environment resources (can be multiple). Environments are merged in order: later environments override earlier ones. Example: [base-env, aws-prod-env, github-team-env] This allows layering of configurations (base → specific overrides).
-	EnvironmentRefs []ApiResourceReferenceInput `json:"environment_refs,omitempty" jsonschema:"References to Environment resources (can be multiple). Environments are merged in order: later environments override earlier ones. Example: [base-env, aws-prod-env, github-team-env] This allows layering of configurations (base → specific overrides)."`
+	// Identifier of the Agent template this instance deploys.
+	AgentId string `json:"agent_id,omitempty" jsonschema:"Identifier of the Agent template this instance deploys."`
+	// Human-readable description for UI and API display.
+	Description string `json:"description,omitempty" jsonschema:"Human-readable description for UI and API display."`
+	// References to Environment resources providing secrets and configuration at runtime. @internal Environments are merged in order: later environments override earlier ones. Example: [base-env, aws-prod-env, github-team-env] This allows layering of configurations (base → specific overrides).
+	EnvironmentRefs []ApiResourceReferenceInput `json:"environment_refs,omitempty" jsonschema:"References to Environment resources providing secrets and configuration at runtime. @internal Environments are merged in order: later environments override earlier ones. Example: [base-env, aws-prod-env, github-team-env] This allows layering of configurations (base → specific overrides)."`
 }
 
 // Generic reference to any API resource by org and slug. Used across resources to reference other resources (e.g., Environment, Agent, Skill). Canonical format: "org/slug" (e.g., "stigmer/web-search", "acme/my-agent").

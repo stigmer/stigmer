@@ -15,10 +15,7 @@ from ai.stigmer.agentic.agentexecution.v1.enum_pb2 import (
     ToolCallStatus,
     ToolCallStreamingSource,
 )
-from ai.stigmer.agentic.agentexecution.v1.message_pb2 import (
-    ComponentMetadata,
-    ToolCall,
-)
+from ai.stigmer.agentic.agentexecution.v1.message_pb2 import ToolCall
 from ai.stigmer.agentic.agentexecution.v1.subagent_pb2 import SubAgentExecution
 from ai.stigmer.agentic.agentexecution.v1.todo_pb2 import TodoItem
 from google.protobuf.struct_pb2 import Struct
@@ -34,7 +31,6 @@ from worker.activities.graphton.approval_policy import (
     resolve_tool_approval,
 )
 from worker.activities.graphton.handlers import formatting
-from worker.component_type_inference import infer_component_type
 
 if TYPE_CHECKING:
     from worker.activities.graphton.status_builder import StatusBuilder
@@ -111,10 +107,6 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
                 args_preview=create_args_preview(sb, tool_args),
                 result="",
                 status=ToolCallStatus.TOOL_CALL_RUNNING,
-                component_metadata=ComponentMetadata(
-                    component_type=infer_component_type(tool_name),
-                    component_group="main-agent-tools",
-                ),
                 started_at=_utc_timestamp(now),
             )
             parent_ai = sb._ensure_parent_ai_message(ns_key, namespace)
@@ -132,12 +124,6 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
         return
 
     resolved_id = sb._tool_call_id_capture.resolve(run_id)
-
-    component_type = infer_component_type(tool_name)
-    component_metadata = ComponentMetadata(
-        component_type=component_type,
-        component_group="main-agent-tools",
-    )
 
     approval_requirement = check_approval_requirement(sb, tool_name, tool_args)
 
@@ -164,7 +150,6 @@ async def handle_tool_start(sb: StatusBuilder, event: dict[str, Any], namespace:
         args_preview=create_args_preview(sb, tool_args),
         result="",
         status=initial_status,
-        component_metadata=component_metadata,
         started_at=_utc_timestamp(now),
         mcp_server_slug=mcp_server_slug,
     )

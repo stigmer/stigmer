@@ -148,9 +148,10 @@ func (DiscoverySource) EnumDescriptor() ([]byte, []int) {
 
 // McpServerStatus represents the system-managed state of an MCP server definition.
 //
-// This status tracks two concerns:
+// @internal
+// Tracks two concerns:
 //
-// 1. Structural validation — whether the definition is valid and can be used by agents.
+//  1. Structural validation — whether the definition is valid and can be used by agents.
 //
 //  2. Discovered capabilities — the tools and resource templates the MCP server
 //     actually provides. Populated by one of three mechanisms:
@@ -177,8 +178,7 @@ type McpServerStatus struct {
 	// Tools and resource templates discovered from the MCP server.
 	// Optional — absent until discovery has been performed (or seeded from seedpack).
 	DiscoveredCapabilities *DiscoveredCapabilities `protobuf:"bytes,3,opt,name=discovered_capabilities,json=discoveredCapabilities,proto3" json:"discovered_capabilities,omitempty"`
-	// Standard audit information tracking creation and modification.
-	// Field 99 follows Stigmer convention for audit placement in status messages.
+	// Standard audit information (created_at, updated_at, created_by, etc.)
 	Audit         *apiresource.ApiResourceAudit `protobuf:"bytes,99,opt,name=audit,proto3" json:"audit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -242,26 +242,18 @@ func (x *McpServerStatus) GetAudit() *apiresource.ApiResourceAudit {
 	return nil
 }
 
-// DiscoveredCapabilities holds the tools and resource templates reported by an
-// MCP server. This is a point-in-time snapshot — the server's actual capabilities
-// may change if tools are added or removed.
+// DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.
 //
-// IMPORTANT — Tools vs Resource Templates:
-// These are two fundamentally different MCP capability types:
+// @internal
+// This is a point-in-time snapshot — the server's actual capabilities may change
+// if tools are added or removed.
 //
+// Tools vs Resource Templates:
 //   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).
-//     These are the ONLY names valid for use in Agent `enabled_tools`,
-//     McpServer `default_enabled_tools`, and `tool_approval_overrides`.
-//
-//   - resource_templates: Read-only data endpoints accessed by URI template
-//     (e.g., cloud-resource-schema://{kind}). These are NOT callable tools.
-//     Resource template names must NEVER appear in `enabled_tools` or
-//     `default_enabled_tools` — doing so causes a fatal runtime error because
-//     the agent-runner cannot find them in the tools registry.
-//
-// When authoring Agent YAML, always select tool names from `tools` only.
-// Resource templates serve a different purpose (data discovery) and are
-// accessed through MCP resource reads, not tool calls.
+//     Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.
+//   - resource_templates: Read-only data endpoints accessed by URI template.
+//     Resource template names must NEVER appear in enabled_tools — doing so causes
+//     a fatal runtime error.
 //
 // Populated by:
 // - Seedpack bootstrap (built-in servers with known, stable tool sets)
@@ -269,14 +261,9 @@ func (x *McpServerStatus) GetAudit() *apiresource.ApiResourceAudit {
 // - Agent-runner runtime cache (future)
 type DiscoveredCapabilities struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Tools reported by the MCP server via tools/list.
-	// These are callable actions. Only names from this list may be used in
-	// Agent `enabled_tools` and McpServer `default_enabled_tools`.
+	// Callable tools reported by the MCP server.
 	Tools []*DiscoveredTool `protobuf:"bytes,1,rep,name=tools,proto3" json:"tools,omitempty"`
-	// Resource templates reported by the MCP server via resources/templates/list.
-	// These are read-only data endpoints, NOT callable tools.
-	// Resource template names must NOT be placed in `enabled_tools` —
-	// they are accessed via MCP resource reads, not tool invocations.
+	// Read-only data endpoints reported by the MCP server.
 	ResourceTemplates []*DiscoveredResourceTemplate `protobuf:"bytes,2,rep,name=resource_templates,json=resourceTemplates,proto3" json:"resource_templates,omitempty"`
 	// When this snapshot was captured.
 	LastDiscoveredAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=last_discovered_at,json=lastDiscoveredAt,proto3" json:"last_discovered_at,omitempty"`
@@ -346,10 +333,8 @@ func (x *DiscoveredCapabilities) GetDiscoveredBy() DiscoverySource {
 
 // DiscoveredTool describes a single tool reported by an MCP server.
 //
-// Maps directly to the MCP protocol's Tool type from tools/list:
-//   - name: unique tool identifier within the server
-//   - description: human-readable explanation of what the tool does
-//   - input_schema: JSON Schema describing the tool's expected input
+// @internal
+// Maps directly to the MCP protocol's Tool type from tools/list.
 type DiscoveredTool struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Unique tool name within the MCP server (case-sensitive).
@@ -358,9 +343,6 @@ type DiscoveredTool struct {
 	// Human-readable description of the tool's purpose.
 	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	// JSON Schema describing the tool's input parameters.
-	// Stored as a Struct for natural representation in YAML/JSON and to allow
-	// inspection without string parsing. This is the raw schema from the MCP
-	// server's tools/list response.
 	InputSchema   *structpb.Struct `protobuf:"bytes,3,opt,name=input_schema,json=inputSchema,proto3" json:"input_schema,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -417,18 +399,11 @@ func (x *DiscoveredTool) GetInputSchema() *structpb.Struct {
 	return nil
 }
 
-// DiscoveredResourceTemplate describes a parameterized resource template
-// reported by an MCP server via resources/templates/list.
+// DiscoveredResourceTemplate describes a parameterized resource template reported by an MCP server.
 //
+// @internal
 // Resource templates use URI templates (RFC 6570) with placeholders that
 // clients fill in to access specific resources.
-//
-// Example:
-//
-//	uri_template: "stigmer://agents/{org}/{slug}"
-//	name: "stigmer_agent"
-//	description: "Full definition of a Stigmer agent"
-//	mime_type: "application/json"
 type DiscoveredResourceTemplate struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// URI template with placeholders (RFC 6570).

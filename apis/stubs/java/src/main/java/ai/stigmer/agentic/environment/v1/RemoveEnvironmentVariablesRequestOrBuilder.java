@@ -32,7 +32,7 @@ public interface RemoveEnvironmentVariablesRequestOrBuilder extends
 
   /**
    * <pre>
-   * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+   * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
    * </pre>
    *
    * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -42,7 +42,7 @@ public interface RemoveEnvironmentVariablesRequestOrBuilder extends
       getKeysList();
   /**
    * <pre>
-   * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+   * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
    * </pre>
    *
    * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -51,7 +51,7 @@ public interface RemoveEnvironmentVariablesRequestOrBuilder extends
   int getKeysCount();
   /**
    * <pre>
-   * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+   * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
    * </pre>
    *
    * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>
@@ -61,7 +61,7 @@ public interface RemoveEnvironmentVariablesRequestOrBuilder extends
   java.lang.String getKeys(int index);
   /**
    * <pre>
-   * Keys to remove from EnvironmentSpec.data. Keys that don't exist are silently ignored.
+   * Keys to remove from EnvironmentSpec.data. Keys that do not exist are silently ignored.
    * </pre>
    *
    * <code>repeated string keys = 2 [json_name = "keys", (.buf.validate.field) = { ... }</code>

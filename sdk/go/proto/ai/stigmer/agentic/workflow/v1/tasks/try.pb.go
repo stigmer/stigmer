@@ -24,10 +24,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// TryTaskConfig defines the configuration for TRY tasks.
+// TryTaskConfig defines the configuration for try_catch tasks that handle errors.
 //
-// TRY tasks provide try/catch error handling.
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //     try:

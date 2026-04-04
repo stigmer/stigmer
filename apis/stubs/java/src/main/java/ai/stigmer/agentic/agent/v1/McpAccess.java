@@ -7,21 +7,12 @@ package ai.stigmer.agentic.agent.v1;
 
 /**
  * <pre>
- * McpAccess grants a SubAgent access to one of the parent Agent's MCP servers.
- * Uses the same slug that identifies the McpServer resource.
+ * McpAccess grants a sub-agent access to one of the parent's MCP servers.
  *
- * Permission model:
- * - SubAgent can only access servers that parent has in mcp_server_usages
- * - SubAgent tools must be a subset of parent's enabled tools
- *
- * Example YAML:
- * sub_agents:
- * - name: code-reviewer
- * mcp_access:
- * - mcp_server: github
- * enabled_tools: [search_code, get_file]
- * - mcp_server: slack
- * # enabled_tools empty = all tools from parent
+ * &#64;internal
+ * Permission model enforced at execution time: sub-agent can only access
+ * servers in the parent's mcp_server_usages, and tools must be a subset
+ * of the parent's enabled_tools.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.McpAccess}
@@ -75,7 +66,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Slug of the McpServer to grant access to.
-   * Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+   * Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
    * </pre>
    *
    * <code>string mcp_server = 1 [json_name = "mcpServer", (.buf.validate.field) = { ... }</code>
@@ -97,7 +88,7 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Slug of the McpServer to grant access to.
-   * Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+   * Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
    * </pre>
    *
    * <code>string mcp_server = 1 [json_name = "mcpServer", (.buf.validate.field) = { ... }</code>
@@ -124,10 +115,9 @@ private static final long serialVersionUID = 0L;
       com.google.protobuf.LazyStringArrayList.emptyList();
   /**
    * <pre>
-   * Tools this SubAgent can use from this MCP server.
+   * Tools this sub-agent can use from this MCP server.
    * Must be a subset of the parent's enabled_tools for this server.
-   * Empty list = all tools that parent has enabled (no additional restriction).
-   * Only MCP tool names are valid — never include resource template names.
+   * Empty list grants access to all tools the parent has enabled.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -139,10 +129,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Tools this SubAgent can use from this MCP server.
+   * Tools this sub-agent can use from this MCP server.
    * Must be a subset of the parent's enabled_tools for this server.
-   * Empty list = all tools that parent has enabled (no additional restriction).
-   * Only MCP tool names are valid — never include resource template names.
+   * Empty list grants access to all tools the parent has enabled.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -153,10 +142,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Tools this SubAgent can use from this MCP server.
+   * Tools this sub-agent can use from this MCP server.
    * Must be a subset of the parent's enabled_tools for this server.
-   * Empty list = all tools that parent has enabled (no additional restriction).
-   * Only MCP tool names are valid — never include resource template names.
+   * Empty list grants access to all tools the parent has enabled.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -168,10 +156,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Tools this SubAgent can use from this MCP server.
+   * Tools this sub-agent can use from this MCP server.
    * Must be a subset of the parent's enabled_tools for this server.
-   * Empty list = all tools that parent has enabled (no additional restriction).
-   * Only MCP tool names are valid — never include resource template names.
+   * Empty list grants access to all tools the parent has enabled.
    * </pre>
    *
    * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -358,21 +345,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * McpAccess grants a SubAgent access to one of the parent Agent's MCP servers.
-   * Uses the same slug that identifies the McpServer resource.
+   * McpAccess grants a sub-agent access to one of the parent's MCP servers.
    *
-   * Permission model:
-   * - SubAgent can only access servers that parent has in mcp_server_usages
-   * - SubAgent tools must be a subset of parent's enabled tools
-   *
-   * Example YAML:
-   * sub_agents:
-   * - name: code-reviewer
-   * mcp_access:
-   * - mcp_server: github
-   * enabled_tools: [search_code, get_file]
-   * - mcp_server: slack
-   * # enabled_tools empty = all tools from parent
+   * &#64;internal
+   * Permission model enforced at execution time: sub-agent can only access
+   * servers in the parent's mcp_server_usages, and tools must be a subset
+   * of the parent's enabled_tools.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.McpAccess}
@@ -537,7 +515,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Slug of the McpServer to grant access to.
-     * Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+     * Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
      * </pre>
      *
      * <code>string mcp_server = 1 [json_name = "mcpServer", (.buf.validate.field) = { ... }</code>
@@ -558,7 +536,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Slug of the McpServer to grant access to.
-     * Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+     * Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
      * </pre>
      *
      * <code>string mcp_server = 1 [json_name = "mcpServer", (.buf.validate.field) = { ... }</code>
@@ -580,7 +558,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Slug of the McpServer to grant access to.
-     * Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+     * Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
      * </pre>
      *
      * <code>string mcp_server = 1 [json_name = "mcpServer", (.buf.validate.field) = { ... }</code>
@@ -598,7 +576,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Slug of the McpServer to grant access to.
-     * Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+     * Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
      * </pre>
      *
      * <code>string mcp_server = 1 [json_name = "mcpServer", (.buf.validate.field) = { ... }</code>
@@ -613,7 +591,7 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Slug of the McpServer to grant access to.
-     * Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
+     * Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
      * </pre>
      *
      * <code>string mcp_server = 1 [json_name = "mcpServer", (.buf.validate.field) = { ... }</code>
@@ -640,10 +618,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools this SubAgent can use from this MCP server.
+     * Tools this sub-agent can use from this MCP server.
      * Must be a subset of the parent's enabled_tools for this server.
-     * Empty list = all tools that parent has enabled (no additional restriction).
-     * Only MCP tool names are valid — never include resource template names.
+     * Empty list grants access to all tools the parent has enabled.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -656,10 +633,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools this SubAgent can use from this MCP server.
+     * Tools this sub-agent can use from this MCP server.
      * Must be a subset of the parent's enabled_tools for this server.
-     * Empty list = all tools that parent has enabled (no additional restriction).
-     * Only MCP tool names are valid — never include resource template names.
+     * Empty list grants access to all tools the parent has enabled.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -670,10 +646,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools this SubAgent can use from this MCP server.
+     * Tools this sub-agent can use from this MCP server.
      * Must be a subset of the parent's enabled_tools for this server.
-     * Empty list = all tools that parent has enabled (no additional restriction).
-     * Only MCP tool names are valid — never include resource template names.
+     * Empty list grants access to all tools the parent has enabled.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -685,10 +660,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools this SubAgent can use from this MCP server.
+     * Tools this sub-agent can use from this MCP server.
      * Must be a subset of the parent's enabled_tools for this server.
-     * Empty list = all tools that parent has enabled (no additional restriction).
-     * Only MCP tool names are valid — never include resource template names.
+     * Empty list grants access to all tools the parent has enabled.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -701,10 +675,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools this SubAgent can use from this MCP server.
+     * Tools this sub-agent can use from this MCP server.
      * Must be a subset of the parent's enabled_tools for this server.
-     * Empty list = all tools that parent has enabled (no additional restriction).
-     * Only MCP tool names are valid — never include resource template names.
+     * Empty list grants access to all tools the parent has enabled.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -723,10 +696,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools this SubAgent can use from this MCP server.
+     * Tools this sub-agent can use from this MCP server.
      * Must be a subset of the parent's enabled_tools for this server.
-     * Empty list = all tools that parent has enabled (no additional restriction).
-     * Only MCP tool names are valid — never include resource template names.
+     * Empty list grants access to all tools the parent has enabled.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -744,10 +716,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools this SubAgent can use from this MCP server.
+     * Tools this sub-agent can use from this MCP server.
      * Must be a subset of the parent's enabled_tools for this server.
-     * Empty list = all tools that parent has enabled (no additional restriction).
-     * Only MCP tool names are valid — never include resource template names.
+     * Empty list grants access to all tools the parent has enabled.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -765,10 +736,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools this SubAgent can use from this MCP server.
+     * Tools this sub-agent can use from this MCP server.
      * Must be a subset of the parent's enabled_tools for this server.
-     * Empty list = all tools that parent has enabled (no additional restriction).
-     * Only MCP tool names are valid — never include resource template names.
+     * Empty list grants access to all tools the parent has enabled.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>
@@ -783,10 +753,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Tools this SubAgent can use from this MCP server.
+     * Tools this sub-agent can use from this MCP server.
      * Must be a subset of the parent's enabled_tools for this server.
-     * Empty list = all tools that parent has enabled (no additional restriction).
-     * Only MCP tool names are valid — never include resource template names.
+     * Empty list grants access to all tools the parent has enabled.
      * </pre>
      *
      * <code>repeated string enabled_tools = 2 [json_name = "enabledTools"];</code>

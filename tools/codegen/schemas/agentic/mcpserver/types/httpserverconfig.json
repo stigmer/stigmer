@@ -1,6 +1,6 @@
 {
   "name": "HttpServerConfig",
-  "description": "HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.\n Used for remote/managed MCP services that expose an HTTP endpoint.\n\n Communication flow:\n 1. Agent sends JSON-RPC requests via HTTP POST\n 2. Server streams responses via Server-Sent Events (SSE)\n\n This is useful for:\n - Managed MCP services (e.g., hosted by a cloud provider)\n - MCP servers behind a reverse proxy or API gateway\n - Sharing a single MCP server instance across multiple agents",
+  "description": "HttpServerConfig defines an MCP server accessible via HTTP + Server-Sent Events.\n\n @internal\n Communication flow:\n 1. Agent sends JSON-RPC requests via HTTP POST\n 2. Server streams responses via Server-Sent Events (SSE)\n\n Use cases:\n - Managed MCP services (e.g., hosted by a cloud provider)\n - MCP servers behind a reverse proxy or API gateway\n - Sharing a single MCP server instance across multiple agents",
   "protoType": "ai.stigmer.agentic.mcpserver.v1.HttpServerConfig",
   "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/spec.proto",
   "fields": [

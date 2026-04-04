@@ -11,24 +11,44 @@ public interface IdentityProvidersOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Identity provider entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.iam.identityprovider.v1.IdentityProvider> 
       getEntriesList();
   /**
+   * <pre>
+   * Identity provider entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.iam.identityprovider.v1.IdentityProvider getEntries(int index);
   /**
+   * <pre>
+   * Identity provider entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
    */
   int getEntriesCount();
   /**
+   * <pre>
+   * Identity provider entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.iam.identityprovider.v1.IdentityProviderOrBuilder> 
       getEntriesOrBuilderList();
   /**
+   * <pre>
+   * Identity provider entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.iam.identityprovider.v1.IdentityProviderOrBuilder getEntriesOrBuilder(

@@ -7,7 +7,7 @@ package ai.stigmer.iam.identityprovider.v1;
 
 /**
  * <pre>
- * List of identity providers (unbounded).
+ * IdentityProviders contains a list of identity provider resources.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.iam.identityprovider.v1.IdentityProviders}
@@ -57,6 +57,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.iam.identityprovider.v1.IdentityProvider> entries_;
   /**
+   * <pre>
+   * Identity provider entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -64,6 +68,10 @@ private static final long serialVersionUID = 0L;
     return entries_;
   }
   /**
+   * <pre>
+   * Identity provider entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -72,6 +80,10 @@ private static final long serialVersionUID = 0L;
     return entries_;
   }
   /**
+   * <pre>
+   * Identity provider entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -79,6 +91,10 @@ private static final long serialVersionUID = 0L;
     return entries_.size();
   }
   /**
+   * <pre>
+   * Identity provider entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -86,6 +102,10 @@ private static final long serialVersionUID = 0L;
     return entries_.get(index);
   }
   /**
+   * <pre>
+   * Identity provider entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -260,7 +280,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * List of identity providers (unbounded).
+   * IdentityProviders contains a list of identity provider resources.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.iam.identityprovider.v1.IdentityProviders}
@@ -458,6 +478,10 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.iam.identityprovider.v1.IdentityProvider, ai.stigmer.iam.identityprovider.v1.IdentityProvider.Builder, ai.stigmer.iam.identityprovider.v1.IdentityProviderOrBuilder> entriesBuilder_;
 
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.iam.identityprovider.v1.IdentityProvider> getEntriesList() {
@@ -468,6 +492,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public int getEntriesCount() {
@@ -478,6 +506,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider getEntries(int index) {
@@ -488,6 +520,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public Builder setEntries(
@@ -505,6 +541,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public Builder setEntries(
@@ -519,6 +559,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(ai.stigmer.iam.identityprovider.v1.IdentityProvider value) {
@@ -535,6 +579,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -552,6 +600,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -566,6 +618,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -580,6 +636,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public Builder addAllEntries(
@@ -595,6 +655,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public Builder clearEntries() {
@@ -608,6 +672,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public Builder removeEntries(int index) {
@@ -621,6 +689,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider.Builder getEntriesBuilder(
@@ -628,6 +700,10 @@ private static final long serialVersionUID = 0L;
       return internalGetEntriesFieldBuilder().getBuilder(index);
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProviderOrBuilder getEntriesOrBuilder(
@@ -638,6 +714,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<? extends ai.stigmer.iam.identityprovider.v1.IdentityProviderOrBuilder> 
@@ -649,6 +729,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider.Builder addEntriesBuilder() {
@@ -656,6 +740,10 @@ private static final long serialVersionUID = 0L;
           ai.stigmer.iam.identityprovider.v1.IdentityProvider.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.iam.identityprovider.v1.IdentityProvider.Builder addEntriesBuilder(
@@ -664,6 +752,10 @@ private static final long serialVersionUID = 0L;
           index, ai.stigmer.iam.identityprovider.v1.IdentityProvider.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Identity provider entries.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.iam.identityprovider.v1.IdentityProvider entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.iam.identityprovider.v1.IdentityProvider.Builder> 

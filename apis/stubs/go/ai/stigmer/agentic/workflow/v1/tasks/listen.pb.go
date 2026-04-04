@@ -23,9 +23,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ListenTaskConfig defines the configuration for LISTEN tasks.
+// ListenTaskConfig defines the configuration for listen tasks that wait for external signals.
 //
-// LISTEN tasks wait for external signals/events (Temporal signals).
+// @internal
+// Implemented via Temporal signals.
 //
 // YAML Example:
 //   - taskName:
@@ -144,10 +145,7 @@ type SignalSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Signal identifier.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Signal type:
-	// - "signal": Temporal signal
-	// - "query": Temporal query
-	// - "update": Temporal update
+	// Signal type: "signal", "query", or "update".
 	Type          string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

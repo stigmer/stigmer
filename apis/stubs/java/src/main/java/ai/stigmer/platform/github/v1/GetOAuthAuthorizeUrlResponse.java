@@ -7,7 +7,7 @@ package ai.stigmer.platform.github.v1;
 
 /**
  * <pre>
- * Response containing the constructed OAuth authorize URL.
+ * Result of requesting a GitHub OAuth authorize URL.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse}
@@ -59,7 +59,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object authorizeUrl_ = "";
   /**
    * <pre>
-   * The full GitHub OAuth authorize URL to redirect the user to.
+   * Full GitHub OAuth authorize URL to redirect the user to.
    * </pre>
    *
    * <code>string authorize_url = 1 [json_name = "authorizeUrl"];</code>
@@ -80,7 +80,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The full GitHub OAuth authorize URL to redirect the user to.
+   * Full GitHub OAuth authorize URL to redirect the user to.
    * </pre>
    *
    * <code>string authorize_url = 1 [json_name = "authorizeUrl"];</code>
@@ -106,8 +106,8 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object state_ = "";
   /**
    * <pre>
-   * A random state value for CSRF protection. The frontend must verify
-   * this matches the state returned in the callback.
+   * Random state value for CSRF protection.
+   * Pass this back in ExchangeOAuthCodeRequest to verify the callback.
    * </pre>
    *
    * <code>string state = 2 [json_name = "state"];</code>
@@ -128,8 +128,8 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * A random state value for CSRF protection. The frontend must verify
-   * this matches the state returned in the callback.
+   * Random state value for CSRF protection.
+   * Pass this back in ExchangeOAuthCodeRequest to verify the callback.
    * </pre>
    *
    * <code>string state = 2 [json_name = "state"];</code>
@@ -318,7 +318,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Response containing the constructed OAuth authorize URL.
+   * Result of requesting a GitHub OAuth authorize URL.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.platform.github.v1.GetOAuthAuthorizeUrlResponse}
@@ -475,7 +475,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object authorizeUrl_ = "";
     /**
      * <pre>
-     * The full GitHub OAuth authorize URL to redirect the user to.
+     * Full GitHub OAuth authorize URL to redirect the user to.
      * </pre>
      *
      * <code>string authorize_url = 1 [json_name = "authorizeUrl"];</code>
@@ -495,7 +495,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The full GitHub OAuth authorize URL to redirect the user to.
+     * Full GitHub OAuth authorize URL to redirect the user to.
      * </pre>
      *
      * <code>string authorize_url = 1 [json_name = "authorizeUrl"];</code>
@@ -516,7 +516,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The full GitHub OAuth authorize URL to redirect the user to.
+     * Full GitHub OAuth authorize URL to redirect the user to.
      * </pre>
      *
      * <code>string authorize_url = 1 [json_name = "authorizeUrl"];</code>
@@ -533,7 +533,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The full GitHub OAuth authorize URL to redirect the user to.
+     * Full GitHub OAuth authorize URL to redirect the user to.
      * </pre>
      *
      * <code>string authorize_url = 1 [json_name = "authorizeUrl"];</code>
@@ -547,7 +547,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The full GitHub OAuth authorize URL to redirect the user to.
+     * Full GitHub OAuth authorize URL to redirect the user to.
      * </pre>
      *
      * <code>string authorize_url = 1 [json_name = "authorizeUrl"];</code>
@@ -567,8 +567,8 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object state_ = "";
     /**
      * <pre>
-     * A random state value for CSRF protection. The frontend must verify
-     * this matches the state returned in the callback.
+     * Random state value for CSRF protection.
+     * Pass this back in ExchangeOAuthCodeRequest to verify the callback.
      * </pre>
      *
      * <code>string state = 2 [json_name = "state"];</code>
@@ -588,8 +588,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A random state value for CSRF protection. The frontend must verify
-     * this matches the state returned in the callback.
+     * Random state value for CSRF protection.
+     * Pass this back in ExchangeOAuthCodeRequest to verify the callback.
      * </pre>
      *
      * <code>string state = 2 [json_name = "state"];</code>
@@ -610,8 +610,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A random state value for CSRF protection. The frontend must verify
-     * this matches the state returned in the callback.
+     * Random state value for CSRF protection.
+     * Pass this back in ExchangeOAuthCodeRequest to verify the callback.
      * </pre>
      *
      * <code>string state = 2 [json_name = "state"];</code>
@@ -628,8 +628,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A random state value for CSRF protection. The frontend must verify
-     * this matches the state returned in the callback.
+     * Random state value for CSRF protection.
+     * Pass this back in ExchangeOAuthCodeRequest to verify the callback.
      * </pre>
      *
      * <code>string state = 2 [json_name = "state"];</code>
@@ -643,8 +643,8 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * A random state value for CSRF protection. The frontend must verify
-     * this matches the state returned in the callback.
+     * Random state value for CSRF protection.
+     * Pass this back in ExchangeOAuthCodeRequest to verify the callback.
      * </pre>
      *
      * <code>string state = 2 [json_name = "state"];</code>

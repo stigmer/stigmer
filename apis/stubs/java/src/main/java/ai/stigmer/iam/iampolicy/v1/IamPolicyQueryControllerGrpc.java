@@ -208,6 +208,9 @@ public final class IamPolicyQueryControllerGrpc {
     /**
      * <pre>
      * Get an IAM policy by its unique identifier.
+     * Returns the full IAM policy including its principal, resource, and relation binding.
+     * &#64;internal
+     * Authorization: Requires can_view_access permission.
      * </pre>
      */
     default void get(ai.stigmer.iam.iampolicy.v1.IamPolicyId request,
@@ -309,6 +312,9 @@ public final class IamPolicyQueryControllerGrpc {
     /**
      * <pre>
      * Get an IAM policy by its unique identifier.
+     * Returns the full IAM policy including its principal, resource, and relation binding.
+     * &#64;internal
+     * Authorization: Requires can_view_access permission.
      * </pre>
      */
     public void get(ai.stigmer.iam.iampolicy.v1.IamPolicyId request,
@@ -400,6 +406,9 @@ public final class IamPolicyQueryControllerGrpc {
     /**
      * <pre>
      * Get an IAM policy by its unique identifier.
+     * Returns the full IAM policy including its principal, resource, and relation binding.
+     * &#64;internal
+     * Authorization: Requires can_view_access permission.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.IamPolicy get(ai.stigmer.iam.iampolicy.v1.IamPolicyId request) throws io.grpc.StatusException {
@@ -487,6 +496,9 @@ public final class IamPolicyQueryControllerGrpc {
     /**
      * <pre>
      * Get an IAM policy by its unique identifier.
+     * Returns the full IAM policy including its principal, resource, and relation binding.
+     * &#64;internal
+     * Authorization: Requires can_view_access permission.
      * </pre>
      */
     public ai.stigmer.iam.iampolicy.v1.IamPolicy get(ai.stigmer.iam.iampolicy.v1.IamPolicyId request) {
@@ -574,6 +586,9 @@ public final class IamPolicyQueryControllerGrpc {
     /**
      * <pre>
      * Get an IAM policy by its unique identifier.
+     * Returns the full IAM policy including its principal, resource, and relation binding.
+     * &#64;internal
+     * Authorization: Requires can_view_access permission.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.iam.iampolicy.v1.IamPolicy> get(

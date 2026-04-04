@@ -32,12 +32,16 @@ package ai.stigmer.agentic.agentexecution.v1;
 public enum SubAgentStatus
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * Default value, not a valid sub-agent status.
+   * </pre>
+   *
    * <code>SUB_AGENT_STATUS_UNSPECIFIED = 0;</code>
    */
   SUB_AGENT_STATUS_UNSPECIFIED(0),
   /**
    * <pre>
-   * Waiting to start
+   * Sub-agent invocation is queued and waiting to start.
    * </pre>
    *
    * <code>SUB_AGENT_PENDING = 1;</code>
@@ -45,7 +49,7 @@ public enum SubAgentStatus
   SUB_AGENT_PENDING(1),
   /**
    * <pre>
-   * Currently executing
+   * Sub-agent is actively executing its delegated task.
    * </pre>
    *
    * <code>SUB_AGENT_IN_PROGRESS = 2;</code>
@@ -53,7 +57,7 @@ public enum SubAgentStatus
   SUB_AGENT_IN_PROGRESS(2),
   /**
    * <pre>
-   * Successfully completed
+   * Sub-agent finished its task successfully and returned a result.
    * </pre>
    *
    * <code>SUB_AGENT_COMPLETED = 3;</code>
@@ -61,7 +65,7 @@ public enum SubAgentStatus
   SUB_AGENT_COMPLETED(3),
   /**
    * <pre>
-   * Failed with error
+   * Sub-agent encountered an error and could not complete its task.
    * </pre>
    *
    * <code>SUB_AGENT_FAILED = 4;</code>
@@ -98,12 +102,16 @@ public enum SubAgentStatus
       "SubAgentStatus");
   }
   /**
+   * <pre>
+   * Default value, not a valid sub-agent status.
+   * </pre>
+   *
    * <code>SUB_AGENT_STATUS_UNSPECIFIED = 0;</code>
    */
   public static final int SUB_AGENT_STATUS_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Waiting to start
+   * Sub-agent invocation is queued and waiting to start.
    * </pre>
    *
    * <code>SUB_AGENT_PENDING = 1;</code>
@@ -111,7 +119,7 @@ public enum SubAgentStatus
   public static final int SUB_AGENT_PENDING_VALUE = 1;
   /**
    * <pre>
-   * Currently executing
+   * Sub-agent is actively executing its delegated task.
    * </pre>
    *
    * <code>SUB_AGENT_IN_PROGRESS = 2;</code>
@@ -119,7 +127,7 @@ public enum SubAgentStatus
   public static final int SUB_AGENT_IN_PROGRESS_VALUE = 2;
   /**
    * <pre>
-   * Successfully completed
+   * Sub-agent finished its task successfully and returned a result.
    * </pre>
    *
    * <code>SUB_AGENT_COMPLETED = 3;</code>
@@ -127,7 +135,7 @@ public enum SubAgentStatus
   public static final int SUB_AGENT_COMPLETED_VALUE = 3;
   /**
    * <pre>
-   * Failed with error
+   * Sub-agent encountered an error and could not complete its task.
    * </pre>
    *
    * <code>SUB_AGENT_FAILED = 4;</code>

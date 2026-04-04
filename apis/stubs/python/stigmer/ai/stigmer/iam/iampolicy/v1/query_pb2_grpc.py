@@ -44,6 +44,11 @@ class IamPolicyQueryControllerServicer(object):
 
     def get(self, request, context):
         """Get an IAM policy by its unique identifier.
+
+        Returns the full IAM policy including its principal, resource, and relation binding.
+
+        @internal
+        Authorization: Requires can_view_access permission.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

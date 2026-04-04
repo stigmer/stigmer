@@ -7,7 +7,9 @@ package ai.stigmer.tenancy.organization.v1;
 
 /**
  * <pre>
- * OrganizationSpec defines the configuration for an organization.
+ * OrganizationSpec defines the configurable properties of an organization.
+ *
+ * &#64;internal
  * Organizations are the top-level container for all Stigmer resources.
  * Similar to GitHub organizations, all agents, workflows, and other resources
  * are scoped under an organization.
@@ -65,7 +67,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object description_ = "";
   /**
    * <pre>
-   * description for the organization
+   * Human-readable description of the organization.
    * </pre>
    *
    * <code>string description = 1 [json_name = "description", (.buf.validate.field) = { ... }</code>
@@ -86,7 +88,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * description for the organization
+   * Human-readable description of the organization.
    * </pre>
    *
    * <code>string description = 1 [json_name = "description", (.buf.validate.field) = { ... }</code>
@@ -112,7 +114,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object logoUrl_ = "";
   /**
    * <pre>
-   * public url for the organization logo (optional)
+   * Public URL for the organization logo.
    * </pre>
    *
    * <code>string logo_url = 2 [json_name = "logoUrl", (.buf.validate.field) = { ... }</code>
@@ -133,7 +135,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * public url for the organization logo (optional)
+   * Public URL for the organization logo.
    * </pre>
    *
    * <code>string logo_url = 2 [json_name = "logoUrl", (.buf.validate.field) = { ... }</code>
@@ -158,7 +160,10 @@ private static final long serialVersionUID = 0L;
   private int managementMode_ = 0;
   /**
    * <pre>
-   * How this organization is operated. Immutable after creation.
+   * How this organization is operated.
+   *
+   * &#64;internal
+   * Immutable after creation.
    * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
    * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
    * </pre>
@@ -171,7 +176,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * How this organization is operated. Immutable after creation.
+   * How this organization is operated.
+   *
+   * &#64;internal
+   * Immutable after creation.
    * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
    * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
    * </pre>
@@ -189,6 +197,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the IdentityProvider that authenticates requests for this organization.
+   *
+   * &#64;internal
    * Required when management_mode is platform_managed; must be empty for self_managed.
    * The referenced IdentityProvider must exist and be active at creation time.
    * Immutable after creation.
@@ -204,6 +214,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the IdentityProvider that authenticates requests for this organization.
+   *
+   * &#64;internal
    * Required when management_mode is platform_managed; must be empty for self_managed.
    * The referenced IdentityProvider must exist and be active at creation time.
    * Immutable after creation.
@@ -219,6 +231,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Reference to the IdentityProvider that authenticates requests for this organization.
+   *
+   * &#64;internal
    * Required when management_mode is platform_managed; must be empty for self_managed.
    * The referenced IdentityProvider must exist and be active at creation time.
    * Immutable after creation.
@@ -237,6 +251,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * External platform's organization identifier for reverse mapping.
+   *
+   * &#64;internal
    * Set only for platform_managed organizations. Stores the integrating platform's
    * own org ID so the platform can look up the corresponding Stigmer org even if
    * the Stigmer slug differs from the platform's original slug due to availability.
@@ -261,6 +277,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * External platform's organization identifier for reverse mapping.
+   *
+   * &#64;internal
    * Set only for platform_managed organizations. Stores the integrating platform's
    * own org ID so the platform can look up the corresponding Stigmer org even if
    * the Stigmer slug differs from the platform's original slug due to availability.
@@ -289,6 +307,8 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether this is a personal organization, auto-created during identity provisioning.
+   *
+   * &#64;internal
    * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
    * Immutable after creation. Set by the server — clients cannot set this to true.
    * </pre>
@@ -517,7 +537,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * OrganizationSpec defines the configuration for an organization.
+   * OrganizationSpec defines the configurable properties of an organization.
+   *
+   * &#64;internal
    * Organizations are the top-level container for all Stigmer resources.
    * Similar to GitHub organizations, all agents, workflows, and other resources
    * are scoped under an organization.
@@ -744,7 +766,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object description_ = "";
     /**
      * <pre>
-     * description for the organization
+     * Human-readable description of the organization.
      * </pre>
      *
      * <code>string description = 1 [json_name = "description", (.buf.validate.field) = { ... }</code>
@@ -764,7 +786,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * description for the organization
+     * Human-readable description of the organization.
      * </pre>
      *
      * <code>string description = 1 [json_name = "description", (.buf.validate.field) = { ... }</code>
@@ -785,7 +807,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * description for the organization
+     * Human-readable description of the organization.
      * </pre>
      *
      * <code>string description = 1 [json_name = "description", (.buf.validate.field) = { ... }</code>
@@ -802,7 +824,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * description for the organization
+     * Human-readable description of the organization.
      * </pre>
      *
      * <code>string description = 1 [json_name = "description", (.buf.validate.field) = { ... }</code>
@@ -816,7 +838,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * description for the organization
+     * Human-readable description of the organization.
      * </pre>
      *
      * <code>string description = 1 [json_name = "description", (.buf.validate.field) = { ... }</code>
@@ -836,7 +858,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object logoUrl_ = "";
     /**
      * <pre>
-     * public url for the organization logo (optional)
+     * Public URL for the organization logo.
      * </pre>
      *
      * <code>string logo_url = 2 [json_name = "logoUrl", (.buf.validate.field) = { ... }</code>
@@ -856,7 +878,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * public url for the organization logo (optional)
+     * Public URL for the organization logo.
      * </pre>
      *
      * <code>string logo_url = 2 [json_name = "logoUrl", (.buf.validate.field) = { ... }</code>
@@ -877,7 +899,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * public url for the organization logo (optional)
+     * Public URL for the organization logo.
      * </pre>
      *
      * <code>string logo_url = 2 [json_name = "logoUrl", (.buf.validate.field) = { ... }</code>
@@ -894,7 +916,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * public url for the organization logo (optional)
+     * Public URL for the organization logo.
      * </pre>
      *
      * <code>string logo_url = 2 [json_name = "logoUrl", (.buf.validate.field) = { ... }</code>
@@ -908,7 +930,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * public url for the organization logo (optional)
+     * Public URL for the organization logo.
      * </pre>
      *
      * <code>string logo_url = 2 [json_name = "logoUrl", (.buf.validate.field) = { ... }</code>
@@ -928,7 +950,10 @@ private static final long serialVersionUID = 0L;
     private int managementMode_ = 0;
     /**
      * <pre>
-     * How this organization is operated. Immutable after creation.
+     * How this organization is operated.
+     *
+     * &#64;internal
+     * Immutable after creation.
      * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
      * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
      * </pre>
@@ -941,7 +966,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How this organization is operated. Immutable after creation.
+     * How this organization is operated.
+     *
+     * &#64;internal
+     * Immutable after creation.
      * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
      * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
      * </pre>
@@ -959,7 +987,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How this organization is operated. Immutable after creation.
+     * How this organization is operated.
+     *
+     * &#64;internal
+     * Immutable after creation.
      * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
      * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
      * </pre>
@@ -974,7 +1005,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How this organization is operated. Immutable after creation.
+     * How this organization is operated.
+     *
+     * &#64;internal
+     * Immutable after creation.
      * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
      * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
      * </pre>
@@ -992,7 +1026,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * How this organization is operated. Immutable after creation.
+     * How this organization is operated.
+     *
+     * &#64;internal
+     * Immutable after creation.
      * - self_managed (default): Created and operated directly by users via Stigmer UI/CLI/API.
      * - platform_managed: Created programmatically by an external platform via an IdentityProvider.
      * </pre>
@@ -1013,6 +1050,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
+     *
+     * &#64;internal
      * Required when management_mode is platform_managed; must be empty for self_managed.
      * The referenced IdentityProvider must exist and be active at creation time.
      * Immutable after creation.
@@ -1027,6 +1066,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
+     *
+     * &#64;internal
      * Required when management_mode is platform_managed; must be empty for self_managed.
      * The referenced IdentityProvider must exist and be active at creation time.
      * Immutable after creation.
@@ -1045,6 +1086,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
+     *
+     * &#64;internal
      * Required when management_mode is platform_managed; must be empty for self_managed.
      * The referenced IdentityProvider must exist and be active at creation time.
      * Immutable after creation.
@@ -1068,6 +1111,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
+     *
+     * &#64;internal
      * Required when management_mode is platform_managed; must be empty for self_managed.
      * The referenced IdentityProvider must exist and be active at creation time.
      * Immutable after creation.
@@ -1089,6 +1134,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
+     *
+     * &#64;internal
      * Required when management_mode is platform_managed; must be empty for self_managed.
      * The referenced IdentityProvider must exist and be active at creation time.
      * Immutable after creation.
@@ -1117,6 +1164,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
+     *
+     * &#64;internal
      * Required when management_mode is platform_managed; must be empty for self_managed.
      * The referenced IdentityProvider must exist and be active at creation time.
      * Immutable after creation.
@@ -1137,6 +1186,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
+     *
+     * &#64;internal
      * Required when management_mode is platform_managed; must be empty for self_managed.
      * The referenced IdentityProvider must exist and be active at creation time.
      * Immutable after creation.
@@ -1152,6 +1203,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
+     *
+     * &#64;internal
      * Required when management_mode is platform_managed; must be empty for self_managed.
      * The referenced IdentityProvider must exist and be active at creation time.
      * Immutable after creation.
@@ -1170,6 +1223,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Reference to the IdentityProvider that authenticates requests for this organization.
+     *
+     * &#64;internal
      * Required when management_mode is platform_managed; must be empty for self_managed.
      * The referenced IdentityProvider must exist and be active at creation time.
      * Immutable after creation.
@@ -1195,6 +1250,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * External platform's organization identifier for reverse mapping.
+     *
+     * &#64;internal
      * Set only for platform_managed organizations. Stores the integrating platform's
      * own org ID so the platform can look up the corresponding Stigmer org even if
      * the Stigmer slug differs from the platform's original slug due to availability.
@@ -1218,6 +1275,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * External platform's organization identifier for reverse mapping.
+     *
+     * &#64;internal
      * Set only for platform_managed organizations. Stores the integrating platform's
      * own org ID so the platform can look up the corresponding Stigmer org even if
      * the Stigmer slug differs from the platform's original slug due to availability.
@@ -1242,6 +1301,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * External platform's organization identifier for reverse mapping.
+     *
+     * &#64;internal
      * Set only for platform_managed organizations. Stores the integrating platform's
      * own org ID so the platform can look up the corresponding Stigmer org even if
      * the Stigmer slug differs from the platform's original slug due to availability.
@@ -1262,6 +1323,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * External platform's organization identifier for reverse mapping.
+     *
+     * &#64;internal
      * Set only for platform_managed organizations. Stores the integrating platform's
      * own org ID so the platform can look up the corresponding Stigmer org even if
      * the Stigmer slug differs from the platform's original slug due to availability.
@@ -1279,6 +1342,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * External platform's organization identifier for reverse mapping.
+     *
+     * &#64;internal
      * Set only for platform_managed organizations. Stores the integrating platform's
      * own org ID so the platform can look up the corresponding Stigmer org even if
      * the Stigmer slug differs from the platform's original slug due to availability.
@@ -1302,6 +1367,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this is a personal organization, auto-created during identity provisioning.
+     *
+     * &#64;internal
      * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
      * Immutable after creation. Set by the server — clients cannot set this to true.
      * </pre>
@@ -1316,6 +1383,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this is a personal organization, auto-created during identity provisioning.
+     *
+     * &#64;internal
      * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
      * Immutable after creation. Set by the server — clients cannot set this to true.
      * </pre>
@@ -1334,6 +1403,8 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this is a personal organization, auto-created during identity provisioning.
+     *
+     * &#64;internal
      * Personal orgs serve as the user's default workspace (like GitHub personal accounts).
      * Immutable after creation. Set by the server — clients cannot set this to true.
      * </pre>

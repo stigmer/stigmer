@@ -7,9 +7,10 @@ package ai.stigmer.agentic.environment.v1;
 
 /**
  * <pre>
- * Environment represents a named collection of configuration and secrets.
- * Environments are created before AgentInstance or WorkflowInstance and referenced during instance creation.
- * Each key-value pair can be marked as secret or non-secret.
+ * Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflow instances.
+ *
+ * &#64;internal
+ * Uses Graphton configuration for state management.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.environment.v1.Environment}
@@ -155,8 +156,10 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceMetadata metadata_;
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Environments belong to an organization and are typically PRIVATE visibility.
+   * Resource metadata including name, organization, visibility, and labels.
+   *
+   * &#64;internal
+   * Environments are typically PRIVATE visibility to prevent secret exposure.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -168,8 +171,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Environments belong to an organization and are typically PRIVATE visibility.
+   * Resource metadata including name, organization, visibility, and labels.
+   *
+   * &#64;internal
+   * Environments are typically PRIVATE visibility to prevent secret exposure.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -181,8 +186,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Environments belong to an organization and are typically PRIVATE visibility.
+   * Resource metadata including name, organization, visibility, and labels.
+   *
+   * &#64;internal
+   * Environments are typically PRIVATE visibility to prevent secret exposure.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -196,7 +203,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.environment.v1.EnvironmentSpec spec_;
   /**
    * <pre>
-   * Environment-specific configuration.
+   * Configurable properties: description and key-value data.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>
@@ -208,7 +215,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Environment-specific configuration.
+   * Configurable properties: description and key-value data.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>
@@ -220,7 +227,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Environment-specific configuration.
+   * Configurable properties: description and key-value data.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>
@@ -484,9 +491,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Environment represents a named collection of configuration and secrets.
-   * Environments are created before AgentInstance or WorkflowInstance and referenced during instance creation.
-   * Each key-value pair can be marked as secret or non-secret.
+   * Environment stores configuration and secrets as key-value pairs for runtime use by agents and workflow instances.
+   *
+   * &#64;internal
+   * Uses Graphton configuration for state management.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.environment.v1.Environment}
@@ -902,8 +910,10 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceMetadata, ai.stigmer.commons.apiresource.ApiResourceMetadata.Builder, ai.stigmer.commons.apiresource.ApiResourceMetadataOrBuilder> metadataBuilder_;
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Environments belong to an organization and are typically PRIVATE visibility.
+     * Resource metadata including name, organization, visibility, and labels.
+     *
+     * &#64;internal
+     * Environments are typically PRIVATE visibility to prevent secret exposure.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -914,8 +924,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Environments belong to an organization and are typically PRIVATE visibility.
+     * Resource metadata including name, organization, visibility, and labels.
+     *
+     * &#64;internal
+     * Environments are typically PRIVATE visibility to prevent secret exposure.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -930,8 +942,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Environments belong to an organization and are typically PRIVATE visibility.
+     * Resource metadata including name, organization, visibility, and labels.
+     *
+     * &#64;internal
+     * Environments are typically PRIVATE visibility to prevent secret exposure.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -951,8 +965,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Environments belong to an organization and are typically PRIVATE visibility.
+     * Resource metadata including name, organization, visibility, and labels.
+     *
+     * &#64;internal
+     * Environments are typically PRIVATE visibility to prevent secret exposure.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -970,8 +986,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Environments belong to an organization and are typically PRIVATE visibility.
+     * Resource metadata including name, organization, visibility, and labels.
+     *
+     * &#64;internal
+     * Environments are typically PRIVATE visibility to prevent secret exposure.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -996,8 +1014,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Environments belong to an organization and are typically PRIVATE visibility.
+     * Resource metadata including name, organization, visibility, and labels.
+     *
+     * &#64;internal
+     * Environments are typically PRIVATE visibility to prevent secret exposure.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1014,8 +1034,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Environments belong to an organization and are typically PRIVATE visibility.
+     * Resource metadata including name, organization, visibility, and labels.
+     *
+     * &#64;internal
+     * Environments are typically PRIVATE visibility to prevent secret exposure.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1027,8 +1049,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Environments belong to an organization and are typically PRIVATE visibility.
+     * Resource metadata including name, organization, visibility, and labels.
+     *
+     * &#64;internal
+     * Environments are typically PRIVATE visibility to prevent secret exposure.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1043,8 +1067,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Environments belong to an organization and are typically PRIVATE visibility.
+     * Resource metadata including name, organization, visibility, and labels.
+     *
+     * &#64;internal
+     * Environments are typically PRIVATE visibility to prevent secret exposure.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1068,7 +1094,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.environment.v1.EnvironmentSpec, ai.stigmer.agentic.environment.v1.EnvironmentSpec.Builder, ai.stigmer.agentic.environment.v1.EnvironmentSpecOrBuilder> specBuilder_;
     /**
      * <pre>
-     * Environment-specific configuration.
+     * Configurable properties: description and key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>
@@ -1079,7 +1105,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environment-specific configuration.
+     * Configurable properties: description and key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>
@@ -1094,7 +1120,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environment-specific configuration.
+     * Configurable properties: description and key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>
@@ -1114,7 +1140,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environment-specific configuration.
+     * Configurable properties: description and key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>
@@ -1132,7 +1158,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environment-specific configuration.
+     * Configurable properties: description and key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>
@@ -1157,7 +1183,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environment-specific configuration.
+     * Configurable properties: description and key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>
@@ -1174,7 +1200,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environment-specific configuration.
+     * Configurable properties: description and key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>
@@ -1186,7 +1212,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environment-specific configuration.
+     * Configurable properties: description and key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>
@@ -1201,7 +1227,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Environment-specific configuration.
+     * Configurable properties: description and key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.environment.v1.EnvironmentSpec spec = 4 [json_name = "spec"];</code>

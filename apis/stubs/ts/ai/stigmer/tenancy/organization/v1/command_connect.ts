@@ -8,7 +8,7 @@ import { MethodKind } from "@bufbuild/protobuf";
 import { OrganizationId } from "./io_pb.js";
 
 /**
- * OrganizationCommandController provides write operations for organizations
+ * OrganizationCommandController handles write operations for organizations.
  *
  * @generated from service ai.stigmer.tenancy.organization.v1.OrganizationCommandController
  */
@@ -17,6 +17,8 @@ export const OrganizationCommandController = {
   methods: {
     /**
      * Create or update an organization.
+     *
+     * @internal
      * The authorization and state-operation are determined depending on whether the organization
      * is going to be created or updated which is determined as part of the request execution.
      *
@@ -29,9 +31,11 @@ export const OrganizationCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Create a new organization
-     * No authorization required - any authenticated user can create an organization
-     * The creator automatically becomes the owner of the organization
+     * Create an organization.
+     *
+     * @internal
+     * No authorization required — any authenticated user can create an organization.
+     * The creator automatically becomes the owner of the organization.
      *
      * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.create
      */
@@ -42,8 +46,10 @@ export const OrganizationCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Update an existing organization
-     * Requires: Organization admin permission (can_edit)
+     * Update an existing organization.
+     *
+     * @internal
+     * Authorization: Requires can_edit permission on the organization.
      *
      * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.update
      */
@@ -54,9 +60,11 @@ export const OrganizationCommandController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Delete an organization
-     * Requires: Organization owner permission (can_delete)
-     * Note: This will cascade delete all resources under the organization
+     * Delete an organization.
+     *
+     * @internal
+     * Authorization: Requires can_delete permission on the organization.
+     * This will cascade-delete all resources under the organization.
      *
      * @generated from rpc ai.stigmer.tenancy.organization.v1.OrganizationCommandController.delete
      */

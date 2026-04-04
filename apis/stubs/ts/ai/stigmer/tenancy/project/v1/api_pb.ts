@@ -20,9 +20,9 @@ export const file_ai_stigmer_tenancy_project_v1_api: GenFile = /*@__PURE__*/
   fileDesc("CidhaS9zdGlnbWVyL3RlbmFuY3kvcHJvamVjdC92MS9hcGkucHJvdG8SHWFpLnN0aWdtZXIudGVuYW5jeS5wcm9qZWN0LnYxIqkCCgdQcm9qZWN0EjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVdGVuYW5jeS5zdGlnbWVyLmFpL3YxEhwKBGtpbmQYAiABKAlCDrpIC3IJCgdQcm9qZWN0Ek0KCG1ldGFkYXRhGAMgASgLMjMuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGFCBrpIA8gBARJACgRzcGVjGAQgASgLMiouYWkuc3RpZ21lci50ZW5hbmN5LnByb2plY3QudjEuUHJvamVjdFNwZWNCBrpIA8gBARI8CgZzdGF0dXMYBSABKAsyLC5haS5zdGlnbWVyLnRlbmFuY3kucHJvamVjdC52MS5Qcm9qZWN0U3RhdHVzYgZwcm90bzM", [file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_tenancy_project_v1_spec, file_ai_stigmer_tenancy_project_v1_status, file_buf_validate_validate]);
 
 /**
- * Project is a lightweight membership tracker that groups related resources
- * under a single unit of management with automatic orphan pruning.
+ * Project groups related resources under a single unit of management with automatic orphan pruning.
  *
+ * @internal
  * Two tracks are supported:
  *
  * Declarative Track (no entry_point):
@@ -38,27 +38,6 @@ export const file_ai_stigmer_tenancy_project_v1_api: GenFile = /*@__PURE__*/
  * In both tracks, the project stores only references (org/kind/slug) to its
  * members — never full resource objects. Orphan pruning is a set-difference
  * between previous and current members.
- *
- * Example YAML — Declarative (stigmer.yaml):
- *
- *   apiVersion: tenancy.stigmer.ai/v1
- *   kind: Project
- *   metadata:
- *     name: my-agent-fleet
- *     org: acme-corp
- *   spec:
- *     description: Production agent fleet
- *
- * Example YAML — SDK (stigmer.yaml):
- *
- *   apiVersion: tenancy.stigmer.ai/v1
- *   kind: Project
- *   metadata:
- *     name: my-super-app
- *     org: acme-corp
- *   spec:
- *     entry_point: main.go
- *     description: Go SDK project
  *
  * @generated from message ai.stigmer.tenancy.project.v1.Project
  */

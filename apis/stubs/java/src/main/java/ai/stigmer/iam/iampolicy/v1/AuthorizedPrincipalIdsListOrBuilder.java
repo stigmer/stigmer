@@ -11,23 +11,39 @@ public interface AuthorizedPrincipalIdsListOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Principal IDs authorized to access the resource.
+   * </pre>
+   *
    * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
    * @return A list containing the principalIds.
    */
   java.util.List<java.lang.String>
       getPrincipalIdsList();
   /**
+   * <pre>
+   * Principal IDs authorized to access the resource.
+   * </pre>
+   *
    * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
    * @return The count of principalIds.
    */
   int getPrincipalIdsCount();
   /**
+   * <pre>
+   * Principal IDs authorized to access the resource.
+   * </pre>
+   *
    * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
    * @param index The index of the element to return.
    * @return The principalIds at the given index.
    */
   java.lang.String getPrincipalIds(int index);
   /**
+   * <pre>
+   * Principal IDs authorized to access the resource.
+   * </pre>
+   *
    * <code>repeated string principal_ids = 1 [json_name = "principalIds"];</code>
    * @param index The index of the value to return.
    * @return The bytes of the principalIds at the given index.

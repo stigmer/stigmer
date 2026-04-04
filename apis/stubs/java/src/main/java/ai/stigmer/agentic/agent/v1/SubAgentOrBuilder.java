@@ -13,8 +13,6 @@ public interface SubAgentOrBuilder extends
   /**
    * <pre>
    * Unique name of the sub-agent within the parent agent.
-   * Used for delegation routing and logging.
-   * Examples: "code-reviewer", "researcher", "writer"
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -24,8 +22,6 @@ public interface SubAgentOrBuilder extends
   /**
    * <pre>
    * Unique name of the sub-agent within the parent agent.
-   * Used for delegation routing and logging.
-   * Examples: "code-reviewer", "researcher", "writer"
    * </pre>
    *
    * <code>string name = 1 [json_name = "name", (.buf.validate.field) = { ... }</code>
@@ -36,9 +32,7 @@ public interface SubAgentOrBuilder extends
 
   /**
    * <pre>
-   * Description of what this sub-agent specializes in.
-   * Helps the parent agent decide when to delegate to this sub-agent.
-   * Example: "Reviews code changes for security issues and best practices"
+   * What this sub-agent specializes in.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -47,9 +41,7 @@ public interface SubAgentOrBuilder extends
   java.lang.String getDescription();
   /**
    * <pre>
-   * Description of what this sub-agent specializes in.
-   * Helps the parent agent decide when to delegate to this sub-agent.
-   * Example: "Reviews code changes for security issues and best practices"
+   * What this sub-agent specializes in.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -60,9 +52,7 @@ public interface SubAgentOrBuilder extends
 
   /**
    * <pre>
-   * Behavior instructions for this sub-agent.
-   * Defines the sub-agent's personality, expertise, and constraints.
-   * Should be at least 10 characters to ensure meaningful instructions.
+   * System prompt for this sub-agent.
    * </pre>
    *
    * <code>string instructions = 3 [json_name = "instructions", (.buf.validate.field) = { ... }</code>
@@ -71,9 +61,7 @@ public interface SubAgentOrBuilder extends
   java.lang.String getInstructions();
   /**
    * <pre>
-   * Behavior instructions for this sub-agent.
-   * Defines the sub-agent's personality, expertise, and constraints.
-   * Should be at least 10 characters to ensure meaningful instructions.
+   * System prompt for this sub-agent.
    * </pre>
    *
    * <code>string instructions = 3 [json_name = "instructions", (.buf.validate.field) = { ... }</code>
@@ -85,9 +73,8 @@ public interface SubAgentOrBuilder extends
   /**
    * <pre>
    * MCP server access grants for this sub-agent.
-   * Each McpAccess references a parent's McpServerUsage by slug and
-   * optionally restricts which tools are available.
-   * Sub-agent can only use MCP servers listed here.
+   * Each entry references a parent McpServerUsage by slug and optionally
+   * restricts which tools are available.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -97,9 +84,8 @@ public interface SubAgentOrBuilder extends
   /**
    * <pre>
    * MCP server access grants for this sub-agent.
-   * Each McpAccess references a parent's McpServerUsage by slug and
-   * optionally restricts which tools are available.
-   * Sub-agent can only use MCP servers listed here.
+   * Each entry references a parent McpServerUsage by slug and optionally
+   * restricts which tools are available.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -108,9 +94,8 @@ public interface SubAgentOrBuilder extends
   /**
    * <pre>
    * MCP server access grants for this sub-agent.
-   * Each McpAccess references a parent's McpServerUsage by slug and
-   * optionally restricts which tools are available.
-   * Sub-agent can only use MCP servers listed here.
+   * Each entry references a parent McpServerUsage by slug and optionally
+   * restricts which tools are available.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -119,9 +104,8 @@ public interface SubAgentOrBuilder extends
   /**
    * <pre>
    * MCP server access grants for this sub-agent.
-   * Each McpAccess references a parent's McpServerUsage by slug and
-   * optionally restricts which tools are available.
-   * Sub-agent can only use MCP servers listed here.
+   * Each entry references a parent McpServerUsage by slug and optionally
+   * restricts which tools are available.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -131,9 +115,8 @@ public interface SubAgentOrBuilder extends
   /**
    * <pre>
    * MCP server access grants for this sub-agent.
-   * Each McpAccess references a parent's McpServerUsage by slug and
-   * optionally restricts which tools are available.
-   * Sub-agent can only use MCP servers listed here.
+   * Each entry references a parent McpServerUsage by slug and optionally
+   * restricts which tools are available.
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.agent.v1.McpAccess mcp_access = 4 [json_name = "mcpAccess"];</code>
@@ -143,8 +126,7 @@ public interface SubAgentOrBuilder extends
 
   /**
    * <pre>
-   * Skill resources for this sub-agent's knowledge.
-   * Skills provide domain-specific knowledge and capabilities.
+   * Skill resources for this sub-agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -153,8 +135,7 @@ public interface SubAgentOrBuilder extends
       getSkillRefsList();
   /**
    * <pre>
-   * Skill resources for this sub-agent's knowledge.
-   * Skills provide domain-specific knowledge and capabilities.
+   * Skill resources for this sub-agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -162,8 +143,7 @@ public interface SubAgentOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceReference getSkillRefs(int index);
   /**
    * <pre>
-   * Skill resources for this sub-agent's knowledge.
-   * Skills provide domain-specific knowledge and capabilities.
+   * Skill resources for this sub-agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -171,8 +151,7 @@ public interface SubAgentOrBuilder extends
   int getSkillRefsCount();
   /**
    * <pre>
-   * Skill resources for this sub-agent's knowledge.
-   * Skills provide domain-specific knowledge and capabilities.
+   * Skill resources for this sub-agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -181,8 +160,7 @@ public interface SubAgentOrBuilder extends
       getSkillRefsOrBuilderList();
   /**
    * <pre>
-   * Skill resources for this sub-agent's knowledge.
-   * Skills provide domain-specific knowledge and capabilities.
+   * Skill resources for this sub-agent.
    * </pre>
    *
    * <code>repeated .ai.stigmer.commons.apiresource.ApiResourceReference skill_refs = 5 [json_name = "skillRefs", (.buf.validate.field) = { ... }</code>
@@ -193,15 +171,8 @@ public interface SubAgentOrBuilder extends
   /**
    * <pre>
    * Model override for this sub-agent.
-   * When set, this sub-agent uses this model instead of the parent's model.
-   * Enables cost optimization by routing simple sub-agent tasks to cheaper models.
-   *
-   * Examples:
-   * - Parent uses "claude-sonnet-4" ($3/$15 per MTok)
-   * - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)
-   * - Code review sub-agent keeps parent model (leave empty)
-   *
-   * When empty: inherits the parent agent's model (current behavior).
+   * When set, uses this model instead of the parent's model.
+   * When empty, inherits the parent agent's model.
    * </pre>
    *
    * <code>string model_override = 6 [json_name = "modelOverride"];</code>
@@ -211,15 +182,8 @@ public interface SubAgentOrBuilder extends
   /**
    * <pre>
    * Model override for this sub-agent.
-   * When set, this sub-agent uses this model instead of the parent's model.
-   * Enables cost optimization by routing simple sub-agent tasks to cheaper models.
-   *
-   * Examples:
-   * - Parent uses "claude-sonnet-4" ($3/$15 per MTok)
-   * - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25)
-   * - Code review sub-agent keeps parent model (leave empty)
-   *
-   * When empty: inherits the parent agent's model (current behavior).
+   * When set, uses this model instead of the parent's model.
+   * When empty, inherits the parent agent's model.
    * </pre>
    *
    * <code>string model_override = 6 [json_name = "modelOverride"];</code>

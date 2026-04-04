@@ -7,20 +7,25 @@ import "ai/stigmer/commons/apiresource/status.proto";
 import "ai/stigmer/iam/identityaccount/v1/spec.proto";
 import "buf/validate/validate.proto";
 
-// identity-account for user accounts
+// IdentityAccount represents a user or machine principal in Stigmer.
+//
+// An identity account is the core identity primitive for authentication and
+// authorization. Accounts can be direct (signed up via Stigmer), federated
+// (provisioned through an external identity provider), or machine
+// (service-to-service credentials).
 message IdentityAccount {
-  //api-version
+  // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'iam.stigmer.ai/v1'];
 
-  //resource-kind
+  // Resource kind identifier.
   string kind = 2 [(buf.validate.field).string.const = 'IdentityAccount'];
 
-  // metadata
+  // Resource metadata including name, organization, and labels.
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
 
-  //spec
+  // Configurable properties: identity provider ID, email, name, and provisioning mode.
   IdentityAccountSpec spec = 4;
 
-  //status
+  // System-managed state including audit trail.
   ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
 }

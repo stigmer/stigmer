@@ -23,18 +23,23 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// identity-account for user accounts
+// IdentityAccount represents a user or machine principal in Stigmer.
+//
+// An identity account is the core identity primitive for authentication and
+// authorization. Accounts can be direct (signed up via Stigmer), federated
+// (provisioned through an external identity provider), or machine
+// (service-to-service credentials).
 type IdentityAccount struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// api-version
+	// API version for this resource type.
 	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
-	// resource-kind
+	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// metadata
+	// Resource metadata including name, organization, and labels.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// spec
+	// Configurable properties: identity provider ID, email, name, and provisioning mode.
 	Spec *IdentityAccountSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// status
+	// System-managed state including audit trail.
 	Status        *apiresource.ApiResourceAuditStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

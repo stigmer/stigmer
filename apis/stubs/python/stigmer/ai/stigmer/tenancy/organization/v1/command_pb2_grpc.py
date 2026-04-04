@@ -7,7 +7,7 @@ from ai.stigmer.tenancy.organization.v1 import io_pb2 as ai_dot_stigmer_dot_tena
 
 
 class OrganizationCommandControllerStub(object):
-    """OrganizationCommandController provides write operations for organizations
+    """OrganizationCommandController handles write operations for organizations.
     """
 
     def __init__(self, channel):
@@ -39,11 +39,13 @@ class OrganizationCommandControllerStub(object):
 
 
 class OrganizationCommandControllerServicer(object):
-    """OrganizationCommandController provides write operations for organizations
+    """OrganizationCommandController handles write operations for organizations.
     """
 
     def apply(self, request, context):
         """Create or update an organization.
+
+        @internal
         The authorization and state-operation are determined depending on whether the organization
         is going to be created or updated which is determined as part of the request execution.
         """
@@ -52,26 +54,32 @@ class OrganizationCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def create(self, request, context):
-        """Create a new organization
-        No authorization required - any authenticated user can create an organization
-        The creator automatically becomes the owner of the organization
+        """Create an organization.
+
+        @internal
+        No authorization required — any authenticated user can create an organization.
+        The creator automatically becomes the owner of the organization.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an existing organization
-        Requires: Organization admin permission (can_edit)
+        """Update an existing organization.
+
+        @internal
+        Authorization: Requires can_edit permission on the organization.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def delete(self, request, context):
-        """Delete an organization
-        Requires: Organization owner permission (can_delete)
-        Note: This will cascade delete all resources under the organization
+        """Delete an organization.
+
+        @internal
+        Authorization: Requires can_delete permission on the organization.
+        This will cascade-delete all resources under the organization.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -109,7 +117,7 @@ def add_OrganizationCommandControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class OrganizationCommandController(object):
-    """OrganizationCommandController provides write operations for organizations
+    """OrganizationCommandController handles write operations for organizations.
     """
 
     @staticmethod

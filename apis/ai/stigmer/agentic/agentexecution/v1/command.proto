@@ -24,7 +24,9 @@ service AgentExecutionCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.is_skip_authorization) = true;
   }
 
-  // Update an execution with full state.
+  // Update an agent execution.
+  //
+  // @internal
   // Used by users to update execution configuration (spec fields).
   // No individual field updates - always provide complete state.
   rpc update(AgentExecution) returns (AgentExecution) {
@@ -34,7 +36,7 @@ service AgentExecutionCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update agent execution";
   }
 
-  // Update execution status during agent execution.
+  // Update an agent execution's status.
   //
   // @internal
   // System-level RPC used by agent-runner to send progressive status updates
@@ -47,7 +49,7 @@ service AgentExecutionCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to update agent execution status";
   }
 
-  // Delete an execution.
+  // Delete an agent execution by ID.
   rpc delete(ai.stigmer.commons.apiresource.ApiResourceId) returns (AgentExecution) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = agent_execution;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
@@ -55,7 +57,7 @@ service AgentExecutionCommandController {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).error_msg = "unauthorized to delete agent execution";
   }
 
-  // Submit approval decision for a pending tool call (HITL Phase 1).
+  // Submit an approval decision for a pending tool call.
   //
   // ## Preconditions
   //

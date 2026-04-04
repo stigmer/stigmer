@@ -23,10 +23,12 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Request to get the OAuth authorize URL.
+// Input for requesting a GitHub OAuth authorize URL.
 type GetOAuthAuthorizeUrlRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The URI that GitHub will redirect back to after the user authorizes.
+	// Callback URI that GitHub redirects to after the user authorizes.
+	//
+	// @internal
 	// Must match one of the callback URLs registered on the GitHub App.
 	RedirectUri   string `protobuf:"bytes,1,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -70,13 +72,13 @@ func (x *GetOAuthAuthorizeUrlRequest) GetRedirectUri() string {
 	return ""
 }
 
-// Response containing the constructed OAuth authorize URL.
+// Result of requesting a GitHub OAuth authorize URL.
 type GetOAuthAuthorizeUrlResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The full GitHub OAuth authorize URL to redirect the user to.
+	// Full GitHub OAuth authorize URL to redirect the user to.
 	AuthorizeUrl string `protobuf:"bytes,1,opt,name=authorize_url,json=authorizeUrl,proto3" json:"authorize_url,omitempty"`
-	// A random state value for CSRF protection. The frontend must verify
-	// this matches the state returned in the callback.
+	// Random state value for CSRF protection.
+	// Pass this back in ExchangeOAuthCodeRequest to verify the callback.
 	State         string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -126,15 +128,17 @@ func (x *GetOAuthAuthorizeUrlResponse) GetState() string {
 	return ""
 }
 
-// Request to exchange an authorization code for an access token.
+// Input for exchanging a GitHub authorization code for an access token.
 type ExchangeOAuthCodeRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The authorization code received from GitHub's OAuth redirect.
+	// Authorization code received from GitHub's OAuth redirect callback.
 	Code string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
-	// The state value from the original authorize request, for CSRF verification.
+	// State value from the original authorize response, for CSRF verification.
 	State string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
-	// The redirect_uri used in the original authorize request.
-	// GitHub requires this to match for the token exchange.
+	// Redirect URI used in the original authorize request.
+	//
+	// @internal
+	// GitHub requires this to match the value from the authorize step.
 	RedirectUri   string `protobuf:"bytes,3,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -191,14 +195,14 @@ func (x *ExchangeOAuthCodeRequest) GetRedirectUri() string {
 	return ""
 }
 
-// Response containing the exchanged access token.
+// Result of exchanging a GitHub authorization code for an access token.
 type ExchangeOAuthCodeResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The GitHub access token for API calls.
+	// GitHub access token for API calls.
 	AccessToken string `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	// The token type (typically "bearer").
+	// Token type (typically "bearer").
 	TokenType string `protobuf:"bytes,2,opt,name=token_type,json=tokenType,proto3" json:"token_type,omitempty"`
-	// The granted OAuth scopes (comma-separated).
+	// Granted OAuth scopes, comma-separated.
 	Scope         string `protobuf:"bytes,3,opt,name=scope,proto3" json:"scope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

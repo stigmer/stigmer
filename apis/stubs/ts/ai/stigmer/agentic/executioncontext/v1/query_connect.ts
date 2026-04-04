@@ -9,8 +9,9 @@ import { MethodKind } from "@bufbuild/protobuf";
 import { ApiResourceReference } from "../../../commons/apiresource/io_pb.js";
 
 /**
- * ExecutionContextQueryController provides read operations for ExecutionContext resources.
+ * ExecutionContextQueryController handles read operations for ExecutionContext resources.
  *
+ * @internal
  * Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
  * ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
  * FGA model. Authorization is derived from the parent execution:
@@ -54,7 +55,7 @@ export const ExecutionContextQueryController = {
       kind: MethodKind.Unary,
     },
     /**
-     * Get an ExecutionContext by the execution ID it belongs to.
+     * Get the ExecutionContext for a given execution ID.
      *
      * @internal
      * Primary lookup method used by runners to retrieve the merged environment

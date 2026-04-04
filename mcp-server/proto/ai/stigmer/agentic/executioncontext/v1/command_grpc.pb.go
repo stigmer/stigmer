@@ -29,8 +29,9 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// ExecutionContextCommandController provides write operations for ExecutionContext resources.
+// ExecutionContextCommandController handles write operations for ExecutionContext resources.
 //
+// @internal
 // Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
 // ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
 // FGA model. Authorization is derived from the parent execution:
@@ -40,6 +41,8 @@ const (
 // This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
 type ExecutionContextCommandControllerClient interface {
 	// Create or update an ExecutionContext.
+	//
+	// @internal
 	// The authorization and state-operation are determined depending on whether the execution context
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(ctx context.Context, in *ExecutionContext, opts ...grpc.CallOption) (*ExecutionContext, error)
@@ -99,8 +102,9 @@ func (c *executionContextCommandControllerClient) Delete(ctx context.Context, in
 // All implementations should embed UnimplementedExecutionContextCommandControllerServer
 // for forward compatibility.
 //
-// ExecutionContextCommandController provides write operations for ExecutionContext resources.
+// ExecutionContextCommandController handles write operations for ExecutionContext resources.
 //
+// @internal
 // Authorization: All RPCs use is_skip_authorization with custom handler-level derived auth.
 // ExecutionContext is ephemeral (1:1 with its parent execution) and has no dedicated
 // FGA model. Authorization is derived from the parent execution:
@@ -110,6 +114,8 @@ func (c *executionContextCommandControllerClient) Delete(ctx context.Context, in
 // This avoids FGA tuple churn for short-lived resources while maintaining proper access control.
 type ExecutionContextCommandControllerServer interface {
 	// Create or update an ExecutionContext.
+	//
+	// @internal
 	// The authorization and state-operation are determined depending on whether the execution context
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(context.Context, *ExecutionContext) (*ExecutionContext, error)

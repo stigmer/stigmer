@@ -38,6 +38,10 @@ package ai.stigmer.agentic.agentexecution.v1;
 public enum ToolCallStreamingSource
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * No active streaming, or streaming has completed.
+   * </pre>
+   *
    * <code>TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED = 0;</code>
    */
   TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED(0),
@@ -73,6 +77,10 @@ public enum ToolCallStreamingSource
       "ToolCallStreamingSource");
   }
   /**
+   * <pre>
+   * No active streaming, or streaming has completed.
+   * </pre>
+   *
    * <code>TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED = 0;</code>
    */
   public static final int TOOL_CALL_STREAMING_SOURCE_UNSPECIFIED_VALUE = 0;

@@ -10,7 +10,7 @@ import { EnvironmentList, EnvironmentSecretValueInput, ListEnvironmentsRequest }
 import { EnvironmentValue } from "./spec_pb.js";
 
 /**
- * EnvironmentQueryController provides read operations for Environment resources.
+ * EnvironmentQueryController handles read operations for environments.
  *
  * @generated from service ai.stigmer.agentic.environment.v1.EnvironmentQueryController
  */
@@ -18,7 +18,10 @@ export const EnvironmentQueryController = {
   typeName: "ai.stigmer.agentic.environment.v1.EnvironmentQueryController",
   methods: {
     /**
-     * Get an Environment by ID.
+     * Get an environment by ID.
+     *
+     * @internal
+     * Authorization: requires can_view permission on the environment resource.
      *
      * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.get
      */
@@ -30,9 +33,11 @@ export const EnvironmentQueryController = {
     },
     /**
      * Get an environment by its organization-scoped reference (org/slug).
+     * Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
      *
      * @internal
-     * Custom authorization in handler.
+     * Custom authorization in handler — checks both direct resource access
+     * and organization-level visibility permissions.
      *
      * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getByReference
      */
@@ -44,11 +49,10 @@ export const EnvironmentQueryController = {
     },
     /**
      * Get the unredacted value of a single secret key in an environment.
-     * Creator-only: requires can_read_secrets permission.
-     * Returns the EnvironmentValue with the decrypted value.
+     * Returns the EnvironmentValue with the decrypted value for exactly one key.
      *
      * @internal
-     * FGA authorization: creator relation grants can_read_secrets.
+     * Creator-only: FGA authorization grants can_read_secrets via the creator relation.
      *
      * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getSecretValue
      */

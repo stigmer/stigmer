@@ -20,7 +20,10 @@ export const file_ai_stigmer_agentic_agentinstance_v1_api: GenFile = /*@__PURE__
   fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvYWdlbnRpbnN0YW5jZS92MS9hcGkucHJvdG8SI2FpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudGluc3RhbmNlLnYxIsMCCg1BZ2VudEluc3RhbmNlEjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEiIKBGtpbmQYAiABKAlCFLpIEXIPCg1BZ2VudEluc3RhbmNlEk0KCG1ldGFkYXRhGAMgASgLMjMuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlTWV0YWRhdGFCBrpIA8gBARJECgRzcGVjGAQgASgLMjYuYWkuc3RpZ21lci5hZ2VudGljLmFnZW50aW5zdGFuY2UudjEuQWdlbnRJbnN0YW5jZVNwZWMSRgoGc3RhdHVzGAUgASgLMjYuYWkuc3RpZ21lci5jb21tb25zLmFwaXJlc291cmNlLkFwaVJlc291cmNlQXVkaXRTdGF0dXNiBnByb3RvMw", [file_ai_stigmer_agentic_agentinstance_v1_spec, file_ai_stigmer_commons_apiresource_metadata, file_ai_stigmer_commons_apiresource_status, file_buf_validate_validate]);
 
 /**
- * AgentInstance represents a configured deployment of an Agent template.
+ * AgentInstance defines a configured deployment of an Agent template.
+ *
+ * @internal
+ * Uses Graphton configuration for state management.
  *
  * @generated from message ai.stigmer.agentic.agentinstance.v1.AgentInstance
  */
@@ -40,7 +43,9 @@ export type AgentInstance = Message<"ai.stigmer.agentic.agentinstance.v1.AgentIn
   kind: string;
 
   /**
-   * Standard resource metadata including name, id, labels, and tags.
+   * Resource metadata including name, organization, scope, and labels.
+   *
+   * @internal
    * AgentInstances can have platform, organization, or identity_account scope.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
@@ -48,14 +53,14 @@ export type AgentInstance = Message<"ai.stigmer.agentic.agentinstance.v1.AgentIn
   metadata?: ApiResourceMetadata;
 
   /**
-   * Spec defining the instance configuration.
+   * Configurable properties: agent binding, description, and environment references.
    *
    * @generated from field: ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec spec = 4;
    */
   spec?: AgentInstanceSpec;
 
   /**
-   * Status of the instance.
+   * System-managed audit trail including creation and update timestamps.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
    */

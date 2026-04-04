@@ -25,23 +25,24 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// WorkflowSpec defines the complete specification of a workflow.
-// Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
+// WorkflowSpec defines the configurable properties of a workflow.
 //
+// @internal
+// Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
 // This replaces the old `synthesized_yaml` field with structured proto definitions.
 // Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,
 // providing maximum flexibility and extensibility.
+// The overview.md file provides the SDK-facing description and example YAML.
 type WorkflowSpec struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Human-readable description for UI and marketplace display.
 	Description string `protobuf:"bytes,1,opt,name=description,proto3" json:"description,omitempty"`
-	// Workflow document metadata (DSL version, namespace, name, version).
+	// Workflow document metadata including DSL version, namespace, name, and version.
 	Document *WorkflowDocument `protobuf:"bytes,2,opt,name=document,proto3" json:"document,omitempty"`
 	// Ordered list of tasks that make up this workflow.
 	// Tasks execute sequentially unless fork/parallel is used.
 	Tasks []*WorkflowTask `protobuf:"bytes,3,rep,name=tasks,proto3" json:"tasks,omitempty"`
 	// Environment variables required by the workflow.
-	// Uses the shared EnvironmentSpec for consistent env var handling.
 	EnvSpec       *v1.EnvironmentSpec `protobuf:"bytes,4,opt,name=env_spec,json=envSpec,proto3" json:"env_spec,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -105,11 +106,13 @@ func (x *WorkflowSpec) GetEnvSpec() *v1.EnvironmentSpec {
 	return nil
 }
 
-// WorkflowDocument contains workflow metadata.
+// WorkflowDocument contains workflow-level metadata for versioning and identification.
+//
+// @internal
 // Maps to the `document:` block in Zigflow DSL YAML.
 type WorkflowDocument struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// DSL version (semver). Must be "1.0.0" for current Zigflow.
+	// Workflow DSL version (semver). Must be "1.0.0" for the current specification.
 	Dsl string `protobuf:"bytes,1,opt,name=dsl,proto3" json:"dsl,omitempty"`
 	// Workflow namespace (organization/categorization).
 	Namespace string `protobuf:"bytes,2,opt,name=namespace,proto3" json:"namespace,omitempty"`
@@ -188,7 +191,9 @@ func (x *WorkflowDocument) GetDescription() string {
 	return ""
 }
 
-// WorkflowTask represents a single task in the workflow.
+// WorkflowTask represents a single executable step in a workflow.
+//
+// @internal
 // Uses the "kind + Struct" pattern (like CloudResource in Planton Cloud):
 // - `kind` determines the task type (set_vars, http_call, switch_case, etc.)
 // - `task_config` contains task-specific configuration as dynamic JSON
@@ -213,9 +218,9 @@ type WorkflowTask struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Task type (determines how to interpret task_config).
 	Kind WorkflowTaskKind `protobuf:"varint,2,opt,name=kind,proto3,enum=ai.stigmer.agentic.workflow.v1.WorkflowTaskKind" json:"kind,omitempty"`
-	// Task-specific configuration (dynamic typed).
-	// Structure depends on `kind` value.
+	// Task-specific configuration whose structure depends on the `kind` field.
 	//
+	// @internal
 	// Backend unmarshals this Struct to the appropriate proto message:
 	// - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
 	// - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -308,7 +313,9 @@ func (x *WorkflowTask) GetFlow() *FlowControl {
 	return nil
 }
 
-// Export defines how to save task output to context.
+// Export defines how task output is saved to the workflow context.
+//
+// @internal
 // Maps to the `export:` block in Zigflow DSL.
 //
 // Examples:
@@ -317,8 +324,7 @@ func (x *WorkflowTask) GetFlow() *FlowControl {
 // - {"as": "${$context + {taskName: .}}"} - Merge into context
 type Export struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Expression defining how to export output.
-	// Uses Zigflow expression syntax: ${...}
+	// Expression defining how to export output using ${...} syntax.
 	As            string `protobuf:"bytes,1,opt,name=as,proto3" json:"as,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -361,7 +367,9 @@ func (x *Export) GetAs() string {
 	return ""
 }
 
-// FlowControl defines which task executes next.
+// FlowControl defines which task executes next after the current task completes.
+//
+// @internal
 // Maps to the `then:` directive in Zigflow DSL.
 //
 // Examples:

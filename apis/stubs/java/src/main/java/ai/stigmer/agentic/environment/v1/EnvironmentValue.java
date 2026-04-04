@@ -7,7 +7,7 @@ package ai.stigmer.agentic.environment.v1;
 
 /**
  * <pre>
- * EnvironmentValue represents a single configuration or secret value.
+ * EnvironmentValue represents a single configuration or secret entry.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.environment.v1.EnvironmentValue}
@@ -59,11 +59,12 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object value_ = "";
   /**
    * <pre>
-   * The actual value.
-   * - If is_secret=true: This value is encrypted at rest and redacted in logs
-   * - If is_secret=false: This value is stored as plaintext
-   * Note: Value can be empty when defining environment variables in specs.
-   * Actual values are typically provided at runtime during execution.
+   * The configuration or secret string.
+   *
+   * &#64;internal
+   * When is_secret is true the value is encrypted at rest and redacted in logs.
+   * When is_secret is false the value is stored as plaintext.
+   * Value can be empty when pre-declaring keys whose values are injected at runtime.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value"];</code>
@@ -84,11 +85,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The actual value.
-   * - If is_secret=true: This value is encrypted at rest and redacted in logs
-   * - If is_secret=false: This value is stored as plaintext
-   * Note: Value can be empty when defining environment variables in specs.
-   * Actual values are typically provided at runtime during execution.
+   * The configuration or secret string.
+   *
+   * &#64;internal
+   * When is_secret is true the value is encrypted at rest and redacted in logs.
+   * When is_secret is false the value is stored as plaintext.
+   * Value can be empty when pre-declaring keys whose values are injected at runtime.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value"];</code>
@@ -114,13 +116,10 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether this value should be treated as a secret.
-   * When true:
-   * - Value is encrypted at rest
-   * - Value is redacted in logs
-   * - Value requires special permissions to read
-   * When false:
-   * - Value is stored as plaintext
-   * - Value is visible in audit logs
+   *
+   * &#64;internal
+   * When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.
+   * When false: stored as plaintext, visible in audit logs.
    * </pre>
    *
    * <code>bool is_secret = 2 [json_name = "isSecret"];</code>
@@ -136,8 +135,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object description_ = "";
   /**
    * <pre>
-   * Optional description for documentation.
-   * Example: "AWS access key for S3 bucket access"
+   * Human-readable description of what this value is used for.
    * </pre>
    *
    * <code>string description = 3 [json_name = "description"];</code>
@@ -158,8 +156,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Optional description for documentation.
-   * Example: "AWS access key for S3 bucket access"
+   * Human-readable description of what this value is used for.
    * </pre>
    *
    * <code>string description = 3 [json_name = "description"];</code>
@@ -360,7 +357,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * EnvironmentValue represents a single configuration or secret value.
+   * EnvironmentValue represents a single configuration or secret entry.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.environment.v1.EnvironmentValue}
@@ -529,11 +526,12 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object value_ = "";
     /**
      * <pre>
-     * The actual value.
-     * - If is_secret=true: This value is encrypted at rest and redacted in logs
-     * - If is_secret=false: This value is stored as plaintext
-     * Note: Value can be empty when defining environment variables in specs.
-     * Actual values are typically provided at runtime during execution.
+     * The configuration or secret string.
+     *
+     * &#64;internal
+     * When is_secret is true the value is encrypted at rest and redacted in logs.
+     * When is_secret is false the value is stored as plaintext.
+     * Value can be empty when pre-declaring keys whose values are injected at runtime.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -553,11 +551,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The actual value.
-     * - If is_secret=true: This value is encrypted at rest and redacted in logs
-     * - If is_secret=false: This value is stored as plaintext
-     * Note: Value can be empty when defining environment variables in specs.
-     * Actual values are typically provided at runtime during execution.
+     * The configuration or secret string.
+     *
+     * &#64;internal
+     * When is_secret is true the value is encrypted at rest and redacted in logs.
+     * When is_secret is false the value is stored as plaintext.
+     * Value can be empty when pre-declaring keys whose values are injected at runtime.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -578,11 +577,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The actual value.
-     * - If is_secret=true: This value is encrypted at rest and redacted in logs
-     * - If is_secret=false: This value is stored as plaintext
-     * Note: Value can be empty when defining environment variables in specs.
-     * Actual values are typically provided at runtime during execution.
+     * The configuration or secret string.
+     *
+     * &#64;internal
+     * When is_secret is true the value is encrypted at rest and redacted in logs.
+     * When is_secret is false the value is stored as plaintext.
+     * Value can be empty when pre-declaring keys whose values are injected at runtime.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -599,11 +599,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The actual value.
-     * - If is_secret=true: This value is encrypted at rest and redacted in logs
-     * - If is_secret=false: This value is stored as plaintext
-     * Note: Value can be empty when defining environment variables in specs.
-     * Actual values are typically provided at runtime during execution.
+     * The configuration or secret string.
+     *
+     * &#64;internal
+     * When is_secret is true the value is encrypted at rest and redacted in logs.
+     * When is_secret is false the value is stored as plaintext.
+     * Value can be empty when pre-declaring keys whose values are injected at runtime.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -617,11 +618,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The actual value.
-     * - If is_secret=true: This value is encrypted at rest and redacted in logs
-     * - If is_secret=false: This value is stored as plaintext
-     * Note: Value can be empty when defining environment variables in specs.
-     * Actual values are typically provided at runtime during execution.
+     * The configuration or secret string.
+     *
+     * &#64;internal
+     * When is_secret is true the value is encrypted at rest and redacted in logs.
+     * When is_secret is false the value is stored as plaintext.
+     * Value can be empty when pre-declaring keys whose values are injected at runtime.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value"];</code>
@@ -642,13 +644,10 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this value should be treated as a secret.
-     * When true:
-     * - Value is encrypted at rest
-     * - Value is redacted in logs
-     * - Value requires special permissions to read
-     * When false:
-     * - Value is stored as plaintext
-     * - Value is visible in audit logs
+     *
+     * &#64;internal
+     * When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.
+     * When false: stored as plaintext, visible in audit logs.
      * </pre>
      *
      * <code>bool is_secret = 2 [json_name = "isSecret"];</code>
@@ -661,13 +660,10 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this value should be treated as a secret.
-     * When true:
-     * - Value is encrypted at rest
-     * - Value is redacted in logs
-     * - Value requires special permissions to read
-     * When false:
-     * - Value is stored as plaintext
-     * - Value is visible in audit logs
+     *
+     * &#64;internal
+     * When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.
+     * When false: stored as plaintext, visible in audit logs.
      * </pre>
      *
      * <code>bool is_secret = 2 [json_name = "isSecret"];</code>
@@ -684,13 +680,10 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this value should be treated as a secret.
-     * When true:
-     * - Value is encrypted at rest
-     * - Value is redacted in logs
-     * - Value requires special permissions to read
-     * When false:
-     * - Value is stored as plaintext
-     * - Value is visible in audit logs
+     *
+     * &#64;internal
+     * When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.
+     * When false: stored as plaintext, visible in audit logs.
      * </pre>
      *
      * <code>bool is_secret = 2 [json_name = "isSecret"];</code>
@@ -706,8 +699,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object description_ = "";
     /**
      * <pre>
-     * Optional description for documentation.
-     * Example: "AWS access key for S3 bucket access"
+     * Human-readable description of what this value is used for.
      * </pre>
      *
      * <code>string description = 3 [json_name = "description"];</code>
@@ -727,8 +719,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional description for documentation.
-     * Example: "AWS access key for S3 bucket access"
+     * Human-readable description of what this value is used for.
      * </pre>
      *
      * <code>string description = 3 [json_name = "description"];</code>
@@ -749,8 +740,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional description for documentation.
-     * Example: "AWS access key for S3 bucket access"
+     * Human-readable description of what this value is used for.
      * </pre>
      *
      * <code>string description = 3 [json_name = "description"];</code>
@@ -767,8 +757,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional description for documentation.
-     * Example: "AWS access key for S3 bucket access"
+     * Human-readable description of what this value is used for.
      * </pre>
      *
      * <code>string description = 3 [json_name = "description"];</code>
@@ -782,8 +771,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Optional description for documentation.
-     * Example: "AWS access key for S3 bucket access"
+     * Human-readable description of what this value is used for.
      * </pre>
      *
      * <code>string description = 3 [json_name = "description"];</code>

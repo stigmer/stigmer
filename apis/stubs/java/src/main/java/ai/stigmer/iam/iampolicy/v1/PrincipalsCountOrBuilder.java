@@ -11,6 +11,10 @@ public interface PrincipalsCountOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Number of principals matching the query.
+   * </pre>
+   *
    * <code>int32 count = 1 [json_name = "count"];</code>
    * @return The count.
    */

@@ -419,11 +419,17 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * <pre>
    * Callback token for async activity completion (optional).
    *
-   * **Purpose**: Enables async completion pattern where the caller
-   * (typically a workflow activity) waits for actual agent completion
-   * without blocking worker threads.
+   * When a workflow invokes an agent, this token enables the workflow to
+   * wait for the agent to finish without blocking. When empty, the
+   * execution runs independently (CLI, API calls, non-workflow triggers).
    *
-   * **Flow**:
+   * &#64;internal
+   *
+   * Enables async completion pattern where the caller (typically a
+   * workflow activity) waits for actual agent completion without blocking
+   * worker threads.
+   *
+   * Flow:
    * 1. Caller (Go Temporal activity) extracts its task token
    * 2. Passes token in this field when creating AgentExecution
    * 3. Returns activity.ErrResultPending (activity paused, thread released)
@@ -431,82 +437,39 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
    * 5. Agent workflow calls ActivityCompletionClient.complete(token, result)
    * 6. Temporal resumes the paused activity with the result
    *
-   * **Benefits**:
-   * - Correctness: Caller waits for actual completion, not just ACK
-   * - Scalability: Worker threads not blocked during long-running execution
-   * - Resilience: Token is durable in Temporal; survives restarts
-   * - Decoupling: Caller doesn't poll or manage agent lifecycle
-   *
-   * **When Empty**:
-   * - Empty/null = fire-and-forget or direct API call (backward compatible)
-   * - Agent execution proceeds normally, no callback performed
-   * - Use case: CLI commands, API requests, non-workflow triggers
-   *
-   * **When Provided**:
-   * - Agent workflow MUST complete the external activity using this token
-   * - Both success and failure paths must call completion
-   * - Token uniquely identifies the external activity execution
-   *
-   * **Token Format**:
+   * Token Format:
    * - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
    * - Contains: namespace, workflow ID, run ID, activity ID, attempt
    * - DO NOT parse or modify - treat as opaque handle
    *
-   * **Security**:
+   * Security:
    * - Token grants ability to complete the activity (bearer token)
    * - Should only be passed through trusted internal services
    * - Logged as Base64-encoded string (truncated for security)
    *
-   * **Timeout**:
+   * Timeout:
    * - Caller should set StartToCloseTimeout (e.g., 24 hours)
    * - If token callback never arrives, activity times out
-   * - Prevents infinite hangs if agent workflow crashes
    *
-   * **Observability**:
-   * - Token is logged at creation time (Base64, first 20 chars)
-   * - Activity appears as "Running" in Temporal UI until completed
-   * - Both caller workflow and agent workflow visible in Temporal
-   *
-   * **Example Usage (Go)**:
+   * Example Usage (Go):
    * ```go
-   * // In Zigflow workflow activity
    * func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) {
-   * // Extract task token
    * taskToken := activity.GetInfo(ctx).TaskToken
-   *
-   * // Create agent execution with token
    * execution := &amp;AgentExecution{
    * Spec: &amp;AgentExecutionSpec{
    * AgentId: config.Agent,
    * Message: config.Message,
-   * CallbackToken: taskToken,  // 👈 Pass token here
+   * CallbackToken: taskToken,
    * },
    * }
-   *
    * client.Create(ctx, execution)
-   *
-   * // Return pending - activity paused, thread released
    * return nil, activity.ErrResultPending
    * }
    * ```
    *
-   * **Example Usage (Java Completion)**:
-   * ```java
-   * // In agent workflow (after completion)
-   * if (spec.getCallbackToken() != null &amp;&amp; !spec.getCallbackToken().isEmpty()) {
-   * // Complete the external activity
-   * systemActivities.completeZigflowToken(
-   * spec.getCallbackToken(),
-   * result
-   * );
-   * }
-   * ```
-   *
-   * **References**:
+   * References:
    * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
    * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-   * - Go SDK: https://pkg.go.dev/go.temporal.io/sdk/activity#ErrResultPending
-   * - Java SDK: https://www.javadoc.io/doc/io.temporal/temporal-sdk/latest/io/temporal/client/ActivityCompletionClient.html
    *
    * &#64;since 2026-01-22 (Phase 2: Async Agent Execution Integration)
    * </pre>
@@ -556,31 +519,24 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   private volatile java.lang.Object parentWorkflowId_ = "";
   /**
    * <pre>
-   * Parent workflow context for events-based approval notification (optional).
+   * Parent workflow ID when this execution was triggered by a workflow (optional).
    *
-   * When a workflow invokes an agent via CallAgentActivity, this field captures
-   * the parent workflow's Temporal workflow ID. This enables the agent execution
-   * workflow to signal the parent when approval is required, eliminating polling.
+   * When set, the platform notifies the parent workflow about approval
+   * requests instead of requiring polling. When empty, approvals are
+   * submitted directly via the SubmitApproval RPC.
    *
-   * ## Signal Pattern
+   * &#64;internal
    *
+   * Signal Pattern:
    * 1. Go workflow passes its workflow ID when creating AgentExecution
    * 2. Go workflow starts signal listener for "child_approval_required"
    * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
    * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
    *
-   * ## Format
-   *
+   * Format:
    * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-   * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
    *
-   * ## When Empty
-   *
-   * - Agent invoked directly (not from workflow) - no parent to notify
-   * - Older clients that don't support this field - fallback to direct approval
-   *
-   * ## Backward Compatibility
-   *
+   * Backward Compatibility:
    * This field is optional. Agents invoked without a parent workflow ID will
    * continue to work normally - approval is submitted directly via the
    * AgentExecution.SubmitApproval RPC.
@@ -606,31 +562,24 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
   }
   /**
    * <pre>
-   * Parent workflow context for events-based approval notification (optional).
+   * Parent workflow ID when this execution was triggered by a workflow (optional).
    *
-   * When a workflow invokes an agent via CallAgentActivity, this field captures
-   * the parent workflow's Temporal workflow ID. This enables the agent execution
-   * workflow to signal the parent when approval is required, eliminating polling.
+   * When set, the platform notifies the parent workflow about approval
+   * requests instead of requiring polling. When empty, approvals are
+   * submitted directly via the SubmitApproval RPC.
    *
-   * ## Signal Pattern
+   * &#64;internal
    *
+   * Signal Pattern:
    * 1. Go workflow passes its workflow ID when creating AgentExecution
    * 2. Go workflow starts signal listener for "child_approval_required"
    * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
    * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
    *
-   * ## Format
-   *
+   * Format:
    * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-   * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
    *
-   * ## When Empty
-   *
-   * - Agent invoked directly (not from workflow) - no parent to notify
-   * - Older clients that don't support this field - fallback to direct approval
-   *
-   * ## Backward Compatibility
-   *
+   * Backward Compatibility:
    * This field is optional. Agents invoked without a parent workflow ID will
    * continue to work normally - approval is submitted directly via the
    * AgentExecution.SubmitApproval RPC.
@@ -2331,11 +2280,17 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * Callback token for async activity completion (optional).
      *
-     * **Purpose**: Enables async completion pattern where the caller
-     * (typically a workflow activity) waits for actual agent completion
-     * without blocking worker threads.
+     * When a workflow invokes an agent, this token enables the workflow to
+     * wait for the agent to finish without blocking. When empty, the
+     * execution runs independently (CLI, API calls, non-workflow triggers).
      *
-     * **Flow**:
+     * &#64;internal
+     *
+     * Enables async completion pattern where the caller (typically a
+     * workflow activity) waits for actual agent completion without blocking
+     * worker threads.
+     *
+     * Flow:
      * 1. Caller (Go Temporal activity) extracts its task token
      * 2. Passes token in this field when creating AgentExecution
      * 3. Returns activity.ErrResultPending (activity paused, thread released)
@@ -2343,82 +2298,39 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * 5. Agent workflow calls ActivityCompletionClient.complete(token, result)
      * 6. Temporal resumes the paused activity with the result
      *
-     * **Benefits**:
-     * - Correctness: Caller waits for actual completion, not just ACK
-     * - Scalability: Worker threads not blocked during long-running execution
-     * - Resilience: Token is durable in Temporal; survives restarts
-     * - Decoupling: Caller doesn't poll or manage agent lifecycle
-     *
-     * **When Empty**:
-     * - Empty/null = fire-and-forget or direct API call (backward compatible)
-     * - Agent execution proceeds normally, no callback performed
-     * - Use case: CLI commands, API requests, non-workflow triggers
-     *
-     * **When Provided**:
-     * - Agent workflow MUST complete the external activity using this token
-     * - Both success and failure paths must call completion
-     * - Token uniquely identifies the external activity execution
-     *
-     * **Token Format**:
+     * Token Format:
      * - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
      * - Contains: namespace, workflow ID, run ID, activity ID, attempt
      * - DO NOT parse or modify - treat as opaque handle
      *
-     * **Security**:
+     * Security:
      * - Token grants ability to complete the activity (bearer token)
      * - Should only be passed through trusted internal services
      * - Logged as Base64-encoded string (truncated for security)
      *
-     * **Timeout**:
+     * Timeout:
      * - Caller should set StartToCloseTimeout (e.g., 24 hours)
      * - If token callback never arrives, activity times out
-     * - Prevents infinite hangs if agent workflow crashes
      *
-     * **Observability**:
-     * - Token is logged at creation time (Base64, first 20 chars)
-     * - Activity appears as "Running" in Temporal UI until completed
-     * - Both caller workflow and agent workflow visible in Temporal
-     *
-     * **Example Usage (Go)**:
+     * Example Usage (Go):
      * ```go
-     * // In Zigflow workflow activity
      * func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) {
-     * // Extract task token
      * taskToken := activity.GetInfo(ctx).TaskToken
-     *
-     * // Create agent execution with token
      * execution := &amp;AgentExecution{
      * Spec: &amp;AgentExecutionSpec{
      * AgentId: config.Agent,
      * Message: config.Message,
-     * CallbackToken: taskToken,  // 👈 Pass token here
+     * CallbackToken: taskToken,
      * },
      * }
-     *
      * client.Create(ctx, execution)
-     *
-     * // Return pending - activity paused, thread released
      * return nil, activity.ErrResultPending
      * }
      * ```
      *
-     * **Example Usage (Java Completion)**:
-     * ```java
-     * // In agent workflow (after completion)
-     * if (spec.getCallbackToken() != null &amp;&amp; !spec.getCallbackToken().isEmpty()) {
-     * // Complete the external activity
-     * systemActivities.completeZigflowToken(
-     * spec.getCallbackToken(),
-     * result
-     * );
-     * }
-     * ```
-     *
-     * **References**:
+     * References:
      * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
      * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-     * - Go SDK: https://pkg.go.dev/go.temporal.io/sdk/activity#ErrResultPending
-     * - Java SDK: https://www.javadoc.io/doc/io.temporal/temporal-sdk/latest/io/temporal/client/ActivityCompletionClient.html
      *
      * &#64;since 2026-01-22 (Phase 2: Async Agent Execution Integration)
      * </pre>
@@ -2434,11 +2346,17 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * Callback token for async activity completion (optional).
      *
-     * **Purpose**: Enables async completion pattern where the caller
-     * (typically a workflow activity) waits for actual agent completion
-     * without blocking worker threads.
+     * When a workflow invokes an agent, this token enables the workflow to
+     * wait for the agent to finish without blocking. When empty, the
+     * execution runs independently (CLI, API calls, non-workflow triggers).
      *
-     * **Flow**:
+     * &#64;internal
+     *
+     * Enables async completion pattern where the caller (typically a
+     * workflow activity) waits for actual agent completion without blocking
+     * worker threads.
+     *
+     * Flow:
      * 1. Caller (Go Temporal activity) extracts its task token
      * 2. Passes token in this field when creating AgentExecution
      * 3. Returns activity.ErrResultPending (activity paused, thread released)
@@ -2446,82 +2364,39 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * 5. Agent workflow calls ActivityCompletionClient.complete(token, result)
      * 6. Temporal resumes the paused activity with the result
      *
-     * **Benefits**:
-     * - Correctness: Caller waits for actual completion, not just ACK
-     * - Scalability: Worker threads not blocked during long-running execution
-     * - Resilience: Token is durable in Temporal; survives restarts
-     * - Decoupling: Caller doesn't poll or manage agent lifecycle
-     *
-     * **When Empty**:
-     * - Empty/null = fire-and-forget or direct API call (backward compatible)
-     * - Agent execution proceeds normally, no callback performed
-     * - Use case: CLI commands, API requests, non-workflow triggers
-     *
-     * **When Provided**:
-     * - Agent workflow MUST complete the external activity using this token
-     * - Both success and failure paths must call completion
-     * - Token uniquely identifies the external activity execution
-     *
-     * **Token Format**:
+     * Token Format:
      * - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
      * - Contains: namespace, workflow ID, run ID, activity ID, attempt
      * - DO NOT parse or modify - treat as opaque handle
      *
-     * **Security**:
+     * Security:
      * - Token grants ability to complete the activity (bearer token)
      * - Should only be passed through trusted internal services
      * - Logged as Base64-encoded string (truncated for security)
      *
-     * **Timeout**:
+     * Timeout:
      * - Caller should set StartToCloseTimeout (e.g., 24 hours)
      * - If token callback never arrives, activity times out
-     * - Prevents infinite hangs if agent workflow crashes
      *
-     * **Observability**:
-     * - Token is logged at creation time (Base64, first 20 chars)
-     * - Activity appears as "Running" in Temporal UI until completed
-     * - Both caller workflow and agent workflow visible in Temporal
-     *
-     * **Example Usage (Go)**:
+     * Example Usage (Go):
      * ```go
-     * // In Zigflow workflow activity
      * func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) {
-     * // Extract task token
      * taskToken := activity.GetInfo(ctx).TaskToken
-     *
-     * // Create agent execution with token
      * execution := &amp;AgentExecution{
      * Spec: &amp;AgentExecutionSpec{
      * AgentId: config.Agent,
      * Message: config.Message,
-     * CallbackToken: taskToken,  // 👈 Pass token here
+     * CallbackToken: taskToken,
      * },
      * }
-     *
      * client.Create(ctx, execution)
-     *
-     * // Return pending - activity paused, thread released
      * return nil, activity.ErrResultPending
      * }
      * ```
      *
-     * **Example Usage (Java Completion)**:
-     * ```java
-     * // In agent workflow (after completion)
-     * if (spec.getCallbackToken() != null &amp;&amp; !spec.getCallbackToken().isEmpty()) {
-     * // Complete the external activity
-     * systemActivities.completeZigflowToken(
-     * spec.getCallbackToken(),
-     * result
-     * );
-     * }
-     * ```
-     *
-     * **References**:
+     * References:
      * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
      * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-     * - Go SDK: https://pkg.go.dev/go.temporal.io/sdk/activity#ErrResultPending
-     * - Java SDK: https://www.javadoc.io/doc/io.temporal/temporal-sdk/latest/io/temporal/client/ActivityCompletionClient.html
      *
      * &#64;since 2026-01-22 (Phase 2: Async Agent Execution Integration)
      * </pre>
@@ -2541,11 +2416,17 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * <pre>
      * Callback token for async activity completion (optional).
      *
-     * **Purpose**: Enables async completion pattern where the caller
-     * (typically a workflow activity) waits for actual agent completion
-     * without blocking worker threads.
+     * When a workflow invokes an agent, this token enables the workflow to
+     * wait for the agent to finish without blocking. When empty, the
+     * execution runs independently (CLI, API calls, non-workflow triggers).
      *
-     * **Flow**:
+     * &#64;internal
+     *
+     * Enables async completion pattern where the caller (typically a
+     * workflow activity) waits for actual agent completion without blocking
+     * worker threads.
+     *
+     * Flow:
      * 1. Caller (Go Temporal activity) extracts its task token
      * 2. Passes token in this field when creating AgentExecution
      * 3. Returns activity.ErrResultPending (activity paused, thread released)
@@ -2553,82 +2434,39 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
      * 5. Agent workflow calls ActivityCompletionClient.complete(token, result)
      * 6. Temporal resumes the paused activity with the result
      *
-     * **Benefits**:
-     * - Correctness: Caller waits for actual completion, not just ACK
-     * - Scalability: Worker threads not blocked during long-running execution
-     * - Resilience: Token is durable in Temporal; survives restarts
-     * - Decoupling: Caller doesn't poll or manage agent lifecycle
-     *
-     * **When Empty**:
-     * - Empty/null = fire-and-forget or direct API call (backward compatible)
-     * - Agent execution proceeds normally, no callback performed
-     * - Use case: CLI commands, API requests, non-workflow triggers
-     *
-     * **When Provided**:
-     * - Agent workflow MUST complete the external activity using this token
-     * - Both success and failure paths must call completion
-     * - Token uniquely identifies the external activity execution
-     *
-     * **Token Format**:
+     * Token Format:
      * - Opaque binary blob from Temporal SDK (typically 100-200 bytes)
      * - Contains: namespace, workflow ID, run ID, activity ID, attempt
      * - DO NOT parse or modify - treat as opaque handle
      *
-     * **Security**:
+     * Security:
      * - Token grants ability to complete the activity (bearer token)
      * - Should only be passed through trusted internal services
      * - Logged as Base64-encoded string (truncated for security)
      *
-     * **Timeout**:
+     * Timeout:
      * - Caller should set StartToCloseTimeout (e.g., 24 hours)
      * - If token callback never arrives, activity times out
-     * - Prevents infinite hangs if agent workflow crashes
      *
-     * **Observability**:
-     * - Token is logged at creation time (Base64, first 20 chars)
-     * - Activity appears as "Running" in Temporal UI until completed
-     * - Both caller workflow and agent workflow visible in Temporal
-     *
-     * **Example Usage (Go)**:
+     * Example Usage (Go):
      * ```go
-     * // In Zigflow workflow activity
      * func CallAgentActivity(ctx context.Context, config *AgentCallTaskConfig) {
-     * // Extract task token
      * taskToken := activity.GetInfo(ctx).TaskToken
-     *
-     * // Create agent execution with token
      * execution := &amp;AgentExecution{
      * Spec: &amp;AgentExecutionSpec{
      * AgentId: config.Agent,
      * Message: config.Message,
-     * CallbackToken: taskToken,  // 👈 Pass token here
+     * CallbackToken: taskToken,
      * },
      * }
-     *
      * client.Create(ctx, execution)
-     *
-     * // Return pending - activity paused, thread released
      * return nil, activity.ErrResultPending
      * }
      * ```
      *
-     * **Example Usage (Java Completion)**:
-     * ```java
-     * // In agent workflow (after completion)
-     * if (spec.getCallbackToken() != null &amp;&amp; !spec.getCallbackToken().isEmpty()) {
-     * // Complete the external activity
-     * systemActivities.completeZigflowToken(
-     * spec.getCallbackToken(),
-     * result
-     * );
-     * }
-     * ```
-     *
-     * **References**:
+     * References:
      * - ADR: docs/adr/20260122-async-agent-execution-temporal-token-handshake.md
      * - Temporal Docs: https://docs.temporal.io/activities#asynchronous-activity-completion
-     * - Go SDK: https://pkg.go.dev/go.temporal.io/sdk/activity#ErrResultPending
-     * - Java SDK: https://www.javadoc.io/doc/io.temporal/temporal-sdk/latest/io/temporal/client/ActivityCompletionClient.html
      *
      * &#64;since 2026-01-22 (Phase 2: Async Agent Execution Integration)
      * </pre>
@@ -2741,31 +2579,24 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     private java.lang.Object parentWorkflowId_ = "";
     /**
      * <pre>
-     * Parent workflow context for events-based approval notification (optional).
+     * Parent workflow ID when this execution was triggered by a workflow (optional).
      *
-     * When a workflow invokes an agent via CallAgentActivity, this field captures
-     * the parent workflow's Temporal workflow ID. This enables the agent execution
-     * workflow to signal the parent when approval is required, eliminating polling.
+     * When set, the platform notifies the parent workflow about approval
+     * requests instead of requiring polling. When empty, approvals are
+     * submitted directly via the SubmitApproval RPC.
      *
-     * ## Signal Pattern
+     * &#64;internal
      *
+     * Signal Pattern:
      * 1. Go workflow passes its workflow ID when creating AgentExecution
      * 2. Go workflow starts signal listener for "child_approval_required"
      * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
      * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
      *
-     * ## Format
-     *
+     * Format:
      * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-     * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
      *
-     * ## When Empty
-     *
-     * - Agent invoked directly (not from workflow) - no parent to notify
-     * - Older clients that don't support this field - fallback to direct approval
-     *
-     * ## Backward Compatibility
-     *
+     * Backward Compatibility:
      * This field is optional. Agents invoked without a parent workflow ID will
      * continue to work normally - approval is submitted directly via the
      * AgentExecution.SubmitApproval RPC.
@@ -2790,31 +2621,24 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Parent workflow context for events-based approval notification (optional).
+     * Parent workflow ID when this execution was triggered by a workflow (optional).
      *
-     * When a workflow invokes an agent via CallAgentActivity, this field captures
-     * the parent workflow's Temporal workflow ID. This enables the agent execution
-     * workflow to signal the parent when approval is required, eliminating polling.
+     * When set, the platform notifies the parent workflow about approval
+     * requests instead of requiring polling. When empty, approvals are
+     * submitted directly via the SubmitApproval RPC.
      *
-     * ## Signal Pattern
+     * &#64;internal
      *
+     * Signal Pattern:
      * 1. Go workflow passes its workflow ID when creating AgentExecution
      * 2. Go workflow starts signal listener for "child_approval_required"
      * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
      * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
      *
-     * ## Format
-     *
+     * Format:
      * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-     * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
      *
-     * ## When Empty
-     *
-     * - Agent invoked directly (not from workflow) - no parent to notify
-     * - Older clients that don't support this field - fallback to direct approval
-     *
-     * ## Backward Compatibility
-     *
+     * Backward Compatibility:
      * This field is optional. Agents invoked without a parent workflow ID will
      * continue to work normally - approval is submitted directly via the
      * AgentExecution.SubmitApproval RPC.
@@ -2840,31 +2664,24 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Parent workflow context for events-based approval notification (optional).
+     * Parent workflow ID when this execution was triggered by a workflow (optional).
      *
-     * When a workflow invokes an agent via CallAgentActivity, this field captures
-     * the parent workflow's Temporal workflow ID. This enables the agent execution
-     * workflow to signal the parent when approval is required, eliminating polling.
+     * When set, the platform notifies the parent workflow about approval
+     * requests instead of requiring polling. When empty, approvals are
+     * submitted directly via the SubmitApproval RPC.
      *
-     * ## Signal Pattern
+     * &#64;internal
      *
+     * Signal Pattern:
      * 1. Go workflow passes its workflow ID when creating AgentExecution
      * 2. Go workflow starts signal listener for "child_approval_required"
      * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
      * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
      *
-     * ## Format
-     *
+     * Format:
      * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-     * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
      *
-     * ## When Empty
-     *
-     * - Agent invoked directly (not from workflow) - no parent to notify
-     * - Older clients that don't support this field - fallback to direct approval
-     *
-     * ## Backward Compatibility
-     *
+     * Backward Compatibility:
      * This field is optional. Agents invoked without a parent workflow ID will
      * continue to work normally - approval is submitted directly via the
      * AgentExecution.SubmitApproval RPC.
@@ -2886,31 +2703,24 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Parent workflow context for events-based approval notification (optional).
+     * Parent workflow ID when this execution was triggered by a workflow (optional).
      *
-     * When a workflow invokes an agent via CallAgentActivity, this field captures
-     * the parent workflow's Temporal workflow ID. This enables the agent execution
-     * workflow to signal the parent when approval is required, eliminating polling.
+     * When set, the platform notifies the parent workflow about approval
+     * requests instead of requiring polling. When empty, approvals are
+     * submitted directly via the SubmitApproval RPC.
      *
-     * ## Signal Pattern
+     * &#64;internal
      *
+     * Signal Pattern:
      * 1. Go workflow passes its workflow ID when creating AgentExecution
      * 2. Go workflow starts signal listener for "child_approval_required"
      * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
      * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
      *
-     * ## Format
-     *
+     * Format:
      * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-     * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
      *
-     * ## When Empty
-     *
-     * - Agent invoked directly (not from workflow) - no parent to notify
-     * - Older clients that don't support this field - fallback to direct approval
-     *
-     * ## Backward Compatibility
-     *
+     * Backward Compatibility:
      * This field is optional. Agents invoked without a parent workflow ID will
      * continue to work normally - approval is submitted directly via the
      * AgentExecution.SubmitApproval RPC.
@@ -2929,31 +2739,24 @@ ai.stigmer.agentic.executioncontext.v1.ExecutionValue defaultValue) {
     }
     /**
      * <pre>
-     * Parent workflow context for events-based approval notification (optional).
+     * Parent workflow ID when this execution was triggered by a workflow (optional).
      *
-     * When a workflow invokes an agent via CallAgentActivity, this field captures
-     * the parent workflow's Temporal workflow ID. This enables the agent execution
-     * workflow to signal the parent when approval is required, eliminating polling.
+     * When set, the platform notifies the parent workflow about approval
+     * requests instead of requiring polling. When empty, approvals are
+     * submitted directly via the SubmitApproval RPC.
      *
-     * ## Signal Pattern
+     * &#64;internal
      *
+     * Signal Pattern:
      * 1. Go workflow passes its workflow ID when creating AgentExecution
      * 2. Go workflow starts signal listener for "child_approval_required"
      * 3. When agent enters WAITING_FOR_APPROVAL, Java sends signal to parent
      * 4. Go workflow receives signal, updates task status to WAITING_APPROVAL
      *
-     * ## Format
-     *
+     * Format:
      * Temporal workflow ID, typically: "stigmer/workflow-execution/invoke/{execution-id}"
-     * Example: "stigmer/workflow-execution/invoke/wfx-abc123xyz456"
      *
-     * ## When Empty
-     *
-     * - Agent invoked directly (not from workflow) - no parent to notify
-     * - Older clients that don't support this field - fallback to direct approval
-     *
-     * ## Backward Compatibility
-     *
+     * Backward Compatibility:
      * This field is optional. Agents invoked without a parent workflow ID will
      * continue to work normally - approval is submitted directly via the
      * AgentExecution.SubmitApproval RPC.

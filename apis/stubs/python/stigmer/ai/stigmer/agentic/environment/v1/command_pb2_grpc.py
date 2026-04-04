@@ -8,7 +8,7 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 
 class EnvironmentCommandControllerStub(object):
-    """EnvironmentCommandController provides write operations for Environment resources.
+    """EnvironmentCommandController handles write operations for environments.
     """
 
     def __init__(self, channel):
@@ -50,42 +50,62 @@ class EnvironmentCommandControllerStub(object):
 
 
 class EnvironmentCommandControllerServicer(object):
-    """EnvironmentCommandController provides write operations for Environment resources.
+    """EnvironmentCommandController handles write operations for environments.
     """
 
     def apply(self, request, context):
-        """Create or update an Environment resource.
-        The authorization and state-operation are determined depending on whether the environment
-        is going to be created or updated which is determined as part of the request execution.
+        """Create or update an environment.
+
+        @internal
+        The authorization and state-operation are determined depending on whether the
+        environment is going to be created or updated, which is resolved as part of
+        the request execution.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def create(self, request, context):
-        """Create a new Environment resource.
+        """Create an environment.
+
+        @internal
+        Authorization:
+        - Organization-scoped environments: Caller must have can_create_environment
+        permission in the organization.
+        - Platform-scoped environments: Caller must be a platform operator
+        (handled automatically by common auth step).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def update(self, request, context):
-        """Update an existing Environment resource.
+        """Update an existing environment.
+
+        @internal
+        Authorization: requires can_edit permission on the environment resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def delete(self, request, context):
-        """Delete an Environment resource.
+        """Delete an environment.
+
+        @internal
+        Authorization: requires can_edit permission on the environment resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def updateVariables(self, request, context):
-        """Add or update specific variables in an environment (server-side merge).
+        """Add or update specific variables in an environment.
         Existing variables not included in the request are preserved unchanged.
+
+        @internal
+        Authorization: requires can_edit permission on the environment resource.
+        Server-side merge — secret values are re-encrypted on write.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -93,7 +113,10 @@ class EnvironmentCommandControllerServicer(object):
 
     def removeVariables(self, request, context):
         """Remove specific variables from an environment by key.
-        Keys that don't exist are silently ignored.
+        Keys that do not exist are silently ignored.
+
+        @internal
+        Authorization: requires can_edit permission on the environment resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -141,7 +164,7 @@ def add_EnvironmentCommandControllerServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class EnvironmentCommandController(object):
-    """EnvironmentCommandController provides write operations for Environment resources.
+    """EnvironmentCommandController handles write operations for environments.
     """
 
     @staticmethod

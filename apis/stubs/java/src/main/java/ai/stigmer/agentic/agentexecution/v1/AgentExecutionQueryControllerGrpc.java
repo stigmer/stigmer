@@ -475,7 +475,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for a session (all executions in a session).
+     * Get a usage report for a session.
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
      * &#64;internal
      * Authorization is handled in handler — caller must have can_view on
@@ -489,7 +489,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for an agent (all sessions for an agent in a time range).
+     * Get a usage report for an agent.
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
      * &#64;internal
      * Authorization is handled in handler — caller must have can_view on the agent.
@@ -502,7 +502,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for an organization (all agents in a time range).
+     * Get a usage report for an organization.
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
      * &#64;internal
      * Authorization is handled in handler — caller must be org member.
@@ -668,7 +668,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for a session (all executions in a session).
+     * Get a usage report for a session.
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
      * &#64;internal
      * Authorization is handled in handler — caller must have can_view on
@@ -683,7 +683,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for an agent (all sessions for an agent in a time range).
+     * Get a usage report for an agent.
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
      * &#64;internal
      * Authorization is handled in handler — caller must have can_view on the agent.
@@ -697,7 +697,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for an organization (all agents in a time range).
+     * Get a usage report for an organization.
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
      * &#64;internal
      * Authorization is handled in handler — caller must be org member.
@@ -846,7 +846,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for a session (all executions in a session).
+     * Get a usage report for a session.
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
      * &#64;internal
      * Authorization is handled in handler — caller must have can_view on
@@ -860,7 +860,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for an agent (all sessions for an agent in a time range).
+     * Get a usage report for an agent.
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
      * &#64;internal
      * Authorization is handled in handler — caller must have can_view on the agent.
@@ -873,7 +873,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for an organization (all agents in a time range).
+     * Get a usage report for an organization.
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
      * &#64;internal
      * Authorization is handled in handler — caller must be org member.
@@ -1020,7 +1020,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for a session (all executions in a session).
+     * Get a usage report for a session.
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
      * &#64;internal
      * Authorization is handled in handler — caller must have can_view on
@@ -1034,7 +1034,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for an agent (all sessions for an agent in a time range).
+     * Get a usage report for an agent.
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
      * &#64;internal
      * Authorization is handled in handler — caller must have can_view on the agent.
@@ -1047,7 +1047,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for an organization (all agents in a time range).
+     * Get a usage report for an organization.
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
      * &#64;internal
      * Authorization is handled in handler — caller must be org member.
@@ -1186,7 +1186,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for a session (all executions in a session).
+     * Get a usage report for a session.
      * Returns aggregated tokens, cost, cache hit rate, and per-execution breakdown.
      * &#64;internal
      * Authorization is handled in handler — caller must have can_view on
@@ -1201,7 +1201,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for an agent (all sessions for an agent in a time range).
+     * Get a usage report for an agent.
      * Returns aggregated tokens, cost, and per-session breakdown with pagination.
      * &#64;internal
      * Authorization is handled in handler — caller must have can_view on the agent.
@@ -1215,7 +1215,7 @@ public final class AgentExecutionQueryControllerGrpc {
 
     /**
      * <pre>
-     * Get usage report for an organization (all agents in a time range).
+     * Get a usage report for an organization.
      * Returns org-wide totals, top agents by cost, model breakdown, and daily trend.
      * &#64;internal
      * Authorization is handled in handler — caller must be org member.

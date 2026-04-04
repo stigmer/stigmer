@@ -21,6 +21,8 @@ export const file_ai_stigmer_tenancy_organization_v1_api: GenFile = /*@__PURE__*
 
 /**
  * Organization is the top-level container for all Stigmer resources.
+ *
+ * @internal
  * Similar to GitHub organizations, all agents, workflows, sessions, and other
  * resources are scoped under an organization. This enables multi-tenancy and
  * proper resource isolation.
@@ -29,35 +31,35 @@ export const file_ai_stigmer_tenancy_organization_v1_api: GenFile = /*@__PURE__*
  */
 export type Organization = Message<"ai.stigmer.tenancy.organization.v1.Organization"> & {
   /**
-   * api-version (tenancy.stigmer.ai/v1)
+   * API version for this resource type.
    *
    * @generated from field: string api_version = 1;
    */
   apiVersion: string;
 
   /**
-   * resource kind
+   * Resource kind identifier.
    *
    * @generated from field: string kind = 2;
    */
   kind: string;
 
   /**
-   * metadata
+   * Resource metadata including name, organization, and labels.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */
   metadata?: ApiResourceMetadata;
 
   /**
-   * spec
+   * Configurable properties: description, logo, and management mode.
    *
    * @generated from field: ai.stigmer.tenancy.organization.v1.OrganizationSpec spec = 4;
    */
   spec?: OrganizationSpec;
 
   /**
-   * status
+   * System-managed audit state.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
    */

@@ -1049,7 +1049,7 @@ func TestEmitAndWaitApproval_CancelledDuringEventSend(t *testing.T) {
 	cancel()
 
 	cfg := streamToEventsConfig{
-		executionID:       "aex-test-1",
+		executionID:       "aex_test-1",
 		events:            events,
 		approvalResponses: approvals,
 	}
@@ -1078,7 +1078,7 @@ func TestEmitAndWaitApproval_CancelledDuringApprovalWait(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cfg := streamToEventsConfig{
-		executionID:       "aex-test-2",
+		executionID:       "aex_test-2",
 		events:            events,
 		approvalResponses: approvals,
 	}
@@ -1130,7 +1130,7 @@ func TestEmitAndWaitApproval_EventContainsCorrectFields(t *testing.T) {
 	defer cancel()
 
 	cfg := streamToEventsConfig{
-		executionID:       "aex-test-3",
+		executionID:       "aex_test-3",
 		events:            events,
 		approvalResponses: approvals,
 	}
@@ -1250,9 +1250,9 @@ func TestClassifyStreamError_NonGRPCError(t *testing.T) {
 
 func TestClassifyStreamError_WithSessionID_IncludesReattach(t *testing.T) {
 	err := status.Error(codes.Unavailable, "transport closing")
-	se := classifyStreamError(err, "ses-abc123")
+	se := classifyStreamError(err, "ses_abc123")
 
-	if !strings.Contains(se.Error(), "stigmer resume ses-abc123") {
+	if !strings.Contains(se.Error(), "stigmer resume ses_abc123") {
 		t.Errorf("expected re-attach instructions with session ID, got %q", se.Error())
 	}
 }
@@ -1267,19 +1267,19 @@ func TestClassifyStreamError_WithoutSessionID_NoReattach(t *testing.T) {
 }
 
 func TestClassifyStreamError_EOF_WithSessionID(t *testing.T) {
-	se := classifyStreamError(io.EOF, "ses-xyz789")
+	se := classifyStreamError(io.EOF, "ses_xyz789")
 
 	if !strings.Contains(se.Error(), "Server closed the connection unexpectedly") {
 		t.Errorf("expected EOF message, got %q", se.Error())
 	}
-	if !strings.Contains(se.Error(), "stigmer resume ses-xyz789") {
+	if !strings.Contains(se.Error(), "stigmer resume ses_xyz789") {
 		t.Errorf("expected re-attach instructions, got %q", se.Error())
 	}
 }
 
 func TestClassifyStreamError_Unwrap_PreservesOriginal(t *testing.T) {
 	original := status.Error(codes.Internal, "internal server error")
-	se := classifyStreamError(original, "ses-test")
+	se := classifyStreamError(original, "ses_test")
 
 	unwrapped := se.Unwrap()
 	if unwrapped != original {
@@ -1342,7 +1342,7 @@ func TestIsRetryableSubmitError_NonRetryableCodes(t *testing.T) {
 
 func TestIsRetryableSubmitError_WrappedGRPCError(t *testing.T) {
 	inner := status.Error(codes.Unavailable, "connection reset")
-	wrapped := fmt.Errorf("failed to submit agent approval for aex-123: %w", inner)
+	wrapped := fmt.Errorf("failed to submit agent approval for aex_123: %w", inner)
 
 	if !isRetryableSubmitError(wrapped) {
 		t.Error("wrapped Unavailable error should be retryable")
@@ -1351,7 +1351,7 @@ func TestIsRetryableSubmitError_WrappedGRPCError(t *testing.T) {
 
 func TestIsRetryableSubmitError_WrappedNonRetryableGRPCError(t *testing.T) {
 	inner := status.Error(codes.NotFound, "execution not found")
-	wrapped := fmt.Errorf("failed to submit agent approval for aex-123: %w", inner)
+	wrapped := fmt.Errorf("failed to submit agent approval for aex_123: %w", inner)
 
 	if isRetryableSubmitError(wrapped) {
 		t.Error("wrapped NotFound error should NOT be retryable")

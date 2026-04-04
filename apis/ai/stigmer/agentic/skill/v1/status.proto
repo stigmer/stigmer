@@ -6,31 +6,37 @@ import "ai/stigmer/commons/apiresource/status.proto";
 import "buf/validate/validate.proto";
 
 // SkillStatus represents the system-managed state of a skill.
-// This represents observed state managed by the system.
 message SkillStatus {
   // Standard audit information tracking creation and modification.
+  //
+  // @internal
   // Field 99 follows Stigmer convention for audit placement.
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 
-  // SHA256 hash of the skill artifact Zip file.
-  // This is the content fingerprint and serves as the immutable version identifier.
-  // Calculated by the system from the uploaded artifact.
+  // SHA256 hash of the skill artifact, used as the immutable version identifier.
+  //
+  // @internal
+  // Calculated by the system from the uploaded artifact ZIP.
   string version_hash = 1 [(buf.validate.field).string.pattern = "^[a-f0-9]{64}$"];
 
-  // Storage location key for the skill artifact.
+  // Storage key for the skill artifact.
+  //
+  // @internal
   // Format varies based on storage backend:
   // - Local: "<hash>.zip"
   // - Cloud: "skills/<slug>_<hash>.zip"
-  // This is determined by the system based on storage configuration.
+  // Determined by the system based on storage configuration.
   string artifact_storage_key = 2;
 
   // Current lifecycle state of the skill.
   SkillState state = 3;
 
   // Git provenance tracking where the skill artifacts originated from.
-  // Populated by CLI during push, provides traceability and enables
-  // "view on GitHub" links and reproducible deployments.
   // Absent when pushed from a non-git directory.
+  //
+  // @internal
+  // Populated by CLI during push; provides traceability and enables
+  // "view on GitHub" links and reproducible deployments.
   GitProvenance git_provenance = 4;
 }
 
@@ -50,27 +56,32 @@ enum SkillState {
 }
 
 // GitProvenance tracks the git origin of skill artifacts.
-// This is system-detected metadata, not user-specified configuration.
+//
+// @internal
+// System-detected metadata, not user-specified configuration.
 // Populated by CLI during push based on:
 // - Local push: auto-detected from directory's git context
 // - Git push: resolved from user-provided URL/ref
 message GitProvenance {
-  // Git remote URL.
-  // For local push: detected "origin" remote URL
-  // For git push: the user-provided repository URL
-  // Example: "https://github.com/stigmer/skills.git"
+  // Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+  //
+  // @internal
+  // For local push: detected "origin" remote URL.
+  // For git push: the user-provided repository URL.
   string remote_url = 1 [(buf.validate.field).string.min_len = 1];
 
-  // Original git reference (for display purposes).
-  // For local push: detected branch name (e.g., "main") or empty if detached HEAD
-  // For git push: the user-provided ref (e.g., "v1.0.0", "main")
-  // This preserves user intent for display while commit provides immutability.
+  // Original git reference such as a branch or tag name (e.g., "main", "v1.0.0").
+  //
+  // @internal
+  // For local push: detected branch name or empty if detached HEAD.
+  // For git push: the user-provided ref.
+  // Preserves user intent for display while commit provides immutability.
   string ref = 2;
 
-  // Resolved commit SHA (for reproducibility).
-  // Always populated - this is the immutable version reference.
-  // Full 40-character SHA ensures exact reproducibility.
-  // Example: "abc123def456789012345678901234567890abcd"
+  // Resolved commit SHA for exact reproducibility.
+  //
+  // @internal
+  // Always populated. Full 40-character SHA.
   string commit = 3 [(buf.validate.field).string.min_len = 1];
 
   // Subdirectory path relative to repo root.

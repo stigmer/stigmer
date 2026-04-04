@@ -143,10 +143,11 @@ func (x *ApiResourceRefView) GetTeams() []*ApiResourceRefView {
 	return nil
 }
 
-// Wrapper for IAM policy ID
+// IamPolicyId identifies an IAM policy by its unique identifier.
 type IamPolicyId struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Value         string                 `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Unique identifier of the IAM policy.
+	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -353,10 +354,11 @@ func (x *RevokeOrgAccessInput) GetOrganizationId() string {
 	return ""
 }
 
-// IamPoliciesList wrapper for returning multiple IAM policies
+// IamPoliciesList contains a list of IAM policy resources.
 type IamPoliciesList struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entries       []*IamPolicy           `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// IAM policy entries.
+	Entries       []*IamPolicy `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -453,11 +455,12 @@ func (x *ListResourceAccessInput) GetIncludeInherited() bool {
 	return false
 }
 
-// ResourceAccessByPrincipalList groups principals by who they are,
-// showing each principal and all their assigned roles.
+// ResourceAccessByPrincipalList groups access grants by principal, showing each
+// principal and all their assigned roles on the queried resource.
 type ResourceAccessByPrincipalList struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entries       []*PrincipalAccess     `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Principal access entries.
+	Entries       []*PrincipalAccess `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -618,11 +621,12 @@ func (x *RoleGrant) GetIsInherited() bool {
 	return false
 }
 
-// ResourceAccessByRoleList groups roles by what they are,
-// showing each role and all principals assigned to it.
+// ResourceAccessByRoleList groups access grants by role, showing each role and
+// all principals assigned to it on the queried resource.
 type ResourceAccessByRoleList struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entries       []*RoleAccess          `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Role access entries.
+	Entries       []*RoleAccess `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -794,8 +798,9 @@ func (x *RoleInfo) GetDescription() string {
 
 // PrincipalResourceRoles contains all roles a principal has on a specific resource.
 type PrincipalResourceRoles struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Roles         []*RoleInfo            `protobuf:"bytes,1,rep,name=roles,proto3" json:"roles,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Roles assigned to the principal on this resource.
+	Roles         []*RoleInfo `protobuf:"bytes,1,rep,name=roles,proto3" json:"roles,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1013,8 +1018,9 @@ func (x *ListAuthorizedResourceIdsInput) GetContextualPolicies() []*IamPolicySpe
 
 // AuthorizedResourceIdsList contains all resource IDs a principal can access.
 type AuthorizedResourceIdsList struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ResourceIds   []string               `protobuf:"bytes,1,rep,name=resource_ids,json=resourceIds,proto3" json:"resource_ids,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Resource IDs the principal is authorized to access.
+	ResourceIds   []string `protobuf:"bytes,1,rep,name=resource_ids,json=resourceIds,proto3" json:"resource_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1131,8 +1137,9 @@ func (x *ListAuthorizedPrincipalIdsInput) GetContextualPolicies() []*IamPolicySp
 
 // AuthorizedPrincipalIdsList contains all principal IDs that can access a resource.
 type AuthorizedPrincipalIdsList struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PrincipalIds  []string               `protobuf:"bytes,1,rep,name=principal_ids,json=principalIds,proto3" json:"principal_ids,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Principal IDs authorized to access the resource.
+	PrincipalIds  []string `protobuf:"bytes,1,rep,name=principal_ids,json=principalIds,proto3" json:"principal_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1231,8 +1238,9 @@ func (x *GetPrincipalsCountInput) GetPrincipalKind() string {
 
 // PrincipalsCount contains the count of principals.
 type PrincipalsCount struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Count         int32                  `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Number of principals matching the query.
+	Count         int32 `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

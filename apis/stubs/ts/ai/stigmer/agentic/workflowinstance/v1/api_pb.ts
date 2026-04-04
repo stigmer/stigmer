@@ -30,7 +30,8 @@ export const file_ai_stigmer_agentic_workflowinstance_v1_api: GenFile = /*@__PUR
 /**
  * WorkflowInstance represents a configured deployment of a Workflow template.
  *
- * WorkflowInstance is the "Instance" layer in the Template→Instance→Execution pattern.
+ * @internal
+ * This is the "Instance" layer in the Template→Instance→Execution pattern.
  * It binds a reusable Workflow template to specific environments containing credentials,
  * configuration, and secrets needed for execution.
  *
@@ -54,8 +55,6 @@ export const file_ai_stigmer_agentic_workflowinstance_v1_api: GenFile = /*@__PUR
 export type WorkflowInstance = Message<"ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance"> & {
   /**
    * API version for this resource type.
-   * Format: 'agentic.stigmer.ai/v1'
-   * Validated as const to ensure version consistency.
    *
    * @generated from field: string api_version = 1;
    */
@@ -63,37 +62,31 @@ export type WorkflowInstance = Message<"ai.stigmer.agentic.workflowinstance.v1.W
 
   /**
    * Resource kind identifier.
-   * Must be exactly 'WorkflowInstance' to match the message name.
-   * Validated as const for type safety.
    *
    * @generated from field: string kind = 2;
    */
   kind: string;
 
   /**
-   * Standard resource metadata including name, id, slug, labels, tags, and annotations.
-   * WorkflowInstances belong to an organization. Visibility controls access:
-   * - PUBLIC: Shared templates accessible to all users
-   * - PRIVATE: Organization-internal instances
+   * Resource metadata including name, organization, visibility, and labels.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */
   metadata?: ApiResourceMetadata;
 
   /**
-   * User-provided configuration for this workflow instance.
-   * Defines which Workflow template to use and which Environments provide configuration/secrets.
-   * See WorkflowInstanceSpec for detailed field documentation.
+   * Configurable properties: workflow reference, description, and environment bindings.
    *
    * @generated from field: ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceSpec spec = 4;
    */
   spec?: WorkflowInstanceSpec;
 
   /**
-   * System-managed status and audit information.
-   * Contains creation/update timestamps, version number, and other audit metadata.
-   * This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-   * Execution state is tracked in WorkflowExecution resources.
+   * System-managed audit information.
+   *
+   * @internal
+   * This is a simple status (no custom execution state) since WorkflowInstance
+   * is configuration only. Execution state is tracked in WorkflowExecution resources.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5;
    */

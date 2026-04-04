@@ -13,34 +13,44 @@ Drop this file into your conversation to quickly resume work on this project.
 
 ## Current Status
 
-**Last Session**: 2026-04-03 (Session 5)
-**Status**: T07 complete, ready for T06
+**Last Session**: 2026-04-04 (Session 6)
+**Status**: Proto documentation cleanup complete for workflow resource; T06 pending
 **Active Task**: T06 (Manual pages -- SDK overview, streaming guide, React SDK docs)
 
-## Session Progress (2026-04-03, Session 5)
+## Session Progress (2026-04-04, Session 6)
 
 ### Completed
-- **T07**: Makefile Integration and CI for SDK Docs
-  - **Makefile changes**: Added `gen-sdk-docs` target that runs the SDK docs generator. Added `gen-sdk-docs-check` staleness check using per-file diff comparison (handles coexisting manual pages and stale artifacts). Added `$(MAKE) gen-sdk-docs` as the last step of `protos` so `make protos` automatically regenerates SDK docs. Simplified `codegen` to just depend on `protos`.
-  - **CLI docs removal**: Removed `gen-cli-docs` and `gen-cli-docs-check` targets from root Makefile (to be rebuilt in a separate project).
-  - **CI workflow**: Replaced `cli-docs-freshness` job with `sdk-docs-freshness` in `ci.docs.yaml`. Updated path triggers to include `apis/**` and `tools/codegen/**`, removed `client-apps/cli/**`. Uses `tools/go.mod` for Go setup.
-  - **Staleness check fix**: The original CLI docs check had a shell logic bug where `exit 1` inside a subshell `(...)` didn't propagate through `;`. Rewrote using per-file comparison loop with proper exit code propagation. Also handles extra files in `docs/sdk/` (untracked `.go` files, future manual pages) without false failures.
-  - **Verification**: Both `make gen-sdk-docs` (exit 0, generates 17 pages + meta.json) and `make gen-sdk-docs-check` (exit 0 when fresh, exit 1 when stale) verified locally.
+- **Workflow proto documentation cleanup**: Cleaned all 21 workflow proto files (core resource, 13 task configs, serverless validation) to match agent resource quality standard
+  - Applied `@internal` markers to hide Zigflow DSL, Temporal, and Planton references from SDK docs
+  - Rewrote all 13 `WorkflowTaskKind` enum values with concise descriptions
+  - Fixed RPC, message, and field comments across all files
+  - Created `apis/ai/stigmer/agentic/workflow/docs/overview.md`
+  - Regenerated workflow schemas and `docs/sdk/workflow.mdx`
+  - Verified zero internal terminology leaks in generated output
 
-### Key Decisions (T07)
-- **SDK docs in `protos`, not `codegen`**: Added `gen-sdk-docs` to `protos` rather than `codegen` because it belongs in the same pipeline as proto stubs and SDK clients. `codegen` is now just an alias for `protos`.
-- **Per-file diff, not `diff -r`**: The staleness check compares only generated files against their counterparts in `docs/sdk/`, ignoring extra files. This avoids false failures from untracked `.go` files and future manual pages (T06).
-- **CLI docs deferred**: CLI docs generation removed from the pipeline entirely -- to be rebuilt in a separate project with improved quality.
+### Key Decisions (Session 6)
+- **Zigflow → workflow DSL**: Internal "Zigflow DSL" replaced with generic "workflow DSL" in SDK-facing comments
+- **YAML examples behind @internal**: Per document_writer guidelines, proto comment YAML examples moved behind `@internal`
+- **Agent protos = gold standard**: Used agent resource proto comments as reference for all workflow comment structure
 
 ## Next Steps
 
 1. **T06**: Manual pages -- SDK overview, streaming guide, React SDK docs
+2. **Commit remaining unstaged changes**: workflowexecution proto cleanup + regenerated SDK docs/schemas for all resources need separate commits
+3. **Consider**: workflowexecution proto documentation cleanup (changes exist but are uncommitted)
 
 ## Context for Resume
 
-### Files Modified (T07)
-- **Modified**: `Makefile` -- added `gen-sdk-docs`, `gen-sdk-docs-check`, updated `protos` and `codegen`, removed CLI docs targets
-- **Modified**: `.github/workflows/ci.docs.yaml` -- replaced `cli-docs-freshness` with `sdk-docs-freshness`, updated path triggers
+### Unstaged Changes
+There are unstaged changes in the working tree from this and adjacent sessions:
+- `apis/ai/stigmer/agentic/workflowexecution/v1/*.proto` -- proto doc cleanup (4 files)
+- `apis/ai/stigmer/agentic/workflowexecution/docs/overview.md` -- new overview
+- `docs/sdk/*.mdx` -- regenerated SDK docs for ~15 resources
+- `tools/codegen/schemas/services/*.json` -- regenerated service schemas
+- `proto2schema` -- untracked directory
+
+### Committed in Session 6
+- `decb028c` -- `docs(apis/workflow): clean proto comments for SDK docs and add overview` (48 files)
 
 ### Full Codegen Chain (after T07)
 ```
@@ -77,7 +87,7 @@ make gen-sdk-docs-check
 
 ### 1. Latest Checkpoint
 ```
-_projects/2026-04/20260403.03.sdk-docs-auto-generation/checkpoints/
+_projects/2026-04/20260403.03.sdk-docs-auto-generation/checkpoints/2026-04-04-session-6.md
 ```
 
 ### 2. Task Plans
@@ -95,19 +105,19 @@ _projects/2026-04/20260403.03.sdk-docs-auto-generation/tasks/
 
 When starting a new session:
 
-1. [ ] Read the latest checkpoint from `checkpoints/`
+1. [ ] Read the latest checkpoint from `checkpoints/2026-04-04-session-6.md`
 2. [ ] Check current task status in `tasks/`
-3. [ ] Review the generated output at `docs/sdk/session.mdx` (primary reference page)
+3. [ ] Review unstaged changes: `git status` (workflowexecution protos + regenerated docs)
 4. [ ] Review `tools/codegen/generator/sdk_docs.go` to understand the generator
 5. [ ] Review any new design decisions in `design-decisions/`
-6. [ ] Continue with T06 (manual pages)
+6. [ ] Continue with T06 (manual pages) or commit remaining unstaged changes
 
 ## Quick Commands
 
 After loading context:
 - "Continue with T06" - Start the manual pages task
+- "Commit the workflowexecution changes" - Stage and commit the remaining proto cleanup
 - "Show project status" - Get overview of progress
-- "Review the generated session page" - Check template output quality
 - "Run the SDK docs generator" - `make gen-sdk-docs`
 - "Check SDK docs freshness" - `make gen-sdk-docs-check`
 

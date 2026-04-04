@@ -8,10 +8,9 @@ import "google/protobuf/timestamp.proto";
 
 // McpServerStatus represents the system-managed state of an MCP server definition.
 //
-// This status tracks two concerns:
-//
+// @internal
+// Tracks two concerns:
 // 1. Structural validation — whether the definition is valid and can be used by agents.
-//
 // 2. Discovered capabilities — the tools and resource templates the MCP server
 //    actually provides. Populated by one of three mechanisms:
 //      a. Static seedpack bootstrap (for built-in servers like stigmer-mcp-server)
@@ -39,8 +38,7 @@ message McpServerStatus {
   // Optional — absent until discovery has been performed (or seeded from seedpack).
   DiscoveredCapabilities discovered_capabilities = 3;
 
-  // Standard audit information tracking creation and modification.
-  // Field 99 follows Stigmer convention for audit placement in status messages.
+  // Standard audit information (created_at, updated_at, created_by, etc.)
   ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99;
 }
 
@@ -62,48 +60,28 @@ enum ValidationState {
   invalid = 2;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Discovered Capabilities
+// DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.
 //
-// Metadata about the tools and resource templates an MCP server provides.
-// This is a snapshot captured at a point in time, not a live view.
-// ─────────────────────────────────────────────────────────────────────────────
-
-// DiscoveredCapabilities holds the tools and resource templates reported by an
-// MCP server. This is a point-in-time snapshot — the server's actual capabilities
-// may change if tools are added or removed.
+// @internal
+// This is a point-in-time snapshot — the server's actual capabilities may change
+// if tools are added or removed.
 //
-// IMPORTANT — Tools vs Resource Templates:
-// These are two fundamentally different MCP capability types:
-//
+// Tools vs Resource Templates:
 //   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).
-//     These are the ONLY names valid for use in Agent `enabled_tools`,
-//     McpServer `default_enabled_tools`, and `tool_approval_overrides`.
-//
-//   - resource_templates: Read-only data endpoints accessed by URI template
-//     (e.g., cloud-resource-schema://{kind}). These are NOT callable tools.
-//     Resource template names must NEVER appear in `enabled_tools` or
-//     `default_enabled_tools` — doing so causes a fatal runtime error because
-//     the agent-runner cannot find them in the tools registry.
-//
-// When authoring Agent YAML, always select tool names from `tools` only.
-// Resource templates serve a different purpose (data discovery) and are
-// accessed through MCP resource reads, not tool calls.
+//     Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.
+//   - resource_templates: Read-only data endpoints accessed by URI template.
+//     Resource template names must NEVER appear in enabled_tools — doing so causes
+//     a fatal runtime error.
 //
 // Populated by:
 // - Seedpack bootstrap (built-in servers with known, stable tool sets)
 // - CLI discovery (`stigmer discover mcp-server <name>`)
 // - Agent-runner runtime cache (future)
 message DiscoveredCapabilities {
-  // Tools reported by the MCP server via tools/list.
-  // These are callable actions. Only names from this list may be used in
-  // Agent `enabled_tools` and McpServer `default_enabled_tools`.
+  // Callable tools reported by the MCP server.
   repeated DiscoveredTool tools = 1;
 
-  // Resource templates reported by the MCP server via resources/templates/list.
-  // These are read-only data endpoints, NOT callable tools.
-  // Resource template names must NOT be placed in `enabled_tools` —
-  // they are accessed via MCP resource reads, not tool invocations.
+  // Read-only data endpoints reported by the MCP server.
   repeated DiscoveredResourceTemplate resource_templates = 2;
 
   // When this snapshot was captured.
@@ -115,10 +93,8 @@ message DiscoveredCapabilities {
 
 // DiscoveredTool describes a single tool reported by an MCP server.
 //
-// Maps directly to the MCP protocol's Tool type from tools/list:
-//   - name: unique tool identifier within the server
-//   - description: human-readable explanation of what the tool does
-//   - input_schema: JSON Schema describing the tool's expected input
+// @internal
+// Maps directly to the MCP protocol's Tool type from tools/list.
 message DiscoveredTool {
   // Unique tool name within the MCP server (case-sensitive).
   // Example: "search", "get_agent", "apply_mcp_server"
@@ -128,23 +104,14 @@ message DiscoveredTool {
   string description = 2;
 
   // JSON Schema describing the tool's input parameters.
-  // Stored as a Struct for natural representation in YAML/JSON and to allow
-  // inspection without string parsing. This is the raw schema from the MCP
-  // server's tools/list response.
   google.protobuf.Struct input_schema = 3;
 }
 
-// DiscoveredResourceTemplate describes a parameterized resource template
-// reported by an MCP server via resources/templates/list.
+// DiscoveredResourceTemplate describes a parameterized resource template reported by an MCP server.
 //
+// @internal
 // Resource templates use URI templates (RFC 6570) with placeholders that
 // clients fill in to access specific resources.
-//
-// Example:
-//   uri_template: "stigmer://agents/{org}/{slug}"
-//   name: "stigmer_agent"
-//   description: "Full definition of a Stigmer agent"
-//   mime_type: "application/json"
 message DiscoveredResourceTemplate {
   // URI template with placeholders (RFC 6570).
   // Example: "stigmer://agents/{org}/{slug}"

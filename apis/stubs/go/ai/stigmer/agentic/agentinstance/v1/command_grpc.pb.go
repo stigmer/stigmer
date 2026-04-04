@@ -30,30 +30,35 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // AgentInstanceCommandController handles write operations for agent instances.
-// Follows the standard pattern: create, update, delete (no granular field updates).
 type AgentInstanceCommandControllerClient interface {
 	// Create or update an agent instance.
+	//
+	// @internal
 	// The authorization and state-operation are determined depending on whether the agent instance
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(ctx context.Context, in *AgentInstance, opts ...grpc.CallOption) (*AgentInstance, error)
-	// Create a new agent instance with full state.
-	// Provide organization_id in metadata.org, and complete spec with configuration and secrets.
+	// Create an agent instance.
 	//
 	// Public agents allow any authenticated user to create instances (cross-org allowed).
 	// Private agents restrict instance creation to org members and the agent owner.
 	//
 	// @internal
+	// Provide organization_id in metadata.org, and complete spec with configuration and secrets.
 	// Authorization: FGA can_create_instance on parent agent (handler-level).
 	// FGA is the single source of truth — no hardcoded org-matching rules.
 	// Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
 	Create(ctx context.Context, in *AgentInstance, opts ...grpc.CallOption) (*AgentInstance, error)
-	// Update an instance with full state.
-	// Used to update entire instance configuration including metadata, spec, and secrets.
-	// No individual field updates - always provide complete state.
-	// Authorization: Only owner can update (can_edit permission)
+	// Update an existing agent instance.
+	//
+	// @internal
+	// Replaces the entire instance configuration including metadata, spec, and secrets.
+	// No individual field updates — always provide complete state.
+	// Authorization: Only owner can update (can_edit permission).
 	Update(ctx context.Context, in *AgentInstance, opts ...grpc.CallOption) (*AgentInstance, error)
 	// Delete an agent instance.
-	// Authorization: Only owner can delete (can_delete permission)
+	//
+	// @internal
+	// Authorization: Only owner can delete (can_delete permission).
 	Delete(ctx context.Context, in *AgentInstanceId, opts ...grpc.CallOption) (*AgentInstance, error)
 }
 
@@ -110,30 +115,35 @@ func (c *agentInstanceCommandControllerClient) Delete(ctx context.Context, in *A
 // for forward compatibility.
 //
 // AgentInstanceCommandController handles write operations for agent instances.
-// Follows the standard pattern: create, update, delete (no granular field updates).
 type AgentInstanceCommandControllerServer interface {
 	// Create or update an agent instance.
+	//
+	// @internal
 	// The authorization and state-operation are determined depending on whether the agent instance
 	// is going to be created or updated which is determined as part of the request execution.
 	Apply(context.Context, *AgentInstance) (*AgentInstance, error)
-	// Create a new agent instance with full state.
-	// Provide organization_id in metadata.org, and complete spec with configuration and secrets.
+	// Create an agent instance.
 	//
 	// Public agents allow any authenticated user to create instances (cross-org allowed).
 	// Private agents restrict instance creation to org members and the agent owner.
 	//
 	// @internal
+	// Provide organization_id in metadata.org, and complete spec with configuration and secrets.
 	// Authorization: FGA can_create_instance on parent agent (handler-level).
 	// FGA is the single source of truth — no hardcoded org-matching rules.
 	// Agents are blueprints with zero secrets; instances are personal resources in the caller's org.
 	Create(context.Context, *AgentInstance) (*AgentInstance, error)
-	// Update an instance with full state.
-	// Used to update entire instance configuration including metadata, spec, and secrets.
-	// No individual field updates - always provide complete state.
-	// Authorization: Only owner can update (can_edit permission)
+	// Update an existing agent instance.
+	//
+	// @internal
+	// Replaces the entire instance configuration including metadata, spec, and secrets.
+	// No individual field updates — always provide complete state.
+	// Authorization: Only owner can update (can_edit permission).
 	Update(context.Context, *AgentInstance) (*AgentInstance, error)
 	// Delete an agent instance.
-	// Authorization: Only owner can delete (can_delete permission)
+	//
+	// @internal
+	// Authorization: Only owner can delete (can_delete permission).
 	Delete(context.Context, *AgentInstanceId) (*AgentInstance, error)
 }
 

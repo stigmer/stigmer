@@ -52,8 +52,7 @@ public interface ExecutionContextOrBuilder extends
 
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -62,8 +61,7 @@ public interface ExecutionContextOrBuilder extends
   boolean hasMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -72,8 +70,7 @@ public interface ExecutionContextOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceMetadata getMetadata();
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -82,7 +79,7 @@ public interface ExecutionContextOrBuilder extends
 
   /**
    * <pre>
-   * ExecutionContext-specific configuration.
+   * Configuration including the parent execution ID and runtime key-value data.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -91,7 +88,7 @@ public interface ExecutionContextOrBuilder extends
   boolean hasSpec();
   /**
    * <pre>
-   * ExecutionContext-specific configuration.
+   * Configuration including the parent execution ID and runtime key-value data.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -100,7 +97,7 @@ public interface ExecutionContextOrBuilder extends
   ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec getSpec();
   /**
    * <pre>
-   * ExecutionContext-specific configuration.
+   * Configuration including the parent execution ID and runtime key-value data.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -109,7 +106,7 @@ public interface ExecutionContextOrBuilder extends
 
   /**
    * <pre>
-   * System-managed status containing audit information.
+   * System-managed audit status.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -118,7 +115,7 @@ public interface ExecutionContextOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * System-managed status containing audit information.
+   * System-managed audit status.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -127,7 +124,7 @@ public interface ExecutionContextOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceAuditStatus getStatus();
   /**
    * <pre>
-   * System-managed status containing audit information.
+   * System-managed audit status.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>

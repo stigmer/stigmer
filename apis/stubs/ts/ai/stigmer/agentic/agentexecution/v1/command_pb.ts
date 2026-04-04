@@ -43,7 +43,9 @@ export const AgentExecutionCommandController: GenService<{
     output: typeof AgentExecutionSchema;
   },
   /**
-   * Update an execution with full state.
+   * Update an agent execution.
+   *
+   * @internal
    * Used by users to update execution configuration (spec fields).
    * No individual field updates - always provide complete state.
    *
@@ -55,7 +57,7 @@ export const AgentExecutionCommandController: GenService<{
     output: typeof AgentExecutionSchema;
   },
   /**
-   * Update execution status during agent execution.
+   * Update an agent execution's status.
    *
    * @internal
    * System-level RPC used by agent-runner to send progressive status updates
@@ -70,7 +72,7 @@ export const AgentExecutionCommandController: GenService<{
     output: typeof AgentExecutionSchema;
   },
   /**
-   * Delete an execution.
+   * Delete an agent execution by ID.
    *
    * @generated from rpc ai.stigmer.agentic.agentexecution.v1.AgentExecutionCommandController.delete
    */
@@ -80,7 +82,7 @@ export const AgentExecutionCommandController: GenService<{
     output: typeof AgentExecutionSchema;
   },
   /**
-   * Submit approval decision for a pending tool call (HITL Phase 1).
+   * Submit an approval decision for a pending tool call.
    *
    * ## Preconditions
    *

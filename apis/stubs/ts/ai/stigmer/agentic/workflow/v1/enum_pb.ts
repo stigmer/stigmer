@@ -12,7 +12,9 @@ export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
   fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvZW51bS5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxKvYBChBXb3JrZmxvd1Rhc2tLaW5kEiIKHndvcmtmbG93X3Rhc2tfa2luZF91bnNwZWNpZmllZBAAEgwKCHNldF92YXJzEAESDQoJaHR0cF9jYWxsEAISDQoJZ3JwY19jYWxsEAMSEQoNYWN0aXZpdHlfY2FsbBAEEg8KC3N3aXRjaF9jYXNlEAUSDAoIZm9yX2VhY2gQBhIICgRmb3JrEAcSDQoJdHJ5X2NhdGNoEAgSCgoGbGlzdGVuEAkSCAoEd2FpdBAKEg8KC3JhaXNlX2Vycm9yEAsSEAoMcnVuX3dvcmtmbG93EAwSDgoKYWdlbnRfY2FsbBANYgZwcm90bzM");
 
 /**
- * WorkflowTaskKind defines all supported task types in workflows.
+ * WorkflowTaskKind defines the supported task types in a workflow.
+ *
+ * @internal
  * These map directly to Zigflow DSL task types.
  *
  * Naming conventions:
@@ -42,14 +44,16 @@ export const file_ai_stigmer_agentic_workflow_v1_enum: GenFile = /*@__PURE__*/
  */
 export enum WorkflowTaskKind {
   /**
-   * Unspecified (invalid) - prefixed for zero value clarity.
+   * Default value, not a valid task kind.
    *
    * @generated from enum value: workflow_task_kind_unspecified = 0;
    */
   workflow_task_kind_unspecified = 0,
 
   /**
-   * set_vars: Set variables in workflow state.
+   * Set variables in workflow state.
+   *
+   * @internal
    * Config: {"variables": {"key": "value", ...}}
    *
    * @generated from enum value: set_vars = 1;
@@ -57,7 +61,9 @@ export enum WorkflowTaskKind {
   set_vars = 1,
 
   /**
-   * http_call: Make HTTP requests (GET, POST, PUT, DELETE, PATCH).
+   * Make an HTTP request (GET, POST, PUT, DELETE, PATCH).
+   *
+   * @internal
    * Config: {"method": "POST", "endpoint": {"uri": "..."}, "headers": {...}, "body": {...}}
    *
    * @generated from enum value: http_call = 2;
@@ -65,7 +71,9 @@ export enum WorkflowTaskKind {
   http_call = 2,
 
   /**
-   * grpc_call: Make gRPC requests.
+   * Make a gRPC request to an external service.
+   *
+   * @internal
    * Config: {"service": "...", "method": "...", "request": {...}}
    *
    * @generated from enum value: grpc_call = 3;
@@ -73,15 +81,20 @@ export enum WorkflowTaskKind {
   grpc_call = 3,
 
   /**
-   * activity_call: Execute Temporal activities.
+   * Execute an activity.
+   *
+   * @internal
    * Config: {"activity": "ActivityName", "input": {...}}
+   * Executes a Temporal activity.
    *
    * @generated from enum value: activity_call = 4;
    */
   activity_call = 4,
 
   /**
-   * switch_case: Conditional branching based on expressions.
+   * Branch conditionally based on expressions.
+   *
+   * @internal
    * Config: {"cases": [{"name": "...", "when": "${expr}", "then": "taskName"}, ...]}
    *
    * @generated from enum value: switch_case = 5;
@@ -89,7 +102,9 @@ export enum WorkflowTaskKind {
   switch_case = 5,
 
   /**
-   * for_each: Iterate over collections (forEach loop).
+   * Iterate over a collection, executing tasks for each item.
+   *
+   * @internal
    * Config: {"each": "item", "in": "${$data.items}", "do": [{task}, ...]}
    *
    * @generated from enum value: for_each = 6;
@@ -97,7 +112,9 @@ export enum WorkflowTaskKind {
   for_each = 6,
 
   /**
-   * fork: Parallel execution of multiple branches.
+   * Execute multiple branches in parallel.
+   *
+   * @internal
    * Config: {"branches": [{"name": "...", "do": [{task}, ...]}, ...], "compete": false}
    *
    * @generated from enum value: fork = 7;
@@ -105,7 +122,9 @@ export enum WorkflowTaskKind {
   fork = 7,
 
   /**
-   * try_catch: Error handling (try/catch block).
+   * Handle errors with try/catch logic.
+   *
+   * @internal
    * Config: {"try": [{task}, ...], "catch": {"as": "error", "do": [{task}, ...]}}
    *
    * @generated from enum value: try_catch = 8;
@@ -113,23 +132,31 @@ export enum WorkflowTaskKind {
   try_catch = 8,
 
   /**
-   * listen: Wait for external signals/events.
+   * Wait for external signals or events.
+   *
+   * @internal
    * Config: {"to": {"mode": "one", "signals": [{"id": "...", "type": "signal"}]}}
+   * Implemented via Temporal signals.
    *
    * @generated from enum value: listen = 9;
    */
   listen = 9,
 
   /**
-   * wait: Sleep/delay (Temporal timer).
+   * Pause execution for a duration or until a timestamp.
+   *
+   * @internal
    * Config: {"seconds": 5}
+   * Implemented via Temporal timers.
    *
    * @generated from enum value: wait = 10;
    */
   wait = 10,
 
   /**
-   * raise_error: Raise errors/exceptions.
+   * Raise an error to terminate or trigger error handling.
+   *
+   * @internal
    * Config: {"error": "ErrorType", "message": "${...}"}
    *
    * @generated from enum value: raise_error = 11;
@@ -137,15 +164,20 @@ export enum WorkflowTaskKind {
   raise_error = 11,
 
   /**
-   * run_workflow: Execute sub-workflows.
+   * Execute a sub-workflow.
+   *
+   * @internal
    * Config: {"workflow": "workflow-name", "input": {...}}
+   * Implemented via Temporal child workflows.
    *
    * @generated from enum value: run_workflow = 12;
    */
   run_workflow = 12,
 
   /**
-   * agent_call: Invoke AI agents as tasks.
+   * Invoke an AI agent as a workflow task.
+   *
+   * @internal
    * Allows workflows to delegate complex operations to specialized agents.
    * Config: {"agent": "agent-slug", "message": "...", "env": {...}, "config": {...}}
    *

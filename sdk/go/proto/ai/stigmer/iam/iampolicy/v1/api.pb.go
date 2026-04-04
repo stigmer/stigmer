@@ -33,18 +33,20 @@ const (
 // authorization backend (OpenFGA) as FGA tuples.
 type IamPolicy struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// api-version
+	// API version for this resource type.
 	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
-	// resource-kind
+	// Resource kind identifier.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// metadata
-	// id format: iamp-<ulid>
+	// Resource metadata including name, organization, and labels.
+	//
+	// @internal
+	// id format: iamp_<ulid>
 	// name: human-readable identifier (e.g., "john-vpc-admin")
 	// org: organization this policy belongs to
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// spec
+	// Policy binding: principal, resource, and relation.
 	Spec *IamPolicySpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// status
+	// System-managed state including audit trail.
 	Status        *IamPolicyStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

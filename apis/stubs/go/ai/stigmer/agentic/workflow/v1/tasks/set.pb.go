@@ -23,10 +23,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// SetTaskConfig defines the configuration for SET tasks.
+// SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state.
 //
-// SET tasks assign variables in workflow state.
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //     set:

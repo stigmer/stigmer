@@ -60,12 +60,12 @@ func TestResourceDeleterAdapter_Delete_McpServer(t *testing.T) {
 		McpServerClient: client,
 	})
 
-	err := adapter.Delete(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp-789")
+	err := adapter.Delete(context.Background(), apiresourcekind.ApiResourceKind_mcp_server, "mcp_789")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if client.deletedID != "mcp-789" {
-		t.Errorf("expected delete call with ID 'mcp-789', got %q", client.deletedID)
+	if client.deletedID != "mcp_789" {
+		t.Errorf("expected delete call with ID 'mcp_789', got %q", client.deletedID)
 	}
 }
 
@@ -87,7 +87,7 @@ func TestResourceDeleterAdapter_Delete_Skill(t *testing.T) {
 func TestResourceDeleterAdapter_Delete_UnsupportedKind(t *testing.T) {
 	adapter := NewResourceDeleterAdapter(&DownstreamClients{})
 
-	err := adapter.Delete(context.Background(), apiresourcekind.ApiResourceKind_project, "prj-123")
+	err := adapter.Delete(context.Background(), apiresourcekind.ApiResourceKind_project, "prj_123")
 	if err == nil {
 		t.Fatal("expected error for unsupported kind")
 	}

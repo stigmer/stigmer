@@ -21,7 +21,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// WorkflowTaskKind defines all supported task types in workflows.
+// WorkflowTaskKind defines the supported task types in a workflow.
+//
+// @internal
 // These map directly to Zigflow DSL task types.
 //
 // Naming conventions:
@@ -49,45 +51,75 @@ const (
 type WorkflowTaskKind int32
 
 const (
-	// Unspecified (invalid) - prefixed for zero value clarity.
+	// Default value, not a valid task kind.
 	WorkflowTaskKind_workflow_task_kind_unspecified WorkflowTaskKind = 0
-	// set_vars: Set variables in workflow state.
+	// Set variables in workflow state.
+	//
+	// @internal
 	// Config: {"variables": {"key": "value", ...}}
 	WorkflowTaskKind_set_vars WorkflowTaskKind = 1
-	// http_call: Make HTTP requests (GET, POST, PUT, DELETE, PATCH).
+	// Make an HTTP request (GET, POST, PUT, DELETE, PATCH).
+	//
+	// @internal
 	// Config: {"method": "POST", "endpoint": {"uri": "..."}, "headers": {...}, "body": {...}}
 	WorkflowTaskKind_http_call WorkflowTaskKind = 2
-	// grpc_call: Make gRPC requests.
+	// Make a gRPC request to an external service.
+	//
+	// @internal
 	// Config: {"service": "...", "method": "...", "request": {...}}
 	WorkflowTaskKind_grpc_call WorkflowTaskKind = 3
-	// activity_call: Execute Temporal activities.
+	// Execute an activity.
+	//
+	// @internal
 	// Config: {"activity": "ActivityName", "input": {...}}
+	// Executes a Temporal activity.
 	WorkflowTaskKind_activity_call WorkflowTaskKind = 4
-	// switch_case: Conditional branching based on expressions.
+	// Branch conditionally based on expressions.
+	//
+	// @internal
 	// Config: {"cases": [{"name": "...", "when": "${expr}", "then": "taskName"}, ...]}
 	WorkflowTaskKind_switch_case WorkflowTaskKind = 5
-	// for_each: Iterate over collections (forEach loop).
+	// Iterate over a collection, executing tasks for each item.
+	//
+	// @internal
 	// Config: {"each": "item", "in": "${$data.items}", "do": [{task}, ...]}
 	WorkflowTaskKind_for_each WorkflowTaskKind = 6
-	// fork: Parallel execution of multiple branches.
+	// Execute multiple branches in parallel.
+	//
+	// @internal
 	// Config: {"branches": [{"name": "...", "do": [{task}, ...]}, ...], "compete": false}
 	WorkflowTaskKind_fork WorkflowTaskKind = 7
-	// try_catch: Error handling (try/catch block).
+	// Handle errors with try/catch logic.
+	//
+	// @internal
 	// Config: {"try": [{task}, ...], "catch": {"as": "error", "do": [{task}, ...]}}
 	WorkflowTaskKind_try_catch WorkflowTaskKind = 8
-	// listen: Wait for external signals/events.
+	// Wait for external signals or events.
+	//
+	// @internal
 	// Config: {"to": {"mode": "one", "signals": [{"id": "...", "type": "signal"}]}}
+	// Implemented via Temporal signals.
 	WorkflowTaskKind_listen WorkflowTaskKind = 9
-	// wait: Sleep/delay (Temporal timer).
+	// Pause execution for a duration or until a timestamp.
+	//
+	// @internal
 	// Config: {"seconds": 5}
+	// Implemented via Temporal timers.
 	WorkflowTaskKind_wait WorkflowTaskKind = 10
-	// raise_error: Raise errors/exceptions.
+	// Raise an error to terminate or trigger error handling.
+	//
+	// @internal
 	// Config: {"error": "ErrorType", "message": "${...}"}
 	WorkflowTaskKind_raise_error WorkflowTaskKind = 11
-	// run_workflow: Execute sub-workflows.
+	// Execute a sub-workflow.
+	//
+	// @internal
 	// Config: {"workflow": "workflow-name", "input": {...}}
+	// Implemented via Temporal child workflows.
 	WorkflowTaskKind_run_workflow WorkflowTaskKind = 12
-	// agent_call: Invoke AI agents as tasks.
+	// Invoke an AI agent as a workflow task.
+	//
+	// @internal
 	// Allows workflows to delegate complex operations to specialized agents.
 	// Config: {"agent": "agent-slug", "message": "...", "env": {...}, "config": {...}}
 	WorkflowTaskKind_agent_call WorkflowTaskKind = 13

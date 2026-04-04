@@ -13,25 +13,24 @@ export const file_ai_stigmer_agentic_environment_v1_spec: GenFile = /*@__PURE__*
   fileDesc("CixhaS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvc3BlYy5wcm90bxIhYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxItQBCg9FbnZpcm9ubWVudFNwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSSgoEZGF0YRgCIAMoCzI8LmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudFNwZWMuRGF0YUVudHJ5GmAKCURhdGFFbnRyeRILCgNrZXkYASABKAkSQgoFdmFsdWUYAiABKAsyMy5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnRWYWx1ZToCOAEiSQoQRW52aXJvbm1lbnRWYWx1ZRINCgV2YWx1ZRgBIAEoCRIRCglpc19zZWNyZXQYAiABKAgSEwoLZGVzY3JpcHRpb24YAyABKAliBnByb3RvMw");
 
 /**
- * EnvironmentSpec defines a collection of configuration and secrets.
- * Created before AgentInstance or WorkflowInstance, referenced during instance creation.
+ * EnvironmentSpec defines the configurable properties of an environment.
+ *
+ * @internal
+ * The overview.md file provides the SDK-facing description and example YAML.
  *
  * @generated from message ai.stigmer.agentic.environment.v1.EnvironmentSpec
  */
 export type EnvironmentSpec = Message<"ai.stigmer.agentic.environment.v1.EnvironmentSpec"> & {
   /**
-   * Human-readable description of this environment.
-   * Example: "Production AWS credentials for deployment"
+   * Human-readable description for UI and listing display.
    *
    * @generated from field: string description = 1;
    */
   description: string;
 
   /**
-   * Key-value pairs containing both configuration and secrets.
-   * Each value includes a flag indicating whether it's a secret.
-   * Example: {"AWS_REGION": {value: "us-west-2", is_secret: false},
-   *           "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
+   * Key-value pairs containing configuration and secrets.
+   * Each value includes a flag indicating whether it is a secret.
    *
    * @generated from field: map<string, ai.stigmer.agentic.environment.v1.EnvironmentValue> data = 2;
    */
@@ -46,17 +45,18 @@ export const EnvironmentSpecSchema: GenMessage<EnvironmentSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_environment_v1_spec, 0);
 
 /**
- * EnvironmentValue represents a single configuration or secret value.
+ * EnvironmentValue represents a single configuration or secret entry.
  *
  * @generated from message ai.stigmer.agentic.environment.v1.EnvironmentValue
  */
 export type EnvironmentValue = Message<"ai.stigmer.agentic.environment.v1.EnvironmentValue"> & {
   /**
-   * The actual value.
-   * - If is_secret=true: This value is encrypted at rest and redacted in logs
-   * - If is_secret=false: This value is stored as plaintext
-   * Note: Value can be empty when defining environment variables in specs.
-   *       Actual values are typically provided at runtime during execution.
+   * The configuration or secret string.
+   *
+   * @internal
+   * When is_secret is true the value is encrypted at rest and redacted in logs.
+   * When is_secret is false the value is stored as plaintext.
+   * Value can be empty when pre-declaring keys whose values are injected at runtime.
    *
    * @generated from field: string value = 1;
    */
@@ -64,21 +64,17 @@ export type EnvironmentValue = Message<"ai.stigmer.agentic.environment.v1.Enviro
 
   /**
    * Whether this value should be treated as a secret.
-   * When true:
-   * - Value is encrypted at rest
-   * - Value is redacted in logs
-   * - Value requires special permissions to read
-   * When false:
-   * - Value is stored as plaintext
-   * - Value is visible in audit logs
+   *
+   * @internal
+   * When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal.
+   * When false: stored as plaintext, visible in audit logs.
    *
    * @generated from field: bool is_secret = 2;
    */
   isSecret: boolean;
 
   /**
-   * Optional description for documentation.
-   * Example: "AWS access key for S3 bucket access"
+   * Human-readable description of what this value is used for.
    *
    * @generated from field: string description = 3;
    */

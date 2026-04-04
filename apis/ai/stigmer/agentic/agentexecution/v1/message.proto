@@ -55,10 +55,8 @@ message ToolCall {
   // Status of the tool call execution.
   ToolCallStatus status = 5 [(buf.validate.field).enum.defined_only = true];
 
-  // Optional metadata to guide frontend UI component rendering.
-  // Set by Python worker based on tool name or explicitly by agents.
-  // Example: kubectl_get_pods → component_type="terminal"
-  ComponentMetadata component_metadata = 6;
+  reserved 6;
+  reserved "component_metadata";
 
   // ISO 8601 timestamp when the tool call started.
   string started_at = 7;
@@ -187,27 +185,4 @@ message ToolCall {
   //
   // Example: '{"repository": "acme/repo", "force": true}'
   string args_preview = 18;
-}
-
-// Metadata to guide frontend UI component rendering for tool calls.
-// All fields are optional - if not set, frontend uses default rendering logic.
-message ComponentMetadata {
-  // Type of UI component to render for this tool call.
-  // Examples: "terminal", "preview", "form", "approval", "diagram", "progress"
-  // Frontend maps these to React Flow node types (TerminalNode, PreviewNode, etc.).
-  string component_type = 1;
-
-  // Optional group identifier for related tool calls.
-  // Tool calls with the same group_id can be aggregated into a single UI component.
-  // Example: Multiple kubectl commands in a deployment workflow.
-  string component_group = 2;
-
-  // Optional layout hint for canvas positioning.
-  // Examples: "inline", "full-width", "sidebar", "floating"
-  string layout_hint = 3;
-
-  // Flexible metadata for component-specific configuration.
-  // Frontend components can read this for custom behavior.
-  // Example: {"syntax": "yaml", "readonly": true} for file preview
-  google.protobuf.Struct metadata = 4;
 }

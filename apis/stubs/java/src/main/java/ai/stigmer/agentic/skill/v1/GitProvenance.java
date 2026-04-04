@@ -8,7 +8,9 @@ package ai.stigmer.agentic.skill.v1;
 /**
  * <pre>
  * GitProvenance tracks the git origin of skill artifacts.
- * This is system-detected metadata, not user-specified configuration.
+ *
+ * &#64;internal
+ * System-detected metadata, not user-specified configuration.
  * Populated by CLI during push based on:
  * - Local push: auto-detected from directory's git context
  * - Git push: resolved from user-provided URL/ref
@@ -65,10 +67,11 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object remoteUrl_ = "";
   /**
    * <pre>
-   * Git remote URL.
-   * For local push: detected "origin" remote URL
-   * For git push: the user-provided repository URL
-   * Example: "https://github.com/stigmer/skills.git"
+   * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+   *
+   * &#64;internal
+   * For local push: detected "origin" remote URL.
+   * For git push: the user-provided repository URL.
    * </pre>
    *
    * <code>string remote_url = 1 [json_name = "remoteUrl", (.buf.validate.field) = { ... }</code>
@@ -89,10 +92,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Git remote URL.
-   * For local push: detected "origin" remote URL
-   * For git push: the user-provided repository URL
-   * Example: "https://github.com/stigmer/skills.git"
+   * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+   *
+   * &#64;internal
+   * For local push: detected "origin" remote URL.
+   * For git push: the user-provided repository URL.
    * </pre>
    *
    * <code>string remote_url = 1 [json_name = "remoteUrl", (.buf.validate.field) = { ... }</code>
@@ -118,10 +122,12 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object ref_ = "";
   /**
    * <pre>
-   * Original git reference (for display purposes).
-   * For local push: detected branch name (e.g., "main") or empty if detached HEAD
-   * For git push: the user-provided ref (e.g., "v1.0.0", "main")
-   * This preserves user intent for display while commit provides immutability.
+   * Original git reference such as a branch or tag name (e.g., "main", "v1.0.0").
+   *
+   * &#64;internal
+   * For local push: detected branch name or empty if detached HEAD.
+   * For git push: the user-provided ref.
+   * Preserves user intent for display while commit provides immutability.
    * </pre>
    *
    * <code>string ref = 2 [json_name = "ref"];</code>
@@ -142,10 +148,12 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Original git reference (for display purposes).
-   * For local push: detected branch name (e.g., "main") or empty if detached HEAD
-   * For git push: the user-provided ref (e.g., "v1.0.0", "main")
-   * This preserves user intent for display while commit provides immutability.
+   * Original git reference such as a branch or tag name (e.g., "main", "v1.0.0").
+   *
+   * &#64;internal
+   * For local push: detected branch name or empty if detached HEAD.
+   * For git push: the user-provided ref.
+   * Preserves user intent for display while commit provides immutability.
    * </pre>
    *
    * <code>string ref = 2 [json_name = "ref"];</code>
@@ -171,10 +179,10 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object commit_ = "";
   /**
    * <pre>
-   * Resolved commit SHA (for reproducibility).
-   * Always populated - this is the immutable version reference.
-   * Full 40-character SHA ensures exact reproducibility.
-   * Example: "abc123def456789012345678901234567890abcd"
+   * Resolved commit SHA for exact reproducibility.
+   *
+   * &#64;internal
+   * Always populated. Full 40-character SHA.
    * </pre>
    *
    * <code>string commit = 3 [json_name = "commit", (.buf.validate.field) = { ... }</code>
@@ -195,10 +203,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Resolved commit SHA (for reproducibility).
-   * Always populated - this is the immutable version reference.
-   * Full 40-character SHA ensures exact reproducibility.
-   * Example: "abc123def456789012345678901234567890abcd"
+   * Resolved commit SHA for exact reproducibility.
+   *
+   * &#64;internal
+   * Always populated. Full 40-character SHA.
    * </pre>
    *
    * <code>string commit = 3 [json_name = "commit", (.buf.validate.field) = { ... }</code>
@@ -459,7 +467,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * GitProvenance tracks the git origin of skill artifacts.
-   * This is system-detected metadata, not user-specified configuration.
+   *
+   * &#64;internal
+   * System-detected metadata, not user-specified configuration.
    * Populated by CLI during push based on:
    * - Local push: auto-detected from directory's git context
    * - Git push: resolved from user-provided URL/ref
@@ -647,10 +657,11 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object remoteUrl_ = "";
     /**
      * <pre>
-     * Git remote URL.
-     * For local push: detected "origin" remote URL
-     * For git push: the user-provided repository URL
-     * Example: "https://github.com/stigmer/skills.git"
+     * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+     *
+     * &#64;internal
+     * For local push: detected "origin" remote URL.
+     * For git push: the user-provided repository URL.
      * </pre>
      *
      * <code>string remote_url = 1 [json_name = "remoteUrl", (.buf.validate.field) = { ... }</code>
@@ -670,10 +681,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git remote URL.
-     * For local push: detected "origin" remote URL
-     * For git push: the user-provided repository URL
-     * Example: "https://github.com/stigmer/skills.git"
+     * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+     *
+     * &#64;internal
+     * For local push: detected "origin" remote URL.
+     * For git push: the user-provided repository URL.
      * </pre>
      *
      * <code>string remote_url = 1 [json_name = "remoteUrl", (.buf.validate.field) = { ... }</code>
@@ -694,10 +706,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git remote URL.
-     * For local push: detected "origin" remote URL
-     * For git push: the user-provided repository URL
-     * Example: "https://github.com/stigmer/skills.git"
+     * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+     *
+     * &#64;internal
+     * For local push: detected "origin" remote URL.
+     * For git push: the user-provided repository URL.
      * </pre>
      *
      * <code>string remote_url = 1 [json_name = "remoteUrl", (.buf.validate.field) = { ... }</code>
@@ -714,10 +727,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git remote URL.
-     * For local push: detected "origin" remote URL
-     * For git push: the user-provided repository URL
-     * Example: "https://github.com/stigmer/skills.git"
+     * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+     *
+     * &#64;internal
+     * For local push: detected "origin" remote URL.
+     * For git push: the user-provided repository URL.
      * </pre>
      *
      * <code>string remote_url = 1 [json_name = "remoteUrl", (.buf.validate.field) = { ... }</code>
@@ -731,10 +745,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Git remote URL.
-     * For local push: detected "origin" remote URL
-     * For git push: the user-provided repository URL
-     * Example: "https://github.com/stigmer/skills.git"
+     * Git remote URL (e.g., "https://github.com/stigmer/skills.git").
+     *
+     * &#64;internal
+     * For local push: detected "origin" remote URL.
+     * For git push: the user-provided repository URL.
      * </pre>
      *
      * <code>string remote_url = 1 [json_name = "remoteUrl", (.buf.validate.field) = { ... }</code>
@@ -754,10 +769,12 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object ref_ = "";
     /**
      * <pre>
-     * Original git reference (for display purposes).
-     * For local push: detected branch name (e.g., "main") or empty if detached HEAD
-     * For git push: the user-provided ref (e.g., "v1.0.0", "main")
-     * This preserves user intent for display while commit provides immutability.
+     * Original git reference such as a branch or tag name (e.g., "main", "v1.0.0").
+     *
+     * &#64;internal
+     * For local push: detected branch name or empty if detached HEAD.
+     * For git push: the user-provided ref.
+     * Preserves user intent for display while commit provides immutability.
      * </pre>
      *
      * <code>string ref = 2 [json_name = "ref"];</code>
@@ -777,10 +794,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Original git reference (for display purposes).
-     * For local push: detected branch name (e.g., "main") or empty if detached HEAD
-     * For git push: the user-provided ref (e.g., "v1.0.0", "main")
-     * This preserves user intent for display while commit provides immutability.
+     * Original git reference such as a branch or tag name (e.g., "main", "v1.0.0").
+     *
+     * &#64;internal
+     * For local push: detected branch name or empty if detached HEAD.
+     * For git push: the user-provided ref.
+     * Preserves user intent for display while commit provides immutability.
      * </pre>
      *
      * <code>string ref = 2 [json_name = "ref"];</code>
@@ -801,10 +820,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Original git reference (for display purposes).
-     * For local push: detected branch name (e.g., "main") or empty if detached HEAD
-     * For git push: the user-provided ref (e.g., "v1.0.0", "main")
-     * This preserves user intent for display while commit provides immutability.
+     * Original git reference such as a branch or tag name (e.g., "main", "v1.0.0").
+     *
+     * &#64;internal
+     * For local push: detected branch name or empty if detached HEAD.
+     * For git push: the user-provided ref.
+     * Preserves user intent for display while commit provides immutability.
      * </pre>
      *
      * <code>string ref = 2 [json_name = "ref"];</code>
@@ -821,10 +842,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Original git reference (for display purposes).
-     * For local push: detected branch name (e.g., "main") or empty if detached HEAD
-     * For git push: the user-provided ref (e.g., "v1.0.0", "main")
-     * This preserves user intent for display while commit provides immutability.
+     * Original git reference such as a branch or tag name (e.g., "main", "v1.0.0").
+     *
+     * &#64;internal
+     * For local push: detected branch name or empty if detached HEAD.
+     * For git push: the user-provided ref.
+     * Preserves user intent for display while commit provides immutability.
      * </pre>
      *
      * <code>string ref = 2 [json_name = "ref"];</code>
@@ -838,10 +861,12 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Original git reference (for display purposes).
-     * For local push: detected branch name (e.g., "main") or empty if detached HEAD
-     * For git push: the user-provided ref (e.g., "v1.0.0", "main")
-     * This preserves user intent for display while commit provides immutability.
+     * Original git reference such as a branch or tag name (e.g., "main", "v1.0.0").
+     *
+     * &#64;internal
+     * For local push: detected branch name or empty if detached HEAD.
+     * For git push: the user-provided ref.
+     * Preserves user intent for display while commit provides immutability.
      * </pre>
      *
      * <code>string ref = 2 [json_name = "ref"];</code>
@@ -861,10 +886,10 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object commit_ = "";
     /**
      * <pre>
-     * Resolved commit SHA (for reproducibility).
-     * Always populated - this is the immutable version reference.
-     * Full 40-character SHA ensures exact reproducibility.
-     * Example: "abc123def456789012345678901234567890abcd"
+     * Resolved commit SHA for exact reproducibility.
+     *
+     * &#64;internal
+     * Always populated. Full 40-character SHA.
      * </pre>
      *
      * <code>string commit = 3 [json_name = "commit", (.buf.validate.field) = { ... }</code>
@@ -884,10 +909,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resolved commit SHA (for reproducibility).
-     * Always populated - this is the immutable version reference.
-     * Full 40-character SHA ensures exact reproducibility.
-     * Example: "abc123def456789012345678901234567890abcd"
+     * Resolved commit SHA for exact reproducibility.
+     *
+     * &#64;internal
+     * Always populated. Full 40-character SHA.
      * </pre>
      *
      * <code>string commit = 3 [json_name = "commit", (.buf.validate.field) = { ... }</code>
@@ -908,10 +933,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resolved commit SHA (for reproducibility).
-     * Always populated - this is the immutable version reference.
-     * Full 40-character SHA ensures exact reproducibility.
-     * Example: "abc123def456789012345678901234567890abcd"
+     * Resolved commit SHA for exact reproducibility.
+     *
+     * &#64;internal
+     * Always populated. Full 40-character SHA.
      * </pre>
      *
      * <code>string commit = 3 [json_name = "commit", (.buf.validate.field) = { ... }</code>
@@ -928,10 +953,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resolved commit SHA (for reproducibility).
-     * Always populated - this is the immutable version reference.
-     * Full 40-character SHA ensures exact reproducibility.
-     * Example: "abc123def456789012345678901234567890abcd"
+     * Resolved commit SHA for exact reproducibility.
+     *
+     * &#64;internal
+     * Always populated. Full 40-character SHA.
      * </pre>
      *
      * <code>string commit = 3 [json_name = "commit", (.buf.validate.field) = { ... }</code>
@@ -945,10 +970,10 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Resolved commit SHA (for reproducibility).
-     * Always populated - this is the immutable version reference.
-     * Full 40-character SHA ensures exact reproducibility.
-     * Example: "abc123def456789012345678901234567890abcd"
+     * Resolved commit SHA for exact reproducibility.
+     *
+     * &#64;internal
+     * Always populated. Full 40-character SHA.
      * </pre>
      *
      * <code>string commit = 3 [json_name = "commit", (.buf.validate.field) = { ... }</code>

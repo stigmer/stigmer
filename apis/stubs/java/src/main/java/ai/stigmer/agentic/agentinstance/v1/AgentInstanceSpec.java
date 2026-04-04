@@ -7,8 +7,11 @@ package ai.stigmer.agentic.agentinstance.v1;
 
 /**
  * <pre>
- * AgentInstanceSpec defines a configured deployment of an Agent template.
- * This is the "Instance" layer - stateful configuration with secrets.
+ * AgentInstanceSpec defines the configurable properties of an agent instance.
+ *
+ * &#64;internal
+ * This is the "Instance" layer — stateful configuration with secrets.
+ * The overview.md file provides the SDK-facing description and example YAML.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec}
@@ -61,7 +64,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object agentId_ = "";
   /**
    * <pre>
-   * Reference to the Agent template this instance deploys.
+   * Identifier of the Agent template this instance deploys.
    * </pre>
    *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -82,7 +85,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Reference to the Agent template this instance deploys.
+   * Identifier of the Agent template this instance deploys.
    * </pre>
    *
    * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -108,8 +111,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object description_ = "";
   /**
    * <pre>
-   * Human-readable description for this instance.
-   * Example: "Production GitHub bot for main repo"
+   * Human-readable description for UI and API display.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -130,8 +132,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Human-readable description for this instance.
-   * Example: "Production GitHub bot for main repo"
+   * Human-readable description for UI and API display.
    * </pre>
    *
    * <code>string description = 2 [json_name = "description"];</code>
@@ -157,7 +158,9 @@ private static final long serialVersionUID = 0L;
   private java.util.List<ai.stigmer.commons.apiresource.ApiResourceReference> environmentRefs_;
   /**
    * <pre>
-   * References to Environment resources (can be multiple).
+   * References to Environment resources providing secrets and configuration at runtime.
+   *
+   * &#64;internal
    * Environments are merged in order: later environments override earlier ones.
    * Example: [base-env, aws-prod-env, github-team-env]
    * This allows layering of configurations (base → specific overrides).
@@ -171,7 +174,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * References to Environment resources (can be multiple).
+   * References to Environment resources providing secrets and configuration at runtime.
+   *
+   * &#64;internal
    * Environments are merged in order: later environments override earlier ones.
    * Example: [base-env, aws-prod-env, github-team-env]
    * This allows layering of configurations (base → specific overrides).
@@ -186,7 +191,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * References to Environment resources (can be multiple).
+   * References to Environment resources providing secrets and configuration at runtime.
+   *
+   * &#64;internal
    * Environments are merged in order: later environments override earlier ones.
    * Example: [base-env, aws-prod-env, github-team-env]
    * This allows layering of configurations (base → specific overrides).
@@ -200,7 +207,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * References to Environment resources (can be multiple).
+   * References to Environment resources providing secrets and configuration at runtime.
+   *
+   * &#64;internal
    * Environments are merged in order: later environments override earlier ones.
    * Example: [base-env, aws-prod-env, github-team-env]
    * This allows layering of configurations (base → specific overrides).
@@ -214,7 +223,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * References to Environment resources (can be multiple).
+   * References to Environment resources providing secrets and configuration at runtime.
+   *
+   * &#64;internal
    * Environments are merged in order: later environments override earlier ones.
    * Example: [base-env, aws-prod-env, github-team-env]
    * This allows layering of configurations (base → specific overrides).
@@ -414,8 +425,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * AgentInstanceSpec defines a configured deployment of an Agent template.
-   * This is the "Instance" layer - stateful configuration with secrets.
+   * AgentInstanceSpec defines the configurable properties of an agent instance.
+   *
+   * &#64;internal
+   * This is the "Instance" layer — stateful configuration with secrets.
+   * The overview.md file provides the SDK-facing description and example YAML.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agentinstance.v1.AgentInstanceSpec}
@@ -631,7 +645,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object agentId_ = "";
     /**
      * <pre>
-     * Reference to the Agent template this instance deploys.
+     * Identifier of the Agent template this instance deploys.
      * </pre>
      *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -651,7 +665,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Reference to the Agent template this instance deploys.
+     * Identifier of the Agent template this instance deploys.
      * </pre>
      *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -672,7 +686,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Reference to the Agent template this instance deploys.
+     * Identifier of the Agent template this instance deploys.
      * </pre>
      *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -689,7 +703,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Reference to the Agent template this instance deploys.
+     * Identifier of the Agent template this instance deploys.
      * </pre>
      *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -703,7 +717,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Reference to the Agent template this instance deploys.
+     * Identifier of the Agent template this instance deploys.
      * </pre>
      *
      * <code>string agent_id = 1 [json_name = "agentId", (.buf.validate.field) = { ... }</code>
@@ -723,8 +737,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object description_ = "";
     /**
      * <pre>
-     * Human-readable description for this instance.
-     * Example: "Production GitHub bot for main repo"
+     * Human-readable description for UI and API display.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -744,8 +757,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable description for this instance.
-     * Example: "Production GitHub bot for main repo"
+     * Human-readable description for UI and API display.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -766,8 +778,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable description for this instance.
-     * Example: "Production GitHub bot for main repo"
+     * Human-readable description for UI and API display.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -784,8 +795,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable description for this instance.
-     * Example: "Production GitHub bot for main repo"
+     * Human-readable description for UI and API display.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -799,8 +809,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable description for this instance.
-     * Example: "Production GitHub bot for main repo"
+     * Human-readable description for UI and API display.
      * </pre>
      *
      * <code>string description = 2 [json_name = "description"];</code>
@@ -831,7 +840,9 @@ private static final long serialVersionUID = 0L;
 
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -848,7 +859,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -865,7 +878,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -882,7 +897,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -906,7 +923,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -927,7 +946,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -950,7 +971,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -974,7 +997,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -995,7 +1020,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -1016,7 +1043,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -1038,7 +1067,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -1058,7 +1089,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -1078,7 +1111,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -1092,7 +1127,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -1109,7 +1146,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -1127,7 +1166,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -1141,7 +1182,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).
@@ -1156,7 +1199,9 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * References to Environment resources (can be multiple).
+     * References to Environment resources providing secrets and configuration at runtime.
+     *
+     * &#64;internal
      * Environments are merged in order: later environments override earlier ones.
      * Example: [base-env, aws-prod-env, github-team-env]
      * This allows layering of configurations (base → specific overrides).

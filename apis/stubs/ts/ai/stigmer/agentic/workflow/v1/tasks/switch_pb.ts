@@ -15,10 +15,9 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_switch: GenFile = /*@__PU
   fileDesc("CjFhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3Mvc3dpdGNoLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MibgoQU3dpdGNoVGFza0NvbmZpZxJJCgVjYXNlcxgBIAMoCzIwLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS50YXNrcy5Td2l0Y2hDYXNlQgi6SAWSAQIIAToP6ossC3N3aXRjaF9jYXNlIk4KClN3aXRjaENhc2USGAoEbmFtZRgBIAEoCUIKukgHyAEBcgIQARIMCgR3aGVuGAIgASgJEhgKBHRoZW4YAyABKAlCCrpIB8gBAXICEAFiBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate]);
 
 /**
- * SwitchTaskConfig defines the configuration for SWITCH tasks.
+ * SwitchTaskConfig defines the configuration for switch_case tasks that branch conditionally.
  *
- * SWITCH tasks provide conditional branching based on expressions.
- *
+ * @internal
  * YAML Example:
  *   - taskName:
  *       switch:

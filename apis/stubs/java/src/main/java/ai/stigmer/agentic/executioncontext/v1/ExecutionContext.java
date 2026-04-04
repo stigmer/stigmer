@@ -7,9 +7,11 @@ package ai.stigmer.agentic.executioncontext.v1;
 
 /**
  * <pre>
- * ExecutionContext represents ephemeral runtime configuration and secrets.
- * Created during execution, deleted when execution completes.
- * Used for B2B scenarios where secrets are injected at runtime (e.g., Plant &amp; Cloud).
+ * Ephemeral runtime configuration and secrets scoped to a single execution.
+ *
+ * &#64;internal
+ * Created by the execution engine at start, deleted when execution completes.
+ * Used for B2B scenarios where secrets are injected at runtime.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionContext}
@@ -155,8 +157,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceMetadata metadata_;
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -168,8 +169,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -181,8 +181,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+   * Resource metadata including name, organization, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -196,7 +195,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec_;
   /**
    * <pre>
-   * ExecutionContext-specific configuration.
+   * Configuration including the parent execution ID and runtime key-value data.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -208,7 +207,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ExecutionContext-specific configuration.
+   * Configuration including the parent execution ID and runtime key-value data.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -220,7 +219,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ExecutionContext-specific configuration.
+   * Configuration including the parent execution ID and runtime key-value data.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -234,7 +233,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceAuditStatus status_;
   /**
    * <pre>
-   * System-managed status containing audit information.
+   * System-managed audit status.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -246,7 +245,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-managed status containing audit information.
+   * System-managed audit status.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -258,7 +257,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-managed status containing audit information.
+   * System-managed audit status.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -484,9 +483,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ExecutionContext represents ephemeral runtime configuration and secrets.
-   * Created during execution, deleted when execution completes.
-   * Used for B2B scenarios where secrets are injected at runtime (e.g., Plant &amp; Cloud).
+   * Ephemeral runtime configuration and secrets scoped to a single execution.
+   *
+   * &#64;internal
+   * Created by the execution engine at start, deleted when execution completes.
+   * Used for B2B scenarios where secrets are injected at runtime.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionContext}
@@ -902,8 +903,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceMetadata, ai.stigmer.commons.apiresource.ApiResourceMetadata.Builder, ai.stigmer.commons.apiresource.ApiResourceMetadataOrBuilder> metadataBuilder_;
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -914,8 +914,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -930,8 +929,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -951,8 +949,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -970,8 +967,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -996,8 +992,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1014,8 +1009,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1027,8 +1021,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1043,8 +1036,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * ExecutionContext is ephemeral and authorization is derived from the parent execution.
+     * Resource metadata including name, organization, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1068,7 +1060,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec, ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec.Builder, ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpecOrBuilder> specBuilder_;
     /**
      * <pre>
-     * ExecutionContext-specific configuration.
+     * Configuration including the parent execution ID and runtime key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -1079,7 +1071,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ExecutionContext-specific configuration.
+     * Configuration including the parent execution ID and runtime key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -1094,7 +1086,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ExecutionContext-specific configuration.
+     * Configuration including the parent execution ID and runtime key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -1114,7 +1106,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ExecutionContext-specific configuration.
+     * Configuration including the parent execution ID and runtime key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -1132,7 +1124,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ExecutionContext-specific configuration.
+     * Configuration including the parent execution ID and runtime key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -1157,7 +1149,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ExecutionContext-specific configuration.
+     * Configuration including the parent execution ID and runtime key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -1174,7 +1166,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ExecutionContext-specific configuration.
+     * Configuration including the parent execution ID and runtime key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -1186,7 +1178,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ExecutionContext-specific configuration.
+     * Configuration including the parent execution ID and runtime key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -1201,7 +1193,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * ExecutionContext-specific configuration.
+     * Configuration including the parent execution ID and runtime key-value data.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.executioncontext.v1.ExecutionContextSpec spec = 4 [json_name = "spec"];</code>
@@ -1225,7 +1217,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceAuditStatus, ai.stigmer.commons.apiresource.ApiResourceAuditStatus.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditStatusOrBuilder> statusBuilder_;
     /**
      * <pre>
-     * System-managed status containing audit information.
+     * System-managed audit status.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1236,7 +1228,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information.
+     * System-managed audit status.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1251,7 +1243,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information.
+     * System-managed audit status.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1271,7 +1263,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information.
+     * System-managed audit status.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1289,7 +1281,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information.
+     * System-managed audit status.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1314,7 +1306,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information.
+     * System-managed audit status.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1331,7 +1323,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information.
+     * System-managed audit status.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1343,7 +1335,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information.
+     * System-managed audit status.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>
@@ -1358,7 +1350,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information.
+     * System-managed audit status.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAuditStatus status = 5 [json_name = "status"];</code>

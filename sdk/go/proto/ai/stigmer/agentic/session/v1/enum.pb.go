@@ -21,28 +21,28 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// GitWriteBackMode controls the platform's git workflow for a
-// git-backed workspace entry.
+// GitWriteBackMode controls the platform's git workflow for a git-backed workspace entry.
 //
+// @internal
 // The platform enables write-back by default when credentials are
 // available. Users can override this per-session by setting an
 // explicit mode. The agent never sees or controls this setting.
 type GitWriteBackMode int32
 
 const (
-	// Platform default. Currently treated as write-back enabled when git
-	// credentials are available. Artifacts are still published as
-	// downloadable files regardless of this setting.
-	// Set an explicit mode to override the platform default.
-	GitWriteBackMode_GIT_WRITE_BACK_MODE_UNSPECIFIED GitWriteBackMode = 0
-	// After execution completes, the platform automatically:
-	//  1. Detects uncommitted changes via `git diff`
-	//  2. Creates a branch (stigmer/{execution_id_short})
-	//  3. Commits all changes
-	//  4. Pushes the branch to the remote
-	//  5. Creates a pull request targeting the original branch
+	// Platform default behavior — write-back is enabled when git credentials are available.
 	//
-	// The write-back outcome is recorded in
+	// @internal
+	// Artifacts are still published as downloadable files regardless of this
+	// setting. Set an explicit mode to override the platform default.
+	GitWriteBackMode_GIT_WRITE_BACK_MODE_UNSPECIFIED GitWriteBackMode = 0
+	// Create a branch and pull request from the agent's file changes after execution completes.
+	//
+	// @internal
+	// The platform automatically detects uncommitted changes via git diff,
+	// creates a branch (stigmer/{execution_id_short}), commits all changes,
+	// pushes the branch to the remote, and creates a pull request targeting
+	// the original branch. The write-back outcome is recorded in
 	// AgentExecutionStatus.workspace_write_backs.
 	GitWriteBackMode_GIT_WRITE_BACK_BRANCH_AND_PR GitWriteBackMode = 1
 )

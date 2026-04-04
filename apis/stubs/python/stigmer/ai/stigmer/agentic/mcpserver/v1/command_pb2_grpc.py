@@ -9,8 +9,8 @@ from ai.stigmer.commons.apiresource import io_pb2 as ai_dot_stigmer_dot_commons_
 
 class McpServerCommandControllerStub(object):
     """McpServerCommandController provides write operations for MCP server resources.
-    Supports creating, updating, and deleting MCP server definitions.
 
+    @internal
     Authorization model for writes:
     - Platform-scoped: Only platform operators can create/modify
     - Organization-scoped: Org admins can create/modify
@@ -65,8 +65,8 @@ class McpServerCommandControllerStub(object):
 
 class McpServerCommandControllerServicer(object):
     """McpServerCommandController provides write operations for MCP server resources.
-    Supports creating, updating, and deleting MCP server definitions.
 
+    @internal
     Authorization model for writes:
     - Platform-scoped: Only platform operators can create/modify
     - Organization-scoped: Org admins can create/modify
@@ -77,19 +77,12 @@ class McpServerCommandControllerServicer(object):
     """
 
     def apply(self, request, context):
-        """Create or update an MCP server resource (Kubernetes-style apply).
+        """Create or update an MCP server resource.
 
-        This is the primary interface for MCP server management.
-        Behavior:
-        - If the resource doesn't exist: Creates a new MCP server
-        - If the resource exists: Updates the existing MCP server
+        If the resource doesn't exist, creates it. If it exists, updates it.
+        The resource is identified by its (scope, org, slug) combination.
 
-        The resource is identified by (scope, org, slug) combination.
-
-        Input: Full McpServer resource with metadata and spec.
-        Returns: The created/updated McpServer with system-populated fields.
-
-        Authorization: Custom authorization in handler.
+        @internal
         The handler determines whether this is a create or update operation
         and performs appropriate scope-aware authorization:
         - Create: Requires permission to create in the target scope
@@ -100,14 +93,12 @@ class McpServerCommandControllerServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def create(self, request, context):
-        """Create a new MCP server resource.
+        """Create an MCP server resource.
 
-        Use this when you explicitly want to create a new resource
-        and want an error if it already exists.
+        Returns an error if a resource with the same (scope, org, slug) already exists.
+        Use `apply` for idempotent create-or-update semantics.
 
-        Input: McpServer with metadata (scope, org, name/slug) and spec.
-        Returns: The created McpServer with system-generated ID and status.
-
+        @internal
         Authorization: Custom authorization in handler.
         Requires permission to create MCP servers in the specified scope:
         - Platform: Requires platform operator role
@@ -121,9 +112,7 @@ class McpServerCommandControllerServicer(object):
     def update(self, request, context):
         """Update an existing MCP server resource.
 
-        Input: McpServer with metadata.id populated and updated spec.
-        Returns: The updated McpServer.
-
+        @internal
         Authorization: Requires can_edit permission on the mcp_server resource.
         Only the owner (based on scope) can update:
         - Platform: Platform operators
@@ -138,11 +127,9 @@ class McpServerCommandControllerServicer(object):
         """Delete an MCP server resource.
 
         Permanently removes the MCP server definition.
-        Agents referencing this MCP server will need to be updated.
+        Agents referencing this server will need to be updated.
 
-        Input: ApiResourceDeleteInput with resource_id and optional version_message.
-        Returns: The deleted McpServer (for confirmation/audit).
-
+        @internal
         Authorization: Requires can_delete permission on the mcp_server resource.
         Only the owner can delete:
         - Platform: Platform operators
@@ -156,11 +143,10 @@ class McpServerCommandControllerServicer(object):
     def updateVisibility(self, request, context):
         """Update the visibility of an existing MCP server.
 
-        This is a targeted metadata update — it only modifies metadata.visibility,
-        leaving spec, status, and other metadata fields untouched. Use this to
-        make an MCP server publicly accessible (marketplace-style sharing) or to
-        revoke public access without sending the entire resource.
+        Only modifies metadata.visibility, leaving spec, status, and other
+        metadata fields untouched.
 
+        @internal
         Authorization: Requires can_edit permission on the mcp_server resource.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -170,16 +156,14 @@ class McpServerCommandControllerServicer(object):
     def updateDiscoveredCapabilities(self, request, context):
         """Update the discovered capabilities (tools and resource templates) for an MCP server.
 
-        This is a targeted status update — it only modifies status.discovered_capabilities,
-        leaving spec, validation state, and other status fields untouched.
+        Only modifies status.discovered_capabilities, leaving spec, validation
+        state, and other status fields untouched.
 
+        @internal
         Typical flow:
         1. CLI calls getByReference(org/slug) to fetch the McpServer and its ID
         2. CLI connects to the MCP server locally and queries tools/resources
         3. CLI calls this RPC with the ID and discovered capabilities
-
-        Input: UpdateDiscoveredCapabilitiesInput with mcp_server_id and discovered_capabilities.
-        Returns: The updated McpServer with the new discovered capabilities.
 
         Authorization: Requires can_edit permission on the mcp_server resource.
         """
@@ -190,12 +174,10 @@ class McpServerCommandControllerServicer(object):
     def discoverCapabilities(self, request, context):
         """Discover the capabilities of an MCP server by connecting to it.
 
-        This triggers server-side discovery: the backend resolves credentials,
-        connects to the MCP server, enumerates tools and resource templates,
-        and stores the result.
-
-        The RPC blocks until discovery completes (up to ~30 seconds) and returns the
-        updated McpServer with populated status.discovered_capabilities.
+        Connects to the MCP server, enumerates tools and resource templates,
+        and stores the result. Blocks until discovery completes (up to ~30 seconds)
+        and returns the updated McpServer with populated
+        status.discovered_capabilities.
 
         @internal
         Typical flow:
@@ -204,9 +186,6 @@ class McpServerCommandControllerServicer(object):
         3. Backend resolves env vars from the user's personal environment
         4. Backend starts a Temporal workflow; agent-runner connects to the MCP server
         5. Discovered tools and resource templates are stored and returned
-
-        Input: DiscoverCapabilitiesInput with mcp_server_id.
-        Returns: The updated McpServer with discovered capabilities.
 
         Errors:
         - FAILED_PRECONDITION: Required credentials missing from personal environment
@@ -267,8 +246,8 @@ def add_McpServerCommandControllerServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class McpServerCommandController(object):
     """McpServerCommandController provides write operations for MCP server resources.
-    Supports creating, updating, and deleting MCP server definitions.
 
+    @internal
     Authorization model for writes:
     - Platform-scoped: Only platform operators can create/modify
     - Organization-scoped: Org admins can create/modify

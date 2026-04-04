@@ -9,8 +9,7 @@ package ai.stigmer.agentic.mcpserver.v1;
  * <pre>
  * ToolApprovalPolicy defines approval requirements for a specific tool.
  *
- * ## Message Templates
- *
+ * &#64;internal
  * The message field supports {{args.field}} placeholders that are resolved
  * at runtime using the actual tool arguments. This enables contextual
  * approval messages that help users make informed decisions.
@@ -21,26 +20,7 @@ package ai.stigmer.agentic.mcpserver.v1;
  *
  * If a placeholder references a missing argument, it's replaced with "&lt;unknown&gt;".
  *
- * ## Examples
- *
- * Simple message:
- * tool_name: "send_email"
- * message: "Send email to {{args.recipient}}"
- * Result: "Send email to customer&#64;example.com"
- *
- * Multiple placeholders:
- * tool_name: "delete_file"
- * message: "Delete {{args.path}} from {{args.repository}}"
- * Result: "Delete src/main.py from acme/webapp"
- *
- * Default message (empty):
- * tool_name: "dangerous_operation"
- * message: ""
- * Result: "Execute tool: dangerous_operation" (auto-generated)
- *
- * ## Policy Chain
- *
- * This policy sits at the McpServer level. The full approval policy chain is:
+ * Policy chain (lowest to highest priority):
  * 1. McpServer.default_tool_approvals (this message) - Platform/org defaults
  * 2. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
  * 3. AgentExecution.auto_approve_all - Runtime bypass
@@ -376,8 +356,7 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * ToolApprovalPolicy defines approval requirements for a specific tool.
    *
-   * ## Message Templates
-   *
+   * &#64;internal
    * The message field supports {{args.field}} placeholders that are resolved
    * at runtime using the actual tool arguments. This enables contextual
    * approval messages that help users make informed decisions.
@@ -388,26 +367,7 @@ private static final long serialVersionUID = 0L;
    *
    * If a placeholder references a missing argument, it's replaced with "&lt;unknown&gt;".
    *
-   * ## Examples
-   *
-   * Simple message:
-   * tool_name: "send_email"
-   * message: "Send email to {{args.recipient}}"
-   * Result: "Send email to customer&#64;example.com"
-   *
-   * Multiple placeholders:
-   * tool_name: "delete_file"
-   * message: "Delete {{args.path}} from {{args.repository}}"
-   * Result: "Delete src/main.py from acme/webapp"
-   *
-   * Default message (empty):
-   * tool_name: "dangerous_operation"
-   * message: ""
-   * Result: "Execute tool: dangerous_operation" (auto-generated)
-   *
-   * ## Policy Chain
-   *
-   * This policy sits at the McpServer level. The full approval policy chain is:
+   * Policy chain (lowest to highest priority):
    * 1. McpServer.default_tool_approvals (this message) - Platform/org defaults
    * 2. Agent.McpServerUsage.tool_approval_overrides - Per-agent customization
    * 3. AgentExecution.auto_approve_all - Runtime bypass

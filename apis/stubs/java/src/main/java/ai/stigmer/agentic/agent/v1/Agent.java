@@ -7,7 +7,10 @@ package ai.stigmer.agentic.agent.v1;
 
 /**
  * <pre>
- * Agent represents an AI agent definition with Graphton configuration.
+ * Agent defines an AI assistant's identity, tools, skills, and delegation model.
+ *
+ * &#64;internal
+ * Uses Graphton configuration for state management.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.agent.v1.Agent}
@@ -153,9 +156,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceMetadata metadata_;
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Agents belong to an organization and can be PUBLIC or PRIVATE.
-   * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -167,9 +168,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Agents belong to an organization and can be PUBLIC or PRIVATE.
-   * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -181,9 +180,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard resource metadata including name, id, labels, and tags.
-   * Agents belong to an organization and can be PUBLIC or PRIVATE.
-   * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+   * Resource metadata including name, organization, visibility, and labels.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -197,7 +194,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.agent.v1.AgentSpec spec_;
   /**
    * <pre>
-   * Agent-specific configuration.
+   * Configurable properties: instructions, MCP servers, skills, and sub-agents.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -209,7 +206,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Agent-specific configuration.
+   * Configurable properties: instructions, MCP servers, skills, and sub-agents.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -221,7 +218,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Agent-specific configuration.
+   * Configurable properties: instructions, MCP servers, skills, and sub-agents.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -235,7 +232,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.agentic.agent.v1.AgentStatus status_;
   /**
    * <pre>
-   * System-managed status containing audit information and default instance ID.
+   * System-managed state including audit trail and default instance ID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -247,7 +244,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-managed status containing audit information and default instance ID.
+   * System-managed state including audit trail and default instance ID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -259,7 +256,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * System-managed status containing audit information and default instance ID.
+   * System-managed state including audit trail and default instance ID.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -485,7 +482,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Agent represents an AI agent definition with Graphton configuration.
+   * Agent defines an AI assistant's identity, tools, skills, and delegation model.
+   *
+   * &#64;internal
+   * Uses Graphton configuration for state management.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.agent.v1.Agent}
@@ -901,9 +901,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceMetadata, ai.stigmer.commons.apiresource.ApiResourceMetadata.Builder, ai.stigmer.commons.apiresource.ApiResourceMetadataOrBuilder> metadataBuilder_;
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Agents belong to an organization and can be PUBLIC or PRIVATE.
-     * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -914,9 +912,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Agents belong to an organization and can be PUBLIC or PRIVATE.
-     * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -931,9 +927,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Agents belong to an organization and can be PUBLIC or PRIVATE.
-     * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -953,9 +947,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Agents belong to an organization and can be PUBLIC or PRIVATE.
-     * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -973,9 +965,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Agents belong to an organization and can be PUBLIC or PRIVATE.
-     * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1000,9 +990,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Agents belong to an organization and can be PUBLIC or PRIVATE.
-     * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1019,9 +1007,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Agents belong to an organization and can be PUBLIC or PRIVATE.
-     * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1033,9 +1019,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Agents belong to an organization and can be PUBLIC or PRIVATE.
-     * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1050,9 +1034,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard resource metadata including name, id, labels, and tags.
-     * Agents belong to an organization and can be PUBLIC or PRIVATE.
-     * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+     * Resource metadata including name, organization, visibility, and labels.
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3 [json_name = "metadata", (.buf.validate.field) = { ... }</code>
@@ -1076,7 +1058,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.agent.v1.AgentSpec, ai.stigmer.agentic.agent.v1.AgentSpec.Builder, ai.stigmer.agentic.agent.v1.AgentSpecOrBuilder> specBuilder_;
     /**
      * <pre>
-     * Agent-specific configuration.
+     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1087,7 +1069,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent-specific configuration.
+     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1102,7 +1084,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent-specific configuration.
+     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1122,7 +1104,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent-specific configuration.
+     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1140,7 +1122,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent-specific configuration.
+     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1165,7 +1147,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent-specific configuration.
+     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1182,7 +1164,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent-specific configuration.
+     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1194,7 +1176,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent-specific configuration.
+     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1209,7 +1191,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Agent-specific configuration.
+     * Configurable properties: instructions, MCP servers, skills, and sub-agents.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentSpec spec = 4 [json_name = "spec"];</code>
@@ -1233,7 +1215,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.agentic.agent.v1.AgentStatus, ai.stigmer.agentic.agent.v1.AgentStatus.Builder, ai.stigmer.agentic.agent.v1.AgentStatusOrBuilder> statusBuilder_;
     /**
      * <pre>
-     * System-managed status containing audit information and default instance ID.
+     * System-managed state including audit trail and default instance ID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -1244,7 +1226,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information and default instance ID.
+     * System-managed state including audit trail and default instance ID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -1259,7 +1241,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information and default instance ID.
+     * System-managed state including audit trail and default instance ID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -1279,7 +1261,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information and default instance ID.
+     * System-managed state including audit trail and default instance ID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -1297,7 +1279,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information and default instance ID.
+     * System-managed state including audit trail and default instance ID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -1322,7 +1304,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information and default instance ID.
+     * System-managed state including audit trail and default instance ID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -1339,7 +1321,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information and default instance ID.
+     * System-managed state including audit trail and default instance ID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -1351,7 +1333,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information and default instance ID.
+     * System-managed state including audit trail and default instance ID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>
@@ -1366,7 +1348,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * System-managed status containing audit information and default instance ID.
+     * System-managed state including audit trail and default instance ID.
      * </pre>
      *
      * <code>.ai.stigmer.agentic.agent.v1.AgentStatus status = 5 [json_name = "status"];</code>

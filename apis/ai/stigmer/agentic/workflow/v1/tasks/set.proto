@@ -5,10 +5,9 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 import "ai/stigmer/commons/apiresource/field_options.proto";
 import "buf/validate/validate.proto";
 
-// SetTaskConfig defines the configuration for SET tasks.
+// SetTaskConfig defines the configuration for set_vars tasks that assign variables in workflow state.
 //
-// SET tasks assign variables in workflow state.
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //       set:

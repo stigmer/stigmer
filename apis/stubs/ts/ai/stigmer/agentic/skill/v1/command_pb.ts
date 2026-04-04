@@ -26,15 +26,15 @@ export const file_ai_stigmer_agentic_skill_v1_command: GenFile = /*@__PURE__*/
  */
 export const SkillCommandController: GenService<{
   /**
-   * Push (upload) a skill artifact.
-   * This operation creates a new skill if it doesn't exist, or creates a new version
-   * of an existing skill. The skill artifact must contain SKILL.md.
+   * Push a skill artifact.
+   * Creates a skill if it does not exist, or creates a new version of an
+   * existing skill. The artifact must contain a SKILL.md file.
    *
+   * @internal
    * Authorization:
    * - Organization-scoped skills: Caller must have can_create_skill permission in the organization
    * - Platform-scoped skills: Caller must be a platform operator
    *
-   * @internal
    * The backend will:
    * 1. Normalize the name to a slug
    * 2. Find or create the skill resource
@@ -44,8 +44,6 @@ export const SkillCommandController: GenService<{
    * 6. Update skill spec and status
    * 7. Archive the previous version (if updating)
    *
-   * Returns: The created or updated Skill resource (consistent with other CRUD operations)
-   *
    * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.push
    */
   push: {
@@ -54,18 +52,18 @@ export const SkillCommandController: GenService<{
     output: typeof SkillSchema;
   },
   /**
-   * Push a skill directly from an execution artifact already in storage.
+   * Push a skill from an execution artifact already in storage.
+   * Use this when an agent execution has already produced a skill artifact
+   * and you want to publish it without downloading and re-uploading the ZIP.
    *
-   * This is the server-side equivalent of push() — instead of receiving
-   * ZIP bytes from the client, it reads an existing directory artifact
-   * (produced by an agent execution) from artifact storage and pushes
-   * it as a skill. This avoids downloading the ZIP to the browser and
-   * re-uploading it, and eliminates CORS concerns for SDK consumers.
+   * @internal
+   * Server-side equivalent of push() — reads the ZIP directly from artifact
+   * storage instead of receiving bytes from the client. This eliminates
+   * CORS concerns for SDK consumers.
    *
-   * The caller must have can_view on the referenced execution AND
-   * can_create_skill in the target organization.
-   *
-   * Returns: The created or updated Skill resource
+   * Authorization:
+   * - Requires can_view on the referenced execution (to read the artifact)
+   * - Requires can_create_skill in the target organization (to push the skill)
    *
    * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.pushFromExecutionArtifact
    */
@@ -76,12 +74,11 @@ export const SkillCommandController: GenService<{
   },
   /**
    * Update the visibility of an existing skill.
+   * Only modifies metadata.visibility, leaving spec, status, and other
+   * metadata fields untouched. Use this to make a skill publicly accessible
+   * or to revoke public access.
    *
-   * This is a targeted metadata update — it only modifies metadata.visibility,
-   * leaving spec, status, and other metadata fields untouched. Skills default
-   * to visibility_private on push; use this RPC to make a skill publicly
-   * accessible (marketplace-style sharing) or to revoke public access.
-   *
+   * @internal
    * Authorization: Requires can_edit permission on the skill resource.
    *
    * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.updateVisibility
@@ -93,7 +90,9 @@ export const SkillCommandController: GenService<{
   },
   /**
    * Delete a skill and all its versions.
-   * This removes the skill from the main collection but preserves audit history.
+   *
+   * @internal
+   * Removes the skill from the main collection but preserves audit history.
    *
    * @generated from rpc ai.stigmer.agentic.skill.v1.SkillCommandController.delete
    */

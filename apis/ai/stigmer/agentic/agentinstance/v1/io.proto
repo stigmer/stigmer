@@ -6,39 +6,41 @@ import "ai/stigmer/agentic/agentinstance/v1/api.proto";
 import "ai/stigmer/commons/rpc/pagination.proto";
 import "buf/validate/validate.proto";
 
-// GetAgentInstanceRequest retrieves a single agent instance by ID.
+// AgentInstanceId wraps an agent instance identifier.
 message AgentInstanceId {
-  // Instance ID (required).
+  // Unique identifier of the agent instance.
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// GetAgentInstancesByAgentRequest gets all instances of a specific agent template.
+// Input for retrieving all instances deployed from a specific agent.
 message GetAgentInstancesByAgentRequest {
-  // Agent ID to filter by (required).
+  // Identifier of the agent whose instances to retrieve.
   string agent_id = 1 [(buf.validate.field).required = true];
 
   // Pagination options.
   ai.stigmer.commons.rpc.PageInfo page_info = 2;
 }
 
-// AgentInstanceList represents a list of agent instances.
+// Response containing a paginated list of agent instances.
 message AgentInstanceList {
-  // Total count of instances.
+  // Total number of agent instances matching the query.
   int32 total_count = 1;
 
-  // List of instances.
+  // Agent instances in the current page.
   repeated AgentInstance items = 2;
 }
 
-// ListAgentInstancesRequest specifies parameters for listing agent instances.
+// Input for listing agent instances within an organization.
 message ListAgentInstancesRequest {
-  // Organization to list agent instances for (required).
+  // Organization slug to scope the listing.
   string org = 1 [(buf.validate.field).string.min_len = 1];
 
-  // Filter by metadata labels (optional). AND semantics: resource must match ALL labels.
+  // Filter by metadata labels. AND semantics: all labels must match.
+  //
+  // @internal
   // Example: {"stigmer.ai/personal": "true"} returns only personal agent instances.
   map<string, string> labels = 2;
 
-  // Pagination options (optional).
+  // Pagination options.
   ai.stigmer.commons.rpc.PageInfo page_info = 3;
 }

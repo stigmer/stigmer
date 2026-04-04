@@ -201,14 +201,13 @@ public final class AgentQueryControllerGrpc {
     /**
      * <pre>
      * Get the platform default agent.
-     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
-     * visibility_public. Returns the full Agent resource including
-     * status.default_instance_id for session creation.
-     * Used by frontends to enable session-first UX where users start
-     * a conversation without explicitly selecting an agent.
-     * Error: NOT_FOUND if no default agent is configured.
+     * Returns the default agent for the platform, including
+     * status.default_instance_id for creating a session. Use this
+     * to start a conversation without selecting an agent first.
+     * Returns NOT_FOUND if no default agent is configured.
      * &#64;internal
-     * Custom authorization in handler.
+     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
+     * visibility_public. Custom authorization in handler.
      * </pre>
      */
     default void getDefault(ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest request,
@@ -279,14 +278,13 @@ public final class AgentQueryControllerGrpc {
     /**
      * <pre>
      * Get the platform default agent.
-     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
-     * visibility_public. Returns the full Agent resource including
-     * status.default_instance_id for session creation.
-     * Used by frontends to enable session-first UX where users start
-     * a conversation without explicitly selecting an agent.
-     * Error: NOT_FOUND if no default agent is configured.
+     * Returns the default agent for the platform, including
+     * status.default_instance_id for creating a session. Use this
+     * to start a conversation without selecting an agent first.
+     * Returns NOT_FOUND if no default agent is configured.
      * &#64;internal
-     * Custom authorization in handler.
+     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
+     * visibility_public. Custom authorization in handler.
      * </pre>
      */
     public void getDefault(ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest request,
@@ -342,14 +340,13 @@ public final class AgentQueryControllerGrpc {
     /**
      * <pre>
      * Get the platform default agent.
-     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
-     * visibility_public. Returns the full Agent resource including
-     * status.default_instance_id for session creation.
-     * Used by frontends to enable session-first UX where users start
-     * a conversation without explicitly selecting an agent.
-     * Error: NOT_FOUND if no default agent is configured.
+     * Returns the default agent for the platform, including
+     * status.default_instance_id for creating a session. Use this
+     * to start a conversation without selecting an agent first.
+     * Returns NOT_FOUND if no default agent is configured.
      * &#64;internal
-     * Custom authorization in handler.
+     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
+     * visibility_public. Custom authorization in handler.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent getDefault(ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest request) throws io.grpc.StatusException {
@@ -404,14 +401,13 @@ public final class AgentQueryControllerGrpc {
     /**
      * <pre>
      * Get the platform default agent.
-     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
-     * visibility_public. Returns the full Agent resource including
-     * status.default_instance_id for session creation.
-     * Used by frontends to enable session-first UX where users start
-     * a conversation without explicitly selecting an agent.
-     * Error: NOT_FOUND if no default agent is configured.
+     * Returns the default agent for the platform, including
+     * status.default_instance_id for creating a session. Use this
+     * to start a conversation without selecting an agent first.
+     * Returns NOT_FOUND if no default agent is configured.
      * &#64;internal
-     * Custom authorization in handler.
+     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
+     * visibility_public. Custom authorization in handler.
      * </pre>
      */
     public ai.stigmer.agentic.agent.v1.Agent getDefault(ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest request) {
@@ -468,14 +464,13 @@ public final class AgentQueryControllerGrpc {
     /**
      * <pre>
      * Get the platform default agent.
-     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
-     * visibility_public. Returns the full Agent resource including
-     * status.default_instance_id for session creation.
-     * Used by frontends to enable session-first UX where users start
-     * a conversation without explicitly selecting an agent.
-     * Error: NOT_FOUND if no default agent is configured.
+     * Returns the default agent for the platform, including
+     * status.default_instance_id for creating a session. Use this
+     * to start a conversation without selecting an agent first.
+     * Returns NOT_FOUND if no default agent is configured.
      * &#64;internal
-     * Custom authorization in handler.
+     * Resolves the agent labeled stigmer.ai/default-agent: "true" with
+     * visibility_public. Custom authorization in handler.
      * </pre>
      */
     public com.google.common.util.concurrent.ListenableFuture<ai.stigmer.agentic.agent.v1.Agent> getDefault(

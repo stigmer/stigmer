@@ -20,12 +20,14 @@ export const file_ai_stigmer_agentic_workflow_v1_spec: GenFile = /*@__PURE__*/
   fileDesc("CilhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc3BlYy5wcm90bxIeYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxIvwBCgxXb3JrZmxvd1NwZWMSEwoLZGVzY3JpcHRpb24YASABKAkSSgoIZG9jdW1lbnQYAiABKAsyMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dEb2N1bWVudEIGukgDyAEBEkUKBXRhc2tzGAMgAygLMiwuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93VGFza0IIukgFkgECCAESRAoIZW52X3NwZWMYBCABKAsyMi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnRTcGVjIpABChBXb3JrZmxvd0RvY3VtZW50Eh0KA2RzbBgBIAEoCUIQukgNcgsyCV4xXC4wXC4wJBIZCgluYW1lc3BhY2UYAiABKAlCBrpIA8gBARIUCgRuYW1lGAMgASgJQga6SAPIAQESFwoHdmVyc2lvbhgEIAEoCUIGukgDyAEBEhMKC2Rlc2NyaXB0aW9uGAUgASgJIp0CCgxXb3JrZmxvd1Rhc2sSFAoEbmFtZRgBIAEoCUIGukgDyAEBEkYKBGtpbmQYAiABKA4yMC5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuV29ya2Zsb3dUYXNrS2luZEIGukgDyAEBEjwKC3Rhc2tfY29uZmlnGAMgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdEIOukgDyAEB6oUsBGtpbmQSNgoGZXhwb3J0GAQgASgLMiYuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLkV4cG9ydBI5CgRmbG93GAUgASgLMisuYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLkZsb3dDb250cm9sIh0KBkV4cG9ydBITCgJhcxgBIAEoCUIHukgEcgIQASIbCgtGbG93Q29udHJvbBIMCgR0aGVuGAEgASgJYgZwcm90bzM", [file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_agentic_workflow_v1_enum, file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
- * WorkflowSpec defines the complete specification of a workflow.
- * Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
+ * WorkflowSpec defines the configurable properties of a workflow.
  *
+ * @internal
+ * Follows the "kind + Struct" pattern from CloudResource (Planton Cloud).
  * This replaces the old `synthesized_yaml` field with structured proto definitions.
  * Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,
  * providing maximum flexibility and extensibility.
+ * The overview.md file provides the SDK-facing description and example YAML.
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.WorkflowSpec
  */
@@ -38,7 +40,7 @@ export type WorkflowSpec = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSpec"
   description: string;
 
   /**
-   * Workflow document metadata (DSL version, namespace, name, version).
+   * Workflow document metadata including DSL version, namespace, name, and version.
    *
    * @generated from field: ai.stigmer.agentic.workflow.v1.WorkflowDocument document = 2;
    */
@@ -54,7 +56,6 @@ export type WorkflowSpec = Message<"ai.stigmer.agentic.workflow.v1.WorkflowSpec"
 
   /**
    * Environment variables required by the workflow.
-   * Uses the shared EnvironmentSpec for consistent env var handling.
    *
    * @generated from field: ai.stigmer.agentic.environment.v1.EnvironmentSpec env_spec = 4;
    */
@@ -69,14 +70,16 @@ export const WorkflowSpecSchema: GenMessage<WorkflowSpec> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 0);
 
 /**
- * WorkflowDocument contains workflow metadata.
+ * WorkflowDocument contains workflow-level metadata for versioning and identification.
+ *
+ * @internal
  * Maps to the `document:` block in Zigflow DSL YAML.
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.WorkflowDocument
  */
 export type WorkflowDocument = Message<"ai.stigmer.agentic.workflow.v1.WorkflowDocument"> & {
   /**
-   * DSL version (semver). Must be "1.0.0" for current Zigflow.
+   * Workflow DSL version (semver). Must be "1.0.0" for the current specification.
    *
    * @generated from field: string dsl = 1;
    */
@@ -119,7 +122,9 @@ export const WorkflowDocumentSchema: GenMessage<WorkflowDocument> = /*@__PURE__*
   messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 1);
 
 /**
- * WorkflowTask represents a single task in the workflow.
+ * WorkflowTask represents a single executable step in a workflow.
+ *
+ * @internal
  * Uses the "kind + Struct" pattern (like CloudResource in Planton Cloud):
  * - `kind` determines the task type (set_vars, http_call, switch_case, etc.)
  * - `task_config` contains task-specific configuration as dynamic JSON
@@ -156,9 +161,9 @@ export type WorkflowTask = Message<"ai.stigmer.agentic.workflow.v1.WorkflowTask"
   kind: WorkflowTaskKind;
 
   /**
-   * Task-specific configuration (dynamic typed).
-   * Structure depends on `kind` value.
+   * Task-specific configuration whose structure depends on the `kind` field.
    *
+   * @internal
    * Backend unmarshals this Struct to the appropriate proto message:
    * - set_vars: ai.stigmer.agentic.workflow.v1.tasks.SetTaskConfig
    * - http_call: ai.stigmer.agentic.workflow.v1.tasks.HttpCallTaskConfig
@@ -205,7 +210,9 @@ export const WorkflowTaskSchema: GenMessage<WorkflowTask> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 2);
 
 /**
- * Export defines how to save task output to context.
+ * Export defines how task output is saved to the workflow context.
+ *
+ * @internal
  * Maps to the `export:` block in Zigflow DSL.
  *
  * Examples:
@@ -217,8 +224,7 @@ export const WorkflowTaskSchema: GenMessage<WorkflowTask> = /*@__PURE__*/
  */
 export type Export = Message<"ai.stigmer.agentic.workflow.v1.Export"> & {
   /**
-   * Expression defining how to export output.
-   * Uses Zigflow expression syntax: ${...}
+   * Expression defining how to export output using ${...} syntax.
    *
    * @generated from field: string as = 1;
    */
@@ -233,7 +239,9 @@ export const ExportSchema: GenMessage<Export> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_workflow_v1_spec, 3);
 
 /**
- * FlowControl defines which task executes next.
+ * FlowControl defines which task executes next after the current task completes.
+ *
+ * @internal
  * Maps to the `then:` directive in Zigflow DSL.
  *
  * Examples:

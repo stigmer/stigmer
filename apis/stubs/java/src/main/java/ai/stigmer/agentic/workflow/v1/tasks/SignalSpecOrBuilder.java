@@ -32,10 +32,7 @@ public interface SignalSpecOrBuilder extends
 
   /**
    * <pre>
-   * Signal type:
-   * - "signal": Temporal signal
-   * - "query": Temporal query
-   * - "update": Temporal update
+   * Signal type: "signal", "query", or "update".
    * </pre>
    *
    * <code>string type = 2 [json_name = "type", (.buf.validate.field) = { ... }</code>
@@ -44,10 +41,7 @@ public interface SignalSpecOrBuilder extends
   java.lang.String getType();
   /**
    * <pre>
-   * Signal type:
-   * - "signal": Temporal signal
-   * - "query": Temporal query
-   * - "update": Temporal update
+   * Signal type: "signal", "query", or "update".
    * </pre>
    *
    * <code>string type = 2 [json_name = "type", (.buf.validate.field) = { ... }</code>

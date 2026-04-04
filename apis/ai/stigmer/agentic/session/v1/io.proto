@@ -50,8 +50,9 @@ message ListSessionsByAgentRequest {
 
 // UpdateSessionSubjectRequest sets the conversation title for a session.
 //
-// This is a field-level update that atomically modifies only the subject
-// field, avoiding the lost-update race condition that occurs when multiple
+// @internal
+// Field-level update that atomically modifies only the subject field,
+// avoiding the lost-update race condition that occurs when multiple
 // activities (e.g., GenerateSessionSubject and sandbox_manager) concurrently
 // perform full-resource updates on the same session.
 message UpdateSessionSubjectRequest {
@@ -62,10 +63,11 @@ message UpdateSessionSubjectRequest {
   string subject = 2;
 }
 
-// UpdateSessionSandboxIdRequest sets the Daytona sandbox ID for a session.
+// UpdateSessionSandboxIdRequest sets the sandbox ID for a session.
 //
-// This is a field-level update that atomically modifies only the sandbox_id
-// field, avoiding the lost-update race condition that occurs when multiple
+// @internal
+// Field-level update that atomically modifies only the sandbox_id field,
+// avoiding the lost-update race condition that occurs when multiple
 // activities concurrently perform full-resource updates on the same session.
 message UpdateSessionSandboxIdRequest {
   // Session ID to update.

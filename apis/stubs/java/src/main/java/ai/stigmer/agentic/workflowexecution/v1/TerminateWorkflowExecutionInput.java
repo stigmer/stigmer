@@ -9,50 +9,15 @@ package ai.stigmer.agentic.workflowexecution.v1;
  * <pre>
  * TerminateWorkflowExecutionInput requests immediate termination of a workflow execution.
  *
- * Termination forcefully kills the workflow without allowing cleanup.
- * Unlike cancellation, the workflow code cannot respond to termination -
- * it is stopped immediately. Use this for stuck or unresponsive workflows.
+ * &#64;internal
+ * Force-kills the workflow without allowing cleanup. Unlike cancellation,
+ * the workflow code cannot respond to termination.
  *
- * ## Behavior
- *
- * - Force-kills workflow via Temporal TerminateWorkflow API
- * - Workflow code does NOT receive any signal (cannot clean up)
- * - Execution transitions to EXECUTION_TERMINATED phase immediately
- * - All in-progress tasks are stopped abruptly
- * - No compensation or defer blocks are executed
- *
- * ## Preconditions
- *
+ * Preconditions:
  * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
- * - User must have can_edit permission on the workflow execution
+ * - User must have can_edit permission
  *
- * ## Idempotency
- *
- * If the execution is already terminated (phase == EXECUTION_TERMINATED),
- * the call succeeds as a no-op and returns the current execution state.
- *
- * ## Terminated vs Cancelled
- *
- * | Aspect | Cancel | Terminate |
- * |--------|--------|-----------|
- * | Signal | Workflow receives cancellation signal | No signal sent |
- * | Cleanup | Workflow can clean up gracefully | No cleanup possible |
- * | Use case | Normal cancellation | Stuck/unresponsive workflows |
- * | Recovery | Cannot recover | Cannot recover |
- *
- * ## Use Cases
- *
- * - Workflow is stuck and not responding to cancellation
- * - Workflow is consuming excessive resources (infinite loop, memory leak)
- * - Emergency stop for misbehaving workflow
- * - Workflow has a bug causing it to ignore cancellation signals
- *
- * ## Example
- *
- * {
- * "id": "wfx-abc123xyz456",
- * "reason": "Workflow stuck for 2 hours, not responding to cancel"
- * }
+ * Idempotent: if already terminated, returns current state as a no-op.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput}
@@ -106,10 +71,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Workflow execution ID to terminate.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -132,10 +95,8 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * Workflow execution ID to terminate.
    *
-   * Format: "wfx-{ulid}" (auto-generated unique identifier)
-   * Example: "wfx-abc123xyz456"
-   *
-   * Validation: Required, cannot be empty
+   * &#64;internal
+   * Format: "wfx_{ulid}"
    * </pre>
    *
    * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -161,17 +122,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object reason_ = "";
   /**
    * <pre>
-   * Human-readable reason for termination.
-   *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
-   * Optional but strongly recommended - termination is a drastic action
-   * and the reason helps with post-incident analysis.
-   *
-   * Examples:
-   * - "Workflow stuck for 2 hours, not responding to cancel"
-   * - "Infinite loop detected, consuming 100% CPU"
-   * - "Emergency stop - incorrect data being processed"
-   * - "Cancel failed after 3 attempts, force terminating"
+   * Human-readable reason for termination, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -192,17 +143,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Human-readable reason for termination.
-   *
-   * Stored in the audit trail and passed to Temporal for operational debugging.
-   * Optional but strongly recommended - termination is a drastic action
-   * and the reason helps with post-incident analysis.
-   *
-   * Examples:
-   * - "Workflow stuck for 2 hours, not responding to cancel"
-   * - "Infinite loop detected, consuming 100% CPU"
-   * - "Emergency stop - incorrect data being processed"
-   * - "Cancel failed after 3 attempts, force terminating"
+   * Human-readable reason for termination, stored in the audit trail.
    * </pre>
    *
    * <code>string reason = 2 [json_name = "reason"];</code>
@@ -393,50 +334,15 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * TerminateWorkflowExecutionInput requests immediate termination of a workflow execution.
    *
-   * Termination forcefully kills the workflow without allowing cleanup.
-   * Unlike cancellation, the workflow code cannot respond to termination -
-   * it is stopped immediately. Use this for stuck or unresponsive workflows.
+   * &#64;internal
+   * Force-kills the workflow without allowing cleanup. Unlike cancellation,
+   * the workflow code cannot respond to termination.
    *
-   * ## Behavior
-   *
-   * - Force-kills workflow via Temporal TerminateWorkflow API
-   * - Workflow code does NOT receive any signal (cannot clean up)
-   * - Execution transitions to EXECUTION_TERMINATED phase immediately
-   * - All in-progress tasks are stopped abruptly
-   * - No compensation or defer blocks are executed
-   *
-   * ## Preconditions
-   *
+   * Preconditions:
    * - Execution must be in EXECUTION_PENDING or EXECUTION_IN_PROGRESS phase
-   * - User must have can_edit permission on the workflow execution
+   * - User must have can_edit permission
    *
-   * ## Idempotency
-   *
-   * If the execution is already terminated (phase == EXECUTION_TERMINATED),
-   * the call succeeds as a no-op and returns the current execution state.
-   *
-   * ## Terminated vs Cancelled
-   *
-   * | Aspect | Cancel | Terminate |
-   * |--------|--------|-----------|
-   * | Signal | Workflow receives cancellation signal | No signal sent |
-   * | Cleanup | Workflow can clean up gracefully | No cleanup possible |
-   * | Use case | Normal cancellation | Stuck/unresponsive workflows |
-   * | Recovery | Cannot recover | Cannot recover |
-   *
-   * ## Use Cases
-   *
-   * - Workflow is stuck and not responding to cancellation
-   * - Workflow is consuming excessive resources (infinite loop, memory leak)
-   * - Emergency stop for misbehaving workflow
-   * - Workflow has a bug causing it to ignore cancellation signals
-   *
-   * ## Example
-   *
-   * {
-   * "id": "wfx-abc123xyz456",
-   * "reason": "Workflow stuck for 2 hours, not responding to cancel"
-   * }
+   * Idempotent: if already terminated, returns current state as a no-op.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.workflowexecution.v1.TerminateWorkflowExecutionInput}
@@ -595,10 +501,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to terminate.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -620,10 +524,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to terminate.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -646,10 +548,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to terminate.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -668,10 +568,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to terminate.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -687,10 +585,8 @@ private static final long serialVersionUID = 0L;
      * <pre>
      * Workflow execution ID to terminate.
      *
-     * Format: "wfx-{ulid}" (auto-generated unique identifier)
-     * Example: "wfx-abc123xyz456"
-     *
-     * Validation: Required, cannot be empty
+     * &#64;internal
+     * Format: "wfx_{ulid}"
      * </pre>
      *
      * <code>string id = 1 [json_name = "id", (.buf.validate.field) = { ... }</code>
@@ -710,17 +606,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object reason_ = "";
     /**
      * <pre>
-     * Human-readable reason for termination.
-     *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
-     * Optional but strongly recommended - termination is a drastic action
-     * and the reason helps with post-incident analysis.
-     *
-     * Examples:
-     * - "Workflow stuck for 2 hours, not responding to cancel"
-     * - "Infinite loop detected, consuming 100% CPU"
-     * - "Emergency stop - incorrect data being processed"
-     * - "Cancel failed after 3 attempts, force terminating"
+     * Human-readable reason for termination, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -740,17 +626,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for termination.
-     *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
-     * Optional but strongly recommended - termination is a drastic action
-     * and the reason helps with post-incident analysis.
-     *
-     * Examples:
-     * - "Workflow stuck for 2 hours, not responding to cancel"
-     * - "Infinite loop detected, consuming 100% CPU"
-     * - "Emergency stop - incorrect data being processed"
-     * - "Cancel failed after 3 attempts, force terminating"
+     * Human-readable reason for termination, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -771,17 +647,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for termination.
-     *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
-     * Optional but strongly recommended - termination is a drastic action
-     * and the reason helps with post-incident analysis.
-     *
-     * Examples:
-     * - "Workflow stuck for 2 hours, not responding to cancel"
-     * - "Infinite loop detected, consuming 100% CPU"
-     * - "Emergency stop - incorrect data being processed"
-     * - "Cancel failed after 3 attempts, force terminating"
+     * Human-readable reason for termination, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -798,17 +664,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for termination.
-     *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
-     * Optional but strongly recommended - termination is a drastic action
-     * and the reason helps with post-incident analysis.
-     *
-     * Examples:
-     * - "Workflow stuck for 2 hours, not responding to cancel"
-     * - "Infinite loop detected, consuming 100% CPU"
-     * - "Emergency stop - incorrect data being processed"
-     * - "Cancel failed after 3 attempts, force terminating"
+     * Human-readable reason for termination, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>
@@ -822,17 +678,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Human-readable reason for termination.
-     *
-     * Stored in the audit trail and passed to Temporal for operational debugging.
-     * Optional but strongly recommended - termination is a drastic action
-     * and the reason helps with post-incident analysis.
-     *
-     * Examples:
-     * - "Workflow stuck for 2 hours, not responding to cancel"
-     * - "Infinite loop detected, consuming 100% CPU"
-     * - "Emergency stop - incorrect data being processed"
-     * - "Cancel failed after 3 attempts, force terminating"
+     * Human-readable reason for termination, stored in the audit trail.
      * </pre>
      *
      * <code>string reason = 2 [json_name = "reason"];</code>

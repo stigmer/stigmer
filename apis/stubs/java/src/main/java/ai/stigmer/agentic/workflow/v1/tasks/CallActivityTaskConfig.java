@@ -7,9 +7,10 @@ package ai.stigmer.agentic.workflow.v1.tasks;
 
 /**
  * <pre>
- * CallActivityTaskConfig defines the configuration for CALL_ACTIVITY tasks.
+ * CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities.
  *
- * CALL_ACTIVITY tasks execute Temporal activities.
+ * &#64;internal
+ * Executes Temporal activities.
  *
  * YAML Example:
  * - taskName:
@@ -72,7 +73,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Activity name to execute.
-   * Must match registered Temporal activity.
+   *
+   * &#64;internal
+   * Must match a registered Temporal activity.
    * </pre>
    *
    * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>
@@ -94,7 +97,9 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Activity name to execute.
-   * Must match registered Temporal activity.
+   *
+   * &#64;internal
+   * Must match a registered Temporal activity.
    * </pre>
    *
    * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>
@@ -333,9 +338,10 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * CallActivityTaskConfig defines the configuration for CALL_ACTIVITY tasks.
+   * CallActivityTaskConfig defines the configuration for activity_call tasks that execute activities.
    *
-   * CALL_ACTIVITY tasks execute Temporal activities.
+   * &#64;internal
+   * Executes Temporal activities.
    *
    * YAML Example:
    * - taskName:
@@ -518,7 +524,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Activity name to execute.
-     * Must match registered Temporal activity.
+     *
+     * &#64;internal
+     * Must match a registered Temporal activity.
      * </pre>
      *
      * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>
@@ -539,7 +547,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Activity name to execute.
-     * Must match registered Temporal activity.
+     *
+     * &#64;internal
+     * Must match a registered Temporal activity.
      * </pre>
      *
      * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>
@@ -561,7 +571,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Activity name to execute.
-     * Must match registered Temporal activity.
+     *
+     * &#64;internal
+     * Must match a registered Temporal activity.
      * </pre>
      *
      * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>
@@ -579,7 +591,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Activity name to execute.
-     * Must match registered Temporal activity.
+     *
+     * &#64;internal
+     * Must match a registered Temporal activity.
      * </pre>
      *
      * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>
@@ -594,7 +608,9 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Activity name to execute.
-     * Must match registered Temporal activity.
+     *
+     * &#64;internal
+     * Must match a registered Temporal activity.
      * </pre>
      *
      * <code>string activity = 1 [json_name = "activity", (.buf.validate.field) = { ... }</code>

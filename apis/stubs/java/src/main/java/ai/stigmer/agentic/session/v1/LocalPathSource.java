@@ -7,16 +7,15 @@ package ai.stigmer.agentic.session.v1;
 
 /**
  * <pre>
- * LocalPathSource uses an existing directory on the host filesystem as the
- * workspace. The agent operates directly on the user's files -- changes are
- * immediate and persistent.
+ * LocalPathSource uses an existing directory on the host filesystem as the workspace.
  *
+ * The agent operates directly on the user's files — changes are immediate
+ * and persistent. No copy or clone is made.
+ *
+ * &#64;internal
  * Deployment constraint: only valid when the agent-runner is in local mode.
  * Cloud runners reject this at provisioning time with a clear error, the same
- * way GitRepoSource rejects SSH URLs at validation time. This is a normal
- * deployment-specific constraint, not a schema limitation.
- *
- * No copy or clone is made. The path is used directly as the workspace root.
+ * way GitRepoSource rejects SSH URLs at validation time.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.session.v1.LocalPathSource}
@@ -67,10 +66,7 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object path_ = "";
   /**
    * <pre>
-   * Absolute path to an existing directory on the host filesystem (required).
-   * The runner validates that the path exists and is a directory at
-   * provisioning time.
-   * Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+   * Absolute path to an existing directory on the host filesystem.
    * </pre>
    *
    * <code>string path = 1 [json_name = "path", (.buf.validate.field) = { ... }</code>
@@ -91,10 +87,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Absolute path to an existing directory on the host filesystem (required).
-   * The runner validates that the path exists and is a directory at
-   * provisioning time.
-   * Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+   * Absolute path to an existing directory on the host filesystem.
    * </pre>
    *
    * <code>string path = 1 [json_name = "path", (.buf.validate.field) = { ... }</code>
@@ -273,16 +266,15 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * LocalPathSource uses an existing directory on the host filesystem as the
-   * workspace. The agent operates directly on the user's files -- changes are
-   * immediate and persistent.
+   * LocalPathSource uses an existing directory on the host filesystem as the workspace.
    *
+   * The agent operates directly on the user's files — changes are immediate
+   * and persistent. No copy or clone is made.
+   *
+   * &#64;internal
    * Deployment constraint: only valid when the agent-runner is in local mode.
    * Cloud runners reject this at provisioning time with a clear error, the same
-   * way GitRepoSource rejects SSH URLs at validation time. This is a normal
-   * deployment-specific constraint, not a schema limitation.
-   *
-   * No copy or clone is made. The path is used directly as the workspace root.
+   * way GitRepoSource rejects SSH URLs at validation time.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.session.v1.LocalPathSource}
@@ -425,10 +417,7 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object path_ = "";
     /**
      * <pre>
-     * Absolute path to an existing directory on the host filesystem (required).
-     * The runner validates that the path exists and is a directory at
-     * provisioning time.
-     * Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+     * Absolute path to an existing directory on the host filesystem.
      * </pre>
      *
      * <code>string path = 1 [json_name = "path", (.buf.validate.field) = { ... }</code>
@@ -448,10 +437,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Absolute path to an existing directory on the host filesystem (required).
-     * The runner validates that the path exists and is a directory at
-     * provisioning time.
-     * Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+     * Absolute path to an existing directory on the host filesystem.
      * </pre>
      *
      * <code>string path = 1 [json_name = "path", (.buf.validate.field) = { ... }</code>
@@ -472,10 +458,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Absolute path to an existing directory on the host filesystem (required).
-     * The runner validates that the path exists and is a directory at
-     * provisioning time.
-     * Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+     * Absolute path to an existing directory on the host filesystem.
      * </pre>
      *
      * <code>string path = 1 [json_name = "path", (.buf.validate.field) = { ... }</code>
@@ -492,10 +475,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Absolute path to an existing directory on the host filesystem (required).
-     * The runner validates that the path exists and is a directory at
-     * provisioning time.
-     * Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+     * Absolute path to an existing directory on the host filesystem.
      * </pre>
      *
      * <code>string path = 1 [json_name = "path", (.buf.validate.field) = { ... }</code>
@@ -509,10 +489,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Absolute path to an existing directory on the host filesystem (required).
-     * The runner validates that the path exists and is a directory at
-     * provisioning time.
-     * Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+     * Absolute path to an existing directory on the host filesystem.
      * </pre>
      *
      * <code>string path = 1 [json_name = "path", (.buf.validate.field) = { ... }</code>

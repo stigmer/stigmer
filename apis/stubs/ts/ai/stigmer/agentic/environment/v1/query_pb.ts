@@ -22,13 +22,16 @@ export const file_ai_stigmer_agentic_environment_v1_query: GenFile = /*@__PURE__
   fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvZW52aXJvbm1lbnQvdjEvcXVlcnkucHJvdG8SIWFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MTKMBQoaRW52aXJvbm1lbnRRdWVyeUNvbnRyb2xsZXISlgEKA2dldBItLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZUlkGi4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50IjDCuBgsCAMQNSIFdmFsdWUqH3VuYXV0aG9yaXplZCB0byBnZXQgZW52aXJvbm1lbnQSfAoOZ2V0QnlSZWZlcmVuY2USNC5haS5zdGlnbWVyLmNvbW1vbnMuYXBpcmVzb3VyY2UuQXBpUmVzb3VyY2VSZWZlcmVuY2UaLi5haS5zdGlnbWVyLmFnZW50aWMuZW52aXJvbm1lbnQudjEuRW52aXJvbm1lbnQiBNC4GAES0gEKDmdldFNlY3JldFZhbHVlEj4uYWkuc3RpZ21lci5hZ2VudGljLmVudmlyb25tZW50LnYxLkVudmlyb25tZW50U2VjcmV0VmFsdWVJbnB1dBozLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudFZhbHVlIkvCuBhHCBkQNSIOZW52aXJvbm1lbnRfaWQqMXVuYXV0aG9yaXplZCB0byByZWFkIHNlY3JldCB2YWx1ZXMgKGNyZWF0b3Itb25seSkSfAoEbGlzdBI6LmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5MaXN0RW52aXJvbm1lbnRzUmVxdWVzdBoyLmFpLnN0aWdtZXIuYWdlbnRpYy5lbnZpcm9ubWVudC52MS5FbnZpcm9ubWVudExpc3QiBNC4GAEaBKD/KzViBnByb3RvMw", [file_ai_stigmer_agentic_environment_v1_api, file_ai_stigmer_agentic_environment_v1_io, file_ai_stigmer_agentic_environment_v1_spec, file_ai_stigmer_commons_apiresource_io, file_ai_stigmer_commons_apiresource_rpc_service_options, file_ai_stigmer_iam_iampolicy_v1_rpcauthorization_method_options]);
 
 /**
- * EnvironmentQueryController provides read operations for Environment resources.
+ * EnvironmentQueryController handles read operations for environments.
  *
  * @generated from service ai.stigmer.agentic.environment.v1.EnvironmentQueryController
  */
 export const EnvironmentQueryController: GenService<{
   /**
-   * Get an Environment by ID.
+   * Get an environment by ID.
+   *
+   * @internal
+   * Authorization: requires can_view permission on the environment resource.
    *
    * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.get
    */
@@ -39,9 +42,11 @@ export const EnvironmentQueryController: GenService<{
   },
   /**
    * Get an environment by its organization-scoped reference (org/slug).
+   * Resolves a human-readable reference like "acme/aws-prod" to the full Environment resource.
    *
    * @internal
-   * Custom authorization in handler.
+   * Custom authorization in handler — checks both direct resource access
+   * and organization-level visibility permissions.
    *
    * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getByReference
    */
@@ -52,11 +57,10 @@ export const EnvironmentQueryController: GenService<{
   },
   /**
    * Get the unredacted value of a single secret key in an environment.
-   * Creator-only: requires can_read_secrets permission.
-   * Returns the EnvironmentValue with the decrypted value.
+   * Returns the EnvironmentValue with the decrypted value for exactly one key.
    *
    * @internal
-   * FGA authorization: creator relation grants can_read_secrets.
+   * Creator-only: FGA authorization grants can_read_secrets via the creator relation.
    *
    * @generated from rpc ai.stigmer.agentic.environment.v1.EnvironmentQueryController.getSecretValue
    */

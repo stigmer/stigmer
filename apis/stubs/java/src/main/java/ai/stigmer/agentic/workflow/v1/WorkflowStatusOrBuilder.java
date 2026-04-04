@@ -66,13 +66,13 @@ public interface WorkflowStatusOrBuilder extends
   /**
    * <pre>
    * Serverless Workflow YAML generation and validation state.
-   * Populated asynchronously after workflow creation via Temporal workflow.
    * Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
+   * Check this field to determine whether a workflow is valid before executing it.
    *
-   * Workflow creation does NOT block on validation - the workflow is created immediately
+   * &#64;internal
+   * Populated asynchronously after workflow creation via a Temporal workflow.
+   * Workflow creation does NOT block on validation — the workflow is created immediately
    * with status.state = PENDING, then validation runs in the background.
-   *
-   * Users can check this field to see if their workflow is valid before executing it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverless_workflow_validation = 2 [json_name = "serverlessWorkflowValidation"];</code>
@@ -82,13 +82,13 @@ public interface WorkflowStatusOrBuilder extends
   /**
    * <pre>
    * Serverless Workflow YAML generation and validation state.
-   * Populated asynchronously after workflow creation via Temporal workflow.
    * Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
+   * Check this field to determine whether a workflow is valid before executing it.
    *
-   * Workflow creation does NOT block on validation - the workflow is created immediately
+   * &#64;internal
+   * Populated asynchronously after workflow creation via a Temporal workflow.
+   * Workflow creation does NOT block on validation — the workflow is created immediately
    * with status.state = PENDING, then validation runs in the background.
-   *
-   * Users can check this field to see if their workflow is valid before executing it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverless_workflow_validation = 2 [json_name = "serverlessWorkflowValidation"];</code>
@@ -98,13 +98,13 @@ public interface WorkflowStatusOrBuilder extends
   /**
    * <pre>
    * Serverless Workflow YAML generation and validation state.
-   * Populated asynchronously after workflow creation via Temporal workflow.
    * Contains the generated CNCF Serverless Workflow DSL 1.0.0 YAML and validation results.
+   * Check this field to determine whether a workflow is valid before executing it.
    *
-   * Workflow creation does NOT block on validation - the workflow is created immediately
+   * &#64;internal
+   * Populated asynchronously after workflow creation via a Temporal workflow.
+   * Workflow creation does NOT block on validation — the workflow is created immediately
    * with status.state = PENDING, then validation runs in the background.
-   *
-   * Users can check this field to see if their workflow is valid before executing it.
    * </pre>
    *
    * <code>.ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation serverless_workflow_validation = 2 [json_name = "serverlessWorkflowValidation"];</code>

@@ -20,7 +20,10 @@ export const file_ai_stigmer_agentic_workflow_v1_api: GenFile = /*@__PURE__*/
   fileDesc("CihhaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvYXBpLnByb3RvEh5haS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEipwIKCFdvcmtmbG93EjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEh0KBGtpbmQYAiABKAlCD7pIDHIKCghXb3JrZmxvdxJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESOgoEc3BlYxgEIAEoCzIsLmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5Xb3JrZmxvd1NwZWMSPgoGc3RhdHVzGAUgASgLMi4uYWkuc3RpZ21lci5hZ2VudGljLndvcmtmbG93LnYxLldvcmtmbG93U3RhdHVzYgZwcm90bzM", [file_ai_stigmer_agentic_workflow_v1_spec, file_ai_stigmer_agentic_workflow_v1_status, file_ai_stigmer_commons_apiresource_metadata, file_buf_validate_validate]);
 
 /**
- * Workflow represents a workflow orchestration definition.
+ * Workflow defines a multi-step task orchestration with sequential, parallel, and conditional execution.
+ *
+ * @internal
+ * Uses Graphton configuration for state management.
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.Workflow
  */
@@ -40,23 +43,21 @@ export type Workflow = Message<"ai.stigmer.agentic.workflow.v1.Workflow"> & {
   kind: string;
 
   /**
-   * Standard resource metadata including name, id, labels, and tags.
-   * Workflows belong to an organization and can be PUBLIC or PRIVATE.
-   * Reference format: "org/slug" (e.g., "stigmer/deploy", "acme/onboarding")
+   * Resource metadata including name, organization, visibility, and labels.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */
   metadata?: ApiResourceMetadata;
 
   /**
-   * Workflow-specific configuration.
+   * Configurable properties: document metadata, tasks, and environment variables.
    *
    * @generated from field: ai.stigmer.agentic.workflow.v1.WorkflowSpec spec = 4;
    */
   spec?: WorkflowSpec;
 
   /**
-   * System-managed status containing audit information and default instance ID.
+   * System-managed state including audit trail and default instance ID.
    *
    * @generated from field: ai.stigmer.agentic.workflow.v1.WorkflowStatus status = 5;
    */

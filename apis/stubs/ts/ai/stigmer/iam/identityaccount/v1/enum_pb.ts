@@ -14,33 +14,36 @@ export const file_ai_stigmer_iam_identityaccount_v1_enum: GenFile = /*@__PURE__*
 /**
  * IdentityAccountProvisioningMode defines how an identity account was created.
  *
- * - direct: User signed up via Stigmer's own Auth0 tenant (existing behavior).
- * - federated: JIT-provisioned during federated authentication via an IdentityProvider.
- *   The account has no credentials in Stigmer's Auth0 — it participates in FGA
- *   authorization but cannot log into Stigmer directly.
- * - machine: M2M client credentials account used for inter-service communication.
- *
+ * @internal
  * Unspecified is the default for legacy accounts created before this enum was introduced.
  *
  * @generated from enum ai.stigmer.iam.identityaccount.v1.IdentityAccountProvisioningMode
  */
 export enum IdentityAccountProvisioningMode {
   /**
+   * Default value for legacy accounts created before provisioning mode tracking.
+   *
    * @generated from enum value: identity_account_provisioning_mode_unspecified = 0;
    */
   identity_account_provisioning_mode_unspecified = 0,
 
   /**
+   * User signed up directly via Stigmer's own authentication tenant.
+   *
    * @generated from enum value: direct = 1;
    */
   direct = 1,
 
   /**
+   * Account was JIT-provisioned during federated authentication via an IdentityProvider.
+   *
    * @generated from enum value: federated = 2;
    */
   federated = 2,
 
   /**
+   * Machine-to-machine client credentials account for inter-service communication.
+   *
    * @generated from enum value: machine = 3;
    */
   machine = 3,

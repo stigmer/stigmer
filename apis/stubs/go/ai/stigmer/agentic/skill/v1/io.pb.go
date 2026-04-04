@@ -68,16 +68,16 @@ func (x *SkillId) GetValue() string {
 }
 
 // PushSkillRequest contains the skill artifact and metadata for upload.
-// This operation creates a new skill if it doesn't exist, or creates a new version
-// of an existing skill.
+// Creates a skill if it does not exist, or creates a new version of an
+// existing skill.
 //
+// @internal
 // The skill name and description are extracted by the backend from the SKILL.md
 // YAML frontmatter within the artifact. The CLI validates the format but does not
-// send these fields - backend is the single source of truth for parsing.
+// send these fields — backend is the single source of truth for parsing.
 type PushSkillRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Organization that owns this skill. Required.
-	// All skills belong to exactly one organization.
+	// Organization that owns this skill.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
 	// Skill artifact as a ZIP file (binary content).
 	// The ZIP must contain:
@@ -93,12 +93,14 @@ type PushSkillRequest struct {
 	// If empty/not provided, the version will only be accessible via its hash.
 	// Examples: "stable", "v1.0", "latest"
 	Tag string `protobuf:"bytes,3,opt,name=tag,proto3" json:"tag,omitempty"`
-	// Git provenance for this skill version. Optional.
+	// Git provenance for this skill version.
+	// Absent when pushed from a non-git directory.
+	//
+	// @internal
 	// Populated by CLI during push:
 	// - For local pushes: auto-detected if directory is within a git repository
 	// - For git pushes: resolved from user-provided URL/ref
-	// Absent when pushed from a non-git directory.
-	// This is stored in SkillStatus.git_provenance for traceability.
+	// Stored in SkillStatus.git_provenance for traceability.
 	GitProvenance *GitProvenance `protobuf:"bytes,4,opt,name=git_provenance,json=gitProvenance,proto3" json:"git_provenance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -162,43 +164,36 @@ func (x *PushSkillRequest) GetGitProvenance() *GitProvenance {
 	return nil
 }
 
-// PushSkillFromExecutionArtifactRequest pushes a skill from an execution
-// artifact that is already stored in artifact storage.
+// PushSkillFromExecutionArtifactRequest publishes a skill from an execution
+// artifact already in storage, without downloading and re-uploading the ZIP.
 //
-// This enables a server-side push flow where the ZIP artifact produced by
-// an agent execution (e.g., skill-creator) is pushed as a skill without
-// downloading it to the client first. The server reads the ZIP directly
-// from artifact storage and delegates to the standard push logic.
+// @internal
+// Server-side push flow: reads the ZIP directly from artifact storage and
+// delegates to the standard push logic.
 //
-// ## Authorization
+// Authorization:
+// - Requires can_view on the agent execution (to read the artifact)
+// - Requires can_create_skill in the target organization (to push the skill)
 //
-// Requires both:
-// - can_view on the agent execution (to read the artifact)
-// - can_create_skill in the target organization (to push the skill)
-//
-// ## Security
-//
+// Security:
 // The storage_key is validated to start with "artifacts/{execution_id}/"
-// to prevent access to other executions' artifacts (same validation as
-// getArtifactContent).
+// to prevent access to other executions' artifacts.
 type PushSkillFromExecutionArtifactRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Organization that will own the skill.
 	Org string `protobuf:"bytes,1,opt,name=org,proto3" json:"org,omitempty"`
-	// ID of the agent execution that produced the artifact.
-	// Used for authorization (can_view check) and storage_key validation.
+	// ID of the agent execution that produced the artifact (e.g., "aex_abc123xyz456").
 	//
-	// Format: "aex_{ulid}"
-	// Example: "aex_abc123xyz456"
+	// @internal
+	// Used for authorization (can_view check) and storage_key validation.
+	// Format: "aex_{ulid}".
 	ExecutionId string `protobuf:"bytes,2,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	// Storage key of the directory artifact (ZIP) to push as a skill.
+	// Obtain this from ExecutionArtifact.storage_key in the execution status.
+	//
+	// @internal
 	// Must start with "artifacts/{execution_id}/" for security.
-	//
-	// Obtain this value from ExecutionArtifact.storage_key in the
-	// execution status for a DIRECTORY artifact.
-	//
-	// Format: "artifacts/{execution_id}/{filename}.zip"
-	// Example: "artifacts/aex_abc123xyz456/my-skill.zip"
+	// Format: "artifacts/{execution_id}/{filename}.zip".
 	StorageKey string `protobuf:"bytes,3,opt,name=storage_key,json=storageKey,proto3" json:"storage_key,omitempty"`
 	// Optional version tag (same semantics as PushSkillRequest.tag).
 	// Examples: "stable", "v1.0", "latest"
@@ -269,7 +264,9 @@ func (x *PushSkillFromExecutionArtifactRequest) GetTag() string {
 type GetArtifactRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The artifact storage key from skill.status.artifact_storage_key.
-	// This key identifies the location of the ZIP file in storage (R2/S3).
+	//
+	// @internal
+	// Identifies the location of the ZIP file in storage (R2/S3).
 	ArtifactStorageKey string `protobuf:"bytes,1,opt,name=artifact_storage_key,json=artifactStorageKey,proto3" json:"artifact_storage_key,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache

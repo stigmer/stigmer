@@ -12,7 +12,9 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
 
   /**
    * <pre>
-   * ID of the workflow execution to update (required).
+   * ID of the workflow execution to update.
+   *
+   * &#64;internal
    * Format: "wex_abc123xyz456"
    * </pre>
    *
@@ -22,7 +24,9 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
   java.lang.String getExecutionId();
   /**
    * <pre>
-   * ID of the workflow execution to update (required).
+   * ID of the workflow execution to update.
+   *
+   * &#64;internal
    * Format: "wex_abc123xyz456"
    * </pre>
    *
@@ -34,8 +38,9 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
 
   /**
    * <pre>
-   * Status fields to update.
-   * The handler will merge these status fields with the existing execution's status.
+   * Status fields to merge into the existing execution status.
+   *
+   * &#64;internal
    * Only the fields present in this status object will be updated.
    * </pre>
    *
@@ -45,8 +50,9 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
   boolean hasStatus();
   /**
    * <pre>
-   * Status fields to update.
-   * The handler will merge these status fields with the existing execution's status.
+   * Status fields to merge into the existing execution status.
+   *
+   * &#64;internal
    * Only the fields present in this status object will be updated.
    * </pre>
    *
@@ -56,8 +62,9 @@ public interface WorkflowExecutionUpdateStatusInputOrBuilder extends
   ai.stigmer.agentic.workflowexecution.v1.WorkflowExecutionStatus getStatus();
   /**
    * <pre>
-   * Status fields to update.
-   * The handler will merge these status fields with the existing execution's status.
+   * Status fields to merge into the existing execution status.
+   *
+   * &#64;internal
    * Only the fields present in this status object will be updated.
    * </pre>
    *

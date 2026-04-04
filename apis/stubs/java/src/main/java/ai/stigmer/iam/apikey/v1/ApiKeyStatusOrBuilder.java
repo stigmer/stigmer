@@ -12,7 +12,7 @@ public interface ApiKeyStatusOrBuilder extends
 
   /**
    * <pre>
-   * audit
+   * Standard audit information (created_at, updated_at, created_by, etc.).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -21,7 +21,7 @@ public interface ApiKeyStatusOrBuilder extends
   boolean hasAudit();
   /**
    * <pre>
-   * audit
+   * Standard audit information (created_at, updated_at, created_by, etc.).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -30,7 +30,7 @@ public interface ApiKeyStatusOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceAudit getAudit();
   /**
    * <pre>
-   * audit
+   * Standard audit information (created_at, updated_at, created_by, etc.).
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -39,7 +39,7 @@ public interface ApiKeyStatusOrBuilder extends
 
   /**
    * <pre>
-   * last used timestamp for the api-key
+   * Timestamp of the most recent API call made with this key.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -48,7 +48,7 @@ public interface ApiKeyStatusOrBuilder extends
   boolean hasLastUsedAt();
   /**
    * <pre>
-   * last used timestamp for the api-key
+   * Timestamp of the most recent API call made with this key.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>
@@ -57,7 +57,7 @@ public interface ApiKeyStatusOrBuilder extends
   com.google.protobuf.Timestamp getLastUsedAt();
   /**
    * <pre>
-   * last used timestamp for the api-key
+   * Timestamp of the most recent API call made with this key.
    * </pre>
    *
    * <code>.google.protobuf.Timestamp last_used_at = 1 [json_name = "lastUsedAt"];</code>

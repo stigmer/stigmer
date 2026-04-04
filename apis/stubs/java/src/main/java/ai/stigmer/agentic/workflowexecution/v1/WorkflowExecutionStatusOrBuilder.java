@@ -12,20 +12,15 @@ public interface WorkflowExecutionStatusOrBuilder extends
 
   /**
    * <pre>
-   * Standard audit information (created_at, updated_at, created_by, etc.)
+   * Standard audit information including timestamps and created-by identity.
+   *
+   * &#64;internal
    * Always at field 99 for consistency across all Stigmer API resources.
    *
    * Contains:
    * - created_at: When this execution was created (ISO 8601 timestamp)
    * - updated_at: Last time status was updated (ISO 8601 timestamp)
    * - created_by: User or system that created this execution
-   *
-   * Example:
-   * audit {
-   * created_at: "2025-01-11T14:30:22Z"
-   * updated_at: "2025-01-11T14:32:15Z"
-   * created_by: "usr-john-doe"
-   * }
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -34,20 +29,15 @@ public interface WorkflowExecutionStatusOrBuilder extends
   boolean hasAudit();
   /**
    * <pre>
-   * Standard audit information (created_at, updated_at, created_by, etc.)
+   * Standard audit information including timestamps and created-by identity.
+   *
+   * &#64;internal
    * Always at field 99 for consistency across all Stigmer API resources.
    *
    * Contains:
    * - created_at: When this execution was created (ISO 8601 timestamp)
    * - updated_at: Last time status was updated (ISO 8601 timestamp)
    * - created_by: User or system that created this execution
-   *
-   * Example:
-   * audit {
-   * created_at: "2025-01-11T14:30:22Z"
-   * updated_at: "2025-01-11T14:32:15Z"
-   * created_by: "usr-john-doe"
-   * }
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -56,20 +46,15 @@ public interface WorkflowExecutionStatusOrBuilder extends
   ai.stigmer.commons.apiresource.ApiResourceAudit getAudit();
   /**
    * <pre>
-   * Standard audit information (created_at, updated_at, created_by, etc.)
+   * Standard audit information including timestamps and created-by identity.
+   *
+   * &#64;internal
    * Always at field 99 for consistency across all Stigmer API resources.
    *
    * Contains:
    * - created_at: When this execution was created (ISO 8601 timestamp)
    * - updated_at: Last time status was updated (ISO 8601 timestamp)
    * - created_by: User or system that created this execution
-   *
-   * Example:
-   * audit {
-   * created_at: "2025-01-11T14:30:22Z"
-   * updated_at: "2025-01-11T14:32:15Z"
-   * created_by: "usr-john-doe"
-   * }
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -80,13 +65,7 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * <pre>
    * Current execution lifecycle phase.
    *
-   * Phases:
-   * - EXECUTION_PENDING: Execution created, waiting to start
-   * - EXECUTION_IN_PROGRESS: Actively executing tasks
-   * - EXECUTION_COMPLETED: Successfully completed all tasks
-   * - EXECUTION_FAILED: Failed during execution (see error field)
-   * - EXECUTION_CANCELLED: Cancelled by user or system
-   *
+   * &#64;internal
    * Phase Transitions:
    * PENDING → IN_PROGRESS → COMPLETED
    * ↓              ↘ FAILED
@@ -109,13 +88,7 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * <pre>
    * Current execution lifecycle phase.
    *
-   * Phases:
-   * - EXECUTION_PENDING: Execution created, waiting to start
-   * - EXECUTION_IN_PROGRESS: Actively executing tasks
-   * - EXECUTION_COMPLETED: Successfully completed all tasks
-   * - EXECUTION_FAILED: Failed during execution (see error field)
-   * - EXECUTION_CANCELLED: Cancelled by user or system
-   *
+   * &#64;internal
    * Phase Transitions:
    * PENDING → IN_PROGRESS → COMPLETED
    * ↓              ↘ FAILED
@@ -137,8 +110,9 @@ public interface WorkflowExecutionStatusOrBuilder extends
 
   /**
    * <pre>
-   * Workflow tasks with their execution state (source of truth for progress).
+   * Workflow tasks with their individual execution state.
    *
+   * &#64;internal
    * Tasks represent the atomic units of work within the workflow.
    * Each task has:
    * - task_id: Unique identifier within this execution
@@ -159,33 +133,6 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
    * - Progress percentage: (completed_tasks / total_tasks) * 100
    * - Current task: tasks.find(status == IN_PROGRESS)
-   *
-   * Use Cases:
-   * - Display task-level progress in UI (which tasks are done, which are running)
-   * - Calculate overall progress (no need to store total_tasks/completed_tasks)
-   * - Debug task failures (inspect task inputs, outputs, errors)
-   * - Retry individual failed tasks (if workflow supports partial retry)
-   * - Audit task execution for compliance
-   *
-   * Example:
-   * tasks: [
-   * {
-   * task_id: "task-1"
-   * task_name: "validate_email"
-   * task_type: WORKFLOW_TASK_API_CALL
-   * status: WORKFLOW_TASK_COMPLETED
-   * started_at: "2025-01-11T14:30:23Z"
-   * completed_at: "2025-01-11T14:30:23.450Z"
-   * output: { "valid": true, "domain": "example.com" }
-   * }
-   * {
-   * task_id: "task-2"
-   * task_name: "create_account"
-   * task_type: WORKFLOW_TASK_AGENT_INVOCATION
-   * status: WORKFLOW_TASK_IN_PROGRESS
-   * started_at: "2025-01-11T14:30:24Z"
-   * }
-   * ]
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -194,8 +141,9 @@ public interface WorkflowExecutionStatusOrBuilder extends
       getTasksList();
   /**
    * <pre>
-   * Workflow tasks with their execution state (source of truth for progress).
+   * Workflow tasks with their individual execution state.
    *
+   * &#64;internal
    * Tasks represent the atomic units of work within the workflow.
    * Each task has:
    * - task_id: Unique identifier within this execution
@@ -216,33 +164,6 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
    * - Progress percentage: (completed_tasks / total_tasks) * 100
    * - Current task: tasks.find(status == IN_PROGRESS)
-   *
-   * Use Cases:
-   * - Display task-level progress in UI (which tasks are done, which are running)
-   * - Calculate overall progress (no need to store total_tasks/completed_tasks)
-   * - Debug task failures (inspect task inputs, outputs, errors)
-   * - Retry individual failed tasks (if workflow supports partial retry)
-   * - Audit task execution for compliance
-   *
-   * Example:
-   * tasks: [
-   * {
-   * task_id: "task-1"
-   * task_name: "validate_email"
-   * task_type: WORKFLOW_TASK_API_CALL
-   * status: WORKFLOW_TASK_COMPLETED
-   * started_at: "2025-01-11T14:30:23Z"
-   * completed_at: "2025-01-11T14:30:23.450Z"
-   * output: { "valid": true, "domain": "example.com" }
-   * }
-   * {
-   * task_id: "task-2"
-   * task_name: "create_account"
-   * task_type: WORKFLOW_TASK_AGENT_INVOCATION
-   * status: WORKFLOW_TASK_IN_PROGRESS
-   * started_at: "2025-01-11T14:30:24Z"
-   * }
-   * ]
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -250,8 +171,9 @@ public interface WorkflowExecutionStatusOrBuilder extends
   ai.stigmer.agentic.workflowexecution.v1.WorkflowTask getTasks(int index);
   /**
    * <pre>
-   * Workflow tasks with their execution state (source of truth for progress).
+   * Workflow tasks with their individual execution state.
    *
+   * &#64;internal
    * Tasks represent the atomic units of work within the workflow.
    * Each task has:
    * - task_id: Unique identifier within this execution
@@ -272,33 +194,6 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
    * - Progress percentage: (completed_tasks / total_tasks) * 100
    * - Current task: tasks.find(status == IN_PROGRESS)
-   *
-   * Use Cases:
-   * - Display task-level progress in UI (which tasks are done, which are running)
-   * - Calculate overall progress (no need to store total_tasks/completed_tasks)
-   * - Debug task failures (inspect task inputs, outputs, errors)
-   * - Retry individual failed tasks (if workflow supports partial retry)
-   * - Audit task execution for compliance
-   *
-   * Example:
-   * tasks: [
-   * {
-   * task_id: "task-1"
-   * task_name: "validate_email"
-   * task_type: WORKFLOW_TASK_API_CALL
-   * status: WORKFLOW_TASK_COMPLETED
-   * started_at: "2025-01-11T14:30:23Z"
-   * completed_at: "2025-01-11T14:30:23.450Z"
-   * output: { "valid": true, "domain": "example.com" }
-   * }
-   * {
-   * task_id: "task-2"
-   * task_name: "create_account"
-   * task_type: WORKFLOW_TASK_AGENT_INVOCATION
-   * status: WORKFLOW_TASK_IN_PROGRESS
-   * started_at: "2025-01-11T14:30:24Z"
-   * }
-   * ]
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -306,8 +201,9 @@ public interface WorkflowExecutionStatusOrBuilder extends
   int getTasksCount();
   /**
    * <pre>
-   * Workflow tasks with their execution state (source of truth for progress).
+   * Workflow tasks with their individual execution state.
    *
+   * &#64;internal
    * Tasks represent the atomic units of work within the workflow.
    * Each task has:
    * - task_id: Unique identifier within this execution
@@ -328,33 +224,6 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
    * - Progress percentage: (completed_tasks / total_tasks) * 100
    * - Current task: tasks.find(status == IN_PROGRESS)
-   *
-   * Use Cases:
-   * - Display task-level progress in UI (which tasks are done, which are running)
-   * - Calculate overall progress (no need to store total_tasks/completed_tasks)
-   * - Debug task failures (inspect task inputs, outputs, errors)
-   * - Retry individual failed tasks (if workflow supports partial retry)
-   * - Audit task execution for compliance
-   *
-   * Example:
-   * tasks: [
-   * {
-   * task_id: "task-1"
-   * task_name: "validate_email"
-   * task_type: WORKFLOW_TASK_API_CALL
-   * status: WORKFLOW_TASK_COMPLETED
-   * started_at: "2025-01-11T14:30:23Z"
-   * completed_at: "2025-01-11T14:30:23.450Z"
-   * output: { "valid": true, "domain": "example.com" }
-   * }
-   * {
-   * task_id: "task-2"
-   * task_name: "create_account"
-   * task_type: WORKFLOW_TASK_AGENT_INVOCATION
-   * status: WORKFLOW_TASK_IN_PROGRESS
-   * started_at: "2025-01-11T14:30:24Z"
-   * }
-   * ]
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -363,8 +232,9 @@ public interface WorkflowExecutionStatusOrBuilder extends
       getTasksOrBuilderList();
   /**
    * <pre>
-   * Workflow tasks with their execution state (source of truth for progress).
+   * Workflow tasks with their individual execution state.
    *
+   * &#64;internal
    * Tasks represent the atomic units of work within the workflow.
    * Each task has:
    * - task_id: Unique identifier within this execution
@@ -385,33 +255,6 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * - Completed tasks: count(tasks where status in [COMPLETED, FAILED, SKIPPED])
    * - Progress percentage: (completed_tasks / total_tasks) * 100
    * - Current task: tasks.find(status == IN_PROGRESS)
-   *
-   * Use Cases:
-   * - Display task-level progress in UI (which tasks are done, which are running)
-   * - Calculate overall progress (no need to store total_tasks/completed_tasks)
-   * - Debug task failures (inspect task inputs, outputs, errors)
-   * - Retry individual failed tasks (if workflow supports partial retry)
-   * - Audit task execution for compliance
-   *
-   * Example:
-   * tasks: [
-   * {
-   * task_id: "task-1"
-   * task_name: "validate_email"
-   * task_type: WORKFLOW_TASK_API_CALL
-   * status: WORKFLOW_TASK_COMPLETED
-   * started_at: "2025-01-11T14:30:23Z"
-   * completed_at: "2025-01-11T14:30:23.450Z"
-   * output: { "valid": true, "domain": "example.com" }
-   * }
-   * {
-   * task_id: "task-2"
-   * task_name: "create_account"
-   * task_type: WORKFLOW_TASK_AGENT_INVOCATION
-   * status: WORKFLOW_TASK_IN_PROGRESS
-   * started_at: "2025-01-11T14:30:24Z"
-   * }
-   * ]
    * </pre>
    *
    * <code>repeated .ai.stigmer.agentic.workflowexecution.v1.WorkflowTask tasks = 2 [json_name = "tasks"];</code>
@@ -421,26 +264,15 @@ public interface WorkflowExecutionStatusOrBuilder extends
 
   /**
    * <pre>
-   * Workflow output (JSON structure).
+   * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
    *
-   * Contains the final result or payload produced by the workflow.
-   * Only populated when phase == EXECUTION_COMPLETED.
-   *
+   * &#64;internal
    * The output structure is workflow-specific and defined by the Workflow template.
    * Common patterns:
    * - API response data (e.g., created user ID, order confirmation)
    * - Aggregated results from multiple tasks
    * - Links to generated artifacts (reports, files)
    * - Summary statistics (items processed, duration)
-   *
-   * Example (customer onboarding workflow):
-   * output: {
-   * "customer_id": "cus-abc123"
-   * "account_created": true
-   * "welcome_email_sent": true
-   * "trial_activated": true
-   * "trial_expires_at": "2025-02-10T14:30:22Z"
-   * }
    * </pre>
    *
    * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -449,26 +281,15 @@ public interface WorkflowExecutionStatusOrBuilder extends
   boolean hasOutput();
   /**
    * <pre>
-   * Workflow output (JSON structure).
+   * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
    *
-   * Contains the final result or payload produced by the workflow.
-   * Only populated when phase == EXECUTION_COMPLETED.
-   *
+   * &#64;internal
    * The output structure is workflow-specific and defined by the Workflow template.
    * Common patterns:
    * - API response data (e.g., created user ID, order confirmation)
    * - Aggregated results from multiple tasks
    * - Links to generated artifacts (reports, files)
    * - Summary statistics (items processed, duration)
-   *
-   * Example (customer onboarding workflow):
-   * output: {
-   * "customer_id": "cus-abc123"
-   * "account_created": true
-   * "welcome_email_sent": true
-   * "trial_activated": true
-   * "trial_expires_at": "2025-02-10T14:30:22Z"
-   * }
    * </pre>
    *
    * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -477,26 +298,15 @@ public interface WorkflowExecutionStatusOrBuilder extends
   com.google.protobuf.Struct getOutput();
   /**
    * <pre>
-   * Workflow output (JSON structure).
+   * Final workflow output, populated only when phase is EXECUTION_COMPLETED.
    *
-   * Contains the final result or payload produced by the workflow.
-   * Only populated when phase == EXECUTION_COMPLETED.
-   *
+   * &#64;internal
    * The output structure is workflow-specific and defined by the Workflow template.
    * Common patterns:
    * - API response data (e.g., created user ID, order confirmation)
    * - Aggregated results from multiple tasks
    * - Links to generated artifacts (reports, files)
    * - Summary statistics (items processed, duration)
-   *
-   * Example (customer onboarding workflow):
-   * output: {
-   * "customer_id": "cus-abc123"
-   * "account_created": true
-   * "welcome_email_sent": true
-   * "trial_activated": true
-   * "trial_expires_at": "2025-02-10T14:30:22Z"
-   * }
    * </pre>
    *
    * <code>.google.protobuf.Struct output = 3 [json_name = "output"];</code>
@@ -505,10 +315,10 @@ public interface WorkflowExecutionStatusOrBuilder extends
 
   /**
    * <pre>
-   * Error message if execution failed.
+   * Error message, populated only when phase is EXECUTION_FAILED.
    *
+   * &#64;internal
    * Contains a human-readable description of what went wrong.
-   * Only populated when phase == EXECUTION_FAILED.
    *
    * Error message includes:
    * - What failed (which task or workflow step)
@@ -516,9 +326,6 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * - How to fix it (if known)
    *
    * For detailed debugging, inspect tasks[].error for task-specific error messages.
-   *
-   * Example:
-   * error: "Task 'create_account' failed: API rate limit exceeded (429). Retry after 60 seconds."
    * </pre>
    *
    * <code>string error = 4 [json_name = "error"];</code>
@@ -527,10 +334,10 @@ public interface WorkflowExecutionStatusOrBuilder extends
   java.lang.String getError();
   /**
    * <pre>
-   * Error message if execution failed.
+   * Error message, populated only when phase is EXECUTION_FAILED.
    *
+   * &#64;internal
    * Contains a human-readable description of what went wrong.
-   * Only populated when phase == EXECUTION_FAILED.
    *
    * Error message includes:
    * - What failed (which task or workflow step)
@@ -538,9 +345,6 @@ public interface WorkflowExecutionStatusOrBuilder extends
    * - How to fix it (if known)
    *
    * For detailed debugging, inspect tasks[].error for task-specific error messages.
-   *
-   * Example:
-   * error: "Task 'create_account' failed: API rate limit exceeded (429). Retry after 60 seconds."
    * </pre>
    *
    * <code>string error = 4 [json_name = "error"];</code>
@@ -551,18 +355,11 @@ public interface WorkflowExecutionStatusOrBuilder extends
 
   /**
    * <pre>
-   * ISO 8601 timestamp when execution started.
+   * ISO 8601 timestamp when execution started processing.
    *
-   * Set when the workflow execution engine begins processing this execution.
-   * This is when phase transitions from PENDING to IN_PROGRESS.
-   *
+   * &#64;internal
+   * Set when phase transitions from PENDING to IN_PROGRESS.
    * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-   * Example: "2025-01-11T14:30:22Z"
-   *
-   * Used for:
-   * - Calculating execution duration (completed_at - started_at)
-   * - Sorting executions by start time
-   * - Detecting stuck executions (started but not completed after X hours)
    * </pre>
    *
    * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -571,18 +368,11 @@ public interface WorkflowExecutionStatusOrBuilder extends
   java.lang.String getStartedAt();
   /**
    * <pre>
-   * ISO 8601 timestamp when execution started.
+   * ISO 8601 timestamp when execution started processing.
    *
-   * Set when the workflow execution engine begins processing this execution.
-   * This is when phase transitions from PENDING to IN_PROGRESS.
-   *
+   * &#64;internal
+   * Set when phase transitions from PENDING to IN_PROGRESS.
    * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-   * Example: "2025-01-11T14:30:22Z"
-   *
-   * Used for:
-   * - Calculating execution duration (completed_at - started_at)
-   * - Sorting executions by start time
-   * - Detecting stuck executions (started but not completed after X hours)
    * </pre>
    *
    * <code>string started_at = 5 [json_name = "startedAt"];</code>
@@ -593,22 +383,16 @@ public interface WorkflowExecutionStatusOrBuilder extends
 
   /**
    * <pre>
-   * ISO 8601 timestamp when execution completed, failed, or was cancelled.
+   * ISO 8601 timestamp when execution reached a terminal state.
    *
+   * &#64;internal
    * Set when the workflow reaches a terminal state:
    * - EXECUTION_COMPLETED: Successfully finished
    * - EXECUTION_FAILED: Failed during execution
    * - EXECUTION_CANCELLED: Cancelled by user or system
    *
    * Not set for PENDING or IN_PROGRESS executions.
-   *
    * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-   * Example: "2025-01-11T14:35:47Z"
-   *
-   * Used for:
-   * - Calculating execution duration (completed_at - started_at)
-   * - Retention policies (delete completed executions after 30 days)
-   * - SLA monitoring (alert if execution takes longer than expected)
    * </pre>
    *
    * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -617,22 +401,16 @@ public interface WorkflowExecutionStatusOrBuilder extends
   java.lang.String getCompletedAt();
   /**
    * <pre>
-   * ISO 8601 timestamp when execution completed, failed, or was cancelled.
+   * ISO 8601 timestamp when execution reached a terminal state.
    *
+   * &#64;internal
    * Set when the workflow reaches a terminal state:
    * - EXECUTION_COMPLETED: Successfully finished
    * - EXECUTION_FAILED: Failed during execution
    * - EXECUTION_CANCELLED: Cancelled by user or system
    *
    * Not set for PENDING or IN_PROGRESS executions.
-   *
    * Format: "YYYY-MM-DDTHH:MM:SSZ" (UTC timezone)
-   * Example: "2025-01-11T14:35:47Z"
-   *
-   * Used for:
-   * - Calculating execution duration (completed_at - started_at)
-   * - Retention policies (delete completed executions after 30 days)
-   * - SLA monitoring (alert if execution takes longer than expected)
    * </pre>
    *
    * <code>string completed_at = 6 [json_name = "completedAt"];</code>
@@ -643,15 +421,16 @@ public interface WorkflowExecutionStatusOrBuilder extends
 
   /**
    * <pre>
-   * Temporal workflow ID (if using Temporal as execution engine).
+   * Correlation ID for the underlying workflow engine.
    *
-   * This is the workflow ID in the Temporal workflow engine, used for:
+   * &#64;internal
+   * This is the workflow ID in Temporal, used for:
    * - Correlation between Stigmer and Temporal (for debugging)
    * - Querying Temporal directly (for advanced troubleshooting)
    * - Signaling or cancelling Temporal workflows
    *
    * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-   * Example: "wfi-prod-deploy-wfx-abc123xyz456" or "temporal-wf-uuid-12345"
+   * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
    *
    * This field is optional and only relevant when Temporal is used as the execution engine.
    * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
@@ -663,15 +442,16 @@ public interface WorkflowExecutionStatusOrBuilder extends
   java.lang.String getTemporalWorkflowId();
   /**
    * <pre>
-   * Temporal workflow ID (if using Temporal as execution engine).
+   * Correlation ID for the underlying workflow engine.
    *
-   * This is the workflow ID in the Temporal workflow engine, used for:
+   * &#64;internal
+   * This is the workflow ID in Temporal, used for:
    * - Correlation between Stigmer and Temporal (for debugging)
    * - Querying Temporal directly (for advanced troubleshooting)
    * - Signaling or cancelling Temporal workflows
    *
    * Format: Typically "{workflow_instance_id}-{execution_id}" or a UUID
-   * Example: "wfi-prod-deploy-wfx-abc123xyz456" or "temporal-wf-uuid-12345"
+   * Example: "wfi_prod-deploy-wfx_abc123xyz456" or "temporal-wf-uuid-12345"
    *
    * This field is optional and only relevant when Temporal is used as the execution engine.
    * Other workflow engines (Step Functions, Argo, etc.) may use different correlation IDs.
@@ -685,21 +465,20 @@ public interface WorkflowExecutionStatusOrBuilder extends
 
   /**
    * <pre>
-   * Pending approvals from child agent tool executions (HITL).
+   * Pending approvals from child agent tool executions.
    *
+   * &#64;internal
    * Populated when workflow tasks invoke agents that enter
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * ## Full-Replace Protocol
-   *
+   * Full-Replace Protocol:
    * The workflow-runner always sends the complete set of pending approvals
    * via UpdateStatus. The server replaces the stored list unconditionally:
    * - Non-empty list: child agent(s) need approval
    * - Empty list: all approvals resolved, clear the field
    *
-   * ## Parallel Agents
-   *
+   * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
    * accumulate in this list. Each entry's child_agent_execution_id distinguishes
    * the source.
@@ -711,21 +490,20 @@ public interface WorkflowExecutionStatusOrBuilder extends
       getPendingApprovalsList();
   /**
    * <pre>
-   * Pending approvals from child agent tool executions (HITL).
+   * Pending approvals from child agent tool executions.
    *
+   * &#64;internal
    * Populated when workflow tasks invoke agents that enter
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * ## Full-Replace Protocol
-   *
+   * Full-Replace Protocol:
    * The workflow-runner always sends the complete set of pending approvals
    * via UpdateStatus. The server replaces the stored list unconditionally:
    * - Non-empty list: child agent(s) need approval
    * - Empty list: all approvals resolved, clear the field
    *
-   * ## Parallel Agents
-   *
+   * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
    * accumulate in this list. Each entry's child_agent_execution_id distinguishes
    * the source.
@@ -736,21 +514,20 @@ public interface WorkflowExecutionStatusOrBuilder extends
   ai.stigmer.agentic.workflowexecution.v1.WorkflowPendingApproval getPendingApprovals(int index);
   /**
    * <pre>
-   * Pending approvals from child agent tool executions (HITL).
+   * Pending approvals from child agent tool executions.
    *
+   * &#64;internal
    * Populated when workflow tasks invoke agents that enter
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * ## Full-Replace Protocol
-   *
+   * Full-Replace Protocol:
    * The workflow-runner always sends the complete set of pending approvals
    * via UpdateStatus. The server replaces the stored list unconditionally:
    * - Non-empty list: child agent(s) need approval
    * - Empty list: all approvals resolved, clear the field
    *
-   * ## Parallel Agents
-   *
+   * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
    * accumulate in this list. Each entry's child_agent_execution_id distinguishes
    * the source.
@@ -761,21 +538,20 @@ public interface WorkflowExecutionStatusOrBuilder extends
   int getPendingApprovalsCount();
   /**
    * <pre>
-   * Pending approvals from child agent tool executions (HITL).
+   * Pending approvals from child agent tool executions.
    *
+   * &#64;internal
    * Populated when workflow tasks invoke agents that enter
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * ## Full-Replace Protocol
-   *
+   * Full-Replace Protocol:
    * The workflow-runner always sends the complete set of pending approvals
    * via UpdateStatus. The server replaces the stored list unconditionally:
    * - Non-empty list: child agent(s) need approval
    * - Empty list: all approvals resolved, clear the field
    *
-   * ## Parallel Agents
-   *
+   * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
    * accumulate in this list. Each entry's child_agent_execution_id distinguishes
    * the source.
@@ -787,21 +563,20 @@ public interface WorkflowExecutionStatusOrBuilder extends
       getPendingApprovalsOrBuilderList();
   /**
    * <pre>
-   * Pending approvals from child agent tool executions (HITL).
+   * Pending approvals from child agent tool executions.
    *
+   * &#64;internal
    * Populated when workflow tasks invoke agents that enter
    * EXECUTION_WAITING_FOR_APPROVAL phase. This surfaces all approval
    * requests at the workflow level for UI visibility.
    *
-   * ## Full-Replace Protocol
-   *
+   * Full-Replace Protocol:
    * The workflow-runner always sends the complete set of pending approvals
    * via UpdateStatus. The server replaces the stored list unconditionally:
    * - Non-empty list: child agent(s) need approval
    * - Empty list: all approvals resolved, clear the field
    *
-   * ## Parallel Agents
-   *
+   * Parallel Agents:
    * When multiple child agents run in parallel, entries from different children
    * accumulate in this list. Each entry's child_agent_execution_id distinguishes
    * the source.

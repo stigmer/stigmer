@@ -36,11 +36,6 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
   static final 
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCall_fieldAccessorTable;
-  static final com.google.protobuf.Descriptors.Descriptor
-    internal_static_ai_stigmer_agentic_agentexecution_v1_ComponentMetadata_descriptor;
-  static final 
-    com.google.protobuf.GeneratedMessage.FieldAccessorTable
-      internal_static_ai_stigmer_agentic_agentexecution_v1_ComponentMetadata_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -66,40 +61,33 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
       "ructR\010metadata\022!\n\014is_streaming\030\006 \001(\010R\013is" +
       "Streaming\022U\n\013llm_metrics\030\007 \001(\01324.ai.stig" +
       "mer.agentic.agentexecution.v1.LlmCallMet" +
-      "ricsR\nllmMetrics\"\237\007\n\010ToolCall\022\016\n\002id\030\001 \001(" +
+      "ricsR\nllmMetrics\"\321\006\n\010ToolCall\022\016\n\002id\030\001 \001(" +
       "\tR\002id\022\022\n\004name\030\002 \001(\tR\004name\022+\n\004args\030\003 \001(\0132" +
       "\027.google.protobuf.StructR\004args\022\026\n\006result" +
       "\030\004 \001(\tR\006result\022V\n\006status\030\005 \001(\01624.ai.stig" +
       "mer.agentic.agentexecution.v1.ToolCallSt" +
-      "atusB\010\272H\005\202\001\002\020\001R\006status\022f\n\022component_meta" +
-      "data\030\006 \001(\01327.ai.stigmer.agentic.agentexe" +
-      "cution.v1.ComponentMetadataR\021componentMe" +
-      "tadata\022\035\n\nstarted_at\030\007 \001(\tR\tstartedAt\022!\n" +
-      "\014completed_at\030\010 \001(\tR\013completedAt\022\024\n\005erro" +
-      "r\030\t \001(\tR\005error\022+\n\021requires_approval\030\n \001(" +
-      "\010R\020requiresApproval\022)\n\020approval_message\030" +
-      "\013 \001(\tR\017approvalMessage\0222\n\025approval_reque" +
-      "sted_at\030\014 \001(\tR\023approvalRequestedAt\022.\n\023ap" +
-      "proval_decided_at\030\r \001(\tR\021approvalDecided" +
-      "At\022\037\n\013approved_by\030\016 \001(\tR\napprovedBy\022]\n\017a" +
-      "pproval_action\030\017 \001(\01624.ai.stigmer.agenti" +
-      "c.agentexecution.v1.ApprovalActionR\016appr" +
-      "ovalAction\022!\n\014is_streaming\030\020 \001(\010R\013isStre" +
-      "aming\022h\n\020streaming_source\030\023 \001(\0162=.ai.sti" +
-      "gmer.agentic.agentexecution.v1.ToolCallS" +
-      "treamingSourceR\017streamingSource\022&\n\017mcp_s" +
-      "erver_slug\030\021 \001(\tR\rmcpServerSlug\022!\n\014args_" +
-      "preview\030\022 \001(\tR\013argsPreview\"\271\001\n\021Component" +
-      "Metadata\022%\n\016component_type\030\001 \001(\tR\rcompon" +
-      "entType\022\'\n\017component_group\030\002 \001(\tR\016compon" +
-      "entGroup\022\037\n\013layout_hint\030\003 \001(\tR\nlayoutHin" +
-      "t\0223\n\010metadata\030\004 \001(\0132\027.google.protobuf.St" +
-      "ructR\010metadataB\303\001B\014MessageProtoP\001\242\002\004ASAA" +
-      "\252\002$Ai.Stigmer.Agentic.Agentexecution.V1\312" +
-      "\002$Ai\\Stigmer\\Agentic\\Agentexecution\\V1\342\002" +
-      "0Ai\\Stigmer\\Agentic\\Agentexecution\\V1\\GP" +
-      "BMetadata\352\002(Ai::Stigmer::Agentic::Agente" +
-      "xecution::V1b\006proto3"
+      "atusB\010\272H\005\202\001\002\020\001R\006status\022\035\n\nstarted_at\030\007 \001" +
+      "(\tR\tstartedAt\022!\n\014completed_at\030\010 \001(\tR\013com" +
+      "pletedAt\022\024\n\005error\030\t \001(\tR\005error\022+\n\021requir" +
+      "es_approval\030\n \001(\010R\020requiresApproval\022)\n\020a" +
+      "pproval_message\030\013 \001(\tR\017approvalMessage\0222" +
+      "\n\025approval_requested_at\030\014 \001(\tR\023approvalR" +
+      "equestedAt\022.\n\023approval_decided_at\030\r \001(\tR" +
+      "\021approvalDecidedAt\022\037\n\013approved_by\030\016 \001(\tR" +
+      "\napprovedBy\022]\n\017approval_action\030\017 \001(\01624.a" +
+      "i.stigmer.agentic.agentexecution.v1.Appr" +
+      "ovalActionR\016approvalAction\022!\n\014is_streami" +
+      "ng\030\020 \001(\010R\013isStreaming\022h\n\020streaming_sourc" +
+      "e\030\023 \001(\0162=.ai.stigmer.agentic.agentexecut" +
+      "ion.v1.ToolCallStreamingSourceR\017streamin" +
+      "gSource\022&\n\017mcp_server_slug\030\021 \001(\tR\rmcpSer" +
+      "verSlug\022!\n\014args_preview\030\022 \001(\tR\013argsPrevi" +
+      "ewJ\004\010\006\020\007R\022component_metadataB\303\001B\014Message" +
+      "ProtoP\001\242\002\004ASAA\252\002$Ai.Stigmer.Agentic.Agen" +
+      "texecution.V1\312\002$Ai\\Stigmer\\Agentic\\Agent" +
+      "execution\\V1\342\0020Ai\\Stigmer\\Agentic\\Agente" +
+      "xecution\\V1\\GPBMetadata\352\002(Ai::Stigmer::A" +
+      "gentic::Agentexecution::V1b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -120,13 +108,7 @@ public final class MessageProto extends com.google.protobuf.GeneratedFile {
     internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCall_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_ai_stigmer_agentic_agentexecution_v1_ToolCall_descriptor,
-        new java.lang.String[] { "Id", "Name", "Args", "Result", "Status", "ComponentMetadata", "StartedAt", "CompletedAt", "Error", "RequiresApproval", "ApprovalMessage", "ApprovalRequestedAt", "ApprovalDecidedAt", "ApprovedBy", "ApprovalAction", "IsStreaming", "StreamingSource", "McpServerSlug", "ArgsPreview", });
-    internal_static_ai_stigmer_agentic_agentexecution_v1_ComponentMetadata_descriptor =
-      getDescriptor().getMessageType(2);
-    internal_static_ai_stigmer_agentic_agentexecution_v1_ComponentMetadata_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessage.FieldAccessorTable(
-        internal_static_ai_stigmer_agentic_agentexecution_v1_ComponentMetadata_descriptor,
-        new java.lang.String[] { "ComponentType", "ComponentGroup", "LayoutHint", "Metadata", });
+        new java.lang.String[] { "Id", "Name", "Args", "Result", "Status", "StartedAt", "CompletedAt", "Error", "RequiresApproval", "ApprovalMessage", "ApprovalRequestedAt", "ApprovalDecidedAt", "ApprovedBy", "ApprovalAction", "IsStreaming", "StreamingSource", "McpServerSlug", "ArgsPreview", });
     descriptor.resolveAllFeaturesImmutable();
     ai.stigmer.agentic.agentexecution.v1.EnumProto.getDescriptor();
     ai.stigmer.agentic.agentexecution.v1.UsageProto.getDescriptor();

@@ -18,12 +18,14 @@ export const file_ai_stigmer_iam_identityaccount_v1_io: GenFile = /*@__PURE__*/
   fileDesc("CiphaS9zdGlnbWVyL2lhbS9pZGVudGl0eWFjY291bnQvdjEvaW8ucHJvdG8SIWFpLnN0aWdtZXIuaWFtLmlkZW50aXR5YWNjb3VudC52MSJXChBJZGVudGl0eUFjY291bnRzEkMKB2VudHJpZXMYASADKAsyMi5haS5zdGlnbWVyLmlhbS5pZGVudGl0eWFjY291bnQudjEuSWRlbnRpdHlBY2NvdW50IioKEUlkZW50aXR5QWNjb3VudElkEhUKBXZhbHVlGAEgASgJQga6SAPIAQEiLQoUSWRlbnRpdHlBY2NvdW50RW1haWwSFQoFdmFsdWUYASABKAlCBrpIA8gBASIeCgVJZHBJZBIVCgV2YWx1ZRgBIAEoCUIGukgDyAEBImsKHExpc3RXaXRoSWRlbnRpdHlBY2NvdW50SWRSZXESGwoTaWRlbnRpdHlfYWNjb3VudF9pZBgBIAEoCRIuCgRwYWdlGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mbyJwChRJZGVudGl0eUFjY291bnRzTGlzdBITCgt0b3RhbF9wYWdlcxgBIAEoBRJDCgdlbnRyaWVzGAIgAygLMjIuYWkuc3RpZ21lci5pYW0uaWRlbnRpdHlhY2NvdW50LnYxLklkZW50aXR5QWNjb3VudCJSChNMaXN0V2l0aElkZW50aXR5T3JnEgsKA29yZxgBIAEoCRIuCgRwYWdlGAIgASgLMiAuYWkuc3RpZ21lci5jb21tb25zLnJwYy5QYWdlSW5mb2IGcHJvdG8z", [file_ai_stigmer_commons_rpc_pagination, file_ai_stigmer_iam_identityaccount_v1_api, file_buf_validate_validate]);
 
 /**
- * wrapper to get list of identity accounts
+ * IdentityAccounts contains a list of identity account resources.
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.IdentityAccounts
  */
 export type IdentityAccounts = Message<"ai.stigmer.iam.identityaccount.v1.IdentityAccounts"> & {
   /**
+   * Identity account entries.
+   *
    * @generated from field: repeated ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 1;
    */
   entries: IdentityAccount[];
@@ -37,12 +39,14 @@ export const IdentityAccountsSchema: GenMessage<IdentityAccounts> = /*@__PURE__*
   messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 0);
 
 /**
- * wrapper for user identity account id.
+ * IdentityAccountId identifies an identity account by its unique identifier.
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.IdentityAccountId
  */
 export type IdentityAccountId = Message<"ai.stigmer.iam.identityaccount.v1.IdentityAccountId"> & {
   /**
+   * Unique identifier of the identity account.
+   *
    * @generated from field: string value = 1;
    */
   value: string;
@@ -56,12 +60,14 @@ export const IdentityAccountIdSchema: GenMessage<IdentityAccountId> = /*@__PURE_
   messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 1);
 
 /**
- * wrapper for email of the identity account.
+ * IdentityAccountEmail identifies an identity account by its email address.
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail
  */
 export type IdentityAccountEmail = Message<"ai.stigmer.iam.identityaccount.v1.IdentityAccountEmail"> & {
   /**
+   * Email address of the identity account.
+   *
    * @generated from field: string value = 1;
    */
   value: string;
@@ -75,12 +81,14 @@ export const IdentityAccountEmailSchema: GenMessage<IdentityAccountEmail> = /*@_
   messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 2);
 
 /**
- * wrapper for idp id.
+ * IdpId identifies an identity account by its identity provider ID.
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.IdpId
  */
 export type IdpId = Message<"ai.stigmer.iam.identityaccount.v1.IdpId"> & {
   /**
+   * Identity provider ID of the account.
+   *
    * @generated from field: string value = 1;
    */
   value: string;
@@ -94,19 +102,21 @@ export const IdpIdSchema: GenMessage<IdpId> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 3);
 
 /**
- * input for paginated queries that require identity account id as input.
+ * ListWithIdentityAccountIdReq is the input for paginated queries scoped to an identity account.
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq
  */
 export type ListWithIdentityAccountIdReq = Message<"ai.stigmer.iam.identityaccount.v1.ListWithIdentityAccountIdReq"> & {
   /**
-   * identity account id
+   * Unique identifier of the identity account to list resources for.
    *
    * @generated from field: string identity_account_id = 1;
    */
   identityAccountId: string;
 
   /**
+   * Pagination parameters.
+   *
    * @generated from field: ai.stigmer.commons.rpc.PageInfo page = 2;
    */
   page?: PageInfo;
@@ -120,20 +130,20 @@ export const ListWithIdentityAccountIdReqSchema: GenMessage<ListWithIdentityAcco
   messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 4);
 
 /**
- * response for paginated rpc query to list identity accounts.
+ * IdentityAccountsList is a paginated response containing identity accounts.
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.IdentityAccountsList
  */
 export type IdentityAccountsList = Message<"ai.stigmer.iam.identityaccount.v1.IdentityAccountsList"> & {
   /**
-   * total number of pages
+   * Total number of pages available.
    *
    * @generated from field: int32 total_pages = 1;
    */
   totalPages: number;
 
   /**
-   * current page entries
+   * Identity accounts in the current page.
    *
    * @generated from field: repeated ai.stigmer.iam.identityaccount.v1.IdentityAccount entries = 2;
    */
@@ -148,17 +158,21 @@ export const IdentityAccountsListSchema: GenMessage<IdentityAccountsList> = /*@_
   messageDesc(file_ai_stigmer_iam_identityaccount_v1_io, 5);
 
 /**
- * wrapper for identity account organization id.
+ * ListWithIdentityOrg is the input for paginated queries scoped to an organization.
  *
  * @generated from message ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg
  */
 export type ListWithIdentityOrg = Message<"ai.stigmer.iam.identityaccount.v1.ListWithIdentityOrg"> & {
   /**
+   * Organization slug to list identity accounts for.
+   *
    * @generated from field: string org = 1;
    */
   org: string;
 
   /**
+   * Pagination parameters.
+   *
    * @generated from field: ai.stigmer.commons.rpc.PageInfo page = 2;
    */
   page?: PageInfo;

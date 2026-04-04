@@ -7,8 +7,9 @@ package ai.stigmer.agentic.agent.v1;
 
 /**
  * <pre>
- * GetDefaultAgentRequest provides org context for fetching the platform default agent.
+ * GetDefaultAgentRequest is the input for retrieving the platform default agent.
  *
+ * &#64;internal
  * The handler resolves the default agent globally (by label stigmer.ai/default-agent: "true"
  * with visibility_public), but the org is needed for authorization scoping.
  * </pre>
@@ -60,6 +61,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private volatile java.lang.Object org_ = "";
   /**
+   * <pre>
+   * Organization slug for authorization scoping.
+   * </pre>
+   *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
    * @return The org.
    */
@@ -77,6 +82,10 @@ private static final long serialVersionUID = 0L;
     }
   }
   /**
+   * <pre>
+   * Organization slug for authorization scoping.
+   * </pre>
+   *
    * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
    * @return The bytes for org.
    */
@@ -253,8 +262,9 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * GetDefaultAgentRequest provides org context for fetching the platform default agent.
+   * GetDefaultAgentRequest is the input for retrieving the platform default agent.
    *
+   * &#64;internal
    * The handler resolves the default agent globally (by label stigmer.ai/default-agent: "true"
    * with visibility_public), but the org is needed for authorization scoping.
    * </pre>
@@ -398,6 +408,10 @@ private static final long serialVersionUID = 0L;
 
     private java.lang.Object org_ = "";
     /**
+     * <pre>
+     * Organization slug for authorization scoping.
+     * </pre>
+     *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @return The org.
      */
@@ -414,6 +428,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Organization slug for authorization scoping.
+     * </pre>
+     *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @return The bytes for org.
      */
@@ -431,6 +449,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Organization slug for authorization scoping.
+     * </pre>
+     *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @param value The org to set.
      * @return This builder for chaining.
@@ -444,6 +466,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Organization slug for authorization scoping.
+     * </pre>
+     *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @return This builder for chaining.
      */
@@ -454,6 +480,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Organization slug for authorization scoping.
+     * </pre>
+     *
      * <code>string org = 1 [json_name = "org", (.buf.validate.field) = { ... }</code>
      * @param value The bytes for org to set.
      * @return This builder for chaining.

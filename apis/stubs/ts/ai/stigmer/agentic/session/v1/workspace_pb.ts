@@ -16,11 +16,12 @@ export const file_ai_stigmer_agentic_session_v1_workspace: GenFile = /*@__PURE__
   fileDesc("Ci1haS9zdGlnbWVyL2FnZW50aWMvc2Vzc2lvbi92MS93b3Jrc3BhY2UucHJvdG8SHWFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxIqoBCg9Xb3Jrc3BhY2VTb3VyY2USQAoIZ2l0X3JlcG8YASABKAsyLC5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5HaXRSZXBvU291cmNlSAASRAoKbG9jYWxfcGF0aBgCIAEoCzIuLmFpLnN0aWdtZXIuYWdlbnRpYy5zZXNzaW9uLnYxLkxvY2FsUGF0aFNvdXJjZUgAQg8KBnNvdXJjZRIFukgCCAEibwoOV29ya3NwYWNlRW50cnkSFQoEbmFtZRgBIAEoCUIHukgEcgIQARJGCgZzb3VyY2UYAiABKAsyLi5haS5zdGlnbWVyLmFnZW50aWMuc2Vzc2lvbi52MS5Xb3Jrc3BhY2VTb3VyY2VCBrpIA8gBASIoCg9Mb2NhbFBhdGhTb3VyY2USFQoEcGF0aBgBIAEoCUIHukgEcgIQASLIAgoNR2l0UmVwb1NvdXJjZRKlAQoDdXJsGAEgASgJQpcBukiTAboBjAEKGWdpdF9yZXBvX3NvdXJjZS51cmwuaHR0cHMSUnVybCBtdXN0IHVzZSBIVFRQUyAoZS5nLiBodHRwczovL2dpdGh1Yi5jb20vb3JnL3JlcG8pLiBTU0ggVVJMcyBhcmUgbm90IHN1cHBvcnRlZC4aG3RoaXMuc3RhcnRzV2l0aCgnaHR0cHM6Ly8nKcgBARIOCgZicmFuY2gYAiABKAkSDgoGY29tbWl0GAMgASgJEhsKBWRlcHRoGAQgASgFQge6SAQaAigASACIAQESSAoPd3JpdGVfYmFja19tb2RlGAUgASgOMi8uYWkuc3RpZ21lci5hZ2VudGljLnNlc3Npb24udjEuR2l0V3JpdGVCYWNrTW9kZUIICgZfZGVwdGhiBnByb3RvMw", [file_ai_stigmer_agentic_session_v1_enum, file_buf_validate_validate]);
 
 /**
- * WorkspaceSource defines where the agent's workspace content comes from.
+ * WorkspaceSource defines where the workspace content comes from.
  *
- * This is a pure source-definition type: it describes the origin of workspace
- * content (a git repo or a local directory) without any identity or naming.
- * Use WorkspaceEntry to pair a source with a name for session-level usage.
+ * @internal
+ * Pure source-definition type: describes the origin of workspace content
+ * without any identity or naming. Use WorkspaceEntry to pair a source with
+ * a name for session-level usage.
  *
  * @generated from message ai.stigmer.agentic.session.v1.WorkspaceSource
  */
@@ -30,12 +31,16 @@ export type WorkspaceSource = Message<"ai.stigmer.agentic.session.v1.WorkspaceSo
    */
   source: {
     /**
+     * Clone a git repository as the workspace source.
+     *
      * @generated from field: ai.stigmer.agentic.session.v1.GitRepoSource git_repo = 1;
      */
     value: GitRepoSource;
     case: "gitRepo";
   } | {
     /**
+     * Use an existing local directory as the workspace source.
+     *
      * @generated from field: ai.stigmer.agentic.session.v1.LocalPathSource local_path = 2;
      */
     value: LocalPathSource;
@@ -51,32 +56,30 @@ export const WorkspaceSourceSchema: GenMessage<WorkspaceSource> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_session_v1_workspace, 0);
 
 /**
- * WorkspaceEntry pairs a WorkspaceSource with a human-readable name,
- * forming an addressable unit within a session's workspace.
+ * WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an addressable unit within a session's workspace.
  *
- * In a multi-root workspace (VS Code model), each entry is a separate
- * directory or repository that the agent can operate on. The name serves as
- * the entry's identity: it appears in the system prompt, and in cloud mode
- * it becomes the subdirectory name under the workspace root.
+ * Each entry is a separate directory or repository that the agent can
+ * operate on. The name serves as the entry's identity and must be unique
+ * within a session's workspace_entries list.
  *
- * Names are auto-derived by the CLI from the repository name (last URL path
- * segment sans ".git") or the directory basename. They must be unique within
- * a session's workspace_entries list.
+ * @internal
+ * In a multi-root workspace (VS Code model), the name appears in the system
+ * prompt and in cloud mode it becomes the subdirectory name under the
+ * workspace root. Names are auto-derived by the CLI from the repository
+ * name (last URL path segment sans ".git") or the directory basename.
  *
  * @generated from message ai.stigmer.agentic.session.v1.WorkspaceEntry
  */
 export type WorkspaceEntry = Message<"ai.stigmer.agentic.session.v1.WorkspaceEntry"> & {
   /**
-   * Short identifier for this workspace entry (required).
-   * Used in system prompt headings and as the clone subdirectory in cloud mode.
-   * Example: "my-app", "frontend", "shared-lib"
+   * Short identifier for this workspace entry.
    *
    * @generated from field: string name = 1;
    */
   name: string;
 
   /**
-   * The source that provides this entry's content (required).
+   * The source that provides this entry's content.
    *
    * @generated from field: ai.stigmer.agentic.session.v1.WorkspaceSource source = 2;
    */
@@ -91,25 +94,21 @@ export const WorkspaceEntrySchema: GenMessage<WorkspaceEntry> = /*@__PURE__*/
   messageDesc(file_ai_stigmer_agentic_session_v1_workspace, 1);
 
 /**
- * LocalPathSource uses an existing directory on the host filesystem as the
- * workspace. The agent operates directly on the user's files -- changes are
- * immediate and persistent.
+ * LocalPathSource uses an existing directory on the host filesystem as the workspace.
  *
+ * The agent operates directly on the user's files — changes are immediate
+ * and persistent. No copy or clone is made.
+ *
+ * @internal
  * Deployment constraint: only valid when the agent-runner is in local mode.
  * Cloud runners reject this at provisioning time with a clear error, the same
- * way GitRepoSource rejects SSH URLs at validation time. This is a normal
- * deployment-specific constraint, not a schema limitation.
- *
- * No copy or clone is made. The path is used directly as the workspace root.
+ * way GitRepoSource rejects SSH URLs at validation time.
  *
  * @generated from message ai.stigmer.agentic.session.v1.LocalPathSource
  */
 export type LocalPathSource = Message<"ai.stigmer.agentic.session.v1.LocalPathSource"> & {
   /**
-   * Absolute path to an existing directory on the host filesystem (required).
-   * The runner validates that the path exists and is a directory at
-   * provisioning time.
-   * Example: "/home/user/projects/my-app", "/Users/dev/src/acme-api"
+   * Absolute path to an existing directory on the host filesystem.
    *
    * @generated from field: string path = 1;
    */
@@ -126,78 +125,74 @@ export const LocalPathSourceSchema: GenMessage<LocalPathSource> = /*@__PURE__*/
 /**
  * GitRepoSource provisions a workspace by cloning a git repository.
  *
+ * Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.
+ *
+ * @internal
  * Authentication: The provisioner resolves GITHUB_TOKEN from the merged
  * environment (Agent defaults < Environment < ExecutionContext.runtime_env)
  * and injects it into the clone URL. The token is consumed by provisioning
  * and stripped before forwarding to the agent runtime (see AD-05).
- *
- * HTTPS only for MVP. SSH key authentication is a future enhancement.
+ * SSH key authentication is a future enhancement.
  *
  * @generated from message ai.stigmer.agentic.session.v1.GitRepoSource
  */
 export type GitRepoSource = Message<"ai.stigmer.agentic.session.v1.GitRepoSource"> & {
   /**
-   * HTTPS clone URL (required).
-   * Must use the https:// scheme. SSH URLs (git@...) are not supported.
-   * Example: "https://github.com/acme/my-app.git"
+   * HTTPS clone URL for the repository.
    *
    * @generated from field: string url = 1;
    */
   url: string;
 
   /**
-   * Branch to clone (optional).
+   * Branch to clone.
+   *
    * When empty, the repository's default branch is used.
-   * Example: "main", "develop", "feature/workspace-support"
    *
    * @generated from field: string branch = 2;
    */
   branch: string;
 
   /**
-   * Commit SHA to checkout after cloning (optional).
-   * When set, the workspace is checked out at this exact commit (detached HEAD).
+   * Commit SHA to checkout after cloning.
+   *
+   * When set, the workspace is checked out at this exact commit.
    * When both branch and commit are set, the branch is cloned first, then
-   * the commit is checked out -- this allows shallow clones of a specific
-   * commit on a known branch.
-   * When only commit is set (no branch), a full clone is required to
-   * locate the commit.
+   * the commit is checked out.
    *
    * @generated from field: string commit = 3;
    */
   commit: string;
 
   /**
-   * Clone depth (optional).
+   * Number of commits to include in the clone history.
    *
-   * Presence semantics:
-   *   - Absent (not set): shallow clone with depth 1 (fast default).
-   *   - 0: full clone with complete history.
-   *   - N > 0: shallow clone with depth N.
+   * When not set, defaults to a shallow clone with depth 1. Set to 0 for
+   * a full clone with complete history.
    *
+   * @internal
    * Uses proto3 optional to distinguish "not set" from "set to 0."
+   * Absent: shallow clone depth 1; 0: full clone; N > 0: shallow clone depth N.
    *
    * @generated from field: optional int32 depth = 4;
    */
   depth?: number;
 
   /**
-   * Controls whether the platform automatically creates a branch and
-   * pull request from the agent's file changes during execution.
+   * Controls whether the platform creates a branch and pull request from the agent's file changes.
    *
+   * @internal
    * This is a platform-level workflow, not an agent-level decision. The
    * agent focuses on making code changes; the platform packages them
    * incrementally — the PR appears the moment the first file is written
    * and the diff grows in real time as the agent works.
    *
-   * Requires git credentials to be configured during workspace provisioning
-   * (GITHUB_TOKEN available in the execution environment). If credentials
+   * Requires GITHUB_TOKEN in the execution environment. If credentials
    * are not available, the write-back is silently skipped regardless of
    * this setting.
    *
    * Default (UNSPECIFIED): platform decides. Currently defaults to
-   * write-back enabled when git credentials are available. Set an
-   * explicit mode to override.
+   * write-back enabled when git credentials are available.
    *
    * @generated from field: ai.stigmer.agentic.session.v1.GitWriteBackMode write_back_mode = 5;
    */

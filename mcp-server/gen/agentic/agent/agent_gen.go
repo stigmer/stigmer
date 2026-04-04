@@ -10,27 +10,11 @@ import (
 	"github.com/stigmer/stigmer/mcp-server/proto/ai/stigmer/commons/apiresource/apiresourcekind"
 )
 
-// AgentSpec defines the configurable properties of an AI agent.
+// AgentSpec defines the configurable properties of an agent.
 //
-//	This is the "Template" layer - declares capabilities and requirements.
-//
-//	Example YAML:
-//	  apiVersion: agentic.stigmer.ai/v1
-//	  kind: Agent
-//	  metadata:
-//	    name: engineering-assistant
-//	    slug: eng-assistant
-//	  spec:
-//	    description: "Helps engineering teams with code review"
-//	    instructions: "You are an engineering assistant..."
-//	    mcp_server_usages:
-//	      - mcp_server_ref:
-//	          kind: mcp_server
-//	          slug: github
-//	        enabled_tools: [search_code, create_pr]
-//	    skill_refs:
-//	      - kind: skill
-//	        slug: code-review-best-practices
+//	@internal
+//	This is the "Template" layer — declares capabilities and requirements.
+//	The overview.md file provides the SDK-facing description and example YAML.
 type AgentInput struct {
 	// Human-readable name of the resource.
 	Name string `json:"name" jsonschema:"Human-readable name of the resource."`
@@ -45,20 +29,20 @@ type AgentInput struct {
 	// Tags for categorization and discovery.
 	Tags []string `json:"tags,omitempty" jsonschema:"Tags for categorization and discovery."`
 
-	// Human-readable description for UI and marketplace display. Should explain what this agent does and its primary capabilities.
-	Description string `json:"description,omitempty" jsonschema:"Human-readable description for UI and marketplace display. Should explain what this agent does and its primary capabilities."`
-	// Icon URL for marketplace and UI display. Should be a publicly accessible URL to an image (SVG, PNG, or JPEG).
-	IconUrl string `json:"icon_url,omitempty" jsonschema:"Icon URL for marketplace and UI display. Should be a publicly accessible URL to an image (SVG, PNG, or JPEG)."`
-	// Instructions defining the agent's behavior and personality. This is the agent's system prompt - the core logic that shapes its responses. Should be at least 10 characters to ensure meaningful instructions.
-	Instructions string `json:"instructions,omitempty" jsonschema:"Instructions defining the agent's behavior and personality. This is the agent's system prompt - the core logic that shapes its responses. Should be at least 10 characters to ensure meaningful instructions."`
-	// MCP servers this Agent can use. Each usage references a McpServer resource by its ref. The slug from each reference must be unique within this Agent.
-	McpServerUsages []McpServerUsageInput `json:"mcp_server_usages,omitempty" jsonschema:"MCP servers this Agent can use. Each usage references a McpServer resource by its ref. The slug from each reference must be unique within this Agent."`
-	// Skill resources providing agent knowledge. Skills are injected into the agent's context as additional capabilities.
-	SkillRefs []SkillRefInput `json:"skill_refs,omitempty" jsonschema:"Skill resources providing agent knowledge. Skills are injected into the agent's context as additional capabilities."`
-	// Sub-agents that can be delegated to. Sub-agents inherit the parent's MCP server usages but can have restricted access.
-	SubAgents []SubAgentInput `json:"sub_agents,omitempty" jsonschema:"Sub-agents that can be delegated to. Sub-agents inherit the parent's MCP server usages but can have restricted access."`
-	// Environment variables required by the agent. Uses the shared EnvironmentSpec for consistent env var handling across resources.
-	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Environment variables required by the agent. Uses the shared EnvironmentSpec for consistent env var handling across resources."`
+	// Human-readable description for UI and marketplace display.
+	Description string `json:"description,omitempty" jsonschema:"Human-readable description for UI and marketplace display."`
+	// Icon URL for marketplace and UI display. Must be a publicly accessible URL to an image (SVG, PNG, or JPEG).
+	IconUrl string `json:"icon_url,omitempty" jsonschema:"Icon URL for marketplace and UI display. Must be a publicly accessible URL to an image (SVG, PNG, or JPEG)."`
+	// System prompt defining the agent's behavior and personality.
+	Instructions string `json:"instructions,omitempty" jsonschema:"System prompt defining the agent's behavior and personality."`
+	// MCP servers this agent can use. Each entry must reference a unique McpServer resource by slug.
+	McpServerUsages []McpServerUsageInput `json:"mcp_server_usages,omitempty" jsonschema:"MCP servers this agent can use. Each entry must reference a unique McpServer resource by slug."`
+	// Skill resources providing additional knowledge to the agent.
+	SkillRefs []SkillRefInput `json:"skill_refs,omitempty" jsonschema:"Skill resources providing additional knowledge to the agent."`
+	// Sub-agents that can be delegated to. Sub-agents can access a subset of the parent's MCP servers and tools.
+	SubAgents []SubAgentInput `json:"sub_agents,omitempty" jsonschema:"Sub-agents that can be delegated to. Sub-agents can access a subset of the parent's MCP servers and tools."`
+	// Environment variables required by the agent.
+	EnvSpec *EnvironmentInput `json:"env_spec,omitempty" jsonschema:"Environment variables required by the agent."`
 }
 
 // Identifies a resource by org, slug, and optional version. Kind is auto-populated.
@@ -69,24 +53,24 @@ type McpServerRefInput struct {
 	Slug string `json:"slug" jsonschema:"Resource slug (user-friendly identifier, unique within org). Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., 'web-search', 'code-reviewer'). Length: 1-63 characters."`
 }
 
-// ToolApprovalOverride allows per-agent customization of approval requirements. ## Override Semantics - requires_approval=true: Tool requires approval (even if MCP has no default) - requires_approval=false: Tool does NOT require approval (overrides MCP default) ## Message Inheritance When requires_approval=true and message is empty: - If McpServer has default_tool_approvals for this tool, uses that message - Otherwise, auto-generates: "Execute tool: {tool_name}" When message is provided, it overrides any McpServer default message. ## Policy Chain Position This sits in the middle of the approval policy chain: 1. McpServer.default_tool_approvals - Platform/org defaults (lowest priority) 2. Agent.McpServerUsage.tool_approval_overrides (this message) - Per-agent customization 3. AgentExecution.auto_approve_all - Runtime bypass (highest priority) ## Validation The tool_name should match a tool in the referenced McpServer's tools/list. Invalid tool names are silently ignored (no approval applied). This allows forward-compatibility when MCP servers add/remove tools.
+// ToolApprovalOverride allows per-agent customization of approval requirements. Set requires_approval to true to require approval even when the McpServer has no default, or to false to skip approval even when the McpServer requires it. These overrides take precedence over McpServer.default_tool_approvals but can be bypassed at execution time by AgentExecution.auto_approve_all. @internal Policy chain (lowest to highest priority): 1. McpServer.default_tool_approvals — platform/org defaults 2. Agent.McpServerUsage.tool_approval_overrides — per-agent (this message) 3. AgentExecution.auto_approve_all — runtime bypass Invalid tool names are silently ignored (no approval applied). This allows forward-compatibility when MCP servers add/remove tools.
 type ToolApprovalOverrideInput struct {
-	// Name of the tool to override. Must match exactly (case-sensitive) with MCP server's tool name. Example: "delete_repository", "send_email", "execute_sql"
-	ToolName string `json:"tool_name,omitempty" jsonschema:"Name of the tool to override. Must match exactly (case-sensitive) with MCP server's tool name. Example: 'delete_repository', 'send_email', 'execute_sql'"`
-	// Whether this tool requires approval for this agent. false: No approval needed (overrides any McpServer default) true: Approval required (even if McpServer has no default) Note: This can be further overridden at execution time by AgentExecutionSpec.auto_approve_all=true
-	RequiresApproval bool `json:"requires_approval,omitempty" jsonschema:"Whether this tool requires approval for this agent. false: No approval needed (overrides any McpServer default) true: Approval required (even if McpServer has no default) Note: This can be further overridden at execution time by AgentExecutionSpec.auto_approve_all=true"`
-	// Optional: Custom approval message for this agent. Supports {{args.field}} placeholders like ToolApprovalPolicy.message. If empty and requires_approval=true: - Uses McpServer's default message for this tool (if exists) - Otherwise auto-generates: "Execute tool: {tool_name}" Guidelines for effective messages: - Be specific to this agent's context - Include the most important argument values - Keep under 100 characters for UI display
-	Message string `json:"message,omitempty" jsonschema:"Optional: Custom approval message for this agent. Supports {{args.field}} placeholders like ToolApprovalPolicy.message. If empty and requires_approval=true: - Uses McpServer's default message for this tool (if exists) - Otherwise auto-generates: 'Execute tool: {tool_name}' Guidelines for effective messages: - Be specific to this agent's context - Include the most important argument values - Keep under 100 characters for UI display"`
+	// Name of the tool to override.
+	ToolName string `json:"tool_name,omitempty" jsonschema:"Name of the tool to override."`
+	// Whether this tool requires approval for this agent.
+	RequiresApproval bool `json:"requires_approval,omitempty" jsonschema:"Whether this tool requires approval for this agent."`
+	// Custom approval message shown to the reviewer. Supports {{args.field}} placeholders. When empty, falls back to the McpServer default or auto-generates "Execute tool: {tool_name}".
+	Message string `json:"message,omitempty" jsonschema:"Custom approval message shown to the reviewer. Supports {{args.field}} placeholders. When empty, falls back to the McpServer default or auto-generates 'Execute tool: {tool_name}'."`
 }
 
-// McpServerUsage declares that this Agent uses a McpServer resource. The slug from mcp_server_ref becomes the identifier for SubAgent access. Design principle: Users already named their McpServer with a slug. We use that slug as the identifier - no extra naming required. Example YAML: mcp_server_usages: - mcp_server_ref: kind: mcp_server slug: github enabled_tools: [search_code, get_file, create_pr] tool_approval_overrides: - tool_name: delete_repository requires_approval: false # Trust this agent - mcp_server_ref: org: acme-corp kind: mcp_server slug: internal-tools
+// McpServerUsage declares that this agent uses a McpServer resource. The slug from mcp_server_ref identifies this server for SubAgent access grants via McpAccess. @internal Design principle: Users already named their McpServer with a slug. We use that slug as the identifier — no extra naming required.
 type McpServerUsageInput struct {
-	// Reference to the McpServer resource. Must reference a resource with kind=mcp_server (44). The slug from this reference is how SubAgents identify this server.
-	McpServerRef McpServerRefInput `json:"mcp_server_ref" jsonschema:"Reference to the McpServer resource. Must reference a resource with kind=mcp_server (44). The slug from this reference is how SubAgents identify this server."`
-	// Tools to enable from this MCP server for this Agent. This defines the maximum tool set - SubAgents can only restrict further. Empty list = use McpServer's default_enabled_tools (or all if not specified). Tool names must match exactly what the MCP server reports via tools/list. IMPORTANT: Only names from `discovered_capabilities.tools` are valid here. Do NOT include names from `discovered_capabilities.resource_templates` — resource templates are read-only data endpoints, not callable tools. Including a resource template name here causes a fatal runtime error.
-	EnabledTools []string `json:"enabled_tools,omitempty" jsonschema:"Tools to enable from this MCP server for this Agent. This defines the maximum tool set - SubAgents can only restrict further. Empty list = use McpServer's default_enabled_tools (or all if not specified). Tool names must match exactly what the MCP server reports via tools/list. IMPORTANT: Only names from 'discovered_capabilities.tools' are valid here. Do NOT include names from 'discovered_capabilities.resource_templates' — resource templates are read-only data endpoints, not callable tools. Including a resource template name here causes a fatal runtime error."`
-	// Override approval requirements for specific tools. These overrides take precedence over McpServer.default_tool_approvals, allowing per-agent customization of the approval policy. Use cases: - Disable approval for a trusted automation agent - Add approval for a tool that doesn't have default approval - Customize the approval message for this agent's context Example (trusted deployment agent - disable defaults): tool_approval_overrides: - tool_name: "delete_repository" requires_approval: false # Trust this agent for deletions - tool_name: "force_push" requires_approval: false # Trust this agent for force pushes Example (stricter approval for customer-facing agent): tool_approval_overrides: - tool_name: "send_email" requires_approval: true message: "Send customer communication: {{args.subject}}" - tool_name: "create_ticket" requires_approval: true message: "Create support ticket for customer"
-	ToolApprovalOverrides []ToolApprovalOverrideInput `json:"tool_approval_overrides,omitempty" jsonschema:"Override approval requirements for specific tools. These overrides take precedence over McpServer.default_tool_approvals, allowing per-agent customization of the approval policy. Use cases: - Disable approval for a trusted automation agent - Add approval for a tool that doesn't have default approval - Customize the approval message for this agent's context Example (trusted deployment agent - disable defaults): tool_approval_overrides: - tool_name: 'delete_repository' requires_approval: false # Trust this agent for deletions - tool_name: 'force_push' requires_approval: false # Trust this agent for force pushes Example (stricter approval for customer-facing agent): tool_approval_overrides: - tool_name: 'send_email' requires_approval: true message: 'Send customer communication: {{args.subject}}' - tool_name: 'create_ticket' requires_approval: true message: 'Create support ticket for customer'"`
+	// Reference to the McpServer resource.
+	McpServerRef McpServerRefInput `json:"mcp_server_ref" jsonschema:"Reference to the McpServer resource."`
+	// Tools to enable from this MCP server for this agent. Empty list uses the McpServer's default_enabled_tools. Sub-agents can only restrict this set further, not expand it. @internal Tool names must match exactly what the MCP server reports via tools/list. Only names from discovered_capabilities.tools are valid here. Do NOT include names from discovered_capabilities.resource_templates — resource templates are read-only data endpoints, not callable tools. Including a resource template name here causes a fatal runtime error.
+	EnabledTools []string `json:"enabled_tools,omitempty" jsonschema:"Tools to enable from this MCP server for this agent. Empty list uses the McpServer's default_enabled_tools. Sub-agents can only restrict this set further, not expand it. @internal Tool names must match exactly what the MCP server reports via tools/list. Only names from discovered_capabilities.tools are valid here. Do NOT include names from discovered_capabilities.resource_templates — resource templates are read-only data endpoints, not callable tools. Including a resource template name here causes a fatal runtime error."`
+	// Override approval requirements for specific tools. Takes precedence over McpServer.default_tool_approvals.
+	ToolApprovalOverrides []ToolApprovalOverrideInput `json:"tool_approval_overrides,omitempty" jsonschema:"Override approval requirements for specific tools. Takes precedence over McpServer.default_tool_approvals."`
 }
 
 // Identifies a resource by org, slug, and optional version. Kind is auto-populated.
@@ -99,46 +83,46 @@ type SkillRefInput struct {
 	Version string `json:"version,omitempty" jsonschema:"Version of the resource (optional, only applicable to versioned resources like Skills). Supports three formats: 1. Empty/unset → Resolves to 'latest' (most recent version) 2. Tag name → Resolves to version with this tag (e.g., 'stable', 'v1.0') 3. Exact hash → Immutable reference to specific version (e.g., 'abc123...') Default behavior: Empty means 'latest' (current version). This field is ignored for non-versioned resources. Examples: - version: '' → Use latest version - version: 'latest' → Use latest version (explicit) - version: 'stable' → Use version tagged as 'stable' - version: 'v1.0' → Use version tagged as 'v1.0' - version: 'abc123...' → Use exact version with this hash (immutable)"`
 }
 
-// McpAccess grants a SubAgent access to one of the parent Agent's MCP servers. Uses the same slug that identifies the McpServer resource. Permission model: - SubAgent can only access servers that parent has in mcp_server_usages - SubAgent tools must be a subset of parent's enabled tools Example YAML: sub_agents: - name: code-reviewer mcp_access: - mcp_server: github enabled_tools: [search_code, get_file] - mcp_server: slack # enabled_tools empty = all tools from parent
+// McpAccess grants a sub-agent access to one of the parent's MCP servers. @internal Permission model enforced at execution time: sub-agent can only access servers in the parent's mcp_server_usages, and tools must be a subset of the parent's enabled_tools.
 type McpAccessInput struct {
-	// Slug of the McpServer to grant access to. Must match mcp_server_ref.slug from one of parent's mcp_server_usages.
-	McpServer string `json:"mcp_server" jsonschema:"Slug of the McpServer to grant access to. Must match mcp_server_ref.slug from one of parent's mcp_server_usages."`
-	// Tools this SubAgent can use from this MCP server. Must be a subset of the parent's enabled_tools for this server. Empty list = all tools that parent has enabled (no additional restriction). Only MCP tool names are valid — never include resource template names.
-	EnabledTools []string `json:"enabled_tools,omitempty" jsonschema:"Tools this SubAgent can use from this MCP server. Must be a subset of the parent's enabled_tools for this server. Empty list = all tools that parent has enabled (no additional restriction). Only MCP tool names are valid — never include resource template names."`
+	// Slug of the McpServer to grant access to. Must match a mcp_server_ref.slug from the parent's mcp_server_usages.
+	McpServer string `json:"mcp_server" jsonschema:"Slug of the McpServer to grant access to. Must match a mcp_server_ref.slug from the parent's mcp_server_usages."`
+	// Tools this sub-agent can use from this MCP server. Must be a subset of the parent's enabled_tools for this server. Empty list grants access to all tools the parent has enabled.
+	EnabledTools []string `json:"enabled_tools,omitempty" jsonschema:"Tools this sub-agent can use from this MCP server. Must be a subset of the parent's enabled_tools for this server. Empty list grants access to all tools the parent has enabled."`
 }
 
-// SubAgent defines a specialized agent that the parent can delegate to. SubAgents have restricted access to the parent's MCP servers. Permission Model: - SubAgent can only access MCP servers that parent has in mcp_server_usages - SubAgent tools must be a subset of parent's enabled tools (can restrict, not expand) - SubAgent skills can reference any Skill resource (independent of parent) Example YAML: sub_agents: - name: code-reviewer description: "Reviews code changes for quality and security" instructions: "You review code changes. Focus on security..." mcp_access: - mcp_server: github enabled_tools: [search_code, get_file] skill_refs: - kind: skill slug: code-review-best-practices
+// SubAgent defines a specialized agent that the parent can delegate to. A sub-agent can only access MCP servers that the parent has in mcp_server_usages, and its tools must be a subset of the parent's enabled tools. Skills are independent of the parent. @internal Permission model enforced at execution time by the delegation handler.
 type SubAgentInput struct {
-	// Unique name of the sub-agent within the parent agent. Used for delegation routing and logging. Examples: "code-reviewer", "researcher", "writer"
-	Name string `json:"name" jsonschema:"Unique name of the sub-agent within the parent agent. Used for delegation routing and logging. Examples: 'code-reviewer', 'researcher', 'writer'"`
-	// Description of what this sub-agent specializes in. Helps the parent agent decide when to delegate to this sub-agent. Example: "Reviews code changes for security issues and best practices"
-	Description string `json:"description,omitempty" jsonschema:"Description of what this sub-agent specializes in. Helps the parent agent decide when to delegate to this sub-agent. Example: 'Reviews code changes for security issues and best practices'"`
-	// Behavior instructions for this sub-agent. Defines the sub-agent's personality, expertise, and constraints. Should be at least 10 characters to ensure meaningful instructions.
-	Instructions string `json:"instructions,omitempty" jsonschema:"Behavior instructions for this sub-agent. Defines the sub-agent's personality, expertise, and constraints. Should be at least 10 characters to ensure meaningful instructions."`
-	// MCP server access grants for this sub-agent. Each McpAccess references a parent's McpServerUsage by slug and optionally restricts which tools are available. Sub-agent can only use MCP servers listed here.
-	McpAccess []McpAccessInput `json:"mcp_access,omitempty" jsonschema:"MCP server access grants for this sub-agent. Each McpAccess references a parent's McpServerUsage by slug and optionally restricts which tools are available. Sub-agent can only use MCP servers listed here."`
-	// Skill resources for this sub-agent's knowledge. Skills provide domain-specific knowledge and capabilities.
-	SkillRefs []SkillRefInput `json:"skill_refs,omitempty" jsonschema:"Skill resources for this sub-agent's knowledge. Skills provide domain-specific knowledge and capabilities."`
-	// Model override for this sub-agent. When set, this sub-agent uses this model instead of the parent's model. Enables cost optimization by routing simple sub-agent tasks to cheaper models. Examples: - Parent uses "claude-sonnet-4" ($3/$15 per MTok) - File search sub-agent overrides to "claude-haiku-4" ($0.25/$1.25) - Code review sub-agent keeps parent model (leave empty) When empty: inherits the parent agent's model (current behavior).
-	ModelOverride string `json:"model_override,omitempty" jsonschema:"Model override for this sub-agent. When set, this sub-agent uses this model instead of the parent's model. Enables cost optimization by routing simple sub-agent tasks to cheaper models. Examples: - Parent uses 'claude-sonnet-4' ($3/$15 per MTok) - File search sub-agent overrides to 'claude-haiku-4' ($0.25/$1.25) - Code review sub-agent keeps parent model (leave empty) When empty: inherits the parent agent's model (current behavior)."`
+	// Unique name of the sub-agent within the parent agent.
+	Name string `json:"name" jsonschema:"Unique name of the sub-agent within the parent agent."`
+	// What this sub-agent specializes in.
+	Description string `json:"description,omitempty" jsonschema:"What this sub-agent specializes in."`
+	// System prompt for this sub-agent.
+	Instructions string `json:"instructions,omitempty" jsonschema:"System prompt for this sub-agent."`
+	// MCP server access grants for this sub-agent. Each entry references a parent McpServerUsage by slug and optionally restricts which tools are available.
+	McpAccess []McpAccessInput `json:"mcp_access,omitempty" jsonschema:"MCP server access grants for this sub-agent. Each entry references a parent McpServerUsage by slug and optionally restricts which tools are available."`
+	// Skill resources for this sub-agent.
+	SkillRefs []SkillRefInput `json:"skill_refs,omitempty" jsonschema:"Skill resources for this sub-agent."`
+	// Model override for this sub-agent. When set, uses this model instead of the parent's model. When empty, inherits the parent agent's model.
+	ModelOverride string `json:"model_override,omitempty" jsonschema:"Model override for this sub-agent. When set, uses this model instead of the parent's model. When empty, inherits the parent agent's model."`
 }
 
-// EnvironmentValue represents a single configuration or secret value.
+// EnvironmentValue represents a single configuration or secret entry.
 type EnvironmentValue struct {
-	// The actual value. - If is_secret=true: This value is encrypted at rest and redacted in logs - If is_secret=false: This value is stored as plaintext Note: Value can be empty when defining environment variables in specs. Actual values are typically provided at runtime during execution.
-	Value string `json:"value,omitempty" jsonschema:"The actual value. - If is_secret=true: This value is encrypted at rest and redacted in logs - If is_secret=false: This value is stored as plaintext Note: Value can be empty when defining environment variables in specs. Actual values are typically provided at runtime during execution."`
-	// Whether this value should be treated as a secret. When true: - Value is encrypted at rest - Value is redacted in logs - Value requires special permissions to read When false: - Value is stored as plaintext - Value is visible in audit logs
-	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether this value should be treated as a secret. When true: - Value is encrypted at rest - Value is redacted in logs - Value requires special permissions to read When false: - Value is stored as plaintext - Value is visible in audit logs"`
-	// Optional description for documentation. Example: "AWS access key for S3 bucket access"
-	Description string `json:"description,omitempty" jsonschema:"Optional description for documentation. Example: 'AWS access key for S3 bucket access'"`
+	// The configuration or secret string. @internal When is_secret is true the value is encrypted at rest and redacted in logs. When is_secret is false the value is stored as plaintext. Value can be empty when pre-declaring keys whose values are injected at runtime.
+	Value string `json:"value,omitempty" jsonschema:"The configuration or secret string. @internal When is_secret is true the value is encrypted at rest and redacted in logs. When is_secret is false the value is stored as plaintext. Value can be empty when pre-declaring keys whose values are injected at runtime."`
+	// Whether this value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal. When false: stored as plaintext, visible in audit logs.
+	IsSecret bool `json:"is_secret,omitempty" jsonschema:"Whether this value should be treated as a secret. @internal When true: encrypted at rest, redacted in logs, requires can_read_secrets to reveal. When false: stored as plaintext, visible in audit logs."`
+	// Human-readable description of what this value is used for.
+	Description string `json:"description,omitempty" jsonschema:"Human-readable description of what this value is used for."`
 }
 
-// EnvironmentSpec defines a collection of configuration and secrets. Created before AgentInstance or WorkflowInstance, referenced during instance creation.
+// EnvironmentSpec defines the configurable properties of an environment. @internal The overview.md file provides the SDK-facing description and example YAML.
 type EnvironmentInput struct {
-	// Human-readable description of this environment. Example: "Production AWS credentials for deployment"
-	Description string `json:"description,omitempty" jsonschema:"Human-readable description of this environment. Example: 'Production AWS credentials for deployment'"`
-	// Key-value pairs containing both configuration and secrets. Each value includes a flag indicating whether it's a secret. Example: {"AWS_REGION": {value: "us-west-2", is_secret: false}, "AWS_ACCESS_KEY_ID": {value: "AKIA...", is_secret: true}}
-	Data map[string]*EnvironmentValue `json:"data,omitempty" jsonschema:"Key-value pairs containing both configuration and secrets. Each value includes a flag indicating whether it's a secret. Example: {'AWS_REGION': {value: 'us-west-2', is_secret: false}, 'AWS_ACCESS_KEY_ID': {value: 'AKIA...', is_secret: true}}"`
+	// Human-readable description for UI and listing display.
+	Description string `json:"description,omitempty" jsonschema:"Human-readable description for UI and listing display."`
+	// Key-value pairs containing configuration and secrets. Each value includes a flag indicating whether it is a secret.
+	Data map[string]*EnvironmentValue `json:"data,omitempty" jsonschema:"Key-value pairs containing configuration and secrets. Each value includes a flag indicating whether it is a secret."`
 }
 
 // ToProto converts the flat MCP input into a fully-formed Agent proto message.

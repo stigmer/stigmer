@@ -48,15 +48,15 @@ func TestBuildNewStateStep_Execute(t *testing.T) {
 		t.Errorf("Expected ID to be generated, got empty string")
 	}
 
-	// Check ID format (should start with "agt-" for agent kind)
-	if !strings.HasPrefix(agent.Metadata.Id, "agt-") {
-		t.Errorf("Expected ID to start with 'agt-', got %q", agent.Metadata.Id)
+	// Check ID format (should start with "agt_" for agent kind)
+	if !strings.HasPrefix(agent.Metadata.Id, "agt_") {
+		t.Errorf("Expected ID to start with 'agt_', got %q", agent.Metadata.Id)
 	}
 
-	// Check ID contains timestamp
-	parts := strings.Split(agent.Metadata.Id, "-")
+	// Check ID has prefix_ulid format
+	parts := strings.SplitN(agent.Metadata.Id, "_", 2)
 	if len(parts) != 2 {
-		t.Errorf("Expected ID format 'agt-{timestamp}', got %q", agent.Metadata.Id)
+		t.Errorf("Expected ID format 'agt_{ulid}', got %q", agent.Metadata.Id)
 	}
 
 	// Check audit fields were set using proto reflection
@@ -95,7 +95,7 @@ func TestBuildNewStateStep_Execute(t *testing.T) {
 
 func TestBuildNewStateStep_Idempotent(t *testing.T) {
 	// Pre-set ID
-	existingID := "agt-123456789"
+	existingID := "agt_123456789"
 	agent := &agentv1.Agent{
 		Metadata: &apiresource.ApiResourceMetadata{
 			Name: "Test Agent",
@@ -127,9 +127,9 @@ func TestBuildNewStateStep_DifferentKinds(t *testing.T) {
 		kind     apiresourcekind.ApiResourceKind
 		expected string
 	}{
-		{"agent kind", apiresourcekind.ApiResourceKind_agent, "agt-"},
-		{"workflow kind", apiresourcekind.ApiResourceKind_workflow, "wfl-"},
-		{"agent_instance kind", apiresourcekind.ApiResourceKind_agent_instance, "ain-"},
+		{"agent kind", apiresourcekind.ApiResourceKind_agent, "agt_"},
+		{"workflow kind", apiresourcekind.ApiResourceKind_workflow, "wfl_"},
+		{"agent_instance kind", apiresourcekind.ApiResourceKind_agent_instance, "ain_"},
 	}
 
 	for _, tt := range tests {
@@ -214,9 +214,9 @@ func TestGenerateID(t *testing.T) {
 		prefix   string
 		expected string
 	}{
-		{"agt", "agt-"},
-		{"wfl", "wfl-"},
-		{"ain", "ain-"},
+		{"agt", "agt_"},
+		{"wfl", "wfl_"},
+		{"ain", "ain_"},
 	}
 
 	for _, tt := range tests {
@@ -227,10 +227,9 @@ func TestGenerateID(t *testing.T) {
 				t.Errorf("generateID(%q) should start with %q, got %q", tt.prefix, tt.expected, id)
 			}
 
-			// Check that the suffix is a number
-			parts := strings.Split(id, "-")
+			parts := strings.SplitN(id, "_", 2)
 			if len(parts) != 2 {
-				t.Errorf("Expected ID format '{prefix}-{timestamp}', got %q", id)
+				t.Errorf("Expected ID format '{prefix}_{ulid}', got %q", id)
 			}
 		})
 	}

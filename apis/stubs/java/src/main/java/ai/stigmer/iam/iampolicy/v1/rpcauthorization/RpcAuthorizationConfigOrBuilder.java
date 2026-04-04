@@ -12,7 +12,7 @@ public interface RpcAuthorizationConfigOrBuilder extends
 
   /**
    * <pre>
-   * permission required to run the service
+   * Permission required to invoke the RPC.
    * </pre>
    *
    * <code>.ai.stigmer.iam.iampolicy.v1.rpcauthorization.ApiResourceIamPermission permission = 1 [json_name = "permission"];</code>
@@ -21,7 +21,7 @@ public interface RpcAuthorizationConfigOrBuilder extends
   int getPermissionValue();
   /**
    * <pre>
-   * permission required to run the service
+   * Permission required to invoke the RPC.
    * </pre>
    *
    * <code>.ai.stigmer.iam.iampolicy.v1.rpcauthorization.ApiResourceIamPermission permission = 1 [json_name = "permission"];</code>
@@ -31,7 +31,7 @@ public interface RpcAuthorizationConfigOrBuilder extends
 
   /**
    * <pre>
-   * api-resource-kind that the permission should be granted
+   * Resource kind that the permission is checked against.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind resource_kind = 2 [json_name = "resourceKind"];</code>
@@ -40,7 +40,7 @@ public interface RpcAuthorizationConfigOrBuilder extends
   int getResourceKindValue();
   /**
    * <pre>
-   * api-resource-kind that the permission should be granted
+   * Resource kind that the permission is checked against.
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind resource_kind = 2 [json_name = "resourceKind"];</code>
@@ -50,8 +50,8 @@ public interface RpcAuthorizationConfigOrBuilder extends
 
   /**
    * <pre>
-   * path of the field that contains the api-resource-kind on which to perform authorization.
-   * this is useful when the resource_kind is part of the input object
+   * Dot-path to the field in the request that contains the resource kind value.
+   * Used when resource_kind varies per request rather than being statically configured.
    * </pre>
    *
    * <code>string resource_kind_path = 3 [json_name = "resourceKindPath"];</code>
@@ -60,8 +60,8 @@ public interface RpcAuthorizationConfigOrBuilder extends
   java.lang.String getResourceKindPath();
   /**
    * <pre>
-   * path of the field that contains the api-resource-kind on which to perform authorization.
-   * this is useful when the resource_kind is part of the input object
+   * Dot-path to the field in the request that contains the resource kind value.
+   * Used when resource_kind varies per request rather than being statically configured.
    * </pre>
    *
    * <code>string resource_kind_path = 3 [json_name = "resourceKindPath"];</code>
@@ -72,7 +72,7 @@ public interface RpcAuthorizationConfigOrBuilder extends
 
   /**
    * <pre>
-   * path of the field inside the input object to be used for performing authorization.
+   * Dot-path to the field in the request that contains the resource identifier for the authorization check.
    * </pre>
    *
    * <code>string field_path = 4 [json_name = "fieldPath"];</code>
@@ -81,7 +81,7 @@ public interface RpcAuthorizationConfigOrBuilder extends
   java.lang.String getFieldPath();
   /**
    * <pre>
-   * path of the field inside the input object to be used for performing authorization.
+   * Dot-path to the field in the request that contains the resource identifier for the authorization check.
    * </pre>
    *
    * <code>string field_path = 4 [json_name = "fieldPath"];</code>
@@ -92,7 +92,7 @@ public interface RpcAuthorizationConfigOrBuilder extends
 
   /**
    * <pre>
-   * error message to be returned when the permission is not granted to user
+   * Error message returned when the caller lacks the required permission.
    * </pre>
    *
    * <code>string error_msg = 5 [json_name = "errorMsg"];</code>
@@ -101,7 +101,7 @@ public interface RpcAuthorizationConfigOrBuilder extends
   java.lang.String getErrorMsg();
   /**
    * <pre>
-   * error message to be returned when the permission is not granted to user
+   * Error message returned when the caller lacks the required permission.
    * </pre>
    *
    * <code>string error_msg = 5 [json_name = "errorMsg"];</code>
@@ -112,8 +112,10 @@ public interface RpcAuthorizationConfigOrBuilder extends
 
   /**
    * <pre>
-   * identifier value to be configured if identifier is not part of the input
-   * this will be used in case of system internal rpc`s where the resource_id is `planton-cloud`
+   * Static resource identifier used when the ID is not part of the request.
+   *
+   * &#64;internal
+   * Used for platform-level RPCs where the resource is always "stigmer".
    * </pre>
    *
    * <code>string resource_id = 6 [json_name = "resourceId"];</code>
@@ -122,8 +124,10 @@ public interface RpcAuthorizationConfigOrBuilder extends
   java.lang.String getResourceId();
   /**
    * <pre>
-   * identifier value to be configured if identifier is not part of the input
-   * this will be used in case of system internal rpc`s where the resource_id is `planton-cloud`
+   * Static resource identifier used when the ID is not part of the request.
+   *
+   * &#64;internal
+   * Used for platform-level RPCs where the resource is always "stigmer".
    * </pre>
    *
    * <code>string resource_id = 6 [json_name = "resourceId"];</code>

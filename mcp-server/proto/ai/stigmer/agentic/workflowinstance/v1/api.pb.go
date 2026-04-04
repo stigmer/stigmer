@@ -33,7 +33,8 @@ const (
 
 // WorkflowInstance represents a configured deployment of a Workflow template.
 //
-// WorkflowInstance is the "Instance" layer in the Template→Instance→Execution pattern.
+// @internal
+// This is the "Instance" layer in the Template→Instance→Execution pattern.
 // It binds a reusable Workflow template to specific environments containing credentials,
 // configuration, and secrets needed for execution.
 //
@@ -54,26 +55,18 @@ const (
 type WorkflowInstance struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// API version for this resource type.
-	// Format: 'agentic.stigmer.ai/v1'
-	// Validated as const to ensure version consistency.
 	ApiVersion string `protobuf:"bytes,1,opt,name=api_version,json=apiVersion,proto3" json:"api_version,omitempty"`
 	// Resource kind identifier.
-	// Must be exactly 'WorkflowInstance' to match the message name.
-	// Validated as const for type safety.
 	Kind string `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
-	// Standard resource metadata including name, id, slug, labels, tags, and annotations.
-	// WorkflowInstances belong to an organization. Visibility controls access:
-	// - PUBLIC: Shared templates accessible to all users
-	// - PRIVATE: Organization-internal instances
+	// Resource metadata including name, organization, visibility, and labels.
 	Metadata *apiresource.ApiResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	// User-provided configuration for this workflow instance.
-	// Defines which Workflow template to use and which Environments provide configuration/secrets.
-	// See WorkflowInstanceSpec for detailed field documentation.
+	// Configurable properties: workflow reference, description, and environment bindings.
 	Spec *WorkflowInstanceSpec `protobuf:"bytes,4,opt,name=spec,proto3" json:"spec,omitempty"`
-	// System-managed status and audit information.
-	// Contains creation/update timestamps, version number, and other audit metadata.
-	// This is a simple status (no custom execution state) since WorkflowInstance is configuration only.
-	// Execution state is tracked in WorkflowExecution resources.
+	// System-managed audit information.
+	//
+	// @internal
+	// This is a simple status (no custom execution state) since WorkflowInstance
+	// is configuration only. Execution state is tracked in WorkflowExecution resources.
 	Status        *apiresource.ApiResourceAuditStatus `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

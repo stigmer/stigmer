@@ -41,6 +41,6 @@ All types in this package are defined in `ai/stigmer/agentic/environment/v1/`:
 |---|---|
 | `api.proto` | `Environment`, top-level resource message |
 | `spec.proto` | `EnvironmentSpec` — `description`, `data`; `EnvironmentValue` — `value`, `is_secret`, `description` |
-| `command.proto` | `EnvironmentCommandController` — apply, create, update, delete |
-| `query.proto` | `EnvironmentQueryController` — get, getByReference |
-| `io.proto` | Input/output messages — `EnvironmentId` |
+| `command.proto` | `EnvironmentCommandController` — apply, create, update, delete, updateVariables, removeVariables |
+| `query.proto` | `EnvironmentQueryController` — get, getByReference, getSecretValue, list |
+| `io.proto` | Input/output messages — `EnvironmentId`, `EnvironmentSecretValueInput`, `ListEnvironmentsRequest`, `EnvironmentList`, `UpdateEnvironmentVariablesRequest`, `RemoveEnvironmentVariablesRequest` |

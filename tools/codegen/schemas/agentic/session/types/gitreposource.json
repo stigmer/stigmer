@@ -1,6 +1,6 @@
 {
   "name": "GitRepoSource",
-  "description": "GitRepoSource provisions a workspace by cloning a git repository.\n\n Authentication: The provisioner resolves GITHUB_TOKEN from the merged\n environment (Agent defaults \u003c Environment \u003c ExecutionContext.runtime_env)\n and injects it into the clone URL. The token is consumed by provisioning\n and stripped before forwarding to the agent runtime (see AD-05).\n\n HTTPS only for MVP. SSH key authentication is a future enhancement.",
+  "description": "GitRepoSource provisions a workspace by cloning a git repository.\n\n Only HTTPS clone URLs are supported. SSH URLs are rejected at validation time.\n\n @internal\n Authentication: The provisioner resolves GITHUB_TOKEN from the merged\n environment (Agent defaults \u003c Environment \u003c ExecutionContext.runtime_env)\n and injects it into the clone URL. The token is consumed by provisioning\n and stripped before forwarding to the agent runtime (see AD-05).\n SSH key authentication is a future enhancement.",
   "protoType": "ai.stigmer.agentic.session.v1.GitRepoSource",
   "protoFile": "apis/ai/stigmer/agentic/session/v1/workspace.proto",
   "fields": [
@@ -11,7 +11,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "HTTPS clone URL (required).\n Must use the https:// scheme. SSH URLs (git@...) are not supported.\n Example: \"https://github.com/acme/my-app.git\"",
+      "description": "HTTPS clone URL for the repository.",
       "required": true,
       "validation": {
         "required": true
@@ -24,7 +24,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Branch to clone (optional).\n When empty, the repository's default branch is used.\n Example: \"main\", \"develop\", \"feature/workspace-support\"",
+      "description": "Branch to clone.\n\n When empty, the repository's default branch is used.",
       "required": false
     },
     {
@@ -34,7 +34,7 @@
       "type": {
         "kind": "string"
       },
-      "description": "Commit SHA to checkout after cloning (optional).\n When set, the workspace is checked out at this exact commit (detached HEAD).\n When both branch and commit are set, the branch is cloned first, then\n the commit is checked out -- this allows shallow clones of a specific\n commit on a known branch.\n When only commit is set (no branch), a full clone is required to\n locate the commit.",
+      "description": "Commit SHA to checkout after cloning.\n\n When set, the workspace is checked out at this exact commit.\n When both branch and commit are set, the branch is cloned first, then\n the commit is checked out.",
       "required": false
     },
     {
@@ -44,7 +44,7 @@
       "type": {
         "kind": "int32"
       },
-      "description": "Clone depth (optional).\n\n Presence semantics:\n   - Absent (not set): shallow clone with depth 1 (fast default).\n   - 0: full clone with complete history.\n   - N \u003e 0: shallow clone with depth N.\n\n Uses proto3 optional to distinguish \"not set\" from \"set to 0.\"",
+      "description": "Number of commits to include in the clone history.\n\n When not set, defaults to a shallow clone with depth 1. Set to 0 for\n a full clone with complete history.\n\n @internal\n Uses proto3 optional to distinguish \"not set\" from \"set to 0.\"\n Absent: shallow clone depth 1; 0: full clone; N \u003e 0: shallow clone depth N.",
       "required": false,
       "oneofGroup": "_depth"
     },
@@ -59,7 +59,7 @@
           "GIT_WRITE_BACK_BRANCH_AND_PR"
         ]
       },
-      "description": "Controls whether the platform automatically creates a branch and\n pull request from the agent's file changes during execution.\n\n This is a platform-level workflow, not an agent-level decision. The\n agent focuses on making code changes; the platform packages them\n incrementally — the PR appears the moment the first file is written\n and the diff grows in real time as the agent works.\n\n Requires git credentials to be configured during workspace provisioning\n (GITHUB_TOKEN available in the execution environment). If credentials\n are not available, the write-back is silently skipped regardless of\n this setting.\n\n Default (UNSPECIFIED): platform decides. Currently defaults to\n write-back enabled when git credentials are available. Set an\n explicit mode to override.",
+      "description": "Controls whether the platform creates a branch and pull request from the agent's file changes.\n\n @internal\n This is a platform-level workflow, not an agent-level decision. The\n agent focuses on making code changes; the platform packages them\n incrementally — the PR appears the moment the first file is written\n and the diff grows in real time as the agent works.\n\n Requires GITHUB_TOKEN in the execution environment. If credentials\n are not available, the write-back is silently skipped regardless of\n this setting.\n\n Default (UNSPECIFIED): platform decides. Currently defaults to\n write-back enabled when git credentials are available.",
       "required": false
     }
   ]

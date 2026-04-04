@@ -48,20 +48,22 @@ type AgentExecutionCommandControllerClient interface {
 	//   - If session_id provided: checks can_create_execution_in on session
 	//   - If session_id NOT provided: checks can_create_execution_in on organization
 	Create(ctx context.Context, in *AgentExecution, opts ...grpc.CallOption) (*AgentExecution, error)
-	// Update an execution with full state.
+	// Update an agent execution.
+	//
+	// @internal
 	// Used by users to update execution configuration (spec fields).
 	// No individual field updates - always provide complete state.
 	Update(ctx context.Context, in *AgentExecution, opts ...grpc.CallOption) (*AgentExecution, error)
-	// Update execution status during agent execution.
+	// Update an agent execution's status.
 	//
 	// @internal
 	// System-level RPC used by agent-runner to send progressive status updates
 	// (messages, tool_calls, phase, etc.). Optimized for frequent status updates
 	// and merges status fields with existing state.
 	UpdateStatus(ctx context.Context, in *AgentExecutionUpdateStatusInput, opts ...grpc.CallOption) (*AgentExecution, error)
-	// Delete an execution.
+	// Delete an agent execution by ID.
 	Delete(ctx context.Context, in *apiresource.ApiResourceId, opts ...grpc.CallOption) (*AgentExecution, error)
-	// Submit approval decision for a pending tool call (HITL Phase 1).
+	// Submit an approval decision for a pending tool call.
 	//
 	// ## Preconditions
 	//
@@ -494,20 +496,22 @@ type AgentExecutionCommandControllerServer interface {
 	//   - If session_id provided: checks can_create_execution_in on session
 	//   - If session_id NOT provided: checks can_create_execution_in on organization
 	Create(context.Context, *AgentExecution) (*AgentExecution, error)
-	// Update an execution with full state.
+	// Update an agent execution.
+	//
+	// @internal
 	// Used by users to update execution configuration (spec fields).
 	// No individual field updates - always provide complete state.
 	Update(context.Context, *AgentExecution) (*AgentExecution, error)
-	// Update execution status during agent execution.
+	// Update an agent execution's status.
 	//
 	// @internal
 	// System-level RPC used by agent-runner to send progressive status updates
 	// (messages, tool_calls, phase, etc.). Optimized for frequent status updates
 	// and merges status fields with existing state.
 	UpdateStatus(context.Context, *AgentExecutionUpdateStatusInput) (*AgentExecution, error)
-	// Delete an execution.
+	// Delete an agent execution by ID.
 	Delete(context.Context, *apiresource.ApiResourceId) (*AgentExecution, error)
-	// Submit approval decision for a pending tool call (HITL Phase 1).
+	// Submit an approval decision for a pending tool call.
 	//
 	// ## Preconditions
 	//

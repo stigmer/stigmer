@@ -16,9 +16,10 @@ export const file_ai_stigmer_agentic_workflow_v1_tasks_run: GenFile = /*@__PURE_
   fileDesc("Ci5haS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvdGFza3MvcnVuLnByb3RvEiRhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEudGFza3MiZwoNUnVuVGFza0NvbmZpZxIcCgh3b3JrZmxvdxgBIAEoCUIKukgHyAEBcgIQARImCgVpbnB1dBgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3Q6EOqLLAxydW5fd29ya2Zsb3diBnByb3RvMw", [file_ai_stigmer_commons_apiresource_field_options, file_buf_validate_validate, file_google_protobuf_struct]);
 
 /**
- * RunTaskConfig defines the configuration for RUN tasks.
+ * RunTaskConfig defines the configuration for run_workflow tasks that execute sub-workflows.
  *
- * RUN tasks execute sub-workflows (Temporal child workflows).
+ * @internal
+ * Implemented via Temporal child workflows.
  *
  * YAML Example:
  *   - taskName:

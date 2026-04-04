@@ -15,65 +15,60 @@ export const file_ai_stigmer_agentic_workflow_v1_serverless_validation: GenFile 
   fileDesc("CjphaS9zdGlnbWVyL2FnZW50aWMvd29ya2Zsb3cvdjEvc2VydmVybGVzcy92YWxpZGF0aW9uLnByb3RvEilhaS5zdGlnbWVyLmFnZW50aWMud29ya2Zsb3cudjEuc2VydmVybGVzcyLrAQocU2VydmVybGVzc1dvcmtmbG93VmFsaWRhdGlvbhJJCgVzdGF0ZRgBIAEoDjI6LmFpLnN0aWdtZXIuYWdlbnRpYy53b3JrZmxvdy52MS5zZXJ2ZXJsZXNzLlZhbGlkYXRpb25TdGF0ZRIMCgR5YW1sGAIgASgJEg4KBmVycm9ycxgDIAMoCRIQCgh3YXJuaW5ncxgEIAMoCRIwCgx2YWxpZGF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEh4KFnZhbGlkYXRpb25fd29ya2Zsb3dfaWQYBiABKAkqZAoPVmFsaWRhdGlvblN0YXRlEiAKHFZBTElEQVRJT05fU1RBVEVfVU5TUEVDSUZJRUQQABILCgdQRU5ESU5HEAESCQoFVkFMSUQQAhILCgdJTlZBTElEEAMSCgoGRkFJTEVEEARiBnByb3RvMw", [file_google_protobuf_timestamp]);
 
 /**
- * ServerlessWorkflowValidation contains the generated Serverless Workflow YAML
- * and its validation state. This is populated asynchronously after workflow creation
- * via a Temporal workflow that validates the workflow structure.
+ * ServerlessWorkflowValidation contains the generated Serverless Workflow YAML and its validation state.
+ *
+ * @internal
+ * Populated asynchronously after workflow creation via a Temporal workflow
+ * that validates the workflow structure.
  *
  * @generated from message ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation
  */
 export type ServerlessWorkflowValidation = Message<"ai.stigmer.agentic.workflow.v1.serverless.ServerlessWorkflowValidation"> & {
   /**
-   * Current validation state
+   * Current validation state.
    *
    * @generated from field: ai.stigmer.agentic.workflow.v1.serverless.ValidationState state = 1;
    */
   state: ValidationState;
 
   /**
-   * Generated Serverless Workflow YAML (CNCF DSL 1.0.0 format)
-   * This YAML may contain runtime expressions for environment variables:
-   *   Example: ${ .env.API_BASE_URL }
-   *
+   * Generated CNCF Serverless Workflow DSL 1.0.0 YAML.
    * Present even if validation failed (helps debugging).
-   * Empty if validation hasn't started yet.
+   * Empty if validation has not started yet.
+   *
+   * @internal
+   * May contain runtime expressions for environment variables (e.g., ${ .env.API_BASE_URL }).
    *
    * @generated from field: string yaml = 2;
    */
   yaml: string;
 
   /**
-   * Validation errors (empty if valid)
-   * Examples:
-   *   - "Invalid YAML syntax at line 15"
-   *   - "Unknown task type 'invalid_task'"
-   *   - "Missing required field: document.namespace"
+   * Validation errors, empty when valid.
    *
    * @generated from field: repeated string errors = 3;
    */
   errors: string[];
 
   /**
-   * Non-fatal warnings
-   * Examples:
-   *   - "Environment variable API_KEY referenced but not defined"
-   *   - "Task 'fetchData' has no error handling"
+   * Non-fatal validation warnings.
    *
    * @generated from field: repeated string warnings = 4;
    */
   warnings: string[];
 
   /**
-   * When validation was performed
-   * Null if validation hasn't completed yet
+   * When the validation was performed.
    *
    * @generated from field: google.protobuf.Timestamp validated_at = 5;
    */
   validatedAt?: Timestamp;
 
   /**
-   * Temporal workflow ID for the validation workflow
-   * Format: "validate-workflow-{workflow_id}"
-   * Useful for tracking/debugging validation progress
+   * Validation process ID for tracking validation progress.
+   *
+   * @internal
+   * Temporal workflow ID. Format: "validate-workflow-{workflow_id}".
    *
    * @generated from field: string validation_workflow_id = 6;
    */
@@ -94,41 +89,40 @@ export const ServerlessWorkflowValidationSchema: GenMessage<ServerlessWorkflowVa
  */
 export enum ValidationState {
   /**
-   * Unspecified state (should not be used)
+   * Default value, not a valid validation state.
    *
    * @generated from enum value: VALIDATION_STATE_UNSPECIFIED = 0;
    */
   VALIDATION_STATE_UNSPECIFIED = 0,
 
   /**
-   * Validation has been triggered but not yet completed
-   * This is the initial state when a workflow is created
+   * Validation is pending and has not yet completed.
    *
    * @generated from enum value: PENDING = 1;
    */
   PENDING = 1,
 
   /**
-   * Validation completed successfully - workflow structure is valid
-   * The generated YAML is stored and can be used for execution
+   * Validation completed successfully and the workflow structure is valid.
    *
    * @generated from enum value: VALID = 2;
    */
   VALID = 2,
 
   /**
-   * Validation completed but found errors - workflow structure is invalid
-   * The workflow cannot be executed until errors are fixed
-   * Errors are listed in the 'errors' field
+   * Validation completed but found errors in the workflow structure.
+   * Check the `errors` field for details.
    *
    * @generated from enum value: INVALID = 3;
    */
   INVALID = 3,
 
   /**
-   * Validation process itself failed (system error, not user error)
+   * Validation process failed due to a system error (not a user error).
+   * Retry validation or contact support.
+   *
+   * @internal
    * Examples: Temporal workflow crashed, activity timeout, etc.
-   * User should retry validation or contact support
    *
    * @generated from enum value: FAILED = 4;
    */

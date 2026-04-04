@@ -11,24 +11,44 @@ public interface ResourceAccessByPrincipalListOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
+   * <pre>
+   * Principal access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.PrincipalAccess entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<ai.stigmer.iam.iampolicy.v1.PrincipalAccess> 
       getEntriesList();
   /**
+   * <pre>
+   * Principal access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.PrincipalAccess entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.iam.iampolicy.v1.PrincipalAccess getEntries(int index);
   /**
+   * <pre>
+   * Principal access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.PrincipalAccess entries = 1 [json_name = "entries"];</code>
    */
   int getEntriesCount();
   /**
+   * <pre>
+   * Principal access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.PrincipalAccess entries = 1 [json_name = "entries"];</code>
    */
   java.util.List<? extends ai.stigmer.iam.iampolicy.v1.PrincipalAccessOrBuilder> 
       getEntriesOrBuilderList();
   /**
+   * <pre>
+   * Principal access entries.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.iam.iampolicy.v1.PrincipalAccess entries = 1 [json_name = "entries"];</code>
    */
   ai.stigmer.iam.iampolicy.v1.PrincipalAccessOrBuilder getEntriesOrBuilder(

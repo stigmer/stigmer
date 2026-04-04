@@ -11,13 +11,23 @@ import "ai/stigmer/iam/identityprovider/v1/api.proto";
 service IdentityProviderCommandController {
   option (ai.stigmer.commons.apiresource.api_resource_kind) = identity_provider;
 
-  // Create or update an identity provider (Kubernetes-style apply).
-  // If the resource doesn't exist: creates a new identity provider.
-  // If the resource exists: updates the existing identity provider.
+  // Create or update an identity provider.
+  //
+  // If the resource does not exist, creates a new identity provider.
+  // If the resource exists, updates the existing identity provider.
+  //
+  // @internal
+  // The authorization and state-operation are determined depending on whether the
+  // identity provider is going to be created or updated, which is determined as
+  // part of the request execution.
   rpc apply(IdentityProvider) returns (IdentityProvider);
 
-  // Create a new identity provider.
+  // Create an identity provider.
+  //
   // The creator's organization owns the identity provider.
+  //
+  // @internal
+  // Authorization: Requires can_create_idp permission in the organization.
   rpc create(IdentityProvider) returns (IdentityProvider) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = organization;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_create_idp;
@@ -26,7 +36,9 @@ service IdentityProviderCommandController {
   }
 
   // Update an existing identity provider.
-  // Requires can_edit permission on the identity provider.
+  //
+  // @internal
+  // Authorization: Requires can_edit permission on the identity provider resource.
   rpc update(IdentityProvider) returns (IdentityProvider) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_provider;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_edit;
@@ -35,7 +47,12 @@ service IdentityProviderCommandController {
   }
 
   // Delete an identity provider.
-  // Deletion is blocked if any platform-managed organizations reference this identity provider.
+  //
+  // Deletion is blocked if any platform-managed organizations reference this
+  // identity provider.
+  //
+  // @internal
+  // Authorization: Requires can_delete permission on the identity provider resource.
   rpc delete(ai.stigmer.commons.apiresource.ApiResourceDeleteInput) returns (IdentityProvider) {
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).resource_kind = identity_provider;
     option (ai.stigmer.iam.iampolicy.v1.rpcauthorization.config).permission = can_delete;

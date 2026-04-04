@@ -9,10 +9,9 @@ package ai.stigmer.agentic.mcpserver.v1;
  * <pre>
  * McpServerStatus represents the system-managed state of an MCP server definition.
  *
- * This status tracks two concerns:
- *
+ * &#64;internal
+ * Tracks two concerns:
  * 1. Structural validation — whether the definition is valid and can be used by agents.
- *
  * 2. Discovered capabilities — the tools and resource templates the MCP server
  * actually provides. Populated by one of three mechanisms:
  * a. Static seedpack bootstrap (for built-in servers like stigmer-mcp-server)
@@ -201,8 +200,7 @@ private static final long serialVersionUID = 0L;
   private ai.stigmer.commons.apiresource.ApiResourceAudit audit_;
   /**
    * <pre>
-   * Standard audit information tracking creation and modification.
-   * Field 99 follows Stigmer convention for audit placement in status messages.
+   * Standard audit information (created_at, updated_at, created_by, etc.)
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -214,8 +212,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard audit information tracking creation and modification.
-   * Field 99 follows Stigmer convention for audit placement in status messages.
+   * Standard audit information (created_at, updated_at, created_by, etc.)
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -227,8 +224,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * Standard audit information tracking creation and modification.
-   * Field 99 follows Stigmer convention for audit placement in status messages.
+   * Standard audit information (created_at, updated_at, created_by, etc.)
    * </pre>
    *
    * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -440,10 +436,9 @@ private static final long serialVersionUID = 0L;
    * <pre>
    * McpServerStatus represents the system-managed state of an MCP server definition.
    *
-   * This status tracks two concerns:
-   *
+   * &#64;internal
+   * Tracks two concerns:
    * 1. Structural validation — whether the definition is valid and can be used by agents.
-   *
    * 2. Discovered capabilities — the tools and resource templates the MCP server
    * actually provides. Populated by one of three mechanisms:
    * a. Static seedpack bootstrap (for built-in servers like stigmer-mcp-server)
@@ -1025,8 +1020,7 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.commons.apiresource.ApiResourceAudit, ai.stigmer.commons.apiresource.ApiResourceAudit.Builder, ai.stigmer.commons.apiresource.ApiResourceAuditOrBuilder> auditBuilder_;
     /**
      * <pre>
-     * Standard audit information tracking creation and modification.
-     * Field 99 follows Stigmer convention for audit placement in status messages.
+     * Standard audit information (created_at, updated_at, created_by, etc.)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -1037,8 +1031,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard audit information tracking creation and modification.
-     * Field 99 follows Stigmer convention for audit placement in status messages.
+     * Standard audit information (created_at, updated_at, created_by, etc.)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -1053,8 +1046,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard audit information tracking creation and modification.
-     * Field 99 follows Stigmer convention for audit placement in status messages.
+     * Standard audit information (created_at, updated_at, created_by, etc.)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -1074,8 +1066,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard audit information tracking creation and modification.
-     * Field 99 follows Stigmer convention for audit placement in status messages.
+     * Standard audit information (created_at, updated_at, created_by, etc.)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -1093,8 +1084,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard audit information tracking creation and modification.
-     * Field 99 follows Stigmer convention for audit placement in status messages.
+     * Standard audit information (created_at, updated_at, created_by, etc.)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -1119,8 +1109,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard audit information tracking creation and modification.
-     * Field 99 follows Stigmer convention for audit placement in status messages.
+     * Standard audit information (created_at, updated_at, created_by, etc.)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -1137,8 +1126,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard audit information tracking creation and modification.
-     * Field 99 follows Stigmer convention for audit placement in status messages.
+     * Standard audit information (created_at, updated_at, created_by, etc.)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -1150,8 +1138,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard audit information tracking creation and modification.
-     * Field 99 follows Stigmer convention for audit placement in status messages.
+     * Standard audit information (created_at, updated_at, created_by, etc.)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>
@@ -1166,8 +1153,7 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * Standard audit information tracking creation and modification.
-     * Field 99 follows Stigmer convention for audit placement in status messages.
+     * Standard audit information (created_at, updated_at, created_by, etc.)
      * </pre>
      *
      * <code>.ai.stigmer.commons.apiresource.ApiResourceAudit audit = 99 [json_name = "audit"];</code>

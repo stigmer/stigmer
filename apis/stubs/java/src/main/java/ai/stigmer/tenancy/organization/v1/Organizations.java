@@ -7,7 +7,7 @@ package ai.stigmer.tenancy.organization.v1;
 
 /**
  * <pre>
- * List of organizations (unbounded)
+ * List of organizations.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.tenancy.organization.v1.Organizations}
@@ -57,6 +57,10 @@ private static final long serialVersionUID = 0L;
   @SuppressWarnings("serial")
   private java.util.List<ai.stigmer.tenancy.organization.v1.Organization> entries_;
   /**
+   * <pre>
+   * Organization resources in this list.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -64,6 +68,10 @@ private static final long serialVersionUID = 0L;
     return entries_;
   }
   /**
+   * <pre>
+   * Organization resources in this list.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -72,6 +80,10 @@ private static final long serialVersionUID = 0L;
     return entries_;
   }
   /**
+   * <pre>
+   * Organization resources in this list.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -79,6 +91,10 @@ private static final long serialVersionUID = 0L;
     return entries_.size();
   }
   /**
+   * <pre>
+   * Organization resources in this list.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -86,6 +102,10 @@ private static final long serialVersionUID = 0L;
     return entries_.get(index);
   }
   /**
+   * <pre>
+   * Organization resources in this list.
+   * </pre>
+   *
    * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
    */
   @java.lang.Override
@@ -260,7 +280,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * List of organizations (unbounded)
+   * List of organizations.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.tenancy.organization.v1.Organizations}
@@ -458,6 +478,10 @@ private static final long serialVersionUID = 0L;
         ai.stigmer.tenancy.organization.v1.Organization, ai.stigmer.tenancy.organization.v1.Organization.Builder, ai.stigmer.tenancy.organization.v1.OrganizationOrBuilder> entriesBuilder_;
 
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.tenancy.organization.v1.Organization> getEntriesList() {
@@ -468,6 +492,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public int getEntriesCount() {
@@ -478,6 +506,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.tenancy.organization.v1.Organization getEntries(int index) {
@@ -488,6 +520,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public Builder setEntries(
@@ -505,6 +541,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public Builder setEntries(
@@ -519,6 +559,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(ai.stigmer.tenancy.organization.v1.Organization value) {
@@ -535,6 +579,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -552,6 +600,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -566,6 +618,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public Builder addEntries(
@@ -580,6 +636,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public Builder addAllEntries(
@@ -595,6 +655,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public Builder clearEntries() {
@@ -608,6 +672,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public Builder removeEntries(int index) {
@@ -621,6 +689,10 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.tenancy.organization.v1.Organization.Builder getEntriesBuilder(
@@ -628,6 +700,10 @@ private static final long serialVersionUID = 0L;
       return internalGetEntriesFieldBuilder().getBuilder(index);
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.tenancy.organization.v1.OrganizationOrBuilder getEntriesOrBuilder(
@@ -638,6 +714,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<? extends ai.stigmer.tenancy.organization.v1.OrganizationOrBuilder> 
@@ -649,6 +729,10 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.tenancy.organization.v1.Organization.Builder addEntriesBuilder() {
@@ -656,6 +740,10 @@ private static final long serialVersionUID = 0L;
           ai.stigmer.tenancy.organization.v1.Organization.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public ai.stigmer.tenancy.organization.v1.Organization.Builder addEntriesBuilder(
@@ -664,6 +752,10 @@ private static final long serialVersionUID = 0L;
           index, ai.stigmer.tenancy.organization.v1.Organization.getDefaultInstance());
     }
     /**
+     * <pre>
+     * Organization resources in this list.
+     * </pre>
+     *
      * <code>repeated .ai.stigmer.tenancy.organization.v1.Organization entries = 1 [json_name = "entries"];</code>
      */
     public java.util.List<ai.stigmer.tenancy.organization.v1.Organization.Builder> 

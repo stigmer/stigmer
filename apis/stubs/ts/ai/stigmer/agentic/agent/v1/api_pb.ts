@@ -20,7 +20,10 @@ export const file_ai_stigmer_agentic_agent_v1_api: GenFile = /*@__PURE__*/
   fileDesc("CiVhaS9zdGlnbWVyL2FnZW50aWMvYWdlbnQvdjEvYXBpLnByb3RvEhthaS5zdGlnbWVyLmFnZW50aWMuYWdlbnQudjEilQIKBUFnZW50EjEKC2FwaV92ZXJzaW9uGAEgASgJQhy6SBlyFwoVYWdlbnRpYy5zdGlnbWVyLmFpL3YxEhoKBGtpbmQYAiABKAlCDLpICXIHCgVBZ2VudBJNCghtZXRhZGF0YRgDIAEoCzIzLmFpLnN0aWdtZXIuY29tbW9ucy5hcGlyZXNvdXJjZS5BcGlSZXNvdXJjZU1ldGFkYXRhQga6SAPIAQESNAoEc3BlYxgEIAEoCzImLmFpLnN0aWdtZXIuYWdlbnRpYy5hZ2VudC52MS5BZ2VudFNwZWMSOAoGc3RhdHVzGAUgASgLMiguYWkuc3RpZ21lci5hZ2VudGljLmFnZW50LnYxLkFnZW50U3RhdHVzYgZwcm90bzM", [file_ai_stigmer_agentic_agent_v1_spec, file_ai_stigmer_agentic_agent_v1_status, file_ai_stigmer_commons_apiresource_metadata, file_buf_validate_validate]);
 
 /**
- * Agent represents an AI agent definition with Graphton configuration.
+ * Agent defines an AI assistant's identity, tools, skills, and delegation model.
+ *
+ * @internal
+ * Uses Graphton configuration for state management.
  *
  * @generated from message ai.stigmer.agentic.agent.v1.Agent
  */
@@ -40,23 +43,21 @@ export type Agent = Message<"ai.stigmer.agentic.agent.v1.Agent"> & {
   kind: string;
 
   /**
-   * Standard resource metadata including name, id, labels, and tags.
-   * Agents belong to an organization and can be PUBLIC or PRIVATE.
-   * Reference format: "org/slug" (e.g., "stigmer/web-search", "acme/data-analyst")
+   * Resource metadata including name, organization, visibility, and labels.
    *
    * @generated from field: ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
    */
   metadata?: ApiResourceMetadata;
 
   /**
-   * Agent-specific configuration.
+   * Configurable properties: instructions, MCP servers, skills, and sub-agents.
    *
    * @generated from field: ai.stigmer.agentic.agent.v1.AgentSpec spec = 4;
    */
   spec?: AgentSpec;
 
   /**
-   * System-managed status containing audit information and default instance ID.
+   * System-managed state including audit trail and default instance ID.
    *
    * @generated from field: ai.stigmer.agentic.agent.v1.AgentStatus status = 5;
    */

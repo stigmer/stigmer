@@ -43,12 +43,16 @@ package ai.stigmer.agentic.agentexecution.v1;
 public enum ExecutionPhase
     implements com.google.protobuf.ProtocolMessageEnum {
   /**
+   * <pre>
+   * Default value, not a valid execution phase.
+   * </pre>
+   *
    * <code>EXECUTION_PHASE_UNSPECIFIED = 0;</code>
    */
   EXECUTION_PHASE_UNSPECIFIED(0),
   /**
    * <pre>
-   * Waiting to start
+   * Execution is queued and waiting for a worker to start processing.
    * </pre>
    *
    * <code>EXECUTION_PENDING = 1;</code>
@@ -56,7 +60,7 @@ public enum ExecutionPhase
   EXECUTION_PENDING(1),
   /**
    * <pre>
-   * Currently executing
+   * Execution is actively running — the agent is processing and producing output.
    * </pre>
    *
    * <code>EXECUTION_IN_PROGRESS = 2;</code>
@@ -64,7 +68,7 @@ public enum ExecutionPhase
   EXECUTION_IN_PROGRESS(2),
   /**
    * <pre>
-   * Successfully completed
+   * Execution finished successfully and the agent produced a final response.
    * </pre>
    *
    * <code>EXECUTION_COMPLETED = 3;</code>
@@ -72,7 +76,7 @@ public enum ExecutionPhase
   EXECUTION_COMPLETED(3),
   /**
    * <pre>
-   * Failed with error
+   * Execution encountered an unexpected error and could not finish.
    * </pre>
    *
    * <code>EXECUTION_FAILED = 4;</code>
@@ -80,7 +84,7 @@ public enum ExecutionPhase
   EXECUTION_FAILED(4),
   /**
    * <pre>
-   * Cancelled by user
+   * Execution was gracefully stopped by the user before it finished.
    * </pre>
    *
    * <code>EXECUTION_CANCELLED = 5;</code>
@@ -189,12 +193,16 @@ public enum ExecutionPhase
       "ExecutionPhase");
   }
   /**
+   * <pre>
+   * Default value, not a valid execution phase.
+   * </pre>
+   *
    * <code>EXECUTION_PHASE_UNSPECIFIED = 0;</code>
    */
   public static final int EXECUTION_PHASE_UNSPECIFIED_VALUE = 0;
   /**
    * <pre>
-   * Waiting to start
+   * Execution is queued and waiting for a worker to start processing.
    * </pre>
    *
    * <code>EXECUTION_PENDING = 1;</code>
@@ -202,7 +210,7 @@ public enum ExecutionPhase
   public static final int EXECUTION_PENDING_VALUE = 1;
   /**
    * <pre>
-   * Currently executing
+   * Execution is actively running — the agent is processing and producing output.
    * </pre>
    *
    * <code>EXECUTION_IN_PROGRESS = 2;</code>
@@ -210,7 +218,7 @@ public enum ExecutionPhase
   public static final int EXECUTION_IN_PROGRESS_VALUE = 2;
   /**
    * <pre>
-   * Successfully completed
+   * Execution finished successfully and the agent produced a final response.
    * </pre>
    *
    * <code>EXECUTION_COMPLETED = 3;</code>
@@ -218,7 +226,7 @@ public enum ExecutionPhase
   public static final int EXECUTION_COMPLETED_VALUE = 3;
   /**
    * <pre>
-   * Failed with error
+   * Execution encountered an unexpected error and could not finish.
    * </pre>
    *
    * <code>EXECUTION_FAILED = 4;</code>
@@ -226,7 +234,7 @@ public enum ExecutionPhase
   public static final int EXECUTION_FAILED_VALUE = 4;
   /**
    * <pre>
-   * Cancelled by user
+   * Execution was gracefully stopped by the user before it finished.
    * </pre>
    *
    * <code>EXECUTION_CANCELLED = 5;</code>

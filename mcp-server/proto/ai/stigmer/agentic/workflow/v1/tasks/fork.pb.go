@@ -24,10 +24,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// ForkTaskConfig defines the configuration for FORK tasks.
+// ForkTaskConfig defines the configuration for fork tasks that execute branches in parallel.
 //
-// FORK tasks execute multiple branches in parallel.
-//
+// @internal
 // YAML Example:
 //   - taskName:
 //     fork:

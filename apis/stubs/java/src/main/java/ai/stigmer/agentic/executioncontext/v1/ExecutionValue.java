@@ -7,7 +7,7 @@ package ai.stigmer.agentic.executioncontext.v1;
 
 /**
  * <pre>
- * ExecutionValue represents a single runtime configuration or secret value.
+ * A single runtime configuration or secret value.
  * </pre>
  *
  * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionValue}
@@ -58,9 +58,11 @@ private static final long serialVersionUID = 0L;
   private volatile java.lang.Object value_ = "";
   /**
    * <pre>
-   * The actual value.
-   * - If is_secret=true: This value is encrypted at rest and redacted in logs
-   * - If is_secret=false: This value is stored as plaintext
+   * String content of this entry.
+   *
+   * &#64;internal
+   * If is_secret=true: encrypted at rest and redacted in logs.
+   * If is_secret=false: stored as plaintext.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -81,9 +83,11 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * The actual value.
-   * - If is_secret=true: This value is encrypted at rest and redacted in logs
-   * - If is_secret=false: This value is stored as plaintext
+   * String content of this entry.
+   *
+   * &#64;internal
+   * If is_secret=true: encrypted at rest and redacted in logs.
+   * If is_secret=false: stored as plaintext.
    * </pre>
    *
    * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -109,13 +113,11 @@ private static final long serialVersionUID = 0L;
   /**
    * <pre>
    * Whether this value should be treated as a secret.
-   * When true:
-   * - Value is encrypted at rest
-   * - Value is redacted in logs
-   * - Value is deleted when execution completes
-   * When false:
-   * - Value is stored as plaintext
-   * - Value is visible in audit logs
+   *
+   * &#64;internal
+   * When true: value is encrypted at rest, redacted in logs, and deleted
+   * when execution completes.
+   * When false: value is stored as plaintext and visible in audit logs.
    * </pre>
    *
    * <code>bool is_secret = 2 [json_name = "isSecret"];</code>
@@ -296,7 +298,7 @@ private static final long serialVersionUID = 0L;
   }
   /**
    * <pre>
-   * ExecutionValue represents a single runtime configuration or secret value.
+   * A single runtime configuration or secret value.
    * </pre>
    *
    * Protobuf type {@code ai.stigmer.agentic.executioncontext.v1.ExecutionValue}
@@ -451,9 +453,11 @@ private static final long serialVersionUID = 0L;
     private java.lang.Object value_ = "";
     /**
      * <pre>
-     * The actual value.
-     * - If is_secret=true: This value is encrypted at rest and redacted in logs
-     * - If is_secret=false: This value is stored as plaintext
+     * String content of this entry.
+     *
+     * &#64;internal
+     * If is_secret=true: encrypted at rest and redacted in logs.
+     * If is_secret=false: stored as plaintext.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -473,9 +477,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The actual value.
-     * - If is_secret=true: This value is encrypted at rest and redacted in logs
-     * - If is_secret=false: This value is stored as plaintext
+     * String content of this entry.
+     *
+     * &#64;internal
+     * If is_secret=true: encrypted at rest and redacted in logs.
+     * If is_secret=false: stored as plaintext.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -496,9 +502,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The actual value.
-     * - If is_secret=true: This value is encrypted at rest and redacted in logs
-     * - If is_secret=false: This value is stored as plaintext
+     * String content of this entry.
+     *
+     * &#64;internal
+     * If is_secret=true: encrypted at rest and redacted in logs.
+     * If is_secret=false: stored as plaintext.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -515,9 +523,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The actual value.
-     * - If is_secret=true: This value is encrypted at rest and redacted in logs
-     * - If is_secret=false: This value is stored as plaintext
+     * String content of this entry.
+     *
+     * &#64;internal
+     * If is_secret=true: encrypted at rest and redacted in logs.
+     * If is_secret=false: stored as plaintext.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -531,9 +541,11 @@ private static final long serialVersionUID = 0L;
     }
     /**
      * <pre>
-     * The actual value.
-     * - If is_secret=true: This value is encrypted at rest and redacted in logs
-     * - If is_secret=false: This value is stored as plaintext
+     * String content of this entry.
+     *
+     * &#64;internal
+     * If is_secret=true: encrypted at rest and redacted in logs.
+     * If is_secret=false: stored as plaintext.
      * </pre>
      *
      * <code>string value = 1 [json_name = "value", (.buf.validate.field) = { ... }</code>
@@ -554,13 +566,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this value should be treated as a secret.
-     * When true:
-     * - Value is encrypted at rest
-     * - Value is redacted in logs
-     * - Value is deleted when execution completes
-     * When false:
-     * - Value is stored as plaintext
-     * - Value is visible in audit logs
+     *
+     * &#64;internal
+     * When true: value is encrypted at rest, redacted in logs, and deleted
+     * when execution completes.
+     * When false: value is stored as plaintext and visible in audit logs.
      * </pre>
      *
      * <code>bool is_secret = 2 [json_name = "isSecret"];</code>
@@ -573,13 +583,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this value should be treated as a secret.
-     * When true:
-     * - Value is encrypted at rest
-     * - Value is redacted in logs
-     * - Value is deleted when execution completes
-     * When false:
-     * - Value is stored as plaintext
-     * - Value is visible in audit logs
+     *
+     * &#64;internal
+     * When true: value is encrypted at rest, redacted in logs, and deleted
+     * when execution completes.
+     * When false: value is stored as plaintext and visible in audit logs.
      * </pre>
      *
      * <code>bool is_secret = 2 [json_name = "isSecret"];</code>
@@ -596,13 +604,11 @@ private static final long serialVersionUID = 0L;
     /**
      * <pre>
      * Whether this value should be treated as a secret.
-     * When true:
-     * - Value is encrypted at rest
-     * - Value is redacted in logs
-     * - Value is deleted when execution completes
-     * When false:
-     * - Value is stored as plaintext
-     * - Value is visible in audit logs
+     *
+     * &#64;internal
+     * When true: value is encrypted at rest, redacted in logs, and deleted
+     * when execution completes.
+     * When false: value is stored as plaintext and visible in audit logs.
      * </pre>
      *
      * <code>bool is_secret = 2 [json_name = "isSecret"];</code>

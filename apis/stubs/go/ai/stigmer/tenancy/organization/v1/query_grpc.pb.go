@@ -31,14 +31,17 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// OrganizationQueryController provides read operations for organizations
+// OrganizationQueryController handles read operations for organizations.
 type OrganizationQueryControllerClient interface {
-	// Get an organization by ID
-	// Requires: User must be a member of the organization (can_view)
+	// Get an organization by ID.
+	//
+	// @internal
+	// Authorization: Requires can_view permission on the organization.
 	Get(ctx context.Context, in *OrganizationId, opts ...grpc.CallOption) (*Organization, error)
-	// Find organizations with pagination and filtering
-	// Requires: Platform admin permission
-	// This is for administrative purposes only
+	// List organizations with pagination and filtering.
+	//
+	// @internal
+	// Authorization: Requires platform admin permission. Administrative use only.
 	Find(ctx context.Context, in *apiresource.FindApiResourcesRequest, opts ...grpc.CallOption) (*OrganizationList, error)
 	// Find organizations the authenticated user is a member of.
 	// Returns only organizations the caller has access to.
@@ -106,14 +109,17 @@ func (c *organizationQueryControllerClient) GetByExternalOrgId(ctx context.Conte
 // All implementations should embed UnimplementedOrganizationQueryControllerServer
 // for forward compatibility.
 //
-// OrganizationQueryController provides read operations for organizations
+// OrganizationQueryController handles read operations for organizations.
 type OrganizationQueryControllerServer interface {
-	// Get an organization by ID
-	// Requires: User must be a member of the organization (can_view)
+	// Get an organization by ID.
+	//
+	// @internal
+	// Authorization: Requires can_view permission on the organization.
 	Get(context.Context, *OrganizationId) (*Organization, error)
-	// Find organizations with pagination and filtering
-	// Requires: Platform admin permission
-	// This is for administrative purposes only
+	// List organizations with pagination and filtering.
+	//
+	// @internal
+	// Authorization: Requires platform admin permission. Administrative use only.
 	Find(context.Context, *apiresource.FindApiResourcesRequest) (*OrganizationList, error)
 	// Find organizations the authenticated user is a member of.
 	// Returns only organizations the caller has access to.

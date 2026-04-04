@@ -1,7 +1,7 @@
 {
   "name": "WorkflowSpec",
   "kind": "WORKFLOW_SPEC",
-  "description": "WorkflowSpec defines the complete specification of a workflow.\n Follows the \"kind + Struct\" pattern from CloudResource (Planton Cloud).\n\n This replaces the old `synthesized_yaml` field with structured proto definitions.\n Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,\n providing maximum flexibility and extensibility.",
+  "description": "WorkflowSpec defines the configurable properties of a workflow.\n\n @internal\n Follows the \"kind + Struct\" pattern from CloudResource (Planton Cloud).\n This replaces the old `synthesized_yaml` field with structured proto definitions.\n Each workflow task uses WorkflowTaskKind enum + google.protobuf.Struct for configuration,\n providing maximum flexibility and extensibility.\n The overview.md file provides the SDK-facing description and example YAML.",
   "protoType": "ai.stigmer.agentic.workflow.v1.WorkflowSpec",
   "protoFile": "apis/ai/stigmer/agentic/workflow/v1/spec.proto",
   "fields": [
@@ -23,7 +23,7 @@
         "kind": "message",
         "messageType": "WorkflowDocument"
       },
-      "description": "Workflow document metadata (DSL version, namespace, name, version).",
+      "description": "Workflow document metadata including DSL version, namespace, name, and version.",
       "required": true,
       "validation": {
         "required": true
@@ -54,7 +54,7 @@
         "kind": "message",
         "messageType": "EnvironmentSpec"
       },
-      "description": "Environment variables required by the workflow.\n Uses the shared EnvironmentSpec for consistent env var handling.",
+      "description": "Environment variables required by the workflow.",
       "required": false
     }
   ]
