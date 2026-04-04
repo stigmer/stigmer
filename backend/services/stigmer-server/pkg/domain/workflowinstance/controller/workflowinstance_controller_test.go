@@ -304,7 +304,7 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 			ApiVersion: "agentic.stigmer.ai/v1",
 			Kind:       "WorkflowInstance",
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
-				WorkflowId:  "wfl-test-123",
+				WorkflowId:  "wfl_test-123",
 				Description: "Test description",
 			},
 		}
@@ -321,7 +321,7 @@ func TestWorkflowInstanceController_Create(t *testing.T) {
 			Kind:       "WorkflowInstance",
 			Metadata:   &apiresource.ApiResourceMetadata{},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
-				WorkflowId:  "wfl-test-123",
+				WorkflowId:  "wfl_test-123",
 				Description: "Test description",
 			},
 		}
@@ -559,7 +559,7 @@ func TestWorkflowInstanceController_Update(t *testing.T) {
 				Org:  "test-org",
 			},
 			Spec: &workflowinstancev1.WorkflowInstanceSpec{
-				WorkflowId:  "wfl-test-123",
+				WorkflowId:  "wfl_test-123",
 				Description: "Test description",
 			},
 		}

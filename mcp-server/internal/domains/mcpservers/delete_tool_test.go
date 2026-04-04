@@ -55,7 +55,7 @@ func TestDeleteHandler_success(t *testing.T) {
 			Org:  "acme",
 			Slug: "github",
 			Name: "GitHub",
-			Id:   "mcp-id-456",
+			Id:   "mcp_id-456",
 		},
 	}
 
@@ -77,8 +77,8 @@ func TestDeleteHandler_success(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if mock.gotDeleteID != "mcp-id-456" {
-		t.Errorf("delete was called with ID %q, want %q", mock.gotDeleteID, "mcp-id-456")
+	if mock.gotDeleteID != "mcp_id-456" {
+		t.Errorf("delete was called with ID %q, want %q", mock.gotDeleteID, "mcp_id-456")
 	}
 
 	text := extractText(t, result)
@@ -112,7 +112,7 @@ func TestDeleteHandler_notFound(t *testing.T) {
 
 func TestDeleteHandler_deletePermissionDenied(t *testing.T) {
 	server := &mcpserverv1.McpServer{
-		Metadata: &apiresource.ApiResourceMetadata{Id: "mcp-id-789"},
+		Metadata: &apiresource.ApiResourceMetadata{Id: "mcp_id-789"},
 	}
 
 	mock := &mockMcpServerDeleteController{
