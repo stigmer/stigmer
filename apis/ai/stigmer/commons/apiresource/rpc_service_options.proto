@@ -5,6 +5,8 @@ package ai.stigmer.commons.apiresource;
 import "ai/stigmer/commons/apiresource/apiresourcekind/api_resource_kind.proto";
 import "google/protobuf/descriptor.proto";
 
+// Service-level option that tags a gRPC service with the API resource kind it manages.
+// Used by codegen and runtime routing to associate command/query controllers with their resource.
 extend google.protobuf.ServiceOptions {
   ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind api_resource_kind = 90100;
 }
