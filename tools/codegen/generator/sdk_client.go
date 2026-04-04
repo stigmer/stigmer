@@ -29,8 +29,9 @@ type ServiceSchemaFile struct {
 	Services            []ServiceDefinition `json:"services"`
 	ListVia             string              `json:"listVia,omitempty"`
 	MethodTypes         []MethodTypeSchema  `json:"methodTypes,omitempty"`
-	ResourceDescription string              `json:"resourceDescription,omitempty"`
-	StatusType          *MethodTypeSchema   `json:"statusType,omitempty"`
+	ResourceDescription  string              `json:"resourceDescription,omitempty"`
+	StatusType           *MethodTypeSchema   `json:"statusType,omitempty"`
+	StatusNestedTypes    []MethodTypeSchema  `json:"statusNestedTypes,omitempty"`
 }
 
 type ServiceDefinition struct {

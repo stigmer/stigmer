@@ -164,7 +164,7 @@ ExecutionContext executionContext = client.executionContext().getByReference(Api
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ApiResourceReference`](#apiresourcereference)
+**Parameters**: [`ResourceRef`](#resourceref)
 
 **Returns**: [`ExecutionContext`](#executioncontext)
 
@@ -340,11 +340,22 @@ Input for creating or updating an Execution Context.
     org: { type: "string", description: "Organization slug.", required: true },
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     executionId: { type: "string", description: "The execution ID this context belongs to." },
-    data: { type: "Record<string, EnvVarInput>", description: "Key-value pairs containing both configuration and secrets." },
+    data: { type: "Record<string, EnvVarInput>", description: "Key-value pairs containing both configuration and secrets.", typeDescriptionLink: "#envvarinput" },
   }}
 />
 
-### ApiResourceReference
+### EnvVarInput
+
+ExecutionValue represents a single runtime configuration or secret value.
+
+<TypeTable
+  type={{
+    value: { type: "string", description: "The actual value." },
+    isSecret: { type: "boolean", description: "Whether this value should be treated as a secret." },
+  }}
+/>
+
+### ResourceRef
 
 Generic reference to any API resource by org and slug.
 
@@ -376,7 +387,7 @@ ExecutionContext represents ephemeral runtime configuration and secrets.
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
-    spec: { type: "ExecutionContextInput", description: "Resource specification. See [`ExecutionContextInput`](#executioncontextinput)." },
+    spec: { type: "ExecutionContextInput", description: "Resource specification. See [`ExecutionContextInput`](#executioncontextinput).", typeDescriptionLink: "#executioncontextinput" },
     status: { type: "ExecutionContextStatus", description: "System-managed state. See `ExecutionContextStatus`." },
   }}
 />

@@ -106,8 +106,9 @@ type ServiceSchemaFile struct {
 	Services            []ServiceDefinition `json:"services"`
 	ListVia             string              `json:"listVia,omitempty"`
 	MethodTypes         []TypeSchema        `json:"methodTypes,omitempty"`
-	ResourceDescription string              `json:"resourceDescription,omitempty"`
-	StatusType          *TypeSchema         `json:"statusType,omitempty"`
+	ResourceDescription  string              `json:"resourceDescription,omitempty"`
+	StatusType           *TypeSchema         `json:"statusType,omitempty"`
+	StatusNestedTypes    []TypeSchema        `json:"statusNestedTypes,omitempty"`
 }
 
 // ServiceDefinition describes a single gRPC service (e.g., AgentQueryController).
@@ -1324,6 +1325,13 @@ func extractResourceAndStatusSchemas(fileDescriptors []*desc.FileDescriptor, sch
 	}
 
 	schema.StatusType = parseSharedType(statusMsg, statusMsg.GetFile())
+
+	// Collect nested types referenced by status fields (e.g., ApiResourceAudit).
+	statusNested := make(map[string]*TypeSchema)
+	collectNestedTypes(statusMsg, statusMsg.GetFile(), statusNested)
+	for _, ts := range statusNested {
+		schema.StatusNestedTypes = append(schema.StatusNestedTypes, *ts)
+	}
 }
 
 // generateSDKServiceSchemas auto-discovers all resources with gRPC services

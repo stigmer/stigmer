@@ -147,7 +147,7 @@ Agent agent = client.agent().getByReference(ApiResourceReference.builder()
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ApiResourceReference`](#apiresourcereference)
+**Parameters**: [`ResourceRef`](#resourceref)
 
 **Returns**: [`Agent`](#agent)
 
@@ -526,10 +526,10 @@ Input for creating or updating an Agent.
     description: { type: "string", description: "Human-readable description for UI and marketplace display." },
     iconUrl: { type: "string", description: "Icon URL for marketplace and UI display." },
     instructions: { type: "string", description: "System prompt defining the agent's behavior and personality." },
-    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers this agent can use." },
-    skillRefs: { type: "ResourceRef[]", description: "Skill resources providing additional knowledge to the agent." },
-    subAgents: { type: "SubAgentInput[]", description: "Sub-agents that can be delegated to." },
-    envSpec: { type: "EnvSpecInput", description: "Environment variables required by the agent." },
+    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers this agent can use.", typeDescriptionLink: "#mcpserverusageinput" },
+    skillRefs: { type: "ResourceRef[]", description: "Skill resources providing additional knowledge to the agent.", typeDescriptionLink: "#resourceref" },
+    subAgents: { type: "SubAgentInput[]", description: "Sub-agents that can be delegated to.", typeDescriptionLink: "#subagentinput" },
+    envSpec: { type: "EnvSpecInput", description: "Environment variables required by the agent.", typeDescriptionLink: "#envspecinput" },
   }}
 />
 
@@ -539,9 +539,22 @@ McpServerUsage declares that this agent uses a McpServer resource.
 
 <TypeTable
   type={{
-    mcpServerRef: { type: "ResourceRef", description: "Reference to the McpServer resource.", required: true },
+    mcpServerRef: { type: "ResourceRef", description: "Reference to the McpServer resource.", typeDescriptionLink: "#resourceref", required: true },
     enabledTools: { type: "string[]", description: "Tools to enable from this MCP server for this agent." },
-    toolApprovalOverrides: { type: "ToolApprovalOverrideInput[]", description: "Override approval requirements for specific tools." },
+    toolApprovalOverrides: { type: "ToolApprovalOverrideInput[]", description: "Override approval requirements for specific tools.", typeDescriptionLink: "#toolapprovaloverrideinput" },
+  }}
+/>
+
+### ResourceRef
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
 
@@ -566,8 +579,8 @@ SubAgent defines a specialized agent that the parent can delegate to.
     name: { type: "string", description: "Unique name of the sub-agent within the parent agent.", required: true },
     description: { type: "string", description: "What this sub-agent specializes in." },
     instructions: { type: "string", description: "System prompt for this sub-agent." },
-    mcpAccess: { type: "McpAccessInput[]", description: "MCP server access grants for this sub-agent." },
-    skillRefs: { type: "ResourceRef[]", description: "Skill resources for this sub-agent." },
+    mcpAccess: { type: "McpAccessInput[]", description: "MCP server access grants for this sub-agent.", typeDescriptionLink: "#mcpaccessinput" },
+    skillRefs: { type: "ResourceRef[]", description: "Skill resources for this sub-agent.", typeDescriptionLink: "#resourceref" },
     modelOverride: { type: "string", description: "Model override for this sub-agent." },
   }}
 />
@@ -583,6 +596,29 @@ McpAccess grants a sub-agent access to one of the parent's MCP servers.
   }}
 />
 
+### EnvSpecInput
+
+EnvironmentSpec defines a collection of configuration and secrets.
+
+<TypeTable
+  type={{
+    description: { type: "string", description: "Human-readable description of this environment." },
+    data: { type: "Record<string, EnvVarInput>", description: "Key-value pairs containing both configuration and secrets.", typeDescriptionLink: "#envvarinput" },
+  }}
+/>
+
+### EnvVarInput
+
+EnvironmentValue represents a single configuration or secret value.
+
+<TypeTable
+  type={{
+    value: { type: "string", description: "The actual value." },
+    isSecret: { type: "boolean", description: "Whether this value should be treated as a secret." },
+    description: { type: "string", description: "Optional description for documentation." },
+  }}
+/>
+
 ### UpdateVisibilityInput
 
 Input for updating the visibility of any API resource.
@@ -591,19 +627,6 @@ Input for updating the visibility of any API resource.
   type={{
     resourceId: { type: "string", description: "ID of the resource whose visibility is being updated.", required: true },
     visibility: { type: "ApiResourceVisibility", description: "The new visibility setting for the resource." },
-  }}
-/>
-
-### ApiResourceReference
-
-Generic reference to any API resource by org and slug.
-
-<TypeTable
-  type={{
-    org: { type: "string", description: "Organization that owns the referenced resource." },
-    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
-    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
-    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
 
@@ -626,8 +649,8 @@ Agent defines an AI assistant's identity, tools, skills, and delegation model.
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
-    spec: { type: "AgentInput", description: "Resource specification. See [`AgentInput`](#agentinput)." },
-    status: { type: "AgentStatus", description: "System-managed state. See [`AgentStatus`](#agentstatus)." },
+    spec: { type: "AgentInput", description: "Resource specification. See [`AgentInput`](#agentinput).", typeDescriptionLink: "#agentinput" },
+    status: { type: "AgentStatus", description: "System-managed state. See [`AgentStatus`](#agentstatus).", typeDescriptionLink: "#agentstatus" },
   }}
 />
 
@@ -637,8 +660,44 @@ AgentStatus contains system-managed state for an agent.
 
 <TypeTable
   type={{
-    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.)." },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information (created_at, updated_at, created_by, etc.).", typeDescriptionLink: "#apiresourceaudit" },
     defaultInstanceId: { type: "string", description: "ID of the default agent instance." },
+  }}
+/>
+
+### ApiResourceAudit
+
+ApiResourceAudit contains both spec-level and status-level audit details.
+
+<TypeTable
+  type={{
+    specAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's specification (desired state).", typeDescriptionLink: "#apiresourceauditinfo" },
+    statusAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's status (actual state).", typeDescriptionLink: "#apiresourceauditinfo" },
+  }}
+/>
+
+### ApiResourceAuditInfo
+
+ApiResourceAuditInfo contains detailed audit information.
+
+<TypeTable
+  type={{
+    createdBy: { type: "ApiResourceAuditActor", description: "Actor who created this resource.", typeDescriptionLink: "#apiresourceauditactor" },
+    createdAt: { type: "string", description: "Timestamp when the resource was created." },
+    updatedBy: { type: "ApiResourceAuditActor", description: "Actor who last updated this resource.", typeDescriptionLink: "#apiresourceauditactor" },
+    updatedAt: { type: "string", description: "Timestamp when the resource was last updated." },
+    event: { type: "string", description: "Type of the last event (e.g., \"created\", \"updated\")." },
+  }}
+/>
+
+### ApiResourceAuditActor
+
+ApiResourceAuditActor represents the entity that performed an action.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Unique identifier of the actor." },
+    avatar: { type: "string", description: "URL to the actor's avatar image." },
   }}
 />
 

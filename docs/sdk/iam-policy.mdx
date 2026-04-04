@@ -453,8 +453,8 @@ Input for creating or updating an IAM Policy.
     slug: { type: "string", description: "URL-friendly identifier." },
     org: { type: "string", description: "Organization slug.", required: true },
     labels: { type: "Record<string, string>", description: "Key-value labels." },
-    principal: { type: "ApiResourceRefInput", description: "Principal: WHO is being granted access This can be any API resource that acts as an identity: - identity_account (individual user) - team (group of users) - organization (for cross-org grants) - Any other resource that can be a subject in authorization.", required: true },
-    resource: { type: "ApiResourceRefInput", description: "Resource: WHAT is being accessed This can be any API resource that is being protected: - organization - environment - cloud_resource (VPC, S3 bucket, etc.) - service - Any other resource that requires access control.", required: true },
+    principal: { type: "ApiResourceRefInput", description: "Principal: WHO is being granted access This can be any API resource that acts as an identity: - identity_account (individual user) - team (group of users) - organization (for cross-org grants) - Any other resource that can be a subject in authorization.", typeDescriptionLink: "#apiresourcerefinput", required: true },
+    resource: { type: "ApiResourceRefInput", description: "Resource: WHAT is being accessed This can be any API resource that is being protected: - organization - environment - cloud_resource (VPC, S3 bucket, etc.) - service - Any other resource that requires access control.", typeDescriptionLink: "#apiresourcerefinput", required: true },
     relation: { type: "string", description: "The permission being granted (e.g., \"admin\", \"viewer\", \"owner\").", required: true },
   }}
 />
@@ -477,8 +477,8 @@ IamPolicySpec defines the desired state of an IAM policy binding.
 
 <TypeTable
   type={{
-    principal: { type: "ApiResourceRefInput", description: "Principal: WHO is being granted access This can be any API resource that acts as an identity: - identity_account (individual user) - team (group of users) - organization (for cross-org grants) - Any other resource that can be a subject in authorization.", required: true },
-    resource: { type: "ApiResourceRefInput", description: "Resource: WHAT is being accessed This can be any API resource that is being protected: - organization - environment - cloud_resource (VPC, S3 bucket, etc.) - service - Any other resource that requires access control.", required: true },
+    principal: { type: "ApiResourceRefInput", description: "Principal: WHO is being granted access This can be any API resource that acts as an identity: - identity_account (individual user) - team (group of users) - organization (for cross-org grants) - Any other resource that can be a subject in authorization.", typeDescriptionLink: "#apiresourcerefinput", required: true },
+    resource: { type: "ApiResourceRefInput", description: "Resource: WHAT is being accessed This can be any API resource that is being protected: - organization - environment - cloud_resource (VPC, S3 bucket, etc.) - service - Any other resource that requires access control.", typeDescriptionLink: "#apiresourcerefinput", required: true },
     relation: { type: "string", description: "The permission being granted (e.g., \"admin\", \"viewer\", \"owner\").", required: true },
   }}
 />
@@ -522,7 +522,7 @@ ListAuthorizedResourceIdsInput defines input for listing resources a principal c
 
 <TypeTable
   type={{
-    principal: { type: "ApiResourceRefInput", description: "The principal whose access is being queried.", required: true },
+    principal: { type: "ApiResourceRefInput", description: "The principal whose access is being queried.", typeDescriptionLink: "#apiresourcerefinput", required: true },
     resourceKind: { type: "string", description: "The kind of resources to check.", required: true },
     relation: { type: "string", description: "The relation/permission to check for.", required: true },
     contextualPolicies: { type: "IamPolicySpecInput[]", description: "Optional contextual policies for \"what-if\" scenarios." },
@@ -545,7 +545,7 @@ ListAuthorizedPrincipalIdsInput defines input for listing principals that can ac
 
 <TypeTable
   type={{
-    resource: { type: "ApiResourceRefInput", description: "The resource whose access is being queried.", required: true },
+    resource: { type: "ApiResourceRefInput", description: "The resource whose access is being queried.", typeDescriptionLink: "#apiresourcerefinput", required: true },
     principalKind: { type: "string", description: "The kind of principals to check for.", required: true },
     relation: { type: "string", description: "The relation/permission to check for.", required: true },
     contextualPolicies: { type: "IamPolicySpecInput[]", description: "Optional contextual policies for \"what-if\" scenarios." },
@@ -571,7 +571,7 @@ IamPolicy represents a binding between a principal (who), a resource (what), and
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
-    spec: { type: "IamPolicyInput", description: "Resource specification. See [`IamPolicyInput`](#iampolicyinput)." },
+    spec: { type: "IamPolicyInput", description: "Resource specification. See [`IamPolicyInput`](#iampolicyinput).", typeDescriptionLink: "#iampolicyinput" },
     status: { type: "IamPolicyStatus", description: "System-managed state. See `IamPolicyStatus`." },
   }}
 />

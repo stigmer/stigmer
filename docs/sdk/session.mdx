@@ -566,9 +566,9 @@ Input for creating or updating a Session.
     threadId: { type: "string", description: "thread ID (generated on first execution, persists across all executions)." },
     sandboxId: { type: "string", description: "Daytona sandbox ID (created on first execution, reused for file persistence)." },
     metadata: { type: "Record<string, string>", description: "Session metadata (e.g., client info, tags)." },
-    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session (optional, may be empty)." },
-    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers to make available in this session (merged with agent's at execution time)." },
-    skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context (merged with agent's at execution time)." },
+    workspaceEntries: { type: "WorkspaceEntryInput[]", description: "Workspace entries for this session (optional, may be empty).", typeDescriptionLink: "#workspaceentryinput" },
+    mcpServerUsages: { type: "McpServerUsageInput[]", description: "MCP servers to make available in this session (merged with agent's at execution time).", typeDescriptionLink: "#mcpserverusageinput" },
+    skillRefs: { type: "ResourceRef[]", description: "Skills to inject into this session's context (merged with agent's at execution time).", typeDescriptionLink: "#resourceref" },
   }}
 />
 
@@ -579,7 +579,7 @@ WorkspaceEntry pairs a WorkspaceSource with a human-readable name, forming an ad
 <TypeTable
   type={{
     name: { type: "string", description: "Short identifier for this workspace entry (required)." },
-    source: { type: "WorkspaceSourceInput", description: "The source that provides this entry's content (required).", required: true },
+    source: { type: "WorkspaceSourceInput", description: "The source that provides this entry's content (required).", typeDescriptionLink: "#workspacesourceinput", required: true },
   }}
 />
 
@@ -589,8 +589,8 @@ WorkspaceSource defines where the agent's workspace content comes from.
 
 <TypeTable
   type={{
-    gitRepo: { type: "GitRepoSourceInput", description: "" },
-    localPath: { type: "LocalPathSourceInput", description: "" },
+    gitRepo: { type: "GitRepoSourceInput", description: "", typeDescriptionLink: "#gitreposourceinput" },
+    localPath: { type: "LocalPathSourceInput", description: "", typeDescriptionLink: "#localpathsourceinput" },
   }}
 />
 
@@ -624,9 +624,22 @@ McpServerUsage declares that this agent uses a McpServer resource.
 
 <TypeTable
   type={{
-    mcpServerRef: { type: "ResourceRef", description: "Reference to the McpServer resource.", required: true },
+    mcpServerRef: { type: "ResourceRef", description: "Reference to the McpServer resource.", typeDescriptionLink: "#resourceref", required: true },
     enabledTools: { type: "string[]", description: "Tools to enable from this MCP server for this agent." },
-    toolApprovalOverrides: { type: "ToolApprovalOverrideInput[]", description: "Override approval requirements for specific tools." },
+    toolApprovalOverrides: { type: "ToolApprovalOverrideInput[]", description: "Override approval requirements for specific tools.", typeDescriptionLink: "#toolapprovaloverrideinput" },
+  }}
+/>
+
+### ResourceRef
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
 
@@ -683,7 +696,7 @@ SessionList contains a paginated list of sessions.
 <TypeTable
   type={{
     totalPages: { type: "number", description: "Total number of pages available." },
-    entries: { type: "SessionInput[]", description: "Sessions in the current page." },
+    entries: { type: "SessionInput[]", description: "Sessions in the current page.", typeDescriptionLink: "#sessioninput" },
   }}
 />
 
@@ -708,7 +721,7 @@ Session represents a multi-turn conversation thread with an agent.
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
-    spec: { type: "SessionInput", description: "Resource specification. See [`SessionInput`](#sessioninput)." },
+    spec: { type: "SessionInput", description: "Resource specification. See [`SessionInput`](#sessioninput).", typeDescriptionLink: "#sessioninput" },
     status: { type: "SessionStatus", description: "System-managed state. See `SessionStatus`." },
   }}
 />

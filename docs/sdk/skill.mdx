@@ -169,7 +169,7 @@ Skill skill = client.skill().getByReference(ApiResourceReference.builder()
 </Tab>
 </SDKTabs>
 
-**Parameters**: [`ApiResourceReference`](#apiresourcereference)
+**Parameters**: [`ResourceRef`](#resourceref)
 
 **Returns**: [`Skill`](#skill)
 
@@ -420,7 +420,7 @@ Input for updating the visibility of any API resource.
   }}
 />
 
-### ApiResourceReference
+### ResourceRef
 
 Generic reference to any API resource by org and slug.
 
@@ -462,8 +462,8 @@ Skill represents a versioned, reusable unit of agent capability.
     apiVersion: { type: "string", description: "API version for this resource type." },
     kind: { type: "string", description: "Resource kind identifier." },
     metadata: { type: "ApiResourceMetadata", description: "Resource metadata including id, name, org, slug, labels, visibility, and timestamps." },
-    spec: { type: "SkillInput", description: "Resource specification. See [`SkillInput`](#skillinput)." },
-    status: { type: "SkillStatus", description: "System-managed state. See [`SkillStatus`](#skillstatus)." },
+    spec: { type: "SkillInput", description: "Resource specification. See [`SkillInput`](#skillinput).", typeDescriptionLink: "#skillinput" },
+    status: { type: "SkillStatus", description: "System-managed state. See [`SkillStatus`](#skillstatus).", typeDescriptionLink: "#skillstatus" },
   }}
 />
 
@@ -473,11 +473,60 @@ SkillStatus represents the system-managed state of a skill.
 
 <TypeTable
   type={{
-    audit: { type: "ApiResourceAudit", description: "Standard audit information tracking creation and modification." },
+    audit: { type: "ApiResourceAudit", description: "Standard audit information tracking creation and modification.", typeDescriptionLink: "#apiresourceaudit" },
     versionHash: { type: "string", description: "SHA256 hash of the skill artifact Zip file." },
     artifactStorageKey: { type: "string", description: "Storage location key for the skill artifact." },
     state: { type: "SkillState", description: "Current lifecycle state of the skill." },
-    gitProvenance: { type: "GitProvenance", description: "Git provenance tracking where the skill artifacts originated from." },
+    gitProvenance: { type: "GitProvenance", description: "Git provenance tracking where the skill artifacts originated from.", typeDescriptionLink: "#gitprovenance" },
+  }}
+/>
+
+### ApiResourceAudit
+
+ApiResourceAudit contains both spec-level and status-level audit details.
+
+<TypeTable
+  type={{
+    specAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's specification (desired state).", typeDescriptionLink: "#apiresourceauditinfo" },
+    statusAudit: { type: "ApiResourceAuditInfo", description: "Audit info for the resource's status (actual state).", typeDescriptionLink: "#apiresourceauditinfo" },
+  }}
+/>
+
+### ApiResourceAuditInfo
+
+ApiResourceAuditInfo contains detailed audit information.
+
+<TypeTable
+  type={{
+    createdBy: { type: "ApiResourceAuditActor", description: "Actor who created this resource.", typeDescriptionLink: "#apiresourceauditactor" },
+    createdAt: { type: "string", description: "Timestamp when the resource was created." },
+    updatedBy: { type: "ApiResourceAuditActor", description: "Actor who last updated this resource.", typeDescriptionLink: "#apiresourceauditactor" },
+    updatedAt: { type: "string", description: "Timestamp when the resource was last updated." },
+    event: { type: "string", description: "Type of the last event (e.g., \"created\", \"updated\")." },
+  }}
+/>
+
+### ApiResourceAuditActor
+
+ApiResourceAuditActor represents the entity that performed an action.
+
+<TypeTable
+  type={{
+    id: { type: "string", description: "Unique identifier of the actor." },
+    avatar: { type: "string", description: "URL to the actor's avatar image." },
+  }}
+/>
+
+### GitProvenance
+
+GitProvenance tracks the git origin of skill artifacts.
+
+<TypeTable
+  type={{
+    remoteUrl: { type: "string", description: "Git remote URL." },
+    ref: { type: "string", description: "Original git reference (for display purposes)." },
+    commit: { type: "string", description: "Resolved commit SHA (for reproducibility)." },
+    subdir: { type: "string", description: "Subdirectory path relative to repo root." },
   }}
 />
 
