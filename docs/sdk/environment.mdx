@@ -89,27 +89,47 @@ Get an environment by its organization-scoped reference (org/slug).
 <SDKTabs>
 <Tab value="Go">
 ```go
-environment, err := client.Environment.GetByReference(ctx, input)
+environment, err := client.Environment.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const environment = await stigmer.environment.getByReference(input);
+const environment = await stigmer.environment.getByReference({
+  org: "...",
+  kind: "...",
+  slug: "...",
+  version: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environment.get_by_reference(input)
+environment = client.environment.get_by_reference(ApiResourceReference(
+    org="...",
+    kind="...",
+    slug="...",
+    version="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environment().getByReference(input);
+Environment environment = client.environment().getByReference(ApiResourceReference.builder()
+    .org("...")
+    .kind("...")
+    .slug("...")
+    .version("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ApiResourceReference`
+**Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
 **Returns**: `Environment`
 
@@ -120,29 +140,41 @@ Get the unredacted value of a single secret key in an environment. Creator-only:
 <SDKTabs>
 <Tab value="Go">
 ```go
-environmentValue, err := client.Environment.GetSecretValue(ctx, input)
+environmentValue, err := client.Environment.GetSecretValue(ctx, &stigmer.EnvironmentSecretValueInput{
+  EnvironmentId: "...",
+  Key:           "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const environmentValue = await stigmer.environment.getSecretValue(input);
+const environmentValue = await stigmer.environment.getSecretValue({
+  environmentId: "...",
+  key: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-environmentValue = client.environment.get_secret_value(input)
+environmentValue = client.environment.get_secret_value(EnvironmentSecretValueInput(
+    environment_id="...",
+    key="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-EnvironmentValue environmentValue = client.environment().getSecretValue(input);
+EnvironmentValue environmentValue = client.environment().getSecretValue(EnvironmentSecretValueInput.builder()
+    .environmentId("...")
+    .key("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `EnvironmentSecretValueInput`
+**Parameters**: [`EnvironmentSecretValueInput`](#environmentsecretvalueinput)
 
-**Returns**: `EnvironmentValue`
+**Returns**: [`EnvironmentValue`](#environmentvalue)
 
 ### list
 
@@ -151,29 +183,45 @@ List environments with optional label filtering. Secret values are redacted in t
 <SDKTabs>
 <Tab value="Go">
 ```go
-result, err := client.Environment.List(ctx, input)
+result, err := client.Environment.List(ctx, &stigmer.ListEnvironmentsRequest{
+  Org:      "...",
+  Labels:   map[string]string{},
+  PageInfo: &stigmer.PageInfoInput{},
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.environment.list(input);
+const result = await stigmer.environment.list({
+  org: "...",
+  labels: {},
+  pageInfo: {},
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.environment.list(input)
+result = client.environment.list(ListEnvironmentsRequest(
+    org="...",
+    labels={},
+    page_info=None,
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-EnvironmentList result = client.environment().list(input);
+EnvironmentList result = client.environment().list(ListEnvironmentsRequest.builder()
+    .org("...")
+    .labels(Map.of())
+    .pageInfo(null)
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ListEnvironmentsRequest`
+**Parameters**: [`ListEnvironmentsRequest`](#listenvironmentsrequest)
 
-**Returns**: `EnvironmentList`
+**Returns**: [`EnvironmentList`](#environmentlist)
 
 ### apply
 
@@ -183,8 +231,12 @@ Create or update an Environment resource. The authorization and state-operation 
 <Tab value="Go">
 ```go
 environment, err := client.Environment.Apply(ctx, &stigmer.EnvironmentInput{
-  Name: "my-environment",
-  Org:  "acme",
+  Name:        "my-environment",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  Data:        map[string]string{},
 })
 ```
 </Tab>
@@ -193,6 +245,10 @@ environment, err := client.Environment.Apply(ctx, &stigmer.EnvironmentInput{
 const environment = await stigmer.environment.apply({
   name: "my-environment",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  data: {},
 });
 ```
 </Tab>
@@ -201,6 +257,10 @@ const environment = await stigmer.environment.apply({
 environment = client.environment.apply(EnvironmentInput(
     name="my-environment",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    data={},
 ))
 ```
 </Tab>
@@ -209,6 +269,10 @@ environment = client.environment.apply(EnvironmentInput(
 Environment environment = client.environment().apply(EnvironmentInput.builder()
     .name("my-environment")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .data(Map.of())
     .build());
 ```
 </Tab>
@@ -226,8 +290,12 @@ Create a new Environment resource.
 <Tab value="Go">
 ```go
 environment, err := client.Environment.Create(ctx, &stigmer.EnvironmentInput{
-  Name: "my-environment",
-  Org:  "acme",
+  Name:        "my-environment",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  Data:        map[string]string{},
 })
 ```
 </Tab>
@@ -236,6 +304,10 @@ environment, err := client.Environment.Create(ctx, &stigmer.EnvironmentInput{
 const environment = await stigmer.environment.create({
   name: "my-environment",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  data: {},
 });
 ```
 </Tab>
@@ -244,6 +316,10 @@ const environment = await stigmer.environment.create({
 environment = client.environment.create(EnvironmentInput(
     name="my-environment",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    data={},
 ))
 ```
 </Tab>
@@ -252,6 +328,10 @@ environment = client.environment.create(EnvironmentInput(
 Environment environment = client.environment().create(EnvironmentInput.builder()
     .name("my-environment")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .data(Map.of())
     .build());
 ```
 </Tab>
@@ -269,8 +349,12 @@ Update an existing Environment resource.
 <Tab value="Go">
 ```go
 environment, err := client.Environment.Update(ctx, &stigmer.EnvironmentInput{
-  Name: "my-environment",
-  Org:  "acme",
+  Name:        "my-environment",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  Data:        map[string]string{},
 })
 ```
 </Tab>
@@ -279,6 +363,10 @@ environment, err := client.Environment.Update(ctx, &stigmer.EnvironmentInput{
 const environment = await stigmer.environment.update({
   name: "my-environment",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  data: {},
 });
 ```
 </Tab>
@@ -287,6 +375,10 @@ const environment = await stigmer.environment.update({
 environment = client.environment.update(EnvironmentInput(
     name="my-environment",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    data={},
 ))
 ```
 </Tab>
@@ -295,6 +387,10 @@ environment = client.environment.update(EnvironmentInput(
 Environment environment = client.environment().update(EnvironmentInput.builder()
     .name("my-environment")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .data(Map.of())
     .build());
 ```
 </Tab>
@@ -311,27 +407,39 @@ Add or update specific variables in an environment (server-side merge). Existing
 <SDKTabs>
 <Tab value="Go">
 ```go
-environment, err := client.Environment.UpdateVariables(ctx, input)
+environment, err := client.Environment.UpdateVariables(ctx, &stigmer.UpdateEnvironmentVariablesRequest{
+  EnvironmentId: "...",
+  Variables:     map[string]string{},
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const environment = await stigmer.environment.updateVariables(input);
+const environment = await stigmer.environment.updateVariables({
+  environmentId: "...",
+  variables: {},
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environment.update_variables(input)
+environment = client.environment.update_variables(UpdateEnvironmentVariablesRequest(
+    environment_id="...",
+    variables={},
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environment().updateVariables(input);
+Environment environment = client.environment().updateVariables(UpdateEnvironmentVariablesRequest.builder()
+    .environmentId("...")
+    .variables(Map.of())
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `UpdateEnvironmentVariablesRequest`
+**Parameters**: [`UpdateEnvironmentVariablesRequest`](#updateenvironmentvariablesrequest)
 
 **Returns**: `Environment`
 
@@ -383,27 +491,39 @@ Remove specific variables from an environment by key. Keys that don't exist are 
 <SDKTabs>
 <Tab value="Go">
 ```go
-environment, err := client.Environment.RemoveVariables(ctx, input)
+environment, err := client.Environment.RemoveVariables(ctx, &stigmer.RemoveEnvironmentVariablesRequest{
+  EnvironmentId: "...",
+  Keys:          []string{},
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const environment = await stigmer.environment.removeVariables(input);
+const environment = await stigmer.environment.removeVariables({
+  environmentId: "...",
+  keys: [],
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-environment = client.environment.remove_variables(input)
+environment = client.environment.remove_variables(RemoveEnvironmentVariablesRequest(
+    environment_id="...",
+    keys=[],
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Environment environment = client.environment().removeVariables(input);
+Environment environment = client.environment().removeVariables(RemoveEnvironmentVariablesRequest.builder()
+    .environmentId("...")
+    .keys(List.of())
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `RemoveEnvironmentVariablesRequest`
+**Parameters**: [`RemoveEnvironmentVariablesRequest`](#removeenvironmentvariablesrequest)
 
 **Returns**: `Environment`
 
@@ -421,6 +541,87 @@ Input for creating or updating an Environment.
     labels: { type: "Record<string, string>", description: "Key-value labels." },
     description: { type: "string", description: "Human-readable description of this environment." },
     data: { type: "Record<string, EnvVarInput>", description: "Key-value pairs containing both configuration and secrets." },
+  }}
+/>
+
+### UpdateEnvironmentVariablesRequest
+
+Request to add or update specific variables in an environment.
+
+<TypeTable
+  type={{
+    environmentId: { type: "string", description: "The environment resource ID." },
+    variables: { type: "Record<string, EnvVarInput>", description: "Variables to add or update." },
+  }}
+/>
+
+### RemoveEnvironmentVariablesRequest
+
+Request to remove specific variables from an environment by key.
+
+<TypeTable
+  type={{
+    environmentId: { type: "string", description: "The environment resource ID." },
+    keys: { type: "string[]", description: "Keys to remove from EnvironmentSpec.data." },
+  }}
+/>
+
+### ApiResourceReference
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
+  }}
+/>
+
+### EnvironmentSecretValueInput
+
+Input for retrieving a single unredacted secret value from an environment.
+
+<TypeTable
+  type={{
+    environmentId: { type: "string", description: "The environment resource ID." },
+    key: { type: "string", description: "The key within EnvironmentSpec.data to retrieve the unredacted value for." },
+  }}
+/>
+
+### EnvironmentValue
+
+EnvironmentValue represents a single configuration or secret value.
+
+<TypeTable
+  type={{
+    value: { type: "string", description: "The actual value." },
+    isSecret: { type: "boolean", description: "Whether this value should be treated as a secret." },
+    description: { type: "string", description: "Optional description for documentation." },
+  }}
+/>
+
+### ListEnvironmentsRequest
+
+ListEnvironmentsRequest specifies parameters for listing environments.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization to list environments for (required)." },
+    labels: { type: "Record<string, string>", description: "Filter by metadata labels (optional)." },
+    pageInfo: { type: "PageInfoInput", description: "Pagination options (optional)." },
+  }}
+/>
+
+### EnvironmentList
+
+EnvironmentList contains a paginated list of environments.
+
+<TypeTable
+  type={{
+    totalCount: { type: "number", description: "Total count of matching environments." },
+    items: { type: "EnvironmentInput[]", description: "Environments in the current page." },
   }}
 />
 

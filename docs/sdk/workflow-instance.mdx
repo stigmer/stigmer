@@ -54,7 +54,7 @@ Get a single workflow instance by ID.
 
 Retrieves a specific WorkflowInstance using its unique resource identifier.
 
-Input: WorkflowInstanceId with the instance ID (e.g., "wfi-abc123")
+Input: WorkflowInstanceId with the instance ID (e.g., "wfi_abc123")
 
 Returns: Complete WorkflowInstance resource with: - api_version, kind, metadata - spec (workflow_id, description, environment_refs) - status (audit information: created_at, updated_at, version)
 
@@ -99,7 +99,7 @@ WorkflowInstance workflowInstance = client.workflowInstance().get(id);
 
 Get a workflow instance by flexible reference (ID or slug).
 
-Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods: - By ID: \{id: "wfi-abc123"\} - By slug: \{slug: "prod-deploy"\} - By name: \{name: "Production Deploy"\}
+Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods: - By ID: \{id: "wfi_abc123"\} - By slug: \{slug: "prod-deploy"\} - By name: \{name: "Production Deploy"\}
 
 Input: ApiResourceReference with one of: id, slug, or name
 
@@ -116,27 +116,47 @@ Error: PERMISSION_DENIED if user lacks access Error: NOT_FOUND if reference does
 <SDKTabs>
 <Tab value="Go">
 ```go
-workflowInstance, err := client.WorkflowInstance.GetByReference(ctx, input)
+workflowInstance, err := client.WorkflowInstance.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const workflowInstance = await stigmer.workflowInstance.getByReference(input);
+const workflowInstance = await stigmer.workflowInstance.getByReference({
+  org: "...",
+  kind: "...",
+  slug: "...",
+  version: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-workflowInstance = client.workflow_instance.get_by_reference(input)
+workflowInstance = client.workflow_instance.get_by_reference(ApiResourceReference(
+    org="...",
+    kind="...",
+    slug="...",
+    version="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowInstance workflowInstance = client.workflowInstance().getByReference(input);
+WorkflowInstance workflowInstance = client.workflowInstance().getByReference(ApiResourceReference.builder()
+    .org("...")
+    .kind("...")
+    .slug("...")
+    .version("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ApiResourceReference`
+**Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
 **Returns**: `WorkflowInstance`
 
@@ -146,34 +166,46 @@ Get all instances of a specific workflow template.
 
 Retrieves all WorkflowInstance resources that reference a specific Workflow template. Useful for discovering all configured deployments of a workflow.
 
-Example Use Case: Workflow "deploy-to-cloud" (wfl-123) has instances: - "prod-deploy" (wfi-abc) - Production deployment with aws-prod-env - "staging-deploy" (wfi-def) - Staging deployment with aws-staging-env - "dev-deploy" (wfi-ghi) - Development deployment with aws-dev-env
+Example Use Case: Workflow "deploy-to-cloud" (wfl_123) has instances: - "prod-deploy" (wfi_abc) - Production deployment with aws-prod-env - "staging-deploy" (wfi_def) - Staging deployment with aws-staging-env - "dev-deploy" (wfi_ghi) - Development deployment with aws-dev-env
 
 <SDKTabs>
 <Tab value="Go">
 ```go
-result, err := client.WorkflowInstance.GetByWorkflow(ctx, input)
+result, err := client.WorkflowInstance.GetByWorkflow(ctx, &stigmer.GetWorkflowInstancesByWorkflowRequest{
+  WorkflowId: "...",
+  PageInfo:   &stigmer.PageInfoInput{},
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.workflowInstance.getByWorkflow(input);
+const result = await stigmer.workflowInstance.getByWorkflow({
+  workflowId: "...",
+  pageInfo: {},
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.workflow_instance.get_by_workflow(input)
+result = client.workflow_instance.get_by_workflow(GetWorkflowInstancesByWorkflowRequest(
+    workflow_id="...",
+    page_info=None,
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-WorkflowInstanceList result = client.workflowInstance().getByWorkflow(input);
+WorkflowInstanceList result = client.workflowInstance().getByWorkflow(GetWorkflowInstancesByWorkflowRequest.builder()
+    .workflowId("...")
+    .pageInfo(null)
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `GetWorkflowInstancesByWorkflowRequest`
+**Parameters**: [`GetWorkflowInstancesByWorkflowRequest`](#getworkflowinstancesbyworkflowrequest)
 
-**Returns**: `WorkflowInstanceList`
+**Returns**: [`WorkflowInstanceList`](#workflowinstancelist)
 
 ### apply
 
@@ -183,8 +215,13 @@ Create or update a workflow instance. The authorization and state-operation are 
 <Tab value="Go">
 ```go
 workflowInstance, err := client.WorkflowInstance.Apply(ctx, &stigmer.WorkflowInstanceInput{
-  Name: "my-workflow-instance",
-  Org:  "acme",
+  Name:            "my-workflow-instance",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  WorkflowId:      "...",
+  Description:     "...",
+  EnvironmentRefs: []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -193,6 +230,11 @@ workflowInstance, err := client.WorkflowInstance.Apply(ctx, &stigmer.WorkflowIns
 const workflowInstance = await stigmer.workflowInstance.apply({
   name: "my-workflow-instance",
   org: "acme",
+  slug: "...",
+  labels: {},
+  workflowId: "...",
+  description: "...",
+  environmentRefs: [],
 });
 ```
 </Tab>
@@ -201,6 +243,11 @@ const workflowInstance = await stigmer.workflowInstance.apply({
 workflowInstance = client.workflow_instance.apply(WorkflowInstanceInput(
     name="my-workflow-instance",
     org="acme",
+    slug="...",
+    labels={},
+    workflow_id="...",
+    description="...",
+    environment_refs=[],
 ))
 ```
 </Tab>
@@ -209,6 +256,11 @@ workflowInstance = client.workflow_instance.apply(WorkflowInstanceInput(
 WorkflowInstance workflowInstance = client.workflowInstance().apply(WorkflowInstanceInput.builder()
     .name("my-workflow-instance")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .workflowId("...")
+    .description("...")
+    .environmentRefs(List.of())
     .build());
 ```
 </Tab>
@@ -230,14 +282,19 @@ Authorization: Uses custom authorization logic to verify: 1. User has permission
 
 Returns: The created WorkflowInstance with: - Assigned resource ID (metadata.id) - Created timestamp (status.audit.created_at) - Initial version (status.audit.version = 1)
 
-Example: Input: WorkflowInstance with workflow_id="wfl-123", environment_refs=["env-prod"] Output: WorkflowInstance with id="wfi-abc456", created_at="2025-01-11T10:00:00Z"
+Example: Input: WorkflowInstance with workflow_id="wfl_123", environment_refs=["env_prod"] Output: WorkflowInstance with id="wfi_abc456", created_at="2025-01-11T10:00:00Z"
 
 <SDKTabs>
 <Tab value="Go">
 ```go
 workflowInstance, err := client.WorkflowInstance.Create(ctx, &stigmer.WorkflowInstanceInput{
-  Name: "my-workflow-instance",
-  Org:  "acme",
+  Name:            "my-workflow-instance",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  WorkflowId:      "...",
+  Description:     "...",
+  EnvironmentRefs: []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -246,6 +303,11 @@ workflowInstance, err := client.WorkflowInstance.Create(ctx, &stigmer.WorkflowIn
 const workflowInstance = await stigmer.workflowInstance.create({
   name: "my-workflow-instance",
   org: "acme",
+  slug: "...",
+  labels: {},
+  workflowId: "...",
+  description: "...",
+  environmentRefs: [],
 });
 ```
 </Tab>
@@ -254,6 +316,11 @@ const workflowInstance = await stigmer.workflowInstance.create({
 workflowInstance = client.workflow_instance.create(WorkflowInstanceInput(
     name="my-workflow-instance",
     org="acme",
+    slug="...",
+    labels={},
+    workflow_id="...",
+    description="...",
+    environment_refs=[],
 ))
 ```
 </Tab>
@@ -262,6 +329,11 @@ workflowInstance = client.workflow_instance.create(WorkflowInstanceInput(
 WorkflowInstance workflowInstance = client.workflowInstance().create(WorkflowInstanceInput.builder()
     .name("my-workflow-instance")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .workflowId("...")
+    .description("...")
+    .environmentRefs(List.of())
     .build());
 ```
 </Tab>
@@ -291,8 +363,13 @@ Error: PERMISSION_DENIED if user lacks update permission
 <Tab value="Go">
 ```go
 workflowInstance, err := client.WorkflowInstance.Update(ctx, &stigmer.WorkflowInstanceInput{
-  Name: "my-workflow-instance",
-  Org:  "acme",
+  Name:            "my-workflow-instance",
+  Org:             "acme",
+  Slug:            "...",
+  Labels:          map[string]string{},
+  WorkflowId:      "...",
+  Description:     "...",
+  EnvironmentRefs: []stigmer.ResourceRef{},
 })
 ```
 </Tab>
@@ -301,6 +378,11 @@ workflowInstance, err := client.WorkflowInstance.Update(ctx, &stigmer.WorkflowIn
 const workflowInstance = await stigmer.workflowInstance.update({
   name: "my-workflow-instance",
   org: "acme",
+  slug: "...",
+  labels: {},
+  workflowId: "...",
+  description: "...",
+  environmentRefs: [],
 });
 ```
 </Tab>
@@ -309,6 +391,11 @@ const workflowInstance = await stigmer.workflowInstance.update({
 workflowInstance = client.workflow_instance.update(WorkflowInstanceInput(
     name="my-workflow-instance",
     org="acme",
+    slug="...",
+    labels={},
+    workflow_id="...",
+    description="...",
+    environment_refs=[],
 ))
 ```
 </Tab>
@@ -317,6 +404,11 @@ workflowInstance = client.workflow_instance.update(WorkflowInstanceInput(
 WorkflowInstance workflowInstance = client.workflowInstance().update(WorkflowInstanceInput.builder()
     .name("my-workflow-instance")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .workflowId("...")
+    .description("...")
+    .environmentRefs(List.of())
     .build());
 ```
 </Tab>
@@ -388,6 +480,41 @@ Input for creating or updating a Workflow Instance.
     workflowId: { type: "string", description: "Reference to the Workflow template this instance deploys." },
     description: { type: "string", description: "Human-readable description explaining what this instance is for." },
     environmentRefs: { type: "ResourceRef[]", description: "References to Environment resources providing configuration and secrets." },
+  }}
+/>
+
+### GetWorkflowInstancesByWorkflowRequest
+
+GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific Workflow template.
+
+<TypeTable
+  type={{
+    workflowId: { type: "string", description: "Workflow template ID to filter by.", required: true },
+    pageInfo: { type: "PageInfoInput", description: "Pagination options for controlling result set size and pages." },
+  }}
+/>
+
+### WorkflowInstanceList
+
+WorkflowInstanceList contains a paginated list of workflow instances.
+
+<TypeTable
+  type={{
+    totalPages: { type: "number", description: "Total number of pages available in the full result set." },
+    entries: { type: "WorkflowInstanceInput[]", description: "Workflow instances in the current page." },
+  }}
+/>
+
+### ApiResourceReference
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
 

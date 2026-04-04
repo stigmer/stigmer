@@ -17,5 +17,156 @@
         }
       ]
     }
+  ],
+  "methodTypes": [
+    {
+      "name": "SearchRequest",
+      "description": "SearchRequest specifies criteria for searching API resources.\n\n This single request type supports three use cases:\n - List: Return all accessible resources of specified kind(s)\n - Search: Find resources matching a text query\n - Discover: Search across all resource kinds\n\n Examples:\n\n List agents in an organization:\n   {kinds: [agent], org: \"acme\", query: \"\"}\n\n Search agents by text:\n   {kinds: [agent], query: \"code review\"}\n\n Discover all resources matching a query:\n   {kinds: [], query: \"kubernetes\"}\n\n Search multiple kinds:\n   {kinds: [agent, skill], query: \"security\", org: \"acme\"}",
+      "protoType": "ai.stigmer.search.v1.SearchRequest",
+      "protoFile": "apis/ai/stigmer/search/v1/io.proto",
+      "fields": [
+        {
+          "name": "Kinds",
+          "jsonName": "kinds",
+          "protoField": "kinds",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "string",
+              "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+              "enumValues": [
+                "api_resource_version",
+                "iam_policy",
+                "identity_account",
+                "api_key",
+                "identity_provider",
+                "organization",
+                "platform",
+                "agent",
+                "agent_execution",
+                "session",
+                "skill",
+                "mcp_server",
+                "agent_instance",
+                "workflow",
+                "workflow_instance",
+                "workflow_execution",
+                "environment",
+                "execution_context",
+                "project"
+              ]
+            }
+          },
+          "description": "Resource kinds to search.\n\n Behavior:\n - Empty: Search all searchable kinds (discover mode)\n   Searchable kinds: agent, skill, mcp_server, workflow\n - Single kind: Search only that resource type\n - Multiple kinds: Search specified types\n\n Invalid kinds are silently ignored (allows forward compatibility).",
+          "required": false
+        },
+        {
+          "name": "Query",
+          "jsonName": "query",
+          "protoField": "query",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Text query for full-text search.\n\n Searches across: name, description, tags.\n\n Behavior:\n - Empty: Return all accessible resources (list mode)\n   Results sorted by created_at descending (newer first)\n - Non-empty: Full-text search with relevance ranking\n   Results sorted by relevance score descending\n\n Query syntax: Plain text (no special operators).\n Maximum length: 500 characters.",
+          "required": false,
+          "validation": {
+            "maxLength": 500
+          }
+        },
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization to scope the search.\n\n Format: lowercase alphanumeric with hyphens (e.g., \"acme\", \"stigmer\").\n\n Behavior:\n - Empty: Search all organizations the caller has access to\n - Non-empty: Search only within the specified organization\n   Caller must have access to at least one resource in the org\n\n Examples: \"stigmer\", \"acme-corp\", \"my-org\"",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "ExcludePublic",
+          "jsonName": "excludePublic",
+          "protoField": "exclude_public",
+          "type": {
+            "kind": "bool"
+          },
+          "description": "Exclude public/platform resources from results.\n\n Default: false (include public resources).\n\n When true: Only return resources from organizations the caller\n is a member of. Excludes platform-provided public resources\n like \"stigmer/web-search\".\n\n Useful when users want to see only their own resources.",
+          "required": false
+        },
+        {
+          "name": "Page",
+          "jsonName": "page",
+          "protoField": "page",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination parameters.\n\n - num: Page number (1-indexed). Default: 1\n - size: Items per page. Default: 20, Maximum: 100\n\n If not provided, defaults to page 1 with 20 items.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "SearchResponse",
+      "description": "SearchResponse contains paginated search results with metadata.\n\n The response includes:\n - Matching resources as SearchResult projections\n - Counts per kind for UI filtering/tabs\n - Pagination metadata",
+      "protoType": "ai.stigmer.search.v1.SearchResponse",
+      "protoFile": "apis/ai/stigmer/search/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "SearchResult"
+            }
+          },
+          "description": "Search results for the current page.\n\n Ordering:\n - With query: Sorted by relevance score (descending)\n - Without query: Sorted by created_at (descending, newer first)\n\n Each result is a display projection, not the full resource.\n To get the full resource, use the kind-specific get RPC.",
+          "required": false
+        },
+        {
+          "name": "CountsByKind",
+          "jsonName": "countsByKind",
+          "protoField": "counts_by_kind",
+          "type": {
+            "kind": "map",
+            "keyType": {
+              "kind": "string"
+            },
+            "valueType": {
+              "kind": "int32"
+            }
+          },
+          "description": "Count of results per resource kind.\n\n Keys are ApiResourceKind enum names as strings (e.g., \"agent\", \"skill\").\n Values are the total count of matching resources for that kind\n (not just the current page).\n\n Useful for rendering UI tabs or filter badges showing counts.\n Example: {\"agent\": 5, \"skill\": 12, \"mcp_server\": 3, \"workflow\": 2}",
+          "required": false
+        },
+        {
+          "name": "TotalCount",
+          "jsonName": "totalCount",
+          "protoField": "total_count",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total count of matching resources across all kinds.\n\n This is the sum of all counts_by_kind values.\n Used for displaying \"Showing X of Y results\".",
+          "required": false
+        },
+        {
+          "name": "TotalPages",
+          "jsonName": "totalPages",
+          "protoField": "total_pages",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of pages based on current page size.\n\n Calculated as: ceil(total_count / page.size)\n Used for pagination controls.",
+          "required": false
+        }
+      ]
+    }
   ]
 }

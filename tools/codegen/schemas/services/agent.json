@@ -13,7 +13,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.Agent",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Create or update an agent.\n The authorization and state-operation are determined depending on whether the agent\n is going to be created or updated which is determined as part of the request execution."
+          "description": "Create or update an agent.\n\n @internal\n The authorization and state-operation are determined depending on whether the agent\n is going to be created or updated which is determined as part of the request execution."
         },
         {
           "name": "Create",
@@ -21,7 +21,7 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.Agent",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Create a new agent.\n\n Authorization:\n - Organization-scoped agents: Caller must have can_create_agent permission in the organization\n - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)"
+          "description": "Create an agent.\n\n @internal\n Authorization:\n - Organization-scoped agents: Caller must have can_create_agent permission in the organization\n - Platform-scoped agents: Caller must be a platform operator (handled automatically by common auth step)"
         },
         {
           "name": "Update",
@@ -37,7 +37,7 @@
           "inputFullType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Update the visibility of an existing agent.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched. Use this to\n make an agent publicly accessible or to revoke public access without\n sending the entire agent resource (avoiding read-modify-write races).\n\n Authorization: Requires can_edit permission on the agent resource."
+          "description": "Update the visibility of an existing agent.\n\n This is a targeted metadata update — it only modifies metadata.visibility,\n leaving spec, status, and other metadata fields untouched. Use this to\n make an agent publicly accessible or to revoke public access without\n sending the entire agent resource (avoiding read-modify-write races).\n\n @internal\n Authorization: Requires can_edit permission on the agent resource."
         },
         {
           "name": "Delete",
@@ -75,10 +75,152 @@
           "inputFullType": "ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest",
           "outputType": "Agent",
           "outputFullType": "ai.stigmer.agentic.agent.v1.Agent",
-          "description": "Get the platform default agent.\n\n Resolves the agent labeled stigmer.ai/default-agent: \"true\" with\n visibility_public. Returns the full Agent resource including\n status.default_instance_id for session creation.\n\n Used by frontends to enable session-first UX where users start\n a conversation without explicitly selecting an agent.\n\n Error: NOT_FOUND if no default agent is configured.\n\n @internal\n Custom authorization in handler."
+          "description": "Get the platform default agent.\n\n Returns the default agent for the platform, including\n status.default_instance_id for creating a session. Use this\n to start a conversation without selecting an agent first.\n\n Returns NOT_FOUND if no default agent is configured.\n\n @internal\n Resolves the agent labeled stigmer.ai/default-agent: \"true\" with\n visibility_public. Custom authorization in handler."
         }
       ]
     }
   ],
-  "listVia": "SearchService"
+  "listVia": "SearchService",
+  "methodTypes": [
+    {
+      "name": "UpdateVisibilityInput",
+      "description": "Input for updating the visibility of any API resource.\n\n Used by resource-specific command controllers to toggle between\n PRIVATE and PUBLIC visibility. Each controller's updateVisibility RPC\n accepts this shared input and returns the full updated resource.\n\n Visibility transitions trigger FGA tuple management in Cloud mode:\n - PRIVATE → PUBLIC: creates resource#viewer@identity_account:* tuple\n - PUBLIC → PRIVATE: deletes the wildcard viewer tuple",
+      "protoType": "ai.stigmer.commons.apiresource.UpdateVisibilityInput",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "ResourceId",
+          "jsonName": "resourceId",
+          "protoField": "resource_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "ID of the resource whose visibility is being updated.",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "Visibility",
+          "jsonName": "visibility",
+          "protoField": "visibility",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.ApiResourceVisibility",
+            "enumValues": [
+              "visibility_private",
+              "visibility_public"
+            ]
+          },
+          "description": "The new visibility setting for the resource.\n Must be either visibility_private or visibility_public.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "identity_provider",
+              "organization",
+              "platform",
+              "agent",
+              "agent_execution",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_instance",
+              "workflow",
+              "workflow_instance",
+              "workflow_execution",
+              "environment",
+              "execution_context",
+              "project"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., \"web-search\", \"code-reviewer\").\n Length: 1-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GetDefaultAgentRequest",
+      "description": "GetDefaultAgentRequest is the input for retrieving the platform default agent.\n\n @internal\n The handler resolves the default agent globally (by label stigmer.ai/default-agent: \"true\"\n with visibility_public), but the org is needed for authorization scoping.",
+      "protoType": "ai.stigmer.agentic.agent.v1.GetDefaultAgentRequest",
+      "protoFile": "apis/ai/stigmer/agentic/agent/v1/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization slug for authorization scoping.",
+          "required": false,
+          "validation": {
+            "minLength": 1
+          }
+        }
+      ]
+    }
+  ]
 }

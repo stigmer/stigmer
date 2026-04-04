@@ -63,5 +63,50 @@
         }
       ]
     }
+  ],
+  "methodTypes": [
+    {
+      "name": "ApiKeyHash",
+      "description": "wrapper for hashed api key",
+      "protoType": "ai.stigmer.iam.apikey.v1.ApiKeyHash",
+      "protoFile": "apis/ai/stigmer/iam/apikey/v1/io.proto",
+      "fields": [
+        {
+          "name": "Value",
+          "jsonName": "value",
+          "protoField": "value",
+          "type": {
+            "kind": "string"
+          },
+          "description": "",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "ApiKeys",
+      "description": "wrapper to get list of api keys",
+      "protoType": "ai.stigmer.iam.apikey.v1.ApiKeys",
+      "protoFile": "apis/ai/stigmer/iam/apikey/v1/io.proto",
+      "fields": [
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "ApiKey"
+            }
+          },
+          "description": "",
+          "required": false
+        }
+      ]
+    }
   ]
 }

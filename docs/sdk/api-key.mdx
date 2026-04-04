@@ -85,27 +85,35 @@ Get an API key by its hashed key value.
 <SDKTabs>
 <Tab value="Go">
 ```go
-apiKey, err := client.ApiKey.GetByKeyHash(ctx, input)
+apiKey, err := client.ApiKey.GetByKeyHash(ctx, &stigmer.ApiKeyHash{
+  Value: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const apiKey = await stigmer.apiKey.getByKeyHash(input);
+const apiKey = await stigmer.apiKey.getByKeyHash({
+  value: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-apiKey = client.api_key.get_by_key_hash(input)
+apiKey = client.api_key.get_by_key_hash(ApiKeyHash(
+    value="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-ApiKey apiKey = client.apiKey().getByKeyHash(input);
+ApiKey apiKey = client.apiKey().getByKeyHash(ApiKeyHash.builder()
+    .value("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ApiKeyHash`
+**Parameters**: [`ApiKeyHash`](#apikeyhash)
 
 **Returns**: `ApiKey`
 
@@ -136,7 +144,7 @@ ApiKeys apiKeys = client.apiKey().findAll();
 </Tab>
 </SDKTabs>
 
-**Returns**: `ApiKeys`
+**Returns**: [`ApiKeys`](#apikeys)
 
 ### create
 
@@ -146,8 +154,14 @@ Create a new API key for the authenticated user. Any authenticated user can crea
 <Tab value="Go">
 ```go
 apiKey, err := client.ApiKey.Create(ctx, &stigmer.ApiKeyInput{
-  Name: "my-api-key",
-  Org:  "acme",
+  Name:         "my-api-key",
+  Org:          "acme",
+  Slug:         "...",
+  Labels:       map[string]string{},
+  KeyHash:      "...",
+  Fingerprint:  "...",
+  ExpiresAt:    "...",
+  NeverExpires: false,
 })
 ```
 </Tab>
@@ -156,6 +170,12 @@ apiKey, err := client.ApiKey.Create(ctx, &stigmer.ApiKeyInput{
 const apiKey = await stigmer.apiKey.create({
   name: "my-api-key",
   org: "acme",
+  slug: "...",
+  labels: {},
+  keyHash: "...",
+  fingerprint: "...",
+  expiresAt: "...",
+  neverExpires: false,
 });
 ```
 </Tab>
@@ -164,6 +184,12 @@ const apiKey = await stigmer.apiKey.create({
 apiKey = client.api_key.create(ApiKeyInput(
     name="my-api-key",
     org="acme",
+    slug="...",
+    labels={},
+    key_hash="...",
+    fingerprint="...",
+    expires_at="...",
+    never_expires=False,
 ))
 ```
 </Tab>
@@ -172,6 +198,12 @@ apiKey = client.api_key.create(ApiKeyInput(
 ApiKey apiKey = client.apiKey().create(ApiKeyInput.builder()
     .name("my-api-key")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .keyHash("...")
+    .fingerprint("...")
+    .expiresAt("...")
+    .neverExpires(false)
     .build());
 ```
 </Tab>
@@ -189,8 +221,14 @@ Update an existing API key.
 <Tab value="Go">
 ```go
 apiKey, err := client.ApiKey.Update(ctx, &stigmer.ApiKeyInput{
-  Name: "my-api-key",
-  Org:  "acme",
+  Name:         "my-api-key",
+  Org:          "acme",
+  Slug:         "...",
+  Labels:       map[string]string{},
+  KeyHash:      "...",
+  Fingerprint:  "...",
+  ExpiresAt:    "...",
+  NeverExpires: false,
 })
 ```
 </Tab>
@@ -199,6 +237,12 @@ apiKey, err := client.ApiKey.Update(ctx, &stigmer.ApiKeyInput{
 const apiKey = await stigmer.apiKey.update({
   name: "my-api-key",
   org: "acme",
+  slug: "...",
+  labels: {},
+  keyHash: "...",
+  fingerprint: "...",
+  expiresAt: "...",
+  neverExpires: false,
 });
 ```
 </Tab>
@@ -207,6 +251,12 @@ const apiKey = await stigmer.apiKey.update({
 apiKey = client.api_key.update(ApiKeyInput(
     name="my-api-key",
     org="acme",
+    slug="...",
+    labels={},
+    key_hash="...",
+    fingerprint="...",
+    expires_at="...",
+    never_expires=False,
 ))
 ```
 </Tab>
@@ -215,6 +265,12 @@ apiKey = client.api_key.update(ApiKeyInput(
 ApiKey apiKey = client.apiKey().update(ApiKeyInput.builder()
     .name("my-api-key")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .keyHash("...")
+    .fingerprint("...")
+    .expiresAt("...")
+    .neverExpires(false)
     .build());
 ```
 </Tab>
@@ -275,6 +331,26 @@ Input for creating or updating an API Key.
     fingerprint: { type: "string", description: "Short fingerprint of the key for display purposes (last 6 characters)." },
     expiresAt: { type: "string", description: "Expiration time for the API key." },
     neverExpires: { type: "boolean", description: "When true, the API key never expires regardless of expires_at." },
+  }}
+/>
+
+### ApiKeyHash
+
+wrapper for hashed api key.
+
+<TypeTable
+  type={{
+    value: { type: "string", description: "", required: true },
+  }}
+/>
+
+### ApiKeys
+
+wrapper to get list of api keys.
+
+<TypeTable
+  type={{
+    entries: { type: "ApiKeyInput[]", description: "" },
   }}
 />
 

@@ -89,27 +89,47 @@ Get an identity provider by reference (org + slug).
 <SDKTabs>
 <Tab value="Go">
 ```go
-identityProvider, err := client.IdentityProvider.GetByReference(ctx, input)
+identityProvider, err := client.IdentityProvider.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const identityProvider = await stigmer.identityProvider.getByReference(input);
+const identityProvider = await stigmer.identityProvider.getByReference({
+  org: "...",
+  kind: "...",
+  slug: "...",
+  version: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-identityProvider = client.identity_provider.get_by_reference(input)
+identityProvider = client.identity_provider.get_by_reference(ApiResourceReference(
+    org="...",
+    kind="...",
+    slug="...",
+    version="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IdentityProvider identityProvider = client.identityProvider().getByReference(input);
+IdentityProvider identityProvider = client.identityProvider().getByReference(ApiResourceReference.builder()
+    .org("...")
+    .kind("...")
+    .slug("...")
+    .version("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ApiResourceReference`
+**Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
 **Returns**: `IdentityProvider`
 
@@ -121,8 +141,16 @@ Create or update an identity provider (Kubernetes-style apply). If the resource 
 <Tab value="Go">
 ```go
 identityProvider, err := client.IdentityProvider.Apply(ctx, &stigmer.IdentityProviderInput{
-  Name: "my-identity-provider",
-  Org:  "acme",
+  Name:             "my-identity-provider",
+  Org:              "acme",
+  Slug:             "...",
+  Labels:           map[string]string{},
+  DisplayName:      "...",
+  JwksUri:          "...",
+  AllowedIssuers:   []string{},
+  ExpectedAudience: "...",
+  RateLimitBudget:  0,
+  UserinfoEndpoint: "...",
 })
 ```
 </Tab>
@@ -131,6 +159,14 @@ identityProvider, err := client.IdentityProvider.Apply(ctx, &stigmer.IdentityPro
 const identityProvider = await stigmer.identityProvider.apply({
   name: "my-identity-provider",
   org: "acme",
+  slug: "...",
+  labels: {},
+  displayName: "...",
+  jwksUri: "...",
+  allowedIssuers: [],
+  expectedAudience: "...",
+  rateLimitBudget: 0,
+  userinfoEndpoint: "...",
 });
 ```
 </Tab>
@@ -139,6 +175,14 @@ const identityProvider = await stigmer.identityProvider.apply({
 identityProvider = client.identity_provider.apply(IdentityProviderInput(
     name="my-identity-provider",
     org="acme",
+    slug="...",
+    labels={},
+    display_name="...",
+    jwks_uri="...",
+    allowed_issuers=[],
+    expected_audience="...",
+    rate_limit_budget=0,
+    userinfo_endpoint="...",
 ))
 ```
 </Tab>
@@ -147,6 +191,14 @@ identityProvider = client.identity_provider.apply(IdentityProviderInput(
 IdentityProvider identityProvider = client.identityProvider().apply(IdentityProviderInput.builder()
     .name("my-identity-provider")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .displayName("...")
+    .jwksUri("...")
+    .allowedIssuers(List.of())
+    .expectedAudience("...")
+    .rateLimitBudget(0)
+    .userinfoEndpoint("...")
     .build());
 ```
 </Tab>
@@ -164,8 +216,16 @@ Create a new identity provider. The creator's organization owns the identity pro
 <Tab value="Go">
 ```go
 identityProvider, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityProviderInput{
-  Name: "my-identity-provider",
-  Org:  "acme",
+  Name:             "my-identity-provider",
+  Org:              "acme",
+  Slug:             "...",
+  Labels:           map[string]string{},
+  DisplayName:      "...",
+  JwksUri:          "...",
+  AllowedIssuers:   []string{},
+  ExpectedAudience: "...",
+  RateLimitBudget:  0,
+  UserinfoEndpoint: "...",
 })
 ```
 </Tab>
@@ -174,6 +234,14 @@ identityProvider, err := client.IdentityProvider.Create(ctx, &stigmer.IdentityPr
 const identityProvider = await stigmer.identityProvider.create({
   name: "my-identity-provider",
   org: "acme",
+  slug: "...",
+  labels: {},
+  displayName: "...",
+  jwksUri: "...",
+  allowedIssuers: [],
+  expectedAudience: "...",
+  rateLimitBudget: 0,
+  userinfoEndpoint: "...",
 });
 ```
 </Tab>
@@ -182,6 +250,14 @@ const identityProvider = await stigmer.identityProvider.create({
 identityProvider = client.identity_provider.create(IdentityProviderInput(
     name="my-identity-provider",
     org="acme",
+    slug="...",
+    labels={},
+    display_name="...",
+    jwks_uri="...",
+    allowed_issuers=[],
+    expected_audience="...",
+    rate_limit_budget=0,
+    userinfo_endpoint="...",
 ))
 ```
 </Tab>
@@ -190,6 +266,14 @@ identityProvider = client.identity_provider.create(IdentityProviderInput(
 IdentityProvider identityProvider = client.identityProvider().create(IdentityProviderInput.builder()
     .name("my-identity-provider")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .displayName("...")
+    .jwksUri("...")
+    .allowedIssuers(List.of())
+    .expectedAudience("...")
+    .rateLimitBudget(0)
+    .userinfoEndpoint("...")
     .build());
 ```
 </Tab>
@@ -207,8 +291,16 @@ Update an existing identity provider. Requires can_edit permission on the identi
 <Tab value="Go">
 ```go
 identityProvider, err := client.IdentityProvider.Update(ctx, &stigmer.IdentityProviderInput{
-  Name: "my-identity-provider",
-  Org:  "acme",
+  Name:             "my-identity-provider",
+  Org:              "acme",
+  Slug:             "...",
+  Labels:           map[string]string{},
+  DisplayName:      "...",
+  JwksUri:          "...",
+  AllowedIssuers:   []string{},
+  ExpectedAudience: "...",
+  RateLimitBudget:  0,
+  UserinfoEndpoint: "...",
 })
 ```
 </Tab>
@@ -217,6 +309,14 @@ identityProvider, err := client.IdentityProvider.Update(ctx, &stigmer.IdentityPr
 const identityProvider = await stigmer.identityProvider.update({
   name: "my-identity-provider",
   org: "acme",
+  slug: "...",
+  labels: {},
+  displayName: "...",
+  jwksUri: "...",
+  allowedIssuers: [],
+  expectedAudience: "...",
+  rateLimitBudget: 0,
+  userinfoEndpoint: "...",
 });
 ```
 </Tab>
@@ -225,6 +325,14 @@ const identityProvider = await stigmer.identityProvider.update({
 identityProvider = client.identity_provider.update(IdentityProviderInput(
     name="my-identity-provider",
     org="acme",
+    slug="...",
+    labels={},
+    display_name="...",
+    jwks_uri="...",
+    allowed_issuers=[],
+    expected_audience="...",
+    rate_limit_budget=0,
+    userinfo_endpoint="...",
 ))
 ```
 </Tab>
@@ -233,6 +341,14 @@ identityProvider = client.identity_provider.update(IdentityProviderInput(
 IdentityProvider identityProvider = client.identityProvider().update(IdentityProviderInput.builder()
     .name("my-identity-provider")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .displayName("...")
+    .jwksUri("...")
+    .allowedIssuers(List.of())
+    .expectedAudience("...")
+    .rateLimitBudget(0)
+    .userinfoEndpoint("...")
     .build());
 ```
 </Tab>
@@ -301,6 +417,19 @@ Input for creating or updating an Identity Provider.
     expectedAudience: { type: "string", description: "Expected JWT audience value." },
     rateLimitBudget: { type: "number", description: "Shared rate limit budget across all organizations managed via this identity provider." },
     userinfoEndpoint: { type: "string", description: "OIDC UserInfo endpoint URL for fetching user profile data during token exchange." },
+  }}
+/>
+
+### ApiResourceReference
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
 

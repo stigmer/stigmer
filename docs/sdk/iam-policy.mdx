@@ -93,29 +93,49 @@ Input: ListAuthorizedPrincipalIdsInput with resource, principal_kind, and relati
 <SDKTabs>
 <Tab value="Go">
 ```go
-result, err := client.IamPolicy.ListAuthorizedPrincipalIds(ctx, input)
+result, err := client.IamPolicy.ListAuthorizedPrincipalIds(ctx, &stigmer.ListAuthorizedPrincipalIdsInput{
+  Resource:           &stigmer.ApiResourceRefInput{},
+  PrincipalKind:      "...",
+  Relation:           "...",
+  ContextualPolicies: []stigmer.IamPolicySpecInput{},
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.iamPolicy.listAuthorizedPrincipalIds(input);
+const result = await stigmer.iamPolicy.listAuthorizedPrincipalIds({
+  resource: {},
+  principalKind: "...",
+  relation: "...",
+  contextualPolicies: [],
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.iam_policy.list_authorized_principal_ids(input)
+result = client.iam_policy.list_authorized_principal_ids(ListAuthorizedPrincipalIdsInput(
+    resource=None,
+    principal_kind="...",
+    relation="...",
+    contextual_policies=[],
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AuthorizedPrincipalIdsList result = client.iamPolicy().listAuthorizedPrincipalIds(input);
+AuthorizedPrincipalIdsList result = client.iamPolicy().listAuthorizedPrincipalIds(ListAuthorizedPrincipalIdsInput.builder()
+    .resource(null)
+    .principalKind("...")
+    .relation("...")
+    .contextualPolicies(List.of())
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ListAuthorizedPrincipalIdsInput`
+**Parameters**: [`ListAuthorizedPrincipalIdsInput`](#listauthorizedprincipalidsinput)
 
-**Returns**: `AuthorizedPrincipalIdsList`
+**Returns**: [`AuthorizedPrincipalIdsList`](#authorizedprincipalidslist)
 
 ### listAuthorizedResourceIds
 
@@ -130,29 +150,49 @@ Input: ListAuthorizedResourceIdsInput with principal, resource_kind, and relatio
 <SDKTabs>
 <Tab value="Go">
 ```go
-result, err := client.IamPolicy.ListAuthorizedResourceIds(ctx, input)
+result, err := client.IamPolicy.ListAuthorizedResourceIds(ctx, &stigmer.ListAuthorizedResourceIdsInput{
+  Principal:          &stigmer.ApiResourceRefInput{},
+  ResourceKind:       "...",
+  Relation:           "...",
+  ContextualPolicies: []stigmer.IamPolicySpecInput{},
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.iamPolicy.listAuthorizedResourceIds(input);
+const result = await stigmer.iamPolicy.listAuthorizedResourceIds({
+  principal: {},
+  resourceKind: "...",
+  relation: "...",
+  contextualPolicies: [],
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.iam_policy.list_authorized_resource_ids(input)
+result = client.iam_policy.list_authorized_resource_ids(ListAuthorizedResourceIdsInput(
+    principal=None,
+    resource_kind="...",
+    relation="...",
+    contextual_policies=[],
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-AuthorizedResourceIdsList result = client.iamPolicy().listAuthorizedResourceIds(input);
+AuthorizedResourceIdsList result = client.iamPolicy().listAuthorizedResourceIds(ListAuthorizedResourceIdsInput.builder()
+    .principal(null)
+    .resourceKind("...")
+    .relation("...")
+    .contextualPolicies(List.of())
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ListAuthorizedResourceIdsInput`
+**Parameters**: [`ListAuthorizedResourceIdsInput`](#listauthorizedresourceidsinput)
 
-**Returns**: `AuthorizedResourceIdsList`
+**Returns**: [`AuthorizedResourceIdsList`](#authorizedresourceidslist)
 
 ### create
 
@@ -163,27 +203,43 @@ Creates a single IAM policy that grants a principal access to a resource with a 
 <SDKTabs>
 <Tab value="Go">
 ```go
-iamPolicy, err := client.IamPolicy.Create(ctx, input)
+iamPolicy, err := client.IamPolicy.Create(ctx, &stigmer.IamPolicySpec{
+  Principal: &stigmer.ApiResourceRefInput{},
+  Resource:  &stigmer.ApiResourceRefInput{},
+  Relation:  "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const iamPolicy = await stigmer.iamPolicy.create(input);
+const iamPolicy = await stigmer.iamPolicy.create({
+  principal: {},
+  resource: {},
+  relation: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-iamPolicy = client.iam_policy.create(input)
+iamPolicy = client.iam_policy.create(IamPolicySpec(
+    principal=None,
+    resource=None,
+    relation="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IamPolicy iamPolicy = client.iamPolicy().create(input);
+IamPolicy iamPolicy = client.iamPolicy().create(IamPolicySpec.builder()
+    .principal(null)
+    .resource(null)
+    .relation("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `IamPolicySpec`
+**Parameters**: [`IamPolicySpec`](#iampolicyspec)
 
 **Returns**: `IamPolicy`
 
@@ -196,27 +252,43 @@ Removes an existing IAM policy by matching the principal, resource, and relation
 <SDKTabs>
 <Tab value="Go">
 ```go
-iamPolicy, err := client.IamPolicy.Delete(ctx, input)
+iamPolicy, err := client.IamPolicy.Delete(ctx, &stigmer.IamPolicySpec{
+  Principal: &stigmer.ApiResourceRefInput{},
+  Resource:  &stigmer.ApiResourceRefInput{},
+  Relation:  "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const iamPolicy = await stigmer.iamPolicy.delete(input);
+const iamPolicy = await stigmer.iamPolicy.delete({
+  principal: {},
+  resource: {},
+  relation: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-iamPolicy = client.iam_policy.delete(input)
+iamPolicy = client.iam_policy.delete(IamPolicySpec(
+    principal=None,
+    resource=None,
+    relation="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IamPolicy iamPolicy = client.iamPolicy().delete(input);
+IamPolicy iamPolicy = client.iamPolicy().delete(IamPolicySpec.builder()
+    .principal(null)
+    .resource(null)
+    .relation("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `IamPolicySpec`
+**Parameters**: [`IamPolicySpec`](#iampolicyspec)
 
 **Returns**: `IamPolicy`
 
@@ -229,27 +301,43 @@ Creates IAM policies during resource creation when standard authorization cannot
 <SDKTabs>
 <Tab value="Go">
 ```go
-iamPolicy, err := client.IamPolicy.BootstrapPolicy(ctx, input)
+iamPolicy, err := client.IamPolicy.BootstrapPolicy(ctx, &stigmer.IamPolicySpec{
+  Principal: &stigmer.ApiResourceRefInput{},
+  Resource:  &stigmer.ApiResourceRefInput{},
+  Relation:  "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const iamPolicy = await stigmer.iamPolicy.bootstrapPolicy(input);
+const iamPolicy = await stigmer.iamPolicy.bootstrapPolicy({
+  principal: {},
+  resource: {},
+  relation: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-iamPolicy = client.iam_policy.bootstrap_policy(input)
+iamPolicy = client.iam_policy.bootstrap_policy(IamPolicySpec(
+    principal=None,
+    resource=None,
+    relation="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-IamPolicy iamPolicy = client.iamPolicy().bootstrapPolicy(input);
+IamPolicy iamPolicy = client.iamPolicy().bootstrapPolicy(IamPolicySpec.builder()
+    .principal(null)
+    .resource(null)
+    .relation("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `IamPolicySpec`
+**Parameters**: [`IamPolicySpec`](#iampolicyspec)
 
 **Returns**: `IamPolicy`
 
@@ -268,29 +356,41 @@ Input: CheckAuthorizationInput with policy spec and optional contextual policies
 <SDKTabs>
 <Tab value="Go">
 ```go
-checkAuthorizationResult, err := client.IamPolicy.CheckAuthorization(ctx, input)
+checkAuthorizationResult, err := client.IamPolicy.CheckAuthorization(ctx, &stigmer.CheckAuthorizationInput{
+  Policy:             &stigmer.IamPolicySpecInput{},
+  ContextualPolicies: []stigmer.IamPolicySpecInput{},
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const checkAuthorizationResult = await stigmer.iamPolicy.checkAuthorization(input);
+const checkAuthorizationResult = await stigmer.iamPolicy.checkAuthorization({
+  policy: {},
+  contextualPolicies: [],
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-checkAuthorizationResult = client.iam_policy.check_authorization(input)
+checkAuthorizationResult = client.iam_policy.check_authorization(CheckAuthorizationInput(
+    policy=None,
+    contextual_policies=[],
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-CheckAuthorizationResult checkAuthorizationResult = client.iamPolicy().checkAuthorization(input);
+CheckAuthorizationResult checkAuthorizationResult = client.iamPolicy().checkAuthorization(CheckAuthorizationInput.builder()
+    .policy(null)
+    .contextualPolicies(List.of())
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `CheckAuthorizationInput`
+**Parameters**: [`CheckAuthorizationInput`](#checkauthorizationinput)
 
-**Returns**: `CheckAuthorizationResult`
+**Returns**: [`CheckAuthorizationResult`](#checkauthorizationresult)
 
 ### cleanupResourcePolicies
 
@@ -301,27 +401,43 @@ Removes all IAM policies associated with a deleted resource.
 <SDKTabs>
 <Tab value="Go">
 ```go
-empty, err := client.IamPolicy.CleanupResourcePolicies(ctx, input)
+empty, err := client.IamPolicy.CleanupResourcePolicies(ctx, &stigmer.ApiResourceRef{
+  Kind:     "...",
+  Id:       "...",
+  Relation: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const empty = await stigmer.iamPolicy.cleanupResourcePolicies(input);
+const empty = await stigmer.iamPolicy.cleanupResourcePolicies({
+  kind: "...",
+  id: "...",
+  relation: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-empty = client.iam_policy.cleanup_resource_policies(input)
+empty = client.iam_policy.cleanup_resource_policies(ApiResourceRef(
+    kind="...",
+    id="...",
+    relation="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Empty empty = client.iamPolicy().cleanupResourcePolicies(input);
+Empty empty = client.iamPolicy().cleanupResourcePolicies(ApiResourceRef.builder()
+    .kind("...")
+    .id("...")
+    .relation("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ApiResourceRef`
+**Parameters**: [`ApiResourceRef`](#apiresourceref)
 
 **Returns**: `void`
 
@@ -352,6 +468,97 @@ ApiResourceRef represents a reference to ANY API resource in the system.
     kind: { type: "string", description: "Type of the API resource being referenced This should be the resource kind as defined in ApiResourceKind enum.", required: true },
     id: { type: "string", description: "Unique identifier of the resource This is the resource's ID field (e.g., ia-01HQUSER123, tm-01HQTEAM456).", required: true },
     relation: { type: "string", description: "Optional relation qualifier for the resource reference." },
+  }}
+/>
+
+### IamPolicySpec
+
+IamPolicySpec defines the desired state of an IAM policy binding.
+
+<TypeTable
+  type={{
+    principal: { type: "ApiResourceRefInput", description: "Principal: WHO is being granted access This can be any API resource that acts as an identity: - identity_account (individual user) - team (group of users) - organization (for cross-org grants) - Any other resource that can be a subject in authorization.", required: true },
+    resource: { type: "ApiResourceRefInput", description: "Resource: WHAT is being accessed This can be any API resource that is being protected: - organization - environment - cloud_resource (VPC, S3 bucket, etc.) - service - Any other resource that requires access control.", required: true },
+    relation: { type: "string", description: "The permission being granted (e.g., \"admin\", \"viewer\", \"owner\").", required: true },
+  }}
+/>
+
+### ApiResourceRef
+
+ApiResourceRef represents a reference to ANY API resource in the system.
+
+<TypeTable
+  type={{
+    kind: { type: "string", description: "Type of the API resource being referenced This should be the resource kind as defined in ApiResourceKind enum.", required: true },
+    id: { type: "string", description: "Unique identifier of the resource This is the resource's ID field (e.g., ia-01HQUSER123, tm-01HQTEAM456).", required: true },
+    relation: { type: "string", description: "Optional relation qualifier for the resource reference." },
+  }}
+/>
+
+### CheckAuthorizationInput
+
+CheckAuthorizationInput defines input for checking if a principal is authorized.
+
+<TypeTable
+  type={{
+    policy: { type: "IamPolicySpecInput", description: "The policy to check (principal, resource, relation).", required: true },
+    contextualPolicies: { type: "IamPolicySpecInput[]", description: "Optional contextual policies for \"what-if\" scenarios." },
+  }}
+/>
+
+### CheckAuthorizationResult
+
+CheckAuthorizationResult contains the result of an authorization check.
+
+<TypeTable
+  type={{
+    isAuthorized: { type: "boolean", description: "Whether the principal is authorized." },
+  }}
+/>
+
+### ListAuthorizedResourceIdsInput
+
+ListAuthorizedResourceIdsInput defines input for listing resources a principal can access.
+
+<TypeTable
+  type={{
+    principal: { type: "ApiResourceRefInput", description: "The principal whose access is being queried.", required: true },
+    resourceKind: { type: "string", description: "The kind of resources to check.", required: true },
+    relation: { type: "string", description: "The relation/permission to check for.", required: true },
+    contextualPolicies: { type: "IamPolicySpecInput[]", description: "Optional contextual policies for \"what-if\" scenarios." },
+  }}
+/>
+
+### AuthorizedResourceIdsList
+
+AuthorizedResourceIdsList contains all resource IDs a principal can access.
+
+<TypeTable
+  type={{
+    resourceIds: { type: "string[]", description: "" },
+  }}
+/>
+
+### ListAuthorizedPrincipalIdsInput
+
+ListAuthorizedPrincipalIdsInput defines input for listing principals that can access a resource.
+
+<TypeTable
+  type={{
+    resource: { type: "ApiResourceRefInput", description: "The resource whose access is being queried.", required: true },
+    principalKind: { type: "string", description: "The kind of principals to check for.", required: true },
+    relation: { type: "string", description: "The relation/permission to check for.", required: true },
+    contextualPolicies: { type: "IamPolicySpecInput[]", description: "Optional contextual policies for \"what-if\" scenarios." },
+  }}
+/>
+
+### AuthorizedPrincipalIdsList
+
+AuthorizedPrincipalIdsList contains all principal IDs that can access a resource.
+
+<TypeTable
+  type={{
+    principalIds: { type: "string[]", description: "" },
   }}
 />
 

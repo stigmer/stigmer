@@ -87,27 +87,47 @@ Get a workflow by its organization-scoped reference (org/slug).
 <SDKTabs>
 <Tab value="Go">
 ```go
-workflow, err := client.Workflow.GetByReference(ctx, input)
+workflow, err := client.Workflow.GetByReference(ctx, &stigmer.ApiResourceReference{
+  Org:     "...",
+  Kind:    "...",
+  Slug:    "...",
+  Version: "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const workflow = await stigmer.workflow.getByReference(input);
+const workflow = await stigmer.workflow.getByReference({
+  org: "...",
+  kind: "...",
+  slug: "...",
+  version: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-workflow = client.workflow.get_by_reference(input)
+workflow = client.workflow.get_by_reference(ApiResourceReference(
+    org="...",
+    kind="...",
+    slug="...",
+    version="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Workflow workflow = client.workflow().getByReference(input);
+Workflow workflow = client.workflow().getByReference(ApiResourceReference.builder()
+    .org("...")
+    .kind("...")
+    .slug("...")
+    .version("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `ApiResourceReference`
+**Parameters**: [`ApiResourceReference`](#apiresourcereference)
 
 **Returns**: `Workflow`
 
@@ -119,8 +139,14 @@ Create or update a workflow. The authorization and state-operation are determine
 <Tab value="Go">
 ```go
 workflow, err := client.Workflow.Apply(ctx, &stigmer.WorkflowInput{
-  Name: "my-workflow",
-  Org:  "acme",
+  Name:        "my-workflow",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  Document:    &stigmer.WorkflowDocumentInput{},
+  Tasks:       []stigmer.WorkflowTaskInput{},
+  EnvSpec:     &stigmer.EnvSpecInput{},
 })
 ```
 </Tab>
@@ -129,6 +155,12 @@ workflow, err := client.Workflow.Apply(ctx, &stigmer.WorkflowInput{
 const workflow = await stigmer.workflow.apply({
   name: "my-workflow",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  document: {},
+  tasks: [],
+  envSpec: {},
 });
 ```
 </Tab>
@@ -137,6 +169,12 @@ const workflow = await stigmer.workflow.apply({
 workflow = client.workflow.apply(WorkflowInput(
     name="my-workflow",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    document=None,
+    tasks=[],
+    env_spec=None,
 ))
 ```
 </Tab>
@@ -145,6 +183,12 @@ workflow = client.workflow.apply(WorkflowInput(
 Workflow workflow = client.workflow().apply(WorkflowInput.builder()
     .name("my-workflow")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .document(null)
+    .tasks(List.of())
+    .envSpec(null)
     .build());
 ```
 </Tab>
@@ -164,8 +208,14 @@ Authorization: - Organization-scoped workflows: Caller must have can_create_work
 <Tab value="Go">
 ```go
 workflow, err := client.Workflow.Create(ctx, &stigmer.WorkflowInput{
-  Name: "my-workflow",
-  Org:  "acme",
+  Name:        "my-workflow",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  Document:    &stigmer.WorkflowDocumentInput{},
+  Tasks:       []stigmer.WorkflowTaskInput{},
+  EnvSpec:     &stigmer.EnvSpecInput{},
 })
 ```
 </Tab>
@@ -174,6 +224,12 @@ workflow, err := client.Workflow.Create(ctx, &stigmer.WorkflowInput{
 const workflow = await stigmer.workflow.create({
   name: "my-workflow",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  document: {},
+  tasks: [],
+  envSpec: {},
 });
 ```
 </Tab>
@@ -182,6 +238,12 @@ const workflow = await stigmer.workflow.create({
 workflow = client.workflow.create(WorkflowInput(
     name="my-workflow",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    document=None,
+    tasks=[],
+    env_spec=None,
 ))
 ```
 </Tab>
@@ -190,6 +252,12 @@ workflow = client.workflow.create(WorkflowInput(
 Workflow workflow = client.workflow().create(WorkflowInput.builder()
     .name("my-workflow")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .document(null)
+    .tasks(List.of())
+    .envSpec(null)
     .build());
 ```
 </Tab>
@@ -207,8 +275,14 @@ Update an existing workflow.
 <Tab value="Go">
 ```go
 workflow, err := client.Workflow.Update(ctx, &stigmer.WorkflowInput{
-  Name: "my-workflow",
-  Org:  "acme",
+  Name:        "my-workflow",
+  Org:         "acme",
+  Slug:        "...",
+  Labels:      map[string]string{},
+  Description: "...",
+  Document:    &stigmer.WorkflowDocumentInput{},
+  Tasks:       []stigmer.WorkflowTaskInput{},
+  EnvSpec:     &stigmer.EnvSpecInput{},
 })
 ```
 </Tab>
@@ -217,6 +291,12 @@ workflow, err := client.Workflow.Update(ctx, &stigmer.WorkflowInput{
 const workflow = await stigmer.workflow.update({
   name: "my-workflow",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  document: {},
+  tasks: [],
+  envSpec: {},
 });
 ```
 </Tab>
@@ -225,6 +305,12 @@ const workflow = await stigmer.workflow.update({
 workflow = client.workflow.update(WorkflowInput(
     name="my-workflow",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    document=None,
+    tasks=[],
+    env_spec=None,
 ))
 ```
 </Tab>
@@ -233,6 +319,12 @@ workflow = client.workflow.update(WorkflowInput(
 Workflow workflow = client.workflow().update(WorkflowInput.builder()
     .name("my-workflow")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .document(null)
+    .tasks(List.of())
+    .envSpec(null)
     .build());
 ```
 </Tab>
@@ -341,6 +433,19 @@ FlowControl defines which task executes next.
 <TypeTable
   type={{
     then: { type: "string", description: "Target task name or \"end\" to terminate workflow." },
+  }}
+/>
+
+### ApiResourceReference
+
+Generic reference to any API resource by org and slug.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization that owns the referenced resource." },
+    kind: { type: "ApiResourceKind", description: "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER)." },
+    slug: { type: "string", description: "Resource slug (user-friendly identifier, unique within org).", required: true },
+    version: { type: "string", description: "Version of the resource (optional, only applicable to versioned resources like Skills)." },
   }}
 />
 

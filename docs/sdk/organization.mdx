@@ -87,27 +87,39 @@ Look up a platform-managed organization by its external platform coordinates. Re
 <SDKTabs>
 <Tab value="Go">
 ```go
-organization, err := client.Organization.GetByExternalOrgId(ctx, input)
+organization, err := client.Organization.GetByExternalOrgId(ctx, &stigmer.OrganizationExternalLookup{
+  IdentityProviderRef: &stigmer.ResourceRef{},
+  ExternalOrgId:       "...",
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const organization = await stigmer.organization.getByExternalOrgId(input);
+const organization = await stigmer.organization.getByExternalOrgId({
+  identityProviderRef: {},
+  externalOrgId: "...",
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-organization = client.organization.get_by_external_org_id(input)
+organization = client.organization.get_by_external_org_id(OrganizationExternalLookup(
+    identity_provider_ref=None,
+    external_org_id="...",
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-Organization organization = client.organization().getByExternalOrgId(input);
+Organization organization = client.organization().getByExternalOrgId(OrganizationExternalLookup.builder()
+    .identityProviderRef(null)
+    .externalOrgId("...")
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `OrganizationExternalLookup`
+**Parameters**: [`OrganizationExternalLookup`](#organizationexternallookup)
 
 **Returns**: `Organization`
 
@@ -118,29 +130,53 @@ Find organizations with pagination and filtering Requires: Platform admin permis
 <SDKTabs>
 <Tab value="Go">
 ```go
-result, err := client.Organization.Find(ctx, input)
+result, err := client.Organization.Find(ctx, &stigmer.FindApiResourcesRequest{
+  Org:        "...",
+  Kind:       "...",
+  Page:       &stigmer.PageInfoInput{},
+  PageNumber: 0,
+  PageSize:   0,
+})
 ```
 </Tab>
 <Tab value="TypeScript">
 ```typescript
-const result = await stigmer.organization.find(input);
+const result = await stigmer.organization.find({
+  org: "...",
+  kind: "...",
+  page: {},
+  pageNumber: 0,
+  pageSize: 0,
+});
 ```
 </Tab>
 <Tab value="Python">
 ```python
-result = client.organization.find(input)
+result = client.organization.find(FindApiResourcesRequest(
+    org="...",
+    kind="...",
+    page=None,
+    page_number=0,
+    page_size=0,
+))
 ```
 </Tab>
 <Tab value="Java">
 ```java
-OrganizationList result = client.organization().find(input);
+OrganizationList result = client.organization().find(FindApiResourcesRequest.builder()
+    .org("...")
+    .kind("...")
+    .page(null)
+    .pageNumber(0)
+    .pageSize(0)
+    .build());
 ```
 </Tab>
 </SDKTabs>
 
-**Parameters**: `FindApiResourcesRequest`
+**Parameters**: [`FindApiResourcesRequest`](#findapiresourcesrequest)
 
-**Returns**: `OrganizationList`
+**Returns**: [`OrganizationList`](#organizationlist)
 
 ### findMyOrganizations
 
@@ -169,7 +205,7 @@ Organizations organizations = client.organization().findMyOrganizations();
 </Tab>
 </SDKTabs>
 
-**Returns**: `Organizations`
+**Returns**: [`Organizations`](#organizations)
 
 ### apply
 
@@ -179,8 +215,16 @@ Create or update an organization. The authorization and state-operation are dete
 <Tab value="Go">
 ```go
 organization, err := client.Organization.Apply(ctx, &stigmer.OrganizationInput{
-  Name: "my-organization",
-  Org:  "acme",
+  Name:                "my-organization",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  Description:         "...",
+  LogoUrl:             "...",
+  ManagementMode:      "...",
+  IdentityProviderRef: &stigmer.ResourceRef{},
+  ExternalOrgId:       "...",
+  IsPersonal:          false,
 })
 ```
 </Tab>
@@ -189,6 +233,14 @@ organization, err := client.Organization.Apply(ctx, &stigmer.OrganizationInput{
 const organization = await stigmer.organization.apply({
   name: "my-organization",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  logoUrl: "...",
+  managementMode: "...",
+  identityProviderRef: {},
+  externalOrgId: "...",
+  isPersonal: false,
 });
 ```
 </Tab>
@@ -197,6 +249,14 @@ const organization = await stigmer.organization.apply({
 organization = client.organization.apply(OrganizationInput(
     name="my-organization",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    logo_url="...",
+    management_mode="...",
+    identity_provider_ref=None,
+    external_org_id="...",
+    is_personal=False,
 ))
 ```
 </Tab>
@@ -205,6 +265,14 @@ organization = client.organization.apply(OrganizationInput(
 Organization organization = client.organization().apply(OrganizationInput.builder()
     .name("my-organization")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .logoUrl("...")
+    .managementMode("...")
+    .identityProviderRef(null)
+    .externalOrgId("...")
+    .isPersonal(false)
     .build());
 ```
 </Tab>
@@ -222,8 +290,16 @@ Create a new organization No authorization required - any authenticated user can
 <Tab value="Go">
 ```go
 organization, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
-  Name: "my-organization",
-  Org:  "acme",
+  Name:                "my-organization",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  Description:         "...",
+  LogoUrl:             "...",
+  ManagementMode:      "...",
+  IdentityProviderRef: &stigmer.ResourceRef{},
+  ExternalOrgId:       "...",
+  IsPersonal:          false,
 })
 ```
 </Tab>
@@ -232,6 +308,14 @@ organization, err := client.Organization.Create(ctx, &stigmer.OrganizationInput{
 const organization = await stigmer.organization.create({
   name: "my-organization",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  logoUrl: "...",
+  managementMode: "...",
+  identityProviderRef: {},
+  externalOrgId: "...",
+  isPersonal: false,
 });
 ```
 </Tab>
@@ -240,6 +324,14 @@ const organization = await stigmer.organization.create({
 organization = client.organization.create(OrganizationInput(
     name="my-organization",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    logo_url="...",
+    management_mode="...",
+    identity_provider_ref=None,
+    external_org_id="...",
+    is_personal=False,
 ))
 ```
 </Tab>
@@ -248,6 +340,14 @@ organization = client.organization.create(OrganizationInput(
 Organization organization = client.organization().create(OrganizationInput.builder()
     .name("my-organization")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .logoUrl("...")
+    .managementMode("...")
+    .identityProviderRef(null)
+    .externalOrgId("...")
+    .isPersonal(false)
     .build());
 ```
 </Tab>
@@ -265,8 +365,16 @@ Update an existing organization Requires: Organization admin permission (can_edi
 <Tab value="Go">
 ```go
 organization, err := client.Organization.Update(ctx, &stigmer.OrganizationInput{
-  Name: "my-organization",
-  Org:  "acme",
+  Name:                "my-organization",
+  Org:                 "acme",
+  Slug:                "...",
+  Labels:              map[string]string{},
+  Description:         "...",
+  LogoUrl:             "...",
+  ManagementMode:      "...",
+  IdentityProviderRef: &stigmer.ResourceRef{},
+  ExternalOrgId:       "...",
+  IsPersonal:          false,
 })
 ```
 </Tab>
@@ -275,6 +383,14 @@ organization, err := client.Organization.Update(ctx, &stigmer.OrganizationInput{
 const organization = await stigmer.organization.update({
   name: "my-organization",
   org: "acme",
+  slug: "...",
+  labels: {},
+  description: "...",
+  logoUrl: "...",
+  managementMode: "...",
+  identityProviderRef: {},
+  externalOrgId: "...",
+  isPersonal: false,
 });
 ```
 </Tab>
@@ -283,6 +399,14 @@ const organization = await stigmer.organization.update({
 organization = client.organization.update(OrganizationInput(
     name="my-organization",
     org="acme",
+    slug="...",
+    labels={},
+    description="...",
+    logo_url="...",
+    management_mode="...",
+    identity_provider_ref=None,
+    external_org_id="...",
+    is_personal=False,
 ))
 ```
 </Tab>
@@ -291,6 +415,14 @@ organization = client.organization.update(OrganizationInput(
 Organization organization = client.organization().update(OrganizationInput.builder()
     .name("my-organization")
     .org("acme")
+    .slug("...")
+    .labels(Map.of())
+    .description("...")
+    .logoUrl("...")
+    .managementMode("...")
+    .identityProviderRef(null)
+    .externalOrgId("...")
+    .isPersonal(false)
     .build());
 ```
 </Tab>
@@ -353,6 +485,52 @@ Input for creating or updating an Organization.
     identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider that authenticates requests for this organization." },
     externalOrgId: { type: "string", description: "External platform's organization identifier for reverse mapping." },
     isPersonal: { type: "boolean", description: "Whether this is a personal organization, auto-created during identity provisioning." },
+  }}
+/>
+
+### FindApiResourcesRequest
+
+Input for find (list) operations with pagination.
+
+<TypeTable
+  type={{
+    org: { type: "string", description: "Organization ID to filter by.", required: true },
+    kind: { type: "string", description: "API resource kind (optional filter)." },
+    page: { type: "PageInfoInput", description: "Pagination info." },
+    pageNumber: { type: "number", description: "Page number (1-indexed) - deprecated, use page.num." },
+    pageSize: { type: "number", description: "Number of items per page (default: 20, max: 100) - deprecated, use page.size." },
+  }}
+/>
+
+### OrganizationList
+
+Response for paginated list query.
+
+<TypeTable
+  type={{
+    totalPages: { type: "number", description: "total number of pages." },
+    entries: { type: "OrganizationInput[]", description: "organizations in current page." },
+  }}
+/>
+
+### Organizations
+
+List of organizations (unbounded).
+
+<TypeTable
+  type={{
+    entries: { type: "OrganizationInput[]", description: "" },
+  }}
+/>
+
+### OrganizationExternalLookup
+
+Input for looking up a platform-managed organization by its external platform coordinates.
+
+<TypeTable
+  type={{
+    identityProviderRef: { type: "ResourceRef", description: "Reference to the IdentityProvider (org + slug) that manages this organization.", required: true },
+    externalOrgId: { type: "string", description: "The external platform's organization identifier." },
   }}
 />
 

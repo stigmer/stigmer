@@ -153,19 +153,35 @@ func generateSDKDocPage(schema *ServiceSchemaFile, cfg sdkResourceConfig, specSc
 		}
 	}
 
+	// Build the set of type names that will have documented sections on this page.
+	// Computed before methods so type references can be rendered as clickable links.
+	documentedTypes := docBuildDocumentedTypeSet(cfg, specSchema, specTypes, schema.MethodTypes)
+
 	// Client Access
 	docWriteClientAccess(&buf, schema, cfg, clientField, goField, pyField)
 
 	// Methods
-	docWriteMethods(&buf, schema, cfg, clientField, goField, pyField, hasInputType, specSchema)
+	methodTypeMap := make(map[string]*MethodTypeSchema)
+	for i := range schema.MethodTypes {
+		methodTypeMap[schema.MethodTypes[i].Name] = &schema.MethodTypes[i]
+	}
+	docWriteMethods(&buf, schema, cfg, clientField, goField, pyField, hasInputType, documentedTypes, specSchema, methodTypeMap)
 
 	// Types
-	if specSchema != nil {
-		typeMap := make(map[string]*TypeSchema)
-		for _, t := range specTypes {
-			typeMap[t.Name] = t
+	if specSchema != nil || len(schema.MethodTypes) > 0 {
+		if specSchema != nil {
+			typeMap := make(map[string]*TypeSchema)
+			for _, t := range specTypes {
+				typeMap[t.Name] = t
+			}
+			docWriteTypes(&buf, cfg, specSchema, typeMap)
+		} else {
+			buf.WriteString("## Types\n\n")
 		}
-		docWriteTypes(&buf, cfg, specSchema, typeMap)
+
+		if len(schema.MethodTypes) > 0 {
+			docWriteMethodTypes(&buf, schema.MethodTypes, documentedTypes)
+		}
 	}
 
 	return buf.Bytes()
@@ -212,7 +228,7 @@ func docWriteClientAccess(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkR
 // Methods section
 // =========================================================================
 
-func docWriteMethods(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig, clientField, goField, pyField string, hasInputType bool, specSchema *TaskConfigSchema) {
+func docWriteMethods(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResourceConfig, clientField, goField, pyField string, hasInputType bool, documentedTypes map[string]bool, specSchema *TaskConfigSchema, methodTypeMap map[string]*MethodTypeSchema) {
 	methods := docCollectMethods(schema)
 	docSortMethods(methods)
 
@@ -220,11 +236,11 @@ func docWriteMethods(buf *bytes.Buffer, schema *ServiceSchemaFile, cfg sdkResour
 	docWriteMethodOverview(buf, methods)
 
 	for i := range methods {
-		docWriteMethod(buf, &methods[i], cfg, clientField, goField, pyField, hasInputType, specSchema)
+		docWriteMethod(buf, &methods[i], cfg, clientField, goField, pyField, hasInputType, documentedTypes, specSchema, methodTypeMap)
 	}
 }
 
-func docWriteMethod(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfig, clientField, goField, pyField string, hasInputType bool, specSchema *TaskConfigSchema) {
+func docWriteMethod(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfig, clientField, goField, pyField string, hasInputType bool, documentedTypes map[string]bool, specSchema *TaskConfigSchema, methodTypeMap map[string]*MethodTypeSchema) {
 	tsName := tsMethodName(m.Name)
 	pyName := pascalToSnake(m.Name)
 	resultVar := docVarName(m.OutputType)
@@ -252,7 +268,7 @@ func docWriteMethod(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfig, c
 
 	// Signatures
 	buf.WriteString("<SDKTabs>\n")
-	docWriteMethodSigs(buf, m, cfg, clientField, goField, pyField, tsName, pyName, resultVar, inputTypeName, emptyInput, emptyOutput, idInput, resourceInput, deleteInput, hasInputType, specSchema)
+	docWriteMethodSigs(buf, m, cfg, clientField, goField, pyField, tsName, pyName, resultVar, inputTypeName, emptyInput, emptyOutput, idInput, resourceInput, deleteInput, hasInputType, specSchema, methodTypeMap)
 	buf.WriteString("</SDKTabs>\n\n")
 
 	// Parameters
@@ -274,7 +290,7 @@ func docWriteMethod(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfig, c
 		buf.WriteString("| `versionMessage` | `string` | Optional deletion reason. |\n")
 		buf.WriteString("| `force` | `boolean` | Force delete even if resource is in use. |\n\n")
 	default:
-		fmt.Fprintf(buf, "**Parameters**: `%s`\n\n", m.InputType)
+		fmt.Fprintf(buf, "**Parameters**: %s\n\n", docTypeRef(m.InputType, documentedTypes))
 	}
 
 	// Return type
@@ -283,11 +299,11 @@ func docWriteMethod(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfig, c
 	} else if m.ServerStreaming {
 		fmt.Fprintf(buf, "**Returns**: `Stream<%s>`\n\n", m.OutputType)
 	} else {
-		fmt.Fprintf(buf, "**Returns**: `%s`\n\n", m.OutputType)
+		fmt.Fprintf(buf, "**Returns**: %s\n\n", docTypeRef(m.OutputType, documentedTypes))
 	}
 }
 
-func docWriteMethodSigs(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfig, clientField, goField, pyField, tsName, pyName, resultVar, inputTypeName string, emptyInput, emptyOutput, idInput, resourceInput, deleteInput, hasInputType bool, specSchema *TaskConfigSchema) {
+func docWriteMethodSigs(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfig, clientField, goField, pyField, tsName, pyName, resultVar, inputTypeName string, emptyInput, emptyOutput, idInput, resourceInput, deleteInput, hasInputType bool, specSchema *TaskConfigSchema, methodTypeMap map[string]*MethodTypeSchema) {
 	exampleName := docExampleResourceName(cfg.protoResType)
 
 	if m.ServerStreaming {
@@ -362,14 +378,31 @@ func docWriteMethodSigs(buf *bytes.Buffer, m *MethodSchema, cfg sdkResourceConfi
 			fmt.Sprintf("%s %s = client.%s().%s(DeleteResourceInput.builder()\n    .resourceId(id)\n    .build());", m.OutputType, resultVar, clientField, tsName))
 
 	default:
-		docWriteTab(buf, "Go", "go",
-			fmt.Sprintf("%s, err := client.%s.%s(ctx, input)", resultVar, goField, m.Name))
-		docWriteTab(buf, "TypeScript", "typescript",
-			fmt.Sprintf("const %s = await stigmer.%s.%s(input);", resultVar, clientField, tsName))
-		docWriteTab(buf, "Python", "python",
-			fmt.Sprintf("%s = client.%s.%s(input)", resultVar, pyField, pyName))
-		docWriteTab(buf, "Java", "java",
-			fmt.Sprintf("%s %s = client.%s().%s(input);", m.OutputType, resultVar, clientField, tsName))
+		if mt, ok := methodTypeMap[m.InputType]; ok && len(mt.Fields) > 0 {
+			goFields := docMethodTypeFields(mt, "go")
+			tsFields := docMethodTypeFields(mt, "typescript")
+			pyFields := docMethodTypeFields(mt, "python")
+			javaFields := docMethodTypeFields(mt, "java")
+			mtName := m.InputType
+
+			docWriteTab(buf, "Go", "go",
+				fmt.Sprintf("%s, err := client.%s.%s(ctx, &stigmer.%s{\n%s\n})", resultVar, goField, m.Name, mtName, docFormatInputGo(goFields)))
+			docWriteTab(buf, "TypeScript", "typescript",
+				fmt.Sprintf("const %s = await stigmer.%s.%s({\n%s\n});", resultVar, clientField, tsName, docFormatInputTS(tsFields)))
+			docWriteTab(buf, "Python", "python",
+				fmt.Sprintf("%s = client.%s.%s(%s(\n%s\n))", resultVar, pyField, pyName, mtName, docFormatInputPython(pyFields)))
+			docWriteTab(buf, "Java", "java",
+				fmt.Sprintf("%s %s = client.%s().%s(%s.builder()\n%s\n    .build());", m.OutputType, resultVar, clientField, tsName, mtName, docFormatInputJava(javaFields)))
+		} else {
+			docWriteTab(buf, "Go", "go",
+				fmt.Sprintf("%s, err := client.%s.%s(ctx, input)", resultVar, goField, m.Name))
+			docWriteTab(buf, "TypeScript", "typescript",
+				fmt.Sprintf("const %s = await stigmer.%s.%s(input);", resultVar, clientField, tsName))
+			docWriteTab(buf, "Python", "python",
+				fmt.Sprintf("%s = client.%s.%s(input)", resultVar, pyField, pyName))
+			docWriteTab(buf, "Java", "java",
+				fmt.Sprintf("%s %s = client.%s().%s(input);", m.OutputType, resultVar, clientField, tsName))
+		}
 	}
 }
 
@@ -435,7 +468,7 @@ func docQuote(val, lang string) string {
 func docEmptyMap(lang string) string {
 	switch lang {
 	case "go":
-		return "nil"
+		return "map[string]string{}"
 	case "python":
 		return "{}"
 	case "java":
@@ -459,7 +492,10 @@ func docPlaceholder(ts *TypeSpec, lang string) string {
 	case "array":
 		switch lang {
 		case "go":
-			return "nil"
+			if ts.ElementType != nil && ts.ElementType.Kind == "message" && ts.ElementType.MessageType != "" {
+				return "[]stigmer." + docGoInputTypeName(ts.ElementType.MessageType) + "{}"
+			}
+			return "[]string{}"
 		case "java":
 			return "List.of()"
 		default:
@@ -470,6 +506,9 @@ func docPlaceholder(ts *TypeSpec, lang string) string {
 	case "message", "struct":
 		switch lang {
 		case "go":
+			if ts.MessageType != "" {
+				return "&stigmer." + docGoInputTypeName(ts.MessageType) + "{}"
+			}
 			return "nil"
 		case "python":
 			return "None"
@@ -480,6 +519,28 @@ func docPlaceholder(ts *TypeSpec, lang string) string {
 		}
 	default:
 		return docQuote("...", lang)
+	}
+}
+
+func docMethodTypeFields(mt *MethodTypeSchema, lang string) []docFieldEntry {
+	var fields []docFieldEntry
+	for _, f := range mt.Fields {
+		fname := docFieldName(f.ProtoField, lang)
+		fields = append(fields, docFieldEntry{fname, docPlaceholder(&f.Type, lang)})
+	}
+	return fields
+}
+
+func docGoInputTypeName(messageType string) string {
+	switch messageType {
+	case "EnvironmentSpec":
+		return "EnvSpecInput"
+	case "EnvironmentValue", "ExecutionValue":
+		return "EnvVarInput"
+	case "ApiResourceReference":
+		return "ResourceRef"
+	default:
+		return messageType + "Input"
 	}
 }
 
@@ -721,6 +782,113 @@ func docWriteNestedType(buf *bytes.Buffer, f *FieldSchema, typeMap map[string]*T
 	for _, field := range ts.Fields {
 		docWriteNestedType(buf, field, typeMap, emitted)
 	}
+}
+
+// =========================================================================
+// Method types section (proto parameter/return types)
+// =========================================================================
+
+// docBuildDocumentedTypeSet returns the set of type names that will have
+// a documented ### section on the page. This includes SDK input types
+// (from spec schemas) and proto method types (from service schemas).
+func docBuildDocumentedTypeSet(cfg sdkResourceConfig, specSchema *TaskConfigSchema, specTypes []*TypeSchema, methodTypes []MethodTypeSchema) map[string]bool {
+	set := make(map[string]bool)
+
+	if specSchema != nil {
+		inputName := cfg.inputPrefix + "Input"
+		set[inputName] = true
+
+		var specFields []*FieldSchema
+		for _, f := range specSchema.Fields {
+			if !metaFieldNames[f.Name] {
+				specFields = append(specFields, f)
+			}
+		}
+
+		typeMap := make(map[string]*TypeSchema)
+		for _, t := range specTypes {
+			typeMap[t.Name] = t
+		}
+
+		for _, f := range specFields {
+			docCollectNestedTypeNames(f, typeMap, set)
+		}
+	}
+
+	for i := range methodTypes {
+		set[methodTypes[i].Name] = true
+	}
+
+	return set
+}
+
+// docCollectNestedTypeNames recursively collects the display names of
+// nested spec types that will be rendered (matching docWriteNestedType logic).
+func docCollectNestedTypeNames(f *FieldSchema, typeMap map[string]*TypeSchema, set map[string]bool) {
+	var msgName string
+	switch {
+	case f.Type.Kind == "message":
+		msgName = f.Type.MessageType
+	case f.Type.Kind == "array" && f.Type.ElementType != nil && f.Type.ElementType.Kind == "message":
+		msgName = f.Type.ElementType.MessageType
+	case f.Type.Kind == "map" && f.Type.ValueType != nil && f.Type.ValueType.Kind == "message":
+		msgName = f.Type.ValueType.MessageType
+	default:
+		return
+	}
+
+	if isSpecialType(msgName) {
+		return
+	}
+	inputName := msgName + "Input"
+	if set[inputName] {
+		return
+	}
+	ts, ok := typeMap[msgName]
+	if !ok {
+		return
+	}
+	set[inputName] = true
+
+	for _, field := range ts.Fields {
+		docCollectNestedTypeNames(field, typeMap, set)
+	}
+}
+
+// docWriteMethodTypes renders TypeTable sections for proto types used as
+// method parameters or return values that aren't covered by spec-based types.
+func docWriteMethodTypes(buf *bytes.Buffer, methodTypes []MethodTypeSchema, documentedTypes map[string]bool) {
+	for i := range methodTypes {
+		mt := &methodTypes[i]
+
+		fmt.Fprintf(buf, "### %s\n\n", mt.Name)
+
+		if mt.Description != "" {
+			content := docFirstSentence(docStripInternal(mt.Description))
+			if content != "" {
+				buf.WriteString(docEscapeMDX(content))
+				buf.WriteString("\n\n")
+			}
+		}
+
+		if len(mt.Fields) > 0 {
+			buf.WriteString("<TypeTable\n  type={{\n")
+			for _, field := range mt.Fields {
+				docWriteTypeField(buf, field)
+			}
+			buf.WriteString("  }}\n/>\n\n")
+		}
+	}
+}
+
+// docTypeRef renders a type name as a clickable markdown link if the type
+// has a documented section on the page, or as plain backtick code otherwise.
+func docTypeRef(typeName string, documentedTypes map[string]bool) string {
+	if documentedTypes[typeName] {
+		anchor := strings.ToLower(typeName)
+		return fmt.Sprintf("[`%s`](#%s)", typeName, anchor)
+	}
+	return fmt.Sprintf("`%s`", typeName)
 }
 
 // =========================================================================

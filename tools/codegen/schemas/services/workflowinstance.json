@@ -21,7 +21,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
           "outputType": "WorkflowInstance",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
-          "description": "Create a new workflow instance.\n\n Creates a configured deployment of a Workflow template with environment bindings.\n\n Input validation:\n - metadata.org must be specified\n - spec.workflow_id must be a valid Workflow resource ID\n - spec.environment_refs must reference valid Environment resources\n\n Authorization:\n Uses custom authorization logic to verify:\n 1. User has permission to access the referenced Workflow template\n 2. User has permission to access all referenced Environment resources\n 3. Owner scope is valid for the user's organization/identity\n\n Returns:\n The created WorkflowInstance with:\n - Assigned resource ID (metadata.id)\n - Created timestamp (status.audit.created_at)\n - Initial version (status.audit.version = 1)\n\n Example:\n Input: WorkflowInstance with workflow_id=\"wfl-123\", environment_refs=[\"env-prod\"]\n Output: WorkflowInstance with id=\"wfi-abc456\", created_at=\"2025-01-11T10:00:00Z\""
+          "description": "Create a new workflow instance.\n\n Creates a configured deployment of a Workflow template with environment bindings.\n\n Input validation:\n - metadata.org must be specified\n - spec.workflow_id must be a valid Workflow resource ID\n - spec.environment_refs must reference valid Environment resources\n\n Authorization:\n Uses custom authorization logic to verify:\n 1. User has permission to access the referenced Workflow template\n 2. User has permission to access all referenced Environment resources\n 3. Owner scope is valid for the user's organization/identity\n\n Returns:\n The created WorkflowInstance with:\n - Assigned resource ID (metadata.id)\n - Created timestamp (status.audit.created_at)\n - Initial version (status.audit.version = 1)\n\n Example:\n Input: WorkflowInstance with workflow_id=\"wfl_123\", environment_refs=[\"env_prod\"]\n Output: WorkflowInstance with id=\"wfi_abc456\", created_at=\"2025-01-11T10:00:00Z\""
         },
         {
           "name": "Update",
@@ -51,7 +51,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceId",
           "outputType": "WorkflowInstance",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
-          "description": "Get a single workflow instance by ID.\n\n Retrieves a specific WorkflowInstance using its unique resource identifier.\n\n Input:\n WorkflowInstanceId with the instance ID (e.g., \"wfi-abc123\")\n\n Returns:\n Complete WorkflowInstance resource with:\n - api_version, kind, metadata\n - spec (workflow_id, description, environment_refs)\n - status (audit information: created_at, updated_at, version)\n\n Authorization:\n Requires \"get\" permission on the specific WorkflowInstance.\n Field path \"value\" extracts the resource ID from WorkflowInstanceId wrapper.\n Verifies user has access based on:\n - Instance owner scope (organization or identity_account)\n - User's IAM policies\n\n Use Cases:\n - Retrieve instance configuration before executing\n - View instance details in UI\n - Fetch instance for editing/updating\n\n Error: PERMISSION_DENIED if user lacks get permission\n Error: NOT_FOUND if instance ID doesn't exist"
+          "description": "Get a single workflow instance by ID.\n\n Retrieves a specific WorkflowInstance using its unique resource identifier.\n\n Input:\n WorkflowInstanceId with the instance ID (e.g., \"wfi_abc123\")\n\n Returns:\n Complete WorkflowInstance resource with:\n - api_version, kind, metadata\n - spec (workflow_id, description, environment_refs)\n - status (audit information: created_at, updated_at, version)\n\n Authorization:\n Requires \"get\" permission on the specific WorkflowInstance.\n Field path \"value\" extracts the resource ID from WorkflowInstanceId wrapper.\n Verifies user has access based on:\n - Instance owner scope (organization or identity_account)\n - User's IAM policies\n\n Use Cases:\n - Retrieve instance configuration before executing\n - View instance details in UI\n - Fetch instance for editing/updating\n\n Error: PERMISSION_DENIED if user lacks get permission\n Error: NOT_FOUND if instance ID doesn't exist"
         },
         {
           "name": "GetByWorkflow",
@@ -59,7 +59,7 @@
           "inputFullType": "ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest",
           "outputType": "WorkflowInstanceList",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList",
-          "description": "Get all instances of a specific workflow template.\n\n Retrieves all WorkflowInstance resources that reference a specific Workflow template.\n Useful for discovering all configured deployments of a workflow.\n\n Example Use Case:\n Workflow \"deploy-to-cloud\" (wfl-123) has instances:\n - \"prod-deploy\" (wfi-abc) - Production deployment with aws-prod-env\n - \"staging-deploy\" (wfi-def) - Staging deployment with aws-staging-env\n - \"dev-deploy\" (wfi-ghi) - Development deployment with aws-dev-env\n\n @internal\n\n Input:\n GetWorkflowInstancesByWorkflowRequest with:\n - workflow_id: Workflow template ID to filter by\n - page_info: Pagination settings (page_size, page_token)\n\n Returns:\n WorkflowInstanceList with:\n - total_pages: Total number of pages available\n - entries: Array of WorkflowInstance resources in current page\n\n Authorization:\n Authorization is handled in handler via FGA query for authorized workflow_instance_ids,\n then filtered by workflow_id. This ensures users only see instances they have access to,\n even if the parent workflow is shared across organizations.\n\n Filtering:\n Results are filtered by:\n - User's organization/identity visibility\n - IAM policies\n - Owner scope rules\n\n Error: PERMISSION_DENIED if user lacks access to the workflow\n Error: NOT_FOUND if workflow_id doesn't exist"
+          "description": "Get all instances of a specific workflow template.\n\n Retrieves all WorkflowInstance resources that reference a specific Workflow template.\n Useful for discovering all configured deployments of a workflow.\n\n Example Use Case:\n Workflow \"deploy-to-cloud\" (wfl_123) has instances:\n - \"prod-deploy\" (wfi_abc) - Production deployment with aws-prod-env\n - \"staging-deploy\" (wfi_def) - Staging deployment with aws-staging-env\n - \"dev-deploy\" (wfi_ghi) - Development deployment with aws-dev-env\n\n @internal\n\n Input:\n GetWorkflowInstancesByWorkflowRequest with:\n - workflow_id: Workflow template ID to filter by\n - page_info: Pagination settings (page_size, page_token)\n\n Returns:\n WorkflowInstanceList with:\n - total_pages: Total number of pages available\n - entries: Array of WorkflowInstance resources in current page\n\n Authorization:\n Authorization is handled in handler via FGA query for authorized workflow_instance_ids,\n then filtered by workflow_id. This ensures users only see instances they have access to,\n even if the parent workflow is shared across organizations.\n\n Filtering:\n Results are filtered by:\n - User's organization/identity visibility\n - IAM policies\n - Owner scope rules\n\n Error: PERMISSION_DENIED if user lacks access to the workflow\n Error: NOT_FOUND if workflow_id doesn't exist"
         },
         {
           "name": "GetByReference",
@@ -67,7 +67,156 @@
           "inputFullType": "ai.stigmer.commons.apiresource.ApiResourceReference",
           "outputType": "WorkflowInstance",
           "outputFullType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstance",
-          "description": "Get a workflow instance by flexible reference (ID or slug).\n\n Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods:\n - By ID: {id: \"wfi-abc123\"}\n - By slug: {slug: \"prod-deploy\"}\n - By name: {name: \"Production Deploy\"}\n\n Input:\n ApiResourceReference with one of: id, slug, or name\n\n Returns:\n Complete WorkflowInstance resource matching the reference.\n\n Authorization:\n Uses custom authorization logic in the handler.\n Allows for flexible authorization based on reference type and context.\n Typical checks:\n - User has get permission on the resolved instance\n - Instance owner scope matches user's organization/identity\n\n Use Cases:\n - User-friendly lookups by slug instead of opaque IDs\n - CLI commands using human-readable names\n - API integrations using stable slugs\n\n Example:\n Input: ApiResourceReference{slug: \"prod-deploy\"}\n Output: WorkflowInstance with metadata.slug = \"prod-deploy\"\n\n Error: PERMISSION_DENIED if user lacks access\n Error: NOT_FOUND if reference doesn't resolve to an instance"
+          "description": "Get a workflow instance by flexible reference (ID or slug).\n\n Retrieves a WorkflowInstance using ApiResourceReference which supports multiple lookup methods:\n - By ID: {id: \"wfi_abc123\"}\n - By slug: {slug: \"prod-deploy\"}\n - By name: {name: \"Production Deploy\"}\n\n Input:\n ApiResourceReference with one of: id, slug, or name\n\n Returns:\n Complete WorkflowInstance resource matching the reference.\n\n Authorization:\n Uses custom authorization logic in the handler.\n Allows for flexible authorization based on reference type and context.\n Typical checks:\n - User has get permission on the resolved instance\n - Instance owner scope matches user's organization/identity\n\n Use Cases:\n - User-friendly lookups by slug instead of opaque IDs\n - CLI commands using human-readable names\n - API integrations using stable slugs\n\n Example:\n Input: ApiResourceReference{slug: \"prod-deploy\"}\n Output: WorkflowInstance with metadata.slug = \"prod-deploy\"\n\n Error: PERMISSION_DENIED if user lacks access\n Error: NOT_FOUND if reference doesn't resolve to an instance"
+        }
+      ]
+    }
+  ],
+  "methodTypes": [
+    {
+      "name": "GetWorkflowInstancesByWorkflowRequest",
+      "description": "GetWorkflowInstancesByWorkflowRequest retrieves all instances of a specific Workflow template.\n\n This allows you to find all configured deployments of a given Workflow.\n For example, a \"deploy-to-cloud\" Workflow might have instances:\n - \"prod-deploy\" (with production environments)\n - \"staging-deploy\" (with staging environments)\n - \"dev-deploy\" (with development environments)\n\n Supports pagination for efficient retrieval of large result sets.",
+      "protoType": "ai.stigmer.agentic.workflowinstance.v1.GetWorkflowInstancesByWorkflowRequest",
+      "protoFile": "apis/ai/stigmer/agentic/workflowinstance/v1/io.proto",
+      "fields": [
+        {
+          "name": "WorkflowId",
+          "jsonName": "workflowId",
+          "protoField": "workflow_id",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Workflow template ID to filter by.\n\n Returns all WorkflowInstance resources where spec.workflow_id matches this value.\n Format: Workflow resource ID (e.g., \"wfl_abc123\")\n Validation: Required field",
+          "required": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "PageInfo",
+          "jsonName": "pageInfo",
+          "protoField": "page_info",
+          "type": {
+            "kind": "message",
+            "messageType": "PageInfo"
+          },
+          "description": "Pagination options for controlling result set size and pages.\n\n Includes:\n - page_size: Maximum number of instances per page\n - page_token: Token from previous response for next page\n\n Example pagination flow:\n 1. Request with page_info.page_size = 20\n 2. Response includes page_token = \"next_page_token_here\"\n 3. Subsequent request with page_info.page_token = \"next_page_token_here\"",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "WorkflowInstanceList",
+      "description": "WorkflowInstanceList contains a paginated list of workflow instances.\n\n Returned by list and query operations. Includes pagination metadata\n to support iterating through large result sets.",
+      "protoType": "ai.stigmer.agentic.workflowinstance.v1.WorkflowInstanceList",
+      "protoFile": "apis/ai/stigmer/agentic/workflowinstance/v1/io.proto",
+      "fields": [
+        {
+          "name": "TotalPages",
+          "jsonName": "totalPages",
+          "protoField": "total_pages",
+          "type": {
+            "kind": "int32"
+          },
+          "description": "Total number of pages available in the full result set.\n\n Use this to determine if there are more pages to fetch.\n If total_pages \u003e current_page, more results are available.\n\n Example: If total_pages = 5, you can fetch up to 5 pages of results.",
+          "required": false
+        },
+        {
+          "name": "Entries",
+          "jsonName": "entries",
+          "protoField": "entries",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "WorkflowInstance"
+            }
+          },
+          "description": "Workflow instances in the current page.\n\n The number of entries is controlled by the page_size parameter\n in the request. May be fewer than page_size on the last page.\n\n Each entry is a complete WorkflowInstance resource with:\n - api_version, kind, metadata\n - spec (workflow_id, description, environment_refs)\n - status (audit information)",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "ApiResourceReference",
+      "description": "Generic reference to any API resource by org and slug.\n Used across resources to reference other resources (e.g., Environment, Agent, Skill).\n Canonical format: \"org/slug\" (e.g., \"stigmer/web-search\", \"acme/my-agent\").",
+      "protoType": "ai.stigmer.commons.apiresource.ApiResourceReference",
+      "protoFile": "apis/ai/stigmer/commons/apiresource/io.proto",
+      "fields": [
+        {
+          "name": "Org",
+          "jsonName": "org",
+          "protoField": "org",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Organization that owns the referenced resource.\n\n When non-empty: must be a valid org slug (lowercase alphanumeric with hyphens,\n starts with a letter, 1-63 characters). Example: \"stigmer\", \"acme-corp\".\n\n When empty: the reference is relative — the server resolves it to the parent\n resource's organization at write time. All stored and returned references\n always have org populated (absolute form).\n\n Use empty org for same-org references (the common case).\n Use explicit org for cross-org references (e.g., marketplace resources).",
+          "required": false,
+          "validation": {
+            "maxLength": 63,
+            "pattern": "^$|^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Kind",
+          "jsonName": "kind",
+          "protoField": "kind",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.commons.apiresource.apiresourcekind.ApiResourceKind",
+            "enumValues": [
+              "api_resource_version",
+              "iam_policy",
+              "identity_account",
+              "api_key",
+              "identity_provider",
+              "organization",
+              "platform",
+              "agent",
+              "agent_execution",
+              "session",
+              "skill",
+              "mcp_server",
+              "agent_instance",
+              "workflow",
+              "workflow_instance",
+              "workflow_execution",
+              "environment",
+              "execution_context",
+              "project"
+            ]
+          },
+          "description": "Kind of the referenced resource (e.g., SKILL, AGENT, MCP_SERVER).",
+          "required": false
+        },
+        {
+          "name": "Slug",
+          "jsonName": "slug",
+          "protoField": "slug",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Resource slug (user-friendly identifier, unique within org).\n Format: lowercase alphanumeric with hyphens, must start with a letter (e.g., \"web-search\", \"code-reviewer\").\n Length: 1-63 characters.",
+          "required": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 63,
+            "pattern": "^[a-z][a-z0-9-]*$"
+          }
+        },
+        {
+          "name": "Version",
+          "jsonName": "version",
+          "protoField": "version",
+          "type": {
+            "kind": "string"
+          },
+          "description": "Version of the resource (optional, only applicable to versioned resources like Skills).\n Supports three formats:\n 1. Empty/unset → Resolves to \"latest\" (most recent version)\n 2. Tag name → Resolves to version with this tag (e.g., \"stable\", \"v1.0\")\n 3. Exact hash → Immutable reference to specific version (e.g., \"abc123...\")\n\n Default behavior: Empty means \"latest\" (current version).\n This field is ignored for non-versioned resources.\n\n Examples:\n - version: \"\"           → Use latest version\n - version: \"latest\"     → Use latest version (explicit)\n - version: \"stable\"     → Use version tagged as \"stable\"\n - version: \"v1.0\"       → Use version tagged as \"v1.0\"\n - version: \"abc123...\"  → Use exact version with this hash (immutable)",
+          "required": false,
+          "validation": {
+            "pattern": "^$|^latest$|^[a-zA-Z0-9._-]+$|^[a-f0-9]{64}$"
+          }
         }
       ]
     }
