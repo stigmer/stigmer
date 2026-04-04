@@ -5,17 +5,20 @@ package ai.stigmer.iam.apikey.v1;
 import "ai/stigmer/iam/apikey/v1/api.proto";
 import "buf/validate/validate.proto";
 
-// wrapper to get list of api keys
+// ApiKeys contains a list of API key resources.
 message ApiKeys {
+  // API key entries.
   repeated ApiKey entries = 1;
 }
 
-// wrapper for user api key id.
+// ApiKeyId identifies an API key by its unique identifier.
 message ApiKeyId {
+  // Unique identifier of the API key.
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// wrapper for hashed api key
+// ApiKeyHash identifies an API key by its hashed key value.
 message ApiKeyHash {
+  // Hash of the raw API key.
   string value = 1 [(buf.validate.field).required = true];
 }

@@ -2,14 +2,34 @@ syntax = "proto3";
 
 package ai.stigmer.iam.identityaccount.v1;
 
-// https://auth0.com/docs/customize/log-streams/custom-log-streams
+// Auth0Webhook represents a log-stream event payload from Auth0.
+//
+// @internal
+// Stigmer receives these events via a custom Auth0 log stream to trigger
+// identity account provisioning on signup.
+// See: https://auth0.com/docs/customize/log-streams/custom-log-streams
 message Auth0Webhook {
+  // ISO 8601 timestamp of the event.
   string date = 1;
+
+  // Auth0 event type code (e.g., "ss" for successful signup).
   string type = 2;
+
+  // Human-readable description of the event.
   string description = 3;
+
+  // Auth0 application client ID that triggered the event.
   string client_id = 4;
+
+  // Name of the Auth0 application that triggered the event.
   string client_name = 5;
+
+  // IP address of the user who triggered the event.
   string ip = 6;
+
+  // User-Agent header from the request that triggered the event.
   string user_agent = 7;
+
+  // Auth0 user ID of the user associated with the event (e.g., "auth0|abc123").
   string user_id = 8;
 }

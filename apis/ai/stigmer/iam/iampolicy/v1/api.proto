@@ -16,22 +16,24 @@ import "buf/validate/validate.proto";
 // The policy is the source of truth for authorization and is synced to the
 // authorization backend (OpenFGA) as FGA tuples.
 message IamPolicy {
-  // api-version
+  // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'iam.stigmer.ai/v1'];
 
-  // resource-kind
+  // Resource kind identifier.
   string kind = 2 [(buf.validate.field).string.const = 'IamPolicy'];
 
-  // metadata
+  // Resource metadata including name, organization, and labels.
+  //
+  // @internal
   // id format: iamp_<ulid>
   // name: human-readable identifier (e.g., "john-vpc-admin")
   // org: organization this policy belongs to
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
 
-  // spec
+  // Policy binding: principal, resource, and relation.
   IamPolicySpec spec = 4;
 
-  // status
+  // System-managed state including audit trail.
   IamPolicyStatus status = 5;
 }
 

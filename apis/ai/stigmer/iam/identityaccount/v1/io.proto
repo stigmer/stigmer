@@ -6,43 +6,50 @@ import "ai/stigmer/commons/rpc/pagination.proto";
 import "ai/stigmer/iam/identityaccount/v1/api.proto";
 import "buf/validate/validate.proto";
 
-// wrapper to get list of identity accounts
+// IdentityAccounts contains a list of identity account resources.
 message IdentityAccounts {
+  // Identity account entries.
   repeated IdentityAccount entries = 1;
 }
 
-// wrapper for user identity account id.
+// IdentityAccountId identifies an identity account by its unique identifier.
 message IdentityAccountId {
+  // Unique identifier of the identity account.
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// wrapper for email of the identity account.
+// IdentityAccountEmail identifies an identity account by its email address.
 message IdentityAccountEmail {
+  // Email address of the identity account.
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// wrapper for idp id.
+// IdpId identifies an identity account by its identity provider ID.
 message IdpId {
+  // Identity provider ID of the account.
   string value = 1 [(buf.validate.field).required = true];
 }
 
-// input for paginated queries that require identity account id as input.
+// ListWithIdentityAccountIdReq is the input for paginated queries scoped to an identity account.
 message ListWithIdentityAccountIdReq {
-  // identity account id
+  // Unique identifier of the identity account to list resources for.
   string identity_account_id = 1;
+  // Pagination parameters.
   ai.stigmer.commons.rpc.PageInfo page = 2;
 }
 
-// response for paginated rpc query to list identity accounts.
+// IdentityAccountsList is a paginated response containing identity accounts.
 message IdentityAccountsList {
-  //total number of pages
+  // Total number of pages available.
   int32 total_pages = 1;
-  //current page entries
+  // Identity accounts in the current page.
   repeated IdentityAccount entries = 2;
 }
 
-// wrapper for identity account organization id.
+// ListWithIdentityOrg is the input for paginated queries scoped to an organization.
 message ListWithIdentityOrg {
+  // Organization slug to list identity accounts for.
   string org = 1;
+  // Pagination parameters.
   ai.stigmer.commons.rpc.PageInfo page = 2;
 }
