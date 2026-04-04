@@ -71,7 +71,7 @@ func TestUpdate_RejectsNonExistentProject(t *testing.T) {
 		ApiVersion: "tenancy.stigmer.ai/v1",
 		Kind:       "Project",
 		Metadata: &apiresource.ApiResourceMetadata{
-			Id:   "prj-nonexistent12345678901234",
+			Id:   "prj_nonexistent12345678901234",
 			Name: "Non-existent Project",
 			Org:  "test-org",
 		},

@@ -57,7 +57,7 @@ func TestSignalDedupeStore_Claim(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("claim new key succeeds", func(t *testing.T) {
-		result, err := store.Claim(ctx, "org-1", "key-1", "wfx-1", "signal_1", DefaultSignalDedupeTTL)
+		result, err := store.Claim(ctx, "org-1", "key-1", "wfx_1", "signal_1", DefaultSignalDedupeTTL)
 		if err != nil {
 			t.Fatalf("Claim failed: %v", err)
 		}
@@ -73,7 +73,7 @@ func TestSignalDedupeStore_Claim(t *testing.T) {
 
 	t.Run("claim duplicate key returns duplicate", func(t *testing.T) {
 		// First claim should succeed
-		result1, err := store.Claim(ctx, "org-2", "key-2", "wfx-2", "signal_2", DefaultSignalDedupeTTL)
+		result1, err := store.Claim(ctx, "org-2", "key-2", "wfx_2", "signal_2", DefaultSignalDedupeTTL)
 		if err != nil {
 			t.Fatalf("First claim failed: %v", err)
 		}
@@ -82,7 +82,7 @@ func TestSignalDedupeStore_Claim(t *testing.T) {
 		}
 
 		// Second claim should return duplicate
-		result2, err := store.Claim(ctx, "org-2", "key-2", "wfx-2", "signal_2", DefaultSignalDedupeTTL)
+		result2, err := store.Claim(ctx, "org-2", "key-2", "wfx_2", "signal_2", DefaultSignalDedupeTTL)
 		if err != nil {
 			t.Fatalf("Second claim failed unexpectedly: %v", err)
 		}
@@ -95,14 +95,14 @@ func TestSignalDedupeStore_Claim(t *testing.T) {
 			t.Fatalf("Expected record for duplicate claim")
 		}
 
-		if result2.Record.ExecutionID != "wfx-2" {
-			t.Errorf("Expected execution_id wfx-2, got %s", result2.Record.ExecutionID)
+		if result2.Record.ExecutionID != "wfx_2" {
+			t.Errorf("Expected execution_id wfx_2, got %s", result2.Record.ExecutionID)
 		}
 	})
 
 	t.Run("same key different org succeeds", func(t *testing.T) {
 		// Claim in org-a
-		result1, err := store.Claim(ctx, "org-a", "shared-key", "wfx-a", "signal", DefaultSignalDedupeTTL)
+		result1, err := store.Claim(ctx, "org-a", "shared-key", "wfx_a", "signal", DefaultSignalDedupeTTL)
 		if err != nil {
 			t.Fatalf("Claim in org-a failed: %v", err)
 		}
@@ -111,7 +111,7 @@ func TestSignalDedupeStore_Claim(t *testing.T) {
 		}
 
 		// Same key in org-b should succeed (different scope)
-		result2, err := store.Claim(ctx, "org-b", "shared-key", "wfx-b", "signal", DefaultSignalDedupeTTL)
+		result2, err := store.Claim(ctx, "org-b", "shared-key", "wfx_b", "signal", DefaultSignalDedupeTTL)
 		if err != nil {
 			t.Fatalf("Claim in org-b failed: %v", err)
 		}
@@ -125,7 +125,7 @@ func TestSignalDedupeStore_Claim(t *testing.T) {
 		shortTTL := 100 * time.Millisecond
 
 		// First claim with short TTL
-		result1, err := store.Claim(ctx, "org-ttl", "ttl-key", "wfx-1", "signal", shortTTL)
+		result1, err := store.Claim(ctx, "org-ttl", "ttl-key", "wfx_1", "signal", shortTTL)
 		if err != nil {
 			t.Fatalf("First claim failed: %v", err)
 		}
@@ -137,7 +137,7 @@ func TestSignalDedupeStore_Claim(t *testing.T) {
 		time.Sleep(150 * time.Millisecond)
 
 		// Second claim should succeed after expiration (cleanup happens on claim)
-		result2, err := store.Claim(ctx, "org-ttl", "ttl-key", "wfx-2", "signal", shortTTL)
+		result2, err := store.Claim(ctx, "org-ttl", "ttl-key", "wfx_2", "signal", shortTTL)
 		if err != nil {
 			t.Fatalf("Second claim failed: %v", err)
 		}
@@ -154,7 +154,7 @@ func TestSignalDedupeStore_MarkDelivered(t *testing.T) {
 
 	t.Run("mark claimed key as delivered", func(t *testing.T) {
 		// First claim the key
-		result, err := store.Claim(ctx, "org-mark", "mark-key", "wfx-1", "signal", DefaultSignalDedupeTTL)
+		result, err := store.Claim(ctx, "org-mark", "mark-key", "wfx_1", "signal", DefaultSignalDedupeTTL)
 		if err != nil {
 			t.Fatalf("Claim failed: %v", err)
 		}
@@ -169,7 +169,7 @@ func TestSignalDedupeStore_MarkDelivered(t *testing.T) {
 		}
 
 		// Subsequent claim should still return duplicate (key is still valid)
-		result2, err := store.Claim(ctx, "org-mark", "mark-key", "wfx-2", "signal", DefaultSignalDedupeTTL)
+		result2, err := store.Claim(ctx, "org-mark", "mark-key", "wfx_2", "signal", DefaultSignalDedupeTTL)
 		if err != nil {
 			t.Fatalf("Subsequent claim failed: %v", err)
 		}

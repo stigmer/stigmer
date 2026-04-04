@@ -38,7 +38,7 @@ import (
 // Example:
 //
 //	For kind=ApiResourceKind_agent
-//	Generated ID: "agt-01arz3ndektsv4rrffq69g5fav"
+//	Generated ID: "agt_01arz3ndektsv4rrffq69g5fav"
 type BuildNewStateStep[T proto.Message] struct {
 }
 
@@ -223,8 +223,8 @@ func setAuditFieldsReflect(resource proto.Message, event string) error {
 
 // GenerateID generates a unique ID for a resource using ULID
 //
-// Format: {prefix}-{lowercase-ulid}
-// Example: agt-01arz3ndektsv4rrffq69g5fav
+// Format: {prefix}_{lowercase-ulid}
+// Example: agt_01arz3ndektsv4rrffq69g5fav
 //
 // ULID (Universally Unique Lexicographically Sortable Identifier) provides:
 // - Lexicographic sorting (time-ordered)
@@ -234,10 +234,9 @@ func setAuditFieldsReflect(resource proto.Message, event string) error {
 //
 // This function is exported so custom steps can use it for ID generation.
 func GenerateID(prefix string) string {
-	// Generate ULID using current timestamp and crypto random entropy
 	id := ulid.MustNew(ulid.Timestamp(time.Now()), rand.Reader)
 
-	return fmt.Sprintf("%s-%s", prefix, strings.ToLower(id.String()))
+	return fmt.Sprintf("%s_%s", prefix, strings.ToLower(id.String()))
 }
 
 // generateID is kept for backward compatibility within this package

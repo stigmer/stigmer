@@ -20,7 +20,7 @@ func TestRenderCommittedItem_Header_WithSubject(t *testing.T) {
 		kind: kindHeader,
 		header: &sessionHeaderInfo{
 			AgentName: "test-agent",
-			SessionID: "ses-abc123",
+			SessionID: "ses_abc123",
 			Subject:   "Fix the login bug",
 			Model:     "sonnet-4.6",
 		},
@@ -29,7 +29,7 @@ func TestRenderCommittedItem_Header_WithSubject(t *testing.T) {
 
 	assert.Contains(t, result, "Stigmer")
 	assert.Contains(t, result, "test-agent")
-	assert.Contains(t, result, "ses-abc123")
+	assert.Contains(t, result, "ses_abc123")
 	assert.Contains(t, result, "Fix the login bug")
 	assert.Contains(t, result, "sonnet-4.6")
 }
@@ -38,12 +38,12 @@ func TestRenderCommittedItem_Header_WithoutSubject(t *testing.T) {
 	item := committedItem{
 		kind: kindHeader,
 		header: &sessionHeaderInfo{
-			SessionID: "ses-abc123",
+			SessionID: "ses_abc123",
 		},
 	}
 	result := renderCommittedItem(item, toolrender.CompactOptions{}, false, false)
 
-	assert.Contains(t, result, "ses-abc123")
+	assert.Contains(t, result, "ses_abc123")
 	assert.NotContains(t, result, "Subject")
 }
 
@@ -151,7 +151,7 @@ func TestRenderCommittedItem_TextKinds(t *testing.T) {
 
 func TestRenderCommittedItem_Header_SubjectMutation(t *testing.T) {
 	info := sessionHeaderInfo{
-		SessionID: "ses-abc123",
+		SessionID: "ses_abc123",
 	}
 	item := committedItem{kind: kindHeader, header: &info}
 
@@ -251,7 +251,7 @@ func TestRenderCommittedItem_Expanded_HeaderShowsModeIndicator(t *testing.T) {
 	item := committedItem{
 		kind: kindHeader,
 		header: &sessionHeaderInfo{
-			SessionID: "ses-abc123",
+			SessionID: "ses_abc123",
 			Subject:   "Test subject",
 		},
 	}
@@ -262,7 +262,7 @@ func TestRenderCommittedItem_Expanded_HeaderShowsModeIndicator(t *testing.T) {
 	assert.NotContains(t, compact, "expanded")
 
 	assert.Contains(t, expanded, "Stigmer · expanded")
-	assert.Contains(t, expanded, "ses-abc123")
+	assert.Contains(t, expanded, "ses_abc123")
 	assert.Contains(t, expanded, "Test subject")
 }
 
@@ -322,7 +322,7 @@ func TestTriggerReCommit_UsesExpandMode(t *testing.T) {
 	r := &inlineRenderer{
 		expandMode: true,
 		history: []committedItem{
-			{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
+			{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses_1"}},
 			{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{
 				{Name: "shell", Args: map[string]interface{}{"command": "ls"}, Status: "completed", Result: "out"},
 			}},
@@ -339,7 +339,7 @@ func TestTriggerReCommit_UsesExpandMode(t *testing.T) {
 func TestRenderHistoryBatch_MatchesPerItemOutput(t *testing.T) {
 	items := []committedItem{
 		{kind: kindHeader, header: &sessionHeaderInfo{
-			AgentName: "test-agent", SessionID: "ses-xyz", Subject: "Fix auth", Model: "sonnet-4.6",
+			AgentName: "test-agent", SessionID: "ses_xyz", Subject: "Fix auth", Model: "sonnet-4.6",
 		}},
 		{kind: kindAIMessage, text: "I'll analyze the code and fix the authentication issue."},
 		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
@@ -449,7 +449,7 @@ func TestRenderHistoryBatch_NilHeader(t *testing.T) {
 
 func TestRenderHistoryBatch_HeaderHasBlankLineGap(t *testing.T) {
 	items := []committedItem{
-		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
+		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses_1"}},
 		{kind: kindText, text: "first content"},
 	}
 	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false, false)
@@ -461,7 +461,7 @@ func TestRenderHistoryBatch_HeaderHasBlankLineGap(t *testing.T) {
 
 func TestRenderHistoryBatch_HeaderOnly_NoExtraNewline(t *testing.T) {
 	items := []committedItem{
-		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
+		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses_1"}},
 	}
 	result := renderHistoryBatch(items, toolrender.CompactOptions{}, false, false)
 
@@ -477,7 +477,7 @@ func TestRenderHistoryBatch_HeaderOnly_NoExtraNewline(t *testing.T) {
 func TestCommitToScrollback_MatchesRecommit(t *testing.T) {
 	items := []committedItem{
 		{kind: kindHeader, header: &sessionHeaderInfo{
-			AgentName: "test-agent", SessionID: "ses-xyz", Subject: "Fix auth", Model: "sonnet-4.6",
+			AgentName: "test-agent", SessionID: "ses_xyz", Subject: "Fix auth", Model: "sonnet-4.6",
 		}},
 		{kind: kindAIMessage, text: "I'll analyze the code and fix the authentication issue."},
 		{kind: kindToolCompact, toolCalls: []toolrender.ToolCallInfo{{
@@ -1100,7 +1100,7 @@ func TestRenderCommittedItem_NoHintOnNonExpandableKinds(t *testing.T) {
 	}{
 		{"Header", committedItem{
 			kind:   kindHeader,
-			header: &sessionHeaderInfo{SessionID: "ses-1"},
+			header: &sessionHeaderInfo{SessionID: "ses_1"},
 		}},
 		{"AIMessage", committedItem{kind: kindAIMessage, text: "response"}},
 		{"HumanMessage", committedItem{kind: kindHumanMessage, text: "input"}},

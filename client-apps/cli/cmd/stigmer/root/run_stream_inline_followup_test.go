@@ -424,7 +424,7 @@ func TestRenderInline_InitialHistory_PreservesExistingItems(t *testing.T) {
 	)
 
 	existingHistory := []committedItem{
-		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses-1"}},
+		{kind: kindHeader, header: &sessionHeaderInfo{SessionID: "ses_1"}},
 		{kind: kindAIMessage, text: "Previous response"},
 		{kind: kindHumanMessage, text: "follow-up question"},
 	}
@@ -460,7 +460,7 @@ func TestRenderInline_NoInitialHistory_CreatesHeader(t *testing.T) {
 	events := make(chan executiontui.Event, 10)
 	go feedEvents(events, executiontui.DoneEvent{Phase: "completed"})
 
-	headerInfo := sessionHeaderInfo{SessionID: "ses-new"}
+	headerInfo := sessionHeaderInfo{SessionID: "ses_new"}
 	result := renderInline(context.Background(), inlineRenderConfig{
 		events:            events,
 		approvalResponses: make(chan executiontui.ApprovalResponse, 1),
@@ -476,7 +476,7 @@ func TestRenderInline_NoInitialHistory_CreatesHeader(t *testing.T) {
 	if result.history[0].kind != kindHeader {
 		t.Errorf("expected first item to be header, got %v", result.history[0].kind)
 	}
-	if result.history[0].header == nil || result.history[0].header.SessionID != "ses-new" {
+	if result.history[0].header == nil || result.history[0].header.SessionID != "ses_new" {
 		t.Error("expected header to contain session info")
 	}
 }

@@ -53,12 +53,12 @@ func TestCreate_GeneratesValidID(t *testing.T) {
 		t.Error("Expected ID to be generated, got empty string")
 	}
 
-	if !strings.HasPrefix(created.Metadata.Id, "prj-") {
-		t.Errorf("Expected ID to start with 'prj-', got '%s'", created.Metadata.Id)
+	if !strings.HasPrefix(created.Metadata.Id, "prj_") {
+		t.Errorf("Expected ID to start with 'prj_', got '%s'", created.Metadata.Id)
 	}
 
 	if len(created.Metadata.Id) != 30 {
-		t.Errorf("Expected ID length 30 (prj- + 26 char ULID), got %d", len(created.Metadata.Id))
+		t.Errorf("Expected ID length 30 (prj_ + 26 char ULID), got %d", len(created.Metadata.Id))
 	}
 }
 

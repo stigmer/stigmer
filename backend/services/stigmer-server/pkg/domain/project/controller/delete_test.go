@@ -128,7 +128,7 @@ func TestDelete_NonExistentProject(t *testing.T) {
 	controller, store := setupTestController(t)
 	defer store.Close()
 
-	_, err := controller.Delete(contextWithProjectKind(), &projectv1.ProjectId{Value: "prj-nonexistent123456789"})
+	_, err := controller.Delete(contextWithProjectKind(), &projectv1.ProjectId{Value: "prj_nonexistent123456789"})
 	if err == nil {
 		t.Error("Expected error when deleting non-existent project, got nil")
 	}

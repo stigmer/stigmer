@@ -46,7 +46,7 @@ func TestApplyHandler_success(t *testing.T) {
 				Org:  "acme",
 				Slug: "github",
 				Name: "GitHub",
-				Id:   "mcp-123",
+				Id:   "mcp_123",
 			},
 		},
 	}

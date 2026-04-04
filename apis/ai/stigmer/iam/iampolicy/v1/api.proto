@@ -23,7 +23,7 @@ message IamPolicy {
   string kind = 2 [(buf.validate.field).string.const = 'IamPolicy'];
 
   // metadata
-  // id format: iamp-<ulid>
+  // id format: iamp_<ulid>
   // name: human-readable identifier (e.g., "john-vpc-admin")
   // org: organization this policy belongs to
   ai.stigmer.commons.apiresource.ApiResourceMetadata metadata = 3;
