@@ -13,5 +13,15 @@ Config.overrideWebpackConfig((config) => {
         new TsconfigPathsPlugin(),
       ],
     },
+    module: {
+      ...withTailwind.module,
+      rules: [
+        ...(withTailwind.module?.rules ?? []),
+        {
+          test: /\.m?js$/,
+          resolve: { fullySpecified: false },
+        },
+      ],
+    },
   };
 });

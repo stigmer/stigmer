@@ -72,7 +72,7 @@ export function AppShell({
   return (
     <div
       className="flex overflow-hidden rounded-lg border border-border bg-card"
-      style={{ height: DEMO_SHELL_HEIGHT }}
+      style={{ height: `var(--demo-shell-height, ${DEMO_SHELL_HEIGHT}px)` }}
     >
       {/* Nav sidebar */}
       <nav
