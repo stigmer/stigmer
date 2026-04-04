@@ -97,3 +97,9 @@ Only task logs (T##_1_feedback.md, T##_2_execution.md) can be updated without pe
 ## Notes
 
 _Add any additional notes, links, or context here as the project evolves._
+
+## Sub-Projects
+
+| Sub-Project | Path | Status | Description |
+|-------------|------|--------|-------------|
+| react-sdk-docs-auto-generation | [20260404.01.sp.react-sdk-docs-auto-generation](../20260404.01.sp.react-sdk-docs-auto-generation/) | Active | Build a TypeDoc-based auto-generation pipeline for React SDK (@stigmer/react) reference documentation, producing always-in-sync Fumadocs MDX pages from TSDoc comments in the source code. |

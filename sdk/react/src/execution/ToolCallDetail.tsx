@@ -13,8 +13,11 @@ import {
   formatResult,
 } from "./tool-rendering-primitives";
 
+/** Props for {@link ToolCallDetail}. */
 export interface ToolCallDetailProps {
+  /** The tool call to render in detail. */
   readonly toolCall: ToolCall;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

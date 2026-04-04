@@ -19,7 +19,9 @@ import {
   todoCompletionSummary,
 } from "./TodoList";
 
+/** Props for {@link SubAgentSection}. */
 export interface SubAgentSectionProps {
+  /** The sub-agent execution to render. */
   readonly subAgentExecution: SubAgentExecution;
   /**
    * Whether to render as a collapsible card with expand/collapse
@@ -29,6 +31,7 @@ export interface SubAgentSectionProps {
    * provides its own expand/collapse (e.g. {@link ToolCallItem}).
    */
   readonly collapsible?: boolean;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

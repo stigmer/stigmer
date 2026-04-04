@@ -41,6 +41,7 @@ export interface PushSkillParams {
   readonly tag?: string;
 }
 
+/** Return value of {@link useApplyResource}. */
 export interface UseApplyResourceReturn {
   /**
    * Apply a Stigmer resource YAML (Agent or McpServer) to an organization.

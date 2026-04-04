@@ -16,6 +16,7 @@ import { useDetectSkillPackage } from "../library/useDetectSkillPackage";
  */
 const MAX_DETECTION_SIZE = 256 * 1024;
 
+/** Props for {@link ArtifactCard}. */
 export interface ArtifactCardProps {
   /** The execution artifact to render. */
   readonly artifact: ExecutionArtifact;

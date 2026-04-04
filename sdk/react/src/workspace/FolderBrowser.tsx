@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useFolderListing } from "./useFolderListing";
 
+/** Props for {@link FolderBrowser}. */
 export interface FolderBrowserProps {
   /** Called when the user confirms the selected directory. */
   readonly onSelect: (path: string) => void;
@@ -16,6 +17,7 @@ export interface FolderBrowserProps {
   readonly onCancel: () => void;
   /** Starting directory path. Defaults to CWD from the API. */
   readonly initialPath?: string;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

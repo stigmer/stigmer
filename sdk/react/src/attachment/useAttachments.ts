@@ -33,16 +33,21 @@ export type AttachmentPhase = "uploading" | "ready" | "error";
  * independent entries with distinct IDs.
  */
 export interface AttachmentEntry {
+  /** Unique client-side identifier for this attachment. */
   readonly id: string;
+  /** The original `File` object selected by the user. */
   readonly file: File;
+  /** Current upload lifecycle phase. */
   readonly phase: AttachmentPhase;
+  /** MIME type of the file (e.g. `"image/png"`). */
   readonly contentType: string;
-  /** Set when `phase` is `"ready"`. */
+  /** Server-assigned storage key. Set when `phase` is `"ready"`. */
   readonly storageKey: string | null;
-  /** Set when `phase` is `"error"`. */
+  /** Human-readable error message. Set when `phase` is `"error"`. */
   readonly error: string | null;
 }
 
+/** Options for {@link useAttachments}. */
 export interface UseAttachmentsOptions {
   /**
    * Called when a file is rejected during `addFiles` (e.g., exceeds
@@ -51,6 +56,7 @@ export interface UseAttachmentsOptions {
   readonly onValidationError?: (message: string) => void;
 }
 
+/** Return value of {@link useAttachments}. */
 export interface UseAttachmentsReturn {
   /** Current attachment entries (uploading, ready, or errored). */
   readonly entries: readonly AttachmentEntry[];

@@ -7,14 +7,23 @@ const GITHUB_SEARCH_API = "https://api.github.com/search/repositories";
 const DEBOUNCE_MS = 350;
 const PER_PAGE = 30;
 
+/** Return value of {@link useGitHubSearch}. */
 export interface UseGitHubSearchReturn {
+  /** Search results for the current debounced query. */
   readonly results: readonly GitHubRepo[];
+  /** `true` while the search request is in flight. */
   readonly isSearching: boolean;
+  /** Error message from the last failed search, or `null` when healthy. */
   readonly error: string | null;
+  /** Current raw search query (not debounced). */
   readonly query: string;
+  /** Update the search query. The actual API call is debounced internally. */
   readonly setQuery: (query: string) => void;
+  /** Total number of repositories matching the query across GitHub. */
   readonly totalCount: number;
+  /** Whether more result pages are available. */
   readonly hasMore: boolean;
+  /** Fetch the next page of results. */
   readonly loadMore: () => void;
 }
 

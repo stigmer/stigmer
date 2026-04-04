@@ -5,10 +5,15 @@ import type { SessionInput } from "@stigmer/sdk";
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { useStigmer } from "../hooks";
 
+/** Return value of {@link useUpdateSession}. */
 export interface UseUpdateSessionReturn {
+  /** Send a full-replace update for a Session. Resolves with the updated resource. */
   readonly update: (input: SessionInput) => Promise<Session>;
+  /** `true` while the update RPC is in flight. */
   readonly isUpdating: boolean;
+  /** Error message from the last failed update, or `null` when healthy. */
   readonly error: string | null;
+  /** Reset the error state to `null`. */
   readonly clearError: () => void;
 }
 

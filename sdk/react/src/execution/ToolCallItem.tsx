@@ -18,7 +18,9 @@ import {
 } from "./tool-categories";
 import { useSandboxNormalize } from "./SandboxContext";
 
+/** Props for {@link ToolCallItem}. */
 export interface ToolCallItemProps {
+  /** The tool call to render as a summary row. */
   readonly toolCall: ToolCall;
   /**
    * When present, this tool call is a sub-agent delegation. The
@@ -30,6 +32,7 @@ export interface ToolCallItemProps {
    * Initial expansion state. Defaults to `false`.
    */
   readonly defaultExpanded?: boolean;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

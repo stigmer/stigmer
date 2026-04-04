@@ -7,6 +7,7 @@ import {
   type ModelCostEntry,
 } from "../session/useSessionUsage";
 
+/** Props for {@link UsageWidget}. */
 export interface UsageWidgetProps {
   /**
    * All executions for the current session — both completed and

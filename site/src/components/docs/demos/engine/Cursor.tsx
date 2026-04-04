@@ -2,6 +2,7 @@
 
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useTimeSource } from "./TimeSource";
 
 interface CursorProps {
   /**
@@ -88,8 +89,52 @@ export function Cursor({ target, containerRef }: CursorProps) {
   const clickTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const timeSource = useTimeSource();
 
+  /*
+   * Video-export path: compute position synchronously.
+   *
+   * In Remotion, each frame is a fully-rendered DOM snapshot.
+   * setTimeout never fires, so the normal polling/delay flow
+   * produces no result. Instead we read the target element's
+   * position directly via getBoundingClientRect — the DOM is
+   * already laid out when this effect runs.
+   *
+   * getBoundingClientRect returns viewport coordinates (post-zoom),
+   * but position:absolute inside a CSS-zoomed container uses CSS
+   * coordinates (pre-zoom). We divide by the effective zoom to
+   * convert viewport offsets back to the container's CSS space.
+   */
   useEffect(() => {
+    if (!timeSource) return;
+
+    if (!target) {
+      setPos(null);
+      setClicking(false);
+      return;
+    }
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const el = container.querySelector(`[data-cursor-target="${target}"]`);
+    if (!el) return;
+
+    const cRect = container.getBoundingClientRect();
+    const eRect = el.getBoundingClientRect();
+    const zoom = cRect.width / container.offsetWidth || 1;
+
+    setPos({
+      x: (eRect.left - cRect.left + eRect.width / 2) / zoom,
+      y: (eRect.top - cRect.top + eRect.height / 2) / zoom,
+    });
+    setClicking(false);
+  }, [timeSource, target, containerRef]);
+
+  /* Live-site path: poll for target, scroll, settle, then animate. */
+  useEffect(() => {
+    if (timeSource) return;
+
     clearTimeout(clickTimerRef.current);
     clearTimeout(retryTimerRef.current);
     clearTimeout(settleTimerRef.current);
@@ -158,7 +203,7 @@ export function Cursor({ target, containerRef }: CursorProps) {
       clearTimeout(settleTimerRef.current);
       clearTimeout(clickTimerRef.current);
     };
-  }, [target, containerRef]);
+  }, [timeSource, target, containerRef]);
 
   useEffect(() => {
     return () => {

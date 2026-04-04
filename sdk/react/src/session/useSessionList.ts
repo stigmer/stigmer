@@ -6,6 +6,7 @@ import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_
 import { ListSessionsRequestSchema } from "@stigmer/protos/ai/stigmer/agentic/session/v1/io_pb";
 import { useStigmer } from "../hooks";
 
+/** Options for {@link useSessionList}. */
 export interface UseSessionListOptions {
   /** Maximum sessions to return. Defaults to 50. */
   pageSize?: number;
@@ -13,10 +14,15 @@ export interface UseSessionListOptions {
   tags?: string[];
 }
 
+/** Return value of {@link useSessionList}. */
 export interface UseSessionListReturn {
+  /** The fetched list of Sessions, empty while loading or on error. */
   readonly sessions: readonly Session[];
+  /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** Error message from the last failed request, or `null` when healthy. */
   readonly error: string | null;
+  /** Discard cached data and re-fetch the session list from the server. */
   readonly refetch: () => void;
 }
 

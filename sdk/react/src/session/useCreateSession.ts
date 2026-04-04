@@ -36,14 +36,21 @@ export type CreateSessionInput = SharedSessionFields &
     | { readonly agentRef: ResourceRef; readonly agentInstanceId?: never }
   );
 
+/** Resolved output of {@link UseCreateSessionReturn.create}. */
 export interface CreateSessionResult {
+  /** Server-assigned identifier for the newly created Session. */
   readonly sessionId: string;
 }
 
+/** Return value of {@link useCreateSession}. */
 export interface UseCreateSessionReturn {
+  /** Create a Session from the given input. Resolves with the new session ID. */
   readonly create: (input: CreateSessionInput) => Promise<CreateSessionResult>;
+  /** `true` while the create RPC is in flight. */
   readonly isCreating: boolean;
+  /** Error from the last failed create attempt, or `null` when healthy. */
   readonly error: Error | null;
+  /** Reset the error state to `null`. */
   readonly clearError: () => void;
 }
 

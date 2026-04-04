@@ -9,6 +9,7 @@ import {
   type RefObject,
 } from "react";
 
+/** Options for {@link useComposer}. */
 export interface UseComposerOptions {
   /** Called with the trimmed message when the user submits. */
   readonly onSubmit: (message: string) => void;
@@ -23,6 +24,7 @@ export interface UseComposerOptions {
   readonly autoFocusOnEnable?: boolean;
 }
 
+/** Return value of {@link useComposer}. */
 export interface UseComposerReturn {
   /** Current message text. */
   readonly message: string;

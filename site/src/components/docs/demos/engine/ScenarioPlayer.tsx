@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import type { NarrationManifest } from "./narration";
 import { useNarrationPlayback } from "./useNarrationPlayback";
+import { useTimeSource } from "./TimeSource";
 import { useVideoExport } from "./VideoExportContext";
 
 /**
@@ -45,6 +46,22 @@ interface ScenarioPlayerProps<T> {
 }
 
 /**
+ * Find the active step for a given playback time by scanning the
+ * pre-computed step start times in reverse. Returns the index of
+ * the latest step whose start time has been reached.
+ */
+function deriveStepFromTime(
+  currentTimeMs: number,
+  stepStartTimesMs: readonly number[],
+  maxIndex: number,
+): number {
+  for (let i = stepStartTimesMs.length - 1; i >= 0; i--) {
+    if (currentTimeMs >= stepStartTimesMs[i]) return Math.min(i, maxIndex);
+  }
+  return 0;
+}
+
+/**
  * Generic playback engine for timed scenario animations.
  *
  * Manages step timing, viewport-triggered auto-play, progress indication,
@@ -74,13 +91,19 @@ export function ScenarioPlayer<T>({
 }: ScenarioPlayerProps<T>) {
   const prefersReducedMotion = useReducedMotion();
   const { isVideoExport, hideControls, initialMuted } = useVideoExport();
+  const timeSource = useTimeSource();
   const lastIndex = steps.length - 1;
 
-  const [stepIndex, setStepIndex] = useState(() =>
+  const [timerStepIndex, setStepIndex] = useState(() =>
     prefersReducedMotion ? lastIndex : 0,
   );
   const [playing, setPlaying] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const stepIndex = timeSource
+    ? deriveStepFromTime(timeSource.currentTimeMs, timeSource.stepStartTimesMs, lastIndex)
+    : timerStepIndex;
+
   const stepIndexRef = useRef(stepIndex);
   stepIndexRef.current = stepIndex;
 
@@ -93,7 +116,7 @@ export function ScenarioPlayer<T>({
   }, []);
 
   const { muted, toggleMute, audioRef } = useNarrationPlayback({
-    manifest: narrationManifest,
+    manifest: timeSource ? undefined : narrationManifest,
     stepIndex,
     playing,
     initialMuted,
@@ -101,26 +124,7 @@ export function ScenarioPlayer<T>({
   });
 
   useEffect(() => {
-    if (!isVideoExport) return;
-    const w = window as unknown as Record<string, unknown>;
-    if (!Array.isArray(w.__exportTimeline)) {
-      w.__exportTimeline = [];
-    }
-    (w.__exportTimeline as Array<{ step: number; timestamp: number }>).push({
-      step: stepIndex,
-      timestamp: performance.now(),
-    });
-  }, [isVideoExport, stepIndex]);
-
-  // In video export mode, start playing immediately without waiting
-  // for IntersectionObserver (headless browsers can be unreliable).
-  useEffect(() => {
-    if (!isVideoExport || !autoPlay || prefersReducedMotion) return;
-    setPlaying(true);
-  }, [isVideoExport, autoPlay, prefersReducedMotion]);
-
-  useEffect(() => {
-    if (isVideoExport || !autoPlay || prefersReducedMotion) return;
+    if (timeSource || isVideoExport || !autoPlay || prefersReducedMotion) return;
     const el = containerRef.current;
     if (!el) return;
 
@@ -135,10 +139,10 @@ export function ScenarioPlayer<T>({
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [isVideoExport, autoPlay, prefersReducedMotion, lastIndex]);
+  }, [timeSource, isVideoExport, autoPlay, prefersReducedMotion, lastIndex]);
 
   useEffect(() => {
-    if (!playing || prefersReducedMotion) return;
+    if (timeSource || !playing || prefersReducedMotion) return;
 
     // --- Final step: wait for narration to finish, then stop ---
     if (stepIndex >= lastIndex) {
@@ -214,7 +218,7 @@ export function ScenarioPlayer<T>({
     // No narration — advance after base delay
     const timer = setTimeout(() => setStepIndex(nextIndex), baseDelay);
     return () => clearTimeout(timer);
-  }, [playing, stepIndex, steps, lastIndex, prefersReducedMotion, muted, narrationManifest]);
+  }, [timeSource, playing, stepIndex, steps, lastIndex, prefersReducedMotion, muted, narrationManifest]);
 
   useEffect(() => {
     onStepChange?.(steps[stepIndex].data, stepIndex);
@@ -251,7 +255,6 @@ export function ScenarioPlayer<T>({
     <div
       ref={containerRef}
       className={className}
-      data-playback-complete={playbackComplete ? "true" : undefined}
     >
       {children(steps[stepIndex].data, stepIndex)}
       {narrationManifest && (

@@ -202,7 +202,7 @@ func docWriteMetaJSON(outputDir string, pages []string) error {
 		Title string   `json:"title"`
 		Pages []string `json:"pages"`
 	}{
-		Title: "SDK Reference",
+		Title: "Resources",
 		Pages: pages,
 	}
 	data, err := json.MarshalIndent(meta, "", "  ")
@@ -1228,7 +1228,7 @@ func docWriteMethodTypes(buf *bytes.Buffer, methodTypes []MethodTypeSchema, docu
 func docTypeRefWithCommons(typeName string, documentedTypes map[string]bool, commonsTypes map[string]bool) string {
 	if commonsTypes[typeName] {
 		anchor := strings.ToLower(typeName)
-		return fmt.Sprintf("[`%s`](/docs/sdk/commons#%s)", typeName, anchor)
+		return fmt.Sprintf("[`%s`](/docs/sdk/resources/commons#%s)", typeName, anchor)
 	}
 	return docTypeRef(typeName, documentedTypes)
 }
@@ -1332,7 +1332,7 @@ func docWriteResourceAndStatusTypesWithCommons(buf *bytes.Buffer, cfg sdkResourc
 
 	metadataLink := ""
 	if commonsTypes["ApiResourceMetadata"] {
-		metadataLink = ", typeDescriptionLink: \"/docs/sdk/commons#apiresourcemetadata\""
+		metadataLink = ", typeDescriptionLink: \"/docs/sdk/resources/commons#apiresourcemetadata\""
 	}
 
 	buf.WriteString("<TypeTable\n  type={{\n")
@@ -1912,7 +1912,7 @@ func docFieldTypeLink(ts *TypeSpec, documentedTypes map[string]bool) string {
 func docFieldTypeLinkWithCommons(ts *TypeSpec, documentedTypes map[string]bool, commonsTypes map[string]bool) string {
 	if enumName := docEnumTypeName(ts); enumName != "" {
 		if commonsTypes[enumName] {
-			return "/docs/sdk/commons#" + strings.ToLower(enumName)
+			return "/docs/sdk/resources/commons#" + strings.ToLower(enumName)
 		}
 		if documentedTypes[enumName] {
 			return "#" + strings.ToLower(enumName)
@@ -1933,7 +1933,7 @@ func docFieldTypeLinkWithCommons(ts *TypeSpec, documentedTypes map[string]bool, 
 	}
 
 	if commonsTypes[msgName] {
-		return "/docs/sdk/commons#" + strings.ToLower(msgName)
+		return "/docs/sdk/resources/commons#" + strings.ToLower(msgName)
 	}
 
 	displayName := docInputDisplayName(msgName)
@@ -1953,7 +1953,7 @@ func docResponseFieldTypeLink(ts *TypeSpec, documentedTypes map[string]bool) str
 func docResponseFieldTypeLinkWithCommons(ts *TypeSpec, documentedTypes map[string]bool, commonsTypes map[string]bool) string {
 	if enumName := docEnumTypeName(ts); enumName != "" {
 		if commonsTypes[enumName] {
-			return "/docs/sdk/commons#" + strings.ToLower(enumName)
+			return "/docs/sdk/resources/commons#" + strings.ToLower(enumName)
 		}
 		if documentedTypes[enumName] {
 			return "#" + strings.ToLower(enumName)
@@ -1971,7 +1971,7 @@ func docResponseFieldTypeLinkWithCommons(ts *TypeSpec, documentedTypes map[strin
 		return ""
 	}
 	if commonsTypes[typeName] {
-		return "/docs/sdk/commons#" + strings.ToLower(typeName)
+		return "/docs/sdk/resources/commons#" + strings.ToLower(typeName)
 	}
 	if documentedTypes[typeName] {
 		return "#" + strings.ToLower(typeName)

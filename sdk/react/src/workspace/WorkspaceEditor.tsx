@@ -8,9 +8,13 @@ import { FolderBrowser } from "./FolderBrowser";
 import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
 
+/** Props for {@link WorkspaceEditor}. */
 export interface WorkspaceEditorProps {
+  /** Workspace state from {@link useWorkspaceEntries}. */
   readonly workspace: UseWorkspaceEntriesReturn;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
+  /** Disables all add/remove interactions. */
   readonly disabled?: boolean;
   /** GitHub connection state. When provided, enables the GitHub repo picker. */
   readonly gitHubConnection?: UseGitHubConnectionReturn;

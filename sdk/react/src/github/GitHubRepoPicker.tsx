@@ -11,6 +11,7 @@ import {
 import { useGitHubRepos, type GitHubRepo, type GitHubBranch } from "./useGitHubRepos";
 import { useGitHubSearch } from "./useGitHubSearch";
 
+/** Props for {@link GitHubRepoPicker}. */
 export interface GitHubRepoPickerProps {
   /** GitHub access token for API calls. */
   readonly token: string;
@@ -18,6 +19,7 @@ export interface GitHubRepoPickerProps {
   readonly onSelect: (repoUrl: string, branch: string) => void;
   /** Called when the user dismisses the picker (Escape key). */
   readonly onCancel?: () => void;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

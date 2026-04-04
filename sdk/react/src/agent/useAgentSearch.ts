@@ -8,7 +8,9 @@ import {
   type UseResourceSearchReturn,
 } from "../search";
 
+/** Options for {@link useAgentSearch}. Delegates to the shared resource search options. */
 export type UseAgentSearchOptions = UseResourceSearchOptions;
+/** Return value of {@link useAgentSearch}. Delegates to the shared resource search return type. */
 export type UseAgentSearchReturn = UseResourceSearchReturn;
 
 /**

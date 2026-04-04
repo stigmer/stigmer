@@ -6,10 +6,15 @@ import type { ResourceRef } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useAgentInstance}. */
 export interface UseAgentInstanceReturn {
+  /** The fetched AgentInstance, or `null` while loading or on error. */
   readonly agentInstance: AgentInstance | null;
+  /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
+  /** Discard cached data and re-fetch the agent instance from the server. */
   readonly refetch: () => void;
 }
 

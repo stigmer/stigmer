@@ -1,6 +1,7 @@
 import type { Session } from "@stigmer/protos/ai/stigmer/agentic/session/v1/api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 
+/** A time-based group of sessions produced by {@link groupSessionsByTime}. */
 export interface SessionGroup {
   /** Display label for this group (e.g. "Today", "Yesterday"). */
   readonly label: string;

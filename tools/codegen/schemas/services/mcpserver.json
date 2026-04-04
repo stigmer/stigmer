@@ -506,69 +506,6 @@
   },
   "statusNestedTypes": [
     {
-      "name": "DiscoveredCapabilities",
-      "description": "DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.\n\n @internal\n This is a point-in-time snapshot — the server's actual capabilities may change\n if tools are added or removed.\n\n Tools vs Resource Templates:\n   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).\n     Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.\n   - resource_templates: Read-only data endpoints accessed by URI template.\n     Resource template names must NEVER appear in enabled_tools — doing so causes\n     a fatal runtime error.\n\n Populated by:\n - Seedpack bootstrap (built-in servers with known, stable tool sets)\n - CLI discovery (`stigmer discover mcp-server \u003cname\u003e`)\n - Agent-runner runtime cache (future)",
-      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities",
-      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
-      "fields": [
-        {
-          "name": "Tools",
-          "jsonName": "tools",
-          "protoField": "tools",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "DiscoveredTool"
-            }
-          },
-          "description": "Callable tools reported by the MCP server.",
-          "required": false
-        },
-        {
-          "name": "ResourceTemplates",
-          "jsonName": "resourceTemplates",
-          "protoField": "resource_templates",
-          "type": {
-            "kind": "array",
-            "elementType": {
-              "kind": "message",
-              "messageType": "DiscoveredResourceTemplate"
-            }
-          },
-          "description": "Read-only data endpoints reported by the MCP server.",
-          "required": false
-        },
-        {
-          "name": "LastDiscoveredAt",
-          "jsonName": "lastDiscoveredAt",
-          "protoField": "last_discovered_at",
-          "type": {
-            "kind": "timestamp"
-          },
-          "description": "When this snapshot was captured.",
-          "required": false
-        },
-        {
-          "name": "DiscoveredBy",
-          "jsonName": "discoveredBy",
-          "protoField": "discovered_by",
-          "type": {
-            "kind": "string",
-            "enumType": "ai.stigmer.agentic.mcpserver.v1.DiscoverySource",
-            "enumValues": [
-              "seedpack",
-              "cli",
-              "agent_runner",
-              "api"
-            ]
-          },
-          "description": "How this snapshot was produced.",
-          "required": false
-        }
-      ]
-    },
-    {
       "name": "DiscoveredTool",
       "description": "DiscoveredTool describes a single tool reported by an MCP server.\n\n @internal\n Maps directly to the MCP protocol's Tool type from tools/list.",
       "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredTool",
@@ -768,6 +705,69 @@
             "kind": "string"
           },
           "description": "URL to the actor's avatar image.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "DiscoveredCapabilities",
+      "description": "DiscoveredCapabilities holds the tools and resource templates reported by an MCP server.\n\n @internal\n This is a point-in-time snapshot — the server's actual capabilities may change\n if tools are added or removed.\n\n Tools vs Resource Templates:\n   - tools: Callable actions the agent can invoke (e.g., search_code, create_pr).\n     Only tool names are valid in Agent enabled_tools and McpServer default_enabled_tools.\n   - resource_templates: Read-only data endpoints accessed by URI template.\n     Resource template names must NEVER appear in enabled_tools — doing so causes\n     a fatal runtime error.\n\n Populated by:\n - Seedpack bootstrap (built-in servers with known, stable tool sets)\n - CLI discovery (`stigmer discover mcp-server \u003cname\u003e`)\n - Agent-runner runtime cache (future)",
+      "protoType": "ai.stigmer.agentic.mcpserver.v1.DiscoveredCapabilities",
+      "protoFile": "apis/ai/stigmer/agentic/mcpserver/v1/status.proto",
+      "fields": [
+        {
+          "name": "Tools",
+          "jsonName": "tools",
+          "protoField": "tools",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "DiscoveredTool"
+            }
+          },
+          "description": "Callable tools reported by the MCP server.",
+          "required": false
+        },
+        {
+          "name": "ResourceTemplates",
+          "jsonName": "resourceTemplates",
+          "protoField": "resource_templates",
+          "type": {
+            "kind": "array",
+            "elementType": {
+              "kind": "message",
+              "messageType": "DiscoveredResourceTemplate"
+            }
+          },
+          "description": "Read-only data endpoints reported by the MCP server.",
+          "required": false
+        },
+        {
+          "name": "LastDiscoveredAt",
+          "jsonName": "lastDiscoveredAt",
+          "protoField": "last_discovered_at",
+          "type": {
+            "kind": "timestamp"
+          },
+          "description": "When this snapshot was captured.",
+          "required": false
+        },
+        {
+          "name": "DiscoveredBy",
+          "jsonName": "discoveredBy",
+          "protoField": "discovered_by",
+          "type": {
+            "kind": "string",
+            "enumType": "ai.stigmer.agentic.mcpserver.v1.DiscoverySource",
+            "enumValues": [
+              "seedpack",
+              "cli",
+              "agent_runner",
+              "api"
+            ]
+          },
+          "description": "How this snapshot was produced.",
           "required": false
         }
       ]

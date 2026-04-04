@@ -13,8 +13,11 @@ import {
   humanizeArgKey,
 } from "./tool-rendering-primitives";
 
+/** Props for {@link McpToolDetail}. */
 export interface McpToolDetailProps {
+  /** The MCP tool call to render with structured formatting. */
   readonly toolCall: ToolCall;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
@@ -63,6 +66,10 @@ export function McpToolDetail({ toolCall, className }: McpToolDetailProps) {
 // Metadata
 // ---------------------------------------------------------------------------
 
+/**
+ * Displays MCP server slug, tool name, and optional duration as a
+ * compact metadata row above tool arguments.
+ */
 export function McpMetadataRow({
   mcpServerSlug,
   toolName,
@@ -94,6 +101,12 @@ export function McpMetadataRow({
 // Arguments — structured key-value rendering
 // ---------------------------------------------------------------------------
 
+/**
+ * Renders MCP tool arguments as a structured key-value list.
+ *
+ * Scalars display inline; objects and arrays collapse into
+ * formatted JSON blocks via {@link CollapsibleJsonBlock}.
+ */
 export function McpArgsView({ args }: { args: Record<string, unknown> }) {
   const entries = Object.entries(args);
   if (entries.length === 0) return null;

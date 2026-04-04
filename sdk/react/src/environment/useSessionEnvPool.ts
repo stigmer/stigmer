@@ -23,6 +23,7 @@ export interface SessionEnvPoolInput {
   readonly mcpRuntimeEnv?: Readonly<Record<string, EnvVarInput>>;
 }
 
+/** Return value of {@link useSessionEnvPool}. */
 export interface UseSessionEnvPoolReturn {
   /**
    * All env var keys currently available from any source.

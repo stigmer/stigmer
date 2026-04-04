@@ -68,6 +68,7 @@ export interface McpServerSetupIntegration {
 // Component props
 // ---------------------------------------------------------------------------
 
+/** Props for {@link McpServerPicker}. */
 export interface McpServerPickerProps {
   /** Organization slug used as the default search scope. */
   readonly org: string;
@@ -99,7 +100,9 @@ export interface McpServerPickerProps {
   readonly onChange?: (usages: McpServerUsageInput[]) => void;
   /** Called with the display name when an item is added (for chip rendering). */
   readonly onDisplayNameResolved?: (key: string, name: string) => void;
+  /** Disables all interaction. */
   readonly disabled?: boolean;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
   /**
    * When provided, enables setup-integrated mode: per-server status

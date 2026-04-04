@@ -5,11 +5,17 @@ import type { AttachmentInput, EnvVarInput } from "@stigmer/sdk";
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Input for {@link UseCreateAgentExecutionReturn.create}. */
 export interface CreateAgentExecutionInput {
+  /** Organization slug that owns the session. */
   readonly org: string;
+  /** Session to create the execution within. */
   readonly sessionId: string;
+  /** User message that initiates the execution. */
   readonly message: string;
+  /** Override the default model for this execution. */
   readonly modelName?: string;
+  /** Explicit agent ID. When omitted, uses the session's agent instance. */
   readonly agentId?: string;
   /**
    * Execution-scoped secrets and configuration (Execution Flow).
@@ -39,17 +45,25 @@ export interface CreateAgentExecutionInput {
   readonly attachments?: AttachmentInput[];
 }
 
+/** Resolved output of {@link UseCreateAgentExecutionReturn.create}. */
 export interface CreateAgentExecutionResult {
+  /** Server-assigned identifier for the newly created execution. */
   readonly executionId: string;
+  /** Session the execution belongs to (echoed from input). */
   readonly sessionId: string;
 }
 
+/** Return value of {@link useCreateAgentExecution}. */
 export interface UseCreateAgentExecutionReturn {
+  /** Create an execution within a session. Resolves with the new execution ID. */
   readonly create: (
     input: CreateAgentExecutionInput,
   ) => Promise<CreateAgentExecutionResult>;
+  /** `true` while the create RPC is in flight. */
   readonly isCreating: boolean;
+  /** Error from the last failed create attempt, or `null` when healthy. */
   readonly error: Error | null;
+  /** Reset the error state to `null`. */
   readonly clearError: () => void;
 }
 

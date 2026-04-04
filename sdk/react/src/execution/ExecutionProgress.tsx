@@ -5,9 +5,11 @@ import { cn } from "@stigmer/theme";
 import { ExecutionPhaseBadge } from "./ExecutionPhaseBadge";
 import { TodoList } from "./TodoList";
 
+/** Props for {@link ExecutionProgress}. */
 export interface ExecutionProgressProps {
   /** The execution to display progress for. Renders nothing when null. */
   readonly execution: AgentExecution | null;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

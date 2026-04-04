@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { AgentExecution } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/api_pb";
 import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 
+/** Return value of {@link useWorkspaceWriteBacks}. */
 export interface UseWorkspaceWriteBacksReturn {
   /** Write-back outcomes for git-backed workspace entries, ordered by workspace entry name. */
   readonly writeBacks: readonly WorkspaceWriteBack[];

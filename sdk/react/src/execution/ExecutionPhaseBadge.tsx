@@ -3,8 +3,11 @@
 import { ExecutionPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/enum_pb";
 import { cn } from "@stigmer/theme";
 
+/** Props for {@link ExecutionPhaseBadge}. */
 export interface ExecutionPhaseBadgeProps {
+  /** The execution phase to display. */
   readonly phase: ExecutionPhase;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

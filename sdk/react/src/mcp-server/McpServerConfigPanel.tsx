@@ -58,6 +58,7 @@ export interface McpServerCredentialsProps {
 // Component props
 // ---------------------------------------------------------------------------
 
+/** Props for {@link McpServerConfigPanel}. */
 export interface McpServerConfigPanelProps {
   /** The MCP server resource — used for header display (name, icon, description). */
   readonly mcpServer: McpServer;
@@ -82,7 +83,9 @@ export interface McpServerConfigPanelProps {
   readonly onBack: () => void;
   /** Error to display inline (e.g., from credential submission failure). */
   readonly error?: Error | null;
+  /** Disables all interaction. */
   readonly disabled?: boolean;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

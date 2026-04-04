@@ -10,6 +10,7 @@ import {
 } from "@stigmer/sdk";
 import { cn } from "@stigmer/theme";
 
+/** Props for {@link ErrorMessage}. */
 export interface ErrorMessageProps {
   /** The error to display. Renders nothing when `null`. */
   readonly error: Error | null;
@@ -21,6 +22,7 @@ export interface ErrorMessageProps {
    * (server or unavailable category).
    */
   readonly retry?: () => void;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

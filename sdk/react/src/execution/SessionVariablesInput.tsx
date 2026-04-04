@@ -6,10 +6,13 @@ import type { UseSessionVariablesReturn } from "./useSessionVariables";
 import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
 
+/** Props for {@link SessionVariablesInput}. */
 export interface SessionVariablesInputProps {
   /** Hook instance returned by {@link useSessionVariables}. */
   readonly sessionVariables: UseSessionVariablesReturn;
+  /** Disable all inputs and buttons. */
   readonly disabled?: boolean;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
   /**
    * Map of env-var keys to the names of resources that require them.

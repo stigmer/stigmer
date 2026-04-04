@@ -6,10 +6,15 @@ import type { AgentInstance } from "@stigmer/protos/ai/stigmer/agentic/agentinst
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useCreateAgentInstance}. */
 export interface UseCreateAgentInstanceReturn {
+  /** Submit an {@link AgentInstanceInput} to create a new AgentInstance. Resolves with the server-created resource. */
   readonly create: (input: AgentInstanceInput) => Promise<AgentInstance>;
+  /** `true` while the create request is in flight. */
   readonly isCreating: boolean;
+  /** Error from the last failed create, or `null` when healthy. */
   readonly error: Error | null;
+  /** Reset `error` to `null`. */
   readonly clearError: () => void;
 }
 

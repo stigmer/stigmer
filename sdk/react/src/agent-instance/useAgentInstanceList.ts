@@ -7,11 +7,17 @@ import { ListAgentInstancesRequestSchema } from "@stigmer/protos/ai/stigmer/agen
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useAgentInstanceList}. */
 export interface UseAgentInstanceListReturn {
+  /** The fetched list of AgentInstance entries. Empty while loading or on error. */
   readonly agentInstances: readonly AgentInstance[];
+  /** Total number of agent instances matching the query, including unpaged items. */
   readonly totalCount: number;
+  /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
+  /** Discard cached data and re-fetch the list from the server. */
   readonly refetch: () => void;
 }
 

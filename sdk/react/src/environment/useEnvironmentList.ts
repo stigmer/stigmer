@@ -7,11 +7,17 @@ import { ListEnvironmentsRequestSchema } from "@stigmer/protos/ai/stigmer/agenti
 import { useStigmer } from "../hooks";
 import { toError } from "../internal/toError";
 
+/** Return value of {@link useEnvironmentList}. */
 export interface UseEnvironmentListReturn {
+  /** The fetched list of Environment entries. Empty while loading or on error. */
   readonly environments: readonly Environment[];
+  /** Total number of environments matching the query, including unpaged items. */
   readonly totalCount: number;
+  /** `true` while the initial fetch or a refetch is in flight. */
   readonly isLoading: boolean;
+  /** Error from the last failed request, or `null` when healthy. */
   readonly error: Error | null;
+  /** Discard cached data and re-fetch the list from the server. */
   readonly refetch: () => void;
 }
 

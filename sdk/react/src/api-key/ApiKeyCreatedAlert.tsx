@@ -7,6 +7,7 @@ import { cn } from "@stigmer/theme";
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Props for {@link ApiKeyCreatedAlert}. */
 export interface ApiKeyCreatedAlertProps {
   /** The raw API key value to display. Shown exactly once. */
   readonly rawKey: string;
@@ -14,6 +15,7 @@ export interface ApiKeyCreatedAlertProps {
   readonly keyName: string;
   /** Fired when the user dismisses the alert. */
   readonly onDismiss: () => void;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

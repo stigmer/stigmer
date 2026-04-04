@@ -71,6 +71,7 @@ export type {
   AgentSetupPhase,
 } from "./agentSetupReducer";
 
+/** Options for {@link UseAgentSetupReturn.submitEnvVars}. */
 export interface SubmitEnvVarsOptions {
   /**
    * When `true` (default), the provided values are saved to the user's
@@ -86,6 +87,7 @@ export interface SubmitEnvVarsOptions {
   readonly saveForFuture?: boolean;
 }
 
+/** Return value of {@link useAgentSetup}. */
 export interface UseAgentSetupReturn {
   /**
    * Current state of the agent setup flow.

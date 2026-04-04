@@ -33,6 +33,7 @@ export interface GetOrCreatePersonalInstanceInput {
   readonly personalEnvironmentRef: ResourceRef;
 }
 
+/** Return value of {@link usePersonalAgentInstance}. */
 export interface UsePersonalAgentInstanceReturn {
   /** The caller's personal agent instance, or `null` if not yet created or still loading. */
   readonly agentInstance: AgentInstance | null;
