@@ -9,16 +9,25 @@ import type { LlmCallMetrics } from "@stigmer/protos/ai/stigmer/agentic/agentexe
  * Per-model cost breakdown computed from per-message {@link LlmCallMetrics}.
  */
 export interface ModelCostEntry {
+  /** Model identifier (e.g., `"claude-3-5-sonnet-20241022"`). */
   readonly model: string;
+  /** Provider that served the model (e.g., `"anthropic"`). */
   readonly provider: string;
+  /** Estimated cost in USD for all calls to this model. */
   readonly estimatedCostUsd: number;
+  /** Total non-cached input tokens across all calls to this model. */
   readonly inputTokens: number;
+  /** Total output tokens across all calls to this model. */
   readonly outputTokens: number;
+  /** Total cache creation tokens across all calls to this model. */
   readonly cacheCreationTokens: number;
+  /** Total cache read tokens across all calls to this model. */
   readonly cacheReadTokens: number;
+  /** Number of LLM calls made to this model. */
   readonly callCount: number;
 }
 
+/** Return value of {@link useSessionUsage}. */
 export interface UseSessionUsageReturn {
   /** Total estimated cost across all executions in the session. */
   readonly totalCostUsd: number;

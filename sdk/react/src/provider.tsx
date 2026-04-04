@@ -7,6 +7,7 @@ import type { ThemePresetId } from "@stigmer/theme";
 import { StigmerContext } from "./context";
 import { DeploymentModeContext } from "./deployment-mode";
 
+/** Props for {@link StigmerProvider}. */
 export interface StigmerProviderProps {
   /** A configured {@link Stigmer} client instance. */
   readonly client: Stigmer;

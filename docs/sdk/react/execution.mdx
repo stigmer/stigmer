@@ -101,10 +101,10 @@ function useCreateAgentExecution(): UseCreateAgentExecutionReturn
 
 <TypeTable
   type={{
-    clearError: { type: "() => void", description: "" },
-    create: { type: "(input: CreateAgentExecutionInput) => Promise<CreateAgentExecutionResult>", description: "" },
-    error: { type: "Error | null", description: "" },
-    isCreating: { type: "boolean", description: "" },
+    clearError: { type: "() => void", description: "Reset the error state to `null`." },
+    create: { type: "(input: CreateAgentExecutionInput) => Promise<CreateAgentExecutionResult>", description: "Create an execution within a session. Resolves with the new execution ID." },
+    error: { type: "Error | null", description: "Error from the last failed create attempt, or `null` when healthy." },
+    isCreating: { type: "boolean", description: "`true` while the create RPC is in flight." },
   }}
 />
 
@@ -386,10 +386,10 @@ preview and the post-execution detail view.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     isSubmitting: { type: "boolean", description: "True while the RPC for this specific tool call is in flight." },
     onSubmit: { type: "(action: ApprovalAction, comment?: string) => void", description: "Called when the user clicks Approve, Skip, or Reject. The consumer (typically MessageThread or a platform builder's custom thread) handles the RPC via useSubmitApproval.", required: true },
-    pendingApproval: { type: "PendingApproval", description: "", required: true },
+    pendingApproval: { type: "PendingApproval", description: "The pending approval request to render.", required: true },
   }}
 />
 
@@ -625,8 +625,8 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
-    phase: { type: "ExecutionPhase", description: "", required: true },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    phase: { type: "ExecutionPhase", description: "The execution phase to display.", required: true },
   }}
 />
 
@@ -656,7 +656,7 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     execution: { type: "AgentExecution | null", description: "The execution to display progress for. Renders nothing when null.", required: true },
   }}
 />
@@ -690,7 +690,7 @@ Platform builders can override the default behavior via the
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root element." },
     path: { type: "string", description: "The workspace-relative file path from the tool call.", required: true },
   }}
 />
@@ -719,7 +719,7 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultModelId: { type: "string", description: "Initial model ID for the selector." },
     disabled: { type: "boolean", description: "Disables the entire input (e.g., while an execution streams)." },
     isSubmitting: { type: "boolean", description: "Shows loading indicator on send button." },
@@ -749,10 +749,18 @@ All visual properties flow through `--stgm-*` tokens.
 
 ### McpArgsView
 
+Renders MCP tool arguments as a structured key-value list.
+
+Scalars display inline; objects and arrays collapse into
+formatted JSON blocks via `CollapsibleJsonBlock`.
+
 <ComponentPreview component="McpArgsView" />
 
 
 ### McpMetadataRow
+
+Displays MCP server slug, tool name, and optional duration as a
+compact metadata row above tool arguments.
 
 <ComponentPreview component="McpMetadataRow" />
 
@@ -778,8 +786,8 @@ with structured formatting:
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
-    toolCall: { type: "ToolCall", description: "", required: true },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    toolCall: { type: "ToolCall", description: "The MCP tool call to render with structured formatting.", required: true },
   }}
 />
 
@@ -807,8 +815,8 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
-    message: { type: "AgentMessage", description: "", required: true },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    message: { type: "AgentMessage", description: "The agent message to render.", required: true },
   }}
 />
 
@@ -836,7 +844,7 @@ All visual properties flow through `--stgm-*` tokens.
 <TypeTable
   type={{
     activeStreamExecution: { type: "AgentExecution | null", description: "The currently streaming execution. Appended after `executions` to form a continuous thread. Pass `null` or `undefined` when no execution is actively streaming." },
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     executions: { type: "readonly AgentExecution[]", description: "Completed executions in chronological order.", required: true },
     formatToolCallSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom formatter for tool call summary labels. Passed through to each ToolCallGroup." },
     onApprovalSubmit: { type: "(toolCallId: string, action: ApprovalAction, comment?: string) => void", description: "Callback for approval actions. When provided and the active execution has pending approvals, ApprovalCards are rendered as thread items. When omitted, no approval UI is shown (backward compatible)." },
@@ -880,8 +888,8 @@ All visual properties flow through `--stgm-*` design tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
-    disabled: { type: "boolean", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    disabled: { type: "boolean", description: "Disable all inputs and buttons." },
     requiredByMap: { type: "Readonly<Record<string, readonly string[]>>", description: "Map of env-var keys to the names of resources that require them.  When a session variable's key matches a required key, a subtle \"Used by: X\" indicator is shown, confirming the cross-link between the variable and the agent/MCP server that needs it.  Built by `SessionComposer` from the selected agent's and MCP servers' `env_spec` declarations." },
     sessionVariables: { type: "UseSessionVariablesReturn", description: "Hook instance returned by useSessionVariables.", required: true, typeDescriptionLink: "#usesessionvariablesreturn" },
   }}
@@ -914,7 +922,7 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     serverPhase: { type: "string", description: "Server-reported setup phase label from `AgentExecutionStatus.setup_progress.current_phase`.  When non-empty, rendered directly — the timer-based fallback is bypassed.  When absent or empty (older backends that don't emit setup progress), the component falls back to the time-based step sequence derived from `workspaceEntries`." },
     workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec. When git-sourced entries are present, the fallback indicator shows workspace-specific messaging (e.g. \"Setting up workspace...\")." },
   }}
@@ -955,9 +963,9 @@ building blocks used by the top-level [`MessageThread`](#messagethread).
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     collapsible: { type: "boolean", description: "Whether to render as a collapsible card with expand/collapse toggle. Defaults to `true`.  Set to `false` when rendered inside a parent that already provides its own expand/collapse (e.g. ToolCallItem)." },
-    subAgentExecution: { type: "SubAgentExecution", description: "", required: true },
+    subAgentExecution: { type: "SubAgentExecution", description: "The sub-agent execution to render.", required: true },
   }}
 />
 
@@ -995,7 +1003,7 @@ All visual properties flow through `--stgm-*` tokens.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     todos: { type: "object", description: "Todo items keyed by ID. Accepts the proto map shape directly (`execution.status.todos` or `subAgentExecution.todos`).", required: true },
   }}
 />
@@ -1066,8 +1074,8 @@ their own tool call UI.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
-    toolCall: { type: "ToolCall", description: "", required: true },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
+    toolCall: { type: "ToolCall", description: "The tool call to render in detail.", required: true },
   }}
 />
 
@@ -1097,11 +1105,11 @@ via the `formatSummary` prop.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultExpanded: { type: "boolean", description: "Initial expansion state. Defaults to `false`." },
     formatSummary: { type: "(toolCalls: readonly ToolCall[]) => string", description: "Custom summary formatter. Receives the tool calls and returns a display string. When omitted, the component uses a default that shows the tool name for single calls and a count for multiple." },
     subAgentExecutions: { type: "readonly SubAgentExecution[]", description: "Sub-agent executions from the parent `AgentExecutionStatus`. When provided, tool calls whose `id` matches a `SubAgentExecution.id` are rendered with a nested sub-agent thread instead of a standard detail panel." },
-    toolCalls: { type: "readonly ToolCall[]", description: "", required: true },
+    toolCalls: { type: "readonly ToolCall[]", description: "Tool calls in this group, ordered by invocation time.", required: true },
   }}
 />
 
@@ -1131,10 +1139,10 @@ an inline approval decision badge when applicable.
 
 <TypeTable
   type={{
-    className: { type: "string", description: "" },
+    className: { type: "string", description: "Additional CSS class names for the root container." },
     defaultExpanded: { type: "boolean", description: "Initial expansion state. Defaults to `false`." },
     subAgentExecution: { type: "SubAgentExecution | null", description: "When present, this tool call is a sub-agent delegation. The detail panel renders a SubAgentSection instead of a ToolCallDetail." },
-    toolCall: { type: "ToolCall", description: "", required: true },
+    toolCall: { type: "ToolCall", description: "The tool call to render as a summary row.", required: true },
   }}
 />
 
@@ -1285,28 +1293,34 @@ function classifyPath(path: string): PathClassification
 
 ### CreateAgentExecutionInput
 
+Input for `UseCreateAgentExecutionReturn.create`.
+
 <TypeTable
   type={{
-    agentId: { type: "string", description: "" },
+    agentId: { type: "string", description: "Explicit agent ID. When omitted, uses the session's agent instance." },
     attachments: { type: "AttachmentInput[]", description: "Pre-uploaded file attachments injected into the agent sandbox.  Each entry must include a `storageKey` obtained from `agentExecution.uploadAttachment()`. The agent can read attached files from their mount paths (default `/inputs/{filename}`)." },
-    message: { type: "string", description: "", required: true },
-    modelName: { type: "string", description: "" },
-    org: { type: "string", description: "", required: true },
+    message: { type: "string", description: "User message that initiates the execution.", required: true },
+    modelName: { type: "string", description: "Override the default model for this execution." },
+    org: { type: "string", description: "Organization slug that owns the session.", required: true },
     runtimeEnv: { type: "Record<string, EnvVarInput>", description: "Execution-scoped secrets and configuration (Execution Flow).  Values are injected into the agent sandbox for this execution only and deleted when the execution completes. They take the highest merge priority, overriding both Environment values and agent defaults.  Use this for B2B integrations where per-call credentials are injected at runtime, or for one-off secrets that should not persist.  For persistent credentials that are reused across executions, use the Environment Flow instead (store secrets in an Environment resource and bind them via an AgentInstance)." },
-    sessionId: { type: "string", description: "", required: true },
+    sessionId: { type: "string", description: "Session to create the execution within.", required: true },
   }}
 />
 
 ### CreateAgentExecutionResult
 
+Resolved output of `UseCreateAgentExecutionReturn.create`.
+
 <TypeTable
   type={{
-    executionId: { type: "string", description: "", required: true },
-    sessionId: { type: "string", description: "", required: true },
+    executionId: { type: "string", description: "Server-assigned identifier for the newly created execution.", required: true },
+    sessionId: { type: "string", description: "Session the execution belongs to (echoed from input).", required: true },
   }}
 />
 
 ### FilePathContext
+
+Context that supplies workspace file-path metadata for display-time path resolution.
 
 
 ### FilePathContextValue
@@ -1321,7 +1335,7 @@ copy-to-clipboard for all paths.
 <TypeTable
   type={{
     onFilePathClick: { type: "(path: string, resolved: ResolvedPathAction) => void", description: "Optional override for the default click behavior. When provided, `FilePathLink` delegates to this callback instead of opening a URL or copying to clipboard. Platform builders use this to integrate their own file viewer or navigation." },
-    workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "", required: true },
+    workspaceEntries: { type: "readonly WorkspaceEntry[]", description: "Workspace entries from the session spec, used for path resolution.", required: true },
   }}
 />
 
@@ -1549,11 +1563,11 @@ to the user's personal environment for reuse across sessions.
 
 <TypeTable
   type={{
-    id: { type: "string", description: "", required: true },
-    isSecret: { type: "boolean", description: "", required: true },
-    key: { type: "string", description: "", required: true },
-    saveForFuture: { type: "boolean", description: "", required: true },
-    value: { type: "string", description: "", required: true },
+    id: { type: "string", description: "Unique identifier for this entry (auto-generated).", required: true },
+    isSecret: { type: "boolean", description: "Whether the value should be masked in the UI.", required: true },
+    key: { type: "string", description: "Environment variable name.", required: true },
+    saveForFuture: { type: "boolean", description: "When `true`, persists the value to the user's personal environment on submit.", required: true },
+    value: { type: "string", description: "Environment variable value.", required: true },
   }}
 />
 

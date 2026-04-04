@@ -16,6 +16,7 @@ import { useAgentSearch } from "./useAgentSearch";
 import { useScrollShadows } from "../internal/useScrollShadows";
 import { ScrollFade } from "../internal/ScrollFade";
 
+/** Props for {@link AgentPicker}. */
 export interface AgentPickerProps {
   /** Organization slug used as the default search scope. */
   readonly org: string;

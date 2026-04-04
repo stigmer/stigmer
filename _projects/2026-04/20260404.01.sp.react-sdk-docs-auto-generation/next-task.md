@@ -101,9 +101,17 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-04 14:28
-**Last Session**: 2026-04-04 (session 6) — Full component preview coverage expansion
-**Current Task**: T05 (TSDoc backfill for priority domains)
-**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, previews COMPLETE (54/59 components), T05 next
+**Last Session**: 2026-04-04 (session 7) — T05 TSDoc backfill for priority domains
+**Current Task**: T07 (TSDoc backfill for remaining domains)
+**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, previews COMPLETE (54/59 components), T05 COMPLETE, T07 next
+
+### Session 7 Results (T05 TSDoc backfill) — COMPLETE
+Added TSDoc summaries and field-level documentation to every exported interface, type alias, variable, and context across the five priority domains (core, composer, session, agent, execution). All five domains now at 100% documentation coverage. Overall SDK coverage moved from ~57% to 76.5% (276/361 exports). Key outcomes:
+- 65 source files in `sdk/react/src/` received TSDoc additions
+- 5 MDX pages regenerated with complete field descriptions
+- Standardized patterns for `className`, mutation returns, query returns, `{@link}` cross-references
+- TypeDoc JSON: 0 errors; `tsc --noEmit`: clean; Coverage: 100% on all 5 priority domains
+- See checkpoints/2026-04-04-session-7.md for full details
 
 ### Session 6 Results (full preview coverage) — COMPLETE
 Expanded component preview system from 5 to 54 components (92% of 59 exported SDK components). Key outcomes:
@@ -169,13 +177,13 @@ Layer 1 now links to Layer 2 via T04.
 
 ## Next Steps
 
-1. **T05**: TSDoc backfill for under-documented interfaces (session, execution, agent, composer, core domains prioritized)
-2. **T07**: Remaining TSDoc backfill + polish for all other domains
+1. **T07**: TSDoc backfill for remaining 12 domains (~85 undocumented exports)
+   - Largest gaps: mcp-server (18), environment (14), skill (9), workspace (8), library (7)
+   - Smaller domains: api-key (6), github (5), models (6), agent-instance (4), attachment (3), error (2), organization (2)
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T05" - Start TSDoc backfill for priority domains
 - "Continue with T07" - Start remaining domain backfill
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress

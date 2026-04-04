@@ -17,6 +17,7 @@ import {
 
 const COPIED_FEEDBACK_MS = 2000;
 
+/** Props for {@link ArtifactPreviewModal}. */
 export interface ArtifactPreviewModalProps {
   /** The execution artifact to preview. */
   readonly artifact: ExecutionArtifact;

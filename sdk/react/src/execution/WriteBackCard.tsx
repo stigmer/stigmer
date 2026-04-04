@@ -4,6 +4,7 @@ import type { WorkspaceWriteBack } from "@stigmer/protos/ai/stigmer/agentic/agen
 import { WorkspaceWriteBackPhase } from "@stigmer/protos/ai/stigmer/agentic/agentexecution/v1/writeback_pb";
 import { cn } from "@stigmer/theme";
 
+/** Props for {@link WriteBackCard}. */
 export interface WriteBackCardProps {
   /** The workspace write-back outcome to render. */
   readonly writeBack: WorkspaceWriteBack;

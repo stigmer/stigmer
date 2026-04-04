@@ -17,6 +17,7 @@ export interface SessionWriteBackEntry {
   readonly executionId: string;
 }
 
+/** Return value of {@link useSessionWriteBacks}. */
 export interface UseSessionWriteBacksReturn {
   /** All write-backs from the session, ordered by workspace entry name. */
   readonly writeBacks: readonly SessionWriteBackEntry[];

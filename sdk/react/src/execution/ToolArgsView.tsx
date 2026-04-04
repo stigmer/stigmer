@@ -20,6 +20,7 @@ import {
 // Public API
 // ---------------------------------------------------------------------------
 
+/** Props for {@link ToolArgsView}. */
 export interface ToolArgsViewProps {
   /**
    * Raw tool name as it appears on the ToolCall or PendingApproval.

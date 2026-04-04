@@ -10,6 +10,7 @@ import {
 import { cn } from "@stigmer/theme";
 import { ModelSelector } from "../models/ModelSelector";
 
+/** Props for {@link FollowUpInput}. */
 export interface FollowUpInputProps {
   /** Called when the user submits a message. */
   readonly onSubmit: (message: string, modelName?: string) => void;
@@ -25,6 +26,7 @@ export interface FollowUpInputProps {
   readonly onModelChange?: (modelId: string) => void;
   /** Placeholder text for the textarea. Default: "Reply...". */
   readonly placeholder?: string;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

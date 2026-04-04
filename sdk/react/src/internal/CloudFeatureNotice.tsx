@@ -3,9 +3,11 @@
 import type { ReactNode } from "react";
 import { cn } from "@stigmer/theme";
 
+/** Props for {@link CloudFeatureNotice}. */
 export interface CloudFeatureNoticeProps {
   /** Explanation of why the feature is unavailable and what to do instead. */
   readonly children: ReactNode;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 

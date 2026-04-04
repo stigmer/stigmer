@@ -68,6 +68,13 @@ export interface SendFollowUpOptions {
   readonly attachments?: AttachmentInput[];
 }
 
+/**
+ * Return value of {@link useSessionConversation}.
+ *
+ * Provides the full conversation state for a session: loaded data,
+ * active stream, follow-up submission, approval handling, and
+ * session-level context (workspace entries, MCP servers, skills).
+ */
 export interface UseSessionConversationReturn {
   /** The session object, or null while loading. */
   readonly session: Session | null;

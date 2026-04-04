@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { WorkspaceEntry } from "@stigmer/protos/ai/stigmer/agentic/session/v1/workspace_pb";
 import { cn } from "@stigmer/theme";
 
+/** Props for {@link SetupProgress}. */
 export interface SetupProgressProps {
   /**
    * Workspace entries from the session spec. When git-sourced entries
@@ -21,6 +22,7 @@ export interface SetupProgressProps {
    * step sequence derived from `workspaceEntries`.
    */
   readonly serverPhase?: string;
+  /** Additional CSS class names for the root container. */
   readonly className?: string;
 }
 
