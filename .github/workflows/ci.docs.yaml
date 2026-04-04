@@ -87,6 +87,9 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Install site dependencies
+        run: cd site && yarn install --immutable
+
       - name: Verify SDK docs are up to date
         run: make gen-sdk-docs-check
 
@@ -107,7 +110,8 @@ jobs:
           args: >-
             --no-progress
             --exclude-path docs/_archive
-            --exclude '^/'
+            --root-dir .
+            --fallback-extensions mdx
             --scheme https
             --scheme http
             docs/
