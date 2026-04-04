@@ -1,4 +1,10 @@
-import { defineDocs, defineConfig } from "fumadocs-mdx/config";
+import {
+  defineDocs,
+  defineCollections,
+  defineConfig,
+  frontmatterSchema,
+} from "fumadocs-mdx/config";
+import { z } from "zod";
 import remarkMermaid from "./src/lib/remark-mermaid";
 
 export const docs = defineDocs({
@@ -9,6 +15,15 @@ export const docs = defineDocs({
   meta: {
     files: ["**/meta.json", "!_archive/**"],
   },
+});
+
+export const blogPosts = defineCollections({
+  type: "doc",
+  dir: "../blog",
+  schema: frontmatterSchema.extend({
+    author: z.string(),
+    date: z.string().date().or(z.date()),
+  }),
 });
 
 export default defineConfig({
