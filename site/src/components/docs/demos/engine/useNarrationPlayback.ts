@@ -12,6 +12,12 @@ interface UseNarrationPlaybackOptions {
   playing: boolean;
   /** Initial muted state (default true). Set false for video export. */
   initialMuted?: boolean;
+  /**
+   * Fired when the current narration clip finishes playing (via the
+   * HTMLMediaElement `ended` event). ScenarioPlayer uses this to drive
+   * step advancement instead of a duration-based timeout.
+   */
+  onClipEnded?: () => void;
 }
 
 interface UseNarrationPlaybackResult {
@@ -91,6 +97,7 @@ export function useNarrationPlayback({
   stepIndex,
   playing,
   initialMuted = true,
+  onClipEnded,
 }: UseNarrationPlaybackOptions): UseNarrationPlaybackResult {
   const [muted, setMuted] = useState(initialMuted);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -99,6 +106,10 @@ export function useNarrationPlayback({
   // Keep muted state accessible in effects without re-triggering them.
   const mutedRef = useRef(muted);
   mutedRef.current = muted;
+
+  // Stable ref for the callback so the ended listener never goes stale.
+  const onClipEndedRef = useRef(onClipEnded);
+  onClipEndedRef.current = onClipEnded;
 
   // Resolve the narration entry for the current step.
   const entry = manifest?.steps[stepIndex] ?? null;
@@ -126,7 +137,13 @@ export function useNarrationPlayback({
       return;
     }
 
+    const handleEnded = () => onClipEndedRef.current?.();
+    audio.addEventListener("ended", handleEnded);
     playClip(audio, entrySrc);
+
+    return () => {
+      audio.removeEventListener("ended", handleEnded);
+    };
   }, [stepIndex, entrySrc, manifest]);
 
   // -----------------------------------------------------------------------
