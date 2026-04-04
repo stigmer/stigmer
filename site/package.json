@@ -13,6 +13,7 @@
     "generate-llms": "tsx scripts/generate-llms-txt.ts",
     "generate-narration": "tsx scripts/generate-narration.ts",
     "export-videos": "tsx scripts/export-videos.ts",
+    "render-videos": "tsx scripts/render-videos.ts",
     "remotion:studio": "remotion studio video/index.ts",
     "start": "next start",
     "lint": "eslint",

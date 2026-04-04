@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: deps dev build start lint typecheck clean preview generate-narration export-videos export-video install-playwright remotion-studio remotion-hello
+.PHONY: deps dev build start lint typecheck clean preview generate-narration export-videos export-video install-playwright remotion-studio remotion-hello render-videos render-video
 
 PORT ?= 3000
 
@@ -48,6 +48,15 @@ export-video: build
 # Install Playwright Chromium browser (one-time setup for video export)
 install-playwright:
 	npx playwright install chromium
+
+# Render all demo scenarios as MP4 videos via Remotion
+# (requires narration audio in public/demos/ — run generate-narration first)
+render-videos: deps
+	yarn render-videos
+
+# Render a single scenario: make render-video SCENARIO=approval-flow-playback
+render-video: deps
+	yarn render-videos --scenario=$(SCENARIO)
 
 # Launch Remotion Studio (composition preview UI)
 remotion-studio: deps
