@@ -101,9 +101,19 @@ When starting a new session:
 ## Current Status
 
 **Created**: 2026-04-04 14:28
-**Last Session**: 2026-04-04 (session 5) — Component preview system for SDK reference docs
+**Last Session**: 2026-04-04 (session 6) — Full component preview coverage expansion
 **Current Task**: T05 (TSDoc backfill for priority domains)
-**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, component previews COMPLETE, T05 next
+**Status**: T01 COMPLETE, T02 COMPLETE, T03 COMPLETE, T04 COMPLETE, previews COMPLETE (54/59 components), T05 next
+
+### Session 6 Results (full preview coverage) — COMPLETE
+Expanded component preview system from 5 to 54 components (92% of 59 exported SDK components). Key outcomes:
+- Fixed SessionComposer missing Workspace toolbar button (`workspace` prop was not passed)
+- Enriched AgentDetailView with all 6 renderable sections (MCP servers, skills, sub-agents, env vars, timestamps)
+- Added 49 new preview configs with coherent "Acme Corp support-agent" narrative
+- Built 10 shared mock data helpers (`buildRichAgent`, `buildSampleExecution`, etc.) for DRY preview data
+- 5 deliberate skips: StigmerProvider, FolderBrowser, GitHubRepoPicker, ApprovalPolicyGeneratorPanel, ArtifactPreviewModal
+- Regenerated all 17 MDX pages — 54 `<ComponentPreview>` tags total
+- See checkpoints/2026-04-04-session-6.md for full details
 
 ### Session 5 Results (component preview system) — COMPLETE
 Built a data-driven live component preview system for SDK reference pages. Key outcomes:
