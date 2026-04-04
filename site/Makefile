@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: deps dev build start lint typecheck clean preview generate-narration export-videos export-video install-playwright
+.PHONY: deps dev build start lint typecheck clean preview generate-narration export-videos export-video install-playwright remotion-studio remotion-hello
 
 PORT ?= 3000
 
@@ -48,6 +48,14 @@ export-video: build
 # Install Playwright Chromium browser (one-time setup for video export)
 install-playwright:
 	npx playwright install chromium
+
+# Launch Remotion Studio (composition preview UI)
+remotion-studio: deps
+	yarn remotion:studio
+
+# Render the HelloWorld test composition to MP4
+remotion-hello: deps
+	npx remotion render video/index.ts HelloWorld dist/videos/hello-world.mp4
 
 # Remove build artifacts
 clean:

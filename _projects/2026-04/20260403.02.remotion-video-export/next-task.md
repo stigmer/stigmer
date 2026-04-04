@@ -77,12 +77,39 @@ the recording backend with Remotion for pixel-perfect output.
 
 **Created**: 2026-04-03
 **Current Task**: T01 — Replace Playwright Video Export with Remotion
-**Status**: PENDING REVIEW — plan awaiting developer approval
+**Status**: IN PROGRESS — Phase 1 complete, Phase 2 next
+
+## Session Progress (2026-04-04)
+
+### Phase 1: Remotion Setup and Hello World — COMPLETE
+
+- Installed Remotion v4.0.443 (6 devDependencies)
+- Created `site/remotion.config.ts` with Tailwind v4 + path alias webpack overrides
+- Created `site/video/` directory with entry point, Root, styles, and HelloWorld composition
+- Validated end-to-end render: 1920x1080, H.264 High, 30fps, pixel-perfect output
+- Added `remotion-studio` and `remotion-hello` Makefile targets
+
+### Key Decisions Made
+
+- **Directory naming**: `site/video/` (not `site/remotion/`) — avoids npm package name collision via `baseUrl: "."`
+- **CSS strategy**: Dedicated `video/styles.css` with Tailwind v4 base + SDK tokens + site palette (no fumadocs)
+- **Font strategy**: Google Fonts via `@import url()` in CSS (Option A — simplest for dev-only tool)
+
+### Surprise Encountered
+
+`import from "remotion"` resolved to the local `remotion/` directory instead of `node_modules/remotion` because `tsconfig.json` has `baseUrl: "."`. Fixed by renaming to `video/`.
+
+## Next Steps
+
+1. **Phase 2: Scenario Composition** — Create a `<DemoVideo>` Remotion composition that imports scenario components from the registry. Key design decision: how to map ScenarioPlayer's `setTimeout`-based step progression to Remotion's frame-based model.
+2. **Phase 3: Audio Integration** — Map narration manifests to Remotion `<Audio>` components.
+3. **Phase 4: Render Script** — Programmatic render API replacing `export-videos.ts`.
+4. **Phase 5: Cleanup** — Remove Playwright, validate all 10 scenarios.
 
 ## Quick Commands
 
 After loading context:
-- "Continue with T01" - Resume the current task
+- "Continue with Phase 2" - Start scenario composition integration
 - "Show project status" - Get overview of progress
 - "Create checkpoint" - Save current progress
 - "Review guidelines" - Check established patterns
