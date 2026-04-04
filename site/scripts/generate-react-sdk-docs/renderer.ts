@@ -20,11 +20,82 @@ import {
 // ---------------------------------------------------------------------------
 
 const PREVIEW_COMPONENTS = new Set([
+  // Composer
   "SessionComposer",
+  "FollowUpInput",
+  // Models
   "ModelSelector",
+  // Agent
   "AgentDetailView",
-  "ErrorMessage",
+  "AgentPicker",
+  "AgentEnvForm",
+  // Skill
+  "SkillDetailView",
+  "SkillPicker",
+  // MCP Server
+  "McpServerDetailView",
+  "McpServerPicker",
+  "McpServerConfigPanel",
+  "McpToolSelector",
+  // Environment
+  "EnvironmentListPanel",
+  "EnvironmentVariableEditor",
+  "CreateEnvironmentForm",
+  "EnvVarForm",
+  // API Key
   "ApiKeyListPanel",
+  "CreateApiKeyForm",
+  "ApiKeyCreatedAlert",
+  // Organization
+  "CreateOrganizationForm",
+  // Error
+  "ErrorMessage",
+  "SecretFlowErrorGuide",
+  // Execution — Messages
+  "MessageThread",
+  "MessageEntry",
+  "SubAgentSection",
+  // Execution — Progress & Status
+  "ExecutionProgress",
+  "ExecutionPhaseBadge",
+  "TodoList",
+  "TodoInProgressIcon",
+  "SetupProgress",
+  // Execution — Approvals
+  "ApprovalCard",
+  // Execution — Tool Calls
+  "ToolCallDetail",
+  "ToolCallGroup",
+  "ToolCallItem",
+  "ToolArgsView",
+  "McpToolDetail",
+  "McpArgsView",
+  "McpMetadataRow",
+  // Execution — Artifacts
+  "ArtifactContentRenderer",
+  "ArtifactCard",
+  "ArtifactsWidget",
+  // Execution — Write-Backs
+  "WriteBackCard",
+  "WriteBacksWidget",
+  // Execution — Usage
+  "UsageWidget",
+  // Execution — File Paths
+  "FilePathLink",
+  // Execution — Session Variables
+  "SessionVariablesInput",
+  // Workspace
+  "WorkspaceEditor",
+  "WorkspaceSummary",
+  // Library
+  "ResourceListView",
+  "ResourceCountCard",
+  "ScopeToggle",
+  "VisibilityToggle",
+  // Attachment
+  "AttachmentChipList",
+  // Internal
+  "CloudFeatureNotice",
 ]);
 
 // ---------------------------------------------------------------------------
