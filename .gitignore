@@ -94,6 +94,7 @@ tmp/
 
 # Codegen tool binaries (go build drops these in the module/repo root)
 /generator
+/proto2schema
 tools/codegen/generator/generator
 
 # Go service binaries (prevent accidental commits of built binaries in service dirs)
