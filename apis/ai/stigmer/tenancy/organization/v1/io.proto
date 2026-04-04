@@ -6,22 +6,23 @@ import "ai/stigmer/commons/apiresource/io.proto";
 import "ai/stigmer/tenancy/organization/v1/api.proto";
 import "buf/validate/validate.proto";
 
-// List of organizations (unbounded)
+// List of organizations.
 message Organizations {
+  // Organization resources in this list.
   repeated Organization entries = 1;
 }
 
-// Response for paginated list query
+// Response for a paginated organization list query.
 message OrganizationList {
-  // total number of pages
+  // Total number of pages.
   int32 total_pages = 1;
-  // organizations in current page
+  // Organizations in the current page.
   repeated Organization entries = 2;
 }
 
-// Wrapper for organization id
+// OrganizationId wraps an organization identifier.
 message OrganizationId {
-  // organization id (UUID format)
+  // Organization identifier.
   string value = 1 [(buf.validate.field).string = {
     min_len: 1
     max_len: 64

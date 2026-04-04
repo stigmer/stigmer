@@ -7,9 +7,9 @@ import "ai/stigmer/tenancy/project/v1/spec.proto";
 import "ai/stigmer/tenancy/project/v1/status.proto";
 import "buf/validate/validate.proto";
 
-// Project is a lightweight membership tracker that groups related resources
-// under a single unit of management with automatic orphan pruning.
+// Project groups related resources under a single unit of management with automatic orphan pruning.
 //
+// @internal
 // Two tracks are supported:
 //
 // Declarative Track (no entry_point):
@@ -25,27 +25,6 @@ import "buf/validate/validate.proto";
 // In both tracks, the project stores only references (org/kind/slug) to its
 // members — never full resource objects. Orphan pruning is a set-difference
 // between previous and current members.
-//
-// Example YAML — Declarative (stigmer.yaml):
-//
-//   apiVersion: tenancy.stigmer.ai/v1
-//   kind: Project
-//   metadata:
-//     name: my-agent-fleet
-//     org: acme-corp
-//   spec:
-//     description: Production agent fleet
-//
-// Example YAML — SDK (stigmer.yaml):
-//
-//   apiVersion: tenancy.stigmer.ai/v1
-//   kind: Project
-//   metadata:
-//     name: my-super-app
-//     org: acme-corp
-//   spec:
-//     entry_point: main.go
-//     description: Go SDK project
 message Project {
   // API version for this resource type.
   string api_version = 1 [(buf.validate.field).string.const = 'tenancy.stigmer.ai/v1'];
