@@ -14,9 +14,9 @@ Drop this file into your conversation to quickly resume work on this project.
 ## Current Status
 
 **Created**: 2026-04-03
-**Last Session**: 2026-04-04 (Session 3)
+**Last Session**: 2026-04-04 (Session 4)
 **Current Task**: T01 — Replace Playwright Video Export with Remotion
-**Status**: IN PROGRESS — Phases 1–4 complete, Phase 5 next
+**Status**: COMPLETE — All 5 phases done
 
 ## Phase Progress Summary
 
@@ -26,55 +26,52 @@ Drop this file into your conversation to quickly resume work on this project.
 | Phase 2 | Scenario Composition | ✅ Complete |
 | Phase 3 | Audio Integration | ✅ Complete |
 | Phase 4 | Render Script | ✅ Complete |
-| Phase 5 | Cleanup & Validation | ⬜ Next |
+| Phase 5 | Cleanup & Validation | ✅ Complete |
 
-## Session Progress (2026-04-04, Session 3)
+## Session Progress (2026-04-04, Session 4)
 
 ### What Was Accomplished
 
-- **Shared webpack override**: Extracted the webpack override from `remotion.config.ts` into `video/webpack.ts` — shared between the Remotion CLI and the programmatic render script, eliminating duplication
-- **Programmatic render script**: Created `scripts/render-videos.ts` using `@remotion/bundler` and `@remotion/renderer` API — bundles once, discovers compositions via `getCompositions()`, renders sequentially with progress reporting
-- **Makefile targets**: Added `render-videos` (all scenarios) and `render-video SCENARIO=<id>` (single scenario) targets depending only on `deps`, not `build`
-- **Smoke tested**: Rendered `tool-calls-playback` in 8.6s — verified H.264 1920×1080 30fps with AAC audio
+- **Deleted old export script**: Removed `scripts/export-videos.ts` (496 lines) — the Playwright recording + FFmpeg compositing pipeline
+- **Deleted export route pages**: Removed `app/demos/export/` (layout, page, ExportShell) — Next.js pages that existed solely for Playwright navigation
+- **Removed Playwright dependency**: Removed `playwright` from devDependencies and regenerated lockfile
+- **Cleaned Makefile**: Removed `export-videos`, `export-video`, `install-playwright` targets and `.video-tmp` from `clean`
+- **Cleaned ScenarioPlayer**: Removed two dead Playwright-only effects (`__exportTimeline` logging, auto-play on export) and the `data-playback-complete` data attribute
+- **Updated gitignore**: Removed `.video-tmp/` entry, updated comment
+- **Updated robots.ts**: Removed `/demos/export/` from disallow list
+- **Validated**: Rendered all 10/10 scenarios successfully via `make render-videos` (2m 18s)
 
 ### Key Decisions Made
 
-1. **`getCompositions()` for discovery**: Uses Remotion's runtime composition discovery instead of importing `PLAYBACK_SCENARIO_IDS` from the registry — avoids pulling React component modules into a Node.js script context
-2. **Sequential rendering**: `renderMedia` already parallelizes frame rendering internally; scenario-level parallelism would multiply memory usage without proportional speedup
-3. **No quality presets**: CRF 18 is fast enough for iteration and high enough for production; a `--draft` flag can be added later as a one-line change
-4. **`deps` only, not `build`**: Remotion bundles its own React app from source — no Next.js static export or `serve` step needed
+1. **VideoExportContext stays**: Still used by Remotion's `DemoVideo.tsx` to provide `hideControls` and `initialMuted` — not Playwright-specific
+2. **`isVideoExport` in IntersectionObserver guard stays**: Defense-in-depth alongside `timeSource` check
+3. **`playbackComplete` variable stays**: Still used as a guard in the timer effect — only the `data-playback-complete` DOM attribute was removed
+4. **Export route pages fully removed**: Remotion bundles its own React app from `video/index.ts` — never hits Next.js routes
 
-### Files Modified/Created
+### Files Deleted
 
-**New files:**
-- `site/video/webpack.ts` — shared webpack override (Tailwind v4, tsconfig paths, ESM fix)
-- `site/scripts/render-videos.ts` — programmatic render script
+- `site/scripts/export-videos.ts`
+- `site/src/app/demos/export/layout.tsx`
+- `site/src/app/demos/export/[scenario]/page.tsx`
+- `site/src/app/demos/export/[scenario]/ExportShell.tsx`
 
-**Modified files:**
-- `site/remotion.config.ts` — simplified to import from `video/webpack.ts`
-- `site/package.json` — added `render-videos` script
-- `site/Makefile` — added `render-videos` and `render-video` targets
+### Files Modified
 
-## Next Steps
+- `site/package.json` — removed `playwright` devDep and `export-videos` script
+- `site/Makefile` — removed old targets, cleaned `.PHONY` and `clean`
+- `site/.gitignore` — removed `.video-tmp/`
+- `site/src/app/robots.ts` — removed `/demos/export/` from disallow
+- `site/src/components/docs/demos/engine/ScenarioPlayer.tsx` — removed dead Playwright code
+- `site/yarn.lock` — regenerated without playwright
 
-1. **Phase 5: Cleanup & Validation**
-   - Remove Playwright video recording code from `export-videos.ts`
-   - Remove `serve` startup/shutdown from export pipeline
-   - Remove Playwright devDependency if no longer used elsewhere
-   - Remove old `export-videos` / `export-video` Makefile targets
-   - Remove `install-playwright` target
-   - Remove `.video-tmp` from clean target
-   - Side-by-side quality comparison of old vs new output
-   - Batch render all 10 scenarios with new script and verify
+## Project Completion Summary
 
-## Context for Resume
-
-- The render script uses `getCompositions()` to discover scenario IDs from the bundle, filtering out the `HelloWorld` test composition — no hardcoded list
-- `video/webpack.ts` is the single source of truth for webpack overrides — both `remotion.config.ts` (CLI) and `render-videos.ts` (programmatic) import from it
-- The `computeTimeline()` function in `video/lib/timeline.ts` is the bridge between narration manifests and Remotion frames
-- ScenarioPlayer is fully backwards-compatible: when no TimeSource is present (live site), all behavior is unchanged
-- Videos are rendered to `site/dist/videos/` which is gitignored
-- Encoding: H.264, CRF 18, yuv420p, AAC audio — named constants in the script
+The Remotion migration is complete. The video rendering pipeline now:
+- Renders each frame as a lossless screenshot (no VP8 degradation)
+- Encodes directly to H.264 with AAC audio (no FFmpeg compositing step)
+- Uses frame-driven step progression via `TimeSource` (deterministic timing)
+- Discovers compositions from the bundle at runtime (no hardcoded lists)
+- Renders all 10 scenarios in ~2 minutes
 
 ## Essential Files to Review
 
@@ -120,14 +117,6 @@ export pipeline), which built the initial Playwright-based recording +
 FFmpeg compositing pipeline. That pipeline works end-to-end but produces
 low-quality video due to Playwright's VP8 codec. This project replaces
 the recording backend with Remotion for pixel-perfect output.
-
-## Quick Commands
-
-After loading context:
-- "Continue with Phase 5" — Start cleanup and validation
-- "Show project status" — Get overview of progress
-- "Create checkpoint" — Save current progress
-- "Review guidelines" — Check established patterns
 
 ---
 

@@ -124,26 +124,6 @@ export function ScenarioPlayer<T>({
   });
 
   useEffect(() => {
-    if (timeSource || !isVideoExport) return;
-    const w = window as unknown as Record<string, unknown>;
-    if (!Array.isArray(w.__exportTimeline)) {
-      w.__exportTimeline = [];
-    }
-    (w.__exportTimeline as Array<{ step: number; timestamp: number }>).push({
-      step: stepIndex,
-      timestamp: performance.now(),
-    });
-  }, [timeSource, isVideoExport, stepIndex]);
-
-  // In video export mode (Playwright path), start playing immediately
-  // without waiting for IntersectionObserver. Skipped when frame-driven
-  // (Remotion) since step progression comes from TimeSource, not timers.
-  useEffect(() => {
-    if (timeSource || !isVideoExport || !autoPlay || prefersReducedMotion) return;
-    setPlaying(true);
-  }, [timeSource, isVideoExport, autoPlay, prefersReducedMotion]);
-
-  useEffect(() => {
     if (timeSource || isVideoExport || !autoPlay || prefersReducedMotion) return;
     const el = containerRef.current;
     if (!el) return;
@@ -275,7 +255,6 @@ export function ScenarioPlayer<T>({
     <div
       ref={containerRef}
       className={className}
-      data-playback-complete={playbackComplete ? "true" : undefined}
     >
       {children(steps[stepIndex].data, stepIndex)}
       {narrationManifest && (
